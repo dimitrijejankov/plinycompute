@@ -24,6 +24,7 @@
 #include <fstream>
 #include <iostream>
 #include <unistd.h>
+#include <CatGetWorkersRequest.h>
 
 #include "CatCreateDatabaseRequest.h"
 #include "CatCreateSetRequest.h"
@@ -44,29 +45,22 @@
 #include "ShutDown.h"
 #include "SimpleSendDataRequest.h"
 #include "CatalogUserTypeMetadata.h"
+#include "CatGetWorkersResult.h"
 
 namespace pdb {
 
 // Constructor
-CatalogClient::CatalogClient(int portIn, std::string addressIn,
-                             PDBLoggerPtr myLoggerIn,
-                             bool pointsToCatalogManagerIn) {
+CatalogClient::CatalogClient(int portIn, std::string addressIn, PDBLoggerPtr myLoggerIn, bool pointsToCatalogManagerIn) : CatalogClient(portIn, std::move(addressIn), std::move(myLoggerIn)) {
   pointsToCatalogManager = pointsToCatalogManagerIn;
-  CatalogClient(portIn, addressIn, myLoggerIn);
 }
 
-// default constructor
-CatalogClient::CatalogClient() {}
-
 // Constructor
-CatalogClient::CatalogClient(int portIn, std::string addressIn,
-                             PDBLoggerPtr myLoggerIn) {
+CatalogClient::CatalogClient(int portIn, std::string addressIn, PDBLoggerPtr myLoggerIn) {
 
   // get the communicator information
   port = portIn;
-  address = addressIn;
-
-  myLogger = myLoggerIn;
+  address = std::move(addressIn);
+  myLogger = std::move(myLoggerIn);
 
   // and let the v-table map know this information
   if (!theVTable->getCatalogClient()) {
@@ -174,6 +168,27 @@ PDBCatalogTypePtr CatalogClient::getType(const std::string &typeName, std::strin
         }
       },
       typeName);
+}
+
+std::vector<pdb::PDBCatalogNodePtr> pdb::CatalogClient::getWorkerNodes() {
+
+  return std::move(simpleRequest<CatGetWorkersRequest, CatGetWorkersResult, std::vector<pdb::PDBCatalogNodePtr>>(
+      myLogger, port, address, std::vector<pdb::PDBCatalogNodePtr>(), 1024 * 1024, [&](Handle<CatGetWorkersResult> result) {
+
+        if (result == nullptr) {
+          PDB_COUT << "Failed to get the workers!" << "\n";
+          return std::vector<pdb::PDBCatalogNodePtr>();
+        }
+
+        // copy the result
+        std::vector<pdb::PDBCatalogNodePtr> ret;
+        for(int i = 0; i < result->nodes->size(); ++i) {
+          auto &node = (*result->nodes)[i];
+          ret.push_back(std::make_shared<pdb::PDBCatalogNode>(node->nodeID, node->nodeAddress, node->nodePort, node->nodeType));
+        }
+
+        return std::move(ret);
+      }));
 }
 
 // retrieves the content of a Shared Library given it's Type Id

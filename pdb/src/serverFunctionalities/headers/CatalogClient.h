@@ -35,7 +35,7 @@ public:
   ~CatalogClient();
 
   /* Default Constructor */
-  CatalogClient();
+  CatalogClient() = default;
 
   /*
    * Creates a Catalog Client given the port and address of the catalog
@@ -63,6 +63,8 @@ public:
   /* Uses the name of the object type to find its corresponding typeId, returns -1 if not found
    */
   PDBCatalogTypePtr getType(const std::string &typeName, std::string &error);
+
+  std::vector<pdb::PDBCatalogNodePtr> getWorkerNodes();
 
   /* Retrieves the content of a Shared Library given it's Type Id */
   bool getSharedLibrary(int16_t identifier, std::string sharedLibraryFileName);

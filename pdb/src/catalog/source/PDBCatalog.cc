@@ -423,3 +423,19 @@ bool pdb::PDBCatalog::removeSet(const std::string &dbName, const std::string &se
 
   return true;
 }
+
+std::vector<pdb::PDBCatalogNodePtr> pdb::PDBCatalog::getWorkerNodes() {
+
+  // select all the nodes we need
+  auto rows = storage.select(columns(&PDBCatalogNode::nodeID, &PDBCatalogNode::address, &PDBCatalogNode::port, &PDBCatalogNode::nodeType),
+                             where(c(&PDBCatalogNode::nodeType) == "worker"));
+
+  // copy the stuff
+  auto ret = std::vector<pdb::PDBCatalogNodePtr>();
+  for(const auto &row : rows) {
+    ret.push_back(std::make_shared<pdb::PDBCatalogNode>(std::get<0>(row), std::get<1>(row), std::get<2>(row), std::get<3>(row)));
+  }
+
+  // return the nodes
+  return std::move(ret);
+}

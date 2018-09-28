@@ -149,6 +149,12 @@ class PDBCatalog {
   PDBCatalogNodePtr getNode(const std::string &nodeID);
 
   /**
+   * Returns all the worker nodes in the catalog
+   * @return - a list of worker nodes that are registred in the catalog.
+   */
+  std::vector<PDBCatalogNodePtr> getWorkerNodes();
+
+  /**
    * Get the type with the id provided
    * @param id - the id of the type
    * @return - null if we do not find it, a copy of the type with the shared library if we do. If the type is a builtin

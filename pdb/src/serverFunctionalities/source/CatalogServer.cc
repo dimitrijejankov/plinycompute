@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <vector>
 #include <CatalogServer.h>
+#include <CatGetWorkersRequest.h>
 
 #include "BuiltInObjectTypeIDs.h"
 #include "CatSyncResult.h"
@@ -42,6 +43,7 @@
 #include "CatGetDatabaseResult.h"
 #include "CatGetSetRequest.h"
 #include "CatGetSetResult.h"
+#include "CatGetWorkersResult.h"
 #include "CatalogUserTypeMetadata.h"
 #include "CatPrintCatalogRequest.h"
 #include "CatPrintCatalogResult.h"
@@ -133,6 +135,7 @@ void CatalogServer::initBuiltInTypes() {
 
 // register handlers for processing requests to the Catalog Server
 void CatalogServer::registerHandlers(PDBServer &forMe) {
+
   PDB_COUT << "Catalog Server registering handlers" << endl;
 
   // handles a request to register metadata of a new cluster Node in the catalog
@@ -824,6 +827,28 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
             // sends result to requester
             res = sendUsingMe->sendObject(response, errMsg) && res;
+            return make_pair(res, errMsg);
+          }));
+
+  // handles a request to register a shared library
+  forMe.registerHandler(
+      CatGetWorkersRequest_TYPEID,
+      make_shared<SimpleRequestHandler<CatGetWorkersRequest>>(
+          [&](Handle<CatGetWorkersRequest> request, PDBCommunicatorPtr sendUsingMe) {
+
+            // lock the catalog server
+            std::lock_guard<std::mutex> guard(serverMutex);
+
+            // grab the database
+            auto nodes = pdbCatalog->getWorkerNodes();
+
+            // allocate a block for the response
+            const UseTemporaryAllocationBlock tempBlock{1024 + nodes.size() * 1024};
+            Handle<CatGetWorkersResult> response = pdb::makeObject<CatGetWorkersResult>(nodes);
+
+            // sends result to requester
+            std::string errMsg;
+            bool res = sendUsingMe->sendObject(response, errMsg);
             return make_pair(res, errMsg);
           }));
 }
