@@ -182,16 +182,9 @@ void DispatcherServer::registerHandlers(PDBServer& forMe) {
             }));
 }
 
-void DispatcherServer::registerStorageNodes(
-    Handle<Vector<Handle<NodeDispatcherData>>> storageNodes) {
-    this->storageNodes = storageNodes;
-    for (int i = 0; i < storageNodes->size(); i++) {
-        auto node = (*storageNodes)[i];
-        PDB_COUT << "Dispatcher register node: " << node->getAddress() << " : " << node->getPort()
-                 << std::endl;
-    }
+void DispatcherServer::registerStorageNodes() {
 
-    for (auto const partitionPolicy : partitionPolicies) {
+    for (auto const &partitionPolicy : partitionPolicies) {
         partitionPolicy.second->updateStorageNodes(storageNodes);
     }
 }

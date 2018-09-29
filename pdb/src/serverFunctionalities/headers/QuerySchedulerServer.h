@@ -143,16 +143,6 @@ protected:
     void initialize();
 
     /**
-     * TODO Ask Jia what the difference is between a resource and a node add a proper description
-     */
-    void initializeForServerMode();
-
-    /**
-     * TODO Ask Jia what the difference is between a resource and a node add a proper description
-     */
-    void initializeForPseudoClusterMode();
-
-    /**
      * This method is used to schedule dynamic pipeline stages
      * It must be invoked after initialize() and before cleanup()
      * @param stagesToSchedule is a vector of all the stages we want to schedule

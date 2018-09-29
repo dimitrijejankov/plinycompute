@@ -45,8 +45,7 @@ class PartitionPolicy {
 public:
     enum Policy { RANDOM, ROUNDROBIN, FAIR, DEFAULT };
 
-    std::vector<NodePartitionDataPtr> createNodePartitionData(
-        Handle<Vector<Handle<NodeDispatcherData>>> storageNodes);
+    virtual std::vector<NodePartitionDataPtr> createNodePartitionData(Handle<Vector<Handle<NodeDispatcherData>>> storageNodes) = 0;
 
     /**
      * Partitions a Vector of PDB data into a number of smaller Vectors all mapped to a respective
@@ -65,8 +64,7 @@ public:
      */
     virtual void updateStorageNodes(Handle<Vector<Handle<NodeDispatcherData>>> storageNodes) = 0;
 
-    virtual NodePartitionDataPtr updateExistingNode(NodePartitionDataPtr newNodeData,
-                                                    NodePartitionDataPtr oldNodeData) = 0;
+    virtual NodePartitionDataPtr updateExistingNode(NodePartitionDataPtr newNodeData, NodePartitionDataPtr oldNodeData) = 0;
 
     virtual NodePartitionDataPtr updateNewNode(NodePartitionDataPtr newNode) = 0;
 

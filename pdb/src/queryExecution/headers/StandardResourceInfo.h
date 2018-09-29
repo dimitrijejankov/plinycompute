@@ -32,12 +32,12 @@ typedef std::shared_ptr<StandardResourceInfo> StandardResourceInfoPtr;
 class StandardResourceInfo {
 
 public:
-    StandardResourceInfo() {}
+    StandardResourceInfo() = default;
 
-    ~StandardResourceInfo() {}
+    ~StandardResourceInfo() = default;
 
-    StandardResourceInfo(int numCores, int memSize, std::string address, int port, int nodeId)
-        : numCores(numCores), memSize(memSize), address(address), port(port), nodeId(nodeId) {}
+    StandardResourceInfo(int numCores, int memSize, std::string address, int port, std::string nodeId)
+        : numCores(numCores), memSize(memSize), address(std::move(address)), port(port), nodeId(std::move(nodeId)) {}
 
     // To get number of CPUs in this resource
     // <=0 for unknown
@@ -59,7 +59,6 @@ public:
         this->memSize = memSize;
     }
 
-
     std::string& getAddress() {
         return address;
     }
@@ -68,40 +67,37 @@ public:
         this->address = address;
     }
 
-    NodeID getNodeId() {
+    std::string getNodeId() {
         return this->nodeId;
     }
 
-    void setNodeId(NodeID nodeId) {
-        this->nodeId = nodeId;
+    void setNodeId(std::string nodeId) {
+        this->nodeId = std::move(nodeId);
     }
 
     int getPort() {
-
         return port;
     }
 
     void setPort(int port) {
-
         this->port = port;
     }
 
-
 private:
     // number of CPU cores
-    int numCores;
+    int numCores = -1;
 
     // size of memory in MB
-    int memSize;
+    int memSize = -1;
 
     // hostname or IP address of the PDB server
     std::string address;
 
     // port of the PDB server
-    int port;
+    int port = -1;
 
     // NodeID of the PDB server
-    NodeID nodeId;
+    std::string nodeId;
 };
 }
 

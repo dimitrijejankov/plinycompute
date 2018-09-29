@@ -19,7 +19,7 @@ typedef std::shared_ptr<PDBCatalogNode> PDBCatalogNodePtr;
 
 class PDBCatalogNode {
 
-public:
+ public:
 
   /**
    * The default constructor needed by the orm
@@ -35,6 +35,7 @@ public:
    */
   PDBCatalogNode(std::string nodeID, std::string address, int port, std::string nodeType)
       : nodeID(std::move(nodeID)), address(std::move(address)), port(port), nodeType(std::move(nodeType)) {}
+
 
   /**
    * The id of the node is a combination of the ip address and the port concatenated by a column
@@ -57,6 +58,16 @@ public:
   std::string nodeType;
 
   /**
+   * The number of cores on the node
+   */
+  int32_t numCores = 1;
+
+  /**
+   * The amount of memory on the node
+   */
+  int64_t totalMemory = 1024l * 1024l * 1024l * 4l;
+
+  /**
    * Return the schema of the database object
    * @return the schema
    */
@@ -64,16 +75,14 @@ public:
 
     // return the schema
     return sqlite_orm::make_table("nodes", sqlite_orm::make_column("nodeID", &PDBCatalogNode::nodeID),
-                                           sqlite_orm::make_column("nodeAddress", &PDBCatalogNode::address),
-                                           sqlite_orm::make_column("nodePort", &PDBCatalogNode::port),
-                                           sqlite_orm::make_column("nodeType", &PDBCatalogNode::nodeType),
-                                           sqlite_orm::primary_key(&PDBCatalogNode::nodeID));
+                                  sqlite_orm::make_column("nodeAddress", &PDBCatalogNode::address),
+                                  sqlite_orm::make_column("nodePort", &PDBCatalogNode::port),
+                                  sqlite_orm::make_column("nodeType", &PDBCatalogNode::nodeType),
+                                  sqlite_orm::primary_key(&PDBCatalogNode::nodeID));
   }
 
 };
 
 }
-
-
 
 #endif //PDB_PDBCATALOGNODE_H

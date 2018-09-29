@@ -67,7 +67,7 @@ public:
      *
      * @param storageNodes a vector of the live storage nodes
      */
-    void registerStorageNodes(Handle<Vector<Handle<NodeDispatcherData>>> storageNodes);
+    void registerStorageNodes();
 
     /**
      * Register a new set for the dispatcher to handle.
@@ -108,7 +108,6 @@ public:
 private:
     PDBLoggerPtr logger;
     std::shared_ptr<StatisticsDB> statisticsDB;
-    Handle<Vector<Handle<NodeDispatcherData>>> storageNodes;
     std::map<std::pair<std::string, std::string>, PartitionPolicyPtr> partitionPolicies;
 
     /**

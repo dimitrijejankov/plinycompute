@@ -18,7 +18,8 @@
 #ifndef QUERY_SCHEDULER_SERVER_CC
 #define QUERY_SCHEDULER_SERVER_CC
 
-
+#include <ctime>
+#include <chrono>
 #include "PDBDebug.h"
 #include "InterfaceFunctions.h"
 #include "QuerySchedulerServer.h"
@@ -29,8 +30,7 @@
 #include "StorageCollectStatsResponse.h"
 #include "Profiling.h"
 #include "RegisterReplica.h"
-#include <ctime>
-#include <chrono>
+#include "CatalogClient.h"
 #include <SimplePhysicalOptimizer/SimplePhysicalNodeFactory.h>
 #include <AdvancedPhysicalOptimizer/AdvancedPhysicalNodeFactory.h>
 
@@ -95,65 +95,15 @@ void QuerySchedulerServer::initialize() {
   delete this->standardResources;
   this->standardResources = new std::vector<StandardResourceInfoPtr>();
 
-  // depending of whether we are running in pseudo cluster mode
-  // or not we need to grab the standard resources from a different place
-  if (!pseudoClusterMode) {
-      initializeForServerMode();
-  } else {
-      initializeForPseudoClusterMode();
+  for(const auto &node : getFunctionality<CatalogClient>().getWorkerNodes()) {
+      StandardResourceInfoPtr currentResource = std::make_shared<StandardResourceInfo>(node->numCores,
+                                                                                       node->totalMemory,
+                                                                                       node->address,
+                                                                                       node->port,
+                                                                                       node->nodeID);
+      this->standardResources->push_back(currentResource);
   }
 }
-
-void QuerySchedulerServer::initializeForPseudoClusterMode() {
-
-    // all the stuff we create will be stored here
-    const UseTemporaryAllocationBlock block(2 * 1024 * 1024);
-
-    PDB_COUT << "To get the node object from the resource manager" << std::endl;
-    auto nodeObjects = getFunctionality<ResourceManagerServer>().getAllNodes();
-
-    // add and print out the resources
-    for (int i = 0; i < nodeObjects->size(); i++) {
-
-        PDB_COUT << i << ": address=" << (*(nodeObjects))[i]->getAddress()
-                 << ", port=" << (*(nodeObjects))[i]->getPort()
-                 << ", node=" << (*(nodeObjects))[i]->getNodeId() << std::endl;
-        StandardResourceInfoPtr currentResource =
-                std::make_shared<StandardResourceInfo>(DEFAULT_NUM_CORES / (nodeObjects->size()),
-                                                       DEFAULT_MEM_SIZE / (nodeObjects->size()),
-                                                       (*(nodeObjects))[i]->getAddress().c_str(),
-                                                       (*(nodeObjects))[i]->getPort(),
-                                                       (*(nodeObjects))[i]->getNodeId());
-        this->standardResources->push_back(currentResource);
-    }
-}
-
-void QuerySchedulerServer::initializeForServerMode() {
-
-    // all the stuff we create will be stored here
-    const UseTemporaryAllocationBlock block(2 * 1024 * 1024);
-
-    PDB_COUT << "To get the resource object from the resource manager" << std::endl;
-    auto resourceObjects = getFunctionality<ResourceManagerServer>().getAllResources();
-
-    // add and print out the resources
-    for (int i = 0; i < resourceObjects->size(); i++) {
-
-        PDB_COUT << i << ": address=" << (*(resourceObjects))[i]->getAddress()
-                 << ", port=" << (*(resourceObjects))[i]->getPort()
-                 << ", node=" << (*(resourceObjects))[i]->getNodeId()
-                 << ", numCores=" << (*(resourceObjects))[i]->getNumCores()
-                 << ", memSize=" << (*(resourceObjects))[i]->getMemSize() << std::endl;
-        StandardResourceInfoPtr currentResource = std::make_shared<StandardResourceInfo>(
-                (*(resourceObjects))[i]->getNumCores(),
-                (*(resourceObjects))[i]->getMemSize(),
-                (*(resourceObjects))[i]->getAddress().c_str(),
-                (*(resourceObjects))[i]->getPort(),
-                (*(resourceObjects))[i]->getNodeId());
-        this->standardResources->push_back(currentResource);
-    }
-}
-
 
 StatisticsPtr QuerySchedulerServer::getStats() {
     return statsForOptimization;

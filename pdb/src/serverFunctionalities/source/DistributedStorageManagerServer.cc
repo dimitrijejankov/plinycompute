@@ -162,11 +162,10 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
                     std::cout << "Set " << set << ":" << database << " already exists " << std::endl;
 
                     std::vector<std::string> allNodes;
-                    const auto nodes = getFunctionality<ResourceManagerServer>().getAllNodes();
-                    for (int i = 0; i < nodes->size(); i++) {
-                        std::string address = static_cast<std::string>((*nodes)[i]->getAddress());
-                        std::string port = std::to_string((*nodes)[i]->getPort());
-                        allNodes.push_back(address + ":" + port);
+                    const auto nodes = getFunctionality<CatalogClient>().getWorkerNodes();
+                    allNodes.reserve(nodes.size());
+                    for (const auto &node : nodes) {
+                      allNodes.push_back(node->address + ":" + std::to_string(node->port));
                     }
                     nodesToBroadcast = allNodes;
                     Handle<StorageClearSet> storageCmd = makeObject<StorageClearSet>(
@@ -220,11 +219,10 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
             std::string value;
 
             std::vector<std::string> allNodes;
-            const auto nodes = getFunctionality<ResourceManagerServer>().getAllNodes();
-            for (int i = 0; i < nodes->size(); i++) {
-                std::string address = static_cast<std::string>((*nodes)[i]->getAddress());
-                std::string port = std::to_string((*nodes)[i]->getPort());
-                allNodes.push_back(address + ":" + port);
+            const auto nodes = getFunctionality<CatalogClient>().getWorkerNodes();
+            allNodes.reserve(nodes.size());
+            for (const auto &node : nodes) {
+              allNodes.push_back(node->address + ":" + std::to_string(node->port));
             }
             nodesToBroadcast = allNodes;
 
@@ -319,11 +317,10 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
             }
 
             std::vector<std::string> allNodes;
-            const auto nodes = getFunctionality<ResourceManagerServer>().getAllNodes();
-            for (int i = 0; i < nodes->size(); i++) {
-                std::string address = static_cast<std::string>((*nodes)[i]->getAddress());
-                std::string port = std::to_string((*nodes)[i]->getPort());
-                allNodes.push_back(address + ":" + port);
+            const auto nodes = getFunctionality<CatalogClient>().getWorkerNodes();
+            allNodes.reserve(nodes.size());
+            for (const auto &node : nodes) {
+              allNodes.push_back(node->address + ":" + std::to_string(node->port));
             }
             nodesToBroadcast = allNodes;
             auto catalogGetNodesEnd = std::chrono::high_resolution_clock::now();
@@ -422,11 +419,10 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
             auto nodesToBroadcastTo = std::vector<std::string>();
 
             std::vector<std::string> allNodes;
-            const auto nodes = getFunctionality<ResourceManagerServer>().getAllNodes();
-            for (int i = 0; i < nodes->size(); i++) {
-                std::string address = static_cast<std::string>((*nodes)[i]->getAddress());
-                std::string port = std::to_string((*nodes)[i]->getPort());
-                allNodes.push_back(address + ":" + port);
+            const auto nodes = getFunctionality<CatalogClient>().getWorkerNodes();
+            allNodes.reserve(nodes.size());
+            for (const auto &node : nodes) {
+              allNodes.push_back(node->address + ":" + std::to_string(node->port));
             }
             nodesToBroadcastTo = allNodes;
             Handle<StorageRemoveDatabase> storageCmd = makeObject<StorageRemoveDatabase>(database);
@@ -482,11 +478,10 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
                 std::string set = request->getSetName();
                 std::string fullSetName = database + "." + set;
                 std::vector<std::string> allNodes;
-                const auto nodes = getFunctionality<ResourceManagerServer>().getAllNodes();
-                for (int i = 0; i < nodes->size(); i++) {
-                    std::string address = static_cast<std::string>((*nodes)[i]->getAddress());
-                    std::string port = std::to_string((*nodes)[i]->getPort());
-                    allNodes.push_back(address + ":" + port);
+                const auto nodes = getFunctionality<CatalogClient>().getWorkerNodes();
+                allNodes.reserve(nodes.size());
+                for (const auto &node : nodes) {
+                  allNodes.push_back(node->address + ":" + std::to_string(node->port));
                 }
                 nodesToBroadcast = allNodes;
 
@@ -578,11 +573,10 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
             typeName = type->name;
 
             std::vector<std::string> allNodes;
-            const auto nodes = getFunctionality<ResourceManagerServer>().getAllNodes();
-            for (int i = 0; i < nodes->size(); i++) {
-                std::string address = static_cast<std::string>((*nodes)[i]->getAddress());
-                std::string port = std::to_string((*nodes)[i]->getPort());
-                allNodes.push_back(address + ":" + port);
+            const auto nodes = getFunctionality<CatalogClient>().getWorkerNodes();
+            allNodes.reserve(nodes.size());
+            for (const auto &node : nodes) {
+              allNodes.push_back(node->address + ":" + std::to_string(node->port));
             }
             nodesToBroadcast = allNodes;
 
@@ -685,8 +679,9 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
                 getFunctionality<DispatcherServer>().waitAllRequestsProcessed();
                 std::cout << "All data requests have been served" << std::endl;
                 const auto nodes = getFunctionality<CatalogClient>().getWorkerNodes();
+                allNodes.reserve(nodes.size());
                 for (const auto &node : nodes) {
-                    allNodes.push_back(node->address + ":" + std::to_string(node->port));
+                      allNodes.push_back(node->address + ":" + std::to_string(node->port));
                 }
 
                 Handle<StorageCleanup> storageCmd = makeObject<StorageCleanup>();
@@ -730,11 +725,10 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
                 auto failureNodes = std::vector<std::string>();
 
                 std::vector<std::string> allNodes;
-                const auto nodes = getFunctionality<ResourceManagerServer>().getAllNodes();
-                for (int i = 0; i < nodes->size(); i++) {
-                    std::string address = static_cast<std::string>((*nodes)[i]->getAddress());
-                    std::string port = std::to_string((*nodes)[i]->getPort());
-                    allNodes.push_back(address + ":" + port);
+                const auto nodes = getFunctionality<CatalogClient>().getWorkerNodes();
+                allNodes.reserve(nodes.size());
+                for (const auto &node : nodes) {
+                  allNodes.push_back(node->address + ":" + std::to_string(node->port));
                 }
 
                 Handle<StorageExportSet> storageCmd =
@@ -798,11 +792,10 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
             // to get all nodes having data for this set
             std::vector<std::string> nodesToBroadcast;
             std::vector<std::string> allNodes;
-            const auto nodes = getFunctionality<ResourceManagerServer>().getAllNodes();
-            for (int i = 0; i < nodes->size(); i++) {
-                std::string address = static_cast<std::string>((*nodes)[i]->getAddress());
-                std::string port = std::to_string((*nodes)[i]->getPort());
-                allNodes.push_back(address + ":" + port);
+            const auto nodes = getFunctionality<CatalogClient>().getWorkerNodes();
+            allNodes.reserve(nodes.size());
+            for (const auto &node : nodes) {
+              allNodes.push_back(node->address + ":" + std::to_string(node->port));
             }
             nodesToBroadcast = allNodes;
 
