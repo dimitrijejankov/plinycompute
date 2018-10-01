@@ -201,7 +201,7 @@ namespace pdb {
     bool PDBClient::flushData() {
 
       bool result = distributedStorageClient->flushData(returnedMsg);
-      if (result==false) {
+      if (!result) {
           errorMsg = "Not able to flush data: " + returnedMsg;
           exit(-1);
       } else {
@@ -228,31 +228,11 @@ namespace pdb {
       };
     }
 
-    /****
-     * Methods for invoking Catalog-related operations
-     */
-
-    bool PDBClient::registerNode(string &localIP, int localPort, string &nodeName,
-                                 string &nodeType, int nodeStatus) {
-
-      makeObjectAllocatorBlock(1024 * 1024 * 1, true);
-      pdb::Handle<pdb::CatSyncRequest> nodeInfo = pdb::makeObject<pdb::CatSyncRequest>(localIP, localPort, nodeType);
-
-      bool result = catalogClient->registerNodeMetadata(nodeInfo, returnedMsg);
-      if (!result) {
-          errorMsg = "Not able to register node: " + returnedMsg;
-          exit(-1);
-      } else {
-          cout << "Node has been registered.\n";
-      }
-      return result;
-    }
-
     bool PDBClient::registerType(std::string fileContainingSharedLib) {
 
 
       bool result = catalogClient->registerType(fileContainingSharedLib, returnedMsg);
-      if (result==false) {
+      if (!result) {
           errorMsg = "Not able to register type: " + returnedMsg;
           exit(-1);
       } else {

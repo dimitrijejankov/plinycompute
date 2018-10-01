@@ -31,7 +31,7 @@
 #include "PDBVector.h"
 
 
-//  PRELOAD %CatSyncResult%
+//  PRELOAD %CatSyncWorkerRequest%
 
 using namespace std;
 
@@ -40,12 +40,12 @@ namespace pdb {
 /**
  * This class is used to sync a worker node with the manager
  */
-class CatSyncResult : public Object {
+class CatSyncWorkerRequest : public Object {
 public:
 
-  CatSyncResult() = default;
+  CatSyncWorkerRequest() = default;
 
-  explicit CatSyncResult(const std::vector<unsigned char> &bytes) {
+  explicit CatSyncWorkerRequest(const std::vector<unsigned char> &bytes) {
 
     // init the fields
     this->bytes = pdb::makeObject<pdb::Vector<unsigned char>>(bytes.size(), bytes.size());
@@ -54,7 +54,7 @@ public:
     memcpy(this->bytes->c_ptr(), bytes.data(), bytes.size());
   }
 
-  CatSyncResult(const Handle<CatSyncResult> &requestToCopy)  {
+  CatSyncWorkerRequest(const Handle<CatSyncWorkerRequest> &requestToCopy)  {
     // init the fields
     this->bytes = pdb::makeObject<pdb::Vector<unsigned char>>(requestToCopy->bytes->size(), requestToCopy->bytes->size());
 
@@ -62,7 +62,7 @@ public:
     memcpy(bytes->c_ptr(), requestToCopy->bytes->c_ptr(), bytes->size());
   }
 
-  ~CatSyncResult() = default;
+  ~CatSyncWorkerRequest() = default;
 
   ENABLE_DEEP_COPY
 

@@ -449,19 +449,15 @@ bool CatalogClient::deleteDatabase(const std::string &databaseName, std::string 
 }
 
 // sends a request to the Catalog Server to add metadata about a Node
-bool CatalogClient::registerNodeMetadata(pdb::Handle<pdb::CatSyncRequest> nodeData, std::string &errMsg) {
-
-  PDB_COUT << "registerNodeMetadata for item: " << (*nodeData) << endl;
+bool CatalogClient::syncWithNode(PDBCatalogNodePtr nodeData, std::string &errMsg) {
 
   return simpleRequest<CatSyncRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
         if (result != nullptr) {
           if (!result->getRes().first) {
-            errMsg =
-                "Error registering node metadata: " + result->getRes().second;
-            myLogger->error("Error registering node metadata: " +
-                            result->getRes().second);
+            errMsg = "Error registering node metadata: " + result->getRes().second;
+            myLogger->error("Error registering node metadata: " + result->getRes().second);
             return false;
           }
           return true;
@@ -469,7 +465,7 @@ bool CatalogClient::registerNodeMetadata(pdb::Handle<pdb::CatSyncRequest> nodeDa
         errMsg = "Error registering node metadata in the catalog";
         return false;
       },
-      nodeData);
+      nodeData->nodeID, nodeData->address, nodeData->port, nodeData->nodeType, nodeData->numCores, nodeData->totalMemory);
 }
 
 // sends a request to the Catalog Server to print all metadata newer than a

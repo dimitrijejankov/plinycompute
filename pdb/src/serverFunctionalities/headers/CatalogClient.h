@@ -103,8 +103,7 @@ public:
 
   /* Sends a request to the Catalog Server to register metadata about a node in
    * the cluster */
-  bool registerNodeMetadata(pdb::Handle<pdb::CatSyncRequest> nodeData,
-                            std::string &errMsg);
+  bool syncWithNode(PDBCatalogNodePtr nodeData, std::string &errMsg);
 
   /* Sends a request to the Catalog Server to Creates a new set for a given
    * DataType in a

@@ -16,74 +16,66 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef CAT_REG_TYPE_H
-#define CAT_REG_TYPE_H
+#ifndef PDB_CLUSTERMANAGER_H
+#define PDB_CLUSTERMANAGER_H
 
-#include "Object.h"
-#include "Handle.h"
-#include "PDBVector.h"
-
-// PRELOAD %CatRegisterType%
+#include <mutex>
+#include <thread>
+#include <sys/sysinfo.h>
+#include "ServerFunctionality.h"
 
 namespace pdb {
 
-/**
- * Encapsulates a request to register a type in the catalog
- */
-class CatRegisterType : public Object {
+// just map the stuff to get the system info to something reasonable
+using MemoryInfo = struct sysinfo;
+const auto& getMemoryInfo = sysinfo;
+const auto& getCPUCores = std::thread::hardware_concurrency;
 
+class ClusterManager : public ServerFunctionality {
 public:
 
-  /**
-   * The default constructor
-   */
-  CatRegisterType() = default;
+  ClusterManager(std::string address, int32_t port);
 
-  /**
-   * Initializes this request with the bytes of the .so library
-   * @param bytes - the bytes of the .so library
-   * @param fileLength - the size of the .so library
-   */
-  explicit CatRegisterType(const Handle<CatRegisterType> &requestToCopy) {
 
-    // allocate the vector
-    libraryBytes = makeObject<Vector<char>>(requestToCopy->getLibrarySize(), requestToCopy->getLibrarySize());
+  void registerHandlers(PDBServer& forMe) override;
 
-    // copy the bytes
-    memcpy(libraryBytes->c_ptr(), requestToCopy->libraryBytes->c_ptr(), requestToCopy->getLibrarySize());
-  }
 
-  /**
-   * Default destructor
-   */
-  ~CatRegisterType() = default;
-
-  /**
-   * Returns the bytes of the .so library
-   * @return the bytes
-   */
-  char *getLibraryBytes() {
-    return libraryBytes->c_ptr();
-  }
-
-  /**
-   * Returns the .so library size
-   * @return the size
-   */
-  size_t getLibrarySize() {
-    return libraryBytes->size();
-  }
-
-  ENABLE_DEEP_COPY
+  bool syncManager(const std::string &managerAddress, int managerPort, std::string &error);
 
 private:
 
   /**
-   * Contains the bytes of the library
+   * Logger for the cluster manager
    */
-  Handle<Vector<char>> libraryBytes;
+  PDBLoggerPtr logger;
+
+  /**
+   * A mutex to sync the cluster
+   */
+  std::mutex serverMutex;
+
+  /**
+   * The ip of the node
+   */
+  std::string address;
+
+  /**
+   * The port of the node
+   */
+  int32_t port;
+
+  /**
+   * The size of the memory on this machine
+   */
+  int64_t totalMemory = -1;
+
+  /**
+   * The number of cores on this machine
+   */
+  int32_t numCores = -1;
 };
 
 }
 
-#endif
+
+#endif //PDB_CLUSTERMANAGER_H

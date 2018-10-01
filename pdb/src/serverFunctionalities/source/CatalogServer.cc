@@ -27,7 +27,7 @@
 #include <CatGetWorkersRequest.h>
 
 #include "BuiltInObjectTypeIDs.h"
-#include "CatSyncResult.h"
+#include "CatSyncWorkerRequest.h"
 #include "CatSyncRequest.h"
 #include "CatCreateDatabaseRequest.h"
 #include "CatCreateSetRequest.h"
@@ -75,11 +75,6 @@ CatalogServer::CatalogServer(const string &catalogDirectoryIn,
 
   // create the directories for the catalog
   initDirectories();
-
-  // if I am a worker than I need to sync with the manager catalog.
-  if(!isManagerCatalogServer) {
-    syncWithManager();
-  }
 
   // creates instance of catalog
   PDBLoggerPtr catalogLogger = make_shared<PDBLogger>("catalogLogger");
@@ -147,7 +142,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         std::lock_guard<std::mutex> guard(serverMutex);
 
         // grab the relevant node attributes
-        auto nodeID = (std::string) request->nodeIP+ ":" + std::to_string(request->nodePort);
+        auto nodeID = (std::string) request->nodeID;
         auto address = (std::string) request->nodeIP;
         auto port = request->nodePort;
         auto type = (std::string) request->nodeType;
@@ -178,7 +173,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         map<string, pair<bool, string>> updateResults;
 
         // broadcast the update
-        broadcastRequest(request, updateResults, errMsg);
+        broadcastRequest(request, 1024, updateResults, errMsg);
 
         for (auto &item : updateResults) {
 
@@ -197,10 +192,11 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
         // make an allocation block
         const UseTemporaryAllocationBlock tempBlock{catalogDump.size() + 1024};
-        Handle<CatSyncResult> response = makeObject<CatSyncResult>(catalogDump);
+        Handle<CatSyncWorkerRequest> workerRequest = makeObject<CatSyncWorkerRequest>(catalogDump);
 
-        // sends result to requester
-        res = sendUsingMe->sendObject(response, errMsg);
+        // forward the request to the node
+        res = forwardRequest(workerRequest, catalogDump.size() + 1024, request->nodeIP, request->nodePort, errMsg);
+
         return make_pair(res, errMsg);
       }));
 
@@ -495,7 +491,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
               map<string, pair<bool, string>> updateResults;
 
               // broadcast the update
-              broadcastRequest(request, updateResults, errMsg);
+              broadcastRequest(request, 1024, updateResults, errMsg);
 
               for (auto &item : updateResults) {
 
@@ -562,7 +558,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
           map<string, pair<bool, string>> updateResults;
 
           // broadcast the update
-          broadcastRequest(request, updateResults, errMsg);
+          broadcastRequest(request, 1024, updateResults, errMsg);
 
           for (auto &item : updateResults) {
 
@@ -612,7 +608,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
               map<string, pair<bool, string>> updateResults;
 
               // broadcast the update
-              broadcastRequest(request, updateResults, errMsg);
+              broadcastRequest(request, 1024, updateResults, errMsg);
 
               for (auto &item : updateResults) {
 
@@ -662,7 +658,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
           map<string, pair<bool, string>> updateResults;
 
           // broadcast the update
-          broadcastRequest(request, updateResults, errMsg);
+          broadcastRequest(request, 1024, updateResults, errMsg);
 
           for (auto &item : updateResults) {
 
@@ -719,7 +715,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
               map<string, pair<bool, string>> updateResults;
 
               // broadcast the update
-              broadcastRequest(request, updateResults, errMsg);
+              broadcastRequest(request, 1024 * 1024 + request->getLibrarySize(), updateResults, errMsg);
 
               for (auto &item : updateResults) {
 
@@ -869,51 +865,51 @@ void CatalogServer::registerManager() {
   PDB_COUT << error << "\n";
 }
 
-void CatalogServer::syncWithManager() {
-
-  // allocate a block for the response
-  const UseTemporaryAllocationBlock tempBlock{1024};
-  Handle<CatSyncRequest> request = makeObject<CatSyncRequest>(nodeIP, nodePort, "worker");
-
-  // sends the request to a node in the cluster
-  auto ret = simpleRequest<CatSyncRequest, CatSyncResult, std::shared_ptr<std::vector<unsigned char>> >(
-      this->logger, managerPort, managerIP, nullptr, 1024,
-      [&](Handle<CatSyncResult> result) {
-
-        // if the result is something else null we got a response
-        if (result != nullptr) {
-
-          // create the result vector
-          auto out = std::make_shared<std::vector<unsigned char>>();
-
-          // copy the result to the return value
-          out->reserve(result->bytes->size());
-          out->assign(result->bytes->c_ptr(), result->bytes->c_ptr() + result->bytes->size());
-
-          return out;
-        }
-
-        return (std::shared_ptr<std::vector<unsigned char>>) nullptr;
-      }, nodeIP, nodePort, "worker");
-
-  ofstream file (catalogDirectory + "/catalog.sqlite", ios::trunc | ios::binary);
-
-  // check if the file is open
-  if(!file.is_open()) {
-
-    // log what happened
-    PDB_COUT << "Could not open out the catalog\n";
-
-    // just end
-    return;
-  }
-
-  // write out the received catalog
-  file.write((char*) ret->data(), ret->size());
-
-  // close the file
-  file.close();
-}
+//void CatalogServer::syncWithManager() {
+//
+//  // allocate a block for the response
+//  const UseTemporaryAllocationBlock tempBlock{1024};
+//  Handle<CatSyncRequest> request = makeObject<CatSyncRequest>(nodeIP, nodePort, "worker");
+//
+//  // sends the request to a node in the cluster
+//  auto ret = simpleRequest<CatSyncRequest, CatSyncWorkerRequest, std::shared_ptr<std::vector<unsigned char>>>(
+//      this->logger, managerPort, managerIP, nullptr, 1024,
+//      [&](Handle<CatSyncWorkerRequest> result) {
+//
+//        // if the result is something else null we got a response
+//        if (result != nullptr) {
+//
+//          // create the result vector
+//          auto out = std::make_shared<std::vector<unsigned char>>();
+//
+//          // copy the result to the return value
+//          out->reserve(result->bytes->size());
+//          out->assign(result->bytes->c_ptr(), result->bytes->c_ptr() + result->bytes->size());
+//
+//          return out;
+//        }
+//
+//        return (std::shared_ptr<std::vector<unsigned char>>) nullptr;
+//      }, nodeIP, nodePort, "worker");
+//
+//  ofstream file (catalogDirectory + "/catalog.sqlite", ios::trunc | ios::binary);
+//
+//  // check if the file is open
+//  if(!file.is_open()) {
+//
+//    // log what happened
+//    PDB_COUT << "Could not open out the catalog\n";
+//
+//    // just end
+//    return;
+//  }
+//
+//  // write out the received catalog
+//  file.write((char*) ret->data(), ret->size());
+//
+//  // close the file
+//  file.close();
+//}
 
 // adds metadata and bytes of a shared library in the catalog and returns its typeId
 bool CatalogServer::loadAndRegisterType(int16_t typeIDFromManagerCatalog, const char *&soFile, size_t soFileSize, string &errMsg) {

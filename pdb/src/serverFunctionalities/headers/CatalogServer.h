@@ -158,7 +158,7 @@ public:
   /**
    * sync the worker catalog with the manager.
    */
-  void syncWithManager();
+  //void syncWithManager();
 
   /**
    * Adds a new object type... return -1 on failure, this is done on a worker node catalog
@@ -180,7 +180,7 @@ public:
    * @return - true if we succeed false otherwise
    */
   template <class Type>
-  bool broadcastRequest(Handle<Type> &request, map<string, pair<bool, string>> &broadcastResults, string &errMsg){
+  bool broadcastRequest(Handle<Type> &request, size_t bufferSize, map<string, pair<bool, string>> &broadcastResults, string &errMsg){
 
     // go through each node
     for (auto &node : pdbCatalog->getNodes()) {
@@ -193,7 +193,7 @@ public:
       if (node.nodeType != "manager") {
 
         // sends the request to a node in the cluster
-        bool res = forwardRequest(request, ip, port, errMsg);
+        bool res = forwardRequest(request, bufferSize, ip, port, errMsg);
 
         // adds the result of the update
         broadcastResults.insert(make_pair(ip, make_pair(res, errMsg)));
@@ -213,16 +213,16 @@ public:
    * @return - true if we succeed, false otherwise
    */
   template <class Type>
-  bool forwardRequest(pdb::Handle<Type> &request, const std::string &address, int port, std::string &errMsg) {
+  bool forwardRequest(pdb::Handle<Type> &request, size_t bufferSize, const std::string &address, int port, std::string &errMsg) {
 
     // make an allocation block
-    const UseTemporaryAllocationBlock tempBlock{1024};
+    const UseTemporaryAllocationBlock tempBlock{bufferSize};
 
     // copy the request we want to forward
     Handle<Type> requestCopy = makeObject<Type>(request);
 
     return simpleRequest<Type, SimpleRequestResult, bool>(
-        this->logger, port, address, false, 1024 * 1024,
+        this->logger, port, address, false, bufferSize,
         [&](Handle<SimpleRequestResult> result) {
 
           // if the result is something else null we got a response
@@ -251,52 +251,6 @@ public:
           return false;
         },
         requestCopy);
-  }
-
-  /**
-   * Method to forward a request of CatRegisterType to the Catalog Server on another node
-   * @tparam Type - is the type of the request we want to forward
-   * @param request - is the request we want to forward
-   * @param address - is the address of the node with the catalog server
-   * @param port - is the port of the node with the catalog server
-   * @param errMsg - the generated error message if any
-   * @return - true if we succeed, false otherwise
-   */
-  bool forwardRequest(pdb::Handle<CatRegisterType> &request, const std::string &address, int port, std::string &errMsg) {
-
-    char* libraryBytes = request->getLibraryBytes();
-    size_t librarySize = request->getLibrarySize();
-
-    return simpleRequest<CatRegisterType, SimpleRequestResult, bool>(
-        this->logger, port, address, false, 1024 * 1024 + request->getLibrarySize(),
-        [&](Handle<SimpleRequestResult> result) {
-
-          // if the result is something else null we got a response
-          if (result != nullptr) {
-
-            // check if we failed
-            if (!result->getRes().first) {
-
-              // we failed set the error and return false
-              errMsg = "Error failed request to node : " + address + ":" + std::to_string(port) + ". Error is :" + result->getRes().second;
-
-              // log the error
-              this->logger->error("Error registering node metadata: " + result->getRes().second);
-
-              // return false
-              return false;
-            }
-
-            // we are good return true
-            return true;
-          }
-
-          // we failed set the error and return false
-          errMsg = "Error failed request to node : " + address + ":" + std::to_string(port) + ". Error is :" + result->getRes().second;
-
-          return false;
-        },
-        libraryBytes, librarySize);
   }
 };
 }

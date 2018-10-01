@@ -161,11 +161,6 @@ namespace pdb {
        * in a shared library. */
       bool registerType(std::string fileContainingSharedLib);
 
-      /* Sends a request to the Catalog Server to register metadata about a node in
-       * the cluster */
-      bool registerNode(string &localIP, int localPort, string &nodeName,
-                        string &nodeType, int nodeStatus);
-
       /* Prints the content of the catalog. */
       void
       printCatalogMetadata(pdb::Handle<pdb::CatPrintCatalogRequest> itemToSearch);

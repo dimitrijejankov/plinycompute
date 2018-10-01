@@ -15,75 +15,81 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
+/*
+ * CatSyncRequest.h
+ *
+ */
 
-#ifndef CAT_REG_TYPE_H
-#define CAT_REG_TYPE_H
+#ifndef CATALOG_CLU_SYNC_REQUEST_H_
+#define CATALOG_CLU_SYNC_REQUEST_H_
 
+#include <iostream>
 #include "Object.h"
-#include "Handle.h"
+#include "PDBString.h"
 #include "PDBVector.h"
 
-// PRELOAD %CatRegisterType%
+//  PRELOAD %CluSyncRequest%
+
+using namespace std;
 
 namespace pdb {
 
 /**
- * Encapsulates a request to register a type in the catalog
+ * This class is used to sync a worker node with the manager
  */
-class CatRegisterType : public Object {
+class CluSyncRequest : public Object {
+ public:
 
-public:
+  CluSyncRequest() = default;
 
-  /**
-   * The default constructor
-   */
-  CatRegisterType() = default;
+  CluSyncRequest(const std::string &nodeIP, int port, const std::string &nodeType, int64_t nodeMemory, int32_t nodeNumCores) {
 
-  /**
-   * Initializes this request with the bytes of the .so library
-   * @param bytes - the bytes of the .so library
-   * @param fileLength - the size of the .so library
-   */
-  explicit CatRegisterType(const Handle<CatRegisterType> &requestToCopy) {
-
-    // allocate the vector
-    libraryBytes = makeObject<Vector<char>>(requestToCopy->getLibrarySize(), requestToCopy->getLibrarySize());
-
-    // copy the bytes
-    memcpy(libraryBytes->c_ptr(), requestToCopy->libraryBytes->c_ptr(), requestToCopy->getLibrarySize());
+    // init the fields
+    this->nodeIP = nodeIP;
+    this->nodePort = port;
+    this->nodeType = nodeType;
+    this->nodeMemory = nodeMemory;
+    this->nodeNumCores = nodeNumCores;
   }
 
-  /**
-   * Default destructor
-   */
-  ~CatRegisterType() = default;
-
-  /**
-   * Returns the bytes of the .so library
-   * @return the bytes
-   */
-  char *getLibraryBytes() {
-    return libraryBytes->c_ptr();
+  explicit CluSyncRequest(const Handle<CluSyncRequest> &requestToCopy) {
+    nodeIP = requestToCopy->nodeIP;
+    nodePort = requestToCopy->nodePort;
+    nodeType = requestToCopy->nodeType;
+    nodeMemory = requestToCopy->nodeMemory;
+    nodeNumCores = requestToCopy->nodeNumCores;
   }
 
-  /**
-   * Returns the .so library size
-   * @return the size
-   */
-  size_t getLibrarySize() {
-    return libraryBytes->size();
-  }
+  ~CluSyncRequest() = default;
 
   ENABLE_DEEP_COPY
 
-private:
+  /**
+   * IP address of the node
+   */
+  pdb::String nodeIP;
 
   /**
-   * Contains the bytes of the library
+   * The port of the node
    */
-  Handle<Vector<char>> libraryBytes;
+  int nodePort = -1;
+
+  /**
+   * The type of the node "worker" or "manager"
+   */
+  pdb::String nodeType;
+
+  /**
+   * The size of the memory on this machine
+   */
+  int64_t nodeMemory = -1;
+
+  /**
+   * The number of cores on this machine
+   */
+  int32_t nodeNumCores = -1;
 };
 
-}
+} /* namespace pdb */
 
-#endif
+#endif /* CATALOG_NODE_METADATA_H_ */

@@ -33,8 +33,8 @@ class PDBCatalogNode {
    * @param port - the port of the node
    * @param nodeType - and the type of the node { worker, master } I guess
    */
-  PDBCatalogNode(std::string nodeID, std::string address, int port, std::string nodeType)
-      : nodeID(std::move(nodeID)), address(std::move(address)), port(port), nodeType(std::move(nodeType)) {}
+  PDBCatalogNode(std::string nodeID, std::string address, int port, std::string nodeType, int32_t numCores, int64_t totalMemory)
+      : nodeID(std::move(nodeID)), address(std::move(address)), port(port), nodeType(std::move(nodeType)), numCores(numCores), totalMemory(totalMemory) {}
 
 
   /**
@@ -60,12 +60,12 @@ class PDBCatalogNode {
   /**
    * The number of cores on the node
    */
-  int32_t numCores = 1;
+  int32_t numCores = -1;
 
   /**
    * The amount of memory on the node
    */
-  int64_t totalMemory = 1024l * 1024l * 1024l * 4l;
+  int64_t totalMemory = -1;
 
   /**
    * Return the schema of the database object
@@ -75,10 +75,12 @@ class PDBCatalogNode {
 
     // return the schema
     return sqlite_orm::make_table("nodes", sqlite_orm::make_column("nodeID", &PDBCatalogNode::nodeID),
-                                  sqlite_orm::make_column("nodeAddress", &PDBCatalogNode::address),
-                                  sqlite_orm::make_column("nodePort", &PDBCatalogNode::port),
-                                  sqlite_orm::make_column("nodeType", &PDBCatalogNode::nodeType),
-                                  sqlite_orm::primary_key(&PDBCatalogNode::nodeID));
+                                           sqlite_orm::make_column("nodeAddress", &PDBCatalogNode::address),
+                                           sqlite_orm::make_column("nodePort", &PDBCatalogNode::port),
+                                           sqlite_orm::make_column("nodeType", &PDBCatalogNode::nodeType),
+                                           sqlite_orm::make_column("nodeNumCores", &PDBCatalogNode::numCores),
+                                           sqlite_orm::make_column("nodeTotalMemory", &PDBCatalogNode::totalMemory),
+                                           sqlite_orm::primary_key(&PDBCatalogNode::nodeID));
   }
 
 };
