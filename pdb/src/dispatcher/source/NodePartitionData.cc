@@ -23,11 +23,11 @@
 
 namespace pdb {
 
-NodePartitionData::NodePartitionData(NodeID nodeId,
+NodePartitionData::NodePartitionData(std::string nodeId,
                                      int port,
                                      std::string address,
                                      std::pair<std::string, std::string> setAndDatabaseName)
-    : nodeId(nodeId),
+    : nodeId(std::move(nodeId)),
       port(port),
       address(address),
       setName(setAndDatabaseName.first),
@@ -47,7 +47,7 @@ std::string NodePartitionData::toString() const {
     return getAddress() + ":" + std::to_string(getPort());
 }
 
-NodeID NodePartitionData::getNodeId() const {
+std::string NodePartitionData::getNodeId() const {
     return this->nodeId;
 }
 int NodePartitionData::getPort() const {

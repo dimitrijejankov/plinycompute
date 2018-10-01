@@ -39,27 +39,24 @@ typedef std::shared_ptr<RandomPolicy> RandomPolicyPtr;
  */
 class RandomPolicy : public PartitionPolicy {
 public:
-    RandomPolicy();
-    ~RandomPolicy();
+  RandomPolicy();
+  ~RandomPolicy() = default;
 
-    void updateStorageNodes(Handle<Vector<Handle<NodeDispatcherData>>> storageNodes);
+  void updateStorageNodes(const std::vector<pdb::PDBCatalogNodePtr> &storageNodes) override;
 
-    std::shared_ptr<std::unordered_map<NodeID, Handle<Vector<Handle<Object>>>>> partition(
-        Handle<Vector<Handle<Object>>> toPartition);
+  std::shared_ptr<std::unordered_map<std::string, Handle<Vector<Handle<Object>>>>> partition(Handle<Vector<Handle<Object>>> toPartition) override;
 
 private:
-    // Seed used for the PRNG. It is configurable so that we can deterministically test
-    // RandomPolicy's behavior.
-    const int SEED = time(NULL);
 
-    std::vector<NodePartitionDataPtr> createNodePartitionData(
-        Handle<Vector<Handle<NodeDispatcherData>>> storageNodes);
-    NodePartitionDataPtr updateExistingNode(NodePartitionDataPtr newNodeData,
-                                            NodePartitionDataPtr oldNodeData);
-    NodePartitionDataPtr updateNewNode(NodePartitionDataPtr newNode);
-    NodePartitionDataPtr handleDeadNode(NodePartitionDataPtr deadNode);
+  // Seed used for the PRNG. It is configurable so that we can deterministically test
+  // RandomPolicy's behavior.
+  const int SEED = time(nullptr);
+
+  std::vector<NodePartitionDataPtr> createNodePartitionData(const std::vector<pdb::PDBCatalogNodePtr> &storageNodes) override;
+  NodePartitionDataPtr updateExistingNode(NodePartitionDataPtr newNodeData, NodePartitionDataPtr oldNodeData) override;
+  NodePartitionDataPtr updateNewNode(NodePartitionDataPtr newNode) override;
+  NodePartitionDataPtr handleDeadNode(NodePartitionDataPtr deadNode) override;
 };
 }
-
 
 #endif  // OBJECTQUERYMODEL_RandomPOLICY_H

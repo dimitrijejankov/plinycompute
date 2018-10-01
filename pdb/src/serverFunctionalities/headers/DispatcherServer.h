@@ -120,17 +120,17 @@ private:
                        std::string& errMsg);
 
     bool sendData(std::pair<std::string, std::string> setAndDatabase,
-                  std::string type,
-                  Handle<NodeDispatcherData> destination,
+                  const std::string &type,
+                  PDBCatalogNodePtr destination,
                   Handle<Vector<Handle<Object>>> toSend);
 
     bool sendBytes(std::pair<std::string, std::string> setAndDatabase,
-                   std::string type,
-                   Handle<NodeDispatcherData> destination,
+                   const std::string &type,
+                   PDBCatalogNodePtr destination,
                    char* bytes,
                    size_t numBytes);
 
-    Handle<NodeDispatcherData> findNode(NodeID nodeId);
+    PDBCatalogNodePtr findNode(const std::string &nodeId);
     int numRequestsInProcessing = 0;
     pthread_mutex_t mutex;
 };

@@ -36,27 +36,23 @@ typedef std::shared_ptr<RoundRobinPolicy> RoundRobinPolicyPtr;
  * time.
  */
 class RoundRobinPolicy : public PartitionPolicy {
-public:
-    RoundRobinPolicy();
-    ~RoundRobinPolicy();
-    static unsigned int curNodeId;
-    int numNodes = 0;
-    pthread_mutex_t idMutex;
-    void updateStorageNodes(Handle<Vector<Handle<NodeDispatcherData>>> storageNodes);
+ public:
+  RoundRobinPolicy();
+  ~RoundRobinPolicy();
+  static size_t curNodeId;
+  size_t numNodes = 0;
+  pthread_mutex_t idMutex;
+  void updateStorageNodes(const std::vector<pdb::PDBCatalogNodePtr> &storageNodes) override;
 
-    std::shared_ptr<std::unordered_map<NodeID, Handle<Vector<Handle<Object>>>>> partition(
-        Handle<Vector<Handle<Object>>> toPartition);
+  std::shared_ptr<std::unordered_map<std::string, Handle<Vector<Handle<Object>>>>> partition(Handle<Vector<Handle<Object>>> toPartition) override;
 
+ private:
 
-private:
-    std::vector<NodePartitionDataPtr> createNodePartitionData(
-        Handle<Vector<Handle<NodeDispatcherData>>> storageNodes);
-    NodePartitionDataPtr updateExistingNode(NodePartitionDataPtr newNodeData,
-                                            NodePartitionDataPtr oldNodeData);
-    NodePartitionDataPtr updateNewNode(NodePartitionDataPtr newNode);
-    NodePartitionDataPtr handleDeadNode(NodePartitionDataPtr deadNode);
+  std::vector<NodePartitionDataPtr> createNodePartitionData(const std::vector<pdb::PDBCatalogNodePtr> &storageNodes) override;
+  NodePartitionDataPtr updateExistingNode(NodePartitionDataPtr newNodeData, NodePartitionDataPtr oldNodeData) override;
+  NodePartitionDataPtr updateNewNode(NodePartitionDataPtr newNode) override;
+  NodePartitionDataPtr handleDeadNode(NodePartitionDataPtr deadNode) override;
 };
 }
-
 
 #endif  // OBJECTQUERYMODEL_ROUNDROBINPOLICY_H

@@ -31,13 +31,13 @@ typedef std::shared_ptr<NodePartitionData> NodePartitionDataPtr;
 
 class NodePartitionData {
 public:
-    NodePartitionData(NodeID nodeId,
+    NodePartitionData(std::string nodeId,
                       int port,
                       std::string address,
                       std::pair<std::string, std::string> setAndDatabaseName);
 
     std::string toString() const;
-    NodeID getNodeId() const;
+    std::string getNodeId() const;
     int getPort() const;
     std::string getAddress() const;
     std::string getSetName() const;
@@ -49,7 +49,7 @@ public:
     }
 
 private:
-    NodeID nodeId;
+    std::string nodeId;
     int port;
     std::string address;
     std::string setName;

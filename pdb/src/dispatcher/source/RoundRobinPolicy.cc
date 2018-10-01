@@ -30,21 +30,20 @@ RoundRobinPolicy::RoundRobinPolicy() {
 
 RoundRobinPolicy::~RoundRobinPolicy() {}
 
-unsigned int RoundRobinPolicy::curNodeId = 0;
+size_t RoundRobinPolicy::curNodeId = 0;
 
-void RoundRobinPolicy::updateStorageNodes(
-    Handle<Vector<Handle<NodeDispatcherData>>> activeStorageNodesRaw) {
+void RoundRobinPolicy::updateStorageNodes(const std::vector<pdb::PDBCatalogNodePtr> &activeStorageNodesRaw) {
 
     auto oldNodes = storageNodes;
     auto activeStorageNodes = createNodePartitionData(activeStorageNodesRaw);
     storageNodes = std::vector<NodePartitionDataPtr>();
 
-    for (int i = 0; i < activeStorageNodes.size(); i++) {
+    for (auto &activeStorageNode : activeStorageNodes) {
         bool alreadyContains = false;
         for (int j = 0; j < oldNodes.size(); j++) {
-            if ((*activeStorageNodes[i]) == (*oldNodes[j])) {
+            if ((*activeStorageNode) == (*oldNodes[j])) {
                 // Update the pre-existing node with the new information
-                auto updatedNode = updateExistingNode(activeStorageNodes[i], oldNodes[j]);
+                auto updatedNode = updateExistingNode(activeStorageNode, oldNodes[j]);
                 storageNodes.push_back(updatedNode);
                 oldNodes.erase(oldNodes.begin() + j);
                 alreadyContains = true;
@@ -52,25 +51,22 @@ void RoundRobinPolicy::updateStorageNodes(
             }
         }
         if (!alreadyContains) {
-            storageNodes.push_back(updateNewNode(activeStorageNodes[i]));
+            storageNodes.push_back(updateNewNode(activeStorageNode));
         }
     }
-    for (auto oldNode : oldNodes) {
+    for (const auto &oldNode : oldNodes) {
         handleDeadNode(oldNode);
     }
     this->numNodes = storageNodes.size();
 }
 
-std::vector<NodePartitionDataPtr> RoundRobinPolicy::createNodePartitionData(
-    Handle<Vector<Handle<NodeDispatcherData>>> storageNodes) {
+std::vector<NodePartitionDataPtr> RoundRobinPolicy::createNodePartitionData(const std::vector<pdb::PDBCatalogNodePtr> &storageNodes) {
     std::vector<NodePartitionDataPtr> newData = std::vector<NodePartitionDataPtr>();
-    for (int i = 0; i < storageNodes->size(); i++) {
-        auto nodeData = (*storageNodes)[i];
-        auto newNode =
-            std::make_shared<NodePartitionData>(nodeData->getNodeId(),
-                                                nodeData->getPort(),
-                                                nodeData->getAddress(),
-                                                std::pair<std::string, std::string>("", ""));
+    for (const auto &storageNode : storageNodes) {
+        auto newNode = std::make_shared<NodePartitionData>(storageNode->nodeID,
+                                                           storageNode->port,
+                                                           storageNode->address,
+                                                           std::pair<std::string, std::string>("", ""));
         PDB_COUT << newNode->toString() << std::endl;
         newData.push_back(newNode);
     }
@@ -93,23 +89,21 @@ NodePartitionDataPtr RoundRobinPolicy::handleDeadNode(NodePartitionDataPtr deadN
     return deadNode;
 }
 
-std::shared_ptr<std::unordered_map<NodeID, Handle<Vector<Handle<Object>>>>>
-RoundRobinPolicy::partition(Handle<Vector<Handle<Object>>> toPartition) {
+std::shared_ptr<std::unordered_map<std::string, Handle<Vector<Handle<Object>>>>> RoundRobinPolicy::partition(Handle<Vector<Handle<Object>>> toPartition) {
 
-    auto partitionedData =
-        std::make_shared<std::unordered_map<NodeID, Handle<Vector<Handle<Object>>>>>();
-    if (storageNodes.size() == 0) {
+    auto partitionedData = std::make_shared<std::unordered_map<std::string, Handle<Vector<Handle<Object>>>>>();
+    if (storageNodes.empty()) {
         std::cout
             << "FATAL ERROR: there is no storage node in the cluster, please check conf/serverlist"
             << std::endl;
         exit(-1);
     }
+
     pthread_mutex_lock(&idMutex);
     curNodeId = (curNodeId + 1) % numNodes;
     auto nodeToUse = storageNodes[curNodeId];
     pthread_mutex_unlock(&idMutex);
-    partitionedData->insert(
-        std::pair<NodeID, Handle<Vector<Handle<Object>>>>(nodeToUse->getNodeId(), toPartition));
+    partitionedData->insert(std::pair<std::string, Handle<Vector<Handle<Object>>>>(nodeToUse->getNodeId(), toPartition));
     return partitionedData;
 }
 }

@@ -26,6 +26,7 @@
 
 #include "NodeDispatcherData.h"
 #include "NodePartitionData.h"
+#include "PDBCatalogNode.h"
 
 #include <unordered_map>
 
@@ -45,7 +46,7 @@ class PartitionPolicy {
 public:
     enum Policy { RANDOM, ROUNDROBIN, FAIR, DEFAULT };
 
-    virtual std::vector<NodePartitionDataPtr> createNodePartitionData(Handle<Vector<Handle<NodeDispatcherData>>> storageNodes) = 0;
+    virtual std::vector<NodePartitionDataPtr> createNodePartitionData(const std::vector<pdb::PDBCatalogNodePtr> &storageNodes) = 0;
 
     /**
      * Partitions a Vector of PDB data into a number of smaller Vectors all mapped to a respective
@@ -54,15 +55,14 @@ public:
      * @param toPartition a vector of PDB::Objects to be stored
      * @return a mapping from node ids to the PDB::Objects that should be stored there
      */
-    virtual std::shared_ptr<std::unordered_map<NodeID, Handle<Vector<Handle<Object>>>>> partition(
-        Handle<Vector<Handle<Object>>> toPartition) = 0;
+    virtual std::shared_ptr<std::unordered_map<std::string, Handle<Vector<Handle<Object>>>>> partition(Handle<Vector<Handle<Object>>> toPartition) = 0;
 
     /**
      * Updates PartitionPolicy with a collection of all the available storage nodes in the cluster
      *
      * @param storageNodes a vector of the live storage nodes
      */
-    virtual void updateStorageNodes(Handle<Vector<Handle<NodeDispatcherData>>> storageNodes) = 0;
+    virtual void updateStorageNodes(const std::vector<pdb::PDBCatalogNodePtr> &storageNodes) = 0;
 
     virtual NodePartitionDataPtr updateExistingNode(NodePartitionDataPtr newNodeData, NodePartitionDataPtr oldNodeData) = 0;
 

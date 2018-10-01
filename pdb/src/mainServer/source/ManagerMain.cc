@@ -93,11 +93,7 @@ int main(int argc, char* argv[]) {
 
     frontEnd.addFunctionality<pdb::ResourceManagerServer>(serverListFile, port, pseudoClusterMode, pemFile);
     frontEnd.addFunctionality<pdb::DistributedStorageManagerServer>(myLogger, statisticsDB);
-
-    auto allNodes = frontEnd.getFunctionality<pdb::ResourceManagerServer>().getAllNodes();
-
     frontEnd.addFunctionality<pdb::DispatcherServer>(myLogger, statisticsDB);
-    frontEnd.getFunctionality<pdb::DispatcherServer>().registerStorageNodes(allNodes);
     frontEnd.addFunctionality<pdb::QuerySchedulerServer>(port, myLogger, conf, statisticsDB, pseudoClusterMode, partitionToCoreRatio);
     frontEnd.startServer(make_shared<GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
 
