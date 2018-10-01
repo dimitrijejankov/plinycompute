@@ -24,7 +24,6 @@
 #include "PDBServer.h"
 #include "CatalogServer.h"
 #include "CatalogClient.h"
-#include "ResourceManagerServer.h"
 #include "PangeaStorageServer.h"
 #include "DistributedStorageManagerServer.h"
 #include "DispatcherServer.h"
@@ -79,7 +78,7 @@ int main(int argc, char* argv[]) {
     if (statisticsDB == nullptr) {
         std::cout << "fatal error in initializing statisticsDB" << std::endl;
         exit(1);
-    } 
+    }
 
     std::string errMsg = " ";
     int numNodes = 1;
@@ -91,7 +90,6 @@ int main(int argc, char* argv[]) {
 
     serverListFile = pseudoClusterMode ? "conf/serverlist.test" : "conf/serverlist";
 
-    frontEnd.addFunctionality<pdb::ResourceManagerServer>(serverListFile, port, pseudoClusterMode, pemFile);
     frontEnd.addFunctionality<pdb::DistributedStorageManagerServer>(myLogger, statisticsDB);
     frontEnd.addFunctionality<pdb::DispatcherServer>(myLogger, statisticsDB);
     frontEnd.addFunctionality<pdb::QuerySchedulerServer>(port, myLogger, conf, statisticsDB, pseudoClusterMode, partitionToCoreRatio);

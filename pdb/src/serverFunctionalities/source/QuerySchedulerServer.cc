@@ -23,7 +23,6 @@
 #include "PDBDebug.h"
 #include "InterfaceFunctions.h"
 #include "QuerySchedulerServer.h"
-#include "ResourceManagerServer.h"
 #include "SimpleRequestHandler.h"
 #include "GenericWork.h"
 #include "StorageCollectStats.h"

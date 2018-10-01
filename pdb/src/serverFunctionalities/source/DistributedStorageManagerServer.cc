@@ -22,7 +22,6 @@
 #include "DistributedStorageManagerServer.h"
 #include "CatalogClient.h"
 #include "CatalogServer.h"
-#include "ResourceManagerServer.h"
 #include "DispatcherServer.h"
 #include "PDBCatalogMsgType.h"
 #include "SimpleRequestHandler.h"
