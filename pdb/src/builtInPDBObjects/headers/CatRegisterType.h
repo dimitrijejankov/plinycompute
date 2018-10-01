@@ -41,8 +41,7 @@ public:
 
   /**
    * Initializes this request with the bytes of the .so library
-   * @param bytes - the bytes of the .so library
-   * @param fileLength - the size of the .so library
+   * @param requestToCopy - the request we need to copy
    */
   explicit CatRegisterType(const Handle<CatRegisterType> &requestToCopy) {
 
@@ -51,6 +50,20 @@ public:
 
     // copy the bytes
     memcpy(libraryBytes->c_ptr(), requestToCopy->libraryBytes->c_ptr(), requestToCopy->getLibrarySize());
+  }
+
+  /**
+   * Initializes this request with the bytes of the .so library
+   * @param bytes - the bytes of the .so library
+   * @param fileLength - the size of the .so library
+   */
+  CatRegisterType(char* bytes, size_t fileLength) {
+
+    // allocate the vector
+    libraryBytes = makeObject<Vector<char>>(fileLength, fileLength);
+
+    // copy the bytes
+    memcpy(libraryBytes->c_ptr(), bytes, fileLength);
   }
 
   /**

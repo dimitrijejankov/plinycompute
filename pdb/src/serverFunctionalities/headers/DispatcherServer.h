@@ -63,13 +63,6 @@ public:
     void registerHandlers(PDBServer& forMe) override;
 
     /**
-     * Updates PartitionPolicy with a collection of all the available storage nodes in the cluster
-     *
-     * @param storageNodes a vector of the live storage nodes
-     */
-    void registerStorageNodes();
-
-    /**
      * Register a new set for the dispatcher to handle.
      *
      * @param setAndDatabase name of the set and its corresponding database

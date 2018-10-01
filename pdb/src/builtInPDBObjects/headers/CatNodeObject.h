@@ -37,11 +37,13 @@ public:
   CatNodeObject() = default;
   ~CatNodeObject() = default;
 
-  CatNodeObject(const std::string &address, int port, const std::string &nodeType) {
+  CatNodeObject(const std::string &address, int port, const std::string &nodeType, int32_t numCores, int64_t totalMemory) {
     this->nodeID = address + ":" + std::to_string(port);
     this->nodeAddress = address;
     this->nodePort = port;
     this->nodeType = nodeType;
+    this->numCores = numCores;
+    this->totalMemory = totalMemory;
   }
 
   // Copy constructor
@@ -51,6 +53,8 @@ public:
     nodeAddress = pdbItemToCopy->nodeAddress;
     nodePort = pdbItemToCopy->nodePort;
     nodeType = pdbItemToCopy->nodeType;
+    numCores = pdbItemToCopy->numCores;
+    totalMemory = pdbItemToCopy->totalMemory;
   }
 
   ENABLE_DEEP_COPY
@@ -74,6 +78,16 @@ public:
    * The node type
    */
   pdb::String nodeType;
+
+  /**
+   * The number of cores on the node
+   */
+  int32_t numCores = -1;
+
+  /**
+   * The amount of memory on the node
+   */
+  int64_t totalMemory = -1;
 };
 }
 

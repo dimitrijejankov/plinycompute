@@ -54,7 +54,7 @@ public:
     memcpy(this->bytes->c_ptr(), bytes.data(), bytes.size());
   }
 
-  CatSyncWorkerRequest(const Handle<CatSyncWorkerRequest> &requestToCopy)  {
+  explicit CatSyncWorkerRequest(const Handle<CatSyncWorkerRequest> &requestToCopy)  {
     // init the fields
     this->bytes = pdb::makeObject<pdb::Vector<unsigned char>>(requestToCopy->bytes->size(), requestToCopy->bytes->size());
 

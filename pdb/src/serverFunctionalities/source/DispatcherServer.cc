@@ -289,9 +289,9 @@ bool DispatcherServer::sendData(std::pair<std::string, std::string> setAndDataba
       StorageClient(destination->port, destination->address, logger);
   if (!storageClient.storeData(toSend, setAndDatabase.second, setAndDatabase.first, type, err)) {
     PDB_COUT << "Not able to store data: " << err << std::endl;
-    return 0;
+    return false;
   }
-  return 1;
+  return true;
 }
 
 bool DispatcherServer::sendBytes(std::pair<std::string, std::string> setAndDatabase,

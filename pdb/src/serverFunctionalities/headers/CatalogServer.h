@@ -150,17 +150,6 @@ public:
   void initBuiltInTypes();
 
   /**
-   * register the manager node in this catalog
-   * If we are the manager we simply add ourselves into the catalog
-   */
-  void registerManager();
-
-  /**
-   * sync the worker catalog with the manager.
-   */
-  //void syncWithManager();
-
-  /**
    * Adds a new object type... return -1 on failure, this is done on a worker node catalog
    * the typeID is given by the manager catalog
    * @param typeID

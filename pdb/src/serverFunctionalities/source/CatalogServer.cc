@@ -83,11 +83,6 @@ CatalogServer::CatalogServer(const string &catalogDirectoryIn,
   // initialize the types
   initBuiltInTypes();
 
-  // if am a manager register me
-  if(isManagerCatalogServer) {
-    registerManager();
-  }
-
   PDB_COUT << "Catalog Server successfully initialized!\n";
 }
 
@@ -146,6 +141,8 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         auto address = (std::string) request->nodeIP;
         auto port = request->nodePort;
         auto type = (std::string) request->nodeType;
+        auto numCores = request->numCores;
+        auto totalMemory = request->totalMemory;
 
         // log what is happening
         PDB_COUT << "CatalogServer handler CatalogNodeMetadata_TYPEID adding the node with the address " << nodeID << "\n";
@@ -158,7 +155,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         if (!isManagerCatalogServer) {
 
           // add the guy that made the request as a registered node
-          res = pdbCatalog->registerNode(std::make_shared<pdb::PDBCatalogNode>(nodeID, address, port, type), errMsg);
+          res = pdbCatalog->registerNode(std::make_shared<pdb::PDBCatalogNode>(nodeID, address, port, type, numCores, totalMemory), errMsg);
 
           // create an allocation block to hold the response
           const UseTemporaryAllocationBlock tempBlock{1024};
@@ -185,7 +182,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         }
 
         // add the guy that made the request as a registered node
-        res = pdbCatalog->registerNode(std::make_shared<pdb::PDBCatalogNode>(nodeID, address, port, type), errMsg);
+        res = pdbCatalog->registerNode(std::make_shared<pdb::PDBCatalogNode>(nodeID, address, port, type, numCores, totalMemory), errMsg);
 
         // grab the catalog bytes
         auto catalogDump = pdbCatalog->serializeToBytes();
@@ -200,10 +197,49 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         return make_pair(res, errMsg);
       }));
 
+
+  // basically this copies the recieved catalog and reloads it
+  forMe.registerHandler(CatSyncWorkerRequest_TYPEID, make_shared<SimpleRequestHandler<CatSyncWorkerRequest>>([&](Handle<CatSyncWorkerRequest> request, PDBCommunicatorPtr sendUsingMe) {
+
+        // lock the catalog server
+        std::lock_guard<std::mutex> guard(serverMutex);
+
+        // close the catalog
+        pdbCatalog = nullptr;
+
+        // output the catalog file
+        ofstream file (catalogDirectory + "/catalog.sqlite", ios::trunc | ios::binary);
+
+        // check if the file is open
+        if(!file.is_open()) {
+
+          // log what happened
+          PDB_COUT << "Could not open out the catalog\n";
+
+          // just end
+          return make_pair(false, "Could not open out the catalog");
+        }
+
+        // write out the received catalog
+        file.write((char*) request->bytes->c_ptr(), request->bytes->size());
+
+        // close the file
+        file.close();
+
+        // load the catalog again
+        pdbCatalog = make_shared<PDBCatalog>(catalogDirectory + "/catalog.sqlite");
+
+        return make_pair(true, "");
+  }));
+
+
   // handles a request to display the contents of the Catalog that have changed since a given timestamp
   forMe.registerHandler(CatPrintCatalogRequest_TYPEID,
       make_shared<SimpleRequestHandler<CatPrintCatalogRequest>>([&](Handle<CatPrintCatalogRequest> request,
                                                                   PDBCommunicatorPtr sendUsingMe) {
+
+        // lock the catalog server
+        std::lock_guard<std::mutex> guard(serverMutex);
 
         // print the catalog
         string categoryToPrint = request->category.c_str();
@@ -848,68 +884,6 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
             return make_pair(res, errMsg);
           }));
 }
-
-void CatalogServer::registerManager() {
-
-  // lock the catalog server
-  lock_guard<mutex> guard(serverMutex);
-
-  // make the node identifier
-  string nodeIdentifier = managerIP + ":" + to_string(managerPort);
-
-  // register the node
-  std::string error;
-  pdbCatalog->registerNode(make_shared<PDBCatalogNode>(nodeIdentifier, managerIP, managerPort, "manager"), error);
-
-  // log the error
-  PDB_COUT << error << "\n";
-}
-
-//void CatalogServer::syncWithManager() {
-//
-//  // allocate a block for the response
-//  const UseTemporaryAllocationBlock tempBlock{1024};
-//  Handle<CatSyncRequest> request = makeObject<CatSyncRequest>(nodeIP, nodePort, "worker");
-//
-//  // sends the request to a node in the cluster
-//  auto ret = simpleRequest<CatSyncRequest, CatSyncWorkerRequest, std::shared_ptr<std::vector<unsigned char>>>(
-//      this->logger, managerPort, managerIP, nullptr, 1024,
-//      [&](Handle<CatSyncWorkerRequest> result) {
-//
-//        // if the result is something else null we got a response
-//        if (result != nullptr) {
-//
-//          // create the result vector
-//          auto out = std::make_shared<std::vector<unsigned char>>();
-//
-//          // copy the result to the return value
-//          out->reserve(result->bytes->size());
-//          out->assign(result->bytes->c_ptr(), result->bytes->c_ptr() + result->bytes->size());
-//
-//          return out;
-//        }
-//
-//        return (std::shared_ptr<std::vector<unsigned char>>) nullptr;
-//      }, nodeIP, nodePort, "worker");
-//
-//  ofstream file (catalogDirectory + "/catalog.sqlite", ios::trunc | ios::binary);
-//
-//  // check if the file is open
-//  if(!file.is_open()) {
-//
-//    // log what happened
-//    PDB_COUT << "Could not open out the catalog\n";
-//
-//    // just end
-//    return;
-//  }
-//
-//  // write out the received catalog
-//  file.write((char*) ret->data(), ret->size());
-//
-//  // close the file
-//  file.close();
-//}
 
 // adds metadata and bytes of a shared library in the catalog and returns its typeId
 bool CatalogServer::loadAndRegisterType(int16_t typeIDFromManagerCatalog, const char *&soFile, size_t soFileSize, string &errMsg) {

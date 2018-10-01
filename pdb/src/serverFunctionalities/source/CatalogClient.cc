@@ -184,7 +184,7 @@ std::vector<pdb::PDBCatalogNodePtr> pdb::CatalogClient::getWorkerNodes() {
         std::vector<pdb::PDBCatalogNodePtr> ret;
         for(int i = 0; i < result->nodes->size(); ++i) {
           auto &node = (*result->nodes)[i];
-          ret.push_back(std::make_shared<pdb::PDBCatalogNode>(node->nodeID, node->nodeAddress, node->nodePort, node->nodeType));
+          ret.push_back(std::make_shared<pdb::PDBCatalogNode>(node->nodeID, node->nodeAddress, node->nodePort, node->nodeType, node->numCores, node->totalMemory));
         }
 
         return std::move(ret);
