@@ -25,8 +25,15 @@
 #include "CluSyncRequest.h"
 #include "SimpleRequestHandler.h"
 
+namespace pdb {
 
-pdb::ClusterManager::ClusterManager(std::string address, int32_t port) : address(std::move(address)), port(port) {
+// just map the stuff to get the system info to something reasonable
+using MemoryInfo = struct sysinfo;
+const auto &getMemoryInfo = sysinfo;
+const auto &getCPUCores = std::thread::hardware_concurrency;
+
+ClusterManager::ClusterManager(std::string address, int32_t port, bool isManager)
+    : address(std::move(address)), port(port), isManager(isManager) {
 
   // grab the system info
   MemoryInfo memoryInfo{};
@@ -36,39 +43,61 @@ pdb::ClusterManager::ClusterManager(std::string address, int32_t port) : address
   numCores = getCPUCores();
 
   // grab the total memory on this machine
-  totalMemory = memoryInfo.totalram;
+  totalMemory = memoryInfo.totalram / 1024;
 
   // create the logger
-  logger = make_shared<pdb::PDBLogger>("clusterManager.log");
+  logger = make_shared<PDBLogger>("clusterManager.log");
 }
 
-void pdb::ClusterManager::registerHandlers(pdb::PDBServer &forMe) {
+void ClusterManager::registerHandlers(PDBServer &forMe) {
   forMe.registerHandler(
       CluSyncRequest_TYPEID,
       make_shared<SimpleRequestHandler<CluSyncRequest>>(
-      [&](Handle<CluSyncRequest> request, PDBCommunicatorPtr sendUsingMe) {
+          [&](Handle<CluSyncRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
-        // lock the catalog server
-        std::lock_guard<std::mutex> guard(serverMutex);
+            // lock the catalog server
+            std::lock_guard<std::mutex> guard(serverMutex);
 
-        // generate the node identifier
-        std::string nodeIdentifier = (std::string) request->nodeIP + ":" + std::to_string(request->nodePort);
+            if (!isManager) {
 
-        // sync the catalog server on this node with the one on the one that is requesting it.
-        std::string error;
-        bool success = getFunctionality<pdb::CatalogClient>().syncWithNode(std::make_shared<PDBCatalogNode>(nodeIdentifier,
-                                                                                                            request->nodeIP,
-                                                                                                            request->nodePort,
-                                                                                                            request->nodeType,
-                                                                                                            request->nodeMemory,
-                                                                                                            request->nodeNumCores), error);
+              // create the response
+              std::string error = "A worker node can not sync the cluster only a manager can!";
+              Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, error);
 
-        // return the result
-        return make_pair(success, error);
-      }));
+              // sends result to requester
+              bool success = sendUsingMe->sendObject(response, error);
+
+              // return the result
+              return make_pair(success, error);
+            }
+
+            // generate the node identifier
+            std::string nodeIdentifier = (std::string) request->nodeIP + ":" + std::to_string(request->nodePort);
+
+            // sync the catalog server on this node with the one on the one that is requesting it.
+            std::string error;
+            bool success = getFunctionality<CatalogClient>().syncWithNode(std::make_shared<PDBCatalogNode>(nodeIdentifier,
+                                                                                                           request->nodeIP,
+                                                                                                           request->nodePort,
+                                                                                                           request->nodeType,
+                                                                                                           request->nodeNumCores,
+                                                                                                           request->nodeMemory), error);
+
+            // create the response
+            Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(success, error);
+
+            // sends result to requester
+            success = sendUsingMe->sendObject(response, error) && success;
+
+            // return the result
+            return make_pair(success, error);
+          }));
 }
 
-bool pdb::ClusterManager::syncManager(const std::string &managerAddress, int managerPort, std::string &error) {
+bool ClusterManager::syncCluster(const std::string &managerAddress, int managerPort, std::string &error) {
+
+  // figure out the type of the node
+  std::string type = isManager ? "manager" : "worker";
 
   return simpleRequest<CluSyncRequest, SimpleRequestResult, bool>(
       logger, managerPort, managerAddress, false, 1024,
@@ -85,5 +114,7 @@ bool pdb::ClusterManager::syncManager(const std::string &managerAddress, int man
         error = "ClusterManager : Could not sink with the manager";
         return false;
       },
-      address, port, "worker", totalMemory, numCores);
+      address, port, type, totalMemory, numCores);
+}
+
 }

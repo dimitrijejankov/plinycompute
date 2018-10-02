@@ -350,19 +350,21 @@ void PDBServer::startServer(PDBWorkPtr runMeAtStart) {
     // ignore broken pipe signals
     ::signal(SIGPIPE, SIG_IGN);
 
+    // listen to the socket
+    int return_code = pthread_create(&listenerThread, nullptr, callListen, this);
+    if (return_code) {
+        myLogger->error("ERROR; return code from pthread_create () is " + to_string(return_code));
+        exit(-1);
+    }
+
+    sleep(2);
+
     // if there was some work to execute to start things up, then do it
     if (runMeAtStart != nullptr) {
         PDBBuzzerPtr buzzMeWhenDone = runMeAtStart->getLinkedBuzzer();
         PDBWorkerPtr tempWorker = myWorkers->getWorker();
         tempWorker->execute(runMeAtStart, buzzMeWhenDone);
         buzzMeWhenDone->wait();
-    }
-
-    // listen to the socket
-    int return_code = pthread_create(&listenerThread, nullptr, callListen, this);
-    if (return_code) {
-        myLogger->error("ERROR; return code from pthread_create () is " + to_string(return_code));
-        exit(-1);
     }
 
     // and now just sleep

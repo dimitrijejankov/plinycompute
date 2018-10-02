@@ -26,21 +26,16 @@
 
 namespace pdb {
 
-// just map the stuff to get the system info to something reasonable
-using MemoryInfo = struct sysinfo;
-const auto& getMemoryInfo = sysinfo;
-const auto& getCPUCores = std::thread::hardware_concurrency;
-
 class ClusterManager : public ServerFunctionality {
 public:
 
-  ClusterManager(std::string address, int32_t port);
+  ClusterManager(std::string address, int32_t port, bool isManager);
 
 
   void registerHandlers(PDBServer& forMe) override;
 
 
-  bool syncManager(const std::string &managerAddress, int managerPort, std::string &error);
+  bool syncCluster(const std::string &managerAddress, int managerPort, std::string &error);
 
 private:
 
@@ -63,6 +58,11 @@ private:
    * The port of the node
    */
   int32_t port;
+
+  /**
+   * True if this node is the manager
+   */
+  bool isManager;
 
   /**
    * The size of the memory on this machine

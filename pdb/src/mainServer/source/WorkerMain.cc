@@ -19,6 +19,7 @@
 #ifndef WORKER_MAIN_CC
 #define WORKER_MAIN_CC
 
+#include <ClusterManager.h>
 #include "PDBServer.h"
 #include "CatalogServer.h"
 #include "CatalogClient.h"
@@ -147,16 +148,29 @@ int main(int argc, char *argv[]) {
 
         string nodeType = "manager";
         frontEnd.addFunctionality<pdb::CatalogServer>("CatalogDir", true, "localhost", localPort, "localhost", localPort);
+        frontEnd.addFunctionality<pdb::ClusterManager>("localhost", localPort, true);
         frontEnd.addFunctionality<pdb::CatalogClient>(localPort, "localhost", logger);
 
       } else {
 
         std::string catalogFile = std::string("CatalogDir_") + localIp + std::string("_") + std::to_string(localPort);
+        frontEnd.addFunctionality<pdb::ClusterManager>(localIp, localPort, false);
         frontEnd.addFunctionality<pdb::CatalogServer>(catalogFile, false, managerIp, managerPort, localIp, localPort);
         frontEnd.addFunctionality<pdb::CatalogClient>(localPort, "localhost", logger);
       }
 
-      frontEnd.startServer(nullptr);
+      frontEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
+
+        // sync me with the cluster
+        std::string error;
+        frontEnd.getFunctionality<pdb::ClusterManager>().syncCluster(managerIp, managerPort, error);
+
+        // log that the server has started
+        std::cout << "Distributed storage manager server started!\n";
+
+        // buzz that we are done
+        callerBuzzer->buzz(PDBAlarm::WorkAllDone);
+      }));
     }
   }
 }

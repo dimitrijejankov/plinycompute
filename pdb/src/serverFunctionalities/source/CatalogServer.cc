@@ -192,14 +192,23 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         Handle<CatSyncWorkerRequest> workerRequest = makeObject<CatSyncWorkerRequest>(catalogDump);
 
         // forward the request to the node
-        res = forwardRequest(workerRequest, catalogDump.size() + 1024, request->nodeIP, request->nodePort, errMsg);
+        if(this->nodeIP != (std::string) request->nodeIP || this->nodePort != request->nodePort) {
+          res = forwardRequest(workerRequest, catalogDump.size() + 1024, request->nodeIP, request->nodePort, errMsg);
+        }
 
+        // create an allocation block to hold the response
+        const UseTemporaryAllocationBlock tmp{1024};
+        Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(res, errMsg);
+
+        // sends result to requester
+        res = sendUsingMe->sendObject(response, errMsg) && res;
         return make_pair(res, errMsg);
       }));
 
 
-  // basically this copies the recieved catalog and reloads it
-  forMe.registerHandler(CatSyncWorkerRequest_TYPEID, make_shared<SimpleRequestHandler<CatSyncWorkerRequest>>([&](Handle<CatSyncWorkerRequest> request, PDBCommunicatorPtr sendUsingMe) {
+  // basically this copies the received catalog and reloads it
+  forMe.registerHandler(CatSyncWorkerRequest_TYPEID, make_shared<SimpleRequestHandler<CatSyncWorkerRequest>>([&](Handle<CatSyncWorkerRequest> request,
+                                                                                                                 PDBCommunicatorPtr sendUsingMe) {
 
         // lock the catalog server
         std::lock_guard<std::mutex> guard(serverMutex);
@@ -216,8 +225,18 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
           // log what happened
           PDB_COUT << "Could not open out the catalog\n";
 
-          // just end
-          return make_pair(false, "Could not open out the catalog");
+          // create an allocation block to hold the response
+          const UseTemporaryAllocationBlock tmp{1024};
+
+          // create a response to indicate the failure
+          std::string errMsg = "Could not open out the catalog";
+          Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+
+          // sends result to requester
+          bool res = sendUsingMe->sendObject(response, errMsg) && res;
+
+          // finish this
+          return make_pair(res, errMsg);
         }
 
         // write out the received catalog
@@ -229,7 +248,16 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         // load the catalog again
         pdbCatalog = make_shared<PDBCatalog>(catalogDirectory + "/catalog.sqlite");
 
-        return make_pair(true, "");
+        // create an allocation block to hold the response
+        const UseTemporaryAllocationBlock tmp{1024};
+        Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(true, "");
+
+        // sends result to requester
+        std::string errMsg;
+        bool res = sendUsingMe->sendObject(response, errMsg);
+
+        // return the result
+        return make_pair(res, errMsg);
   }));
 
 

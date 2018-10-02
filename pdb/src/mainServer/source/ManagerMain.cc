@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <string>
+#include <ClusterManager.h>
 
 #include "PDBServer.h"
 #include "CatalogServer.h"
@@ -93,7 +94,12 @@ int main(int argc, char* argv[]) {
     frontEnd.addFunctionality<pdb::DistributedStorageManagerServer>(myLogger, statisticsDB);
     frontEnd.addFunctionality<pdb::DispatcherServer>(myLogger, statisticsDB);
     frontEnd.addFunctionality<pdb::QuerySchedulerServer>(port, myLogger, conf, statisticsDB, pseudoClusterMode, partitionToCoreRatio);
+    frontEnd.addFunctionality<pdb::ClusterManager>(managerIp, port, true);
     frontEnd.startServer(make_shared<GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
+
+      // sync me with the cluster
+      std::string error;
+      frontEnd.getFunctionality<ClusterManager>().syncCluster(managerIp, port, error);
 
       // log that the server has started
       std::cout << "Distributed storage manager server started!\n";
