@@ -233,7 +233,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
           Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
 
           // sends result to requester
-          bool res = sendUsingMe->sendObject(response, errMsg) && res;
+          bool res = sendUsingMe->sendObject(response, errMsg);
 
           // finish this
           return make_pair(res, errMsg);
