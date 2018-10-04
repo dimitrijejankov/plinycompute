@@ -40,6 +40,7 @@ typedef std::shared_ptr<PDBServer> PDBServerPtr;
 #include "PDBCommunicator.h"
 #include <string>
 #include <map>
+#include <atomic>
 
 // This class encapsulates a multi-threaded sever in PDB.  The way it works is that one simply
 // registers
@@ -134,6 +135,9 @@ private:
 
     // handles a request using the given PDBCommunicator to obtain the data
     void handleRequest(PDBCommunicatorPtr myCommunicator);
+
+    // true if we started accepting requests
+    std::atomic_bool startedAcceptingRequests;
 
     // true when the server is done
     bool allDone;

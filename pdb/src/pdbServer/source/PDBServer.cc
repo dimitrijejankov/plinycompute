@@ -54,6 +54,7 @@ PDBServer::PDBServer(int portNumberIn, int numConnectionsIn, PDBLoggerPtr myLogg
     myLogger = myLoggerIn;
     isInternet = true;
     allDone = false;
+    startedAcceptingRequests = false;
     struct sigaction sa;
     memset(&sa, '\0', sizeof(sa));
     sa.sa_handler = SIG_IGN;
@@ -70,6 +71,7 @@ PDBServer::PDBServer(string unixFileIn, int numConnectionsIn, PDBLoggerPtr myLog
     myLogger = myLoggerIn;
     isInternet = false;
     allDone = false;
+    startedAcceptingRequests = false;
     struct sigaction sa;
     memset(&sa, '\0', sizeof(sa));
     sa.sa_handler = SIG_IGN;
@@ -147,6 +149,10 @@ void PDBServer::listen() {
         // wait for someone to try to connect
         while (!allDone) {
             PDBCommunicatorPtr myCommunicator = make_shared<PDBCommunicator>();
+
+            // at this point we can say that we started accepting requests
+            this->startedAcceptingRequests = true;
+
             if (myCommunicator->pointToInternet(myLogger, sockFD, errMsg)) {
                 myLogger->error("PDBServer: could not point to an internet socket: " + errMsg);
                 continue;
@@ -208,6 +214,10 @@ void PDBServer::listen() {
 
         // wait for someone to try to connect
         while (!allDone) {
+
+            // at this point we can say that we started accepting requests
+            this->startedAcceptingRequests = true;
+
             PDBCommunicatorPtr myCommunicator;
             myCommunicator = make_shared<PDBCommunicator>();
             if (myCommunicator->pointToFile(myLogger, sockFD, errMsg)) {
@@ -357,7 +367,15 @@ void PDBServer::startServer(PDBWorkPtr runMeAtStart) {
         exit(-1);
     }
 
-    sleep(2);
+    // wait until the server starts listening to requests
+    std::cout << "Waiting for the server to start accepting requests";
+    while (!this->startedAcceptingRequests) {
+        std::cout << "." << std::endl;
+        usleep(300);
+    }
+
+    // just to keep it safe
+    usleep(300);
 
     // if there was some work to execute to start things up, then do it
     if (runMeAtStart != nullptr) {
