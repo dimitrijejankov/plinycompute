@@ -22,6 +22,7 @@
 #include <mutex>
 #include <thread>
 #include <sys/sysinfo.h>
+#include <PDBHeartBeatWork.h>
 #include "ServerFunctionality.h"
 
 namespace pdb {
@@ -37,7 +38,22 @@ public:
 
   bool syncCluster(const std::string &managerAddress, int managerPort, std::string &error);
 
+  /**
+   * This starts the heartbeat sending
+   */
+   void startHeartBeat();
+
+   /**
+    * This stops the heartbeat sending
+    */
+   void stopHeartBeat();
+
 private:
+
+  /**
+   * Are we sending a heartbeat to each node
+   */
+  atomic_bool isSendingHeartbeat;
 
   /**
    * Logger for the cluster manager
@@ -73,6 +89,11 @@ private:
    * The number of cores on this machine
    */
   int32_t numCores = -1;
+
+  /**
+   * This thing is running and sending heartbeats
+   */
+  PDBHeartBeatWorkPtr heartBeatWorker;
 };
 
 }

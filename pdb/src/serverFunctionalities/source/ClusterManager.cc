@@ -19,6 +19,8 @@
 #include <ClusterManager.h>
 #include <SimpleRequestResult.h>
 #include <SimpleRequest.h>
+#include <PDBFlushConsumerWork.h>
+#include <PDBHeartBeatWork.h>
 
 #include "CatalogClient.h"
 #include "ClusterManager.h"
@@ -115,6 +117,29 @@ bool ClusterManager::syncCluster(const std::string &managerAddress, int managerP
         return false;
       },
       address, port, type, totalMemory, numCores);
+}
+
+void ClusterManager::stopHeartBeat() {
+    heartBeatWorker->stop();
+}
+
+void ClusterManager::startHeartBeat() {
+
+    PDBFlushConsumerWorkPtr flusher;
+    PDBWorkerPtr worker;
+    // create a flush worker
+    auto sender = make_shared<PDBHeartBeatWork>(&getFunctionality<CatalogClient>());
+
+    // find a thread in thread pool, if we can not find a thread, we block.
+    while ((worker = this->getWorker()) == nullptr) {
+        sched_yield();
+    }
+
+    // run the work
+    worker->execute(sender, sender->getLinkedBuzzer());
+
+    // set the worker
+    heartBeatWorker = sender;
 }
 
 }

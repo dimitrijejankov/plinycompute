@@ -101,6 +101,9 @@ int main(int argc, char* argv[]) {
       std::string error;
       frontEnd.getFunctionality<ClusterManager>().syncCluster(managerIp, port, error);
 
+      // start sending the heart beats
+      frontEnd.getFunctionality<ClusterManager>().startHeartBeat();
+
       // log that the server has started
       std::cout << "Distributed storage manager server started!\n";
 
