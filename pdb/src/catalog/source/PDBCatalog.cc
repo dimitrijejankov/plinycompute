@@ -155,6 +155,36 @@ bool pdb::PDBCatalog::registerNode(pdb::PDBCatalogNodePtr node, std::string &err
   }
 }
 
+bool pdb::PDBCatalog::updateNode(pdb::PDBCatalogNodePtr node, std::string &error){
+
+  try {
+
+    // if the node exists don't create it
+    if(!nodeExists(node->nodeID)) {
+
+      // set the error
+      error = "The node with the identifier : " + node->nodeID + " does not exist\n";
+
+      // we failed return false
+      return false;
+    }
+
+    // insert the the set
+    storage.replace(*node);
+
+    // return true
+    return true;
+
+  } catch(std::system_error &e){
+
+    // set the error we failed
+    error = "Could not update the node with the identifier : " + node->nodeID +  "! The SQL error is : "  + std::string(e.what());
+
+    // we failed
+    return false;
+  }
+}
+
 bool pdb::PDBCatalog::updateNodeStatus(const std::string &nodeID, bool isActive, std::string &error) {
 
   try {

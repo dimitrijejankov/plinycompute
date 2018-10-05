@@ -98,6 +98,14 @@ class PDBCatalog {
   bool registerNode(PDBCatalogNodePtr node, std::string &error);
 
   /**
+   * Registers the node
+   * @param node - the node we want to register
+   * @param error - the error if we fail
+   * @return true if the node is registered successfully
+   */
+  bool updateNode(PDBCatalogNodePtr node, std::string &error);
+
+  /**
    * Update the status of a node either to active or inactive
    * @param nodeID - the identifier of the node a string of the format "ip:port"
    * @param isActive - true if the node is active, false otherwise
