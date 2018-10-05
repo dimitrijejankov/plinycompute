@@ -155,7 +155,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         if (!isManagerCatalogServer) {
 
           // add the guy that made the request as a registered node
-          res = pdbCatalog->registerNode(std::make_shared<pdb::PDBCatalogNode>(nodeID, address, port, type, numCores, totalMemory), errMsg);
+          res = pdbCatalog->registerNode(std::make_shared<pdb::PDBCatalogNode>(nodeID, address, port, type, numCores, totalMemory, true), errMsg);
 
           // create an allocation block to hold the response
           const UseTemporaryAllocationBlock tempBlock{1024};
@@ -182,7 +182,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         }
 
         // add the guy that made the request as a registered node
-        res = pdbCatalog->registerNode(std::make_shared<pdb::PDBCatalogNode>(nodeID, address, port, type, numCores, totalMemory), errMsg);
+        res = pdbCatalog->registerNode(std::make_shared<pdb::PDBCatalogNode>(nodeID, address, port, type, numCores, totalMemory, true), errMsg);
 
         // grab the catalog bytes
         auto catalogDump = pdbCatalog->serializeToBytes();

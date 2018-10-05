@@ -15,49 +15,38 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
+/*
+ * CatSyncRequest.h
+ *
+ */
 
-#ifndef CATGETWORKERSRESULT_H
-#define CATGETWORKERSRESULT_H
+#ifndef CATALOG_HEART_BEAT_REQUEST_H_
+#define CATALOG_HEART_BEAT_REQUEST_H_
 
+#include <iostream>
 #include "Object.h"
-#include "CatNodeObject.h"
-#include "Handle.h"
 #include "PDBString.h"
 #include "PDBVector.h"
-#include "PDBCatalogNode.h"
 
-// PRELOAD %CatGetWorkersResult%
+//  PRELOAD %CluHeartBeatRequest%
+
+using namespace std;
 
 namespace pdb {
 
 /**
- * Encapsulates a request to search for a type in the catalog
+ * This class is used to sync a worker node with the manager
  */
-class CatGetWorkersResult : public Object {
-
+class CluHeartBeatRequest : public Object {
 public:
 
-  CatGetWorkersResult() = default;
-  ~CatGetWorkersResult() = default;
+  CluHeartBeatRequest() = default;
 
-  explicit CatGetWorkersResult(const std::vector<pdb::PDBCatalogNodePtr> &nodes) : nodes(pdb::makeObject<pdb::Vector<pdb::Handle<CatNodeObject>>>(nodes.size(), 0)) {
-
-    // copy the stuff
-    for(const auto &node : nodes) {
-      this->nodes->push_back(pdb::makeObject<CatNodeObject>(node->address, node->port, node->nodeType, node->numCores, node->totalMemory, node->active));
-    }
-  }
-
-  // Copy constructor
-  explicit CatGetWorkersResult(const Handle<CatGetWorkersResult>& pdbItemToCopy) {
-    nodes = pdbItemToCopy->nodes;
-  }
+  ~CluHeartBeatRequest() = default;
 
   ENABLE_DEEP_COPY
-
-  // the nodes that are workers
-  pdb::Handle<pdb::Vector<pdb::Handle<CatNodeObject>>> nodes;
 };
-}
 
-#endif
+} /* namespace pdb */
+
+#endif /* CATALOG_NODE_METADATA_H_ */

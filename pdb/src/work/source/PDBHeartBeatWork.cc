@@ -23,7 +23,7 @@ void PDBHeartBeatWork::execute(PDBBuzzerPtr callerBuzzer) {
         for(const auto &node : nodes) {
 
             // send heartbeat
-            std::cout << "Sending heart beat to node " << std::endl;
+            std::cout << "Sending heart beat to node " << node->nodeID << std::endl;
 
             // sleep a while between individual pings.
             sleep(NODE_PING_DELAY);
@@ -38,4 +38,8 @@ void PDBHeartBeatWork::execute(PDBBuzzerPtr callerBuzzer) {
 
 void PDBHeartBeatWork::stop() {
     isStopped = true;
+}
+
+void PDBHeartBeatWork::sendHeartBeat(const std::string &address, int32_t port) {
+
 }

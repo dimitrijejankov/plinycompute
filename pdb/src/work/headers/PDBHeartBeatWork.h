@@ -45,6 +45,13 @@ private:
      * Are we still running if not this is true
      */
     atomic_bool isStopped;
+
+    /**
+     * This will be sending the heartbeats
+     * @param address - the address where we want to send
+     * @param port - the port where we are sending
+     */
+    void sendHeartBeat(const std::string &address, int32_t port);
 };
 
 

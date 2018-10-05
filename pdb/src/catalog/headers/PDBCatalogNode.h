@@ -33,8 +33,8 @@ class PDBCatalogNode {
    * @param port - the port of the node
    * @param nodeType - and the type of the node { worker, master } I guess
    */
-  PDBCatalogNode(std::string nodeID, std::string address, int port, std::string nodeType, int32_t numCores, int64_t totalMemory)
-      : nodeID(std::move(nodeID)), address(std::move(address)), port(port), nodeType(std::move(nodeType)), numCores(numCores), totalMemory(totalMemory) {}
+  PDBCatalogNode(std::string nodeID, std::string address, int port, std::string nodeType, int32_t numCores, int64_t totalMemory, bool active)
+      : nodeID(std::move(nodeID)), address(std::move(address)), port(port), nodeType(std::move(nodeType)), numCores(numCores), totalMemory(totalMemory), active(active) {}
 
 
   /**
@@ -68,6 +68,11 @@ class PDBCatalogNode {
   int64_t totalMemory = -1;
 
   /**
+   * True if the node is active false otherwise
+   */
+  bool active = false;
+
+  /**
    * Return the schema of the database object
    * @return the schema
    */
@@ -80,6 +85,7 @@ class PDBCatalogNode {
                                            sqlite_orm::make_column("nodeType", &PDBCatalogNode::nodeType),
                                            sqlite_orm::make_column("nodeNumCores", &PDBCatalogNode::numCores),
                                            sqlite_orm::make_column("nodeTotalMemory", &PDBCatalogNode::totalMemory),
+                                           sqlite_orm::make_column("nodeActive", &PDBCatalogNode::active),
                                            sqlite_orm::primary_key(&PDBCatalogNode::nodeID));
   }
 

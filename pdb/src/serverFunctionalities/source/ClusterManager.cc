@@ -57,7 +57,7 @@ void ClusterManager::registerHandlers(PDBServer &forMe) {
       make_shared<SimpleRequestHandler<CluSyncRequest>>(
           [&](Handle<CluSyncRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
-            // lock the catalog server
+            // lock the cluster manager
             std::lock_guard<std::mutex> guard(serverMutex);
 
             if (!isManager) {
@@ -83,13 +83,36 @@ void ClusterManager::registerHandlers(PDBServer &forMe) {
                                                                                                            request->nodePort,
                                                                                                            request->nodeType,
                                                                                                            request->nodeNumCores,
-                                                                                                           request->nodeMemory), error);
+                                                                                                           request->nodeMemory,
+                                                                                                           true), error);
+
+            // create an allocation block to hold the response
+            const UseTemporaryAllocationBlock tempBlock{1024};
 
             // create the response
             Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(success, error);
 
             // sends result to requester
             success = sendUsingMe->sendObject(response, error) && success;
+
+            // return the result
+            return make_pair(success, error);
+          }));
+
+  forMe.registerHandler(
+      CluSyncRequest_TYPEID,
+      make_shared<SimpleRequestHandler<CluSyncRequest>>(
+          [&](Handle<CluSyncRequest> request, PDBCommunicatorPtr sendUsingMe) {
+
+            // create an allocation block to hold the response
+            const UseTemporaryAllocationBlock tempBlock{1024};
+
+            // create the response
+            Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(true, "");
+
+            // sends result to requester
+            std::string error;
+            bool success = sendUsingMe->sendObject(response, error);
 
             // return the result
             return make_pair(success, error);
