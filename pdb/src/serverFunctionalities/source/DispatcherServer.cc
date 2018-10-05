@@ -36,9 +36,8 @@
 
 namespace pdb {
 
-DispatcherServer::DispatcherServer(PDBLoggerPtr logger, std::shared_ptr<StatisticsDB> statisticsDB) {
+DispatcherServer::DispatcherServer(PDBLoggerPtr logger) {
   this->logger = logger;
-  this->statisticsDB = statisticsDB;
   this->partitionPolicies = std::map<std::pair<std::string, std::string>, PartitionPolicyPtr>();
   pthread_mutex_init(&mutex, nullptr);
   numRequestsInProcessing = 0;

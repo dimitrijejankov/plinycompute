@@ -36,7 +36,6 @@
 #include "PhysicalOptimizer.h"
 #include "ShuffleInfo.h"
 #include "DistributedStorageManagerClient.h"
-#include "StatisticsDB.h"
 #include "RegisterReplica.h"
 #include <vector>
 #include <ExecuteComputation.h>
@@ -72,7 +71,6 @@ public:
      */
     QuerySchedulerServer(PDBLoggerPtr logger,
                          ConfigurationPtr conf,
-                         std::shared_ptr<StatisticsDB> statisticsDB,
                          bool pseudoClusterMode = false,
                          double partitionToCoreRatio = 0.75);
 
@@ -87,7 +85,6 @@ public:
     QuerySchedulerServer(int port,
                          PDBLoggerPtr logger,
                          ConfigurationPtr conf,
-                         std::shared_ptr<StatisticsDB> statisticsDB,
                          bool pseudoClusterMode = false,
                          double partitionToCoreRatio = 0.75);
 
@@ -327,11 +324,6 @@ protected:
      * The configuration of the node provided by the constructor
      */
     ConfigurationPtr conf;
-
-    /**
-     * A pointer to StatisticsDB that manages various statistics
-     */
-    std::shared_ptr<StatisticsDB> statisticsDB;
 
     /**
      * True if we are running PDB in pseudo cluster mode false otherwise

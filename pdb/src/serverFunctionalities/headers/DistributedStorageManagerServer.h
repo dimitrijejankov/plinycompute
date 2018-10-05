@@ -22,7 +22,6 @@
 
 #include "BroadcastServer.h"
 #include "SimpleRequestResult.h"
-#include "StatisticsDB.h"
 
 namespace pdb {
 
@@ -46,18 +45,16 @@ namespace pdb {
 class DistributedStorageManagerServer : public BroadcastServer {
 
 public:
-    DistributedStorageManagerServer(PDBLoggerPtr logger, ConfigurationPtr conf, std::shared_ptr<StatisticsDB> statisticsDB);
+    DistributedStorageManagerServer(PDBLoggerPtr logger, ConfigurationPtr conf);
 
 
-    DistributedStorageManagerServer(PDBLoggerPtr logger, std::shared_ptr<StatisticsDB> statisticsDB);
+    DistributedStorageManagerServer(PDBLoggerPtr logger);
 
     ~DistributedStorageManagerServer();
 
     void registerHandlers(PDBServer& forMe) override;
 
 private:
-
-    std::shared_ptr<StatisticsDB> statisticsDB;
 
     std::function<void(Handle<SimpleRequestResult>, std::string)> generateAckHandler(std::vector<std::string>& success,
                                                                                      std::vector<std::string>& failures,

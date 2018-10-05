@@ -74,13 +74,6 @@ int main(int argc, char* argv[]) {
     frontEnd.addFunctionality<pdb::CatalogServer>("CatalogDir", true, managerIp, port, managerIp, port);
     frontEnd.addFunctionality<pdb::CatalogClient>(port, "localhost", myLogger);
 
-    //initialize StatisticsDB
-    std::shared_ptr<StatisticsDB> statisticsDB = std::make_shared<StatisticsDB>(conf);
-    if (statisticsDB == nullptr) {
-        std::cout << "fatal error in initializing statisticsDB" << std::endl;
-        exit(1);
-    }
-
     std::string errMsg = " ";
     int numNodes = 1;
     string line;
@@ -91,9 +84,9 @@ int main(int argc, char* argv[]) {
 
     serverListFile = pseudoClusterMode ? "conf/serverlist.test" : "conf/serverlist";
 
-    frontEnd.addFunctionality<pdb::DistributedStorageManagerServer>(myLogger, statisticsDB);
-    frontEnd.addFunctionality<pdb::DispatcherServer>(myLogger, statisticsDB);
-    frontEnd.addFunctionality<pdb::QuerySchedulerServer>(port, myLogger, conf, statisticsDB, pseudoClusterMode, partitionToCoreRatio);
+    frontEnd.addFunctionality<pdb::DistributedStorageManagerServer>(myLogger);
+    frontEnd.addFunctionality<pdb::DispatcherServer>(myLogger);
+    frontEnd.addFunctionality<pdb::QuerySchedulerServer>(port, myLogger, conf, pseudoClusterMode, partitionToCoreRatio);
     frontEnd.addFunctionality<pdb::ClusterManager>(managerIp, port, true);
     frontEnd.startServer(make_shared<GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
 

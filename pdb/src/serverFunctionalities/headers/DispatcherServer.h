@@ -28,7 +28,6 @@
 
 #include "NodeDispatcherData.h"
 #include "StorageClient.h"
-#include "StatisticsDB.h"
 
 #include <string>
 #include <queue>
@@ -50,7 +49,7 @@ namespace pdb {
 class DispatcherServer : public ServerFunctionality {
 
 public:
-    DispatcherServer(PDBLoggerPtr logger, std::shared_ptr<StatisticsDB> statisticsDB);
+    DispatcherServer(PDBLoggerPtr logger);
 
     ~DispatcherServer();
 
@@ -100,7 +99,6 @@ public:
 
 private:
     PDBLoggerPtr logger;
-    std::shared_ptr<StatisticsDB> statisticsDB;
     std::map<std::pair<std::string, std::string>, PartitionPolicyPtr> partitionPolicies;
 
     /**

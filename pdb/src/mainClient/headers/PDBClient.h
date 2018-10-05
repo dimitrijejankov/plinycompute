@@ -29,7 +29,6 @@
 #include "PDBVector.h"
 #include "PartitionPolicy.h"
 #include "PartitionComp.h"
-#include "Partitioner.h"
 #include "SimpleRequest.h"
 
 /**
@@ -100,32 +99,6 @@ namespace pdb {
       bool createTempSet(const std::string &databaseName,
                          const std::string &setName, const std::string &typeName,
                          size_t pageSize = DEFAULT_PAGE_SIZE);
-
-
-
-      /* Partitions data in a created set using a partitioner */
-      /* @param inputSet: identifier to input set             
-         @param outputSet: identifier to output set
-         @param PartitionComp: partition comp used to partition the input set, and resulting in the output set
-         @return: success or not                            
-      */
-      template <class KeyClass, class ValueClass>
-      bool partitionSet(std::pair<std::string, std::string> inputSet, 
-                        std::pair<std::string, std::string> outputSet, 
-                        Handle<PartitionComp<KeyClass, ValueClass>> partitionComp);
-
-
-      /* Partitions and transform data stored in a created set using a partitioner */
-      /* @param inputSet: identifier to input set             
-         @param outputSet: identifier to output set
-         @param PartitionComp: partition comp used to partition the input set, and resulting in the output set
-         @return: success or not                            
-      */
-      template <class KeyClass, class ValueClass>
-      bool partitionAndTransformSet(std::pair<std::string, std::string> inputSet, 
-                        std::pair<std::string, std::string> outputSet, 
-                        Handle<PartitionTransformationComp<KeyClass, ValueClass>> partitionComp);
-
 
       /* Flushes data currently in memory into disk. */
       bool flushData();
