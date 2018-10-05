@@ -215,8 +215,7 @@ bool CatalogClient::getSharedLibraryByTypeName(
 
   PDB_COUT << "inside CatalogClient getSharedLibraryByTypeName for type=" << typeNameToSearch << " and id=" << identifier << std::endl;
 
-  return simpleRequest<CatSharedLibraryByNameRequest, CatalogUserTypeMetadata,
-                       bool>(
+  return simpleRequest<CatSharedLibraryByNameRequest, CatalogUserTypeMetadata, bool>(
       myLogger, port, address, false, 1024 * 1024 * 4,
       [&](Handle<CatalogUserTypeMetadata> result) {
 

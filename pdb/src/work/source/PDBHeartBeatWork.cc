@@ -5,9 +5,12 @@
 #include <PDBHeartBeatWork.h>
 
 #include "PDBHeartBeatWork.h"
+#include "CatSetObjectTypeRequest.h"
 #include "CatalogClient.h"
 
-PDBHeartBeatWork::PDBHeartBeatWork(pdb::CatalogClient *client) : client(client), isStopped(false) {}
+PDBHeartBeatWork::PDBHeartBeatWork(pdb::CatalogClient *client) : client(client), isStopped(false) {
+  logger = make_shared<pdb::PDBLogger>("heartBeatLog.log");
+}
 
 void PDBHeartBeatWork::execute(PDBBuzzerPtr callerBuzzer) {
 
@@ -24,6 +27,7 @@ void PDBHeartBeatWork::execute(PDBBuzzerPtr callerBuzzer) {
 
             // send heartbeat
             std::cout << "Sending heart beat to node " << node->nodeID << std::endl;
+            sendHeartBeat(node->address, node->port);
 
             // sleep a while between individual pings.
             sleep(NODE_PING_DELAY);
@@ -40,6 +44,13 @@ void PDBHeartBeatWork::stop() {
     isStopped = true;
 }
 
-void PDBHeartBeatWork::sendHeartBeat(const std::string &address, int32_t port) {
+bool PDBHeartBeatWork::sendHeartBeat(const std::string &address, int32_t port) {
 
+    return pdb::simpleRequest<pdb::CatSetObjectTypeRequest, pdb::SimpleRequestResult, bool>(
+        logger, port, address, false, 1024,
+        [&](pdb::Handle<pdb::SimpleRequestResult> result) {
+
+          // did we get something back or not
+          return result != nullptr;
+        });
 }

@@ -370,9 +370,10 @@ void PDBServer::startServer(PDBWorkPtr runMeAtStart) {
     // wait until the server starts listening to requests
     std::cout << "Waiting for the server to start accepting requests";
     while (!this->startedAcceptingRequests) {
-        std::cout << "." << std::endl;
+        std::cout << ".";
         usleep(300);
     }
+    std::cout << "\n";
 
     // just to keep it safe
     usleep(300);

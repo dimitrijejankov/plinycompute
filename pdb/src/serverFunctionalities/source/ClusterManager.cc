@@ -26,6 +26,7 @@
 #include "ClusterManager.h"
 #include "CluSyncRequest.h"
 #include "SimpleRequestHandler.h"
+#include "CluHeartBeatRequest.h"
 
 namespace pdb {
 
@@ -100,9 +101,9 @@ void ClusterManager::registerHandlers(PDBServer &forMe) {
           }));
 
   forMe.registerHandler(
-      CluSyncRequest_TYPEID,
-      make_shared<SimpleRequestHandler<CluSyncRequest>>(
-          [&](Handle<CluSyncRequest> request, PDBCommunicatorPtr sendUsingMe) {
+      CluHeartBeatRequest_TYPEID,
+      make_shared<SimpleRequestHandler<CluHeartBeatRequest>>(
+          [&](Handle<CluHeartBeatRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
             // create an allocation block to hold the response
             const UseTemporaryAllocationBlock tempBlock{1024};
