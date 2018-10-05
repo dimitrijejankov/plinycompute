@@ -25,9 +25,23 @@ void PDBHeartBeatWork::execute(PDBBuzzerPtr callerBuzzer) {
         // go through each node
         for(const auto &node : nodes) {
 
+            // if the node is marked as inactive we don't check it, it needs to re-register with the cluster manager
+            if(!node->active) {
+              continue;
+            }
+
             // send heartbeat
             std::cout << "Sending heart beat to node " << node->nodeID << std::endl;
-            sendHeartBeat(node->address, node->port);
+            bool nodeStatus = sendHeartBeat(node->address, node->port);
+
+            // update the status of the node
+            std::string error;
+            bool success = client->updateNodeStatus(node->nodeID, nodeStatus, error);
+
+            // did we manage to update it
+            if(!success) {
+              logger->error("Could not update the status of the node with identifier : " + node->nodeID + "\n");
+            }
 
             // sleep a while between individual pings.
             sleep(NODE_PING_DELAY);

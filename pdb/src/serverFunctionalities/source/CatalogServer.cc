@@ -42,6 +42,7 @@
 #include "CatGetDatabaseRequest.h"
 #include "CatGetDatabaseResult.h"
 #include "CatGetSetRequest.h"
+#include "CatUpdateNodeStatusRequest.h"
 #include "CatGetSetResult.h"
 #include "CatGetWorkersResult.h"
 #include "CatalogUserTypeMetadata.h"
@@ -260,6 +261,54 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         return make_pair(res, errMsg);
   }));
 
+  // handles a request to register metadata of a new cluster Node in the catalog
+  forMe.registerHandler(
+      CatUpdateNodeStatusRequest_TYPEID,
+      make_shared<SimpleRequestHandler<CatUpdateNodeStatusRequest>>([&](Handle<CatUpdateNodeStatusRequest> request, PDBCommunicatorPtr sendUsingMe) {
+
+        // lock the catalog server
+        std::lock_guard<std::mutex> guard(serverMutex);
+
+        // update the node status in the local catalog
+        std::string error;
+        bool res = pdbCatalog->updateNodeStatus(request->nodeID, request->isActive, error);
+
+        // create an allocation block to hold the response
+        const UseTemporaryAllocationBlock tempBlock{1024};
+
+        // create the response
+        Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(res, error);
+
+        // after updated the node in the local catalog, if this is the
+        // manager catalog iterate over all nodes in the cluster and broadcast the
+        // request to the distributed copies of the catalog
+        if (isManagerCatalogServer) {
+
+          // get the results of each broadcast
+          map<string, pair<bool, string>> updateResults;
+
+          // broadcast the update
+          broadcastRequest(request, 1024, updateResults, error);
+
+          for (auto &item : updateResults) {
+
+            // if we failed res would be set to false
+            res = item.second.first && res;
+
+            // log what is happening
+            PDB_COUT << "Node IP: " << item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") << item.second.second << "\n";
+          }
+
+        } else {
+
+          // log what happened
+          PDB_COUT << "This is not Manager Catalog Node, thus metadata was only registered locally!\n";
+        }
+
+        // sends result to requester
+        res = sendUsingMe->sendObject(response, error) && res;
+        return make_pair(res, error);
+      }));
 
   // handles a request to display the contents of the Catalog that have changed since a given timestamp
   forMe.registerHandler(CatPrintCatalogRequest_TYPEID,

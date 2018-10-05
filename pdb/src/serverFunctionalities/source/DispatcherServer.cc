@@ -192,7 +192,7 @@ void DispatcherServer::registerSet(std::pair<std::string, std::string> setAndDat
   }
   partitionPolicies.insert(std::pair<std::pair<std::string, std::string>, PartitionPolicyPtr>(setAndDatabase, partitionPolicy));
 
-  auto storageNodes = getFunctionality<pdb::CatalogClient>().getWorkerNodes();
+  auto storageNodes = getFunctionality<pdb::CatalogClient>().getActiveWorkerNodes();
   partitionPolicies[setAndDatabase]->updateStorageNodes(storageNodes);
 }
 
@@ -338,7 +338,7 @@ bool DispatcherServer::sendBytes(std::pair<std::string, std::string> setAndDatab
 PDBCatalogNodePtr DispatcherServer::findNode(const std::string &nodeId) {
 
   // grab the worker nodes
-  auto storageNodes = getFunctionality<pdb::CatalogClient>().getWorkerNodes();
+  auto storageNodes = getFunctionality<pdb::CatalogClient>().getActiveWorkerNodes();
 
   for (auto const &storageNode : storageNodes) {
     if (storageNode->nodeID == nodeId) {

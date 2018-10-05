@@ -155,6 +155,42 @@ bool pdb::PDBCatalog::registerNode(pdb::PDBCatalogNodePtr node, std::string &err
   }
 }
 
+bool pdb::PDBCatalog::updateNodeStatus(const std::string &nodeID, bool isActive, std::string &error) {
+
+  try {
+
+    // grab the node we want to update
+    auto node = getNode(nodeID);
+
+    // if the node exists don't create it
+    if(node == nullptr) {
+
+      // set the error
+      error = "The node with the identifier " + nodeID + " does not exist\n";
+
+      // we failed return false
+      return false;
+    }
+
+    // ok the node exists set the status
+    node->active = isActive;
+
+    // insert the the set
+    storage.replace(*node);
+
+    // return true
+    return true;
+
+  } catch(std::system_error &e){
+
+    // set the error we failed
+    error = "Could not update the node with the identifier: " + nodeID +  "! The SQL error is : "  + std::string(e.what());
+
+    // we failed
+    return false;
+  }
+}
+
 bool pdb::PDBCatalog::databaseExists(const std::string &name) {
 
   // try to find the database

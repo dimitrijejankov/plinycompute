@@ -174,6 +174,11 @@ public:
     // go through each node
     for (auto &node : pdbCatalog->getNodes()) {
 
+      // skip the node if it is not active
+      if(!node.active) {
+        continue;
+      }
+
       // grab the address and the port of the node
       std::string ip = node.address;
       int port = node.port;

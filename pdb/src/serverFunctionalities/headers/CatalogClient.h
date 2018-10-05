@@ -64,6 +64,8 @@ public:
    */
   PDBCatalogTypePtr getType(const std::string &typeName, std::string &error);
 
+  std::vector<pdb::PDBCatalogNodePtr> getActiveWorkerNodes();
+
   std::vector<pdb::PDBCatalogNodePtr> getWorkerNodes();
 
   /* Retrieves the content of a Shared Library given it's Type Id */
@@ -104,6 +106,14 @@ public:
   /* Sends a request to the Catalog Server to register metadata about a node in
    * the cluster */
   bool syncWithNode(PDBCatalogNodePtr nodeData, std::string &errMsg);
+
+  /**
+   * Updates the node status either set it to active or not
+   * @param nodeID - the id of the node we want to update the status
+   * @param nodeActive - true if the node is still active, false otherwise
+   * @return true if we succeed in doing so false otherwise
+   */
+  bool updateNodeStatus(const std::string &nodeID, bool nodeActive, std::string &errMsg);
 
   /* Sends a request to the Catalog Server to Creates a new set for a given
    * DataType in a

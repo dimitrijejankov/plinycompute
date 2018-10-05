@@ -25,6 +25,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <CatGetWorkersRequest.h>
+#include <CatUpdateNodeStatusRequest.h>
 
 #include "CatCreateDatabaseRequest.h"
 #include "CatCreateSetRequest.h"
@@ -170,6 +171,35 @@ PDBCatalogTypePtr CatalogClient::getType(const std::string &typeName, std::strin
       typeName);
 }
 
+std::vector<pdb::PDBCatalogNodePtr> pdb::CatalogClient::getActiveWorkerNodes() {
+
+  return std::move(simpleRequest<CatGetWorkersRequest, CatGetWorkersResult, std::vector<pdb::PDBCatalogNodePtr>>(
+      myLogger, port, address, std::vector<pdb::PDBCatalogNodePtr>(), 1024 * 1024, [&](Handle<CatGetWorkersResult> result) {
+
+        if (result == nullptr) {
+          PDB_COUT << "Failed to get the workers!" << "\n";
+          return std::vector<pdb::PDBCatalogNodePtr>();
+        }
+
+        // copy the result
+        std::vector<pdb::PDBCatalogNodePtr> ret;
+        for(int i = 0; i < result->nodes->size(); ++i) {
+
+          // grab the node info
+          auto &node = (*result->nodes)[i];
+
+          // skip this node if it is not active
+          if(!node->active) {
+            continue;
+          }
+
+          ret.push_back(std::make_shared<pdb::PDBCatalogNode>(node->nodeID, node->nodeAddress, node->nodePort, node->nodeType, node->numCores, node->totalMemory, node->active));
+        }
+
+        return std::move(ret);
+      }));
+}
+
 std::vector<pdb::PDBCatalogNodePtr> pdb::CatalogClient::getWorkerNodes() {
 
   return std::move(simpleRequest<CatGetWorkersRequest, CatGetWorkersResult, std::vector<pdb::PDBCatalogNodePtr>>(
@@ -183,7 +213,10 @@ std::vector<pdb::PDBCatalogNodePtr> pdb::CatalogClient::getWorkerNodes() {
         // copy the result
         std::vector<pdb::PDBCatalogNodePtr> ret;
         for(int i = 0; i < result->nodes->size(); ++i) {
+
+          // grab the node info
           auto &node = (*result->nodes)[i];
+
           ret.push_back(std::make_shared<pdb::PDBCatalogNode>(node->nodeID, node->nodeAddress, node->nodePort, node->nodeType, node->numCores, node->totalMemory, node->active));
         }
 
@@ -465,6 +498,29 @@ bool CatalogClient::syncWithNode(PDBCatalogNodePtr nodeData, std::string &errMsg
         return false;
       },
       nodeData->nodeID, nodeData->address, nodeData->port, nodeData->nodeType, nodeData->numCores, nodeData->totalMemory);
+}
+
+bool CatalogClient::updateNodeStatus(const std::string &nodeID, bool nodeActive, std::string &errMsg) {
+
+  // do the request
+  return simpleRequest<CatUpdateNodeStatusRequest, SimpleRequestResult, bool>(
+      myLogger, port, address, false, 1024,
+      [&](Handle<SimpleRequestResult> result) {
+        if (result != nullptr) {
+
+          if (!result->getRes().first) {
+            errMsg = "Error updating the node status: " + result->getRes().second;
+            myLogger->error(errMsg);
+            return false;
+          }
+
+          return true;
+        }
+
+        errMsg = "Error updating the node status!";
+        return false;
+      },
+      nodeID, nodeActive);
 }
 
 // sends a request to the Catalog Server to print all metadata newer than a

@@ -98,6 +98,14 @@ class PDBCatalog {
   bool registerNode(PDBCatalogNodePtr node, std::string &error);
 
   /**
+   * Update the status of a node either to active or inactive
+   * @param nodeID - the identifier of the node a string of the format "ip:port"
+   * @param isActive - true if the node is active, false otherwise
+   * @return true if we succeed false otherwise
+   */
+  bool updateNodeStatus(const std::string &nodeID, bool isActive, std::string &error);
+
+  /**
    * Check if the database with the provided name exists
    * @param name - the name of the database
    * @return - true if it does false otherwise

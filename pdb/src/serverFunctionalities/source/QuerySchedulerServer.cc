@@ -94,7 +94,7 @@ void QuerySchedulerServer::initialize() {
   delete this->standardResources;
   this->standardResources = new std::vector<StandardResourceInfoPtr>();
 
-  for(const auto &node : getFunctionality<CatalogClient>().getWorkerNodes()) {
+  for(const auto &node : getFunctionality<CatalogClient>().getActiveWorkerNodes()) {
       StandardResourceInfoPtr currentResource = std::make_shared<StandardResourceInfo>(node->numCores,
                                                                                        node->totalMemory,
                                                                                        node->address,
