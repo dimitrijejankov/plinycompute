@@ -108,7 +108,31 @@ int main(int argc, char *argv[]) {
 
   std::string ipcFile = std::string("/tmp/") + localIp + std::string("_") + std::to_string(localPort);
   std::cout << "ipcFile=" << ipcFile << std::endl;
-  conf->setBackEndIpcFile(ipcFile);
+
+
+  // the configuration for this node
+  auto config = make_shared<pdb::NodeConfig>();
+
+  config->isManager = false;
+  config->address = localIp;
+  config->port = localPort;
+  config->managerAddress = managerIp;
+  config->managerPort = managerPort;
+  config->maxConnections = 100;
+  config->numThreads = numThreads;
+  config->sharedMemSize = sharedMemSize;
+  config->rootDirectory = "./pdbRoot_" + localIp + "_" + std::to_string(localPort);
+
+  // create the root directory
+  boost::filesystem::path rootPath(config->rootDirectory);
+  if(!boost::filesystem::exists(rootPath) && !boost::filesystem::create_directories(rootPath)) {
+    std::cout << "Failed to create the root directory!\n";
+  }
+
+  config->ipcFile = boost::filesystem::path(config->rootDirectory).append("/ipcFile").string();
+  config->catalogFile = boost::filesystem::path(config->rootDirectory).append("/catalog").string();
+  conf->setBackEndIpcFile(config->ipcFile);
+
 
   string errMsg;
   if (shm != nullptr) {
@@ -118,13 +142,11 @@ int main(int argc, char *argv[]) {
       std::string backendLoggerFile = std::string("backend_") + localIp + std::string("_") +
           std::to_string(localPort) + std::string(".log");
       pdb::PDBLoggerPtr logger = make_shared<pdb::PDBLogger>(backendLoggerFile);
-      pdb::PDBServer backEnd(conf->getBackEndIpcFile(), 100, logger);
+      pdb::PDBServer backEnd(pdb::PDBServer::NodeType::BACKEND, config, logger);
       backEnd.addFunctionality<pdb::HermesExecutionServer>(shm, backEnd.getWorkerQueue(), logger, conf);
       bool usePangea = true;
-      std::string clientLoggerFile = std::string("client_") + localIp + std::string("_") +
-          std::to_string(localPort) + std::string(".log");
-      backEnd.addFunctionality<pdb::StorageClient>(
-          localPort, "localhost", make_shared<pdb::PDBLogger>(clientLoggerFile), usePangea);
+      std::string clientLoggerFile = std::string("client_") + localIp + std::string("_") + std::to_string(localPort) + std::string(".log");
+      backEnd.addFunctionality<pdb::StorageClient>(localPort, "localhost", make_shared<pdb::PDBLogger>(clientLoggerFile), usePangea);
       backEnd.startServer(nullptr);
 
     } else if (child_pid == -1) {
@@ -132,7 +154,7 @@ int main(int argc, char *argv[]) {
     } else {
 
       // I'm the frontend server
-      pdb::PDBServer frontEnd(localPort, 100, logger);
+      pdb::PDBServer frontEnd(pdb::PDBServer::NodeType::FRONTEND, config, logger);
 
       // frontEnd.addFunctionality<pdb :: PipelineDummyTestServer>();
       frontEnd.addFunctionality<pdb::PangeaStorageServer>(shm, frontEnd.getWorkerQueue(), logger, conf, standalone);
@@ -147,15 +169,15 @@ int main(int argc, char *argv[]) {
       if (standalone) {
 
         string nodeType = "manager";
-        frontEnd.addFunctionality<pdb::CatalogServer>("CatalogDir", true, "localhost", localPort, "localhost", localPort);
-        frontEnd.addFunctionality<pdb::ClusterManager>("localhost", localPort, true);
+        frontEnd.addFunctionality<pdb::CatalogServer>();
+        frontEnd.addFunctionality<pdb::ClusterManager>();
         frontEnd.addFunctionality<pdb::CatalogClient>(localPort, "localhost", logger);
 
       } else {
 
         std::string catalogFile = std::string("CatalogDir_") + localIp + std::string("_") + std::to_string(localPort);
-        frontEnd.addFunctionality<pdb::ClusterManager>(localIp, localPort, false);
-        frontEnd.addFunctionality<pdb::CatalogServer>(catalogFile, false, managerIp, managerPort, localIp, localPort);
+        frontEnd.addFunctionality<pdb::ClusterManager>();
+        frontEnd.addFunctionality<pdb::CatalogServer>();
         frontEnd.addFunctionality<pdb::CatalogClient>(localPort, "localhost", logger);
       }
 
@@ -163,7 +185,7 @@ int main(int argc, char *argv[]) {
 
         // sync me with the cluster
         std::string error;
-        frontEnd.getFunctionality<pdb::ClusterManager>().syncCluster(managerIp, managerPort, error);
+        frontEnd.getFunctionality<pdb::ClusterManager>().syncCluster(error);
 
         // log that the server has started
         std::cout << "Distributed storage manager server started!\n";

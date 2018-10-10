@@ -30,13 +30,13 @@ namespace pdb {
 class ClusterManager : public ServerFunctionality {
 public:
 
-  ClusterManager(std::string address, int32_t port, bool isManager);
+  ClusterManager();
 
 
   void registerHandlers(PDBServer& forMe) override;
 
 
-  bool syncCluster(const std::string &managerAddress, int managerPort, std::string &error);
+  bool syncCluster(std::string &error);
 
   /**
    * This starts the heartbeat sending
@@ -64,21 +64,6 @@ private:
    * A mutex to sync the cluster
    */
   std::mutex serverMutex;
-
-  /**
-   * The ip of the node
-   */
-  std::string address;
-
-  /**
-   * The port of the node
-   */
-  int32_t port;
-
-  /**
-   * True if this node is the manager
-   */
-  bool isManager;
 
   /**
    * The size of the memory on this machine

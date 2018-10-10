@@ -33,14 +33,14 @@ void PDBServer::addFunctionality(Args&&... args) {
     std::string myType = getTypeName<Functionality>();
 
     // and remember him... map him to a particular index in the list of functionalities
-    if (allFunctionalityNames.count(myType) == 1) {
+    if (functionalityNames.count(myType) == 1) {
         std::cerr << "BAD!  You can't add the same functionality twice.\n";
     }
-    allFunctionalityNames[myType] = allFunctionalities.size();
+    functionalityNames[myType] = functionalities.size();
 
     // then create the functionality
     shared_ptr<ServerFunctionality> whichFunctionality = make_shared<Functionality>(args...);
-    allFunctionalities.push_back(whichFunctionality);
+    functionalities.push_back(whichFunctionality);
 
     registerHandlersFromLastFunctionality();
 }
@@ -52,11 +52,11 @@ Functionality& PDBServer::getFunctionality() {
     static int whichIndex = -1;
     if (whichIndex == -1) {
         std::string myType = getTypeName<Functionality>();
-        whichIndex = allFunctionalityNames[myType];
+        whichIndex = functionalityNames[myType];
     }
 
     // and now, return the functionality
-    return *((Functionality*)allFunctionalities[whichIndex].get());
+    return *((Functionality*)functionalities[whichIndex].get());
 }
 }
 

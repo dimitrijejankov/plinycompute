@@ -35,8 +35,7 @@ using MemoryInfo = struct sysinfo;
 const auto &getMemoryInfo = sysinfo;
 const auto &getCPUCores = std::thread::hardware_concurrency;
 
-ClusterManager::ClusterManager(std::string address, int32_t port, bool isManager)
-    : address(std::move(address)), port(port), isManager(isManager) {
+ClusterManager::ClusterManager() {
 
   // grab the system info
   MemoryInfo memoryInfo{};
@@ -61,7 +60,7 @@ void ClusterManager::registerHandlers(PDBServer &forMe) {
             // lock the cluster manager
             std::lock_guard<std::mutex> guard(serverMutex);
 
-            if (!isManager) {
+            if (!getConfiguration()->isManager) {
 
               // create the response
               std::string error = "A worker node can not sync the cluster only a manager can!";
@@ -120,13 +119,16 @@ void ClusterManager::registerHandlers(PDBServer &forMe) {
           }));
 }
 
-bool ClusterManager::syncCluster(const std::string &managerAddress, int managerPort, std::string &error) {
+bool ClusterManager::syncCluster(std::string &error) {
+
+  // the configuration
+  auto conf = getConfiguration();
 
   // figure out the type of the node
-  std::string type = isManager ? "manager" : "worker";
+  std::string type = getConfiguration()->isManager ? "manager" : "worker";
 
   return simpleRequest<CluSyncRequest, SimpleRequestResult, bool>(
-      logger, managerPort, managerAddress, false, 1024,
+      logger, conf->managerPort, conf->managerAddress, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
         if (result != nullptr) {
           if (!result->getRes().first) {
@@ -140,7 +142,7 @@ bool ClusterManager::syncCluster(const std::string &managerAddress, int managerP
         error = "ClusterManager : Could not sink with the manager";
         return false;
       },
-      address, port, type, totalMemory, numCores);
+      conf->address, conf->port, type, totalMemory, numCores);
 }
 
 void ClusterManager::stopHeartBeat() {

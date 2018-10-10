@@ -54,47 +54,7 @@
 
 namespace pdb {
 
-// constructor
-CatalogServer::CatalogServer(const string &catalogDirectoryIn,
-                             bool isManagerCatalogServer,
-                             const string &managerIP,
-                             int managerPort,
-                             const string &nodeIP,
-                             int nodePort) {
-
-  // create a logger for the catalog server
-  this->logger = make_shared<pdb::PDBLogger>("catalogServer.log");
-
-  // set the ip address and port
-  this->managerIP = managerIP;
-  this->managerPort = managerPort;
-  this->nodeIP = nodeIP;
-  this->nodePort = nodePort;
-  this->catalogDirectory = catalogDirectoryIn;
-  this->isManagerCatalogServer = isManagerCatalogServer;
-  this->tempPath = catalogDirectory + "/tmp_so_files";
-
-  // create the directories for the catalog
-  initDirectories();
-
-  // creates instance of catalog
-  PDBLoggerPtr catalogLogger = make_shared<PDBLogger>("catalogLogger");
-  this->pdbCatalog = make_shared<PDBCatalog>(catalogDirectory + "/catalog.sqlite");
-
-  // initialize the types
-  initBuiltInTypes();
-
-  PDB_COUT << "Catalog Server successfully initialized!\n";
-}
-
 void CatalogServer::initDirectories() const {
-
-  // creates the parent folder for the catalog if location exists, only opens it.
-  if (mkdir(catalogDirectory.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
-    PDB_COUT << "Parent catalog folder " << catalogDirectory << " was not created, it already exists.\n";
-  } else {
-    PDB_COUT << "Parent catalog folder " << catalogDirectory << "  was created/opened.\n";
-  }
 
   // creates temp folder for extracting so_files (only if folder doesn't exist)
   const int folder = mkdir(tempPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
@@ -122,6 +82,27 @@ void CatalogServer::initBuiltInTypes() {
       }
     }
   }
+}
+
+void CatalogServer::init() {
+
+  // create a logger for the catalog server
+  this->logger = make_shared<pdb::PDBLogger>("catalogServer.log");
+
+  // set the ip address and port
+  this->tempPath = getConfiguration()->rootDirectory + "/tmp_so_files";
+
+  // create the directories for the catalog
+  initDirectories();
+
+  // creates instance of catalog
+  PDBLoggerPtr catalogLogger = make_shared<PDBLogger>("catalogLogger");
+  this->pdbCatalog = make_shared<PDBCatalog>(getConfiguration()->catalogFile);
+
+  // initialize the types
+  initBuiltInTypes();
+
+  PDB_COUT << "Catalog Server successfully initialized!\n";
 }
 
 // register handlers for processing requests to the Catalog Server
@@ -156,7 +137,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         auto node = std::make_shared<pdb::PDBCatalogNode>(nodeID, address, port, type, numCores, totalMemory, true);
 
         // if we are a worker not we simply register the node and that is it.
-        if (!isManagerCatalogServer) {
+        if (!getConfiguration()->isManager) {
 
           // if the node exists update it if it does not register it
           res = pdbCatalog->nodeExists(nodeID) ? pdbCatalog->updateNode(node, errMsg) : pdbCatalog->registerNode(node, errMsg);
@@ -196,7 +177,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         Handle<CatSyncWorkerRequest> workerRequest = makeObject<CatSyncWorkerRequest>(catalogDump);
 
         // forward the request to the node
-        if(this->nodeIP != (std::string) request->nodeIP || this->nodePort != request->nodePort) {
+        if(getConfiguration()->address != (std::string) request->nodeIP || getConfiguration()->port != request->nodePort) {
           res = forwardRequest(workerRequest, catalogDump.size() + 1024, request->nodeIP, request->nodePort, errMsg);
         }
 
@@ -221,7 +202,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         pdbCatalog = nullptr;
 
         // output the catalog file
-        ofstream file (catalogDirectory + "/catalog.sqlite", ios::trunc | ios::binary);
+        ofstream file (getConfiguration()->catalogFile, ios::trunc | ios::binary);
 
         // check if the file is open
         if(!file.is_open()) {
@@ -250,7 +231,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         file.close();
 
         // load the catalog again
-        pdbCatalog = make_shared<PDBCatalog>(catalogDirectory + "/catalog.sqlite");
+        pdbCatalog = make_shared<PDBCatalog>(getConfiguration()->catalogFile);
 
         // create an allocation block to hold the response
         const UseTemporaryAllocationBlock tmp{1024};
@@ -285,7 +266,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         // after updated the node in the local catalog, if this is the
         // manager catalog iterate over all nodes in the cluster and broadcast the
         // request to the distributed copies of the catalog
-        if (isManagerCatalogServer) {
+        if (getConfiguration()->isManager) {
 
           // get the results of each broadcast
           map<string, pair<bool, string>> updateResults;
@@ -447,7 +428,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         }
 
         // ok the type is not in the local catalog, this is fine if we are not the manager!
-        if(!this->isManagerCatalogServer) {
+        if(!getConfiguration()->isManager) {
 
           // process the case where the type is not registered in this local
           PDB_COUT << "Connecting to the Remote Catalog Server via Catalog Client\n";
@@ -455,7 +436,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
           // uses a dummyObjectFile since this is just making a remote call to
           // the Catalog Manager Server and what matters is the returned bytes.
-          string dummyObjectFile = catalogDirectory + "/tmp_so_files/temp.so";
+          string dummyObjectFile = tempPath + "/temp.so";
 
           // grab the type id from the request
           auto typeId = request->getTypeLibraryId();
@@ -466,7 +447,8 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
           string outTypeName;
 
           // retrieves from remote catalog the Shared Library bytes in "returnedBytes" and metadata in the "response" object
-          auto client = CatalogClient(managerPort, managerIP, make_shared<pdb::PDBLogger>("clientCatalogToServerLog"));
+          auto conf = getConfiguration();
+          auto client = CatalogClient(conf->managerPort, conf->managerAddress, make_shared<pdb::PDBLogger>("clientCatalogToServerLog"));
           bool res = client.getSharedLibraryByTypeName(typeId, outTypeName, dummyObjectFile, bytes, errMsg);
 
           PDB_COUT << "Bytes returned from manager: "  << std::to_string(bytes.size()) << "\n";
@@ -601,7 +583,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
             // after we added the set to the local catalog, if this is the
             // manager catalog iterate over all nodes in the cluster and broadcast the
             // request to the distributed copies of the catalog
-            if (isManagerCatalogServer) {
+            if (getConfiguration()->isManager) {
 
               // get the results of each broadcast
               map<string, pair<bool, string>> updateResults;
@@ -668,7 +650,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         // after we added the set to the local catalog, if this is the
         // manager catalog iterate over all nodes in the cluster and broadcast the
         // request to the distributed copies of the catalog
-        if (isManagerCatalogServer) {
+        if (getConfiguration()->isManager) {
 
           // get the results of each broadcast
           map<string, pair<bool, string>> updateResults;
@@ -718,7 +700,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
             // after it deleted the database in the local catalog, if this is the
             // manager catalog iterate over all nodes in the cluster and broadcast the
             // delete to the distributed copies of the catalog
-            if (isManagerCatalogServer) {
+            if (getConfiguration()->isManager) {
 
               // get the results of each broadcast
               map<string, pair<bool, string>> updateResults;
@@ -768,7 +750,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         // after we deleted the set in the local catalog, if this is the
         // manager catalog iterate over all nodes in the cluster and broadcast the
         // delete to the distributed copies of the catalog
-        if (isManagerCatalogServer) {
+        if (getConfiguration()->isManager) {
 
           // get the results of each broadcast
           map<string, pair<bool, string>> updateResults;
@@ -825,7 +807,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
             // after we added the set to the local catalog, if this is the
             // manager catalog iterate over all nodes in the cluster and broadcast the
             // request to the distributed copies of the catalog
-            if (isManagerCatalogServer) {
+            if (getConfiguration()->isManager) {
 
               // get the results of each broadcast
               map<string, pair<bool, string>> updateResults;
@@ -969,7 +951,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 bool CatalogServer::loadAndRegisterType(int16_t typeIDFromManagerCatalog, const char *&soFile, size_t soFileSize, string &errMsg) {
 
   // open a temporary file with the right permissions
-  string tempFile = catalogDirectory + "/tmp_so_files/temp.so";
+  string tempFile = tempPath + "/temp.so";
   int fileDesc = open(tempFile.c_str(), O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
 
   // write out the shared library
@@ -1034,7 +1016,7 @@ bool CatalogServer::loadAndRegisterType(int16_t typeIDFromManagerCatalog, const 
   PDB_COUT << "typeName returned from SO file: " << typeName << endl;
 
   // rename temporary file
-  string newName = catalogDirectory + "/tmp_so_files/" + typeName + ".so";
+  string newName = tempPath + "/" + typeName + ".so";
   int result = rename(tempFile.c_str(), newName.c_str());
   if (result == 0) {
     PDB_COUT << "Successfully renaming file " << newName << endl;
@@ -1082,5 +1064,6 @@ bool CatalogServer::loadAndRegisterType(int16_t typeIDFromManagerCatalog, const 
     return true;
   }
 }
+
 
 } // namespace

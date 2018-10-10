@@ -21,6 +21,7 @@
 #include <iostream>
 #include <string>
 #include <ClusterManager.h>
+#include <boost/filesystem/path.hpp>
 
 #include "PDBServer.h"
 #include "CatalogServer.h"
@@ -65,13 +66,35 @@ int main(int argc, char* argv[]) {
         exit(-1);
     }
 
+    // the configuration for this node
+    auto config = make_shared<pdb::NodeConfig>();
+
+    config->isManager = true;
+    config->address = managerIp;
+    config->port = port;
+    config->managerAddress = managerIp;
+    config->maxConnections = 100;
+    config->managerPort = port;
+    config->sharedMemSize = 0; // nopangea
+    config->ipcFile = ""; // nobackend
+    config->rootDirectory = "./pdbRoot_" + managerIp + "_" + std::to_string(port);
+
+    // create the root directory
+    boost::filesystem::path rootPath(config->rootDirectory);
+    if(!boost::filesystem::exists(rootPath) && !boost::filesystem::create_directories(rootPath)) {
+      std::cout << "Failed to create the root directory!\n";
+    }
+
+    config->ipcFile = boost::filesystem::path(config->rootDirectory).append("/ipcFile").string();
+    config->catalogFile = boost::filesystem::path(config->rootDirectory).append("/catalog").string();
+
     std::cout << "Starting up a distributed storage manager server...\n";
     pdb::PDBLoggerPtr myLogger = make_shared<pdb::PDBLogger>("frontendLogFile.log");
-    pdb::PDBServer frontEnd(port, 100, myLogger);
+    pdb::PDBServer frontEnd(pdb::PDBServer::NodeType::FRONTEND, config, myLogger);
 
     ConfigurationPtr conf = make_shared<Configuration>();
 
-    frontEnd.addFunctionality<pdb::CatalogServer>("CatalogDir", true, managerIp, port, managerIp, port);
+    frontEnd.addFunctionality<pdb::CatalogServer>();
     frontEnd.addFunctionality<pdb::CatalogClient>(port, "localhost", myLogger);
 
     std::string errMsg = " ";
@@ -87,12 +110,12 @@ int main(int argc, char* argv[]) {
     frontEnd.addFunctionality<pdb::DistributedStorageManagerServer>(myLogger);
     frontEnd.addFunctionality<pdb::DispatcherServer>(myLogger);
     frontEnd.addFunctionality<pdb::QuerySchedulerServer>(port, myLogger, conf, pseudoClusterMode, partitionToCoreRatio);
-    frontEnd.addFunctionality<pdb::ClusterManager>(managerIp, port, true);
+    frontEnd.addFunctionality<pdb::ClusterManager>();
     frontEnd.startServer(make_shared<GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
 
       // sync me with the cluster
       std::string error;
-      frontEnd.getFunctionality<ClusterManager>().syncCluster(managerIp, port, error);
+      frontEnd.getFunctionality<ClusterManager>().syncCluster(error);
 
       // start sending the heart beats
       frontEnd.getFunctionality<ClusterManager>().startHeartBeat();

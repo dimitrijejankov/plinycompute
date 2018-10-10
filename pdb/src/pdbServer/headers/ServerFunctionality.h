@@ -28,8 +28,12 @@ namespace pdb {
 class ServerFunctionality {
 
 public:
+
     // registers any particular handlers that this server needs
     virtual void registerHandlers(PDBServer& forMe) = 0;
+
+    // this method is called by the PDBServer before registering the handlers but after the functionality is created.
+    virtual void init() {};
 
     // added by Jia, it will be invoked when PDBServer is to be shutdown
     virtual void cleanup() {}
@@ -53,6 +57,9 @@ public:
         return parent->getLogger();
     }
 
+    NodeConfigPtr getConfiguration() {
+        return parent->getConfiguration();
+    }
 
 private:
     PDBServer* parent;

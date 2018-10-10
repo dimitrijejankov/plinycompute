@@ -38,6 +38,7 @@ typedef std::shared_ptr<PDBServer> PDBServerPtr;
 #include "PDBLogger.h"
 #include "PDBWork.h"
 #include "PDBCommunicator.h"
+#include "NodeConfig.h"
 #include <string>
 #include <map>
 #include <atomic>
@@ -56,118 +57,115 @@ class ServerFunctionality;
 
 class PDBServer {
 public:
-    // server set up for comminication over the internet, with the specified number of threads
-    // (PDBWorker objects) to handle connections to the server.
-    PDBServer(int portNumberIn, int numConnections, PDBLoggerPtr myLogger);
 
-    // server set up for communication using the local file system, with the specified number of
-    // threads
-    // to handle connections to the server.  Log to the specified logger.
-    PDBServer(string fileName, int numConnections, PDBLoggerPtr myLogger);
+  enum NodeType {
+    FRONTEND,
+    BACKEND
+  };
 
-    // a server has many possible functionalities... storage, catalog client, query planning, etc.
-    // to create and add a functionality, call this.  The Functionality class must derive from the
-    // ServerFunctionality class, which means that it must implement the pure virtual function
-    // RegisterHandlers (PDBServer &) that registers any special handlers that the class needs in
-    // order to
-    // perform its required tasks
-    template <class Functionality, class... Args>
-    void addFunctionality(Args&&... args);
+  PDBServer(NodeType type, const NodeConfigPtr &config, const PDBLoggerPtr &logger);
 
-    // gets access to a particular functionality... this might be called (for example)
-    template <class Functionality>
-    Functionality& getFunctionality();
+  // a server has many possible functionalities... storage, catalog client, query planning, etc.
+  // to create and add a functionality, call this.  The Functionality class must derive from the
+  // ServerFunctionality class, which means that it must implement the pure virtual function
+  // RegisterHandlers (PDBServer &) that registers any special handlers that the class needs in
+  // order to
+  // perform its required tasks
+  template<class Functionality, class... Args>
+  void addFunctionality(Args &&... args);
 
-    // asks the server to handle a particular request coming over the wire with the particular work
-    // type
-    void registerHandler(int16_t typeID, PDBCommWorkPtr handledBy);
+  // gets access to a particular functionality... this might be called (for example)
+  template<class Functionality>
+  Functionality &getFunctionality();
 
-    // like registerHandler but repeat the work in a time interval
-    // TODO: to be implemented later.
-    //  void registerTimedHandler (uint32_t intervalInMilliseconds, PDBWorkPtr handledBy);
+  // asks the server to handle a particular request coming over the wire with the particular work
+  // type
+  void registerHandler(int16_t typeID, const PDBCommWorkPtr &handledBy);
 
-    // starts the server---this creates all of the threads and lets the server start taking
-    // requests; this
-    // call will never return.  Note that if runMeAtStart is not null, then runMeAtStart is executed
-    // before the server starts handling requests
-    void startServer(PDBWorkPtr runMeAtStart);
+  // like registerHandler but repeat the work in a time interval
+  // TODO: to be implemented later.
+  //  void registerTimedHandler (uint32_t intervalInMilliseconds, PDBWorkPtr handledBy);
 
-    // asks the server to signal all of the threads activily handling connections that a certain
-    // event
-    // has occured; this effectively just has us call PDBWorker.signal (signalWithMe) for all of the
-    // workers that are currently handling requests.  Any that indicate that they have died as a
-    // result
-    // of the signal are forgotten (allowed to go out of scope) and then replaced with a new
-    // PDBWorker
-    // object
-    void signal(PDBAlarm signalWithMe);
+  // starts the server---this creates all of the threads and lets the server start taking
+  // requests; this
+  // call will never return.  Note that if runMeAtStart is not null, then runMeAtStart is executed
+  // before the server starts handling requests
+  void startServer(PDBWorkPtr runMeAtStart);
 
-    // tell the server to start listening for people who want to connect
-    void listen();
+  // asks the server to signal all of the threads activily handling connections that a certain
+  // event
+  // has occured; this effectively just has us call PDBWorker.signal (signalWithMe) for all of the
+  // workers that are currently handling requests.  Any that indicate that they have died as a
+  // result
+  // of the signal are forgotten (allowed to go out of scope) and then replaced with a new
+  // PDBWorker
+  // object
+  void signal(PDBAlarm signalWithMe);
 
-    // asks us to handle one request that is coming over the given PDBCommunicator; return true if
-    // this
-    // is not the last request over this PDBCommunicator object; buzzMeWhenDone is sent to the
-    // worker that
-    // is spawned to handle the request
-    bool handleOneRequest(PDBBuzzerPtr buzzMeWhenDone, PDBCommunicatorPtr myCommunicator);
+  // tell the server to start listening for people who want to connect
+  void listen();
 
-    void stop();  // added by Jia
+  // asks us to handle one request that is coming over the given PDBCommunicator; return true if
+  // this
+  // is not the last request over this PDBCommunicator object; buzzMeWhenDone is sent to the
+  // worker that
+  // is spawned to handle the request
+  bool handleOneRequest(PDBBuzzerPtr buzzMeWhenDone, PDBCommunicatorPtr myCommunicator);
 
-    // Someone added this, but it is BAD!!  This should not be exposed
-    // Jia: I understand it is bad, however we need to create threads in a handler, and I feel you
-    // do
-    //      not want multiple worker queue in one process. So I temprarily enabled this...
-    PDBWorkerQueuePtr getWorkerQueue();
+  void stop();  // added by Jia
 
-    // gets access to logger
-    PDBLoggerPtr getLogger();
+  // Someone added this, but it is BAD!!  This should not be exposed
+  // Jia: I understand it is bad, however we need to create threads in a handler, and I feel you
+  // do
+  //      not want multiple worker queue in one process. So I temprarily enabled this...
+  PDBWorkerQueuePtr getWorkerQueue();
+
+  // gets access to logger
+  PDBLoggerPtr getLogger();
+
+  // returns the configuration of this node
+  pdb::NodeConfigPtr getConfiguration();
 
 private:
-    // used to ask the most recently-added functionality to register its handlers
-    void registerHandlersFromLastFunctionality();
 
-    // when we get a message over the input socket, we'll handle it using the registered handler
-    map<int16_t, PDBCommWorkPtr> handlers;
+  // used to ask the most recently-added functionality to register its handlers
+  void registerHandlersFromLastFunctionality();
 
-    // this is where all of our workers to handle the server requests live
-    PDBWorkerQueuePtr myWorkers;
+  // is this frontend or a backend
+  NodeType nodeType;
 
-    // handles a request using the given PDBCommunicator to obtain the data
-    void handleRequest(PDBCommunicatorPtr myCommunicator);
+  // the configuration of this node
+  pdb::NodeConfigPtr config;
 
-    // true if we started accepting requests
-    std::atomic_bool startedAcceptingRequests;
+  // when we get a message over the input socket, we'll handle it using the registered handler
+  map<int16_t, PDBCommWorkPtr> handlers;
 
-    // true when the server is done
-    bool allDone;
+  // this is where all of our workers to handle the server requests live
+  PDBWorkerQueuePtr workers;
 
-    // the port number for an internet server
-    int portNumber;
+  // handles a request using the given PDBCommunicator to obtain the data
+  void handleRequest(const PDBCommunicatorPtr &myCommunicator);
 
-    // the number of connections to allow simultanously (a new thread is created for each of these)
-    int numConnections;
+  // true if we started accepting requests
+  std::atomic_bool startedAcceptingRequests;
 
-    // the file to use for a UNIX file-based connection
-    string unixFile;
+  // true when the server is done
+  bool allDone;
 
-    // where to log to
-    PDBLoggerPtr myLogger;
+  // where to log to
+  PDBLoggerPtr logger;
 
-    // true if this is an internet server
-    bool isInternet;
+  // used to run the server
+  pthread_t listenerThread;
 
-    // used to run the server
-    pthread_t listenerThread;
+  // this is the socket we are listening to
+  int sockFD;
 
-    // this is the socket we are listening to
-    int sockFD;
+  // this maps the name of a functionality class to a position
+  std::map<std::string, size_t> functionalityNames;
 
-    // this maps the name of a functionality class to a position
-    std::map<std::string, int> allFunctionalityNames;
-
-    // this gives us each of the functionalities that the server can perform
-    std::vector<shared_ptr<ServerFunctionality>> allFunctionalities;
+  // this gives us each of the functionalities that the server can perform
+  std::vector<shared_ptr<ServerFunctionality>> functionalities;
 };
 }
 

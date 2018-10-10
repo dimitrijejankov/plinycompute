@@ -62,22 +62,18 @@ public:
 
   /**
    * Creates a Catalog Server
-   * @param catalogDirectory : the path of the location of the catalog
-   * @param isManagerCatalogServer : true if this is the Manager Catalog Server, workers nodes have this parameter set to false
-   * @param managerIP : the IP address of the Manager Catalog
-   * @param managerPort : the port number of the Manager Catalog
    */
-  CatalogServer(const string &catalogDirectory,
-                bool isManagerCatalogServer,
-                const string &managerIP,
-                int managerPort,
-                const string &nodeIPValue,
-                int nodePortValue);
+  CatalogServer() = default;
 
   /**
    * Default destructor
    */
   ~CatalogServer() = default;
+
+  /**
+   * Initialize the catalog server
+   */
+  void init() override;
 
   /**
    * From the ServerFunctionality interface
@@ -95,39 +91,9 @@ public:
   PDBCatalogPtr pdbCatalog;
 
   /**
-   * Path where the catalog file is located
-   */
-  std::string catalogDirectory;
-
-  /**
    * Path where we store the .so files
    */
   std::string tempPath;
-
-  /**
-   * True if this is the Manager Catalog Server
-   */
-  bool isManagerCatalogServer;
-
-  /**
-   * The ip address of the manager
-   */
-  string managerIP;
-
-  /**
-   * Default port of the Catalog Server, can be changed in the constructor
-   */
-  int managerPort;
-
-  /**
- * The ip address of the node this catalog server is running
- */
-  string nodeIP;
-
-  /**
-   * Default port of the node this catalog server is running
-   */
-  int nodePort;
 
   /**
    * Logger to capture debug information for the Catalog Server

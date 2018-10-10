@@ -313,6 +313,12 @@ add_executable(pdb-worker ${SOURCE_FILES_PDB_CLUSTER})
 target_link_libraries(pdb-worker pdb-server-common)
 target_link_libraries(pdb-worker ${GSL_LIBRARIES})
 
+# set the pdb-worker build target
+set(SOURCE_FILES_PDB_CLUSTER ${PROJECT_SOURCE_DIR}/pdb/src/mainServer/source/NodeMain.cc $<TARGET_OBJECTS:logical-plan-parser> $<TARGET_OBJECTS:linear-algebra-parser>)
+add_executable(pdb-node ${SOURCE_FILES_PDB_CLUSTER})
+target_link_libraries(pdb-node pdb-server-common)
+target_link_libraries(pdb-node ${GSL_LIBRARIES})
+
 # compile all the objects
 file(GLOB files "${PROJECT_SOURCE_DIR}/pdb/src/sharedLibraries/source/*.cc")
 add_custom_target(shared-libraries)
