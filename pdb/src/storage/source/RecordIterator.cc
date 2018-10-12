@@ -22,7 +22,7 @@
 #include "RecordIterator.h"
 
 
-RecordIterator::RecordIterator(PDBPagePtr page) {
+RecordIterator::RecordIterator(PangeaPagePtr page) {
 
     this->page = page;
     this->numObjectsIterated = 0;

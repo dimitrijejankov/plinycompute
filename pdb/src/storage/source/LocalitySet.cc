@@ -26,7 +26,7 @@ LocalitySet::LocalitySet(LocalityType localityType,
                          OperationType operationType,
                          DurabilityType durabilityType,
                          PersistenceType persistenceType) {
-    cachedPages = new list<PDBPagePtr>();
+    cachedPages = new list<PangeaPagePtr>();
     this->localityType = localityType;
     this->replacementPolicy = replacementPolicy;
     this->operationType = operationType;
@@ -40,12 +40,12 @@ LocalitySet::~LocalitySet() {
     delete cachedPages;
 }
 
-void LocalitySet::addCachedPage(PDBPagePtr page) {
+void LocalitySet::addCachedPage(PangeaPagePtr page) {
     cachedPages->push_back(page);
 }
 
-void LocalitySet::updateCachedPage(PDBPagePtr page) {
-    for (list<PDBPagePtr>::iterator it = cachedPages->begin(); it != cachedPages->end(); ++it) {
+void LocalitySet::updateCachedPage(PangeaPagePtr page) {
+    for (list<PangeaPagePtr>::iterator it = cachedPages->begin(); it != cachedPages->end(); ++it) {
         if ((*it) == page) {
             cachedPages->erase(it);
             break;
@@ -54,8 +54,8 @@ void LocalitySet::updateCachedPage(PDBPagePtr page) {
     cachedPages->push_back(page);
 }
 
-void LocalitySet::removeCachedPage(PDBPagePtr page) {
-    for (list<PDBPagePtr>::iterator it = cachedPages->begin(); it != cachedPages->end(); ++it) {
+void LocalitySet::removeCachedPage(PangeaPagePtr page) {
+    for (list<PangeaPagePtr>::iterator it = cachedPages->begin(); it != cachedPages->end(); ++it) {
         if ((*it) == page) {
             cachedPages->erase(it);
             break;
@@ -63,10 +63,10 @@ void LocalitySet::removeCachedPage(PDBPagePtr page) {
     }
 }
 
-PDBPagePtr LocalitySet::selectPageForReplacement() {
-    PDBPagePtr retPage = nullptr;
+PangeaPagePtr LocalitySet::selectPageForReplacement() {
+    PangeaPagePtr retPage = nullptr;
     if (this->replacementPolicy == MRU) {
-        for (list<PDBPagePtr>::reverse_iterator it = cachedPages->rbegin();
+        for (list<PangeaPagePtr>::reverse_iterator it = cachedPages->rbegin();
              it != cachedPages->rend();
              ++it) {
             if ((*it)->getRefCount() == 0) {
@@ -75,7 +75,7 @@ PDBPagePtr LocalitySet::selectPageForReplacement() {
             }
         }
     } else {
-        for (list<PDBPagePtr>::iterator it = cachedPages->begin(); it != cachedPages->end(); ++it) {
+        for (list<PangeaPagePtr>::iterator it = cachedPages->begin(); it != cachedPages->end(); ++it) {
             if ((*it)->getRefCount() == 0) {
                 retPage = (*it);
                 break;
@@ -85,8 +85,8 @@ PDBPagePtr LocalitySet::selectPageForReplacement() {
     return retPage;
 }
 
-vector<PDBPagePtr>* LocalitySet::selectPagesForReplacement() {
-    vector<PDBPagePtr>* retPages = new vector<PDBPagePtr>();
+vector<PangeaPagePtr>* LocalitySet::selectPagesForReplacement() {
+    vector<PangeaPagePtr>* retPages = new vector<PangeaPagePtr>();
     int totalPages = cachedPages->size();
     if (totalPages == 0) {
         delete retPages;
@@ -94,7 +94,7 @@ vector<PDBPagePtr>* LocalitySet::selectPagesForReplacement() {
     }
     int numPages = 0;
     if (this->replacementPolicy == MRU) {
-        for (list<PDBPagePtr>::reverse_iterator it = cachedPages->rbegin();
+        for (list<PangeaPagePtr>::reverse_iterator it = cachedPages->rbegin();
              it != cachedPages->rend();
              ++it) {
             if ((*it)->getRefCount() == 0) {
@@ -111,7 +111,7 @@ vector<PDBPagePtr>* LocalitySet::selectPagesForReplacement() {
             }
         }
     } else {
-        for (list<PDBPagePtr>::iterator it = cachedPages->begin(); it != cachedPages->end(); ++it) {
+        for (list<PangeaPagePtr>::iterator it = cachedPages->begin(); it != cachedPages->end(); ++it) {
             if ((*it)->getRefCount() == 0) {
                 retPages->push_back(*it);
                 numPages++;

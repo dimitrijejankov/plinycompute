@@ -21,7 +21,7 @@
 
 #include "PDBDebug.h"
 #include "PDBScanWork.h"
-#include "PDBPage.h"
+#include "PangeaPage.h"
 #include "PDBCommunicator.h"
 #include "StoragePagePinned.h"
 #include "SimpleRequestResult.h"
@@ -110,7 +110,7 @@ bool PDBScanWork::acceptPagePinnedAck(pdb::PDBCommunicatorPtr myCommunicator,
 void PDBScanWork::execute(PDBBuzzerPtr callerBuzzer) {
     pdb::PDBLoggerPtr logger = make_shared<pdb::PDBLogger>("pdbScanWorks.log");
     logger->debug("PDBScanWork: running...");
-    PDBPagePtr page;
+    PangeaPagePtr page;
     string errMsg, info;
     bool wasError;
 

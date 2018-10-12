@@ -23,7 +23,7 @@
 #include <iostream>
 
 
-PageHandle::PageHandle(DataProxyPtr proxy, PDBPagePtr page) {
+PageHandle::PageHandle(DataProxyPtr proxy, PangeaPagePtr page) {
     this->proxy = proxy;
     this->page = page;
 }

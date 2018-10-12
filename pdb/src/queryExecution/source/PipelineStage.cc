@@ -298,7 +298,7 @@ void PipelineStage::feedSharedBuffers(HermesExecutionServer* server,
         PDBWorkPtr myWork = make_shared<GenericWork>([&, i](PDBBuzzerPtr callerBuzzer) {
             // setup an output page to store intermediate results and final output
             PageCircularBufferIteratorPtr iter = scanIterators.at(i);
-            PDBPagePtr page = nullptr;
+            PangeaPagePtr page = nullptr;
             while (iter->hasNext()) {
                 page = iter->next();
                 if (page != nullptr) {
@@ -568,7 +568,7 @@ void PipelineStage::executePipelineWork(int i,
     }
 #endif
     newPlan->nullifyPlanPointer();
-    PDBPagePtr output = nullptr;
+    PangeaPagePtr output = nullptr;
     PipelinePtr curPipeline = newPlan->buildPipeline(
         buildTheseTupleSets,
         this->jobStage->getSourceTupleSetSpecifier(),
@@ -658,7 +658,7 @@ void PipelineStage::executePipelineWork(int i,
                 if (record != nullptr) {
                     Handle<Object> objectToSend = record->getRootObject();
                     if (objectToSend != nullptr) {
-                        PDBPagePtr pageToBroadcast = std::make_shared<PDBPage>(
+                        PangeaPagePtr pageToBroadcast = std::make_shared<PangeaPage>(
                             ((char*)page -
                              (sizeof(NodeID) + sizeof(DatabaseID) + sizeof(UserTypeID) +
                               sizeof(SetID) + sizeof(PageID) + sizeof(int) + sizeof(size_t))),
@@ -707,7 +707,7 @@ void PipelineStage::executePipelineWork(int i,
                 if (record != nullptr) {
                     Handle<Object> objectToSend = record->getRootObject();
                     if (objectToSend != nullptr) {
-                        PDBPagePtr pageToSend = std::make_shared<PDBPage>(
+                        PangeaPagePtr pageToSend = std::make_shared<PangeaPage>(
                             ((char*)page -
                              (sizeof(NodeID) + sizeof(DatabaseID) + sizeof(UserTypeID) +
                               sizeof(SetID) + sizeof(PageID) + sizeof(int) + sizeof(size_t))),
@@ -738,7 +738,7 @@ void PipelineStage::executePipelineWork(int i,
             } else if ((this->jobStage->isRepartition() == true) &&
                        (this->jobStage->isCombining() == true)) {
                 // to handle an aggregation
-                PDBPagePtr output = make_shared<PDBPage>(
+                PangeaPagePtr output = make_shared<PangeaPage>(
                     (char*)page - (sizeof(NodeID) + sizeof(DatabaseID) + sizeof(UserTypeID) +
                                    sizeof(SetID) + sizeof(PageID) + sizeof(int) + sizeof(size_t)),
                     0,
@@ -815,7 +815,7 @@ void PipelineStage::executePipelineWork(int i,
 
                 } else {
                     // to handle a vector sink
-                    // PDBPagePtr output = nullptr;
+                    // PangeaPagePtr output = nullptr;
                     proxy->addUserPage(outputSet->getDatabaseId(),
                                        outputSet->getTypeId(),
                                        outputSet->getSetId(),
@@ -1018,7 +1018,7 @@ void PipelineStage::runPipeline(HermesExecutionServer* server,
                 // setup an output page to store intermediate results and final output
                 const UseTemporaryAllocationBlock tempBlock{4 * 1024 * 1024};
                 PageCircularBufferIteratorPtr iter = scanIterators[i];
-                PDBPagePtr page = nullptr;
+                PangeaPagePtr page = nullptr;
                 while (iter->hasNext()) {
                     page = iter->next();
                     if (page != nullptr) {
@@ -1219,7 +1219,7 @@ void PipelineStage::runPipelineWithShuffleSink(HermesExecutionServer* server) {
             PageCircularBufferIteratorPtr myIter = combinerIters[i];
             int numPages = 0;
             while (myIter->hasNext()) {
-                PDBPagePtr page = myIter->next();
+                PangeaPagePtr page = myIter->next();
                 if (page != nullptr) {
                     // to load input page
                     numPages++;
@@ -1426,7 +1426,7 @@ void PipelineStage::runPipelineWithBroadcastSink(HermesExecutionServer* server) 
             PageCircularBufferIteratorPtr myIter = shuffleIters[i];
             int numPages = 0;
             while (myIter->hasNext()) {
-                PDBPagePtr page = myIter->next();
+                PangeaPagePtr page = myIter->next();
                 if (page != nullptr) {
                     // to load input page
                     numPages++;
@@ -1582,7 +1582,7 @@ void PipelineStage::runPipelineWithHashPartitionSink(HermesExecutionServer* serv
             char* buffer = nullptr;
             Handle<Object> myMaps = nullptr;
             while (myIter->hasNext()) {
-                PDBPagePtr page = myIter->next();
+                PangeaPagePtr page = myIter->next();
                 if (page != nullptr) {
                     // to load output page
                     if (output == nullptr) {

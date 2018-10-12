@@ -92,11 +92,11 @@ void SequenceFile::clear() {
     }
 }
 
-int SequenceFile::appendPage(FilePartitionID partitionId, PDBPagePtr page) {
+int SequenceFile::appendPage(FilePartitionID partitionId, PangeaPagePtr page) {
     return appendPage(page);
 }
 
-int SequenceFile::appendPage(PDBPagePtr page) {
+int SequenceFile::appendPage(PangeaPagePtr page) {
     if (this->file == nullptr) {
         return -1;
     }

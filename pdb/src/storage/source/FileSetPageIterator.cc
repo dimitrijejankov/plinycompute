@@ -65,12 +65,12 @@ bool FileSetPageIterator::hasNext() {
 }
 
 
-PDBPagePtr FileSetPageIterator::next() {
+PangeaPagePtr FileSetPageIterator::next() {
     if (iteratedSize >= this->fileSize) {
         return nullptr;
     } else {
         size_t size = this->fileSize - iteratedSize;
-        PDBPagePtr page;
+        PangeaPagePtr page;
         if (size < pageSize) {
             page = cache->buildAndCachePageFromFileHandle(
                 handle, size, nodeId, dbId, typeId, setId, pageId);

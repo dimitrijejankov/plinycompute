@@ -54,7 +54,7 @@ private:
     bool outputPageFull;
 
     // page to unpin
-    PDBPagePtr pageToUnpin;
+    PangeaPagePtr pageToUnpin;
 
 
 public:
@@ -102,11 +102,11 @@ public:
         return this->outputPageFull;
     }
 
-    void setPageToUnpin(PDBPagePtr page) {
+    void setPageToUnpin(PangeaPagePtr page) {
         this->pageToUnpin = page;
     }
 
-    PDBPagePtr getPageToUnpin() {
+    PangeaPagePtr getPageToUnpin() {
         return this->pageToUnpin;
     }
 };

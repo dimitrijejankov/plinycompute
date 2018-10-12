@@ -422,7 +422,7 @@ class JoinCompBase : public AbstractJoinComp {
     return correctJoinTuple->getPartitionedSource(
         this->myPartitionId,
 
-        [&]() -> PDBPagePtr {
+        [&]() -> PangeaPagePtr {
 
           if (this->iterator == nullptr) {
             std::cout << "Error in JoinComp: partitioned join source has a null iterator"
@@ -432,7 +432,7 @@ class JoinCompBase : public AbstractJoinComp {
 
           while (this->iterator->hasNext()) {
 
-            PDBPagePtr page = this->iterator->next();
+            PangeaPagePtr page = this->iterator->next();
             if (page != nullptr) {
               return page;
             }
@@ -442,7 +442,7 @@ class JoinCompBase : public AbstractJoinComp {
 
         },
 
-        [&](PDBPagePtr freeMe) -> void {
+        [&](PangeaPagePtr freeMe) -> void {
           if (this->proxy != nullptr) {
             char* curBytes = freeMe->getRawBytes();
             NodeID nodeId = (NodeID)(*((NodeID*)(curBytes)));

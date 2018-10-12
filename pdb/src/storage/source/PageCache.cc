@@ -39,7 +39,7 @@ PageCache::PageCache(ConfigurationPtr conf,
                      pdb::PDBLoggerPtr logger,
                      SharedMemPtr shm,
                      CacheStrategy strategy) {
-    this->cache = new unordered_map<CacheKey, PDBPagePtr, CacheKeyHash, CacheKeyEqual>();
+    this->cache = new unordered_map<CacheKey, PangeaPagePtr, CacheKeyHash, CacheKeyEqual>();
     this->conf = conf;
     this->workers = workers;
     pthread_mutex_init(&this->countLock, nullptr);
@@ -93,7 +93,7 @@ PageCache::~PageCache() {
 }
 
 // Cache the page with specified name and buffer;
-void PageCache::cachePage(PDBPagePtr page, LocalitySet* set) {
+void PageCache::cachePage(PangeaPagePtr page, LocalitySet* set) {
     if (page == nullptr) {
         logger->writeLn("LRUPageCache: null page.");
     }
@@ -104,7 +104,7 @@ void PageCache::cachePage(PDBPagePtr page, LocalitySet* set) {
     key.pageId = page->getPageID();
     pthread_mutex_lock(&this->cacheMutex);
     if (this->cache->find(key) == this->cache->end()) {
-        pair<CacheKey, PDBPagePtr> pair = make_pair(key, page);
+        pair<CacheKey, PangeaPagePtr> pair = make_pair(key, page);
         this->cache->insert(pair);
         this->size += page->getRawSize() + 512;
     } else {
@@ -173,7 +173,7 @@ void PageCache::flushUnlock() {
     pthread_rwlock_unlock(&this->evictionAndFlushLock);
 }
 
-PDBPagePtr PageCache::buildAndCachePageFromFileHandle(int handle,
+PangeaPagePtr PageCache::buildAndCachePageFromFileHandle(int handle,
                                                       size_t size,
                                                       NodeID nodeId,
                                                       DatabaseID dbId,
@@ -187,13 +187,13 @@ PDBPagePtr PageCache::buildAndCachePageFromFileHandle(int handle,
         std::cout << "PageCache: Read failed" << std::endl;
         return nullptr;
     }
-    PDBPagePtr page = make_shared<PDBPage>(
+    PangeaPagePtr page = make_shared<PangeaPage>(
         buffer, nodeId, dbId, typeId, setId, pageId, size, shm->computeOffset(buffer), offset);
     return page;
 }
 
-// Build a PDBPage instance based on the info of file and info parsed from loaded page data.
-PDBPagePtr PageCache::buildPageFromSharedMemoryData(PDBFilePtr file,
+// Build a PangeaPage instance based on the info of file and info parsed from loaded page data.
+PangeaPagePtr PageCache::buildPageFromSharedMemoryData(PDBFilePtr file,
                                                     char* pageData,
                                                     FilePartitionID partitionId,
                                                     unsigned int pageSeqInPartition,
@@ -206,8 +206,8 @@ PDBPagePtr PageCache::buildPageFromSharedMemoryData(PDBFilePtr file,
     PageID pageId = (PageID)(*(PageID*)cur);
     cur = cur + sizeof(PageID);
     int numObjects = (int)(*(int*)cur);
-    // create a new PDBPagePtr
-    PDBPagePtr page = make_shared<PDBPage>(pageData,
+    // create a new PangeaPagePtr
+    PangeaPagePtr page = make_shared<PangeaPage>(pageData,
                                            file->getNodeId(),
                                            file->getDbId(),
                                            file->getTypeId(),
@@ -230,7 +230,7 @@ PDBPagePtr PageCache::buildPageFromSharedMemoryData(PDBFilePtr file,
 
 // Load the page in a PDBFile (SequenceFile or PartitionedFile) into memory
 // If the file is SequenceFile, partition id will be ignored.
-PDBPagePtr PageCache::loadPage(PDBFilePtr file,
+PangeaPagePtr PageCache::loadPage(PDBFilePtr file,
                                FilePartitionID partitionId,
                                unsigned int pageSeqInPartition,
                                bool sequential) {
@@ -266,7 +266,7 @@ PDBPagePtr PageCache::loadPage(PDBFilePtr file,
 }
 
 // Load the page in a SequenceFile into memory;
-PDBPagePtr PageCache::loadPage(SequenceFilePtr file, PageID pageId) {
+PangeaPagePtr PageCache::loadPage(SequenceFilePtr file, PageID pageId) {
     if (pageId > file->getLastFlushedPageID()) {
         this->logger->writeLn(
             "LRUPageCache: page is still in input buffer, and hasn't been flushed yet.");
@@ -301,7 +301,7 @@ bool PageCache::removePage(CacheKey key) {
 
 // Free page data and Remove page specified by Key from cache hashMap.
 // This function will be used by the UserSet::clear() method.
-bool PageCache::freePage(PDBPagePtr curPage) {
+bool PageCache::freePage(PangeaPagePtr curPage) {
     CacheKey key;
     key.dbId = curPage->getDbID();
     key.typeId = curPage->getTypeID();
@@ -327,7 +327,7 @@ bool PageCache::freePage(PDBPagePtr curPage) {
 
 // Below method can be used for all PDBFile instances, include sequence file and partitioned file.
 // note that below method will cause cached page reference count ++;
-PDBPagePtr PageCache::getPage(PartitionedFilePtr file,
+PangeaPagePtr PageCache::getPage(PartitionedFilePtr file,
                               FilePartitionID partitionId,
                               unsigned int pageSeqInPartition,
                               PageID pageId,
@@ -338,7 +338,7 @@ PDBPagePtr PageCache::getPage(PartitionedFilePtr file,
     key.typeId = file->getTypeId();
     key.setId = file->getSetId();
     key.pageId = pageId;
-    PDBPagePtr page;
+    PangeaPagePtr page;
 
     if ((partitionId == (unsigned int)(-1)) || (pageSeqInPartition == (unsigned int)(-1))) {
         PageIndex pageIndex = file->getMetaData()->getPageIndex(pageId);
@@ -398,13 +398,13 @@ PDBPagePtr PageCache::getPage(PartitionedFilePtr file,
 // Below method is mainly to provide backward-compatibility for sequence files.
 // note that below method will cause cached page reference count ++;
 // NOT SUPPORTED ANY MORE, TO REMOVE THE METHOD
-PDBPagePtr PageCache::getPage(SequenceFilePtr file, PageID pageId) {
+PangeaPagePtr PageCache::getPage(SequenceFilePtr file, PageID pageId) {
     return nullptr;
 }
 
 // Below method will cause reference count ++;
 // It will only be used in SetCachePageIterator class to get dirty pages, and will be guarded there
-PDBPagePtr PageCache::getPage(CacheKey key, LocalitySet* set) {
+PangeaPagePtr PageCache::getPage(CacheKey key, LocalitySet* set) {
     pthread_mutex_lock(&this->cacheMutex);
     if (this->containsPage(key) != true) {
         pthread_mutex_unlock(&this->cacheMutex);
@@ -412,7 +412,7 @@ PDBPagePtr PageCache::getPage(CacheKey key, LocalitySet* set) {
         logger->warn("SetCachePageIterator get nullptr in cache.");
         return nullptr;
     } else {
-        PDBPagePtr page = this->cache->at(key);
+        PangeaPagePtr page = this->cache->at(key);
         pthread_mutex_unlock(&this->cacheMutex);
         if (page == nullptr) {
             std::cout << "WARNING: SetCachePageIterator get nullptr in cache.\n" << std::endl;
@@ -431,7 +431,7 @@ PDBPagePtr PageCache::getPage(CacheKey key, LocalitySet* set) {
     }
 }
 
-PDBPagePtr PageCache::getNewPageNonBlocking(NodeID nodeId,
+PangeaPagePtr PageCache::getNewPageNonBlocking(NodeID nodeId,
                                             CacheKey key,
                                             LocalitySet* set,
                                             size_t pageSize) {
@@ -445,7 +445,7 @@ PDBPagePtr PageCache::getNewPageNonBlocking(NodeID nodeId,
     } else {
         return nullptr;
     }
-    PDBPagePtr page = make_shared<PDBPage>(pageData,
+    PangeaPagePtr page = make_shared<PangeaPage>(pageData,
                                            nodeId,
                                            key.dbId,
                                            key.typeId,
@@ -471,7 +471,7 @@ PDBPagePtr PageCache::getNewPageNonBlocking(NodeID nodeId,
 
 // Assumption: for a new pageId, at one time, only one thread will try to allocate a new page for it
 // To allocate a new page, set it as pinned&dirty, add it to cache, and increment reference count
-PDBPagePtr PageCache::getNewPage(NodeID nodeId, CacheKey key, LocalitySet* set, size_t pageSize) {
+PangeaPagePtr PageCache::getNewPage(NodeID nodeId, CacheKey key, LocalitySet* set, size_t pageSize) {
     pthread_mutex_lock(&evictionMutex);
     if (this->containsPage(key) == true) {
         pthread_mutex_unlock(&evictionMutex);
@@ -488,7 +488,7 @@ PDBPagePtr PageCache::getNewPage(NodeID nodeId, CacheKey key, LocalitySet* set, 
         PDB_COUT << "failed!!!\n";
         return nullptr;
     }
-    PDBPagePtr page = make_shared<PDBPage>(pageData,
+    PangeaPagePtr page = make_shared<PangeaPage>(pageData,
                                            nodeId,
                                            key.dbId,
                                            key.typeId,
@@ -517,7 +517,7 @@ bool PageCache::decPageRefCount(CacheKey key) {
     if (this->containsPage(key) == false) {
         return false;
     } else {
-        PDBPagePtr page = this->cache->at(key);
+        PangeaPagePtr page = this->cache->at(key);
         page->decRefCount();
         return true;
     }
@@ -539,9 +539,9 @@ int PageCache::unpinAndEvictAllDirtyPages() {
     pthread_mutex_lock(&this->evictionMutex);
     this->inEviction = true;
     int numEvicted = 0;
-    PDBPagePtr page;
-    unordered_map<CacheKey, PDBPagePtr, CacheKeyHash, CacheKeyEqual>::iterator cacheIter;
-    vector<PDBPagePtr>* evictableDirtyPages = new vector<PDBPagePtr>();
+    PangeaPagePtr page;
+    unordered_map<CacheKey, PangeaPagePtr, CacheKeyHash, CacheKeyEqual>::iterator cacheIter;
+    vector<PangeaPagePtr>* evictableDirtyPages = new vector<PangeaPagePtr>();
     this->evictionLock();
     for (cacheIter = this->cache->begin(); cacheIter != this->cache->end(); cacheIter++) {
         page = cacheIter->second;
@@ -584,9 +584,9 @@ int PageCache::evictAllDirtyPages() {
     pthread_mutex_lock(&this->evictionMutex);
     this->inEviction = true;
     int numEvicted = 0;
-    PDBPagePtr page;
-    unordered_map<CacheKey, PDBPagePtr, CacheKeyHash, CacheKeyEqual>::iterator cacheIter;
-    vector<PDBPagePtr>* evictableDirtyPages = new vector<PDBPagePtr>();
+    PangeaPagePtr page;
+    unordered_map<CacheKey, PangeaPagePtr, CacheKeyHash, CacheKeyEqual>::iterator cacheIter;
+    vector<PangeaPagePtr>* evictableDirtyPages = new vector<PangeaPagePtr>();
     this->evictionLock();
     for (cacheIter = this->cache->begin(); cacheIter != this->cache->end(); cacheIter++) {
         page = cacheIter->second;
@@ -620,7 +620,7 @@ int PageCache::evictAllDirtyPages() {
 // Flush a page.
 bool PageCache::flushPageWithoutEviction(CacheKey key) {
     if (this->containsPage(key) == true) {
-        PDBPagePtr page = this->cache->at(key);
+        PangeaPagePtr page = this->cache->at(key);
         if ((page->isDirty() == true) && (page->isInFlush() == false)) {
             page->setInFlush(true);
             page->setInEviction(false);
@@ -641,7 +641,7 @@ bool PageCache::flushPageWithoutEviction(CacheKey key) {
 
 bool PageCache::evictPage(CacheKey key, bool tryFlushOrNot) {
     if (this->containsPage(key) == true) {
-        PDBPagePtr page = this->cache->at(key);
+        PangeaPagePtr page = this->cache->at(key);
 #ifndef UNPIN_FOR_NON_ZERO_REF_COUNT
         if (page->getRefCount() > 0) {
             cout << "can't be unpinned due to non-zero reference count " << page->getRefCount()
@@ -708,7 +708,7 @@ bool PageCache::evictPage(CacheKey key, bool tryFlushOrNot) {
     return true;
 }
 
-bool PageCache::evictPage(PDBPagePtr page, LocalitySetPtr set) {
+bool PageCache::evictPage(PangeaPagePtr page, LocalitySetPtr set) {
     CacheKey key;
     key.dbId = page->getDbID();
     key.typeId = page->getTypeID();
@@ -745,7 +745,7 @@ void PageCache::evict() {
     this->inEviction = true;
     if (this->strategy == UnifiedIntelligent) {
         this->evictionLock();
-        vector<PDBPagePtr>* pagesToEvict = nullptr;
+        vector<PangeaPagePtr>* pagesToEvict = nullptr;
         int i, j;
         int numEvicted = 0;
         list<LocalitySetPtr>* curList;
@@ -777,10 +777,10 @@ void PageCache::evict() {
     } else {
         this->evictionLock();
         this->logger->debug("PageCache::evict(): got the lock for evictionLock()...");
-        priority_queue<PDBPagePtr, vector<PDBPagePtr>, CompareCachedPagesMRU>* cachedPages =
-            new priority_queue<PDBPagePtr, vector<PDBPagePtr>, CompareCachedPagesMRU>();
-        unordered_map<CacheKey, PDBPagePtr, CacheKeyHash, CacheKeyEqual>::iterator cacheIter;
-        PDBPagePtr curPage;
+        priority_queue<PangeaPagePtr, vector<PangeaPagePtr>, CompareCachedPagesMRU>* cachedPages =
+            new priority_queue<PangeaPagePtr, vector<PangeaPagePtr>, CompareCachedPagesMRU>();
+        unordered_map<CacheKey, PangeaPagePtr, CacheKeyHash, CacheKeyEqual>::iterator cacheIter;
+        PangeaPagePtr curPage;
         for (cacheIter = this->cache->begin(); cacheIter != this->cache->end(); cacheIter++) {
             curPage = cacheIter->second;
             if (curPage == nullptr) {
@@ -809,7 +809,7 @@ void PageCache::evict() {
             }
         }
         this->evictionUnlock();
-        PDBPagePtr page;
+        PangeaPagePtr page;
         while ((this->size > this->evictStopSize) && (cachedPages->size() > 0)) {
             page = cachedPages->top();
             if (page == nullptr) {

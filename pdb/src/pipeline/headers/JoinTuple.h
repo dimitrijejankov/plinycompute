@@ -23,7 +23,7 @@
 #include "SinkMerger.h"
 #include "SinkShuffler.h"
 #include "JoinTupleBase.h"
-#include "PDBPage.h"
+#include "PangeaPage.h"
 #include "RecordIterator.h"
 
 namespace pdb {
@@ -480,10 +480,10 @@ private:
     size_t myPartitionId;
 
     // function to call to get another vector to process
-    std::function<PDBPagePtr()> getAnotherVector;
+    std::function<PangeaPagePtr()> getAnotherVector;
 
     // function to call to free the vector
-    std::function<void(PDBPagePtr)> doneWithVector;
+    std::function<void(PangeaPagePtr)> doneWithVector;
 
     // this is the vector to process
     Handle<Vector<Handle<JoinMap<RHSType>>>> iterateOverMe;
@@ -493,7 +493,7 @@ private:
     Record<Vector<Handle<JoinMap<RHSType>>>>*myRec, *lastRec;
 
     // the page contains record
-    PDBPagePtr myPage, lastPage;
+    PangeaPagePtr myPage, lastPage;
 
     // how many objects to put into a chunk
     size_t chunkSize;
@@ -540,8 +540,8 @@ public:
     // freed.  The third param tells us how many objects to put into a tuple set.
     // The fourth param tells us positions of those packed columns.
     PartitionedJoinMapTupleSetIterator(size_t myPartitionId,
-                                       std::function<PDBPagePtr()> getAnotherVector,
-                                       std::function<void(PDBPagePtr)> doneWithVector,
+                                       std::function<PangeaPagePtr()> getAnotherVector,
+                                       std::function<void(PangeaPagePtr)> doneWithVector,
                                        size_t chunkSize,
                                        std::vector<int> positions)
         : getAnotherVector(getAnotherVector), doneWithVector(doneWithVector), chunkSize(chunkSize) {
@@ -1173,8 +1173,8 @@ public:
 
 
     virtual ComputeSourcePtr getPartitionedSource(size_t myPartitionId,
-                                                  std::function<PDBPagePtr()> getAnotherVector,
-                                                  std::function<void(PDBPagePtr)> doneWithVector,
+                                                  std::function<PangeaPagePtr()> getAnotherVector,
+                                                  std::function<void(PangeaPagePtr)> doneWithVector,
                                                   size_t chunkSize,
                                                   std::vector<int>& whereEveryoneGoes) = 0;
 
@@ -1228,8 +1228,8 @@ public:
 
     // JiaNote: create a partitioned source for this particular type
     ComputeSourcePtr getPartitionedSource(size_t myPartitionId,
-                                          std::function<PDBPagePtr()> getAnotherVector,
-                                          std::function<void(PDBPagePtr)> doneWithVector,
+                                          std::function<PangeaPagePtr()> getAnotherVector,
+                                          std::function<void(PangeaPagePtr)> doneWithVector,
                                           size_t chunkSize,
                                           std::vector<int>& whereEveryoneGoes) override {
         return std::make_shared<PartitionedJoinMapTupleSetIterator<HoldMe>>(

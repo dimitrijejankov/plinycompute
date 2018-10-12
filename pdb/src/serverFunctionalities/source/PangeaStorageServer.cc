@@ -205,7 +205,7 @@ PangeaStorageServer::~PangeaStorageServer() {
     delete this->typename2id;
 }
 
-PDBPagePtr PangeaStorageServer::getNewPage(pair<std::string, std::string> databaseAndSet) {
+PangeaPagePtr PangeaStorageServer::getNewPage(pair<std::string, std::string> databaseAndSet) {
 
     // and get that page
     SetPtr whichSet = getSet(databaseAndSet);
@@ -230,7 +230,7 @@ void PangeaStorageServer::writeBackRecords(pair<std::string, std::string> databa
     PDB_COUT << "buffer is full, to write to a storage page" << std::endl;
 
     // now, get a page to write to
-    PDBPagePtr myPage = getNewPage(databaseAndSet);
+    PangeaPagePtr myPage = getNewPage(databaseAndSet);
     if (myPage == nullptr) {
         std::cout << "FATAL ERROR: set to store data doesn't exist!" << std::endl;
         std::cout << "databaseName" << databaseAndSet.first << std::endl;
@@ -382,7 +382,7 @@ bool PangeaStorageServer::exportToFile(std::string dbName,
     for (int i = 0; i < numIterators; i++) {
         PageIteratorPtr iter = pageIters->at(i);
         while (iter->hasNext()) {
-            PDBPagePtr nextPage = iter->next();
+            PangeaPagePtr nextPage = iter->next();
             if (nextPage != nullptr) {
                 Record<Vector<Handle<Object>>>* myRec =
                     (Record<Vector<Handle<Object>>>*)(nextPage->getBytes());
@@ -1031,7 +1031,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
                     Record<Vector<Handle<Object>>>* myRecord =
                         (Record<Vector<Handle<Object>>>*)readToHere;
                     if (myRecord->numBytes() <= myPageSize) {
-                        PDBPagePtr myPage =
+                        PangeaPagePtr myPage =
                             getFunctionality<PangeaStorageServer>().getNewPage(databaseAndSet);
                         // memory copy
                         memcpy(myPage->getBytes(), readToHere, myRecord->numBytes());
@@ -1118,7 +1118,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
                         for (int i = 0; i < numIterators; i++) {
                             PageIteratorPtr iter = iterators->at(i);
                             while (iter->hasNext()) {
-                                PDBPagePtr page = iter->next();
+                                PangeaPagePtr page = iter->next();
                                 if (page != nullptr) {
                                     PDB_COUT << "to send the " << numPagesSent << "-th page"
                                              << std::endl;
@@ -1190,7 +1190,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
                 bool res;
                 string errMsg;
 
-                PDBPagePtr page = nullptr;
+                PangeaPagePtr page = nullptr;
                 SetPtr set = nullptr;
 
                 if ((dbId == 0) && (typeId == 0)) {
@@ -1255,7 +1255,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
                 bool res;
                 string errMsg;
 
-                PDBPagePtr page = nullptr;
+                PangeaPagePtr page = nullptr;
                 SetPtr set = nullptr;
 
                 if ((dbId == 0) && (typeId == 0)) {

@@ -25,7 +25,7 @@
 #ifndef PAGEHANDLE_H
 #define PAGEHANDLE_H
 
-#include "PDBPage.h"
+#include "PangeaPage.h"
 #include "DataProxy.h"
 #include "PDBObject.h"
 #include "PDBLogger.h"
@@ -38,7 +38,7 @@ typedef shared_ptr<PageHandle> PageHandlePtr;
 class PageHandle {
 
 public:
-    PageHandle(DataProxyPtr proxy, PDBPagePtr page);
+    PageHandle(DataProxyPtr proxy, PangeaPagePtr page);
     ~PageHandle();
 
     // must be called before a call to getRAM; after this call (and until the
@@ -65,7 +65,7 @@ public:
 
 private:
     DataProxyPtr proxy;
-    PDBPagePtr page;
+    PangeaPagePtr page;
 };
 
 

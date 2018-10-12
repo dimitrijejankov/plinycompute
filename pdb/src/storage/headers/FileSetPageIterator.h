@@ -40,7 +40,7 @@ public:
                         UserTypeID typeId,
                         SetID setId);
     virtual ~FileSetPageIterator();
-    PDBPagePtr next() override;
+    PangeaPagePtr next() override;
     bool hasNext() override;
     bool offsetIteratedSize(size_t iteratedSize);
 

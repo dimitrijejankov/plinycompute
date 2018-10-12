@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <vector>
 #include "DataTypes.h"
-#include "PDBPage.h"
+#include "PangeaPage.h"
 #include <memory>
 using namespace std;
 
@@ -58,7 +58,7 @@ public:
     /**
      * To append page to a file.
      */
-    virtual int appendPage(FilePartitionID partitionId, PDBPagePtr page) = 0;
+    virtual int appendPage(FilePartitionID partitionId, PangeaPagePtr page) = 0;
 
     /**
      * To initialize meta data of a file.

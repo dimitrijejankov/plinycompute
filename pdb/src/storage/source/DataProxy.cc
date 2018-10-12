@@ -219,12 +219,12 @@ bool DataProxy::removeTempSet(SetID setId, bool needMem, int numTries) {
 }
 
 // page will be pinned at Storage Server
-bool DataProxy::addTempPage(SetID setId, PDBPagePtr& page, bool needMem, int numTries) {
+bool DataProxy::addTempPage(SetID setId, PangeaPagePtr& page, bool needMem, int numTries) {
     return addUserPage(0, 0, setId, page, needMem, numTries);
 }
 
 bool DataProxy::addUserPage(
-    DatabaseID dbId, UserTypeID typeId, SetID setId, PDBPagePtr& page, bool needMem, int numTries) {
+    DatabaseID dbId, UserTypeID typeId, SetID setId, PangeaPagePtr& page, bool needMem, int numTries) {
     if (numTries == MAX_RETRIES) {
         return false;
     }
@@ -278,7 +278,7 @@ bool DataProxy::addUserPage(
                 return addUserPage(dbId, typeId, setId, page, needMem, numTries + 1);
             }
             char* dataIn = (char*)this->shm->getPointer(ack->getSharedMemOffset());
-            page = make_shared<PDBPage>(dataIn,
+            page = make_shared<PangeaPage>(dataIn,
                                         ack->getNodeID(),
                                         ack->getDatabaseID(),
                                         ack->getUserTypeID(),
@@ -318,7 +318,7 @@ bool DataProxy::addUserPage(
                 return addUserPage(dbId, typeId, setId, page, needMem, numTries + 1);
             }
             char* dataIn = (char*)this->shm->getPointer(ack->getSharedMemOffset());
-            page = make_shared<PDBPage>(dataIn,
+            page = make_shared<PangeaPage>(dataIn,
                                         ack->getNodeID(),
                                         ack->getDatabaseID(),
                                         ack->getUserTypeID(),
@@ -432,7 +432,7 @@ bool DataProxy::pinBytes(DatabaseID dbId,
 }
 
 bool DataProxy::pinTempPage(
-    SetID setId, PageID pageId, PDBPagePtr& page, bool needMem, int numTries) {
+    SetID setId, PageID pageId, PangeaPagePtr& page, bool needMem, int numTries) {
     return pinUserPage(this->nodeId, 0, 0, setId, pageId, page, needMem, numTries);
 }
 
@@ -441,7 +441,7 @@ bool DataProxy::pinUserPage(NodeID nodeId,
                             UserTypeID typeId,
                             SetID setId,
                             PageID pageId,
-                            PDBPagePtr& page,
+                            PangeaPagePtr& page,
                             bool needMem,
                             int numTries) {
     if (numTries == MAX_RETRIES) {
@@ -507,7 +507,7 @@ bool DataProxy::pinUserPage(NodeID nodeId,
                     nodeId, dbId, typeId, setId, pageId, page, needMem, numTries + 1);
             }
             char* dataIn = (char*)this->shm->getPointer(ack->getSharedMemOffset());
-            page = make_shared<PDBPage>(dataIn, ack->getSharedMemOffset(), 0);
+            page = make_shared<PangeaPage>(dataIn, ack->getSharedMemOffset(), 0);
             page->setPinned(true);
             page->setDirty(false);
             return success;
@@ -542,7 +542,7 @@ bool DataProxy::pinUserPage(NodeID nodeId,
                     nodeId, dbId, typeId, setId, pageId, page, needMem, numTries + 1);
             }
             char* dataIn = (char*)this->shm->getPointer(ack->getSharedMemOffset());
-            page = make_shared<PDBPage>(dataIn, ack->getSharedMemOffset(), 0);
+            page = make_shared<PangeaPage>(dataIn, ack->getSharedMemOffset(), 0);
             page->setPinned(true);
             page->setDirty(false);
             return success;
@@ -551,7 +551,7 @@ bool DataProxy::pinUserPage(NodeID nodeId,
 }
 
 
-bool DataProxy::unpinTempPage(SetID setId, PDBPagePtr page, bool needMem, int numTries) {
+bool DataProxy::unpinTempPage(SetID setId, PangeaPagePtr page, bool needMem, int numTries) {
     return unpinUserPage(this->nodeId, 0, 0, setId, page, needMem, numTries);
 }
 
@@ -559,7 +559,7 @@ bool DataProxy::unpinUserPage(NodeID nodeId,
                               DatabaseID dbId,
                               UserTypeID typeId,
                               SetID setId,
-                              PDBPagePtr page,
+                              PangeaPagePtr page,
                               bool needMem,
                               int numTries) {
     if (numTries == MAX_RETRIES) {

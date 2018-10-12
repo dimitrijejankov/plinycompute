@@ -768,7 +768,7 @@ void FrontendQueryTestServer::registerHandlers(PDBServer &forMe) {
         for (int i = 0; i < numIterators; i++) {
           PageIteratorPtr iter = pageIters->at(i);
           while (iter->hasNext()) {
-            PDBPagePtr nextPage = iter->next();
+            PangeaPagePtr nextPage = iter->next();
             // send the relevant page.
             if (nextPage != nullptr) {
               Record<Vector<Handle<Object>>> *myRec =

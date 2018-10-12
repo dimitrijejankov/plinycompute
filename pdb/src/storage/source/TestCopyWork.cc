@@ -19,7 +19,7 @@
 #define TESTCOPYWORK_CC
 
 #include "TestCopyWork.h"
-#include "PDBPage.h"
+#include "PangeaPage.h"
 #include "Handle.h"
 #include "Object.h"
 #include "DataProxy.h"
@@ -64,7 +64,7 @@ void TestCopyWork::execute(PDBBuzzerPtr callerBuzzer) {
     DataProxyPtr proxy = make_shared<DataProxy>(
         nodeId, communicatorToFrontEnd, this->server->getSharedMem(), logger);
 
-    PDBPagePtr page, destPage;
+    PangeaPagePtr page, destPage;
     proxy->addUserPage(destDatabaseId, destTypeId, destSetId, destPage);
     PageHandlePtr destPageHandle = make_shared<PageHandle>(proxy, destPage);
 

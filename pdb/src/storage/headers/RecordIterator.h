@@ -19,7 +19,7 @@
 #define RECORD_ITERATOR_H
 
 
-#include "PDBPage.h"
+#include "PangeaPage.h"
 #include "Record.h"
 #include "Object.h"
 #include <memory>
@@ -36,7 +36,7 @@ using namespace pdb;
 class RecordIterator {
 
 public:
-    RecordIterator(PDBPagePtr page);
+    RecordIterator(PangeaPagePtr page);
     ~RecordIterator();
 
     /**
@@ -51,7 +51,7 @@ public:
     bool hasNext();
 
 private:
-    PDBPagePtr page;
+    PangeaPagePtr page;
     int numObjectsInCurPage;
     char* curPosInPage;
     int numObjectsIterated;

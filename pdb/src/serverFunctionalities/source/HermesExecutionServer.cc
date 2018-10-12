@@ -331,7 +331,7 @@ void HermesExecutionServer::registerHandlers(PDBServer &forMe) {
 
         // setup an output page to store intermediate results and final output
         PageCircularBufferIteratorPtr iter = iterators.at(0);
-        PDBPagePtr page = nullptr;
+        PangeaPagePtr page = nullptr;
         while (iter->hasNext()) {
           page = iter->next();
           if (page != nullptr) {
@@ -520,7 +520,7 @@ void HermesExecutionServer::registerHandlers(PDBServer &forMe) {
 
                                                                      void *outBytes = nullptr;
                                                                      while (myIter->hasNext()) {
-                                                                       PDBPagePtr page = myIter->next();
+                                                                       PangeaPagePtr page = myIter->next();
                                                                        if (page != nullptr) {
                                                                          Record<Vector<Handle<Object>>> *myRec =
                                                                              (Record<Vector<Handle<Object>>> *) page->getBytes();
@@ -586,7 +586,7 @@ void HermesExecutionServer::registerHandlers(PDBServer &forMe) {
                                                                                                    request->getSinkContext()->getDatabaseId(),
                                                                                                    request->getSinkContext()->getTypeId(),
                                                                                                    request->getSinkContext()->getSetId());
-                                                                     PDBPagePtr output = nullptr;
+                                                                     PangeaPagePtr output = nullptr;
 
                                                                      // aggregation page size
                                                                      size_t aggregationPageSize = conf->getHashPageSize();
@@ -599,7 +599,7 @@ void HermesExecutionServer::registerHandlers(PDBServer &forMe) {
                                                                      aggOutProcessor->initialize();
                                                                      PageCircularBufferIteratorPtr myIter = hashIters[i];
                                                                      while (myIter->hasNext()) {
-                                                                       PDBPagePtr page = myIter->next();
+                                                                       PangeaPagePtr page = myIter->next();
                                                                        if (page != nullptr) {
                                                                          Record<Vector<Handle<Object>>> *myRec =
                                                                              (Record<Vector<Handle<Object>>> *) page->getBytes();
@@ -820,7 +820,7 @@ void HermesExecutionServer::registerHandlers(PDBServer &forMe) {
                                                                    // setup an output page to store intermediate results and final output
                                                                    const UseTemporaryAllocationBlock tempBlock{4 * 1024 * 1024};
                                                                    PageCircularBufferIteratorPtr iter = iterators.at(j);
-                                                                   PDBPagePtr page = nullptr;
+                                                                   PangeaPagePtr page = nullptr;
                                                                    while (iter->hasNext()) {
                                                                      page = iter->next();
                                                                      if (page != nullptr) {
@@ -1004,7 +1004,7 @@ void HermesExecutionServer::registerHandlers(PDBServer &forMe) {
 
             // setup an output page to store intermediate results and final output
             PageCircularBufferIteratorPtr myIter = hashIters[i];
-            PDBPagePtr page = nullptr;
+            PangeaPagePtr page = nullptr;
             while (myIter->hasNext()) {
               page = myIter->next();
               if (page != nullptr) {
@@ -1122,7 +1122,7 @@ void HermesExecutionServer::registerHandlers(PDBServer &forMe) {
             // setup an output page to store intermediate results and final output
             const UseTemporaryAllocationBlock tempBlock{4 * 1024 * 1024};
             PageCircularBufferIteratorPtr iter = iterators.at(j);
-            PDBPagePtr page = nullptr;
+            PangeaPagePtr page = nullptr;
             while (iter->hasNext()) {
               page = iter->next();
               if (page != nullptr) {

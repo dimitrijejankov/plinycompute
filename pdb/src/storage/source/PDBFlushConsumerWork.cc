@@ -38,7 +38,7 @@ void PDBFlushConsumerWork::stop() {
 
 void PDBFlushConsumerWork::execute(PDBBuzzerPtr callerBuzzer) {
     PageCircularBufferPtr flushBuffer = this->server->getFlushBuffer();
-    PDBPagePtr page;
+    PangeaPagePtr page;
     SetPtr set = nullptr;
     while (!isStopped) {
         if ((page = flushBuffer->popPageFromHead()) != nullptr) {

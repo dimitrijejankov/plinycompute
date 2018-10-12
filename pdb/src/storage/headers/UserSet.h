@@ -99,7 +99,7 @@ public:
     /**
      * Add object to a page in the set.
      */
-    bool addObject(PDBObjectPtr object, PDBPagePtr page);
+    bool addObject(PDBObjectPtr object, PangeaPagePtr page);
 
 
     /**
@@ -130,18 +130,18 @@ public:
      * If the page exists in the partition, load it to cache, pin it, and return the page.
      * If the page doesn't exist in the partition, we return nullptr.
      */
-    PDBPagePtr getPageFromFile(FilePartitionID partitionId, unsigned int pageSeqInPartition);
+    PangeaPagePtr getPageFromFile(FilePartitionID partitionId, unsigned int pageSeqInPartition);
 
 
     /**
      * Add new page to the page cache for the set.
      */
-    PDBPagePtr addPage();
+    PangeaPagePtr addPage();
 
     /**
      * Add new page by existing page raw bytes in shared memory page cache
      */
-    PDBPagePtr addPageByRawBytes(size_t sharedMemOffset);
+    PangeaPagePtr addPageByRawBytes(size_t sharedMemOffset);
 
 
     /**
@@ -203,7 +203,7 @@ public:
      * Step 2. check whether the page is flushed to disk file, if so, load it to cache, and return
      * it.
      */
-    PDBPagePtr getPage(FilePartitionID partitionId, unsigned int pageSeqInPartition, PageID pageId);
+    PangeaPagePtr getPage(FilePartitionID partitionId, unsigned int pageSeqInPartition, PageID pageId);
 
     /**
      * Get number of pages.
@@ -397,7 +397,7 @@ protected:
     string setName;
     PageID lastFlushedPageId;
     PageID latestPageId;
-    PDBPagePtr inputBufferPage = nullptr;
+    PangeaPagePtr inputBufferPage = nullptr;
     SequenceID seqId;
     unordered_map<PageID, FileSearchKey>* dirtyPagesInPageCache = nullptr;
     pthread_mutex_t dirtyPageSetMutex;

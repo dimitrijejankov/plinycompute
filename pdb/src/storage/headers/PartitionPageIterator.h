@@ -48,7 +48,7 @@ public:
     /**
      * To return the next page. If there is no more page, return nullptr.
      */
-    PDBPagePtr next();
+    PangeaPagePtr next();
 
     /**
      * If there is more page, return true, otherwise return false.

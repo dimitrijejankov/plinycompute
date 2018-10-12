@@ -47,8 +47,8 @@ public:
     bool openAll() override;
     bool closeAll() override;
     void clear() override;
-    int appendPage(FilePartitionID partitionId, PDBPagePtr page) override;
-    int appendPage(PDBPagePtr page);
+    int appendPage(FilePartitionID partitionId, PangeaPagePtr page) override;
+    int appendPage(PangeaPagePtr page);
     int writeMeta() override;
     int updateMeta() override;
 

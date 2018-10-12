@@ -54,7 +54,7 @@ public:
      * It will return the page from head of the buffer, if the buffer is not empty.
      * It will return nullptr, if the buffer is empty and is closed.
      */
-    PDBPagePtr next() override;
+    PangeaPagePtr next() override;
 
 
     /**

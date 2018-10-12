@@ -21,7 +21,7 @@
 #define TEMP_SET_H
 
 #include "DataTypes.h"
-#include "PDBPage.h"
+#include "PangeaPage.h"
 #include "UserSet.h"
 #include "PageCircularBuffer.h"
 

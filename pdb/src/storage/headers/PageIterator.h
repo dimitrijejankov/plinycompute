@@ -25,7 +25,7 @@
 #ifndef PAGEITERATOR_H
 #define PAGEITERATOR_H
 
-#include "PDBPage.h"
+#include "PangeaPage.h"
 
 #include <memory>
 using namespace std;
@@ -49,7 +49,7 @@ public:
     /**
      * To return the next page. If there is no more page, return nullptr.
      */
-    virtual PDBPagePtr next() = 0;
+    virtual PangeaPagePtr next() = 0;
 
     /**
      * If there is more page, return true, otherwise return false.

@@ -123,7 +123,7 @@ UserSet::~UserSet() {
  * Step 1. check whether the page is already in cache using cache key, if so return it.
  * Step 2. check whether the page is flushed to disk file, if so, load it to cache, and return it.
  */
-PDBPagePtr UserSet::getPage(FilePartitionID partitionId,
+PangeaPagePtr UserSet::getPage(FilePartitionID partitionId,
                             unsigned int pageSeqInPartition,
                             PageID pageId) {
 
@@ -136,14 +136,14 @@ PDBPagePtr UserSet::getPage(FilePartitionID partitionId,
         this->file, partitionId, pageSeqInPartition, pageId, false, this);
 }
 
-PDBPagePtr UserSet::addPage() {
+PangeaPagePtr UserSet::addPage() {
     PageID pageId = seqId.getNextSequenceID();
     CacheKey key;
     key.dbId = this->dbId;
     key.typeId = this->typeId;
     key.setId = this->setId;
     key.pageId = pageId;
-    PDBPagePtr page = this->pageCache->getNewPage(this->nodeId, key, this, this->pageSize);
+    PangeaPagePtr page = this->pageCache->getNewPage(this->nodeId, key, this, this->pageSize);
     if (page == nullptr) {
         return nullptr;
     }
@@ -153,7 +153,7 @@ PDBPagePtr UserSet::addPage() {
     return page;
 }
 
-PDBPagePtr UserSet::addPageByRawBytes(size_t sharedMemOffset) {
+PangeaPagePtr UserSet::addPageByRawBytes(size_t sharedMemOffset) {
     return nullptr;
 }
 
@@ -217,7 +217,7 @@ void UserSet::dump(char* buffer) {
     for (i = 0; i < numIterators; i++) {
         PageIteratorPtr curIter = iterators->at(i);
         while (curIter->hasNext()) {
-            PDBPagePtr curPage = curIter->next();
+            PangeaPagePtr curPage = curIter->next();
             if (curPage != nullptr) {
                 memcpy(cur, curPage->getRawBytes(), curPage->getRawSize());
                 cur = cur + curPage->getRawSize();
@@ -237,7 +237,7 @@ void UserSet::evictPages() {
     for (i = 0; i < numIterators; i++) {
         PageIteratorPtr curIter = iterators->at(i);
         while (curIter->hasNext()) {
-            PDBPagePtr curPage = curIter->next();
+            PangeaPagePtr curPage = curIter->next();
             if (curPage != nullptr) {
                 CacheKey key;
                 key.dbId = this->getDbID();

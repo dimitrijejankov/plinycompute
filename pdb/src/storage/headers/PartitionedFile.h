@@ -134,12 +134,12 @@ public:
      * Append page to the partition identified by partitionId
      * Return the PageSeqInPartition, if success, return -1 on failure.
      */
-    int appendPage(FilePartitionID partitionId, PDBPagePtr page) override;
+    int appendPage(FilePartitionID partitionId, PangeaPagePtr page) override;
 
     /**
      * Append page using direct I/O
      */
-    int appendPageDirect(FilePartitionID partitionId, PDBPagePtr page);
+    int appendPageDirect(FilePartitionID partitionId, PangeaPagePtr page);
 
     /**
      * Initialize the meta partition

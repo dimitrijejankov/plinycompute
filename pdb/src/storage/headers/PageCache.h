@@ -89,7 +89,7 @@ struct CacheKeyEqual {
  */
 struct CompareCachedPages {
 
-    bool operator()(PDBPagePtr& lPage, PDBPagePtr& rPage) {
+    bool operator()(PangeaPagePtr& lPage, PangeaPagePtr& rPage) {
         if (lPage->getAccessSequenceId() < rPage->getAccessSequenceId()) {
             return false;
         } else {
@@ -103,7 +103,7 @@ struct CompareCachedPages {
  */
 struct CompareCachedPagesMRU {
 
-    bool operator()(PDBPagePtr& lPage, PDBPagePtr& rPage) {
+    bool operator()(PangeaPagePtr& lPage, PangeaPagePtr& rPage) {
         if (lPage->getAccessSequenceId() > rPage->getAccessSequenceId()) {
             return false;
         } else {
@@ -153,7 +153,7 @@ public:
     // Below method will cause page reference count ++
     // This function is used to provide backward-compatibility for SequenceFile instances, and
     // can only be applied to SequenceFile instances.
-    PDBPagePtr getPage(SequenceFilePtr file, PageID pageId);
+    PangeaPagePtr getPage(SequenceFilePtr file, PageID pageId);
 
 
     // Get a page from cache, if the page is flushed to file, and is not in cache, load it to cache.
@@ -165,7 +165,7 @@ public:
     // unpinned before by the same backend.
     // It can be applied to all PDBFile instances.
     // If sequential==true, we will invoke file's sequential read API that will not `seek` first.
-    PDBPagePtr getPage(PartitionedFilePtr file,
+    PangeaPagePtr getPage(PartitionedFilePtr file,
                        FilePartitionID partitionId,
                        unsigned int pageSeqInPartition,
                        PageID pageId,
@@ -174,19 +174,19 @@ public:
 
 
     // Get a page directly from cache, if it is not in cache return nullptr
-    PDBPagePtr getPage(CacheKey key, LocalitySet* set = nullptr);
+    PangeaPagePtr getPage(CacheKey key, LocalitySet* set = nullptr);
 
 
     // To allocate a new page, blocking until get a page, set it as pinned&dirty, add it to cache,
     // and increment reference count
-    PDBPagePtr getNewPage(NodeID nodeId,
+    PangeaPagePtr getNewPage(NodeID nodeId,
                           CacheKey key,
                           LocalitySet* set = nullptr,
                           size_t pageSize = DEFAULT_PAGE_SIZE);
 
     // Try to allocate a new page, set it as pinned&dirty, add it to cache, and increment reference
     // count
-    PDBPagePtr getNewPageNonBlocking(NodeID nodeId,
+    PangeaPagePtr getNewPageNonBlocking(NodeID nodeId,
                                      CacheKey key,
                                      LocalitySet* set = nullptr,
                                      size_t pageSize = DEFAULT_PAGE_SIZE);
@@ -223,13 +223,13 @@ public:
 
     // Load page specified from disk file to cache.
     // This function can only be applied to SequenceFile instances.
-    PDBPagePtr loadPage(SequenceFilePtr file, PageID pageId);
+    PangeaPagePtr loadPage(SequenceFilePtr file, PageID pageId);
 
     // Load page specified from disk file to cache.
     // This function can be applied to all PDBFile instances.
     // If sequential=true, we will invoke file's sequential read API if the file instance has
     // provided such API.
-    PDBPagePtr loadPage(PDBFilePtr file,
+    PangeaPagePtr loadPage(PDBFilePtr file,
                         FilePartitionID partitionId,
                         unsigned int pageSeqInPartition,
                         bool sequential);
@@ -237,7 +237,7 @@ public:
     // Remove page specified by Key from cache hashMap.
     // This function will be used by the flushConsumer thread.
     bool removePage(CacheKey key);
-    bool freePage(PDBPagePtr page);
+    bool freePage(PangeaPagePtr page);
     // Lock for eviction.
     void evictionLock();
 
@@ -261,7 +261,7 @@ public:
     // one page.
     char* tryAllocateBufferFromSharedMemory(size_t size, int& alignOffset);
 
-    PDBPagePtr buildAndCachePageFromFileHandle(int handle,
+    PangeaPagePtr buildAndCachePageFromFileHandle(int handle,
                                                size_t size,
                                                NodeID nodeId,
                                                DatabaseID dbId,
@@ -270,8 +270,8 @@ public:
                                                PageID pageId);
 
 
-    // Build a PDBPage instance from page data loaded from file into shared memory.
-    PDBPagePtr buildPageFromSharedMemoryData(PDBFilePtr file,
+    // Build a PangeaPage instance from page data loaded from file into shared memory.
+    PangeaPagePtr buildPageFromSharedMemoryData(PDBFilePtr file,
                                              char* pageData,
                                              FilePartitionID partitionId,
                                              unsigned int pageSeqInPartition,
@@ -280,10 +280,10 @@ public:
 
 
     // Cache the block with specified name and buffer.
-    void cachePage(PDBPagePtr page, LocalitySet* set = nullptr);
+    void cachePage(PangeaPagePtr page, LocalitySet* set = nullptr);
 
     // Evict page from cache.
-    bool evictPage(PDBPagePtr page, LocalitySetPtr set = nullptr);
+    bool evictPage(PangeaPagePtr page, LocalitySetPtr set = nullptr);
 
     void addLocalitySetToPriorityList(LocalitySetPtr set, PriorityLevel level);
 
@@ -301,7 +301,7 @@ public:
 
 
 private:
-    unordered_map<CacheKey, PDBPagePtr, CacheKeyHash, CacheKeyEqual>* cache;
+    unordered_map<CacheKey, PangeaPagePtr, CacheKeyHash, CacheKeyEqual>* cache;
     pdb::PDBLoggerPtr logger;
     ConfigurationPtr conf;
     size_t size;

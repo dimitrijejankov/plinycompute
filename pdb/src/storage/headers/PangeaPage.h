@@ -29,8 +29,8 @@
 #include <iostream>
 using namespace std;
 // create a smart pointer for PDBBufferPagePtr objects
-class PDBPage;
-typedef shared_ptr<PDBPage> PDBPagePtr;
+class PangeaPage;
+typedef shared_ptr<PangeaPage> PangeaPagePtr;
 
 /**
  * This class implements PDBPage that is a fixed size (e.g. 64MB) piece of data allocated in shared
@@ -49,13 +49,13 @@ typedef shared_ptr<PDBPage> PDBPagePtr;
  * A page at backend will be setup by the DataProxy instance and used via PageHandle instance.
  *
  */
-class PDBPage {
+class PangeaPage {
 
 public:
     /**
      * Create a PDBPage instance from an empty page.
      */
-    PDBPage(char* dataIn,
+    PangeaPage(char* dataIn,
             NodeID dataNodeID,
             DatabaseID dataDbID,
             UserTypeID dataTypeID,
@@ -69,9 +69,9 @@ public:
     /**
      * Create a PDBPage instance from a non-empty page.
      */
-    PDBPage(char* dataIn, size_t offset, int internalOffset = 0);
+    PangeaPage(char* dataIn, size_t offset, int internalOffset = 0);
 
-    ~PDBPage();
+    ~PangeaPage();
     /**
      * Free page data from shared memory.
      */

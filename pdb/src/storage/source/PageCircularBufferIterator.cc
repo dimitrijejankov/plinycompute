@@ -35,7 +35,7 @@ PageCircularBufferIterator::PageCircularBufferIterator(unsigned int id,
 PageCircularBufferIterator::~PageCircularBufferIterator() {}
 
 // will block when queue is empty and will remove the page from queue before return;
-PDBPagePtr PageCircularBufferIterator::next() {
+PangeaPagePtr PageCircularBufferIterator::next() {
     return this->buffer->popPageFromHead();
 }
 

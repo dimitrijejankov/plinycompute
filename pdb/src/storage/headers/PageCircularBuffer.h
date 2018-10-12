@@ -19,7 +19,7 @@
 #ifndef PAGECIRCULARBUFFER_H
 #define PAGECIRCULARBUFFER_H
 
-#include "PDBPage.h"
+#include "PangeaPage.h"
 #include "PDBLogger.h"
 #include <pthread.h>
 #include <memory>
@@ -43,7 +43,7 @@ public:
      * Add page to the tail of the circular buffer.
      * If the buffer is full, it will block until there is new room in the buffer.
      */
-    int addPageToTail(PDBPagePtr page);
+    int addPageToTail(PangeaPagePtr page);
 
     /**
      * Pop page from the head of the circular buffer.
@@ -51,7 +51,7 @@ public:
      * or until the buffer is closed.
      * If the buffer is empty while being closed, the function will return nullptr.
      */
-    PDBPagePtr popPageFromHead();
+    PangeaPagePtr popPageFromHead();
 
     /**
      * If the buffer is full, return true, otherwise, return false.
@@ -91,7 +91,7 @@ protected:
     /**
      * Return the page array used to construct the concurrent blocking circular buffer.
      */
-    PDBPagePtr* getPageArray() {
+    PangeaPagePtr* getPageArray() {
         return pageArray;
     }
 
@@ -122,7 +122,7 @@ protected:
     int initArray();
 
 private:
-    PDBPagePtr* pageArray;
+    PangeaPagePtr* pageArray;
     pdb::PDBLoggerPtr logger;
     unsigned int maxArraySize;
     unsigned int pageArrayHead;

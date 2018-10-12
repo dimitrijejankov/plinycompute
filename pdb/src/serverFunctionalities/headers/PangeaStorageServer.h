@@ -95,7 +95,7 @@ public:
                           bool directPutOrNot = false);
 
     // this allocates a new page at the end of the indicated database/set combo
-    PDBPagePtr getNewPage(pair<std::string, std::string> databaseAndSet);
+    PangeaPagePtr getNewPage(pair<std::string, std::string> databaseAndSet);
 
     // returns a set object referencing the given database/set pair
     SetPtr getSet(std::pair<std::string, std::string> databaseAndSet);

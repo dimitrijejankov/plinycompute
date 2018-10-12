@@ -92,7 +92,7 @@ class ScanUserSetBase : public Computation {
           }
           while (this->iterator->hasNext()) {
 
-            PDBPagePtr page = this->iterator->next();
+            PangeaPagePtr page = this->iterator->next();
             if (page != nullptr) {
               return page->getBytes();
             }
@@ -108,7 +108,7 @@ class ScanUserSetBase : public Computation {
                 (sizeof(NodeID) + sizeof(DatabaseID) + sizeof(UserTypeID) + sizeof(SetID) +
                     sizeof(PageID) + sizeof(int) + sizeof(size_t));
 
-            PDBPagePtr page = make_shared<PDBPage>(pageRawBytes, 0, 0);
+            PangeaPagePtr page = make_shared<PangeaPage>(pageRawBytes, 0, 0);
             NodeID nodeId = page->getNodeID();
             DatabaseID dbId = page->getDbID();
             UserTypeID typeId = page->getTypeID();

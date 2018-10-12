@@ -263,7 +263,7 @@ PartitionedFileMetaDataPtr PartitionedFile::getMetaData() {
 /**
  * Append page to the partition identified by partitionId
  */
-int PartitionedFile::appendPage(FilePartitionID partitionId, PDBPagePtr page) {
+int PartitionedFile::appendPage(FilePartitionID partitionId, PangeaPagePtr page) {
     if (usingDirect == true) {
         return appendPageDirect(partitionId, page);
     }
@@ -302,7 +302,7 @@ int PartitionedFile::appendPage(FilePartitionID partitionId, PDBPagePtr page) {
 /**
  * Append page using direct I/O
  */
-int PartitionedFile::appendPageDirect(FilePartitionID partitionId, PDBPagePtr page) {
+int PartitionedFile::appendPageDirect(FilePartitionID partitionId, PangeaPagePtr page) {
     int handle = -1;
     if (((handle = this->dataHandles.at(partitionId)) < 0) || (page == nullptr)) {
         return -1;

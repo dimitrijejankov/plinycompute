@@ -27,7 +27,7 @@
 #include "MultiInputsBase.h"
 #include "PageCircularBufferIterator.h"
 #include "DataProxy.h"
-#include "PDBPage.h"
+#include "PangeaPage.h"
 #include "JoinCompBase.h"
 
 namespace pdb {

@@ -18,13 +18,13 @@
 
 #ifndef PDB_Page_C
 #define PDB_Page_C
-#include "PDBPage.h"
+#include "PangeaPage.h"
 #include <cstring>
 #include <stdlib.h>
 #include <iostream>
 
 // create an empty page
-PDBPage::PDBPage(char* dataIn,
+PangeaPage::PangeaPage(char* dataIn,
                  NodeID dataNodeID,
                  DatabaseID dataDbID,
                  UserTypeID dataTypeID,
@@ -62,8 +62,8 @@ PDBPage::PDBPage(char* dataIn,
 }
 
 
-// create a PDBPage instance from a non-empty page.
-PDBPage::PDBPage(char* dataIn, size_t offset, int internalOffset) {
+// create a PangeaPage instance from a non-empty page.
+PangeaPage::PangeaPage(char* dataIn, size_t offset, int internalOffset) {
     this->rawBytes = dataIn;
     this->offset = offset;
     this->internalOffset = internalOffset;
@@ -94,7 +94,7 @@ PDBPage::PDBPage(char* dataIn, size_t offset, int internalOffset) {
 }
 
 
-PDBPage::~PDBPage() {
+PangeaPage::~PangeaPage() {
     freePage();
     pthread_mutex_destroy(&(this->refCountMutex));
     pthread_rwlock_destroy(&(this->flushLock));
@@ -104,7 +104,7 @@ PDBPage::~PDBPage() {
  * Prepare page head.
  */
 
-void PDBPage::preparePage() {
+void PangeaPage::preparePage() {
     char* cur = this->rawBytes;
     *((NodeID*)cur) = nodeID;
     cur = cur + sizeof(NodeID);
@@ -125,40 +125,40 @@ void PDBPage::preparePage() {
 }
 
 
-void PDBPage::readLock() {
+void PangeaPage::readLock() {
     pthread_rwlock_rdlock(&(this->flushLock));
 }
 
-void PDBPage::readUnlock() {
+void PangeaPage::readUnlock() {
     pthread_rwlock_unlock(&(this->flushLock));
 }
 
-void PDBPage::writeLock() {
+void PangeaPage::writeLock() {
     pthread_rwlock_wrlock(&(this->flushLock));
 }
 
-void PDBPage::writeUnlock() {
+void PangeaPage::writeUnlock() {
     pthread_rwlock_unlock(&(this->flushLock));
 }
 
-void* PDBPage::getBytes() {
+void* PangeaPage::getBytes() {
 
     return this->rawBytes + sizeof(NodeID) + sizeof(DatabaseID) + sizeof(UserTypeID) +
         sizeof(SetID) + sizeof(PageID) + sizeof(int) + sizeof(size_t);
 }
 
-size_t PDBPage::getSize() {
+size_t PangeaPage::getSize() {
 
     return this->size - (sizeof(NodeID) + sizeof(DatabaseID) + sizeof(UserTypeID) + sizeof(SetID) +
                          sizeof(PageID) + sizeof(int) + sizeof(size_t));
 }
 
-void PDBPage::unpin() {
+void PangeaPage::unpin() {
     this->decRefCount();
 }
 
 
-void PDBPage::freePage() {
+void PangeaPage::freePage() {
     if (rawBytes != nullptr) {
         // we always free page data by SharedMem class when page is flushed or evicted, and we do
         // not free page data here

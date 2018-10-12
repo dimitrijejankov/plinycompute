@@ -45,7 +45,7 @@ PageCircularBuffer::~PageCircularBuffer() {
 }
 
 int PageCircularBuffer::initArray() {
-    this->pageArray = new PDBPagePtr[this->maxArraySize];
+    this->pageArray = new PangeaPagePtr[this->maxArraySize];
     if (this->pageArray == nullptr) {
         cout << "PageCircularBuffer: Out of Memory in Heap.\n";
         this->logger->writeLn("PageCircularBuffer: Out of Memory in Heap.");
@@ -62,7 +62,7 @@ int PageCircularBuffer::initArray() {
 }
 
 // in our case, more than one producer will add pages to the tail of the blocking queue
-int PageCircularBuffer::addPageToTail(PDBPagePtr page) {
+int PageCircularBuffer::addPageToTail(PangeaPagePtr page) {
     pthread_mutex_lock(&(this->addPageMutex));
     int i = 0;
     while (this->isFull()) {
@@ -91,7 +91,7 @@ int PageCircularBuffer::addPageToTail(PDBPagePtr page) {
 
 // there will be multiple consumers, so we need to guard the blocking queue
 
-PDBPagePtr PageCircularBuffer::popPageFromHead() {
+PangeaPagePtr PageCircularBuffer::popPageFromHead() {
     pthread_mutex_lock(&(this->mutex));
     if (this->isEmpty() && (this->closed == false)) {
         this->logger->writeLn("PageCircularBuffer: array is empty.");
@@ -100,7 +100,7 @@ PDBPagePtr PageCircularBuffer::popPageFromHead() {
     if (!this->isEmpty()) {
         this->logger->debug("PageCircularBuffer: not empty, return the head element");
         this->pageArrayHead = (this->pageArrayHead + 1) % this->maxArraySize;
-        PDBPagePtr ret = this->pageArray[this->pageArrayHead];
+        PangeaPagePtr ret = this->pageArray[this->pageArrayHead];
         this->pageArray[this->pageArrayHead] = nullptr;
         pthread_mutex_unlock(&(this->mutex));
         return ret;

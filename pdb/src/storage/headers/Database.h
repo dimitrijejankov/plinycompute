@@ -21,7 +21,7 @@
 
 #include "PDBObject.h"
 #include "UserType.h"
-#include "PDBPage.h"
+#include "PangeaPage.h"
 #include "DataTypes.h"
 
 #include <vector>

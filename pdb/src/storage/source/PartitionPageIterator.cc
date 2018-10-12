@@ -45,8 +45,8 @@ PartitionPageIterator::PartitionPageIterator(PageCachePtr cache,
 /**
  * To return the next page. If there is no more page, return nullptr.
  */
-PDBPagePtr PartitionPageIterator::next() {
-    PDBPagePtr pageToReturn;
+PangeaPagePtr PartitionPageIterator::next() {
+    PangeaPagePtr pageToReturn;
     if (this->numIteratedPages >= this->numPages) {
         return nullptr;
     } else {

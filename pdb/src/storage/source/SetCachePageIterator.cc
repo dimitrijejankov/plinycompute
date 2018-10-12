@@ -41,17 +41,17 @@ SetCachePageIterator::SetCachePageIterator(PageCachePtr cache, UserSet* set) {
 // remove all elements that have been flushed to disk (inCache == false)
 SetCachePageIterator::~SetCachePageIterator() {}
 
-PDBPagePtr SetCachePageIterator::begin() {
+PangeaPagePtr SetCachePageIterator::begin() {
     this->iter = this->set->getDirtyPageSet()->begin();
     return nullptr;
 }
 
-PDBPagePtr SetCachePageIterator::end() {
+PangeaPagePtr SetCachePageIterator::end() {
     this->iter = this->set->getDirtyPageSet()->end();
     return nullptr;
 }
 
-PDBPagePtr SetCachePageIterator::next() {
+PangeaPagePtr SetCachePageIterator::next() {
     this->cache->evictionLock();
     if (this->iter != this->set->getDirtyPageSet()->end()) {
         if (this->iter->second.inCache == true) {
@@ -62,9 +62,9 @@ PDBPagePtr SetCachePageIterator::next() {
             key.pageId = this->iter->first;
             PDB_COUT << "SetCachePageIterator: in cache: curPageId=" << key.pageId << "\n";
 #ifdef USE_LOCALITY_SET
-            PDBPagePtr page = this->cache->getPage(key, this->set);
+            PangeaPagePtr page = this->cache->getPage(key, this->set);
 #else
-            PDBPagePtr page = this->cache->getPage(key, nullptr);
+            PangeaPagePtr page = this->cache->getPage(key, nullptr);
 #endif
             this->cache->evictionUnlock();
             ++iter;
@@ -76,14 +76,14 @@ PDBPagePtr SetCachePageIterator::next() {
             PDB_COUT << "SetCachePageIterator: not in cache: curPageId=" << pageId << "\n";
             FileSearchKey searchKey = this->iter->second;
 #ifdef USE_LOCALITY_SET
-            PDBPagePtr page = this->cache->getPage(this->set->getFile(),
+            PangeaPagePtr page = this->cache->getPage(this->set->getFile(),
                                                    searchKey.partitionId,
                                                    searchKey.pageSeqInPartition,
                                                    pageId,
                                                    false,
                                                    this->set);
 #else
-            PDBPagePtr page = this->cache->getPage(this->set->getFile(),
+            PangeaPagePtr page = this->cache->getPage(this->set->getFile(),
                                                    searchKey.partitionId,
                                                    searchKey.pageSeqInPartition,
                                                    pageId,

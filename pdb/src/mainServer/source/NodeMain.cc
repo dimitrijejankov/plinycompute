@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
     // add the functionaries
     frontEnd.addFunctionality<pdb::ClusterManager>();
     frontEnd.addFunctionality<pdb::CatalogServer>();
-    frontEnd.addFunctionality<pdb::CatalogClient>(config->managerPort, config->managerAddress, logger);
+    frontEnd.addFunctionality<pdb::CatalogClient>(config->port, config->address, logger);
 
     frontEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
 

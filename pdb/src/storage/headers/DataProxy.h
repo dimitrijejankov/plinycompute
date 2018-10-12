@@ -20,7 +20,7 @@
 #define DATAPROXY_H
 
 #include "DataTypes.h"
-#include "PDBPage.h"
+#include "PangeaPage.h"
 #include "PDBCommunicator.h"
 #include "SharedMem.h"
 #include "PageScanner.h"
@@ -65,7 +65,7 @@ public:
      * If successful, return true, otherwise (like setId doesn't exists), return false.
      * Immediately, the page will be pinned at storage, and is ready for read/write in memory.
      */
-    bool addTempPage(SetID setId, PDBPagePtr& page, bool needMem = true, int numTries = 0);
+    bool addTempPage(SetID setId, PangeaPagePtr& page, bool needMem = true, int numTries = 0);
 
     /**
      * Add a page to the set specified by the given DbId, TypeId, and SetID.
@@ -76,7 +76,7 @@ public:
     bool addUserPage(DatabaseID dbId,
                      UserTypeID typeId,
                      SetID setId,
-                     PDBPagePtr& page,
+                     PangeaPagePtr& page,
                      bool needMem = true,
                      int numTries = 0);
 
@@ -86,7 +86,7 @@ public:
      * If successful, return true, otherwise (like setId or pageId does not exist), return false.
      */
     bool pinTempPage(
-        SetID setId, PageID pageId, PDBPagePtr& page, bool needMem = true, int numTries = 0);
+        SetID setId, PageID pageId, PangeaPagePtr& page, bool needMem = true, int numTries = 0);
 
     /**
      * UnPin a page in the temporary set specified by the given SetID and PageID from memory,
@@ -94,7 +94,7 @@ public:
      * cache.
      * If successful, return true, otherwise (like setId or pageId does not exist), return false.
      */
-    bool unpinTempPage(SetID setId, PDBPagePtr page, bool needMem = true, int numTries = 0);
+    bool unpinTempPage(SetID setId, PangeaPagePtr page, bool needMem = true, int numTries = 0);
 
     /**
      * Pin a page in the user set specified by the given DatabaseID, UserTypeID, SetID and PageID to
@@ -108,7 +108,7 @@ public:
                      UserTypeID typeId,
                      SetID setId,
                      PageID pageId,
-                     PDBPagePtr& page,
+                     PangeaPagePtr& page,
                      bool needMem = true,
                      int numTries = 0);
 
@@ -136,7 +136,7 @@ public:
                        DatabaseID dbId,
                        UserTypeID typeId,
                        SetID setId,
-                       PDBPagePtr page,
+                       PangeaPagePtr page,
                        bool needMem = true,
                        int numTries = 0);
 

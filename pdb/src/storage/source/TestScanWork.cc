@@ -22,7 +22,7 @@
 #include "PDBVector.h"
 #include "InterfaceFunctions.h"
 #include "UseTemporaryAllocationBlock.h"
-#include "PDBPage.h"
+#include "PangeaPage.h"
 #include "DataProxy.h"
 #include <string>
 using namespace std;
@@ -51,7 +51,7 @@ void TestScanWork::execute(PDBBuzzerPtr callerBuzzer) {
     DataProxyPtr proxy = make_shared<DataProxy>(
         nodeId, communicatorToFrontEnd, this->server->getSharedMem(), logger);
 
-    PDBPagePtr page;
+    PangeaPagePtr page;
     while (this->iter->hasNext()) {
         page = this->iter->next();
         // page still can be nullptr, so we MUST check nullptr here.

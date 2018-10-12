@@ -45,18 +45,18 @@ public:
     /**
      * Returns the page with the smallest PageID in the input buffer.
      */
-    PDBPagePtr begin();
+    PangeaPagePtr begin();
 
     /**
      * Returns the page with the largest PageID in the input buffer.
      */
-    PDBPagePtr end();
+    PangeaPagePtr end();
 
     /**
      * Returns the next page in the input buffer.
      * If there is no more page, returns nullptr.
      */
-    PDBPagePtr next() override;
+    PangeaPagePtr next() override;
 
     /**
      * If there is more pages in the input buffer, return true, else, return false.

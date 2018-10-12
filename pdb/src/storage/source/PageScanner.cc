@@ -23,7 +23,7 @@
 #include "PageScanner.h"
 #include "PDBCommunicator.h"
 #include "PageCircularBufferIterator.h"
-#include "PDBPage.h"
+#include "PangeaPage.h"
 #include "SharedMem.h"
 #include "StorageGetSetPages.h"
 #include "StoragePagePinned.h"
@@ -154,7 +154,7 @@ bool PageScanner::recvPagesLoop(pdb::Handle<pdb::StoragePagePinned> pinnedPage,
     PageID dataPageId = pinnedPage->getPageID();
     size_t pageSize = pinnedPage->getPageSize();
     size_t offset = pinnedPage->getSharedMemOffset();
-    PDBPagePtr page;
+    PangeaPagePtr page;
     bool ret;
 
     // Due to the new handling mechanism, we need to process the first message then accept the next
@@ -176,7 +176,7 @@ bool PageScanner::recvPagesLoop(pdb::Handle<pdb::StoragePagePinned> pinnedPage,
         // we wrap the page object, add it to buffer, and send back ack.
         else {
             char* rawData = (char*)this->shm->getPointer(offset);
-            page = make_shared<PDBPage>(rawData, offset, 0);
+            page = make_shared<PangeaPage>(rawData, offset, 0);
             logger->debug(string("BackEndServer: add page scanner page to circular buffer...\n"));
             if (this->buffer != nullptr) {
                 this->buffer->addPageToTail(page);

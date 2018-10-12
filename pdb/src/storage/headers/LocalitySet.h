@@ -19,7 +19,7 @@
 #ifndef LOCALITY_SET_H
 #define LOCALITY_SET_H
 
-#include "PDBPage.h"
+#include "PangeaPage.h"
 #include "DataTypes.h"
 #include <list>
 #include <vector>
@@ -52,25 +52,25 @@ public:
     /*
      * To add a newly cached page to the locality set
      */
-    void addCachedPage(PDBPagePtr page);
+    void addCachedPage(PangeaPagePtr page);
 
     /*
      * To update a cached page with new access sequenceId
      */
-    void updateCachedPage(PDBPagePtr page);
+    void updateCachedPage(PangeaPagePtr page);
 
     /*
      * To remove a cached page
      */
-    void removeCachedPage(PDBPagePtr page);
+    void removeCachedPage(PangeaPagePtr page);
 
     /*
      * To select a page from the locality set for replacement based on the replacement policy, and
      * also remove the page from the list.
      */
-    PDBPagePtr selectPageForReplacement();
+    PangeaPagePtr selectPageForReplacement();
 
-    vector<PDBPagePtr>* selectPagesForReplacement();
+    vector<PangeaPagePtr>* selectPagesForReplacement();
 
     void pin(LocalitySetReplacementPolicy policy, OperationType operationType);
 
@@ -110,7 +110,7 @@ protected:
      * Cached pages in the set, ordered by access sequenceId;
      * So pop_front for LRU, pop_back for MRU
      */
-    list<PDBPagePtr>* cachedPages;
+    list<PangeaPagePtr>* cachedPages;
 
 
     /*
