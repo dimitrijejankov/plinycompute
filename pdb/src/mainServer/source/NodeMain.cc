@@ -25,6 +25,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <ClusterManager.h>
 #include <CatalogServer.h>
+#include <PDBStorageManagerFrontEnd.h>
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
@@ -46,6 +47,7 @@ int main(int argc, char *argv[]) {
   desc.add_options()("managerAddress,d", po::value<std::string>(&config->managerAddress)->default_value("localhost"), "IP of the manager");
   desc.add_options()("managerPort,o", po::value<int32_t>(&config->managerPort)->default_value(8108), "Port of the manager");
   desc.add_options()("sharedMemSize,s", po::value<size_t>(&config->sharedMemSize)->default_value(2048), "The size of the shared memory (MB)");
+  desc.add_options()("pageSize,e", po::value<size_t>(&config->pageSize)->default_value(64), "The size of a page (MB)");
   desc.add_options()("numThreads,t", po::value<int32_t>(&config->numThreads)->default_value(1), "The number of threads we want to use");
   desc.add_options()("rootDirectory,r", po::value<std::string>(&config->rootDirectory)->default_value("./pdbRoot"), "The root directory we want to use.");
 
@@ -92,6 +94,7 @@ int main(int argc, char *argv[]) {
 
     // add the functionaries
     frontEnd.addFunctionality<pdb::ClusterManager>();
+    frontEnd.addFunctionality<pdb::PDBStorageManagerFrontEnd>();
     frontEnd.addFunctionality<pdb::CatalogServer>();
     frontEnd.addFunctionality<pdb::CatalogClient>(config->port, config->address, logger);
 

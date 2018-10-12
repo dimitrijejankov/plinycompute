@@ -13,6 +13,7 @@
 #include <vector>
 
 using namespace std;
+using namespace pdb;
 
 void writeBytes (int fileName, int pageNum, int pageSize, char *toMe) {
 
@@ -27,7 +28,7 @@ void writeBytes (int fileName, int pageNum, int pageSize, char *toMe) {
 PDBPageHandle createRandomPage (PDBStorageManager &myMgr, vector <PDBSetPtr> &mySets, vector <unsigned> &myEnds) {
 
 	// choose a set
-	int whichSet = lrand48 () % mySets.size ();
+	auto whichSet = lrand48 () % mySets.size ();
 	
 	// choose a length
 	size_t len = 16;

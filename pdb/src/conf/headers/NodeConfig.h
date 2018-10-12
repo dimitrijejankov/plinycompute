@@ -44,6 +44,11 @@ struct NodeConfig {
   size_t sharedMemSize;
 
   /**
+   * The size of the page
+   */
+  size_t pageSize;
+
+  /**
    * Number of threads the execution engine is going to use
    */
   int32_t numThreads;

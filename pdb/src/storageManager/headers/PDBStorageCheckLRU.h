@@ -15,14 +15,20 @@
 
 using namespace std;
 
+namespace pdb {
+
 // so that pages can be searched based on LRU access time
 class PDBStorageCheckLRU {
 
-public:
-	bool operator() (const pair <void *, size_t> lhs, const pair <void *, size_t> rhs) const {
-		return lhs.second < rhs.second;
-	}
+ public:
+  bool operator() (const pair <void *, size_t> lhs, const pair <void *, size_t> rhs) const {
+	  return lhs.second < rhs.second;
+  }
 };
+
+}
+
+
 
 #endif
 

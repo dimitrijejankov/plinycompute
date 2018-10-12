@@ -14,27 +14,31 @@
 
 #include "PDBSet.h"
 
+namespace pdb {
+
 // so that pages can be put into a map
 struct PDBSetCompare {
 
-public:
+ public:
 
-	bool operator() (const PDBSetPtr &lhs, const PDBSetPtr &rhs) const {
+  bool operator() (const PDBSetPtr &lhs, const PDBSetPtr &rhs) const {
 
-		// deal with the null case
-		if (lhs == nullptr && rhs != nullptr) {
-			return true;
-		} else if (rhs == nullptr) {
-			return false;
-		}
+	  // deal with the null case
+	  if (lhs == nullptr && rhs != nullptr) {
+		  return true;
+	  } else if (rhs == nullptr) {
+		  return false;
+	  }
 
-		// otherwise, just compare the strings
-		if (lhs->getSetName () != rhs->getSetName ())
-			return lhs->getSetName () < rhs->getSetName ();
+	  // otherwise, just compare the strings
+	  if (lhs->getSetName () != rhs->getSetName ())
+		  return lhs->getSetName () < rhs->getSetName ();
 
-		return lhs->getDBName () < rhs->getDBName ();
-	}
+	  return lhs->getDBName () < rhs->getDBName ();
+  }
 };
+
+}
 
 #endif
 

@@ -16,6 +16,8 @@
 #include "PDBPage.h"
 #include "PDBSet.h"
 
+namespace pdb {
+
 PDBPage :: PDBPage (PDBStorageManager &parent) : parent (parent) {}
 
 void PDBPage :: incRefCount () {
@@ -123,6 +125,8 @@ void PDBPage :: setDirty () {
 
 void PDBPage :: setClean () {
 	dirty = false;
+}
+
 }
 
 #endif

@@ -8,6 +8,8 @@
 #include <sstream>
 #include <string>
 
+namespace pdb {
+
 void PDBStorageFileWriter :: putString (string key, string value) {
 	myData [key] = std::move(value);
 }
@@ -135,6 +137,8 @@ void PDBStorageFileWriter :: save () {
 			myFile << "|" << ent.first << "|" << ent.second << "|\n";
 		}
 	}
+}
+
 }
 
 #endif

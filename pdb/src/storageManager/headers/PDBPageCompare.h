@@ -15,24 +15,29 @@
 
 #include "PDBSetCompare.h"
 
+namespace pdb {
+
 // so that pages can be put into a map
 class PDBPageCompare {
 
-public:
+ public:
 
-	bool operator() (const pair <PDBSetPtr, size_t>& lhs, const pair <PDBSetPtr, size_t>& rhs) const {
+  bool operator() (const pair <PDBSetPtr, size_t>& lhs, const pair <PDBSetPtr, size_t>& rhs) const {
 
-		PDBSetCompare temp;
-		if (temp (lhs.first, rhs.first))
-			return true;
+	  PDBSetCompare temp;
+	  if (temp (lhs.first, rhs.first))
+		  return true;
 
-		if (temp (rhs.first, lhs.first))
-			return false;
+	  if (temp (rhs.first, lhs.first))
+		  return false;
 
-		// in this case, the tables are the same
-		return lhs.second < rhs.second;
-	}
+	  // in this case, the tables are the same
+	  return lhs.second < rhs.second;
+  }
 };
+
+}
+
 
 #endif
 

@@ -15,6 +15,8 @@
 #include <memory>
 #include <string>
 
+namespace pdb {
+
 // create a smart pointer for pages
 using namespace std;
 class PDBSet;
@@ -22,30 +24,33 @@ typedef shared_ptr <PDBSet> PDBSetPtr;
 
 class PDBSet {
 
-public:
+ public:
 
-	// the name of the set
-	string getSetName () {
-		return setName;
-	}
+  // the name of the set
+  string getSetName () {
+	  return setName;
+  }
 
-	// the name of the database that the set is part of
-	string getDBName () {
-		return dbName;
-	}
+  // the name of the database that the set is part of
+  string getDBName () {
+	  return dbName;
+  }
 
-	// create a set with the given name, database, physical storage location
-	PDBSet (string setNameIn, string dbNameIn) {
-		setName = std::move(setNameIn);
-		dbName = std::move(dbNameIn);
-	}
-	
-private:
+  // create a set with the given name, database, physical storage location
+  PDBSet (string setNameIn, string dbNameIn) {
+	  setName = std::move(setNameIn);
+	  dbName = std::move(dbNameIn);
+  }
 
-	string setName;
-	string dbName;
+ private:
+
+  string setName;
+  string dbName;
 
 };
+
+}
+
 
 #endif
 

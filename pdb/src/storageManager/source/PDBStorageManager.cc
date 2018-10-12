@@ -27,6 +27,8 @@
 #include <sys/mman.h>
 #include <cstring>
 
+namespace pdb {
+
 size_t PDBStorageManager :: getPageSize () {
 
 	if (!initialized) {
@@ -605,26 +607,8 @@ PDBPageHandle PDBStorageManager :: getPage(PDBSetPtr whichSet, uint64_t i) {
 	return make_shared <PDBPageHandleBase> (allPages [whichPage]);
 }
 
-// bool isPinned ()
-// void setPinned ()
-// void setUnpinned ()
-// void setDirty ()
-// void setClean ()
-// bool isDirty ()
-// bool sizeIsFrozen ()
-// bool freezeSize ()
-// void *getBytes ()
-// void setBytes (void *)
-// bool isAnonymous ()
-// void setAnonymous (bool);
-// size_t whichPage ()
-// void setPagNum (size_t)
-// PDBSetPtr getSet ()
-// setSet (PDBSetPtr)
-// unsigned numRefs ()
-// PDBPageInfo getLocation ()
-// PDBPageInfo.startPos -- size_t
-// PDBPageInfo.numBytes -- bytes is MIN_PAGE_SIZE * 2^numBytes
+}
+
 #endif
 
 

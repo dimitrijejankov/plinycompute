@@ -1,0 +1,113 @@
+
+
+#ifndef STORAGE_MGR_IFC_H
+#define STORAGE_MGR_IFC_H
+
+#include "PDBPage.h"
+#include "PDBPageHandle.h"
+#include "PDBSet.h"
+#include "PDBCommunicator.h"
+#include "ServerFunctionality.h"
+
+
+class PDBStorageManagerInterface;
+typedef shared_ptr<PDBStorageManagerInterface> PDBStorageManagerInterfacePtr;
+
+/**
+ * NOTE that this is an abstract class.  There are two instances of this class on any given node: one
+ * that runs on the front end process, and one that runs on the back end process.  In general, the one
+ * on the front end is doing all of the work of maitaining the buffer pool and reading/writing data
+ * from/to disk.  The back end is mostly just a client for the front end.
+ *
+ * INTERFACE EXPLAINED FROM AN APPLICATION PROGRAMMERS POINT-OF-VIEW
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * There are two types of pages. Anonymous and non-anonymous. Anonymous pages don't correspond to a disk
+ * page; they are pages used as RAM for temporary storage.  They remain in existence until all handles to
+ * them are gone, at which time they disappear.  However, anonymous pages can be swapped out of RAM by
+ * the storage manager, so it is possible to have more anonymous pages than can fit in the physical RAM
+ * of the machine.
+ *
+ * Non-anonymous pages correspond to data that are stored on disk for later use.
+ *
+ * Pages by default are pageSize in bytes.  But, as an optimization, they can be smaller than this as
+ * well.  There are two ways to get a smaller page.  One can simply create a small anonymous page by
+ * calling getPage (maxBytes) which returns a page that may be as small as maxBytes in size.
+ *
+ * The other way is to call freezeSize (numBytes), which tells the storage manager that the page is never
+ * going to use more than the first numBytes bytes on the page.  freezeSize () can be used on both
+ * anonymous and non-anonymous pages.
+ *
+ * Beause the actual pages are variable sized, we don't figure out where in a file a non-anonymous page
+ * is going to be written until it is unpinned (at which time its size cannot change).
+ *
+ * When a page is created, it is pinned.  It is kept in RAM until it is unpinned (a page can be unpinned
+ * manually, or because there are no more handles in scope).  When a page is unpinned, it is assumed that
+ * the page is read only, forever after.  Later it can be pinned again, but it is still read-only.
+ *
+ * At sometime before a page is unpinned, one can call freezeSize () on a handle to the page, informing
+ * the system that not all of the bytes on the page are going to be used.  The system can then store only
+ * the first, used part of the page, at great savings.
+ *
+ * When a large page is broken up into mini-pages, we keep track of how many mini-pages are pinned, and we
+ * keep references to all of those mini-pages on the page.  As long as some mini-page on the page is pinned,
+ * the entire page is pinned.  Once it contains no pinned mini-pages, it can potentially be re-cycled (and
+ * all of the un-pinned mini-pages written back to disk).
+ *
+ * When a non-anonymous page is unpinned for the first time, we determine its true location on disk (pages
+ * may not be located sequentially on disk, due to the fact that we have variable-sized pages, and we do
+ * not know at the outset the actual number of bytes that will be used by a page).
+ *
+ * An anonymous page gets its location the first time that it is written out to disk.
+ *
+ * A page can be dirty or not dirty.  All pages are dirty at creation, but then once they are written out
+ * to disk, they are clean forever more (by definition, a page needs to be unpinned to be written out to
+ * disk, but once it is unpinned, it cannot be modified, so after it is written back, it can never be
+ * modified again).
+ */
+
+namespace pdb {
+
+class PDBStorageManagerInterface : public pdb::ServerFunctionality {
+
+public:
+
+  // gets the i^th page in the table whichSet... note that if the page
+  // is currently being used (that is, the page is current buffered) a handle
+  // to that already-buffered page should be returned
+  //
+  // Under the hood, the storage manager first makes sure that it has a file
+  // descriptor for the file storing the page's set.  It then checks to see
+  // if the page already exists.  It it does, we just return it.  If the page
+  // does not already exist, we see if we have ever created the page and
+  // written it back before.  If we have, we go to the disk location for the
+  // page and read it in.  If we have not, we simply get an empty set of
+  // bytes to store the page and return that.
+  virtual PDBPageHandle getPage(PDBSetPtr whichSet, uint64_t i) = 0;
+
+  // gets a temporary page that will no longer exist (1) after the buffer manager
+  // has been destroyed, or (2) there are no more references to it anywhere in the
+  // program.  Typically such a temporary page will be used as buffer memory.
+  // since it is just a temp page, it is not associated with any particular
+  // set.  On creation, the page is pinned until it is unpinned.
+  //
+  // Under the hood, this simply finds a mini-page to store the page on (kicking
+  // existing data out of the buffer if necessary)
+  virtual PDBPageHandle getPage() = 0;
+
+  // gets a temporary page that is at least minBytes in size
+  virtual PDBPageHandle getPage(size_t minBytes) = 0;
+
+  // gets the page size
+  virtual size_t getPageSize() = 0;
+
+  // simply loop through and write back any dirty pages.
+  virtual ~PDBStorageManagerInterface() = default;
+};
+
+}
+
+
+#endif
+
+
