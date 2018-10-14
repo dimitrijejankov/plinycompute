@@ -35,8 +35,29 @@ class PDBStorageManagerBackEnd : public PDBStorageManagerInterface {
 
 public:
 
+  ~PDBStorageManagerBackEnd() override = default;
+
+  PDBPageHandle getPage(PDBSetPtr whichSet, uint64_t i) override;
+
+  PDBPageHandle getPage() override;
+
+  PDBPageHandle getPage(size_t minBytes) override;
+
+  size_t getPageSize() override;
+
   void registerHandlers(PDBServer &forMe) override;
 
+ private:
+
+  void freeAnonymousPage(PDBPagePtr me) override;
+
+  void downToZeroReferences(PDBPagePtr me) override;
+
+  void freezeSize(PDBPagePtr me, size_t numBytes) override;
+
+  void unpin(PDBPagePtr me) override;
+
+  void repin(PDBPagePtr me) override;
 };
 
 }

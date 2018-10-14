@@ -34,6 +34,8 @@
 
 namespace pdb {
 
+class PDBServer;
+
 class PDBCommWork;
 typedef std::shared_ptr<PDBCommWork> PDBCommWorkPtr;
 }
@@ -53,7 +55,7 @@ public:
     PDBCommunicatorPtr getCommunicator();
 
     // sets the logger and the commuicator
-    void setGuts(PDBCommunicatorPtr toMe);
+    void setGuts(PDBCommunicatorPtr toMe, PDBServer *server);
 
     // inherited from PDBWork
     // ********************************
@@ -63,9 +65,10 @@ public:
     // PDBBuzzerPtr getLinkedBuzzer ();
 
 
-private:
+protected:
     // this is responsible for talking over the network
     PDBCommunicatorPtr myCommunicator;
+    pdb::PDBServer *server;
 };
 }
 

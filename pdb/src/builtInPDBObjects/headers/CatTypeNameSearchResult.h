@@ -30,26 +30,29 @@ namespace pdb {
 // encapsulates a request to obtain a type name from the catalog
 class CatTypeNameSearchResult : public Object {
 
-public:
-    CatTypeNameSearchResult(){};
-    ~CatTypeNameSearchResult(){};
-    CatTypeNameSearchResult(std::string typeName, bool success, std::string errMsg)
-        : typeName(typeName), errMsg(errMsg), success(success) {}
+ public:
 
-    std::string getTypeName() {
-        return typeName;
-    }
+  CatTypeNameSearchResult() = default;
 
-    std::pair<bool, std::string> wasSuccessful() {
-        return std::make_pair(success, errMsg);
-    }
+  ~CatTypeNameSearchResult() = default;
 
-    ENABLE_DEEP_COPY
+  CatTypeNameSearchResult(std::string typeName, bool success, std::string errMsg)
+      : typeName(typeName), errMsg(errMsg), success(success) {}
 
-private:
-    String typeName;
-    String errMsg;
-    bool success;
+  std::string getTypeName() {
+    return typeName;
+  }
+
+  std::pair<bool, std::string> wasSuccessful() {
+    return std::make_pair(success, errMsg);
+  }
+
+  ENABLE_DEEP_COPY
+
+ private:
+  String typeName;
+  String errMsg;
+  bool success;
 };
 }
 

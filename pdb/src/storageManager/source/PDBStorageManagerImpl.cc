@@ -16,9 +16,11 @@
 #include <fcntl.h>
 #include <iostream>
 #include <sstream>
-#include "PDBStorageManager.h"
 #include "PDBPage.h"
 #include "PDBStorageFileWriter.h"
+#include "PDBStorageManagerImpl.h"
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <unistd.h>
@@ -29,17 +31,62 @@
 
 namespace pdb {
 
-size_t PDBStorageManager :: getPageSize () {
+namespace fs = boost::filesystem;
+
+PDBStorageManagerImpl::PDBStorageManagerImpl(pdb::NodeConfigPtr config) {
+
+	// create the root directory
+	fs::path dataPath(config->rootDirectory);
+	dataPath.append("/data");
+
+	// check if we have the metadata
+	if(fs::exists(dataPath / "metadata.pdb")) {
+
+	  // log what happened
+	  std::cout << "Using an existing storage!\n";
+
+      // ok we found a previous storage init it with that
+      initialize((dataPath / "metadata.pdb").string());
+
+      // we are done here
+      return;
+	}
+
+    // no previous storage found start a new m
+    std::cout << "Starting a new storage!\n";
+
+    // create the data directory
+    if(!fs::exists(dataPath) && !fs::create_directories(dataPath)) {
+      std::cout << "Failed to create the data directory!\n";
+    }
+
+    // grab the memory size and he page size
+    auto memorySize = config->sharedMemSize;
+    auto pageSize = config->pageSize;
+
+    // just a quick sanity check
+    if(pageSize == 0 || memorySize == 0) {
+      throw std::runtime_error("The memory size or the page size can not be 0");
+    }
+
+    // figure out the number of pages we have available
+    auto numPages = memorySize / pageSize;
+
+    // init the new manager
+    initialize((dataPath / "tempFile___.tmp").string(), pageSize, numPages, (dataPath / "metadata").string(), dataPath.string());
+}
+
+size_t PDBStorageManagerImpl :: getPageSize () {
 
 	if (!initialized) {
 		cerr << "Can't call getPageSize () without initializing the storage manager\n";
 		exit (1);
 	}
 
-	return pageSize;
+	return sharedMemory.pageSize;
 }
 
-PDBStorageManager :: ~PDBStorageManager () {
+PDBStorageManagerImpl :: ~PDBStorageManagerImpl () {
 
 	if (!initialized)
 		return;
@@ -61,25 +108,25 @@ PDBStorageManager :: ~PDBStorageManager () {
 			pageLocations[myIndex] = me->getLocation ();
 			endOfFiles[me->getSet ()] += (MIN_PAGE_SIZE << me->getLocation ().numBytes);
 		}
-		
+
 		lseek (fds[me->getSet ()], me->getLocation ().startPos, SEEK_SET);
 		write (fds[me->getSet ()], me->getBytes (), MIN_PAGE_SIZE << me->getLocation ().numBytes);
 	}
 
 	// and unmap the RAM
-	munmap (memBase, pageSize * numPages);
+	munmap (sharedMemory.memory, sharedMemory.pageSize * sharedMemory.numPages);
 
 	remove (metaDataFile.c_str ());
 	PDBStorageFileWriter myMetaFile (metaDataFile);
 
 	// now, write out the meta-data
-	myMetaFile.putUnsignedLong("pageSize", pageSize);
+	myMetaFile.putUnsignedLong("pageSize", sharedMemory.pageSize);
 	myMetaFile.putLong("logOfPageSize", logOfPageSize);
-	myMetaFile.putUnsignedLong("numPages", numPages);
+	myMetaFile.putUnsignedLong("numPages", sharedMemory.numPages);
 	myMetaFile.putString ("tempFile", tempFile);
 	myMetaFile.putString ("metaDataFile", metaDataFile);
 	myMetaFile.putString ("storageLoc", storageLoc);
-	
+
 	// get info on each of the sets
 	vector <string> setNames;
 	vector <string> dbNames;
@@ -87,7 +134,7 @@ PDBStorageManager :: ~PDBStorageManager () {
 	for (auto &a : endOfFiles) {
 		setNames.push_back (a.first->getSetName ());
 		dbNames.push_back (a.first->getDBName ());
-		endPos.push_back (to_string (a.second));	
+		endPos.push_back (to_string (a.second));
 	}
 
 	myMetaFile.putStringList ("setNames", setNames);
@@ -102,7 +149,7 @@ PDBStorageManager :: ~PDBStorageManager () {
 		if (allFiles.count (key) == 0) {
 			vector <string> temp;
 			temp.push_back (value);
-			allFiles[key] = temp;	
+			allFiles[key] = temp;
 		} else {
 			allFiles[key].push_back (value);
 		}
@@ -112,11 +159,11 @@ PDBStorageManager :: ~PDBStorageManager () {
 	for (auto &a : allFiles) {
 		myMetaFile.putStringList (a.first, a.second);
 	}
-	
+
 	myMetaFile.save ();
 }
 
-void PDBStorageManager :: initialize (std :: string metaDataFile) {
+void PDBStorageManagerImpl :: initialize (std :: string metaDataFile) {
 
 	initialized = true;
 
@@ -128,20 +175,20 @@ void PDBStorageManager :: initialize (std :: string metaDataFile) {
 	int64_t temp;
 
 	myMetaFile.getUnsignedLong("pageSize", utemp);
-	pageSize = utemp;
+    sharedMemory.pageSize = utemp;
 	myMetaFile.getLong("logOfPageSize", temp);
 	logOfPageSize = temp;
 	myMetaFile.getUnsignedLong("numPages", utemp);
-	numPages = utemp;
+    sharedMemory.numPages = utemp;
 	myMetaFile.getString ("tempFile", tempFile);
 	myMetaFile.getString ("storageLoc", storageLoc);
-	initialize (tempFile, pageSize, numPages, metaDataFile, storageLoc);	
+	initialize (tempFile, sharedMemory.pageSize, sharedMemory.numPages, metaDataFile, storageLoc);
 
 	// now, get everything that we need for the end positions
 	vector <string> setNames;
 	vector <string> dbNames;
 	vector <string> endPos;
-	
+
 	myMetaFile.getStringList ("setNames", setNames);
 	myMetaFile.getStringList ("dbNames", dbNames);
 	myMetaFile.getStringList ("endPosForEachFile", endPos);
@@ -160,39 +207,39 @@ void PDBStorageManager :: initialize (std :: string metaDataFile) {
 		for (auto &b : mappings) {
 
 			// the format of the string in the list is pageNum.startPos.len
-			stringstream tokenizer (b); 
+			stringstream tokenizer (b);
 			string pageNum, startPos, len;
 			getline (tokenizer, pageNum, '.');
 			getline (tokenizer, startPos, '.');
 			getline (tokenizer, len, '.');
-			
+
 			size_t page = stoul (pageNum);
 			PDBPageInfo tempInfo;
 			tempInfo.startPos = stoul (startPos);
 			tempInfo.numBytes = stoul (len);
 			pageLocations[make_pair (a.first, page)] = tempInfo;
-		}	
+		}
 	}
 }
 
-void PDBStorageManager :: initialize (std :: string tempFileIn, size_t pageSizeIn, size_t numPagesIn,
-	std :: string metaFile, std :: string storagLocIn) {	
+void PDBStorageManagerImpl :: initialize (std :: string tempFileIn, size_t pageSizeIn, size_t numPagesIn,
+	std :: string metaFile, std :: string storageLocIn) {
 
 	initialized = true;
-	storageLoc = std::move(storagLocIn);
-	pageSize = pageSizeIn;
+	storageLoc = std::move(storageLocIn);
+    sharedMemory.pageSize = pageSizeIn;
 	tempFile = tempFileIn;
-	numPages = numPagesIn;
+	sharedMemory.numPages = numPagesIn;
 	metaDataFile = std::move(metaFile);
 	tempFileFD = open ((storageLoc + "/" + tempFileIn).c_str (), O_CREAT | O_RDWR, 0666);
 
 	// there are no currently available positions
 	logOfPageSize = -1;
 	size_t curSize;
-	for (curSize = MIN_PAGE_SIZE; curSize <= pageSize; curSize *= 2) {
+	for (curSize = MIN_PAGE_SIZE; curSize <= sharedMemory.pageSize; curSize *= 2) {
 		vector <size_t> temp;
 		vector <void *> tempAgain;
-		availablePositions.push_back (temp);	
+		availablePositions.push_back (temp);
 		emptyMiniPages.push_back (tempAgain);
 		logOfPageSize++;
 	}
@@ -203,34 +250,35 @@ void PDBStorageManager :: initialize (std :: string tempFileIn, size_t pageSizeI
 	// as is the last time tick
 	lastTimeTick = 0;
 
-	if (curSize != pageSize * 2) {
+	if (curSize != sharedMemory.pageSize * 2) {
 		std :: cerr << "Error: the page size must be a power of two.\n";
 		exit (1);
 	}
 
 	// now, allocate the RAM
 	char *mapped;
-        mapped = (char *) mmap (nullptr, pageSize * numPages, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+    mapped = (char *) mmap (nullptr, sharedMemory.pageSize * sharedMemory.numPages, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
 
-        // make sure that it actually worked
-        if (mapped == MAP_FAILED) {
-                std :: cerr <<  "Could not memory map; error is " << strerror (errno);
-                exit (1);
-        }
-	
-	memBase = mapped;
+    // make sure that it actually worked
+    if (mapped == MAP_FAILED) {
+            std :: cerr <<  "Could not memory map; error is " << strerror (errno);
+            exit (1);
+    }
+
+    sharedMemory.memory = mapped;
 
 	// and create a bunch of pages
-	for (int i = 0; i < numPages; i++) {
-		emptyFullPages.push_back (mapped + (pageSize * i));
+	for (int i = 0; i < sharedMemory.numPages; i++) {
+		emptyFullPages.push_back (mapped + (sharedMemory.pageSize * i));
 	}
-	
+
 }
 
-void PDBStorageManager :: registerMiniPage (PDBPagePtr registerMe) {
+
+void PDBStorageManagerImpl :: registerMiniPage (PDBPagePtr registerMe) {
 
 	// first, compute the page this guy is on
-	void *whichPage = (char *) memBase + ((((char *) registerMe->getBytes () - (char *) memBase) / pageSize) * pageSize);
+	void *whichPage = (char *) sharedMemory.memory + ((((char *) registerMe->getBytes () - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
 
 	// now, add him to the list of constituent pages
 	constituentPages [whichPage].push_back (registerMe);
@@ -239,18 +287,17 @@ void PDBStorageManager :: registerMiniPage (PDBPagePtr registerMe) {
 	pinParent (registerMe);
 }
 
-
-void PDBStorageManager :: freeAnonymousPage (PDBPagePtr me) {
+void PDBStorageManagerImpl :: freeAnonymousPage (PDBPagePtr me) {
 
 	// first, unpin him, if he's not unpinned
-	unpin (me);	
+	unpin (me);
 
 	// recycle his location
 	PDBPageInfo temp = me->getLocation ();
 	if (temp.startPos != -1) {
-		availablePositions[temp.numBytes].push_back (temp.startPos); 
+		availablePositions[temp.numBytes].push_back (temp.startPos);
 	}
-	
+
 	// if this guy as no associated memory, get outta here
 	if (me->getBytes () == nullptr)
 		return;
@@ -261,7 +308,7 @@ void PDBStorageManager :: freeAnonymousPage (PDBPagePtr me) {
 	}
 
 	// now, remove him from the set of constituent pages
-	void *whichPage = (char *) memBase + ((((char *) me->getBytes () - (char *) memBase) / pageSize) * pageSize);
+	void *whichPage = (char *) sharedMemory.memory + ((((char *) me->getBytes () - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
 	for (int i = 0; i < constituentPages[whichPage].size (); i++) {
 		if (me == constituentPages[whichPage][i]) {
 			constituentPages[whichPage].erase (constituentPages[whichPage].begin () + i);
@@ -272,15 +319,15 @@ void PDBStorageManager :: freeAnonymousPage (PDBPagePtr me) {
 					pair <void *, unsigned> id = make_pair (whichPage, -numPinned[whichPage]);
 					lastUsed.erase (id);
 				}
-				emptyFullPages.push_back (whichPage);	
+				emptyFullPages.push_back (whichPage);
 			}
-			
+
 			return;
 		}
 	}
 }
 
-void PDBStorageManager :: downToZeroReferences (PDBPagePtr me) {
+void PDBStorageManagerImpl :: downToZeroReferences (PDBPagePtr me) {
 
 	// first, see whether we are actually buffered in RAM
 	if (me->getBytes () == nullptr) {
@@ -293,11 +340,12 @@ void PDBStorageManager :: downToZeroReferences (PDBPagePtr me) {
 	}
 }
 
-void PDBStorageManager :: createAdditionalMiniPages(int64_t whichSize) {
-	
+
+void PDBStorageManagerImpl :: createAdditionalMiniPages(int64_t whichSize) {
+
 	// first, we see if there is a page that we can break up; if not, then make one
 	if (emptyFullPages.empty()) {
-		
+
 		// if there are no pages, give a fatal error
 		if (lastUsed.empty()) {
 			std :: cerr << "This is really bad.  We seem to have run out of RAM in the storage manager.\n";
@@ -315,7 +363,7 @@ void PDBStorageManager :: createAdditionalMiniPages(int64_t whichSize) {
 				if (a->isDirty ()) {
 					if (availablePositions[a->getLocation().numBytes].empty()) {
 						a->getLocation ().startPos = lastTempPos;
-						lastTempPos += (MIN_PAGE_SIZE << a->getLocation ().numBytes);	
+						lastTempPos += (MIN_PAGE_SIZE << a->getLocation ().numBytes);
 					} else {
 						a->getLocation ().startPos = availablePositions[a->getLocation ().numBytes].back ();
 						availablePositions[a->getLocation ().numBytes].pop_back ();
@@ -328,7 +376,7 @@ void PDBStorageManager :: createAdditionalMiniPages(int64_t whichSize) {
 					PDBPageInfo myInfo = a->getLocation ();
 					lseek (fds[a->getSet ()], myInfo.startPos, SEEK_SET);
 					write (fds[a->getSet ()], a->getBytes (), MIN_PAGE_SIZE << myInfo.numBytes);
-				}	
+				}
 
 				// if the number of outstanding references is zero, just kill it
 				if (a->numRefs () == 0) {
@@ -340,7 +388,7 @@ void PDBStorageManager :: createAdditionalMiniPages(int64_t whichSize) {
 			a->setBytes (nullptr);
 		}
 
-		// and erase the page	
+		// and erase the page
 		constituentPages[page.first].clear ();
 		emptyFullPages.push_back (page.first);
 		lastUsed.erase (page);
@@ -349,7 +397,7 @@ void PDBStorageManager :: createAdditionalMiniPages(int64_t whichSize) {
 
 	// now, we have a big page, so we can break it up into mini-pages
 	size_t inc = MIN_PAGE_SIZE << whichSize;
-	for (size_t offset = 0; offset < pageSize; offset += inc) {
+	for (size_t offset = 0; offset < sharedMemory.pageSize; offset += inc) {
 		emptyMiniPages[whichSize].push_back (((char *) emptyFullPages.back ()) + offset);
 	}
 
@@ -358,11 +406,10 @@ void PDBStorageManager :: createAdditionalMiniPages(int64_t whichSize) {
 	numPinned[emptyFullPages.back ()] = 0;
 
 	// and get rid of the empty full page
-	emptyFullPages.pop_back ();	
+	emptyFullPages.pop_back ();
 }
 
-
-void PDBStorageManager :: freezeSize (PDBPagePtr me, size_t numBytes) {
+void PDBStorageManagerImpl :: freezeSize (PDBPagePtr me, size_t numBytes) {
 
 	if (me->sizeIsFrozen ()) {
 		std :: cerr << "You cannot freeze the size of a page twice.\n";
@@ -380,9 +427,9 @@ void PDBStorageManager :: freezeSize (PDBPagePtr me, size_t numBytes) {
 	me->getLocation ().numBytes = bytesRequired;
 }
 
-void PDBStorageManager :: unpin (PDBPagePtr me) {
-	
-	if (!me->isPinned ()) 
+void PDBStorageManagerImpl :: unpin (PDBPagePtr me) {
+
+	if (!me->isPinned ())
 		return;
 
 	// it is no longer pinned
@@ -390,10 +437,10 @@ void PDBStorageManager :: unpin (PDBPagePtr me) {
 
 	// freeze the size, if needed
 	if (!me->sizeIsFrozen ())
-		freezeSize (me, pageSize);
+		freezeSize (me, sharedMemory.pageSize);
 
 	// first, we find the parent of this guy
-	void *memLoc = (char *) memBase + ((((char *) me->getBytes () - (char *) memBase) / pageSize) * pageSize);
+	void *memLoc = (char *) sharedMemory.memory + ((((char *) me->getBytes () - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
 
 	// and decrement the number of pinned minipages
 	if (numPinned[memLoc] > 0)
@@ -417,13 +464,13 @@ void PDBStorageManager :: unpin (PDBPagePtr me) {
 			pageLocations[whichPage] = me->getLocation ();
 			endOfFiles[me->getSet ()] += (MIN_PAGE_SIZE << me->getLocation ().numBytes);
 		}
-	} 
+	}
 }
 
-void PDBStorageManager :: pinParent (PDBPagePtr me) {
+void PDBStorageManagerImpl :: pinParent (PDBPagePtr me) {
 
 	// first, we determine the parent of this guy
-	void *whichPage = (char *) memBase + ((((char *) me->getBytes () - (char *) memBase) / pageSize) * pageSize);
+	void *whichPage = (char *) sharedMemory.memory + ((((char *) me->getBytes () - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
 
 	// and increment the number of pinned minipages
 	if (numPinned[whichPage] < 0) {
@@ -435,10 +482,10 @@ void PDBStorageManager :: pinParent (PDBPagePtr me) {
 	}
 }
 
-void PDBStorageManager :: repin (PDBPagePtr me) {
-	
+void PDBStorageManagerImpl :: repin (PDBPagePtr me) {
+
 	// first, we need to see if this page is currently pinned
-	if (me->isPinned ()) 
+	if (me->isPinned ())
 		return;
 
 	// it is not currently pinned, so see if it is in RAM
@@ -468,24 +515,24 @@ void PDBStorageManager :: repin (PDBPagePtr me) {
 		lseek (fds[me->getSet ()], myInfo.startPos, SEEK_SET);
 		read (fds[me->getSet ()], me->getBytes (), MIN_PAGE_SIZE << myInfo.numBytes);
 	}
-		
+
 	registerMiniPage (me);
 	me->setPinned ();
 }
 
-PDBPageHandle PDBStorageManager :: getPage () {
-	return getPage (pageSize);
+PDBPageHandle PDBStorageManagerImpl :: getPage () {
+	return getPage (sharedMemory.pageSize);
 }
 
-PDBPageHandle PDBStorageManager :: getPage (size_t maxBytes) {
-		
+PDBPageHandle PDBStorageManagerImpl :: getPage (size_t maxBytes) {
+
 	if (!initialized) {
 		cerr << "Can't call getPageSize () without initializing the storage manager\n";
 		exit (1);
 	}
 
-	if (maxBytes > pageSize) {
-		std :: cerr << maxBytes << " is larger than the system page size of " << pageSize << "\n";
+	if (maxBytes > sharedMemory.pageSize) {
+		std :: cerr << maxBytes << " is larger than the system page size of " << sharedMemory.pageSize << "\n";
 	}
 
 	// figure out the size of the page that we need
@@ -514,8 +561,7 @@ PDBPageHandle PDBStorageManager :: getPage (size_t maxBytes) {
 	registerMiniPage (returnVal);
 	return make_shared <PDBPageHandleBase> (returnVal);
 }
-
-PDBPageHandle PDBStorageManager :: getPage(PDBSetPtr whichSet, uint64_t i) {
+PDBPageHandle PDBStorageManagerImpl :: getPage(PDBSetPtr whichSet, uint64_t i) {
 		
 	if (!initialized) {
 		cerr << "Can't call getPageSize () without initializing the storage manager\n";

@@ -2,7 +2,7 @@
 #ifndef CATALOG_UNIT_H
 #define CATALOG_UNIT_H
 
-#include "PDBStorageManager.h"
+#include "PDBStorageManagerImpl.h"
 #include "PDBPageHandle.h"
 #include "PDBSet.h"
 #include <qunit.h>
@@ -25,7 +25,7 @@ void writeBytes (int fileName, int pageNum, int pageSize, char *toMe) {
 	sprintf (toMe + pageSize - 5, "END#");
 }
 
-PDBPageHandle createRandomPage (PDBStorageManager &myMgr, vector <PDBSetPtr> &mySets, vector <unsigned> &myEnds) {
+PDBPageHandle createRandomPage (PDBStorageManagerImpl &myMgr, vector <PDBSetPtr> &mySets, vector <unsigned> &myEnds) {
 
 	// choose a set
 	auto whichSet = lrand48 () % mySets.size ();
@@ -42,7 +42,7 @@ PDBPageHandle createRandomPage (PDBStorageManager &myMgr, vector <PDBSetPtr> &my
 }
 
 static int counter = 0;
-PDBPageHandle createRandomTempPage (PDBStorageManager &myMgr) {
+PDBPageHandle createRandomTempPage (PDBStorageManagerImpl &myMgr) {
 
 	// choose a length
 	size_t len = 16;
@@ -62,7 +62,7 @@ int main () {
 	// buffer manager and temp page
 	cout << "TEST 1...\n";
 	{
-		PDBStorageManager myMgr;
+		PDBStorageManagerImpl myMgr;
 		myMgr.initialize ("tempDSFSD", 64, 16, "metadata", ".");
 		PDBPageHandle page1 = myMgr.getPage();
 		PDBPageHandle page2 = myMgr.getPage();
@@ -91,7 +91,7 @@ int main () {
 	cout << "TEST 2...\n";
 	{
 
-		PDBStorageManager myMgr;
+		PDBStorageManagerImpl myMgr;
 		myMgr.initialize ("tempDSFSD", 64, 16, "metadata", ".");
 		PDBSetPtr set1 = make_shared <PDBSet> ("set1", "DB");
 		PDBSetPtr set2 = make_shared <PDBSet> ("set2", "DB");
@@ -131,7 +131,7 @@ int main () {
 	cout << "TEST 3...\n";
 
 	{
-		PDBStorageManager myMgr;
+		PDBStorageManagerImpl myMgr;
 		myMgr.initialize ("metadata");
 		PDBSetPtr set1 = make_shared <PDBSet> ("set1", "DB");
 		PDBSetPtr set2 = make_shared <PDBSet> ("set2", "DB");
@@ -146,7 +146,7 @@ int main () {
 	cout << "TEST 5...\n";
 
 	{
-		PDBStorageManager myMgr;
+		PDBStorageManagerImpl myMgr;
 		myMgr.initialize ("tempDSFSD", 64, 16, "metadata", ".");
 
 		// create the three sets
@@ -179,7 +179,7 @@ int main () {
 	cout << "TEST 6...\n";
 
 	{
-		PDBStorageManager myMgr;
+		PDBStorageManagerImpl myMgr;
 		myMgr.initialize ("tempDSFSD", 64, 16, "metadata", ".");
 
 		// create the three sets
@@ -253,7 +253,7 @@ int main () {
 	cout << "TEST 7...\n";
 
 	{
-		PDBStorageManager myMgr;
+		PDBStorageManagerImpl myMgr;
 		myMgr.initialize ("metadata");
 
 		// create the three sets

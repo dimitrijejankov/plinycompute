@@ -41,7 +41,7 @@ typedef shared_ptr<ServerWork> ServerWorkPtr;
 class ServerWork : public PDBCommWork {
 public:
     // specify the server we are working on
-    ServerWork(PDBServer& workOnMe);
+    ServerWork();
 
     // do the actual work
     void execute(PDBBuzzerPtr callerBuzzer) override;
@@ -58,9 +58,6 @@ public:
 private:
     // calling handleError sets this to true
     bool wasEnError;
-
-    // the server we are doing the work for
-    PDBServer& workOnMe;
 };
 }
 

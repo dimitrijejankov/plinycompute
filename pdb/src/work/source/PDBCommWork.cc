@@ -21,7 +21,7 @@
 
 #include "PDBCommWork.h"
 #include <iostream>
-
+#include <PDBServer.h>
 
 namespace pdb {
 
@@ -29,8 +29,9 @@ PDBCommunicatorPtr PDBCommWork::getCommunicator() {
     return myCommunicator;
 }
 
-void PDBCommWork::setGuts(PDBCommunicatorPtr toMe) {
-    myCommunicator = toMe;
+void PDBCommWork::setGuts(PDBCommunicatorPtr toMe, pdb::PDBServer *server) {
+    this->myCommunicator = std::move(toMe);
+    this->server = server;
 }
 }
 

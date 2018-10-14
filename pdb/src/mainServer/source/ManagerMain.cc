@@ -94,8 +94,8 @@ int main(int argc, char* argv[]) {
 
     ConfigurationPtr conf = make_shared<Configuration>();
 
-    frontEnd.addFunctionality<pdb::CatalogServer>();
-    frontEnd.addFunctionality<pdb::CatalogClient>(port, "localhost", myLogger);
+    frontEnd.addFunctionality(std::make_shared<pdb::CatalogServer>());
+    frontEnd.addFunctionality(std::make_shared<pdb::CatalogClient>(port, "localhost", myLogger));
 
     std::string errMsg = " ";
     int numNodes = 1;
@@ -107,10 +107,10 @@ int main(int argc, char* argv[]) {
 
     serverListFile = pseudoClusterMode ? "conf/serverlist.test" : "conf/serverlist";
 
-    frontEnd.addFunctionality<pdb::DistributedStorageManagerServer>(myLogger);
-    frontEnd.addFunctionality<pdb::DispatcherServer>(myLogger);
-    frontEnd.addFunctionality<pdb::QuerySchedulerServer>(port, myLogger, conf, pseudoClusterMode, partitionToCoreRatio);
-    frontEnd.addFunctionality<pdb::ClusterManager>();
+    frontEnd.addFunctionality(std::make_shared<pdb::DistributedStorageManagerServer>(myLogger));
+    frontEnd.addFunctionality(std::make_shared<pdb::DispatcherServer>(myLogger));
+    frontEnd.addFunctionality(std::make_shared<pdb::QuerySchedulerServer>(port, myLogger, conf, pseudoClusterMode, partitionToCoreRatio));
+    frontEnd.addFunctionality(std::make_shared<pdb::ClusterManager>());
     frontEnd.startServer(make_shared<GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
 
       // sync me with the cluster

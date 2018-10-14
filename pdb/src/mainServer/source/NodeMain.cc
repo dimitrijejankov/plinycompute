@@ -73,6 +73,9 @@ int main(int argc, char *argv[]) {
   config->catalogFile = fs::path(config->rootDirectory).append("/catalog").string();
   config->maxConnections = 100;
 
+  // init the storage manager, this has to be done before the fork!
+  auto storageManager = std::make_shared<pdb::PDBStorageManagerFrontEnd>(config);
+
   // fork this to split into a frontend and backend
   pid_t pid = fork();
 
@@ -93,10 +96,11 @@ int main(int argc, char *argv[]) {
     pdb::PDBServer frontEnd(pdb::PDBServer::NodeType::FRONTEND, config, logger);
 
     // add the functionaries
-    frontEnd.addFunctionality<pdb::ClusterManager>();
-    frontEnd.addFunctionality<pdb::PDBStorageManagerFrontEnd>();
-    frontEnd.addFunctionality<pdb::CatalogServer>();
-    frontEnd.addFunctionality<pdb::CatalogClient>(config->port, config->address, logger);
+    frontEnd.addFunctionality<pdb::PDBStorageManagerInterface>(storageManager);
+    
+    frontEnd.addFunctionality(std::make_shared<pdb::ClusterManager>());
+    frontEnd.addFunctionality(std::make_shared<pdb::CatalogServer>());
+    frontEnd.addFunctionality(std::make_shared<pdb::CatalogClient>(config->port, config->address, logger));
 
     frontEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
 

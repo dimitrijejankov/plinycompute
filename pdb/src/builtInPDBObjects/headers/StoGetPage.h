@@ -16,44 +16,47 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef SERVER_WORK_CC
-#define SERVER_WORK_CC
+#ifndef CAT_STO_GET_PAGE_REQ_H
+#define CAT_STO_GET_PAGE_REQ_H
 
-#include "ServerWork.h"
+#include "Object.h"
+#include "Handle.h"
+#include "PDBString.h"
+
+// PRELOAD %StoGetPage%
 
 namespace pdb {
 
-ServerWork::ServerWork() {
-    wasEnError = false;
-}
+// encapsulates a request to obtain a type name from the catalog
+class StoGetPage : public Object {
 
-PDBCommWorkPtr ServerWork::clone() {
-    PDBCommWorkPtr returnVal{make_shared<ServerWork>()};
-    return returnVal;
-}
+public:
 
-void ServerWork::handleError() {
-    wasEnError = true;
-    getLogger()->error("ServerWork: got an error");
-}
+  StoGetPage() = default;
 
-PDBBuzzerPtr ServerWork::getLinkedBuzzer() {
-    return std::make_shared<PDBBuzzer>([&](PDBAlarm myAlarm) {});
-}
+  ~StoGetPage() = default;
 
-void ServerWork::execute(PDBBuzzerPtr callerBuzzer) {
+  StoGetPage(const std::string &setName, const  std::string &dbName, uint64_t pageNumber)
+      : setName(setName), dbName(dbName), pageNumber(pageNumber) {}
 
-    // while there is still something to do on this connection
-    getLogger()->trace("ServerWork: about to handle a request");
-    PDBBuzzerPtr myBuzzer{getLinkedBuzzer()};
-    while (!wasEnError && server->handleOneRequest(myBuzzer, getCommunicator())) {
-        getLogger()->trace("ServerWork: just handled another request");
-        myBuzzer = getLinkedBuzzer();
-    }
 
-    getLogger()->trace("ServerWork: done with this server work");
-    callerBuzzer->buzz(PDBAlarm::WorkAllDone);
-}
+  ENABLE_DEEP_COPY
+
+  /**
+   * The name of the set we are requesting the page for
+   */
+  String setName;
+
+  /**
+   * The name of the database we are requesting the page for
+   */
+  String dbName;
+
+  /**
+   * The page number
+   */
+  uint64_t pageNumber;
+};
 }
 
 #endif

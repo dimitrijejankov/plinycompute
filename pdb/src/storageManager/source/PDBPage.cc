@@ -12,13 +12,13 @@
 #ifndef PAGE_C
 #define PAGE_C
 
-#include "PDBStorageManager.h"
+#include "PDBStorageManagerImpl.h"
 #include "PDBPage.h"
 #include "PDBSet.h"
 
 namespace pdb {
 
-PDBPage :: PDBPage (PDBStorageManager &parent) : parent (parent) {}
+PDBPage :: PDBPage (PDBStorageManagerImpl &parent) : parent (parent) {}
 
 void PDBPage :: incRefCount () {
 	refCount++;

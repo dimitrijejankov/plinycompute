@@ -143,10 +143,10 @@ int main(int argc, char *argv[]) {
           std::to_string(localPort) + std::string(".log");
       pdb::PDBLoggerPtr logger = make_shared<pdb::PDBLogger>(backendLoggerFile);
       pdb::PDBServer backEnd(pdb::PDBServer::NodeType::BACKEND, config, logger);
-      backEnd.addFunctionality<pdb::HermesExecutionServer>(shm, backEnd.getWorkerQueue(), logger, conf);
+      backEnd.addFunctionality(std::make_shared<pdb::HermesExecutionServer>(shm, backEnd.getWorkerQueue(), logger, conf));
       bool usePangea = true;
       std::string clientLoggerFile = std::string("client_") + localIp + std::string("_") + std::to_string(localPort) + std::string(".log");
-      backEnd.addFunctionality<pdb::StorageClient>(localPort, "localhost", make_shared<pdb::PDBLogger>(clientLoggerFile), usePangea);
+      backEnd.addFunctionality(std::make_shared<pdb::StorageClient>(localPort, "localhost", make_shared<pdb::PDBLogger>(clientLoggerFile), usePangea));
       backEnd.startServer(nullptr);
 
     } else if (child_pid == -1) {
@@ -157,28 +157,28 @@ int main(int argc, char *argv[]) {
       pdb::PDBServer frontEnd(pdb::PDBServer::NodeType::FRONTEND, config, logger);
 
       // frontEnd.addFunctionality<pdb :: PipelineDummyTestServer>();
-      frontEnd.addFunctionality<pdb::PangeaStorageServer>(shm, frontEnd.getWorkerQueue(), logger, conf, standalone);
+      frontEnd.addFunctionality(std::make_shared<pdb::PangeaStorageServer>(shm, frontEnd.getWorkerQueue(), logger, conf, standalone));
       frontEnd.getFunctionality<pdb::PangeaStorageServer>().startFlushConsumerThreads();
       bool createSet = true;
       if (!standalone) {
         createSet = false;
       }
 
-      frontEnd.addFunctionality<pdb::FrontendQueryTestServer>(standalone, createSet);
+      frontEnd.addFunctionality(std::make_shared<pdb::FrontendQueryTestServer>(standalone, createSet));
 
       if (standalone) {
 
         string nodeType = "manager";
-        frontEnd.addFunctionality<pdb::CatalogServer>();
-        frontEnd.addFunctionality<pdb::ClusterManager>();
-        frontEnd.addFunctionality<pdb::CatalogClient>(localPort, "localhost", logger);
+        frontEnd.addFunctionality(std::make_shared<pdb::CatalogServer>());
+        frontEnd.addFunctionality(std::make_shared<pdb::ClusterManager>());
+        frontEnd.addFunctionality(std::make_shared<pdb::CatalogClient>(localPort, "localhost", logger));
 
       } else {
 
         std::string catalogFile = std::string("CatalogDir_") + localIp + std::string("_") + std::to_string(localPort);
-        frontEnd.addFunctionality<pdb::ClusterManager>();
-        frontEnd.addFunctionality<pdb::CatalogServer>();
-        frontEnd.addFunctionality<pdb::CatalogClient>(localPort, "localhost", logger);
+        frontEnd.addFunctionality(std::make_shared<pdb::ClusterManager>());
+        frontEnd.addFunctionality(std::make_shared<pdb::CatalogServer>());
+        frontEnd.addFunctionality(std::make_shared<pdb::CatalogClient>(localPort, "localhost", logger));
       }
 
       frontEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {

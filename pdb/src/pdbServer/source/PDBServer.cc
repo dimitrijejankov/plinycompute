@@ -229,8 +229,8 @@ pdb::NodeConfigPtr PDBServer::getConfiguration() {
 
 void PDBServer::handleRequest(const PDBCommunicatorPtr &myCommunicator) {
 
-  ServerWorkPtr tempWork{make_shared<ServerWork>(*this)};
-  tempWork->setGuts(myCommunicator);
+  ServerWorkPtr tempWork{make_shared<ServerWork>()};
+  tempWork->setGuts(myCommunicator, this);
   PDBWorkerPtr tempWorker = workers->getWorker();
   tempWorker->execute(tempWork, tempWork->getLinkedBuzzer());
 }
@@ -314,7 +314,7 @@ bool PDBServer::handleOneRequest(PDBBuzzerPtr callerBuzzer, PDBCommunicatorPtr m
     PDBCommWorkPtr tempWork = handlers[requestID]->clone();
 
     logger->trace("PDBServer: setting guts");
-    tempWork->setGuts(myCommunicator);
+    tempWork->setGuts(myCommunicator, this);
     tempWorker->execute(tempWork, callerBuzzer);
     callerBuzzer->wait();
     logger->trace("PDBServer: handler has completed its work");

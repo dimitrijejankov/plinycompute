@@ -69,10 +69,9 @@ public:
   // to create and add a functionality, call this.  The Functionality class must derive from the
   // ServerFunctionality class, which means that it must implement the pure virtual function
   // RegisterHandlers (PDBServer &) that registers any special handlers that the class needs in
-  // order to
-  // perform its required tasks
-  template<class Functionality, class... Args>
-  void addFunctionality(Args &&... args);
+  // order to perform its required tasks, this method adds one server functionality
+  template<class Functionality>
+  void addFunctionality(std::shared_ptr<Functionality> functionality);
 
   // gets access to a particular functionality... this might be called (for example)
   template<class Functionality>

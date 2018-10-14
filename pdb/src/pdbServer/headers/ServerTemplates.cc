@@ -26,8 +26,8 @@
 
 namespace pdb {
 
-template <class Functionality, class... Args>
-void PDBServer::addFunctionality(Args&&... args) {
+template<class Functionality>
+void PDBServer::addFunctionality(std::shared_ptr<Functionality> functionality) {
 
     // first, get the name of this type
     std::string myType = getTypeName<Functionality>();
@@ -36,12 +36,12 @@ void PDBServer::addFunctionality(Args&&... args) {
     if (functionalityNames.count(myType) == 1) {
         std::cerr << "BAD!  You can't add the same functionality twice.\n";
     }
+
+    // add the functionality
     functionalityNames[myType] = functionalities.size();
+    functionalities.push_back(functionality);
 
-    // then create the functionality
-    shared_ptr<ServerFunctionality> whichFunctionality = make_shared<Functionality>(args...);
-    functionalities.push_back(whichFunctionality);
-
+    // register the handlers
     registerHandlersFromLastFunctionality();
 }
 

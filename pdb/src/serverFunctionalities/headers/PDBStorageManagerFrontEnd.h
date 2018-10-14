@@ -7,10 +7,10 @@
 #include <map>
 #include <memory>
 #include "PDBStorageManagerInterface.h"
-#include "PDBStorageManager.h"
+#include "PDBStorageManagerImpl.h"
 #include <queue>
 #include <set>
-#include <PDBStorageManager.h>
+#include <PDBStorageManagerImpl.h>
 
 /**
  * This is the part of the storage manager that is running in the front end.
@@ -46,57 +46,20 @@
  */
 namespace pdb {
 
-class PDBStorageManagerFrontEnd : public PDBStorageManagerInterface {
+class PDBStorageManagerFrontEnd : public PDBStorageManagerImpl {
 
 public:
 
-  PDBStorageManagerFrontEnd() = default;
+  // initializes the the storage manager
+  explicit PDBStorageManagerFrontEnd(pdb::NodeConfigPtr config) : PDBStorageManagerImpl(std::move(config)) {};
 
   ~PDBStorageManagerFrontEnd() override = default;
-
-  // initializes the the storage manager when registered with the server
-  // anything that relies on the methods of the @see pdb::ServerFunctionality
-  void init() override;
-
-  // gets the i^th page in the table whichSet... note that if the page
-  // is currently being used (that is, the page is current buffered) a handle
-  // to that already-buffered page should be returned
-  //
-  // Under the hood, the storage manager first makes sure that it has a file
-  // descriptor for the file storing the page's set.  It then checks to see
-  // if the page already exists.  It it does, we just return it.  If the page
-  // does not already exist, we see if we have ever created the page and
-  // written it back before.  If we have, we go to the disk location for the
-  // page and read it in.  If we have not, we simply get an empty set of
-  // bytes to store the page and return that.
-  PDBPageHandle getPage(PDBSetPtr whichSet, uint64_t i) override;
-
-  // gets a temporary page that will no longer exist (1) after the buffer manager
-  // has been destroyed, or (2) there are no more references to it anywhere in the
-  // program.  Typically such a temporary page will be used as buffer memory.
-  // since it is just a temp page, it is not associated with any particular
-  // set.  On creation, the page is pinned until it is unpinned.
-  //
-  // Under the hood, this simply finds a mini-page to store the page on (kicking
-  // existing data out of the buffer if necessary)
-  PDBPageHandle getPage() override;
-
-  // gets a temporary page that is at least minBytes in size
-  PDBPageHandle getPage(size_t minBytes) override;
-
-  // gets the page size
-  size_t getPageSize() override;
 
   // register the handlers
   void registerHandlers(PDBServer &forMe) override;
 
-private:
-
-  /**
-   * The storage manager
-   */
-  pdb::PDBStorageManagerPtr storageManager;
-
+  // returns the backend
+  PDBStorageManagerInterfacePtr getBackEnd();
 };
 
 }
