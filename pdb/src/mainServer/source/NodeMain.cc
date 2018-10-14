@@ -86,6 +86,9 @@ int main(int argc, char *argv[]) {
     pdb::PDBLoggerPtr logger = make_shared<pdb::PDBLogger>("manager.log");
     pdb::PDBServer backEnd(pdb::PDBServer::NodeType::BACKEND, config, logger);
 
+    // add the functionaries
+    backEnd.addFunctionality<pdb::PDBStorageManagerInterface>(storageManager->getBackEnd());
+
     // start the backend
     backEnd.startServer(nullptr);
   }
@@ -97,7 +100,7 @@ int main(int argc, char *argv[]) {
 
     // add the functionaries
     frontEnd.addFunctionality<pdb::PDBStorageManagerInterface>(storageManager);
-    
+
     frontEnd.addFunctionality(std::make_shared<pdb::ClusterManager>());
     frontEnd.addFunctionality(std::make_shared<pdb::CatalogServer>());
     frontEnd.addFunctionality(std::make_shared<pdb::CatalogClient>(config->port, config->address, logger));

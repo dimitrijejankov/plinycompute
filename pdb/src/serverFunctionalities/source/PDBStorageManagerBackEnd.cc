@@ -4,6 +4,9 @@
 
 #include <PDBStorageManagerBackEnd.h>
 
+pdb::PDBStorageManagerBackEnd::PDBStorageManagerBackEnd(const PDBSharedMemory &sharedMemory)
+    : sharedMemory(sharedMemory) {}
+
 pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd::getPage(pdb::PDBSetPtr whichSet, uint64_t i) {
   return pdb::PDBPageHandle();
 }

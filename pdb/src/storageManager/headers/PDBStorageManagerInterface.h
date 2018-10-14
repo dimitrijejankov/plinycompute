@@ -10,9 +10,6 @@
 #include "ServerFunctionality.h"
 
 
-class PDBStorageManagerInterface;
-typedef shared_ptr<PDBStorageManagerInterface> PDBStorageManagerInterfacePtr;
-
 /**
  * NOTE that this is an abstract class.  There are two instances of this class on any given node: one
  * that runs on the front end process, and one that runs on the back end process.  In general, the one
@@ -67,6 +64,9 @@ typedef shared_ptr<PDBStorageManagerInterface> PDBStorageManagerInterfacePtr;
  */
 
 namespace pdb {
+
+class PDBStorageManagerInterface;
+typedef shared_ptr<PDBStorageManagerInterface> PDBStorageManagerInterfacePtr;
 
 class PDBStorageManagerInterface : public ServerFunctionality {
 

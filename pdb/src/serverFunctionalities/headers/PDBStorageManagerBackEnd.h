@@ -5,8 +5,8 @@
 
 #include <PDBCommunicator.h>
 #include <PDBServer.h>
+#include <PDBSharedMemory.h>
 #include "PDBStorageManagerInterface.h"
-
 
 namespace pdb {
 
@@ -35,6 +35,8 @@ class PDBStorageManagerBackEnd : public PDBStorageManagerInterface {
 
 public:
 
+  PDBStorageManagerBackEnd(const PDBSharedMemory &sharedMemory);
+
   ~PDBStorageManagerBackEnd() override = default;
 
   PDBPageHandle getPage(PDBSetPtr whichSet, uint64_t i) override;
@@ -47,7 +49,7 @@ public:
 
   void registerHandlers(PDBServer &forMe) override;
 
- private:
+private:
 
   void freeAnonymousPage(PDBPagePtr me) override;
 
@@ -58,6 +60,10 @@ public:
   void unpin(PDBPagePtr me) override;
 
   void repin(PDBPagePtr me) override;
+
+  // the shared memory with the frontend
+  PDBSharedMemory sharedMemory {};
+
 };
 
 }

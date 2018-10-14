@@ -2,6 +2,7 @@
 
 #include <PagedRequestHandler.h>
 #include <StoGetPage.h>
+#include <PDBStorageManagerBackEnd.h>
 
 void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
   forMe.registerHandler(
@@ -15,6 +16,8 @@ void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
       }));
 }
 
-PDBStorageManagerInterfacePtr pdb::PDBStorageManagerFrontEnd::getBackEnd() {
-  return PDBStorageManagerInterfacePtr();
+pdb::PDBStorageManagerInterfacePtr pdb::PDBStorageManagerFrontEnd::getBackEnd() {
+
+  // init the backend storage manager with the shared memory
+  return std::make_shared<PDBStorageManagerBackEnd>(sharedMemory);
 }
