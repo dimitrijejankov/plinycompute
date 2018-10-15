@@ -8,6 +8,7 @@
 #include <SimpleRequestResult.h>
 #include <StoGetPageResult.h>
 #include <StoGetAnonymousPageRequest.h>
+#include <StoReturnPageRequest.h>
 
 pdb::PDBStorageManagerBackEnd::PDBStorageManagerBackEnd(const PDBSharedMemory &sharedMemory)
     : sharedMemory(sharedMemory) {
@@ -83,10 +84,14 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd::getPage(size_t minBytes) {
           returnVal->pinned = true;
           returnVal->dirty = result->isDirty;
           returnVal->pageNum = result->pageNum;
-          returnVal->whichSet = std::make_shared<PDBSet>(result->setName, result->dbName);
           returnVal->location.startPos = result->startPos;
           returnVal->location.numBytes = result->numBytes;
           returnVal->bytes = (char*) this->sharedMemory.memory + result->offset;
+
+          // this an anonymous page if it is not set the database and set name
+          if(!result->isAnonymous) {
+            returnVal->whichSet = std::make_shared<PDBSet>(result->setName, result->dbName);
+          }
 
           return make_shared <PDBPageHandleBase> (returnVal);
         }
@@ -108,10 +113,39 @@ size_t pdb::PDBStorageManagerBackEnd::getPageSize() {
 
 void pdb::PDBStorageManagerBackEnd::freeAnonymousPage(pdb::PDBPagePtr me) {
 
+
 }
 
 void pdb::PDBStorageManagerBackEnd::downToZeroReferences(pdb::PDBPagePtr me) {
 
+  // grab the address of the frontend
+  auto port = getConfiguration()->port;
+  auto address = getConfiguration()->address;
+
+  // somewhere to put the message.
+  std::string errMsg;
+
+  // make a request
+  auto res = heapRequest<StoReturnPageRequest, SimpleRequestResult, bool>(
+      myLogger, port, address, false, 1024,
+      [&](Handle<SimpleRequestResult> result) {
+
+        // return the result
+        if (result != nullptr && result->getRes().first) {
+          return true;
+        }
+
+        // set the error since we failed
+        errMsg = "Could not return the requested page";
+
+        return false;
+      },
+      me->whichSet->getSetName(), me->whichSet->getDBName(), me->pageNum);
+
+
+  if(!res) {
+    std::cout << "OK haven't figured out what to do here...";
+  }
 }
 
 void pdb::PDBStorageManagerBackEnd::freezeSize(pdb::PDBPagePtr me, size_t numBytes) {
@@ -129,3 +163,5 @@ void pdb::PDBStorageManagerBackEnd::repin(pdb::PDBPagePtr me) {
 void pdb::PDBStorageManagerBackEnd::registerHandlers(pdb::PDBServer &forMe) {
 
 }
+
+
