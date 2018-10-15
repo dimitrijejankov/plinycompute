@@ -23,20 +23,20 @@
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %StoGetPage%
+// PRELOAD %StoGetPageRequest%
 
 namespace pdb {
 
 // encapsulates a request to obtain a type name from the catalog
-class StoGetPage : public Object {
+class StoGetPageRequest : public Object {
 
 public:
 
-  StoGetPage() = default;
+  StoGetPageRequest() = default;
 
-  ~StoGetPage() = default;
+  ~StoGetPageRequest() = default;
 
-  StoGetPage(const std::string &setName, const  std::string &dbName, uint64_t pageNumber)
+  StoGetPageRequest(const std::string &setName, const  std::string &dbName, uint64_t pageNumber)
       : setName(setName), dbName(dbName), pageNumber(pageNumber) {}
 
 
@@ -55,7 +55,7 @@ public:
   /**
    * The page number
    */
-  uint64_t pageNumber;
+  uint64_t pageNumber = 0;
 };
 }
 

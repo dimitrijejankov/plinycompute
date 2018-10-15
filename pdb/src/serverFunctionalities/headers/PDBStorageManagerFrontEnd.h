@@ -55,11 +55,22 @@ public:
 
   ~PDBStorageManagerFrontEnd() override = default;
 
+  // init
+  void init() override;
+
   // register the handlers
   void registerHandlers(PDBServer &forMe) override;
 
+  // sends a page to the backend via the communicator
+  bool sendPageToBackend(PDBPageHandle page, PDBCommunicatorPtr sendUsingMe, std::string &error);
+
   // returns the backend
   PDBStorageManagerInterfacePtr getBackEnd();
+
+private:
+
+  // Logger to debug information
+  PDBLoggerPtr logger;
 };
 
 }

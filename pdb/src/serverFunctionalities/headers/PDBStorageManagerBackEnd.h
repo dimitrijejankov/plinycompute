@@ -35,7 +35,7 @@ class PDBStorageManagerBackEnd : public PDBStorageManagerInterface {
 
 public:
 
-  PDBStorageManagerBackEnd(const PDBSharedMemory &sharedMemory);
+  explicit PDBStorageManagerBackEnd(const PDBSharedMemory &sharedMemory);
 
   ~PDBStorageManagerBackEnd() override = default;
 
@@ -64,6 +64,8 @@ private:
   // the shared memory with the frontend
   PDBSharedMemory sharedMemory {};
 
+  // Logger to debug information
+  PDBLoggerPtr myLogger;
 };
 
 }

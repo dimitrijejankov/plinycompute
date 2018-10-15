@@ -49,7 +49,7 @@ template <class Functionality>
 Functionality& PDBServer::getFunctionality() {
 
     // first, figure out which index we are
-    static int whichIndex = -1;
+    static int64_t whichIndex = -1;
     if (whichIndex == -1) {
         std::string myType = getTypeName<Functionality>();
         whichIndex = functionalityNames[myType];
@@ -58,6 +58,21 @@ Functionality& PDBServer::getFunctionality() {
     // and now, return the functionality
     return *((Functionality*)functionalities[whichIndex].get());
 }
+
+template<class Functionality>
+std::shared_ptr<Functionality> PDBServer::getFunctionalityPtr() {
+
+    // first, figure out which index we are
+    static int64_t whichIndex = -1;
+    if (whichIndex == -1) {
+        std::string myType = getTypeName<Functionality>();
+        whichIndex = functionalityNames[myType];
+    }
+
+    // and now, return the functionality
+    return std::move(std::static_pointer_cast<Functionality>(functionalities[whichIndex]));
+}
+
 }
 
 #endif

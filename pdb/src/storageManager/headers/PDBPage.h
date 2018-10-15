@@ -114,6 +114,7 @@ class PDBPage {
 
   friend class PDBPageHandleBase;
   friend class PDBStorageManagerImpl;
+  friend class PDBStorageManagerFrontEnd;
 };
 
 }

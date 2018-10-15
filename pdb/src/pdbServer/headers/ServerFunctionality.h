@@ -44,6 +44,12 @@ public:
         return parent->getFunctionality<Functionality>();
     }
 
+    // access a particular functionality on the attached server as a shared pointer
+    template <class Functionality>
+    std::shared_ptr<Functionality> getFunctionalityPtr() {
+          return std::move(parent->getFunctionalityPtr<Functionality>());
+    }
+
     // remember the server this is attached to
     void recordServer(PDBServer& recordMe) {
         parent = &recordMe;

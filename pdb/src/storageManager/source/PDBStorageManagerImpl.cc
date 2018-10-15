@@ -61,8 +61,8 @@ PDBStorageManagerImpl::PDBStorageManagerImpl(pdb::NodeConfigPtr config) {
     }
 
     // grab the memory size and he page size
-    auto memorySize = config->sharedMemSize;
-    auto pageSize = config->pageSize;
+    auto memorySize = config->sharedMemSize * 1024 * 1024;
+    auto pageSize = config->pageSize * 1024 * 1024;
 
     // just a quick sanity check
     if(pageSize == 0 || memorySize == 0) {

@@ -77,6 +77,10 @@ public:
   template<class Functionality>
   Functionality &getFunctionality();
 
+  // gets access to a particular functionality as a shared ptr... this might be called (for example)
+  template<class Functionality>
+  std::shared_ptr<Functionality> getFunctionalityPtr();
+
   // asks the server to handle a particular request coming over the wire with the particular work
   // type
   void registerHandler(int16_t typeID, const PDBCommWorkPtr &handledBy);

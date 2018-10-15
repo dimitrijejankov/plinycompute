@@ -90,6 +90,9 @@ class PDBPageHandleBase {
  private:
 
   PDBPagePtr page;
+
+  friend class PDBStorageManagerImpl;
+  friend class PDBStorageManagerFrontEnd;
 };
 
 }

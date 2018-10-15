@@ -90,7 +90,22 @@ int main(int argc, char *argv[]) {
     backEnd.addFunctionality<pdb::PDBStorageManagerInterface>(storageManager->getBackEnd());
 
     // start the backend
-    backEnd.startServer(nullptr);
+    backEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
+
+      // sync me with the cluster
+      sleep(60);
+
+      std::cout << "asd" << std::endl;
+
+      backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
+
+      // log that the server has started
+      std::cout << "Distributed storage manager server started!\n";
+
+      // buzz that we are done
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone);
+    }));
+
   }
   else {
 
