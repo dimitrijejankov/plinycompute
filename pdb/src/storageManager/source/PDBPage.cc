@@ -18,7 +18,7 @@
 
 namespace pdb {
 
-PDBPage :: PDBPage (PDBStorageManagerImpl &parent) : parent (parent) {}
+PDBPage :: PDBPage (PDBStorageManagerInterface &parent) : parent (parent) {}
 
 void PDBPage :: incRefCount () {
 	refCount++;

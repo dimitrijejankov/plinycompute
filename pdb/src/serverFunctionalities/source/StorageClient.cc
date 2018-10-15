@@ -50,7 +50,7 @@ bool StorageClient::shutDownServer(std::string& errMsg) {
 }
 
 bool StorageClient::flushData(std::string& errMsg) {
-    return simpleRequest<StorageCleanup, SimpleRequestResult, bool>(
+    return heapRequest<StorageCleanup, SimpleRequestResult, bool>(
         myLogger, port, address, false, 1024, [&](Handle<SimpleRequestResult> result) {
             if (result != nullptr) {
                 if (!result->getRes().first) {
@@ -72,7 +72,7 @@ bool StorageClient::createDatabase(std::string databaseName, std::string& errMsg
     if (usePangea == false) {
         return myHelper.createDatabase(databaseName, errMsg);
     } else {
-        return simpleRequest<StorageAddDatabase, SimpleRequestResult, bool>(
+        return heapRequest<StorageAddDatabase, SimpleRequestResult, bool>(
             myLogger,
             port,
             address,

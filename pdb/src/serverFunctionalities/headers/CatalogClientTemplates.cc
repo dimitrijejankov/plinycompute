@@ -36,7 +36,7 @@ bool CatalogClient::createSet(std::string databaseName, std::string setName,
     return -1;
   }
 
-  return simpleRequest<CatCreateSetRequest, SimpleRequestResult, bool>(
+  return heapRequest<CatCreateSetRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
         if (result != nullptr) {

@@ -38,8 +38,6 @@ public:
   StoGetPageResult() = default;
 
   StoGetPageResult(const uint64_t &offset,
-                   bool pinned,
-                   bool dirty,
                    const uint64_t &pageNum,
                    bool isAnonymous,
                    bool sizeFrozen,
@@ -48,8 +46,6 @@ public:
                    const std::string &setName,
                    const std::string &dbName)
       : offset(offset),
-        pinned(pinned),
-        dirty(dirty),
         pageNum(pageNum),
         isAnonymous(isAnonymous),
         sizeFrozen(sizeFrozen),
@@ -65,12 +61,6 @@ public:
   // a pointer to the raw bytes
   uint64_t offset;
 
-  // is the page pinned
-  bool pinned = false;
-
-  // is the page dirty
-  bool dirty = false;
-
   // the page number
   uint64_t pageNum = 0;
 
@@ -79,6 +69,9 @@ public:
 
   // is the size frozen
   bool sizeFrozen = false;
+
+  // is this page dirty or not
+  bool isDirty = false;
 
   // the start position in the file
   uint64_t startPos = 0;

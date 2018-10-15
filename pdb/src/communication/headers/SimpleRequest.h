@@ -44,7 +44,7 @@
 namespace pdb {
 
 template <class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
-ReturnType simpleRequest(PDBLoggerPtr myLogger,
+ReturnType heapRequest(PDBLoggerPtr myLogger,
                          int port,
                          std::string address,
                          ReturnType onErr,

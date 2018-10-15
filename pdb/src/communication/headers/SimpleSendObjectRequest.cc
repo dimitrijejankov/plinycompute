@@ -93,8 +93,8 @@ ReturnType simpleSendObjectRequest(PDBLoggerPtr myLogger,
         // get the response and process it
         size_t objectSize = temp.getSizeOfNextObject();
         if (objectSize == 0) {
-            myLogger->error("simpleRequest: not able to get next object size");
-            std::cout << "simpleRequest: not able to get next object size" << std::endl;
+            myLogger->error("heapRequest: not able to get next object size");
+            std::cout << "heapRequest: not able to get next object size" << std::endl;
             if (retries < MAX_RETRIES) {
                 retries++;
                 continue;
@@ -114,7 +114,7 @@ ReturnType simpleSendObjectRequest(PDBLoggerPtr myLogger,
             Handle<ResponseType> result = temp.getNextObject<ResponseType>(memory, success, errMsg);
             if (!success) {
                 myLogger->error(errMsg);
-                myLogger->error("simpleRequest: not able to get next object over the wire.\n");
+                myLogger->error("heapRequest: not able to get next object over the wire.\n");
                 // JiaNote: we need free memory here!!!
                 free(memory);
                 if (retries < MAX_RETRIES) {

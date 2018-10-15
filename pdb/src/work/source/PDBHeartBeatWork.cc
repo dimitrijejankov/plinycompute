@@ -60,7 +60,7 @@ void PDBHeartBeatWork::stop() {
 
 bool PDBHeartBeatWork::sendHeartBeat(const std::string &address, int32_t port) {
 
-    return pdb::simpleRequest<pdb::CatSetObjectTypeRequest, pdb::SimpleRequestResult, bool>(
+    return pdb::heapRequest<pdb::CatSetObjectTypeRequest, pdb::SimpleRequestResult, bool>(
         logger, port, address, false, 1024,
         [&](pdb::Handle<pdb::SimpleRequestResult> result) {
 

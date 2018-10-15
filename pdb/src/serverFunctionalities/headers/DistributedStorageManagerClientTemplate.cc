@@ -42,7 +42,7 @@ namespace pdb {
         std::string typeName = getTypeName<DataType>();
         int16_t typeId = getTypeID<DataType>();
         PDB_COUT << "typeName for set to create =" << typeName << ", typeId=" << typeId << std::endl;
-        return simpleRequest<DistributedStorageAddSet, SimpleRequestResult, bool>(
+        return heapRequest<DistributedStorageAddSet, SimpleRequestResult, bool>(
             logger,
             port,
             address,

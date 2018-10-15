@@ -83,6 +83,7 @@ bool PDBCommunicator::sendObject(Handle<ObjType>& sendMe, std::string& errMsg) {
             exit(1);
         }
     }
+
     if (doTheWrite((char*)record, ((char*)record) + record->numBytes())) {
         PDB_COUT << "recType=" << recType << std::endl;
         errMsg = "PDBCommunicator: not able to send the object size";

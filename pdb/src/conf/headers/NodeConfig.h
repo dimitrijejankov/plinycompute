@@ -59,6 +59,11 @@ struct NodeConfig {
   int32_t maxConnections;
 
   /**
+   * The maximum number of retries
+   */
+  uint32_t maxRetries;
+
+  /**
    * The root directory of the node
    */
   std::string rootDirectory;
@@ -72,6 +77,7 @@ struct NodeConfig {
    * The catalog file
    */
   std::string catalogFile;
+
 };
 
 }

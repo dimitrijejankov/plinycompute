@@ -34,7 +34,7 @@ struct PDBPageInfo {
 };
 
 // forward definition to handle circular dependencies
-class PDBStorageManagerImpl;
+class PDBStorageManagerInterface;
 
 class PDBPage {
 
@@ -73,7 +73,7 @@ class PDBPage {
   void repin ();
 
   // create a page
-  explicit PDBPage (PDBStorageManagerImpl &);
+  explicit PDBPage (PDBStorageManagerInterface &);
 
  private:
 
@@ -110,11 +110,12 @@ class PDBPage {
   PDBPageWeakPtr me;
 
   // pointer to the parent buffer manager
-  PDBStorageManagerImpl& parent;
+  PDBStorageManagerInterface& parent;
 
   friend class PDBPageHandleBase;
   friend class PDBStorageManagerImpl;
   friend class PDBStorageManagerFrontEnd;
+  friend class PDBStorageManagerBackEnd;
 };
 
 }

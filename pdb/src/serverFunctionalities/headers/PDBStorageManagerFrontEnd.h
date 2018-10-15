@@ -71,6 +71,12 @@ private:
 
   // Logger to debug information
   PDBLoggerPtr logger;
+
+  // this keeps track of what pages we have sent to the backend
+  // in the case that the backend fails this is simply cleared
+  // when a page is released by the backend the entry is removed
+  map <std::pair<PDBSetPtr, size_t>, PDBPageHandle, PDBPageCompare> sentPages;
+
 };
 
 }

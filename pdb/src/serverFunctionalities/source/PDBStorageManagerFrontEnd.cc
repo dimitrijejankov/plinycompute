@@ -12,7 +12,8 @@
 void pdb::PDBStorageManagerFrontEnd::init() {
 
   // init the logger
-  logger = make_shared<pdb::PDBLogger>(boost::filesystem::path(getConfiguration()->rootDirectory) / "PDBStorageManagerFrontend.log");
+  //logger = make_shared<pdb::PDBLogger>((boost::filesystem::path(getConfiguration()->rootDirectory) / "PDBStorageManagerFrontend.log").string());
+  logger = make_shared<pdb::PDBLogger>("PDBStorageManagerFrontend.log");
 }
 
 void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
@@ -31,8 +32,7 @@ void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
       }));
 
   forMe.registerHandler(StoGetAnonymousPageRequest_TYPEID,
-      make_shared<pdb::PagedRequestHandler<StoGetAnonymousPageRequest>>([&](Handle<StoGetAnonymousPageRequest> request,
-                                                                            PDBCommunicatorPtr sendUsingMe) {
+      make_shared<pdb::PagedRequestHandler<StoGetAnonymousPageRequest>>([&](Handle<StoGetAnonymousPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
         // grab an anonymous page
         auto page = getPage(request->size);
@@ -47,25 +47,36 @@ void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
 
 bool pdb::PDBStorageManagerFrontEnd::sendPageToBackend(pdb::PDBPageHandle page, pdb::PDBCommunicatorPtr sendUsingMe, std::string &error) {
 
-  auto config = getConfiguration();
+  // figure out the page parameters
+  auto offset = (uint64_t) page->page->bytes - (uint64_t) sharedMemory.memory;
+  auto pageNumber = page->whichPage();
+  auto isAnonymous = page->page->isAnonymous();
+  auto sizeFrozen = page->page->sizeIsFrozen();
+  auto startPos = page->page->location.startPos;
+  auto numBytes = page->page->location.numBytes;
 
-  return pagedRequest<StoGetPageResult, SimpleRequestResult, bool>(
-      config->address, config->port, getFunctionalityPtr<PDBStorageManagerInterface>(), logger, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
-        if (result != nullptr) {
+  // grab the buffer page
+  auto bufferPage = getPage(1024);
+  const UseTemporaryAllocationBlock tempBlock{bufferPage->getBytes(), 1024};
 
-          if (!result->getRes().first) {
+  std::string setName = isAnonymous ? "" : page->getSet()->getSetName();
+  std::string dbName = isAnonymous ? "" : page->getSet()->getDBName();
 
-            // log the error
-            error = "Error sending page to backend : " + result->getRes().second;
-            logger->error(error);
+  // create the object
+  Handle<StoGetPageResult> objectToSend = pdb::makeObject<StoGetPageResult>(offset, pageNumber, isAnonymous, sizeFrozen, startPos, numBytes, setName, dbName);
 
-            // return false
-            return false;
-          }
-        }
-        return true;
-      }, 0, false, false, 0, false, false, 0, 0, "", "");
+  // send the thing
+  bool res = sendUsingMe->sendObject(objectToSend, error);
+
+  // did we succeed
+  if(res) {
+
+    // mark that we have sent the page, store a handle so that we keep the reference count
+    sentPages[std::make_pair(page->getSet(), pageNumber)] = page;
+  }
+
+  // return the result
+  return res;
 }
 
 pdb::PDBStorageManagerInterfacePtr pdb::PDBStorageManagerFrontEnd::getBackEnd() {

@@ -127,7 +127,7 @@ bool ClusterManager::syncCluster(std::string &error) {
   // figure out the type of the node
   std::string type = getConfiguration()->isManager ? "manager" : "worker";
 
-  return simpleRequest<CluSyncRequest, SimpleRequestResult, bool>(
+  return heapRequest<CluSyncRequest, SimpleRequestResult, bool>(
       logger, conf->managerPort, conf->managerAddress, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
         if (result != nullptr) {

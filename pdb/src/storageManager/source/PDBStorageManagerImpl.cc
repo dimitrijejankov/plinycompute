@@ -257,7 +257,7 @@ void PDBStorageManagerImpl :: initialize (std :: string tempFileIn, size_t pageS
 
 	// now, allocate the RAM
 	char *mapped;
-    mapped = (char *) mmap (nullptr, sharedMemory.pageSize * sharedMemory.numPages, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+    mapped = (char *) mmap (nullptr, sharedMemory.pageSize * sharedMemory.numPages, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
     // make sure that it actually worked
     if (mapped == MAP_FAILED) {

@@ -6,6 +6,8 @@
 #include <SimpleRequest.h>
 #include <StoGetPageRequest.h>
 #include <SimpleRequestResult.h>
+#include <StoGetPageResult.h>
+#include <StoGetAnonymousPageRequest.h>
 
 pdb::PDBStorageManagerBackEnd::PDBStorageManagerBackEnd(const PDBSharedMemory &sharedMemory)
     : sharedMemory(sharedMemory) {
@@ -24,39 +26,84 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd::getPage(pdb::PDBSetPtr whichSe
   std::string errMsg;
 
   // make a request
-  auto res = simpleRequest<StoGetPageRequest, SimpleRequestResult, bool>(
-      myLogger, port, address, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
+  auto res = heapRequest<StoGetPageRequest, StoGetPageResult, pdb::PDBPageHandle>(
+      myLogger, port, address, nullptr, 1024,
+      [&](Handle<StoGetPageResult> result) {
+
         if (result != nullptr) {
-          if (!result->getRes().first) {
-            errMsg = "Error registering node metadata: " + result->getRes().second;
-            myLogger->error("Error registering node metadata: " + result->getRes().second);
-            return false;
-          }
-          return true;
+
+          PDBPagePtr returnVal = make_shared <PDBPage> (*this);
+          returnVal->setMe(returnVal);
+          returnVal->isAnon = result->isAnonymous;
+          returnVal->pinned = true;
+          returnVal->dirty = result->isDirty;
+          returnVal->pageNum = result->pageNum;
+          returnVal->whichSet = std::make_shared<PDBSet>(result->setName, result->dbName);
+          returnVal->location.startPos = result->startPos;
+          returnVal->location.numBytes = result->numBytes;
+          returnVal->bytes = (void*)(((uint64_t) this->sharedMemory.memory) + (uint64_t) result->offset);
+
+          return make_shared <PDBPageHandleBase> (returnVal);
         }
-        errMsg = "Error registering node metadata in the catalog";
-        return false;
+
+        // set the error since we failed
+        errMsg = "Could not get the requested page";
+
+        return (pdb::PDBPageHandle) nullptr;
       },
       whichSet->getSetName(), whichSet->getDBName(), i);
 
-  return pdb::PDBPageHandle();
+  // return the page
+  return std::move(res);
 }
 
 pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd::getPage() {
-  return pdb::PDBPageHandle();
+  return getPage(getConfiguration()->pageSize);
 }
 
 pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd::getPage(size_t minBytes) {
-  return pdb::PDBPageHandle();
+
+  // grab the address of the frontend
+  auto port = getConfiguration()->port;
+  auto address = getConfiguration()->address;
+
+  // somewhere to put the message.
+  std::string errMsg;
+
+  // make a request
+  auto res = heapRequest<StoGetAnonymousPageRequest, StoGetPageResult, pdb::PDBPageHandle>(
+      myLogger, port, address, nullptr, 1024,
+      [&](Handle<StoGetPageResult> result) {
+
+        if (result != nullptr) {
+
+          PDBPagePtr returnVal = make_shared <PDBPage> (*this);
+          returnVal->setMe(returnVal);
+          returnVal->isAnon = result->isAnonymous;
+          returnVal->pinned = true;
+          returnVal->dirty = result->isDirty;
+          returnVal->pageNum = result->pageNum;
+          returnVal->whichSet = std::make_shared<PDBSet>(result->setName, result->dbName);
+          returnVal->location.startPos = result->startPos;
+          returnVal->location.numBytes = result->numBytes;
+          returnVal->bytes = (char*) this->sharedMemory.memory + result->offset;
+
+          return make_shared <PDBPageHandleBase> (returnVal);
+        }
+
+        // set the error since we failed
+        errMsg = "Could not get the requested page";
+
+        return (pdb::PDBPageHandle) nullptr;
+      },
+      minBytes);
+
+  // return the page
+  return std::move(res);
 }
 
 size_t pdb::PDBStorageManagerBackEnd::getPageSize() {
-  return 0;
-}
-
-void pdb::PDBStorageManagerBackEnd::registerHandlers(pdb::PDBServer &forMe) {
-
+  return getConfiguration()->pageSize;
 }
 
 void pdb::PDBStorageManagerBackEnd::freeAnonymousPage(pdb::PDBPagePtr me) {
@@ -76,5 +123,9 @@ void pdb::PDBStorageManagerBackEnd::unpin(pdb::PDBPagePtr me) {
 }
 
 void pdb::PDBStorageManagerBackEnd::repin(pdb::PDBPagePtr me) {
+
+}
+
+void pdb::PDBStorageManagerBackEnd::registerHandlers(pdb::PDBServer &forMe) {
 
 }

@@ -24,9 +24,6 @@
 
 namespace pdb {
 
-#ifndef MAX_RETRIES
-#define MAX_RETRIES 5
-#endif
 #define BLOCK_HEADER_SIZE 20
 
 /**
@@ -48,14 +45,14 @@ namespace pdb {
  */
 template <class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
 ReturnType pagedRequest(const std::string &address, int port, const PDBStorageManagerInterfacePtr &storage, const PDBLoggerPtr &logger, ReturnType onErr,
-                        size_t bytesForRequest, function<ReturnType(Handle<ResponseType>)> processResponse,
+                        const uint32_t maxRetries, size_t bytesForRequest, function<ReturnType(Handle<ResponseType>)> processResponse,
                         RequestTypeParams&&... args) {
 
   // then number of retries we do
   int numRetries = 0;
 
   // loop until we succeed or run out retries
-  while (numRetries <= MAX_RETRIES) {
+  while (numRetries <= maxRetries) {
 
     PDBCommunicator temp;
     string errMsg;
@@ -66,7 +63,7 @@ ReturnType pagedRequest(const std::string &address, int port, const PDBStorageMa
 
       // log the error
       logger->error(errMsg);
-      logger->error("simpleRequest: not able to connect to server.\n");
+      logger->error("heapRequest: not able to connect to server.\n");
 
       // return onErr;
       std::cout << "ERROR: can not connect to remote server with port=" << port << " and address=" << address << std::endl;
@@ -89,10 +86,10 @@ ReturnType pagedRequest(const std::string &address, int port, const PDBStorageMa
 
       // ok we failed log that
       logger->error(errMsg);
-      logger->error("simpleRequest: not able to send request to server.\n");
+      logger->error("heapRequest: not able to send request to server.\n");
 
       // did we run out of retries?
-      if (numRetries < MAX_RETRIES) {
+      if (numRetries < maxRetries) {
 
         // no we haven't
         numRetries++;
@@ -109,7 +106,7 @@ ReturnType pagedRequest(const std::string &address, int port, const PDBStorageMa
     ReturnType finalResult;
     size_t objectSize = temp.getSizeOfNextObject();
     if (objectSize == 0) {
-      if (numRetries < MAX_RETRIES) {
+      if (numRetries < maxRetries) {
         numRetries++;
         continue;
       } else {
@@ -123,10 +120,111 @@ ReturnType pagedRequest(const std::string &address, int port, const PDBStorageMa
       if (!success) {
 
         logger->error(errMsg);
-        logger->error("simpleRequest: not able to get next object over the wire.\n");
+        logger->error("heapRequest: not able to get next object over the wire.\n");
 
         // did we run out of retries?
-        if (numRetries < MAX_RETRIES) {
+        if (numRetries < maxRetries) {
+
+          // no we haven't
+          numRetries++;
+          continue;
+
+        } else {
+
+          // return error
+          return onErr;
+        }
+      }
+
+      // process the response and grab the response
+      finalResult = processResponse(response);
+    }
+
+    // return the result
+    return finalResult;
+  }
+
+  return onErr;
+}
+
+/**
+ * This templated function makes it easy to write a simple network client that asks a request,
+ * then gets a result.
+ * @tparam RequestType - this is the type of the object we are sending
+ * @tparam ResponseType - the type of the response we are expecting from the other side
+ * @tparam ReturnType - the return type
+ * @tparam RequestTypeParams - the parameters of the request
+ * @param logger - The logger we write error messages to
+ * @param communicator - communicator to where we want to send the message
+ * @param storage - the storage manager
+ * @param onErr - the value to return if there is an error sending/receiving data
+ * @param bytesForRequest - the number of bytes to give to the allocator used to build the request
+ * @param processResponse - the function used to process the response to the request
+ * @param args - the arguments to give to the constructor of the request
+ * @return whatever the return ends up being
+ */
+template <class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
+ReturnType pagedRequest(PDBCommunicatorPtr &communicator, const PDBStorageManagerInterfacePtr &storage, const PDBLoggerPtr &logger, ReturnType onErr,
+                        const uint32_t maxRetries, size_t bytesForRequest, function<ReturnType(Handle<ResponseType>)> processResponse,
+                        RequestTypeParams&&... args) {
+
+  // then number of retries we do
+  int numRetries = 0;
+
+  // loop until we succeed or run out retries
+  while (numRetries <= maxRetries) {
+
+    string errMsg;
+    bool success = false;
+
+    // grab an anonymous page
+    auto page = storage->getPage(bytesForRequest);
+    const UseTemporaryAllocationBlock tempBlock{page->getBytes(), bytesForRequest};
+
+    // make a request
+    Handle<RequestType> request = makeObject<RequestType>(args...);
+    if (!communicator->sendObject(request, errMsg)) {
+
+      // ok we failed log that
+      logger->error(errMsg);
+      logger->error("heapRequest: not able to send request to server.\n");
+
+      // did we run out of retries?
+      if (numRetries < maxRetries) {
+
+        // no we haven't
+        numRetries++;
+        continue;
+
+      } else {
+
+        // return error
+        return onErr;
+      }
+    }
+
+    // get the response and process it
+    ReturnType finalResult;
+    size_t objectSize = communicator->getSizeOfNextObject();
+    if (objectSize == 0) {
+      if (numRetries < maxRetries) {
+        numRetries++;
+        continue;
+      } else {
+        return onErr;
+      }
+    }
+
+    page = storage->getPage(objectSize);
+    {
+      Handle<ResponseType> response = communicator->getNextObject<ResponseType>(page->getBytes(), success, errMsg);
+      if (!success) {
+
+        logger->error(errMsg);
+        logger->error("heapRequest: not able to get next object over the wire.\n");
+
+        // did we run out of retries?
+        if (numRetries < maxRetries) {
 
           // no we haven't
           numRetries++;

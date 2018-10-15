@@ -36,7 +36,7 @@ using std::string;
 namespace pdb {
 
 template <class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
-ReturnType simpleRequest(PDBLoggerPtr myLogger,
+ReturnType heapRequest(PDBLoggerPtr myLogger,
                          int port,
                          std::string address,
                          ReturnType onErr,
@@ -53,7 +53,7 @@ ReturnType simpleRequest(PDBLoggerPtr myLogger,
 
         if (temp.connectToInternetServer(myLogger, port, address, errMsg)) {
             myLogger->error(errMsg);
-            myLogger->error("simpleRequest: not able to connect to server.\n");
+            myLogger->error("heapRequest: not able to connect to server.\n");
             // return onErr;
             std::cout << "ERROR: can not connect to remote server with port=" << port
                       << " and address=" << address << std::endl;
@@ -75,7 +75,7 @@ ReturnType simpleRequest(PDBLoggerPtr myLogger,
         PDB_COUT << "to send object" << std::endl;
         if (!temp.sendObject(request, errMsg)) {
             myLogger->error(errMsg);
-            myLogger->error("simpleRequest: not able to send request to server.\n");
+            myLogger->error("heapRequest: not able to send request to server.\n");
             if (numRetries < MAX_RETRIES) {
                 numRetries++;
                 continue;
@@ -97,7 +97,7 @@ ReturnType simpleRequest(PDBLoggerPtr myLogger,
         }
         void* memory = malloc(objectSize);
         if (memory == nullptr) {
-            errMsg = "FATAL ERROR in simpleRequest: Can't allocate memory";
+            errMsg = "FATAL ERROR in heapRequest: Can't allocate memory";
             myLogger->error(errMsg);
             std::cout << errMsg << std::endl;
             exit(-1);
@@ -106,7 +106,7 @@ ReturnType simpleRequest(PDBLoggerPtr myLogger,
             Handle<ResponseType> result = temp.getNextObject<ResponseType>(memory, success, errMsg);
             if (!success) {
                 myLogger->error(errMsg);
-                myLogger->error("simpleRequest: not able to get next object over the wire.\n");
+                myLogger->error("heapRequest: not able to get next object over the wire.\n");
                 /// JiaNote: we need free memory here !!!
 
                 free(memory);
@@ -142,7 +142,7 @@ ReturnType simpleDoubleRequest(PDBLoggerPtr myLogger,
 
     if (temp.connectToInternetServer(myLogger, port, address, errMsg)) {
         myLogger->error(errMsg);
-        myLogger->error("simpleRequest: not able to connect to server.\n");
+        myLogger->error("heapRequest: not able to connect to server.\n");
         // return onErr;
         std::cout << "ERROR: can not connect to remote server with port=" << port
                   << " and address=" << address << std::endl;
@@ -170,7 +170,7 @@ ReturnType simpleDoubleRequest(PDBLoggerPtr myLogger,
         Handle<ResponseType> result = temp.getNextObject<ResponseType>(memory, success, errMsg);
         if (!success) {
             myLogger->error(errMsg);
-            myLogger->error("simpleRequest: not able to get next object over the wire.\n");
+            myLogger->error("heapRequest: not able to get next object over the wire.\n");
             return onErr;
         }
 

@@ -50,6 +50,7 @@ int main(int argc, char *argv[]) {
   desc.add_options()("pageSize,e", po::value<size_t>(&config->pageSize)->default_value(64), "The size of a page (MB)");
   desc.add_options()("numThreads,t", po::value<int32_t>(&config->numThreads)->default_value(1), "The number of threads we want to use");
   desc.add_options()("rootDirectory,r", po::value<std::string>(&config->rootDirectory)->default_value("./pdbRoot"), "The root directory we want to use.");
+  desc.add_options()("maxRetries", po::value<uint32_t>(&config->maxRetries)->default_value(5), "The maximum number of retries before we give up.");
 
   // grab the options
   po::variables_map vm;
@@ -80,7 +81,7 @@ int main(int argc, char *argv[]) {
   pid_t pid = fork();
 
   // check whether we are the frontend or the backend
-  if(pid == 0) {
+  if(pid != 0) {
 
     // do backend setup
     pdb::PDBLoggerPtr logger = make_shared<pdb::PDBLogger>("manager.log");
@@ -93,11 +94,10 @@ int main(int argc, char *argv[]) {
     backEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
 
       // sync me with the cluster
-      sleep(60);
+      sleep(12);
 
-      std::cout << "asd" << std::endl;
-
-      backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
+      //auto page = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
+      auto page = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage();
 
       // log that the server has started
       std::cout << "Distributed storage manager server started!\n";
