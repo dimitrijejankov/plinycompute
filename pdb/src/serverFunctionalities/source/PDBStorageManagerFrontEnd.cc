@@ -8,6 +8,8 @@
 #include <PagedRequest.h>
 #include <StoGetPageResult.h>
 #include <SimpleRequestResult.h>
+#include <StoReturnPageRequest.h>
+#include <StoReturnAnonPageRequest.h>
 
 void pdb::PDBStorageManagerFrontEnd::init() {
 
@@ -43,6 +45,54 @@ void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
 
         return make_pair(res, error);
       }));
+
+  forMe.registerHandler(StoReturnPageRequest_TYPEID,
+      make_shared<pdb::PagedRequestHandler<StoReturnPageRequest>>([&](Handle<StoReturnPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
+
+        // create the page key
+        auto key = std::make_pair(std::make_shared<PDBSet>(request->databaseName, request->setName), request->pageNumber);
+
+        // try to remove it, if we manage to do this res will be true
+        bool res = this->sentPages.erase(key) != 0;
+
+        // create an allocation block to hold the response
+        auto bufferPage = getPage(1024);
+        const UseTemporaryAllocationBlock tempBlock{bufferPage->getBytes(), 1024};
+
+        // create the response
+        Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(res, res ? std::string("") : std::string("Could not find the page to remove!"));
+
+        // sends result to requester
+        std::string errMsg;
+        res = sendUsingMe->sendObject(response, errMsg) && res;
+
+        // return
+        return make_pair(res, errMsg);
+      }));
+
+  forMe.registerHandler(StoReturnAnonPageRequest_TYPEID,
+        make_shared<pdb::PagedRequestHandler<StoReturnAnonPageRequest>>([&](Handle<StoReturnAnonPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
+
+          // create the page key
+          auto key = std::make_pair((PDBSetPtr) nullptr, request->pageNumber);
+
+          // try to remove it, if we manage to do this res will be true
+          bool res = this->sentPages.erase(key) != 0;
+
+          // create an allocation block to hold the response
+          auto bufferPage = getPage(1024);
+          const UseTemporaryAllocationBlock tempBlock{bufferPage->getBytes(), 1024};
+
+          // create the response
+          Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(res, res ? std::string("") : std::string("Could not find the page to remove!"));
+
+          // sends result to requester
+          std::string errMsg;
+          res = sendUsingMe->sendObject(response, errMsg) && res;
+
+          // return
+          return make_pair(res, errMsg);
+        }));
 }
 
 bool pdb::PDBStorageManagerFrontEnd::sendPageToBackend(pdb::PDBPageHandle page, pdb::PDBCommunicatorPtr sendUsingMe, std::string &error) {

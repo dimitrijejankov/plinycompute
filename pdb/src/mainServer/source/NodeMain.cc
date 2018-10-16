@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
     backEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
 
       // sync me with the cluster
-      sleep(12);
+      sleep(30);
 
       //auto page = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
       auto page = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage();

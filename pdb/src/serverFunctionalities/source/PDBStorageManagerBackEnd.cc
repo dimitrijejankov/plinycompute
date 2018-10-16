@@ -9,6 +9,7 @@
 #include <StoGetPageResult.h>
 #include <StoGetAnonymousPageRequest.h>
 #include <StoReturnPageRequest.h>
+#include <StoReturnAnonPageRequest.h>
 
 pdb::PDBStorageManagerBackEnd::PDBStorageManagerBackEnd(const PDBSharedMemory &sharedMemory)
     : sharedMemory(sharedMemory) {
@@ -113,7 +114,37 @@ size_t pdb::PDBStorageManagerBackEnd::getPageSize() {
 
 void pdb::PDBStorageManagerBackEnd::freeAnonymousPage(pdb::PDBPagePtr me) {
 
+  // grab the address of the frontend
+  auto port = getConfiguration()->port;
+  auto address = getConfiguration()->address;
 
+  // somewhere to put the message.
+  std::string errMsg;
+
+  // make a request
+  auto res = heapRequest<StoReturnAnonPageRequest, SimpleRequestResult, bool>(
+      myLogger, port, address, false, 1024,
+      [&](Handle<SimpleRequestResult> result) {
+
+        // return the result
+        if (result != nullptr && result->getRes().first) {
+          return true;
+        }
+
+        // set the error since we failed
+        errMsg = "Could not return the requested page";
+
+        return false;
+      }, me->pageNum);
+
+
+  // did we succeed in returning the page
+  if(!res) {
+
+    /// TODO figure out what to do in this situation
+    // ok something is wrong kill the backend...
+    exit(-1);
+  }
 }
 
 void pdb::PDBStorageManagerBackEnd::downToZeroReferences(pdb::PDBPagePtr me) {
@@ -142,9 +173,12 @@ void pdb::PDBStorageManagerBackEnd::downToZeroReferences(pdb::PDBPagePtr me) {
       },
       me->whichSet->getSetName(), me->whichSet->getDBName(), me->pageNum);
 
-
+  // did we succeed in returning the page
   if(!res) {
-    std::cout << "OK haven't figured out what to do here...";
+
+    /// TODO figure out what to do in this situation
+    // ok something is wrong kill the backend...
+    exit(-1);
   }
 }
 

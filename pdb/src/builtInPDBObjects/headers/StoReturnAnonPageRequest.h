@@ -16,8 +16,8 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef STO_FREE_PAGE_REQ_H
-#define STO_FREE_PAGE_REQ_H
+#ifndef STO_FREE_ANON_PAGE_REQ_H
+#define STO_FREE_ANON_PAGE_REQ_H
 
 #include "Object.h"
 #include "Handle.h"
@@ -25,33 +25,22 @@
 #include "../../objectModel/headers/PDBString.h"
 #include "../../../../../../../../usr/include/c++/7/cstddef"
 
-// PRELOAD %StoReturnPageRequest%
+// PRELOAD %StoReturnAnonPageRequest%
 
 namespace pdb {
 
 // request to get an anonymous page
-class StoReturnPageRequest : public Object {
+class StoReturnAnonPageRequest : public Object {
 
 public:
 
-  StoReturnPageRequest(const std::string &setName, const std::string &databaseName, const size_t &pageNumber)
-      : databaseName(databaseName), setName(setName), pageNumber(pageNumber) {}
+  explicit StoReturnAnonPageRequest(const size_t &pageNumber) : pageNumber(pageNumber) {}
 
-  StoReturnPageRequest() = default;
+  StoReturnAnonPageRequest() = default;
 
-  ~StoReturnPageRequest() = default;
+  ~StoReturnAnonPageRequest() = default;
 
   ENABLE_DEEP_COPY;
-
-  /**
-   * The database name
-   */
-  pdb::String databaseName;
-
-  /**
-   * The set name
-   */
-  pdb::String setName;
 
   /**
    * The page number
