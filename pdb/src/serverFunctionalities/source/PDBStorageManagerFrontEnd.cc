@@ -10,6 +10,10 @@
 #include <SimpleRequestResult.h>
 #include <StoReturnPageRequest.h>
 #include <StoReturnAnonPageRequest.h>
+#include <StoFreezeSizeRequest.h>
+#include <StoPinPageRequest.h>
+#include <StoUnpinPageRequest.h>
+#include <StoPinPageResult.h>
 
 void pdb::PDBStorageManagerFrontEnd::init() {
 
@@ -93,6 +97,132 @@ void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
           // return
           return make_pair(res, errMsg);
         }));
+
+  forMe.registerHandler(StoFreezeSizeRequest_TYPEID,
+          make_shared<pdb::PagedRequestHandler<StoFreezeSizeRequest>>([&](Handle<StoFreezeSizeRequest> request, PDBCommunicatorPtr sendUsingMe) {
+
+            // if this is an anonymous page the set is a null ptr
+            PDBSetPtr set = nullptr;
+
+            // if this is not an anonymous page create a set
+            if(!request->isAnonymous) {
+              set = make_shared<PDBSet>(*request->setName, *request->databaseName);
+            }
+
+            // create the page key
+            auto key = std::make_pair(set, request->pageNumber);
+
+            // find if the thing exists
+            auto it = sentPages.find(key);
+
+            // did we find it?
+            bool res = it != sentPages.end();
+
+            // if we did find it freeze it
+            if(res) {
+
+              // freeze it!
+              it->second->freezeSize(request->freezeSize);
+            }
+
+            // create an allocation block to hold the response
+            auto bufferPage = getPage(1024);
+            const UseTemporaryAllocationBlock tempBlock{bufferPage->getBytes(), 1024};
+
+            // create the response
+            Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(res, res ? std::string("") : std::string("Could not find the page to freeze!"));
+
+            // sends result to requester
+            std::string errMsg;
+            res = sendUsingMe->sendObject(response, errMsg) && res;
+
+            // return
+            return make_pair(res, errMsg);
+          }));
+
+  forMe.registerHandler(StoPinPageRequest_TYPEID,
+          make_shared<pdb::PagedRequestHandler<StoPinPageRequest>>([&](Handle<StoPinPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
+
+            // if this is an anonymous page the set is a null ptr
+            PDBSetPtr set = nullptr;
+
+            // if this is not an anonymous page create a set
+            if(!request->isAnonymous) {
+              set = make_shared<PDBSet>(*request->setName, *request->databaseName);
+            }
+
+            // create the page key
+            auto key = std::make_pair(set, request->pageNumber);
+
+            // find if the thing exists
+            auto it = sentPages.find(key);
+
+            // did we find it?
+            bool res = it != sentPages.end();
+
+            // if we did find it, if so pin it
+            if(res) {
+
+              // pin it
+              it->second->repin();
+            }
+
+            // create an allocation block to hold the response
+            auto bufferPage = getPage(1024);
+            const UseTemporaryAllocationBlock tempBlock{bufferPage->getBytes(), 1024};
+
+            // create the response
+            Handle<StoPinPageResult> response = makeObject<StoPinPageResult>((uint64_t) it->second->page->bytes - (uint64_t) sharedMemory.memory, res);
+
+            // sends result to requester
+            std::string errMsg;
+            res = sendUsingMe->sendObject(response, errMsg) && res;
+
+            // return
+            return make_pair(res, errMsg);
+          }));
+
+  forMe.registerHandler(StoUnpinPageRequest_TYPEID,
+          make_shared<pdb::PagedRequestHandler<StoUnpinPageRequest>>([&](Handle<StoUnpinPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
+
+            // if this is an anonymous page the set is a null ptr
+            PDBSetPtr set = nullptr;
+
+            // if this is not an anonymous page create a set
+            if(!request->isAnonymous) {
+              set = make_shared<PDBSet>(*request->setName, *request->databaseName);
+            }
+
+            // create the page key
+            auto key = std::make_pair(set, request->pageNumber);
+
+            // find if the thing exists
+            auto it = sentPages.find(key);
+
+            // did we find it?
+            bool res = it != sentPages.end();
+
+            // if we did find it, if so unpin it
+            if(res) {
+
+              // unpin it
+              it->second->unpin();
+            }
+
+            // create an allocation block to hold the response
+            auto bufferPage = getPage(1024);
+            const UseTemporaryAllocationBlock tempBlock{bufferPage->getBytes(), 1024};
+
+            // create the response
+            Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(res, res ? std::string("") : std::string("Could not find the page to unpin page!"));
+
+            // sends result to requester
+            std::string errMsg;
+            res = sendUsingMe->sendObject(response, errMsg) && res;
+
+            // return
+            return make_pair(res, errMsg);
+          }));
 }
 
 bool pdb::PDBStorageManagerFrontEnd::sendPageToBackend(pdb::PDBPageHandle page, pdb::PDBCommunicatorPtr sendUsingMe, std::string &error) {

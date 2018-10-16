@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
   pid_t pid = fork();
 
   // check whether we are the frontend or the backend
-  if(pid == 0) {
+  if(pid != 0) {
 
     // do backend setup
     pdb::PDBLoggerPtr logger = make_shared<pdb::PDBLogger>("manager.log");
@@ -98,6 +98,11 @@ int main(int argc, char *argv[]) {
 
       //auto page = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
       auto page = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage();
+
+      //
+      page->freezeSize(1024);
+      page->unpin();
+      page->repin();
 
       // log that the server has started
       std::cout << "Distributed storage manager server started!\n";

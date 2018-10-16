@@ -10,6 +10,10 @@
 #include <StoGetAnonymousPageRequest.h>
 #include <StoReturnPageRequest.h>
 #include <StoReturnAnonPageRequest.h>
+#include <StoFreezeSizeRequest.h>
+#include <StoUnpinPageRequest.h>
+#include <StoPinPageRequest.h>
+#include <StoPinPageResult.h>
 
 pdb::PDBStorageManagerBackEnd::PDBStorageManagerBackEnd(const PDBSharedMemory &sharedMemory)
     : sharedMemory(sharedMemory) {
@@ -184,14 +188,112 @@ void pdb::PDBStorageManagerBackEnd::downToZeroReferences(pdb::PDBPagePtr me) {
 
 void pdb::PDBStorageManagerBackEnd::freezeSize(pdb::PDBPagePtr me, size_t numBytes) {
 
+  // grab the address of the frontend
+  auto port = getConfiguration()->port;
+  auto address = getConfiguration()->address;
+
+  // somewhere to put the message.
+  std::string errMsg;
+
+  // make a request
+  auto res = heapRequest<StoFreezeSizeRequest, SimpleRequestResult, bool>(
+      myLogger, port, address, false, 1024,
+      [&](Handle<SimpleRequestResult> result) {
+
+        // return the result
+        if (result != nullptr && result->getRes().first) {
+          return true;
+        }
+
+        // set the error since we failed
+        errMsg = "Could not return the requested page";
+
+        return false;
+      },
+      me->whichSet, me->pageNum, numBytes);
+
+  // did we succeed in returning the page
+  if(!res) {
+
+    /// TODO figure out what to do in this situation
+    // ok something is wrong kill the backend...
+    exit(-1);
+  }
 }
 
 void pdb::PDBStorageManagerBackEnd::unpin(pdb::PDBPagePtr me) {
 
+  // grab the address of the frontend
+  auto port = getConfiguration()->port;
+  auto address = getConfiguration()->address;
+
+  // somewhere to put the message.
+  std::string errMsg;
+
+  // make a request
+  auto res = heapRequest<StoUnpinPageRequest, SimpleRequestResult, bool>(
+      myLogger, port, address, false, 1024,
+      [&](Handle<SimpleRequestResult> result) {
+
+        // return the result
+        if (result != nullptr && result->getRes().first) {
+          return true;
+        }
+
+        // set the error since we failed
+        errMsg = "Could not return the requested page";
+
+        return false;
+      },
+      me->whichSet, me->pageNum);
+
+  // did we succeed in returning the page
+  if(!res) {
+
+    /// TODO figure out what to do in this situation
+    // ok something is wrong kill the backend...
+    exit(-1);
+  }
 }
 
 void pdb::PDBStorageManagerBackEnd::repin(pdb::PDBPagePtr me) {
 
+  // grab the address of the frontend
+  auto port = getConfiguration()->port;
+  auto address = getConfiguration()->address;
+
+  // somewhere to put the message.
+  std::string errMsg;
+
+  // make a request
+  auto res = heapRequest<StoPinPageRequest, StoPinPageResult, bool>(
+      myLogger, port, address, false, 1024,
+      [&](Handle<StoPinPageResult> result) {
+
+        // return the result
+        if (result != nullptr && result->success) {
+
+          // figure out the pointer for the offset
+          me->bytes = (void*)((uint64_t) this->sharedMemory.memory + (uint64_t)result->offset);
+
+          // we succeeded
+          return true;
+        }
+
+        // set the error since we failed
+        errMsg = "Could not return the requested page";
+
+        return false;
+      },
+      me->whichSet, me->pageNum);
+
+  // did we succeed in returning the page
+  if(!res) {
+
+    /// TODO figure out what to do in this situation
+    // ok something is wrong kill the backend...
+    exit(-1);
+  }
 }
 
 void pdb::PDBStorageManagerBackEnd::registerHandlers(pdb::PDBServer &forMe) {
