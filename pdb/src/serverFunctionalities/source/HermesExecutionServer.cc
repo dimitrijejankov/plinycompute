@@ -25,7 +25,7 @@
 #include "StoragePagePinned.h"
 #include "StorageNoMorePage.h"
 #include "StorageRemoveHashSet.h"
-#include "SimpleRequestHandler.h"
+#include "HeapRequestHandler.h"
 #include "SimpleRequestResult.h"
 #include "BackendTestSetScan.h"
 #include "BackendTestSetCopy.h"
@@ -64,7 +64,7 @@ void HermesExecutionServer::registerHandlers(PDBServer &forMe) {
 
   forMe.registerHandler(
       StoragePagePinned_TYPEID,
-      make_shared<SimpleRequestHandler<StoragePagePinned>>([&](Handle<StoragePagePinned> request,
+      make_shared<HeapRequestHandler<StoragePagePinned>>([&](Handle<StoragePagePinned> request,
                                                                PDBCommunicatorPtr sendUsingMe) {
         PDB_COUT << "Start a handler to process StoragePagePinned messages\n";
         bool res;
@@ -87,7 +87,7 @@ void HermesExecutionServer::registerHandlers(PDBServer &forMe) {
   // StorageGetSetPages message initiated by the current PageScanner instance.
 
   forMe.registerHandler(StorageNoMorePage_TYPEID,
-                        make_shared<SimpleRequestHandler<StorageNoMorePage>>([&](
+                        make_shared<HeapRequestHandler<StorageNoMorePage>>([&](
                             Handle<StorageNoMorePage> request, PDBCommunicatorPtr sendUsingMe) {
                           bool res;
                           std::string errMsg;
@@ -109,7 +109,7 @@ void HermesExecutionServer::registerHandlers(PDBServer &forMe) {
   // register a handler to process the BackendTestSetScan message
   forMe.registerHandler(
       BackendTestSetScan_TYPEID,
-      make_shared<SimpleRequestHandler<BackendTestSetScan>>([&](
+      make_shared<HeapRequestHandler<BackendTestSetScan>>([&](
           Handle<BackendTestSetScan> request, PDBCommunicatorPtr sendUsingMe) {
         bool res;
         std::string errMsg;
@@ -186,7 +186,7 @@ void HermesExecutionServer::registerHandlers(PDBServer &forMe) {
   // register a handler to process the BroadcastJoinBuildHTJobStage message
   forMe.registerHandler(
       BroadcastJoinBuildHTJobStage_TYPEID,
-      make_shared<SimpleRequestHandler<BroadcastJoinBuildHTJobStage>>([&](
+      make_shared<HeapRequestHandler<BroadcastJoinBuildHTJobStage>>([&](
           Handle<BroadcastJoinBuildHTJobStage> request, PDBCommunicatorPtr sendUsingMe) {
 
         getAllocator().cleanInactiveBlocks((size_t) ((size_t) 32 * (size_t) 1024 * (size_t) 1024));
@@ -374,7 +374,7 @@ void HermesExecutionServer::registerHandlers(PDBServer &forMe) {
   // register a handler to process the AggregationJobStge message
   forMe.registerHandler(
       AggregationJobStage_TYPEID,
-      make_shared<SimpleRequestHandler<AggregationJobStage>>([&](
+      make_shared<HeapRequestHandler<AggregationJobStage>>([&](
                                                                  Handle<AggregationJobStage> request, PDBCommunicatorPtr sendUsingMe) {
                                                                getAllocator().cleanInactiveBlocks((size_t) ((size_t) 32 * (size_t) 1024 * (size_t) 1024));
                                                                getAllocator().cleanInactiveBlocks((size_t) ((size_t) 256 * (size_t) 1024 * (size_t) 1024));
@@ -880,7 +880,7 @@ void HermesExecutionServer::registerHandlers(PDBServer &forMe) {
   // register a handler to process the HashPartitionedJoinBuildHTJobStage message
   forMe.registerHandler(
       HashPartitionedJoinBuildHTJobStage_TYPEID,
-      make_shared<SimpleRequestHandler<HashPartitionedJoinBuildHTJobStage>>([&](
+      make_shared<HeapRequestHandler<HashPartitionedJoinBuildHTJobStage>>([&](
           Handle<HashPartitionedJoinBuildHTJobStage> request, PDBCommunicatorPtr sendUsingMe) {
         getAllocator().cleanInactiveBlocks((size_t) ((size_t) 256 * (size_t) 1024 * (size_t) 1024));
         const UseTemporaryAllocationBlock block{32 * 1024 * 1024};
@@ -1181,7 +1181,7 @@ void HermesExecutionServer::registerHandlers(PDBServer &forMe) {
   // register a handler to process the TupleSetJobStage message
   forMe.registerHandler(
       TupleSetJobStage_TYPEID,
-      make_shared<SimpleRequestHandler<TupleSetJobStage>>([&](Handle<TupleSetJobStage> request,
+      make_shared<HeapRequestHandler<TupleSetJobStage>>([&](Handle<TupleSetJobStage> request,
                                                               PDBCommunicatorPtr sendUsingMe) {
         getAllocator().cleanInactiveBlocks((size_t) ((size_t) 32 * (size_t) 1024 * (size_t) 1024));
 
@@ -1281,7 +1281,7 @@ void HermesExecutionServer::registerHandlers(PDBServer &forMe) {
 
   forMe.registerHandler(
       StorageRemoveHashSet_TYPEID,
-      make_shared<SimpleRequestHandler<StorageRemoveHashSet>>([&](
+      make_shared<HeapRequestHandler<StorageRemoveHashSet>>([&](
           Handle<StorageRemoveHashSet> request, PDBCommunicatorPtr sendUsingMe) {
         std::string errMsg;
         bool success = true;
@@ -1308,7 +1308,7 @@ void HermesExecutionServer::registerHandlers(PDBServer &forMe) {
   // register a handler to process the BackendTestSetScan message
   forMe.registerHandler(
       BackendTestSetCopy_TYPEID,
-      make_shared<SimpleRequestHandler<BackendTestSetCopy>>([&](
+      make_shared<HeapRequestHandler<BackendTestSetCopy>>([&](
           Handle<BackendTestSetCopy> request, PDBCommunicatorPtr sendUsingMe) {
         bool res;
         std::string errMsg;

@@ -54,7 +54,7 @@
 #include "StorageCollectStatsResponse.h"
 #include "PDBScanWork.h"
 #include "UseTemporaryAllocationBlock.h"
-#include "SimpleRequestHandler.h"
+#include "HeapRequestHandler.h"
 #include "Record.h"
 #include "InterfaceFunctions.h"
 #include "DeleteSet.h"
@@ -439,7 +439,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // this handler accepts a request to write back all buffered records
     forMe.registerHandler(
         StorageCleanup_TYPEID,
-        make_shared<SimpleRequestHandler<StorageCleanup>>(
+        make_shared<HeapRequestHandler<StorageCleanup>>(
             [&](Handle<StorageCleanup> request, PDBCommunicatorPtr sendUsingMe) {
                 PDB_COUT << "received StorageCleanup" << std::endl;
                 std::string errMsg;
@@ -459,7 +459,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // this handler accepts a request to add a database
     forMe.registerHandler(
         StorageAddDatabase_TYPEID,
-        make_shared<SimpleRequestHandler<StorageAddDatabase>>([&](
+        make_shared<HeapRequestHandler<StorageAddDatabase>>([&](
             Handle<StorageAddDatabase> request, PDBCommunicatorPtr sendUsingMe) {
             PDB_COUT << "received StorageAddDatabase" << std::endl;
             std::string errMsg;
@@ -492,7 +492,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // this handler accepts a request to add a set
     forMe.registerHandler(
         StorageAddSet_TYPEID,
-        make_shared<SimpleRequestHandler<StorageAddSet>>([&](Handle<StorageAddSet> request,
+        make_shared<HeapRequestHandler<StorageAddSet>>([&](Handle<StorageAddSet> request,
                                                              PDBCommunicatorPtr sendUsingMe) {
             PDB_COUT << "received StorageAddSet" << std::endl;
 
@@ -571,7 +571,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // this handler requests to add a temp set
     forMe.registerHandler(
         StorageAddTempSet_TYPEID,
-        make_shared<SimpleRequestHandler<StorageAddTempSet>>(
+        make_shared<HeapRequestHandler<StorageAddTempSet>>(
             [&](Handle<StorageAddTempSet> request, PDBCommunicatorPtr sendUsingMe) {
                 std::string errMsg;
                 // add a temp set in local
@@ -596,7 +596,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // this handler requests to add a temp set
     forMe.registerHandler(
         StorageRemoveDatabase_TYPEID,
-        make_shared<SimpleRequestHandler<StorageRemoveDatabase>>([&](
+        make_shared<HeapRequestHandler<StorageRemoveDatabase>>([&](
             Handle<StorageRemoveDatabase> request, PDBCommunicatorPtr sendUsingMe) {
 
             std::string errMsg;
@@ -627,7 +627,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // this handler requests to remove a user set
     forMe.registerHandler(
         StorageRemoveUserSet_TYPEID,
-        make_shared<SimpleRequestHandler<StorageRemoveUserSet>>([&](
+        make_shared<HeapRequestHandler<StorageRemoveUserSet>>([&](
             Handle<StorageRemoveUserSet> request, PDBCommunicatorPtr sendUsingMe) {
             std::string errMsg;
             std::string databaseName = request->getDatabase();
@@ -676,7 +676,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
 
     forMe.registerHandler(
         StorageClearSet_TYPEID,
-        make_shared<SimpleRequestHandler<StorageClearSet>>([&](Handle<StorageClearSet> request,
+        make_shared<HeapRequestHandler<StorageClearSet>>([&](Handle<StorageClearSet> request,
                                                                PDBCommunicatorPtr sendUsingMe) {
             std::string errMsg;
             std::string databaseName = request->getDatabase();
@@ -736,7 +736,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // this handler requests to remove a temp set
     forMe.registerHandler(
         StorageRemoveTempSet_TYPEID,
-        make_shared<SimpleRequestHandler<StorageRemoveTempSet>>(
+        make_shared<HeapRequestHandler<StorageRemoveTempSet>>(
             [&](Handle<StorageRemoveTempSet> request, PDBCommunicatorPtr sendUsingMe) {
                 std::string errMsg;
                 // add a set in local
@@ -757,7 +757,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // this handler requests to remove a hash set
     forMe.registerHandler(
         StorageRemoveHashSet_TYPEID,
-        make_shared<SimpleRequestHandler<StorageRemoveHashSet>>([&](
+        make_shared<HeapRequestHandler<StorageRemoveHashSet>>([&](
             Handle<StorageRemoveHashSet> request, PDBCommunicatorPtr sendUsingMe) {
             std::string errMsg;
             bool success;
@@ -795,7 +795,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // this handler requests to export a set to a local file
     forMe.registerHandler(
         StorageExportSet_TYPEID,
-        make_shared<SimpleRequestHandler<StorageExportSet>>([&](Handle<StorageExportSet> request,
+        make_shared<HeapRequestHandler<StorageExportSet>>([&](Handle<StorageExportSet> request,
                                                                 PDBCommunicatorPtr sendUsingMe) {
             std::string errMsg;
             bool res =
@@ -818,7 +818,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // this handler accepts a request to store one large object (e.g. JoinMap) in one page
     forMe.registerHandler(
         StorageAddObjectInLoop_TYPEID,
-        make_shared<SimpleRequestHandler<StorageAddObjectInLoop>>([&](
+        make_shared<HeapRequestHandler<StorageAddObjectInLoop>>([&](
             Handle<StorageAddObjectInLoop> request, PDBCommunicatorPtr sendUsingMe) {
             std::cout << "start StorageAddObjectInLoop" << std::endl;
             std::string errMsg;
@@ -933,7 +933,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // this handler accepts a request to store some data
     forMe.registerHandler(
         StorageAddData_TYPEID,
-        make_shared<SimpleRequestHandler<StorageAddData>>([&](Handle<StorageAddData> request,
+        make_shared<HeapRequestHandler<StorageAddData>>([&](Handle<StorageAddData> request,
                                                               PDBCommunicatorPtr sendUsingMe) {
             std::string errMsg;
             bool everythingOK = true;
@@ -1078,7 +1078,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // this handler accepts a request to get data from a set
     forMe.registerHandler(
         StorageGetData_TYPEID,
-        make_shared<SimpleRequestHandler<StorageGetData>>([&](Handle<StorageGetData> request,
+        make_shared<HeapRequestHandler<StorageGetData>>([&](Handle<StorageGetData> request,
                                                               PDBCommunicatorPtr sendUsingMe) {
             std::string errMsg;
             bool res;
@@ -1144,7 +1144,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // this handler collect statistics in this storage
     forMe.registerHandler(
         StorageCollectStats_TYPEID,
-        make_shared<SimpleRequestHandler<StorageCollectStats>>([&](
+        make_shared<HeapRequestHandler<StorageCollectStats>>([&](
             Handle<StorageCollectStats> request, PDBCommunicatorPtr sendUsingMe) {
             const UseTemporaryAllocationBlock myBlock{4 * 1024 * 1024};
             std::string errMsg;
@@ -1177,7 +1177,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // this handler accepts a request to pin a page
     forMe.registerHandler(
         StoragePinPage_TYPEID,
-        make_shared<SimpleRequestHandler<StoragePinPage>>(
+        make_shared<HeapRequestHandler<StoragePinPage>>(
             [&](Handle<StoragePinPage> request, PDBCommunicatorPtr sendUsingMe) {
                 PDBLoggerPtr logger = make_shared<PDBLogger>("storagePinPage.log");
                 DatabaseID dbId = request->getDatabaseID();
@@ -1244,7 +1244,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // this handler accepts a request to pin bytes in a set
     forMe.registerHandler(
         StoragePinBytes_TYPEID,
-        make_shared<SimpleRequestHandler<StoragePinBytes>>(
+        make_shared<HeapRequestHandler<StoragePinBytes>>(
             [&](Handle<StoragePinBytes> request, PDBCommunicatorPtr sendUsingMe) {
                 PDBLoggerPtr logger = make_shared<PDBLogger>("storagePinPage.log");
                 DatabaseID dbId = request->getDatabaseID();
@@ -1293,7 +1293,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // this handler accepts a request to unpin a page
     forMe.registerHandler(
         StorageUnpinPage_TYPEID,
-        make_shared<SimpleRequestHandler<StorageUnpinPage>>([&](Handle<StorageUnpinPage> request,
+        make_shared<HeapRequestHandler<StorageUnpinPage>>([&](Handle<StorageUnpinPage> request,
                                                                 PDBCommunicatorPtr sendUsingMe) {
 
             PDBLoggerPtr logger = make_shared<PDBLogger>("storageUnpinPage.log");
@@ -1344,7 +1344,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // back information about loaded pages
     forMe.registerHandler(
         StorageGetSetPages_TYPEID,
-        make_shared<SimpleRequestHandler<StorageGetSetPages>>([&](
+        make_shared<HeapRequestHandler<StorageGetSetPages>>([&](
             Handle<StorageGetSetPages> request, PDBCommunicatorPtr sendUsingMe) {
 
             DatabaseID dbId = request->getDatabaseID();
@@ -1420,7 +1420,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // setId> and forward to backend
     forMe.registerHandler(
         StorageTestSetScan_TYPEID,
-        make_shared<SimpleRequestHandler<StorageTestSetScan>>(
+        make_shared<HeapRequestHandler<StorageTestSetScan>>(
             [&](Handle<StorageTestSetScan> request, PDBCommunicatorPtr sendUsingMe) {
 
                 std::string dbName = request->getDatabase();
@@ -1487,7 +1487,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
     // destTypeId, destSetId>> and forward to backend
     forMe.registerHandler(
         StorageTestSetCopy_TYPEID,
-        make_shared<SimpleRequestHandler<StorageTestSetCopy>>([&](
+        make_shared<HeapRequestHandler<StorageTestSetCopy>>([&](
             Handle<StorageTestSetCopy> request, PDBCommunicatorPtr sendUsingMe) {
 
             std::string dbNameIn = request->getDatabaseIn();

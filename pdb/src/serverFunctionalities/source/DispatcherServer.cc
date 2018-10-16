@@ -22,7 +22,7 @@
 #include "DispatcherServer.h"
 #include "CatalogServer.h"
 #include "PDBDebug.h"
-#include "SimpleRequestHandler.h"
+#include "HeapRequestHandler.h"
 #include "SimpleRequestResult.h"
 #include "SimpleSendBytesRequest.h"
 #include "DispatcherAddData.h"
@@ -52,7 +52,7 @@ DispatcherServer::~DispatcherServer() {
 void DispatcherServer::registerHandlers(PDBServer &forMe) {
   forMe.registerHandler(
       DispatcherAddData_TYPEID,
-      make_shared<SimpleRequestHandler<DispatcherAddData>>([&](Handle<DispatcherAddData> request, PDBCommunicatorPtr sendUsingMe) {
+      make_shared<HeapRequestHandler<DispatcherAddData>>([&](Handle<DispatcherAddData> request, PDBCommunicatorPtr sendUsingMe) {
         pthread_mutex_lock(&mutex);
         while (numRequestsInProcessing > MAX_CONCURRENT_REQUESTS) {
           pthread_mutex_unlock(&mutex);
@@ -161,7 +161,7 @@ void DispatcherServer::registerHandlers(PDBServer &forMe) {
 
   forMe.registerHandler(
       DispatcherRegisterPartitionPolicy_TYPEID,
-      make_shared<SimpleRequestHandler<DispatcherRegisterPartitionPolicy>>(
+      make_shared<HeapRequestHandler<DispatcherRegisterPartitionPolicy>>(
           [&](Handle<DispatcherRegisterPartitionPolicy> request, PDBCommunicatorPtr sendUsingMe) {
 
             PDB_COUT << "Registering partition policy for set " << request->getSetName() << ":"

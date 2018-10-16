@@ -23,7 +23,7 @@
 #include "PDBDebug.h"
 #include "InterfaceFunctions.h"
 #include "QuerySchedulerServer.h"
-#include "SimpleRequestHandler.h"
+#include "HeapRequestHandler.h"
 #include "GenericWork.h"
 #include "StorageCollectStats.h"
 #include "StorageCollectStatsResponse.h"
@@ -520,7 +520,7 @@ void QuerySchedulerServer::registerHandlers(PDBServer& forMe) {
     // handler to schedule a Computation-based query graph
     forMe.registerHandler(
         ExecuteComputation_TYPEID,
-        make_shared<SimpleRequestHandler<ExecuteComputation>>(
+        make_shared<HeapRequestHandler<ExecuteComputation>>(
                 [&](Handle<ExecuteComputation> request, PDBCommunicatorPtr sendUsingMe) {
                 return executeComputation(request, sendUsingMe);
             }));

@@ -24,7 +24,7 @@
 #include "CatalogServer.h"
 #include "DispatcherServer.h"
 #include "PDBCatalogMsgType.h"
-#include "SimpleRequestHandler.h"
+#include "HeapRequestHandler.h"
 
 #include "DistributedStorageAddDatabase.h"
 #include "DistributedStorageAddSet.h"
@@ -80,7 +80,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
      */
     forMe.registerHandler(
         DistributedStorageAddDatabase_TYPEID,
-        make_shared<SimpleRequestHandler<DistributedStorageAddDatabase>>(
+        make_shared<HeapRequestHandler<DistributedStorageAddDatabase>>(
             [&](Handle<DistributedStorageAddDatabase> request, PDBCommunicatorPtr sendUsingMe) {
                 const UseTemporaryAllocationBlock tempBlock{1 * 1024 * 1024};
                 std::string errMsg;
@@ -136,7 +136,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
 
     forMe.registerHandler(
         DistributedStorageClearSet_TYPEID,
-        make_shared<SimpleRequestHandler<DistributedStorageClearSet>>(
+        make_shared<HeapRequestHandler<DistributedStorageClearSet>>(
             [&](Handle<DistributedStorageClearSet> request, PDBCommunicatorPtr sendUsingMe) {
                 const UseTemporaryAllocationBlock tempBlock{8 * 1024 * 1024};
                 std::cout << "received DistributedStorageClearSet message" << std::endl;
@@ -195,7 +195,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
 
     forMe.registerHandler(
         DistributedStorageAddTempSet_TYPEID,
-        make_shared<SimpleRequestHandler<DistributedStorageAddTempSet>>([&](
+        make_shared<HeapRequestHandler<DistributedStorageAddTempSet>>([&](
             Handle<DistributedStorageAddTempSet> request, PDBCommunicatorPtr sendUsingMe) {
             const UseTemporaryAllocationBlock tempBlock{8 * 1024 * 1024};
             auto begin = std::chrono::high_resolution_clock::now();
@@ -263,7 +263,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
 
     forMe.registerHandler(
         DistributedStorageAddSet_TYPEID,
-        make_shared<SimpleRequestHandler<DistributedStorageAddSet>>([&](
+        make_shared<HeapRequestHandler<DistributedStorageAddSet>>([&](
             Handle<DistributedStorageAddSet> request, PDBCommunicatorPtr sendUsingMe) {
             const UseTemporaryAllocationBlock tempBlock{8 * 1024 * 1024};
             auto begin = std::chrono::high_resolution_clock::now();
@@ -382,7 +382,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
 
     forMe.registerHandler(
         DistributedStorageRemoveDatabase_TYPEID,
-        make_shared<SimpleRequestHandler<DistributedStorageRemoveDatabase>>([&](
+        make_shared<HeapRequestHandler<DistributedStorageRemoveDatabase>>([&](
             Handle<DistributedStorageRemoveDatabase> request, PDBCommunicatorPtr sendUsingMe) {
             const UseTemporaryAllocationBlock tempBlock{1 * 1024 * 1024};
             std::string errMsg;
@@ -449,7 +449,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
 
     forMe.registerHandler(
         DistributedStorageRemoveTempSet_TYPEID,
-        make_shared<SimpleRequestHandler<DistributedStorageRemoveTempSet>>(
+        make_shared<HeapRequestHandler<DistributedStorageRemoveTempSet>>(
             [&](Handle<DistributedStorageRemoveTempSet> request, PDBCommunicatorPtr sendUsingMe) {
                 const UseTemporaryAllocationBlock tempBlock{1 * 1024 * 1024};
                 auto begin = std::chrono::high_resolution_clock::now();
@@ -513,7 +513,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
 
     forMe.registerHandler(
         DistributedStorageRemoveSet_TYPEID,
-        make_shared<SimpleRequestHandler<DistributedStorageRemoveSet>>([&](
+        make_shared<HeapRequestHandler<DistributedStorageRemoveSet>>([&](
             Handle<DistributedStorageRemoveSet> request, PDBCommunicatorPtr sendUsingMe) {
 
             const UseTemporaryAllocationBlock tempBlock{1 * 1024 * 1024};
@@ -651,7 +651,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
     // write back records on all slaves
     forMe.registerHandler(
         DistributedStorageCleanup_TYPEID,
-        make_shared<SimpleRequestHandler<DistributedStorageCleanup>>(
+        make_shared<HeapRequestHandler<DistributedStorageCleanup>>(
 
             [&](Handle<DistributedStorageCleanup> request, PDBCommunicatorPtr sendUsingMe) {
                 const UseTemporaryAllocationBlock tempBlock{1 * 1024 * 1024};
@@ -700,7 +700,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
     // write back records on all slaves
     forMe.registerHandler(
         DistributedStorageExportSet_TYPEID,
-        make_shared<SimpleRequestHandler<DistributedStorageExportSet>>(
+        make_shared<HeapRequestHandler<DistributedStorageExportSet>>(
 
             [&](Handle<DistributedStorageExportSet> request, PDBCommunicatorPtr sendUsingMe) {
                 const UseTemporaryAllocationBlock tempBlock{1 * 1024 * 1024};
@@ -751,7 +751,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
     // JiaNote: Below handler is to process SetScan message
     forMe.registerHandler(
         SetScan_TYPEID,
-        make_shared<SimpleRequestHandler<SetScan>>([&](Handle<SetScan> request,
+        make_shared<HeapRequestHandler<SetScan>>([&](Handle<SetScan> request,
                                                        PDBCommunicatorPtr sendUsingMe) {
             const UseTemporaryAllocationBlock tempBlock{8 * 1024 * 1024};
             std::string errMsg;

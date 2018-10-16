@@ -58,8 +58,8 @@ public:
         size_t objectSize = myCommunicator->getSizeOfNextObject();
         myLogger->debug(std::string("SimpleRequestHandle: to receive object with size=") + std::to_string(objectSize));
         if (objectSize == 0) {
-            std::cout << "SimpleRequestHandler: object size=0" << std::endl;
-            myLogger->error("SimpleRequestHandler: object size=0");
+            std::cout << "HeapRequestHandler: object size=0" << std::endl;
+            myLogger->error("HeapRequestHandler: object size=0");
             callerBuzzer->buzz(PDBAlarm::GenericError);
             return;
         }
@@ -70,19 +70,19 @@ public:
             Handle<RequestType> request = myCommunicator->getNextObject<RequestType>(memory, success, errMsg);
 
             if (!success) {
-                myLogger->error("SimpleRequestHandler: tried to get the next object and failed; " + errMsg);
+                myLogger->error("HeapRequestHandler: tried to get the next object and failed; " + errMsg);
                 callerBuzzer->buzz(PDBAlarm::GenericError);
                 return;
             }
 
             std::pair<bool, std::string> res = processRequest(request, myCommunicator);
             if (!res.first) {
-                myLogger->error("SimpleRequestHandler: tried to process the request and failed; " + errMsg);
+                myLogger->error("HeapRequestHandler: tried to process the request and failed; " + errMsg);
                 callerBuzzer->buzz(PDBAlarm::GenericError);
                 return;
             }
 
-            myLogger->info("SimpleRequestHandler: finished processing request.");
+            myLogger->info("HeapRequestHandler: finished processing request.");
             callerBuzzer->buzz(PDBAlarm::WorkAllDone);
         }
     }

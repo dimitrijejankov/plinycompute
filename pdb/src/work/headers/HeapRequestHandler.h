@@ -33,16 +33,16 @@
 namespace pdb {
 
 template <class RequestType>
-class SimpleRequestHandler : public PDBCommWork {
+class HeapRequestHandler : public PDBCommWork {
 
 public:
     // this accepts the lambda that is used to process the RequestType object
-    explicit SimpleRequestHandler(std::function<std::pair<bool, std::string>(Handle<RequestType>, PDBCommunicatorPtr)> useMe) {
+    explicit HeapRequestHandler(std::function<std::pair<bool, std::string>(Handle<RequestType>, PDBCommunicatorPtr)> useMe) {
         processRequest = useMe;
     }
 
     PDBCommWorkPtr clone() override {
-        return std::make_shared<SimpleRequestHandler<RequestType>>(processRequest);
+        return std::make_shared<HeapRequestHandler<RequestType>>(processRequest);
     }
 
     void execute(PDBBuzzerPtr callerBuzzer) override {
@@ -56,8 +56,8 @@ public:
         myLogger->debug(std::string("SimpleRequestHandle: to receive object with size=") +
                         std::to_string(objectSize));
         if (objectSize == 0) {
-            std::cout << "SimpleRequestHandler: object size=0" << std::endl;
-            myLogger->error("SimpleRequestHandler: object size=0");
+            std::cout << "HeapRequestHandler: object size=0" << std::endl;
+            myLogger->error("HeapRequestHandler: object size=0");
             callerBuzzer->buzz(PDBAlarm::GenericError);
             return;
         }
@@ -67,7 +67,7 @@ public:
                 myCommunicator->getNextObject<RequestType>(memory, success, errMsg);
 
             if (!success) {
-                myLogger->error("SimpleRequestHandler: tried to get the next object and failed; " +
+                myLogger->error("HeapRequestHandler: tried to get the next object and failed; " +
                                 errMsg);
                 /// JiaNote: we need free memory and return here
                 free(memory);
@@ -77,7 +77,7 @@ public:
 
             std::pair<bool, std::string> res = processRequest(request, myCommunicator);
             if (!res.first) {
-                myLogger->error("SimpleRequestHandler: tried to process the request and failed; " +
+                myLogger->error("HeapRequestHandler: tried to process the request and failed; " +
                                 errMsg);
                 /// JiaNote: we need free memory here
                 free(memory);
@@ -85,7 +85,7 @@ public:
                 return;
             }
 
-            myLogger->info("SimpleRequestHandler: finished processing requet.");
+            myLogger->info("HeapRequestHandler: finished processing requet.");
             free(memory);
             callerBuzzer->buzz(PDBAlarm::WorkAllDone);
         }

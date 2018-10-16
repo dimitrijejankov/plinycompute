@@ -14,7 +14,7 @@
 #include <StoPinPageRequest.h>
 #include <StoUnpinPageRequest.h>
 #include <StoPinPageResult.h>
-#include <SimpleRequestHandler.h>
+#include <HeapRequestHandler.h>
 
 void pdb::PDBStorageManagerFrontEnd::init() {
 
@@ -25,7 +25,7 @@ void pdb::PDBStorageManagerFrontEnd::init() {
 
 void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
   forMe.registerHandler(StoGetPageRequest_TYPEID,
-      make_shared<pdb::SimpleRequestHandler<StoGetPageRequest>>(
+      make_shared<pdb::HeapRequestHandler<StoGetPageRequest>>(
       [&](Handle<StoGetPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
         // grab the page
@@ -39,7 +39,7 @@ void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
       }));
 
   forMe.registerHandler(StoGetAnonymousPageRequest_TYPEID,
-      make_shared<pdb::SimpleRequestHandler<StoGetAnonymousPageRequest>>([&](Handle<StoGetAnonymousPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
+      make_shared<pdb::HeapRequestHandler<StoGetAnonymousPageRequest>>([&](Handle<StoGetAnonymousPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
         // grab an anonymous page
         auto page = getPage(request->size);
@@ -52,7 +52,7 @@ void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
       }));
 
   forMe.registerHandler(StoReturnPageRequest_TYPEID,
-      make_shared<pdb::SimpleRequestHandler<StoReturnPageRequest>>([&](Handle<StoReturnPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
+      make_shared<pdb::HeapRequestHandler<StoReturnPageRequest>>([&](Handle<StoReturnPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
         // create the page key
         auto key = std::make_pair(std::make_shared<PDBSet>(request->databaseName, request->setName), request->pageNumber);
@@ -75,7 +75,7 @@ void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
       }));
 
   forMe.registerHandler(StoReturnAnonPageRequest_TYPEID,
-        make_shared<pdb::SimpleRequestHandler<StoReturnAnonPageRequest>>([&](Handle<StoReturnAnonPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
+        make_shared<pdb::HeapRequestHandler<StoReturnAnonPageRequest>>([&](Handle<StoReturnAnonPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
           // create the page key
           auto key = std::make_pair((PDBSetPtr) nullptr, request->pageNumber);
@@ -98,7 +98,7 @@ void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
         }));
 
   forMe.registerHandler(StoFreezeSizeRequest_TYPEID,
-          make_shared<pdb::SimpleRequestHandler<StoFreezeSizeRequest>>([&](Handle<StoFreezeSizeRequest> request, PDBCommunicatorPtr sendUsingMe) {
+          make_shared<pdb::HeapRequestHandler<StoFreezeSizeRequest>>([&](Handle<StoFreezeSizeRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
             // if this is an anonymous page the set is a null ptr
             PDBSetPtr set = nullptr;
@@ -139,7 +139,7 @@ void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
           }));
 
   forMe.registerHandler(StoPinPageRequest_TYPEID,
-          make_shared<pdb::SimpleRequestHandler<StoPinPageRequest>>([&](Handle<StoPinPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
+          make_shared<pdb::HeapRequestHandler<StoPinPageRequest>>([&](Handle<StoPinPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
             // if this is an anonymous page the set is a null ptr
             PDBSetPtr set = nullptr;
@@ -180,7 +180,7 @@ void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
           }));
 
   forMe.registerHandler(StoUnpinPageRequest_TYPEID,
-          make_shared<pdb::SimpleRequestHandler<StoUnpinPageRequest>>([&](Handle<StoUnpinPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
+          make_shared<pdb::HeapRequestHandler<StoUnpinPageRequest>>([&](Handle<StoUnpinPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
             // if this is an anonymous page the set is a null ptr
             PDBSetPtr set = nullptr;

@@ -49,7 +49,7 @@
 #include "CatPrintCatalogRequest.h"
 #include "CatPrintCatalogResult.h"
 #include "CatalogServer.h"
-#include "SimpleRequestHandler.h"
+#include "HeapRequestHandler.h"
 #include "VTableMap.h"
 
 namespace pdb {
@@ -113,7 +113,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
   // handles a request to register metadata of a new cluster Node in the catalog
   forMe.registerHandler(
       CatSyncRequest_TYPEID,
-      make_shared<SimpleRequestHandler<CatSyncRequest>>([&](Handle<CatSyncRequest> request, PDBCommunicatorPtr sendUsingMe) {
+      make_shared<HeapRequestHandler<CatSyncRequest>>([&](Handle<CatSyncRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
         // lock the catalog server
         std::lock_guard<std::mutex> guard(serverMutex);
@@ -192,7 +192,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
 
   // basically this copies the received catalog and reloads it
-  forMe.registerHandler(CatSyncWorkerRequest_TYPEID, make_shared<SimpleRequestHandler<CatSyncWorkerRequest>>([&](Handle<CatSyncWorkerRequest> request,
+  forMe.registerHandler(CatSyncWorkerRequest_TYPEID, make_shared<HeapRequestHandler<CatSyncWorkerRequest>>([&](Handle<CatSyncWorkerRequest> request,
                                                                                                                  PDBCommunicatorPtr sendUsingMe) {
 
         // lock the catalog server
@@ -248,7 +248,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
   // handles a request to register metadata of a new cluster Node in the catalog
   forMe.registerHandler(
       CatUpdateNodeStatusRequest_TYPEID,
-      make_shared<SimpleRequestHandler<CatUpdateNodeStatusRequest>>([&](Handle<CatUpdateNodeStatusRequest> request, PDBCommunicatorPtr sendUsingMe) {
+      make_shared<HeapRequestHandler<CatUpdateNodeStatusRequest>>([&](Handle<CatUpdateNodeStatusRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
         // lock the catalog server
         std::lock_guard<std::mutex> guard(serverMutex);
@@ -296,7 +296,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
   // handles a request to display the contents of the Catalog that have changed since a given timestamp
   forMe.registerHandler(CatPrintCatalogRequest_TYPEID,
-      make_shared<SimpleRequestHandler<CatPrintCatalogRequest>>([&](Handle<CatPrintCatalogRequest> request,
+      make_shared<HeapRequestHandler<CatPrintCatalogRequest>>([&](Handle<CatPrintCatalogRequest> request,
                                                                   PDBCommunicatorPtr sendUsingMe) {
 
         // lock the catalog server
@@ -350,7 +350,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
   // handles a request to return the typeID of a Type given its name [DONE]
   forMe.registerHandler(
       CatGetType_TYPEID,
-      make_shared<SimpleRequestHandler<CatGetType>>([&](Handle<CatGetType> request,
+      make_shared<HeapRequestHandler<CatGetType>>([&](Handle<CatGetType> request,
                                                                PDBCommunicatorPtr sendUsingMe) {
 
         // lock the catalog server
@@ -392,7 +392,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
   // handles a request to retrieve an .so library given a Type Name along with its metadata (stored as a serialized CatalogUserTypeMetadata object)
   forMe.registerHandler(
       CatSharedLibraryByNameRequest_TYPEID,
-      make_shared<SimpleRequestHandler<CatSharedLibraryByNameRequest>>([&](Handle<CatSharedLibraryByNameRequest> request,
+      make_shared<HeapRequestHandler<CatSharedLibraryByNameRequest>>([&](Handle<CatSharedLibraryByNameRequest> request,
                                                                            PDBCommunicatorPtr sendUsingMe) {
 
         // lock the catalog server
@@ -527,7 +527,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
   // handles a request to retrieve the name of a Type, if it's not registered returns -1
   forMe.registerHandler(
       CatSetObjectTypeRequest_TYPEID,
-      make_shared<SimpleRequestHandler<CatSetObjectTypeRequest>>(
+      make_shared<HeapRequestHandler<CatSetObjectTypeRequest>>(
           [&](Handle<CatSetObjectTypeRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
             // lock the catalog server
@@ -568,7 +568,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
   // handle a request to register metadata for a new Database in the catalog
   forMe.registerHandler(
       CatCreateDatabaseRequest_TYPEID,
-      make_shared<SimpleRequestHandler<CatCreateDatabaseRequest>>(
+      make_shared<HeapRequestHandler<CatCreateDatabaseRequest>>(
           [&](Handle<CatCreateDatabaseRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
             // lock the catalog server
@@ -620,7 +620,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
   // handle a request to register metadata for a new Set in the catalog
   forMe.registerHandler(
       CatCreateSetRequest_TYPEID,
-      make_shared<SimpleRequestHandler<CatCreateSetRequest>>([&](Handle<CatCreateSetRequest> request,
+      make_shared<HeapRequestHandler<CatCreateSetRequest>>([&](Handle<CatCreateSetRequest> request,
                                                                  PDBCommunicatorPtr sendUsingMe) {
         // lock the catalog server
         std::lock_guard<std::mutex> guard(serverMutex);
@@ -687,7 +687,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
   // handle a request to delete metadata for an existing Database in the catalog
   forMe.registerHandler(
       CatDeleteDatabaseRequest_TYPEID,
-      make_shared<SimpleRequestHandler<CatDeleteDatabaseRequest>>(
+      make_shared<HeapRequestHandler<CatDeleteDatabaseRequest>>(
           [&](Handle<CatDeleteDatabaseRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
             // lock the catalog server
@@ -737,7 +737,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
   // handle a request to delete metadata for an existing Set in the catalog
   forMe.registerHandler(
       CatDeleteSetRequest_TYPEID,
-      make_shared<SimpleRequestHandler<CatDeleteSetRequest>>([&](Handle<CatDeleteSetRequest> request,
+      make_shared<HeapRequestHandler<CatDeleteSetRequest>>([&](Handle<CatDeleteSetRequest> request,
                                                                  PDBCommunicatorPtr sendUsingMe) {
 
         // invokes deleting Set metadata from catalog
@@ -789,7 +789,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
   // handles a request to register a shared library
   forMe.registerHandler(
       CatRegisterType_TYPEID,
-      make_shared<SimpleRequestHandler<CatRegisterType>>(
+      make_shared<HeapRequestHandler<CatRegisterType>>(
           [&](Handle<CatRegisterType> request, PDBCommunicatorPtr sendUsingMe) {
 
             // lock the catalog server
@@ -844,7 +844,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
   // handles a request to register a shared library
   forMe.registerHandler(
       CatGetDatabaseRequest_TYPEID,
-      make_shared<SimpleRequestHandler<CatGetDatabaseRequest>>(
+      make_shared<HeapRequestHandler<CatGetDatabaseRequest>>(
           [&](Handle<CatGetDatabaseRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
             // lock the catalog server
@@ -886,7 +886,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
   // handles a request to register a shared library
   forMe.registerHandler(
       CatGetSetRequest_TYPEID,
-      make_shared<SimpleRequestHandler<CatGetSetRequest>>(
+      make_shared<HeapRequestHandler<CatGetSetRequest>>(
           [&](Handle<CatGetSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
             // lock the catalog server
@@ -927,7 +927,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
   // handles a request to register a shared library
   forMe.registerHandler(
       CatGetWorkersRequest_TYPEID,
-      make_shared<SimpleRequestHandler<CatGetWorkersRequest>>(
+      make_shared<HeapRequestHandler<CatGetWorkersRequest>>(
           [&](Handle<CatGetWorkersRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
             // lock the catalog server

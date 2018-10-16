@@ -30,7 +30,7 @@
 #include <string>
 #include "PDBDebug.h"
 #include "FrontendQueryTestServer.h"
-#include "SimpleRequestHandler.h"
+#include "HeapRequestHandler.h"
 #include "BuiltInObjectTypeIDs.h"
 #include "SimpleRequestResult.h"
 #include "QueryBase.h"
@@ -70,7 +70,7 @@ void FrontendQueryTestServer::registerHandlers(PDBServer &forMe) {
   // to handle a request to execute a job stage for building hash tables for hash partition join
   forMe.registerHandler(
       HashPartitionedJoinBuildHTJobStage_TYPEID,
-      make_shared<SimpleRequestHandler<HashPartitionedJoinBuildHTJobStage>>([&](
+      make_shared<HeapRequestHandler<HashPartitionedJoinBuildHTJobStage>>([&](
           Handle<HashPartitionedJoinBuildHTJobStage> request, PDBCommunicatorPtr sendUsingMe) {
         std::string errMsg;
         bool success;
@@ -189,7 +189,7 @@ void FrontendQueryTestServer::registerHandlers(PDBServer &forMe) {
   // to handle a request to execute a job stage for building hash table for broadcast join
   forMe.registerHandler(
       BroadcastJoinBuildHTJobStage_TYPEID,
-      make_shared<SimpleRequestHandler<BroadcastJoinBuildHTJobStage>>([&](
+      make_shared<HeapRequestHandler<BroadcastJoinBuildHTJobStage>>([&](
                                                                           Handle<BroadcastJoinBuildHTJobStage> request, PDBCommunicatorPtr sendUsingMe) {
 
                                                                         std::string errMsg;
@@ -316,7 +316,7 @@ void FrontendQueryTestServer::registerHandlers(PDBServer &forMe) {
   // to handle a request to execute an aggregation stage
   forMe.registerHandler(
       AggregationJobStage_TYPEID,
-      make_shared<SimpleRequestHandler<AggregationJobStage>>([&](
+      make_shared<HeapRequestHandler<AggregationJobStage>>([&](
           Handle<AggregationJobStage> request, PDBCommunicatorPtr sendUsingMe) {
         std::string errMsg;
         bool success;
@@ -487,7 +487,7 @@ void FrontendQueryTestServer::registerHandlers(PDBServer &forMe) {
   // to handle a request to execute a tupleset pipeline stage
   forMe.registerHandler(
       TupleSetJobStage_TYPEID,
-      make_shared<SimpleRequestHandler<TupleSetJobStage>>([&](Handle<TupleSetJobStage> request,
+      make_shared<HeapRequestHandler<TupleSetJobStage>>([&](Handle<TupleSetJobStage> request,
                                                               PDBCommunicatorPtr sendUsingMe) {
         std::string errMsg;
         bool success;
@@ -713,7 +713,7 @@ void FrontendQueryTestServer::registerHandlers(PDBServer &forMe) {
   // handle a request to delete a file
   forMe.registerHandler(
       DeleteSet_TYPEID,
-      make_shared<SimpleRequestHandler<DeleteSet>>([&](Handle<DeleteSet> request,
+      make_shared<HeapRequestHandler<DeleteSet>>([&](Handle<DeleteSet> request,
                                                        PDBCommunicatorPtr sendUsingMe) {
 
         const UseTemporaryAllocationBlock tempBlock{1024 * 128};
@@ -740,7 +740,7 @@ void FrontendQueryTestServer::registerHandlers(PDBServer &forMe) {
   // handle a request to iterate through a file
   forMe.registerHandler(
       SetScan_TYPEID,
-      make_shared<SimpleRequestHandler<SetScan>>([&](Handle<SetScan> request,
+      make_shared<HeapRequestHandler<SetScan>>([&](Handle<SetScan> request,
                                                      PDBCommunicatorPtr sendUsingMe) {
 
         // for error handling

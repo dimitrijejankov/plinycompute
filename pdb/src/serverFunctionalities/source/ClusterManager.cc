@@ -25,7 +25,7 @@
 #include "CatalogClient.h"
 #include "ClusterManager.h"
 #include "CluSyncRequest.h"
-#include "SimpleRequestHandler.h"
+#include "HeapRequestHandler.h"
 #include "CluHeartBeatRequest.h"
 
 namespace pdb {
@@ -54,7 +54,7 @@ ClusterManager::ClusterManager() {
 void ClusterManager::registerHandlers(PDBServer &forMe) {
   forMe.registerHandler(
       CluSyncRequest_TYPEID,
-      make_shared<SimpleRequestHandler<CluSyncRequest>>(
+      make_shared<HeapRequestHandler<CluSyncRequest>>(
           [&](Handle<CluSyncRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
             // lock the cluster manager
@@ -101,7 +101,7 @@ void ClusterManager::registerHandlers(PDBServer &forMe) {
 
   forMe.registerHandler(
       CluHeartBeatRequest_TYPEID,
-      make_shared<SimpleRequestHandler<CluHeartBeatRequest>>(
+      make_shared<HeapRequestHandler<CluHeartBeatRequest>>(
           [&](Handle<CluHeartBeatRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
             // create an allocation block to hold the response
