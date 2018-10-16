@@ -145,7 +145,6 @@ void pdb::PDBStorageManagerBackEnd::freeAnonymousPage(pdb::PDBPagePtr me) {
   // did we succeed in returning the page
   if(!res) {
 
-    /// TODO figure out what to do in this situation
     // ok something is wrong kill the backend...
     exit(-1);
   }
@@ -180,7 +179,6 @@ void pdb::PDBStorageManagerBackEnd::downToZeroReferences(pdb::PDBPagePtr me) {
   // did we succeed in returning the page
   if(!res) {
 
-    /// TODO figure out what to do in this situation
     // ok something is wrong kill the backend...
     exit(-1);
   }
@@ -215,7 +213,6 @@ void pdb::PDBStorageManagerBackEnd::freezeSize(pdb::PDBPagePtr me, size_t numByt
   // did we succeed in returning the page
   if(!res) {
 
-    /// TODO figure out what to do in this situation
     // ok something is wrong kill the backend...
     exit(-1);
   }
@@ -250,7 +247,6 @@ void pdb::PDBStorageManagerBackEnd::unpin(pdb::PDBPagePtr me) {
   // did we succeed in returning the page
   if(!res) {
 
-    /// TODO figure out what to do in this situation
     // ok something is wrong kill the backend...
     exit(-1);
   }
@@ -290,7 +286,6 @@ void pdb::PDBStorageManagerBackEnd::repin(pdb::PDBPagePtr me) {
   // did we succeed in returning the page
   if(!res) {
 
-    /// TODO figure out what to do in this situation
     // ok something is wrong kill the backend...
     exit(-1);
   }

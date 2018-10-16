@@ -16,8 +16,8 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef SIMPLE_REQUEST_HANDLER_H
-#define SIMPLE_REQUEST_HANDLER_H
+#ifndef PAGED_REQUEST_HANDLER_H
+#define PAGED_REQUEST_HANDLER_H
 
 #include "PDBCommunicator.h"
 #include "PDBCommWork.h"
