@@ -18,10 +18,10 @@ set(CMAKE_CXX_STANDARD 14)
 
 # check the operating system and add the appropriate flags
 if (APPLE)
-    SET(CMAKE_CXX_FLAGS "-g -fPIC -Wno-deprecated-declarations")
+    SET(CMAKE_CXX_FLAGS "-g -fPIC -Wno-deprecated-declarations -O3")
     SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -undefined dynamic_lookup")
 elseif (UNIX AND NOT APPLE)
-    SET(CMAKE_CXX_FLAGS "-g -fPIC -Wno-deprecated-declarations")
+    SET(CMAKE_CXX_FLAGS "-g -fPIC -Wno-deprecated-declarations -O3")
 endif ()
 
 # set the definitions for the compiler
@@ -335,8 +335,11 @@ foreach(file ${files})
     add_dependencies(shared-libraries ${fileName})
 endforeach()
 
-# include tests that are in tools/cmake/tests directory
+# include tests that are in tests directory
 include(tests/Tests.cmake)
 
-# include tests that are in tools/cmake/tests directory
+# include tests that are in applications directory
 include(applications/Applications.cmake)
+
+# include benchmarks that are in the benchmarks directory
+include(benchmarks/Benchmarks.cmake)
