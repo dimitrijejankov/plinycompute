@@ -17,20 +17,7 @@
  *****************************************************************************/
 
 
-#include <iostream>
-#include <cstddef>
-#include <vector>
-#include <chrono>
-#include <algorithm>
-#include <iterator>
-#include <cstring>
-#include <unistd.h>
-#include <iomanip>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <ctime>
-#include <string>
+#include <gtest/gtest.h>
 
 #include "Handle.h"
 #include "PDBVector.h"
@@ -38,21 +25,31 @@
 #include "Employee.h"
 #include "Supervisor.h"
 
-
-
 //String class test
 
 using namespace pdb;
 
-void myFunc(String myIp) {
-    String ip = myIp;
+TEST(StringTest, TestAll) {
+
+    // just some random string
+    std::string ipStd = "localhost";
+
+    // init from cpp string
+    String ip = ipStd;
+    String ipConstChar = "localhost";
+
+    // check if they are all equal
+    EXPECT_TRUE(ip == ipStd);
+    EXPECT_TRUE(ipConstChar == ipStd);
+
+    // convert pdb string to regular string and append
     String nodeAddress = std::string(ip) + ":8108";
-    std::cout << "ip in myFunc is " << ip << std::endl;
-    std::cout << "nodeAddress in myFunc is " << nodeAddress << std::endl;
+
+    // check if it is ok
+    EXPECT_TRUE(nodeAddress == "localhost:8108");
 }
 
-int main() {
-    std::string input = "localhost";
-    String ip = String(input);
-    myFunc(ip);
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }

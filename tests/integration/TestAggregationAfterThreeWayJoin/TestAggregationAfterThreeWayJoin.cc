@@ -205,6 +205,7 @@ int main(int argc, char* argv[]) {
             pdbClient.flushData();
         }
     }
+
     // now, create a new set in that database to store output data
     pdbClient.createSet<SumResult>("test78_db", "output_set1");
 
