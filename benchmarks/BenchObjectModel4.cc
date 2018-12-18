@@ -16,41 +16,106 @@
  *                                                                           *
  *****************************************************************************/
 
+#define NUM_OBJECTS 10371
+
 #include <benchmark/benchmark.h>
+
 #include "InterfaceFunctions.h"
-#include "PDBString.h"
+#include "Employee.h"
+#include "Supervisor.h"
 
 using namespace pdb;
 
-static void BenchPDBVectorWithCopy(benchmark::State& state) {
+/**
+ * The Employee class to bench std vector
+ */
+class EmployeeNative {
+
+    std::string *name{nullptr};
+    int age{};
+
+public:
+
+    ~EmployeeNative() {
+        delete name;
+    }
+
+    EmployeeNative() = default;
+
+    EmployeeNative(const std::string &nameIn, int ageIn) {
+        name = new std::string(nameIn);
+        age = ageIn;
+    }
+};
+
+/**
+ * The Supervisor class to bench std vector
+ */
+class SupervisorNative {
+
+private:
+    EmployeeNative *me{nullptr};
+    std::vector<EmployeeNative *> myGuys;
+
+public:
+
+    SupervisorNative() {
+        for (auto a : myGuys) {
+            delete a;
+        }
+    }
+
+    ~SupervisorNative() = default;
+
+    SupervisorNative(std::string name, int age) {
+        me = new EmployeeNative(name, age);
+    }
+
+    void addEmp(EmployeeNative *addMe) {
+        myGuys.push_back(addMe);
+    }
+};
+
+static void BenchPDBVectorClear(benchmark::State &state) {
 
     // bench
     for (auto _ : state) {
 
+        // pause the timing
+        state.PauseTiming();
+
         // load up the allocator with RAM
-        makeObjectAllocatorBlock(1024 * 1024 * 24, false);
+        makeObjectAllocatorBlock(1024 * 1024 * 24, true);
 
-        for (int i = 0; i < 10000; i++) {
-            Handle<String> str = makeObject<String>(
-                "This is an object big enough to force flushing soon. This is an object big enough to "
-                "force flushing soon. This is an object big enough to force flushing soon. This is an "
-                "object big enough to force flushing soon. This is an object big enough to force "
-                "flushing soon. This is an object big enough to force flushing soon. This is an object "
-                "big enough to force flushing soon. This is an object big enough to force flushing "
-                "soon. This is an object big enough to force flushing  soon. It has a total of 512 "
-                "bytes to test. This is an object big enough to force flushing soon. This is an object "
-                "big enough to force flushing soon. This is an object big enough to force flushing "
-                "soon. This is an object big enough to force flushing soon. This is an object big "
-                "enough to force flushing..");
+        Handle<Vector<Handle<Supervisor>>> supers = makeObject<Vector<Handle<Supervisor>>>();
+        try {
 
-            // do not optimize out the value
-            benchmark::DoNotOptimize(str);
-        }
+            // put a lot of copies of it into a vector
+            for (int i = 0; i < NUM_OBJECTS; i++) {
+
+                Handle<Supervisor> super = makeObject<Supervisor>("Joe Johnson", 20 + (i % 29));
+                supers->push_back(super);
+                for (int j = 0; j < 10; j++) {
+                    Handle<Employee> temp = makeObject<Employee>("Steve Stevens", 20 + ((i + j) % 29));
+                    (*supers)[i]->addEmp(temp);
+                }
+            }
+
+        } catch (NotEnoughSpace &e) {}
+
+        // resume timing
+        state.ResumeTiming();
+
+        // clear them
+        supers->clear();
+
+        // do not optimize out the value
+        benchmark::DoNotOptimize(supers);
     }
 }
 
 // Register the function as a benchmark
-BENCHMARK(BenchPDBVectorWithCopy);
+BENCHMARK(BenchPDBVectorClear);
 
 // create the main function
 BENCHMARK_MAIN();

@@ -40,9 +40,9 @@ class Tests {
     QUNIT_IS_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("set3", "db2", "Type2"), error));
 
     // create the nodes
-    QUNIT_IS_TRUE(catalog.registerNode(std::make_shared<pdb::PDBCatalogNode>("localhost:8080", "localhost", 8080, "master"), error));
-    QUNIT_IS_TRUE(catalog.registerNode(std::make_shared<pdb::PDBCatalogNode>("localhost:8081", "localhost", 8081, "worker"), error));
-    QUNIT_IS_TRUE(catalog.registerNode(std::make_shared<pdb::PDBCatalogNode>("localhost:8082", "localhost", 8082, "worker"), error));
+    QUNIT_IS_TRUE(catalog.registerNode(std::make_shared<pdb::PDBCatalogNode>("localhost:8080", "localhost", 8080, "master", 8, 1024, true), error));
+    QUNIT_IS_TRUE(catalog.registerNode(std::make_shared<pdb::PDBCatalogNode>("localhost:8081", "localhost", 8081, "worker", 8, 1024, true), error));
+    QUNIT_IS_TRUE(catalog.registerNode(std::make_shared<pdb::PDBCatalogNode>("localhost:8082", "localhost", 8082, "worker", 8, 1024, true), error));
 
     // check the exists functions for databases
     QUNIT_IS_TRUE(catalog.databaseExists("db1"));

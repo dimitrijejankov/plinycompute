@@ -21,7 +21,7 @@ if (APPLE)
     SET(CMAKE_CXX_FLAGS "-g -fPIC -Wno-deprecated-declarations -O3")
     SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -undefined dynamic_lookup")
 elseif (UNIX AND NOT APPLE)
-    SET(CMAKE_CXX_FLAGS "-g -fPIC -Wno-deprecated-declarations -O3")
+    SET(CMAKE_CXX_FLAGS "-fPIC -Wno-deprecated-declarations -O3")
 endif ()
 
 # set the definitions for the compiler
@@ -45,9 +45,6 @@ elseif (NOT USE_DEBUG)
    REMOVE_DEFINITIONS(-DPDB_DEBUG)
    message("PDB_DEBUG is OFF")
 endif (USE_DEBUG)
-
-# installs required third-party packages and libraries
-#execute_process(COMMAND "${CMAKE_SOURCE_DIR}/scripts/internal/setupDependencies.py")
 
 # set the directories with the common header files
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/memory/headers")

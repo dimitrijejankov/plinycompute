@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env bash
 #  Copyright 2018 Rice University                                           
 #                                                                           
 #  Licensed under the Apache License, Version 2.0 (the "License");          
@@ -13,14 +13,8 @@
 #  See the License for the specific language governing permissions and      
 #  limitations under the License.                                           
 #  ======================================================================== 
-import os
-import re
-from sys import platform as _platform
-import glob
-from os import path
 
-# script that installs dependencies required by PlinyCompute 
-
+# script that installs dependencies required by PlinyCompute
 #
 #Name	Homepage	Ubutnu Packages
 #Snappy	https://github.com/google/snappy	libsnappy1v5, libsnappy-dev
@@ -31,23 +25,36 @@ from os import path
 #Flex	https://github.com/westes/flex	flex
 #
 
-if _platform == 'darwin':
-    print ("It is MacOS")
-    os.system("brew install ossp-uuid")
-    os.system("brew install gsl")
-    os.system("brew install snappy")
-    os.system("brew install bison")
-    os.system("brew install flex")
-    os.system("brew install eigen")
-elif _platform == 'linux' or _platform == "linux2":
-    print ("It is Linux, try apt-get install") 		
-    os.system("sudo apt-get -y install uuid-dev")
-    os.system("sudo apt-get -y install libeigen3-dev")
-    os.system("sudo apt-get -y install libgsl-dev")
-    os.system("sudo apt-get -y install libsnappy1v5 libsnappy-dev")
-    os.system("sudo apt-get -y install libboost-dev libboost-program-options-dev libboost-filesystem-dev libboost-system-dev")
-    os.system("sudo apt-get -y install bison flex")
-else:
-    print ("Platform " + _platform + " is not supported.")
+if [[ "$OSTYPE" == "darwin"* ]]; then
 
+    brew install ossp-uuid
+    brew install gsl
+    brew install snappy
+    brew install bison
+    brew install flex
+    brew install eigen
+    
+elif [[ "$OSTYPE" == "linux-gnu" ]]; then
+	
+    sudo apt-get -y install uuid-dev
+    sudo apt-get -y install libeigen3-dev
+    sudo apt-get -y install libgsl-dev
+    sudo apt-get -y install libsnappy1v5 libsnappy-dev
+    sudo apt-get -y install libboost-dev libboost-program-options-dev libboost-filesystem-dev libboost-system-dev
+    sudo apt-get -y install bison flex
 
+    # install google test
+    cd /tmp
+    cd googletest
+    cmake .
+    make
+    sudo make install
+
+    # install google benchmark
+    cd /tmp
+    cd benchmark
+    cmake .
+    make
+    sudo make install
+
+fi
