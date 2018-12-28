@@ -12,6 +12,8 @@
 #ifndef PAGE_C
 #define PAGE_C
 
+#include <PDBPage.h>
+
 #include "PDBStorageManagerImpl.h"
 #include "PDBPage.h"
 #include "PDBSet.h"
@@ -21,18 +23,36 @@ namespace pdb {
 PDBPage :: PDBPage (PDBStorageManagerInterface &parent) : parent (parent) {}
 
 void PDBPage :: incRefCount () {
+
+	// lock the page so we can increment the reference count
+	std::unique_lock<mutex> l(lk);
+
+	// decrement the reference count
 	refCount++;
 }
 
 void PDBPage :: decRefCount () {
+
+	// lock the page so we can check the reference count, decrement it and free it if needed
+	std::unique_lock<mutex> l(lk);
+
+	// decrement the reference count
 	refCount--;
+
+	// grab a shared pointer
 	auto spMe = me.lock();
+
+	// did the reference count fall to zero
 	if (refCount == 0) {
-		if (isAnon)
+
+		// if this is an anonymous page free it
+		if (isAnon) {
 			parent.freeAnonymousPage (spMe);
-		else 
+		}
+		// ok the references of a page are down to zero deal with it.
+		else {
 			parent.downToZeroReferences (spMe);
-		
+		}
 	}
 }
 
@@ -125,6 +145,14 @@ void PDBPage :: setDirty () {
 
 void PDBPage :: setClean () {
 	dirty = false;
+}
+
+void PDBPage::unlock() {
+	lk.unlock();
+}
+
+void PDBPage::lock() {
+	lk.lock();
 }
 
 }

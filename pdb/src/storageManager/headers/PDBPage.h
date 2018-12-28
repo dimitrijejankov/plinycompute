@@ -15,6 +15,7 @@
 #include <memory>
 #include "PDBSet.h"
 #include <string>
+#include <mutex>
 
 // this is the smallest mini-page size that we can have
 #define MIN_PAGE_SIZE 8u
@@ -94,6 +95,8 @@ class PDBPage {
   void setMe (PDBPagePtr toMe);
   void incRefCount ();
   void decRefCount ();
+  void lock();
+  void unlock();
 
   // a pointer to the raw bytes
   void *bytes;
@@ -111,6 +114,9 @@ class PDBPage {
 
   // pointer to the parent buffer manager
   PDBStorageManagerInterface& parent;
+
+  // the mutex to lock the page
+  std::mutex lk;
 
   friend class PDBPageHandleBase;
   friend class PDBStorageManagerImpl;
