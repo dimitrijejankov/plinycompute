@@ -55,7 +55,7 @@ void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
       make_shared<pdb::HeapRequestHandler<StoReturnPageRequest>>([&](Handle<StoReturnPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
         // create the page key
-        auto key = std::make_pair(std::make_shared<PDBSet>(request->databaseName, request->setName), request->pageNumber);
+        auto key = std::make_pair(std::make_shared<PDBSet>(request->setName, request->databaseName), request->pageNumber);
 
         // try to remove it, if we manage to do this res will be true
         bool res = this->sentPages.erase(key) != 0;

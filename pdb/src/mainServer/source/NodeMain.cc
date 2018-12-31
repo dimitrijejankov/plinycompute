@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
   pid_t pid = fork();
 
   // check whether we are the frontend or the backend
-  if(pid != 0) {
+  if(pid == 0) {
 
     // do backend setup
     pdb::PDBLoggerPtr logger = make_shared<pdb::PDBLogger>("manager.log");
@@ -96,13 +96,21 @@ int main(int argc, char *argv[]) {
       // sync me with the cluster
       sleep(30);
 
-      //auto page = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
-      auto page = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage();
+      auto page = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
+
+      auto page2 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 2);
+      auto page3 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 3);
+      auto page4 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 4);
+      //auto page = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage();
 
       //
       page->freezeSize(1024);
       page->unpin();
       page->repin();
+
+      page2->unpin();
+      page3->unpin();
+      page4->unpin();
 
       // log that the server has started
       std::cout << "Distributed storage manager server started!\n";

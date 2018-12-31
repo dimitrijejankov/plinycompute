@@ -16,11 +16,10 @@
 #include <StoPinPageResult.h>
 #include <mutex>
 
-pdb::PDBStorageManagerBackEnd::PDBStorageManagerBackEnd(const PDBSharedMemory &sharedMemory)
-    : sharedMemory(sharedMemory) {
+pdb::PDBStorageManagerBackEnd::PDBStorageManagerBackEnd(const PDBSharedMemory &sharedMemory) : sharedMemory(sharedMemory) {
 
   // make a logger
-  myLogger = make_shared<pdb::PDBLogger>("clientLog");
+  myLogger = make_shared<pdb::PDBLogger>("storageLog");
 }
 
 pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd::getPage(pdb::PDBSetPtr whichSet, uint64_t i) {
@@ -74,7 +73,7 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd::getPage(pdb::PDBSetPtr whichSe
 
         auto page = pageHandle->page;
 
-        safeRemoveBackendPage(whichSet, i, page);
+        safeRemoveBackendPage(page);
 
         // set the error since we failed
         errMsg = "Could not get the requested page";
@@ -152,7 +151,7 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd::getBackendPage(pdb::PDBSetPtr 
   auto it = allPages.find(key);
 
   // do we have that page? if not create one
-  if (it->second == nullptr) {
+  if (it == allPages.end()) {
 
     // just make the page
     PDBPagePtr returnVal = make_shared<PDBPage>(*this);
