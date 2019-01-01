@@ -117,6 +117,12 @@ public:
 
   void stop();  // added by Jia
 
+  /**
+   * Sends a request to the manager to shutdown the cluster
+   * @return true if we succeed false otherwise
+   */
+  bool shutdownCluster();
+
   // Someone added this, but it is BAD!!  This should not be exposed
   // Jia: I understand it is bad, however we need to create threads in a handler, and I feel you
   // do

@@ -87,62 +87,11 @@ bool PDBCommunicator::connectToInternetServer(PDBLoggerPtr logToMeIn,
                                               std::string serverAddress,
                                               std::string& errMsg) {
 
-    logToMe = logToMeIn;
-    // std :: cout << "################################" << std :: endl;
-    // std :: cout << "To connect to Internet server..." << std :: endl;
-    // std :: cout << "portNumber=" << portNumber << std :: endl;
-    // std :: cout << "serverAddress=" << serverAddress << std :: endl;
-    // set up the socket
-    // struct sockaddr_in serv_addr;
-    // struct hostent *server;
-    /*
-    socketFD = socket(AF_INET, SOCK_STREAM, 0);
-    std :: cout << "socketFD=" << socketFD << std :: endl;
-    if (socketFD < 0) {
-        logToMe->error("PDBCommunicator: could not get FD to internet socket");
-        logToMe->error(strerror(errno));
-        errMsg = "Could not get socket to backend ";
-        errMsg += strerror(errno);
-        return true;
-    }
-
-    logToMe->trace("PDBCommunicator: Got internet socket");
-    logToMe->trace("PDBCommunicator: About to check the database for the host name");
-    */
-    /* CHRIS NOTE: turns out that gethostbyname () is depricated, and should be replaced */
-    // std :: cout << "Address cstring=" << serverAddress.c_str() << std :: endl;
-    // server = gethostbyname(serverAddress.c_str());
-    // std :: cout << "h_name=" << server->h_name << std :: endl;
-    // std :: cout << "h_addr_list[0]=" << server->h_addr_list[0] << std :: endl;
-    // std :: cout << "h_addr=" << server->h_addr << std :: endl;
-    /*if (server == nullptr) {
-        logToMe->error("PDBCommunicator: could not get host by name");
-        logToMe->error(strerror(errno));
-        errMsg = "Could not get host by name ";
-        errMsg += strerror(errno);
-        return true;
-    }*/
-
+    logToMe = std::move(logToMeIn);
     logToMe->trace("PDBCommunicator: About to connect to the remote host");
 
-    /*
-    bzero((char *) &serv_addr, sizeof (serv_addr));
-    serv_addr.sin_family = AF_INET;
-    bcopy((char *) server->h_addr, (char *) &serv_addr.sin_addr.s_addr, server->h_length);
-    std :: cout << "copied to address=" << (char *) inet_ntoa(serv_addr.sin_addr) << std :: endl;
-    serv_addr.sin_port = htons(portNumber);
-    if (::connect(socketFD, (struct sockaddr *) &serv_addr, sizeof (serv_addr)) < 0) {
-        logToMe->error("PDBCommunicator: could not get host by name");
-        logToMe->error(strerror(errno));
-        errMsg = "Could not connect to server ";
-        errMsg += strerror(errno);
-        return true;
-    }
-    */
-
     // Jia: gethostbyname() has multi-threading issue, to replace it with getaddrinfo()
-
-    struct addrinfo hints;
+    struct addrinfo hints{};
     struct addrinfo *result, *rp;
     char port[10];
     sprintf(port, "%d", portNumber);
@@ -165,7 +114,7 @@ bool PDBCommunicator::connectToInternetServer(PDBLoggerPtr logToMeIn,
     }
 
     bool connected = false;
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
+    for (rp = result; rp != nullptr; rp = rp->ai_next) {
         int count = 0;
         while (count <= MAX_RETRIES) {
             logToMe->trace("PDBCommunicator: creating socket....");
@@ -183,12 +132,12 @@ bool PDBCommunicator::connectToInternetServer(PDBLoggerPtr logToMeIn,
             close(socketFD);
             socketFD = -1;
         }
-        if (connected == true) {
+        if (connected) {
             break;
         }
     }
 
-    if (rp == NULL) {
+    if (rp == nullptr) {
         logToMe->error("PDBCommunicator: could not connect to server: address info is null");
         logToMe->error(strerror(errno));
         errMsg = "Could not connect to server: address info is null with ip=" + serverAddress +
@@ -200,6 +149,7 @@ bool PDBCommunicator::connectToInternetServer(PDBLoggerPtr logToMeIn,
     }
 
     freeaddrinfo(result);
+
     // Jia: moved automatic tear-down logic from Chris' message-based communication to here
     // note that we need to close this up when we are done
     needToSendDisconnectMsg = true;
@@ -209,11 +159,7 @@ bool PDBCommunicator::connectToInternetServer(PDBLoggerPtr logToMeIn,
     socketClosed = false;
     logToMe->trace("PDBCommunicator: Successfully connected to the remote host");
     logToMe->trace("PDBCommunicator: Socket FD is " + std::to_string(socketFD));
-    /*    std :: cout << "##########################" << std :: endl;
-        std :: cout << "Connected to server with port =" << portNumber <<", address =" <<
-       serverAddress << ", socket=" << socketFD << std :: endl;
-        std :: cout << "==========================" << std :: endl;
-    */
+
     return false;
 }
 

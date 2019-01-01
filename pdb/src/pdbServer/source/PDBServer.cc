@@ -264,30 +264,33 @@ bool PDBServer::handleOneRequest(PDBBuzzerPtr callerBuzzer, PDBCommunicatorPtr m
   // if we are asked to shut down...
   if (requestID == ShutDown_TYPEID) {
     UseTemporaryAllocationBlock tempBlock{2048};
+
     Handle<ShutDown> closeMsg = myCommunicator->getNextObject<ShutDown>(success, info);
     if (!success) {
       logger->error("PDBServer: close connection request, but was an error: " + info);
     } else {
       logger->trace("PDBServer: close connection request");
     }
+
+    // ack the result
+    std::string errMsg;
+    Handle<SimpleRequestResult> result = makeObject<SimpleRequestResult>(true, "successful shutdown of server");
+    if (!myCommunicator->sendObject(result, errMsg)) {
+      logger->error("PDBServer: close connection request, but count not send response: " + errMsg);
+    }
+
     PDB_COUT << "Cleanup server functionalities" << std::endl;
+
     // for each functionality, invoke its clean() method
     for (auto &functionality : functionalities) {
       functionality->cleanup();
     }
 
-    // ack the result
-    std::string errMsg;
-    Handle<SimpleRequestResult> result =
-        makeObject<SimpleRequestResult>(true, "successful shutdown of server");
-    if (!myCommunicator->sendObject(result, errMsg)) {
-      logger->error("PDBServer: close connection request, but count not send response: " +
-          errMsg);
-    }
-
     // kill the FD and let everyone know we are done
     allDone = true;
-    // close(sockFD); //we can't simply close socket like this, because there are still incoming
+
+    // close(sockFD);
+    // we can't simply close socket like this, because there are still incoming
     // messages in accepted connections
     // use reuse address option instead
     return false;
@@ -372,6 +375,45 @@ void PDBServer::registerHandlersFromLastFunctionality() {
 void PDBServer::stop() {
   allDone = true;
 }
+
+bool PDBServer::shutdownCluster() {
+
+  // the copy we are about to make will be stored here
+  const pdb::UseTemporaryAllocationBlock block(1024 * 1024);
+
+  // create a communicator
+  pdb::PDBCommunicatorPtr communicator = std::make_shared<pdb::PDBCommunicator>();
+
+  // try to connect to the node
+  string errMsg;
+  bool failure = communicator->connectToInternetServer(logger, config->managerPort, config->managerAddress, errMsg);
+
+  // did we fail to connect to the server
+  if(failure) {
+    return false;
+  }
+
+  // send the shutdown request to the manager
+  pdb::Handle<pdb::ShutDown> collectStatsMsg = pdb::makeObject<pdb::ShutDown>();
+  bool success = communicator->sendObject<pdb::ShutDown>(collectStatsMsg, errMsg);
+
+  // we failed to send it
+  if(!success) {
+    return false;
+  }
+
+  // grab the response
+  Handle<SimpleRequestResult> result = communicator->getNextObject<SimpleRequestResult>(success, errMsg);
+
+  // if the result, is not null return the indicator
+  if(result != nullptr) {
+    return result->getRes().first;
+  }
+
+  // ok so result is null something went wrong
+  return false;
+}
+
 }
 
 #endif
