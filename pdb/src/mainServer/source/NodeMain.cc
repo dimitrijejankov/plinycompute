@@ -96,21 +96,69 @@ int main(int argc, char *argv[]) {
       // sync me with the cluster
       sleep(30);
 
-      auto page = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
+      const int numNodes = 20;
+      int counter = 0;
 
-      auto page2 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 2);
-      auto page3 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 3);
-      auto page4 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 4);
-      //auto page = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage();
+      // create the buzzer
+      PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, int& cnt) {
+        cnt++;
+        PDB_COUT << "counter = " << cnt << std::endl;
+      });
 
-      //
-      page->freezeSize(1024);
-      page->unpin();
-      page->repin();
+      for (unsigned long i = 0; i < numNodes; i++) {
 
-      page2->unpin();
-      page3->unpin();
-      page4->unpin();
+        // grab a worker
+        pdb::PDBWorkerPtr myWorker = backEnd.getWorkerQueue()->getWorker();
+
+        // create some work for it
+        pdb::PDBWorkPtr myWork = make_shared<pdb::GenericWork>([&, i](PDBBuzzerPtr callerBuzzer) {
+
+          auto page1 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
+          auto page11 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
+
+          if(page1->getBytes() != nullptr) {
+
+            ((char*)page1->getBytes())[i] = (char)('a' + i);
+
+            std::cout << "Works1" << std::endl;
+          }
+
+          page1->unpin();
+
+          if(page1->getBytes() == nullptr) {
+            std::cout << "Works2" << std::endl;
+          }
+
+          auto page111 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
+          auto page1111 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
+
+          if(page1->getBytes() != nullptr) {
+
+            ((char*)page1->getBytes())[i + numNodes] = (char)('z' - i);
+            std::cout << "Works3" << std::endl;
+          }
+
+          page1->unpin();
+
+          callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+        });
+
+        // execute the work
+        myWorker->execute(myWork, tempBuzzer);
+      }
+
+      // wait until all the nodes are finished
+      while (counter < numNodes) {
+        tempBuzzer->wait();
+      }
+
+      auto page1 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
+
+      for(int i = 0; i < 2 * numNodes; ++i) {
+        std::cout << ((char*)page1->getBytes())[i];
+      }
+
+      std::cout << std::endl;
 
       // log that the server has started
       std::cout << "Distributed storage manager server started!\n";
