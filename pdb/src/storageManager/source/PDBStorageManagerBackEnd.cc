@@ -15,6 +15,7 @@
 #include <StoPinPageRequest.h>
 #include <StoPinPageResult.h>
 #include <mutex>
+#include <PDBPageBackend.h>
 
 pdb::PDBStorageManagerBackEnd::PDBStorageManagerBackEnd(const PDBSharedMemory &sharedMemory) : sharedMemory(sharedMemory) {
 
@@ -106,7 +107,7 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd::getPage(size_t minBytes) {
 
         if (result != nullptr) {
 
-          PDBPagePtr returnVal = make_shared<PDBPage>(*this);
+          PDBPagePtr returnVal = make_shared<PDBPageBackend>(*this);
           returnVal->setMe(returnVal);
           returnVal->isAnon = result->isAnonymous;
           returnVal->pinned = true;
@@ -154,7 +155,7 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd::getBackendPage(pdb::PDBSetPtr 
   if (it == allPages.end()) {
 
     // just make the page
-    PDBPagePtr returnVal = make_shared<PDBPage>(*this);
+    PDBPagePtr returnVal = make_shared<PDBPageBackend>(*this);
     returnVal->setMe(returnVal);
     returnVal->bytes = nullptr;
     returnVal->whichSet = whichSet;

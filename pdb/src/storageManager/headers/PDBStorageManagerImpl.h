@@ -131,6 +131,21 @@ public:
 
 protected:
 
+  /**
+   * Checks if the file of the set is open if it is not then just open it, if it does not exist create it..
+   * @param whichSet - the set we want to check the file for.
+   */
+  void checkIfOpen(PDBSetPtr &whichSet);
+
+  /**
+   * Returns the file descriptor for a particular set
+   * @param whichSet - the set we are looking up the file descriptor
+   * @return - the file descriptor
+   */
+  int getFileDescriptor(const PDBSetPtr &whichSet);
+
+ protected:
+
   // "registers" a min-page.  That is, do record-keeping so that we can link the mini-page
   // to the full page that it is located on top of.  Since this is called when a page is created
   // or read back from disk, it calls "pinParent" to make sure that the parent (full) page cannot be
@@ -183,6 +198,23 @@ protected:
   // then the page may be removed later if its parent page is recycled)
   void downToZeroReferences (PDBPagePtr me) override;
 
+  /**
+   * this method finds free memory for a page of the specified size
+   * @param pageSize - the size of the page
+   * @return - a void pointer pointing to a memory of exactly the specified size
+   */
+  void *getEmptyMemory(int64_t pageSize);
+
+  /**
+   * Lock the buffer manager
+   */
+  void lock() override;
+
+  /**
+   * Unlock the buffer manager
+   */
+  void unlock() override;
+
   // list of ALL of the page objects that are currently in existence
   map <pair <PDBSetPtr, size_t>, PDBPagePtr, PDBPageCompare> allPages;
 
@@ -228,9 +260,9 @@ protected:
 
   // the last position in the temporary file
   size_t lastTempPos = 0;
-
   // where we write the data
   string tempFile;
+
   int32_t tempFileFD = 0;
 
   // this is the log of pageSize / MIN_PAGE_SIZE
@@ -244,6 +276,15 @@ protected:
 
   // whether the storage manager has been initialized
   bool initialized = false;
+
+  // locks the whole buffer manager
+  std::mutex lck;
+
+  // locks the file descriptors
+  std::mutex fdLck;
+
+  // these locks are used to lock down
+  std::map<int64_t, std::mutex> emptyPagesLocks;
 
   friend class PDBPage;
 };

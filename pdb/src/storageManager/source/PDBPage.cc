@@ -24,17 +24,11 @@ PDBPage :: PDBPage (PDBStorageManagerInterface &parent) : parent (parent) {}
 
 void PDBPage :: incRefCount () {
 
-	// lock the page so we can increment the reference count
-	std::unique_lock<mutex> l(lk);
-
 	// decrement the reference count
 	refCount++;
 }
 
 void PDBPage :: decRefCount () {
-
-	// lock the page so we can check the reference count, decrement it and free it if needed
-	std::unique_lock<mutex> l(lk);
 
 	// decrement the reference count
 	refCount--;

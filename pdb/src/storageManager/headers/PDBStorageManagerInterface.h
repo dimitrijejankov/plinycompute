@@ -129,6 +129,10 @@ private:
   // because unlike non-anonymous pages, anonymous pages will often never make it to disk)
   virtual void unpin (PDBPagePtr me) = 0;
 
+  virtual void lock() = 0;
+
+  virtual void unlock() = 0;
+
   // repins a page (it is called "repin" because by definition, each page is pinned upon
   // creation, so every page has been pinned at least once).  To repin, if the page is already
   // in RAM, we just pin the page, and then pin the page's parent.  If it is not in RAM, then

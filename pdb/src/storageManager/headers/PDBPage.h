@@ -76,7 +76,7 @@ class PDBPage {
   // create a page
   explicit PDBPage (PDBStorageManagerInterface &);
 
- private:
+ protected:
 
   // a bunch of setters (and some getters) that should ONLY be called by thr storage manager
   void setSet (PDBSetPtr);
@@ -93,8 +93,8 @@ class PDBPage {
   void setDirty ();
   void setClean ();
   void setMe (PDBPagePtr toMe);
-  void incRefCount ();
-  void decRefCount ();
+  virtual void incRefCount ();
+  virtual void decRefCount ();
   void lock();
   void unlock();
 
