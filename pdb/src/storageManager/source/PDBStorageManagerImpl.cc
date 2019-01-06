@@ -1,5 +1,3 @@
-
-
 /****************************************************
 ** COPYRIGHT 2016, Chris Jermaine, Rice University **
 **                                                 **
@@ -245,7 +243,6 @@ void PDBStorageManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn
     vector<void *> tempAgain;
     availablePositions.push_back(temp);
     emptyMiniPages.push_back(tempAgain);
-    emptyPagesLocks[curSize];
     logOfPageSize++;
   }
 
@@ -287,9 +284,7 @@ void PDBStorageManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn
 void PDBStorageManagerImpl::registerMiniPage(PDBPagePtr registerMe) {
 
   // first, compute the page this guy is on
-  void *whichPage = (char *) sharedMemory.memory
-      + ((((char *) registerMe->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize)
-          * sharedMemory.pageSize);
+  void *whichPage = (char *) sharedMemory.memory + ((((char *) registerMe->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
 
   // now, add him to the list of constituent pages
   constituentPages[whichPage].push_back(registerMe);
@@ -353,7 +348,7 @@ void PDBStorageManagerImpl::downToZeroReferences(PDBPagePtr me) {
 }
 
 // this is only called with a locked buffer manager
-void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize) {
+void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_lock<mutex> &lock) {
 
   // first, we see if there is a page that we can break up; if not, then make one
   if (emptyFullPages.empty()) {
@@ -510,9 +505,13 @@ void PDBStorageManagerImpl::pinParent(PDBPagePtr me) {
 
 void PDBStorageManagerImpl::repin(PDBPagePtr me) {
 
+  // lock the buffer manager
+  unique_lock<mutex> lock(m);
+
   // first, we need to see if this page is currently pinned
-  if (me->isPinned())
+  if (me->isPinned()) {
     return;
+  }
 
   // it is not currently pinned, so see if it is in RAM
   if (me->getBytes() != nullptr) {
@@ -526,19 +525,11 @@ void PDBStorageManagerImpl::repin(PDBPagePtr me) {
   // it is an anonymous page, so we have to look up its location
   PDBPageInfo myInfo = me->getLocation();
 
-  // get space for it... first see if the space is available
-  if (emptyMiniPages[myInfo.numBytes].empty()) {
-    createAdditionalMiniPages(myInfo.numBytes);
-  }
-
-  me->setBytes(emptyMiniPages[myInfo.numBytes].back());
-  emptyMiniPages[myInfo.numBytes].pop_back();
+  // grab space from an empty page
+  me->setBytes(getEmptyMemory(myInfo.numBytes, lock));
 
   registerMiniPage(me);
   me->setPinned();
-
-  // unlock the lock
-  lck.unlock();
 
   if (me->isAnonymous()) {
 
@@ -567,14 +558,18 @@ PDBPageHandle PDBStorageManagerImpl::getPage(size_t maxBytes) {
     std::cerr << maxBytes << " is larger than the system page size of " << sharedMemory.pageSize << "\n";
   }
 
+  // lock the buffer manager
+  unique_lock<mutex> lock(m);
+
   // figure out the size of the page that we need
   size_t bytesRequired = 0;
   size_t curSize = MIN_PAGE_SIZE;
-  for (; curSize < maxBytes; curSize = (curSize << 1))
+  for (; curSize < maxBytes; curSize = (curSize << 1)) {
     bytesRequired++;
+  }
 
   // grab space from an empty page
-  void *space = getEmptyMemory(bytesRequired);
+  void *space = getEmptyMemory(bytesRequired, lock);
 
   PDBPagePtr returnVal = make_shared<PDBPage>(*this);
   returnVal->setMe(returnVal);
@@ -604,8 +599,8 @@ PDBPageHandle PDBStorageManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
   // check if we have the file for this set...
   checkIfOpen(whichSet);
 
-  // lock the whole thing
-  lck.lock();
+  // lock the buffer manager
+  std::unique_lock<std::mutex> lock(m);
 
   // next, see if the page is already in existence
   pair<PDBSetPtr, size_t> whichPage = make_pair(whichSet, i);
@@ -635,16 +630,16 @@ PDBPageHandle PDBStorageManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
       allPages[whichPage] = page;
 
       // set the physical address of the page
-      page->setBytes(getEmptyMemory(myInfo.numBytes));
+      page->setBytes(getEmptyMemory(myInfo.numBytes, lock));
 
       // and now that we have the physical we can simply register the page (add it to the constituent pages and pin the parent)
       registerMiniPage(page);
 
       // make a return value
-      auto pageHandle = make_shared<PDBPageHandleBase>(allPages[whichPage]);
+      auto pageHandle = make_shared<PDBPageHandleBase>(page);
 
-      // unlock the page manager
-      lck.unlock();
+      // mark the page as loaded
+      page->status = PDB_PAGE_LOADED;
 
       // return page handle
       return pageHandle;
@@ -670,11 +665,14 @@ PDBPageHandle PDBStorageManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
       // store it in allPages
       allPages[whichPage] = page;
 
+      // mark that we are loading the page
+      page->status = PDB_PAGE_LOADING;
+
       // make a return value
-      auto pagerHandle = make_shared<PDBPageHandleBase>(allPages[whichPage]);
+      auto pagerHandle = make_shared<PDBPageHandleBase>(page);
 
       // grab space from an empty page
-      void *space = getEmptyMemory(myInfo.numBytes);
+      void *space = getEmptyMemory(myInfo.numBytes, lock);
 
       // set the physical address of the page
       page->setBytes(space);
@@ -682,49 +680,42 @@ PDBPageHandle PDBStorageManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
       // and now that we have the physical we can simply register the page (add it to the constituent pages and pin the parent)
       registerMiniPage(page);
 
-      // lock the page and unlock the buffer manager so we don't stall while we read the page content from the file
-      page->lock();
-      lck.unlock();
+      // unlock since we are working on loading the file
+      lock.unlock();
 
       // read the data from disk
       auto fd = getFileDescriptor(whichSet);
       lseek(fd, myInfo.startPos, SEEK_SET);
       read(fd, space, MIN_PAGE_SIZE << myInfo.numBytes);
 
-      // unlock the page so other stuff can continue
-      page->unlock();
+      // finished working on the thing lock it
+      lock.lock();
+
+      // mark the page as loaded
+      page->status = PDB_PAGE_LOADED;
 
       // return the page handle
       return pagerHandle;
     }
   }
 
+  // wait while the page is loading
+  cv.wait(lock, [&] { return allPages[whichPage]->status != PDB_PAGE_LOADING; });
+
   // make a handle to the page
   auto ret = make_shared<PDBPageHandleBase>(allPages[whichPage]);
-
-  // lock the page
-  allPages[whichPage]->lock();
 
   // it is there, so return it
   repin(allPages[whichPage]);
 
-  // unlock the page
-  allPages[whichPage]->unlock();
-
-  // unlock the manager
-  lck.unlock();
-
   return ret;
 }
 
-void *PDBStorageManagerImpl::getEmptyMemory(int64_t pageSize) {
-
-  // lock the memory for this page size
-  std::lock_guard<std::mutex> lock(emptyPagesLocks[pageSize]);
+void *PDBStorageManagerImpl::getEmptyMemory(int64_t pageSize, unique_lock<mutex> &lock) {
 
   // get space for it... first see if the space is available
   if (emptyMiniPages[pageSize].empty()) {
-        createAdditionalMiniPages(pageSize);
+    createAdditionalMiniPages(pageSize, lock);
   }
 
   // grab an empty page
@@ -758,14 +749,6 @@ void PDBStorageManagerImpl::checkIfOpen(PDBSetPtr &whichSet) {
       endOfFiles[whichSet] = 0;
     }
   }
-}
-
-void PDBStorageManagerImpl::lock() {
-  lck.lock();
-}
-
-void PDBStorageManagerImpl::unlock() {
-  lck.unlock();
 }
 
 }

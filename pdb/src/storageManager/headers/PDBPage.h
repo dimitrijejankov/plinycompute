@@ -34,6 +34,14 @@ struct PDBPageInfo {
   int64_t numBytes = 0;
 };
 
+enum PDBPageStatus {
+
+  PDB_PAGE_LOADING,
+  PDB_PAGE_LOADED,
+  PDB_PAGE_NOT_LOADED
+
+};
+
 // forward definition to handle circular dependencies
 class PDBStorageManagerInterface;
 
@@ -82,6 +90,7 @@ class PDBPage {
   void setSet (PDBSetPtr);
   unsigned numRefs ();
   PDBPageInfo &getLocation ();
+  PDBPageStatus &getStatus();
   void setPageNum (size_t);
   void setAnonymous (bool);
   bool isAnonymous ();
@@ -93,13 +102,17 @@ class PDBPage {
   void setDirty ();
   void setClean ();
   void setMe (PDBPagePtr toMe);
-  virtual void incRefCount ();
-  virtual void decRefCount ();
+  void incRefCount ();
+  void decRefCount ();
   void lock();
   void unlock();
 
+
   // a pointer to the raw bytes
   void *bytes;
+
+  // the status of the page
+  PDBPageStatus status;
 
   // these are all pretty self-explanatory!
   bool pinned = false;

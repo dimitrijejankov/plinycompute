@@ -133,10 +133,6 @@ private:
    */
   void repin(PDBPagePtr me) override;
 
-  void lock() override {}
-
-  void unlock() override {}
-
   // mutex to lock the pages
   std::mutex lck;
 

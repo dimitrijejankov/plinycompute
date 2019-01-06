@@ -6,6 +6,7 @@
 #include "PDBStorageCheckLRU.h"
 #include <map>
 #include <memory>
+#include <condition_variable>
 #include "PDBPage.h"
 #include "PDBPageHandle.h"
 #include "PDBSet.h"
@@ -165,7 +166,7 @@ protected:
   // If the page is not anonymous, it is written back (it must already have a spot to be
   // written to, because it has to have been unpinned) and then if there are no references to
   // it, it is destroyed.
-  void createAdditionalMiniPages(int64_t whichSize);
+  void createAdditionalMiniPages(int64_t whichSize, unique_lock<mutex> &lock);
 
   // tell the buffer manager that the given page can be truncated at the indcated size
   void freezeSize (PDBPagePtr me, size_t numBytes) override;
@@ -203,17 +204,7 @@ protected:
    * @param pageSize - the size of the page
    * @return - a void pointer pointing to a memory of exactly the specified size
    */
-  void *getEmptyMemory(int64_t pageSize);
-
-  /**
-   * Lock the buffer manager
-   */
-  void lock() override;
-
-  /**
-   * Unlock the buffer manager
-   */
-  void unlock() override;
+  void *getEmptyMemory(int64_t pageSize, unique_lock<mutex> &lock);
 
   // list of ALL of the page objects that are currently in existence
   map <pair <PDBSetPtr, size_t>, PDBPagePtr, PDBPageCompare> allPages;
@@ -260,6 +251,7 @@ protected:
 
   // the last position in the temporary file
   size_t lastTempPos = 0;
+
   // where we write the data
   string tempFile;
 
@@ -278,13 +270,16 @@ protected:
   bool initialized = false;
 
   // locks the whole buffer manager
-  std::mutex lck;
+  std::mutex m;
 
-  // locks the file descriptors
+  // condition variable
+  std::condition_variable cv;
+
+  // this locks the file descriptor structure
   std::mutex fdLck;
 
-  // these locks are used to lock down
-  std::map<int64_t, std::mutex> emptyPagesLocks;
+  // this structure is used by conditional variables to check if the minipages of a particular size are bing generated
+  std::map<int64_t, int64_t> miniPagesGenerated;
 
   friend class PDBPage;
 };

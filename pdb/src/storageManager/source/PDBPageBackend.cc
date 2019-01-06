@@ -19,27 +19,6 @@
 
 namespace pdb {
 
-void PDBPageBackend::incRefCount() {
-
-  // lock the page so we can increment the reference count
-  std::unique_lock<mutex> l(lk);
-
-  // increment the reference count
-  refCount++;
-
-  // increment the reference count
-  PDBPage::incRefCount();
-}
-
-void PDBPageBackend::decRefCount() {
-
-  // lock the page so we can check the reference count, decrement it and free it if needed
-  std::unique_lock<mutex> l(lk);
-
-  // decrement the reference count
-  PDBPage::decRefCount();
-}
-
 }
 
 #endif

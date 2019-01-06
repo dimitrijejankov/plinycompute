@@ -18,11 +18,6 @@ class PDBPageBackend : public PDBPage {
  public:
 
   explicit PDBPageBackend(PDBStorageManagerInterface &manager) : PDBPage(manager) {};
-
- private:
-
-  void incRefCount() override;
-  void decRefCount() override;
 };
 
 }

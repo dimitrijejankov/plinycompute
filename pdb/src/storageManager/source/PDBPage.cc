@@ -20,7 +20,7 @@
 
 namespace pdb {
 
-PDBPage :: PDBPage (PDBStorageManagerInterface &parent) : parent (parent) {}
+PDBPage :: PDBPage (PDBStorageManagerInterface &parent) : parent (parent), status(PDB_PAGE_NOT_LOADED) {}
 
 void PDBPage :: incRefCount () {
 
@@ -101,6 +101,10 @@ PDBPageInfo &PDBPage :: getLocation () {
 	return location;
 }
 
+PDBPageStatus &PDBPage::getStatus() {
+  return status;
+}
+
 void PDBPage :: setPageNum (size_t inNum) {
 	pageNum = inNum;
 }
@@ -148,6 +152,7 @@ void PDBPage::unlock() {
 void PDBPage::lock() {
 	lk.lock();
 }
+
 
 }
 
