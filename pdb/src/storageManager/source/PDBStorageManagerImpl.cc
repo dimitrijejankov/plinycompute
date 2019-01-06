@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <cstring>
+#include <PDBStorageManagerImpl.h>
 
 namespace pdb {
 
@@ -508,6 +509,12 @@ void PDBStorageManagerImpl::repin(PDBPagePtr me) {
   // lock the buffer manager
   unique_lock<mutex> lock(m);
 
+  // call the actual repin function
+  repin(me, lock);
+}
+
+void PDBStorageManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
+
   // first, we need to see if this page is currently pinned
   if (me->isPinned()) {
     return;
@@ -531,16 +538,33 @@ void PDBStorageManagerImpl::repin(PDBPagePtr me) {
   registerMiniPage(me);
   me->setPinned();
 
+  // set the status to loading
+  me->status = PDB_PAGE_LOADING;
+
   if (me->isAnonymous()) {
 
+    // unlock the buffer manager
+    lock.unlock();
+
+    // read the page from disk
     lseek(tempFileFD, myInfo.startPos, SEEK_SET);
     read(tempFileFD, me->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes);
 
   } else {
 
+    // unlock the buffer manager
+    lock.unlock();
+
+    // read the page from disk
     lseek(fds[me->getSet()], myInfo.startPos, SEEK_SET);
     read(fds[me->getSet()], me->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes);
   }
+
+  // unlock the mutex
+  lock.lock();
+
+  // set the page to loaded
+  me->status = PDB_PAGE_LOADED;
 }
 
 PDBPageHandle PDBStorageManagerImpl::getPage() {
@@ -706,7 +730,7 @@ PDBPageHandle PDBStorageManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
   auto ret = make_shared<PDBPageHandleBase>(allPages[whichPage]);
 
   // it is there, so return it
-  repin(allPages[whichPage]);
+  repin(allPages[whichPage], lock);
 
   return ret;
 }
@@ -750,6 +774,7 @@ void PDBStorageManagerImpl::checkIfOpen(PDBSetPtr &whichSet) {
     }
   }
 }
+
 
 }
 

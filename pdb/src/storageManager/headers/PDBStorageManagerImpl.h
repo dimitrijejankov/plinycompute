@@ -145,8 +145,6 @@ protected:
    */
   int getFileDescriptor(const PDBSetPtr &whichSet);
 
- protected:
-
   // "registers" a min-page.  That is, do record-keeping so that we can link the mini-page
   // to the full page that it is located on top of.  Since this is called when a page is created
   // or read back from disk, it calls "pinParent" to make sure that the parent (full) page cannot be
@@ -193,6 +191,12 @@ protected:
   // is located on top of him, so he can't be kicked out while the mini-page is pinned), and
   // then note that this guy is now pinned
   void repin (PDBPagePtr me) override;
+
+  /**
+   * Repins with a lock provided, this is used interntally
+   * @param me
+   */
+  void repin (PDBPagePtr me, unique_lock<mutex> &lock);
 
   // this is called when there are zero external references to a page.  We remove all traces
   // of the page from the system, as long as the page is not being buffered in RAM (if it is,

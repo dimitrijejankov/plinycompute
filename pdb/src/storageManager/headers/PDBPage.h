@@ -107,7 +107,6 @@ class PDBPage {
   void lock();
   void unlock();
 
-
   // a pointer to the raw bytes
   void *bytes;
 
