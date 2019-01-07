@@ -244,6 +244,7 @@ void PDBStorageManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn
     vector<void *> tempAgain;
     availablePositions.push_back(temp);
     emptyMiniPages.push_back(tempAgain);
+
     logOfPageSize++;
   }
 
@@ -277,7 +278,12 @@ void PDBStorageManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn
 
   // and create a bunch of pages
   for (int i = 0; i < sharedMemory.numPages; i++) {
-    emptyFullPages.push_back(mapped + (sharedMemory.pageSize * i));
+
+    // figure out the address
+    void *address = mapped + (sharedMemory.pageSize * i);
+
+    // store the address
+    emptyFullPages.push_back(address);
   }
 
 }
@@ -296,8 +302,11 @@ void PDBStorageManagerImpl::registerMiniPage(PDBPagePtr registerMe) {
 
 void PDBStorageManagerImpl::freeAnonymousPage(PDBPagePtr me) {
 
+  // lock the buffer manager
+  std::unique_lock<std::mutex> lock(m);
+
   // first, unpin him, if he's not unpinned
-  unpin(me);
+  unpin(me, lock);
 
   // recycle his location
   PDBPageInfo temp = me->getLocation();
@@ -315,8 +324,7 @@ void PDBStorageManagerImpl::freeAnonymousPage(PDBPagePtr me) {
   }
 
   // now, remove him from the set of constituent pages
-  void *whichPage = (char *) sharedMemory.memory
-      + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+  void *whichPage = (char *) sharedMemory.memory + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
   for (int i = 0; i < constituentPages[whichPage].size(); i++) {
     if (me == constituentPages[whichPage][i]) {
       constituentPages[whichPage].erase(constituentPages[whichPage].begin() + i);
@@ -337,14 +345,18 @@ void PDBStorageManagerImpl::freeAnonymousPage(PDBPagePtr me) {
 
 void PDBStorageManagerImpl::downToZeroReferences(PDBPagePtr me) {
 
+  // lock the buffer manager
+  std::unique_lock<std::mutex> lock(m);
+
   // first, see whether we are actually buffered in RAM
   if (me->getBytes() == nullptr) {
 
     // we are not, so there is no reason to keep this guy around.  Kill him.
     pair<PDBSetPtr, long> whichPage = make_pair(me->getSet(), me->whichPage());
     allPages.erase(whichPage);
+
   } else {
-    unpin(me);
+    unpin(me, lock);
   }
 }
 
@@ -367,6 +379,19 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
     // remove the evicted page from the queue this prevents other threads from using it
     lastUsed.erase(page);
 
+    // first we need to remove all the mini pages that this page is split into and are not used
+    auto &unused = unusedMiniPages[emptyFullPages.back()];
+    auto &miniPages = emptyMiniPages[unused.second];
+
+    // go through each unused minipage and remove it!
+    for(auto const &it : unused.first) {
+      auto const jt = std::find(miniPages.begin(), miniPages.end(), it);
+      miniPages.erase(jt);
+    }
+
+    // clear the unused pages
+    unused.first.clear();
+
     // now let all of the constituent pages know the RAM is no longer usable
     // this loop is safe since nobody can access it since we removed the page from lastUsed
     for (auto &a: constituentPages[page->first]) {
@@ -384,17 +409,40 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
           availablePositions[a->getLocation().numBytes].pop_back();
         }
 
+        // the page is not unloading unlock the buffer manager so we don't stall
+        a->status = PDB_PAGE_UNLOADING;
+        lock.unlock();
+
         lseek(tempFileFD, a->getLocation().startPos, SEEK_SET);
         write(tempFileFD, a->getBytes(), MIN_PAGE_SIZE << a->getLocation().numBytes);
+
+        // lock it again so we can update the status
+        lock.lock();
+        a->status = PDB_PAGE_NOT_LOADED;
+
+        // notify all the threads that are pause because of a status
+        cv.notify_all();
 
       } else {
 
         if (a->isDirty()) {
 
+          // the page is not unloading unlock the buffer manager so we don't stall
+          a->status = PDB_PAGE_UNLOADING;
+
+          lock.unlock();
+
           PDBPageInfo myInfo = a->getLocation();
           lseek(fds[a->getSet()], myInfo.startPos, SEEK_SET);
           write(fds[a->getSet()], a->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes);
 
+          lock.lock();
+
+          // lock it again so we can update the status
+          a->status = PDB_PAGE_NOT_LOADED;
+
+          // notify all the threads that are pause because of a status
+          cv.notify_all();
         }
 
         // if the number of outstanding references is zero, just kill it
@@ -417,8 +465,16 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
 
   // now, we have a big page, so we can break it up into mini-pages
   size_t inc = MIN_PAGE_SIZE << whichSize;
+  auto &unused = unusedMiniPages[emptyFullPages.back()];
+  unused.second = whichSize;
+
   for (size_t offset = 0; offset < sharedMemory.pageSize; offset += inc) {
+
+    // store the empty mini page as a mini page of that size
     emptyMiniPages[whichSize].push_back(((char *) emptyFullPages.back()) + offset);
+
+    // store the mini page as unused
+    unused.first.emplace_back(((char *) emptyFullPages.back()) + offset);
   }
 
   // set the number of pinned pages to zero... we will always pin this page subsequently,
@@ -430,6 +486,15 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
 }
 
 void PDBStorageManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes) {
+
+  // lock the buffer manager
+  std::unique_lock<std::mutex> lock(m);
+
+  // do the actual freezing
+  freezeSize(me, numBytes, lock);
+}
+
+void PDBStorageManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes, unique_lock<mutex> &lock) {
 
   if (me->sizeIsFrozen()) {
     std::cerr << "You cannot freeze the size of a page twice.\n";
@@ -449,23 +514,34 @@ void PDBStorageManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes) {
 
 void PDBStorageManagerImpl::unpin(PDBPagePtr me) {
 
-  if (!me->isPinned())
+  // lock the buffer manager
+  std::unique_lock<std::mutex> lock(m);
+
+  // unlock the page
+  unpin(me, lock);
+}
+
+void PDBStorageManagerImpl::unpin(PDBPagePtr me, unique_lock<mutex> &lock) {
+
+  if (!me->isPinned()) {
     return;
+  }
 
   // it is no longer pinned
   me->setUnpinned();
 
   // freeze the size, if needed
-  if (!me->sizeIsFrozen())
-    freezeSize(me, sharedMemory.pageSize);
+  if (!me->sizeIsFrozen()) {
+    freezeSize(me, sharedMemory.pageSize, lock);
+  }
 
   // first, we find the parent of this guy
-  void *memLoc = (char *) sharedMemory.memory
-      + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+  void *memLoc = (char *) sharedMemory.memory + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
 
   // and decrement the number of pinned minipages
-  if (numPinned[memLoc] > 0)
+  if (numPinned[memLoc] > 0) {
     numPinned[memLoc]--;
+  }
 
   // if the number of pinned minipages is now zero, put into the LRU structure
   if (numPinned[memLoc] == 0) {
@@ -479,7 +555,7 @@ void PDBStorageManagerImpl::unpin(PDBPagePtr me) {
   if (!me->isAnonymous()) {
 
     // if we don't know where to write it, figure it out
-    if (pageLocations.count(whichPage) == 0) {
+    if (pageLocations.find(whichPage) == pageLocations.end()) {
       me->getLocation().startPos = endOfFiles[me->getSet()];
       pair<PDBSetPtr, size_t> myIndex = make_pair(me->getSet(), me->whichPage());
       pageLocations[whichPage] = me->getLocation();
@@ -491,8 +567,7 @@ void PDBStorageManagerImpl::unpin(PDBPagePtr me) {
 void PDBStorageManagerImpl::pinParent(PDBPagePtr me) {
 
   // first, we determine the parent of this guy
-  void *whichPage = (char *) sharedMemory.memory
-      + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+  void *whichPage = (char *) sharedMemory.memory + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
 
   // and increment the number of pinned minipages
   if (numPinned[whichPage] < 0) {
@@ -565,6 +640,10 @@ void PDBStorageManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
 
   // set the page to loaded
   me->status = PDB_PAGE_LOADED;
+
+  // notify all waiting conditional variables
+  lock.unlock();
+  cv.notify_all();
 }
 
 PDBPageHandle PDBStorageManagerImpl::getPage() {
@@ -665,13 +744,16 @@ PDBPageHandle PDBStorageManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
       // mark the page as loaded
       page->status = PDB_PAGE_LOADED;
 
+      // notify all waiting conditional variables
+      lock.unlock();
+      cv.notify_all();
+
       // return page handle
       return pageHandle;
 
     } else {
 
       // we have previously created it, so load it up
-
       PDBPageInfo &myInfo = pageLocations[whichPage];
 
       // create the page and store it in the allPages, we have to do this before we unlock the buffer manager,
@@ -718,16 +800,21 @@ PDBPageHandle PDBStorageManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
       // mark the page as loaded
       page->status = PDB_PAGE_LOADED;
 
+      // notify all waiting conditional variables
+      lock.unlock();
+      cv.notify_all();
+
       // return the page handle
       return pagerHandle;
     }
   }
 
-  // wait while the page is loading
-  cv.wait(lock, [&] { return allPages[whichPage]->status != PDB_PAGE_LOADING; });
-
-  // make a handle to the page
+  // make a handle to the page we have to do that before we lock the conditional variable so the page does not get
+  // removed from the allPages if it was unloading and there are no handles to it...
   auto ret = make_shared<PDBPageHandleBase>(allPages[whichPage]);
+
+  // wait while the page is loading
+  cv.wait(lock, [&] { return !(allPages[whichPage]->status == PDB_PAGE_LOADING || allPages[whichPage]->status == PDB_PAGE_UNLOADING); });
 
   // it is there, so return it
   repin(allPages[whichPage], lock);
@@ -745,6 +832,15 @@ void *PDBStorageManagerImpl::getEmptyMemory(int64_t pageSize, unique_lock<mutex>
   // grab an empty page
   void *space = emptyMiniPages[pageSize].back();
   emptyMiniPages[pageSize].pop_back();
+
+  // determine the parent of this guy
+  void *whichPage = (char *) sharedMemory.memory + ((((char *) space - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+
+  // remove the page we just grabbed from the pool of the unused pages for the parent page...
+  auto &parentPage = unusedMiniPages[whichPage].first;
+  auto it = std::find(parentPage.begin(), parentPage.end(), space);
+  parentPage.erase(it);
+
   return space;
 }
 

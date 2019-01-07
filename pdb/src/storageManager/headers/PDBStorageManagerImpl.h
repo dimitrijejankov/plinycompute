@@ -169,12 +169,21 @@ protected:
   // tell the buffer manager that the given page can be truncated at the indcated size
   void freezeSize (PDBPagePtr me, size_t numBytes) override;
 
+  void freezeSize (PDBPagePtr me, size_t numBytes, unique_lock<mutex> &lock);
+
   // unpin the page.  This freezes the size of the page (because now the page is read-only)
   // and then decrements the number of pinned pages on this pages' full parent page.  If this
   // page is not anonymous, we determine where its actual location on disk will be (for an
   // anonymous page, we wait until the page has to be written back to determine its location,
   // because unlike non-anonymous pages, anonymous pages will often never make it to disk)
   void unpin (PDBPagePtr me) override;
+
+  /**
+   * Unpins the page with a lock provided, this is used internally to pass a lock
+   * @param me
+   * @param lock
+   */
+  void unpin (PDBPagePtr me, unique_lock<mutex> &lock);
 
   // pins the page that is the parent of a mini-page.  The "parent" is the page that contains
   // the physical bits for the mini-page.  To pin the parent, we first determine the parent,
@@ -242,6 +251,10 @@ protected:
   // is a pair containing a pointer to the full page that is being used to allocate
   // minipages, and a pointer to the next slot that we'll allocate from on the minipage
   vector <vector <void *>> emptyMiniPages;
+
+  // for a given full physical page maps all the mini pages it is split into but are not used
+  // we have to keep track of this so that when we evict a page we know which pages to remove from the emptyMiniPages
+  map <void*, std::pair<vector<void *>, int64_t >> unusedMiniPages;
 
   // all of the positions in the temporary file that are currently not in use
   vector <vector<size_t>> availablePositions;
