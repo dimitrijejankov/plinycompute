@@ -305,6 +305,12 @@ void PDBStorageManagerImpl::freeAnonymousPage(PDBPagePtr me) {
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
 
+  // ok if by some chance we made another reference while we were waiting for the lock
+  // do not free it!
+  if(me->refCount != 0) {
+    return;
+  }
+
   // first, unpin him, if he's not unpinned
   unpin(me, lock);
 
@@ -348,6 +354,16 @@ void PDBStorageManagerImpl::downToZeroReferences(PDBPagePtr me) {
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
 
+  {
+    std::unique_lock<std::mutex> page_lck(me->lk);
+
+    // ok if by some chance we made another reference while we were waiting for the lock
+    // do not free it!
+    if(me->refCount != 0) {
+      return;
+    }
+  }
+
   // first, see whether we are actually buffered in RAM
   if (me->getBytes() == nullptr) {
 
@@ -374,13 +390,16 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
     }
 
     // find the LRU
-    auto page = lastUsed.begin();
+    auto pageIt = lastUsed.begin();
+
+    // we copy the thing so we can erase it from the lastUsed
+    auto page = *pageIt;
 
     // remove the evicted page from the queue this prevents other threads from using it
-    lastUsed.erase(page);
+    lastUsed.erase(pageIt);
 
     // first we need to remove all the mini pages that this page is split into and are not used
-    auto &unused = unusedMiniPages[emptyFullPages.back()];
+    auto &unused = unusedMiniPages[page.first];
     auto &miniPages = emptyMiniPages[unused.second];
 
     // go through each unused minipage and remove it!
@@ -394,7 +413,7 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
 
     // now let all of the constituent pages know the RAM is no longer usable
     // this loop is safe since nobody can access it since we removed the page from lastUsed
-    for (auto &a: constituentPages[page->first]) {
+    for (auto &a: constituentPages[page.first]) {
 
       if (a->isAnonymous() && a->isDirty()) {
 
@@ -458,9 +477,9 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
     }
 
     // and erase the page
-    constituentPages[page->first].clear();
-    emptyFullPages.push_back(page->first);
-    numPinned.erase(page->first);
+    constituentPages[page.first].clear();
+    emptyFullPages.push_back(page.first);
+    numPinned.erase(page.first);
   }
 
   // now, we have a big page, so we can break it up into mini-pages

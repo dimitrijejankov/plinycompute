@@ -295,9 +295,6 @@ protected:
   // this locks the file descriptor structure
   std::mutex fdLck;
 
-  // this structure is used by conditional variables to check if the minipages of a particular size are bing generated
-  std::map<int64_t, int64_t> miniPagesGenerated;
-
   friend class PDBPage;
 };
 

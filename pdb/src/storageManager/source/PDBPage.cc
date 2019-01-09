@@ -20,15 +20,21 @@
 
 namespace pdb {
 
-PDBPage :: PDBPage (PDBStorageManagerInterface &parent) : parent (parent), status(PDB_PAGE_NOT_LOADED) {}
+PDBPage :: PDBPage (PDBStorageManagerInterface &parent) : parent (parent), status(PDB_PAGE_NOT_LOADED), dirty(false) {}
 
 void PDBPage :: incRefCount () {
+
+	// lock the reference count
+	unique_lock<mutex> blockLck(lk);
 
 	// decrement the reference count
 	refCount++;
 }
 
 void PDBPage :: decRefCount () {
+
+	// lock the reference count
+	unique_lock<mutex> blockLck(lk);
 
 	// decrement the reference count
 	refCount--;
@@ -38,6 +44,9 @@ void PDBPage :: decRefCount () {
 
 	// did the reference count fall to zero
 	if (refCount == 0) {
+
+		// unlock the reference count
+		blockLck.unlock();
 
 		// if this is an anonymous page free it
 		if (isAnon) {

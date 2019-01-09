@@ -16,6 +16,7 @@
 #include "PDBSet.h"
 #include <string>
 #include <mutex>
+#include <atomic>
 
 // this is the smallest mini-page size that we can have
 #define MIN_PAGE_SIZE 8u
@@ -116,7 +117,7 @@ class PDBPage {
 
   // these are all pretty self-explanatory!
   bool pinned = false;
-  bool dirty = false;
+  std::atomic_bool dirty;
   unsigned refCount = 0;
   size_t pageNum = 0;
   bool isAnon = true;
