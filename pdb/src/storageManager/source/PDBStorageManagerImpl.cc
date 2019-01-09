@@ -626,14 +626,14 @@ void PDBStorageManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
   // it is an anonymous page, so we have to look up its location
   PDBPageInfo myInfo = me->getLocation();
 
+  // set the status to loading
+  me->status = PDB_PAGE_LOADING;
+
   // grab space from an empty page
   me->setBytes(getEmptyMemory(myInfo.numBytes, lock));
 
   registerMiniPage(me);
   me->setPinned();
-
-  // set the status to loading
-  me->status = PDB_PAGE_LOADING;
 
   if (me->isAnonymous()) {
 
@@ -751,6 +751,9 @@ PDBPageHandle PDBStorageManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
       // store it in allPages
       allPages[whichPage] = page;
 
+      // mark that we are loading the page
+      page->status = PDB_PAGE_LOADING;
+
       // set the physical address of the page
       page->setBytes(getEmptyMemory(myInfo.numBytes, lock));
 
@@ -828,15 +831,18 @@ PDBPageHandle PDBStorageManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
     }
   }
 
+  // grab a page
+  auto page = allPages[whichPage];
+
   // make a handle to the page we have to do that before we lock the conditional variable so the page does not get
   // removed from the allPages if it was unloading and there are no handles to it...
-  auto ret = make_shared<PDBPageHandleBase>(allPages[whichPage]);
+  auto ret = make_shared<PDBPageHandleBase>(page);
 
   // wait while the page is loading
-  cv.wait(lock, [&] { return !(allPages[whichPage]->status == PDB_PAGE_LOADING || allPages[whichPage]->status == PDB_PAGE_UNLOADING); });
+  cv.wait(lock, [&] { return !(page->status == PDB_PAGE_LOADING || page->status == PDB_PAGE_UNLOADING); });
 
   // it is there, so return it
-  repin(allPages[whichPage], lock);
+  repin(page, lock);
 
   return ret;
 }

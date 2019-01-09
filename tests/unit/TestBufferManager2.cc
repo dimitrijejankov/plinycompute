@@ -18,11 +18,11 @@ int main(int argc, char **argv) {
 
   // create the storage manager
   PDBStorageManagerImpl myMgr;
-  myMgr.initialize("tempDSFSD", 64, 3, "metadata", ".");
+  myMgr.initialize("tempDSFSD", 64, 4, "metadata", ".");
 
-  const int numRequestsPerPage = 1000;
-  const int numPages = 4;
-  const int numThreads = 2;
+  const int numRequestsPerPage = 2000;
+  const int numPages = 5;
+  const int numThreads = 3;
 
   // generate the pages
   PDBSetPtr set = make_shared<PDBSet>("set1", "DB");
