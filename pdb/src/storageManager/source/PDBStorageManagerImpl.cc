@@ -112,8 +112,7 @@ PDBStorageManagerImpl::~PDBStorageManagerImpl() {
       endOfFiles[me->getSet()] += (MIN_PAGE_SIZE << me->getLocation().numBytes);
     }
 
-    lseek(fds[me->getSet()], me->getLocation().startPos, SEEK_SET);
-    write(fds[me->getSet()], me->getBytes(), MIN_PAGE_SIZE << me->getLocation().numBytes);
+    pwrite(fds[me->getSet()], me->getBytes(), MIN_PAGE_SIZE << me->getLocation().numBytes, me->getLocation().startPos);
   }
 
   // and unmap the RAM
@@ -432,8 +431,7 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
         a->status = PDB_PAGE_UNLOADING;
         lock.unlock();
 
-        lseek(tempFileFD, a->getLocation().startPos, SEEK_SET);
-        write(tempFileFD, a->getBytes(), MIN_PAGE_SIZE << a->getLocation().numBytes);
+        pwrite(tempFileFD, a->getBytes(), MIN_PAGE_SIZE << a->getLocation().numBytes, a->getLocation().startPos);
 
         // lock it again so we can update the status
         lock.lock();
@@ -452,8 +450,7 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
           lock.unlock();
 
           PDBPageInfo myInfo = a->getLocation();
-          lseek(fds[a->getSet()], myInfo.startPos, SEEK_SET);
-          write(fds[a->getSet()], a->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes);
+          pwrite(fds[a->getSet()], a->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
 
           lock.lock();
 
@@ -641,8 +638,7 @@ void PDBStorageManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
     lock.unlock();
 
     // read the page from disk
-    lseek(tempFileFD, myInfo.startPos, SEEK_SET);
-    read(tempFileFD, me->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes);
+    pread(tempFileFD, me->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
 
   } else {
 
@@ -650,8 +646,7 @@ void PDBStorageManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
     lock.unlock();
 
     // read the page from disk
-    lseek(fds[me->getSet()], myInfo.startPos, SEEK_SET);
-    read(fds[me->getSet()], me->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes);
+    pread(fds[me->getSet()], me->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
   }
 
   // unlock the mutex
@@ -813,8 +808,7 @@ PDBPageHandle PDBStorageManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
 
       // read the data from disk
       auto fd = getFileDescriptor(whichSet);
-      lseek(fd, myInfo.startPos, SEEK_SET);
-      read(fd, space, MIN_PAGE_SIZE << myInfo.numBytes);
+      pread(fd, space, MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
 
       // finished working on the thing lock it
       lock.lock();
