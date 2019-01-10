@@ -304,9 +304,8 @@ void PDBStorageManagerImpl::freeAnonymousPage(PDBPagePtr me) {
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
 
-  // ok if by some chance we made another reference while we were waiting for the lock
-  // do not free it!
-  if(me->refCount != 0) {
+  // is this removal still valid if it is not we do nothing
+  if(!isRemovalStillValid(me)) {
     return;
   }
 
@@ -353,14 +352,9 @@ void PDBStorageManagerImpl::downToZeroReferences(PDBPagePtr me) {
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
 
-  {
-    std::unique_lock<std::mutex> page_lck(me->lk);
-
-    // ok if by some chance we made another reference while we were waiting for the lock
-    // do not free it!
-    if(me->refCount != 0) {
-      return;
-    }
+  // is this removal still valid if it is not we do nothing
+  if(!isRemovalStillValid(me)) {
+    return;
   }
 
   // first, see whether we are actually buffered in RAM
@@ -373,6 +367,34 @@ void PDBStorageManagerImpl::downToZeroReferences(PDBPagePtr me) {
   } else {
     unpin(me, lock);
   }
+}
+
+bool PDBStorageManagerImpl::isRemovalStillValid(PDBPagePtr me) {
+
+  // lock the page counter so we can work with it
+  std::unique_lock<std::mutex> page_lck(me->lk);
+
+  // ok if by some chance we made another reference while we were waiting for the lock
+  // do not free it!
+  if(me->refCount != 0) {
+    return false;
+  }
+
+  pair<PDBSetPtr, long> whichPage = make_pair(me->getSet(), me->whichPage());
+  auto it = allPages.find(whichPage);
+
+  // was the page removed while we were waiting
+  if(it == allPages.end()) {
+    return false;
+  }
+
+  // was the page removed and then replaced by another one while we were waiting
+  if(it->second.get() != me.get()) {
+    return false;
+  }
+
+  // yeah we should still remove it
+  return true;
 }
 
 // this is only called with a locked buffer manager
@@ -461,12 +483,18 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
           cv.notify_all();
         }
 
+        // lock the page so we can check the references
+        a->lk.lock();
+
         // if the number of outstanding references is zero, just kill it
         if (a->numRefs() == 0) {
 
           pair<PDBSetPtr, long> whichPage = make_pair(a->getSet(), a->whichPage());
           allPages.erase(whichPage);
         }
+
+        // unlock the page since we are done with checking the references
+        a->lk.unlock();
       }
 
       a->setClean();

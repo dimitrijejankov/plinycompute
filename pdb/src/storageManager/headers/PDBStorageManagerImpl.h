@@ -212,6 +212,8 @@ protected:
   // then the page may be removed later if its parent page is recycled)
   void downToZeroReferences (PDBPagePtr me) override;
 
+  bool isRemovalStillValid(PDBPagePtr me);
+
   /**
    * this method finds free memory for a page of the specified size
    * @param pageSize - the size of the page
