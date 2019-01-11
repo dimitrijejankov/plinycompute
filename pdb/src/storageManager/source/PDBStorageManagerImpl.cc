@@ -380,6 +380,11 @@ bool PDBStorageManagerImpl::isRemovalStillValid(PDBPagePtr me) {
     return false;
   }
 
+  // if the page is anonymous we are done here
+  if(me->isAnonymous()) {
+    return true;
+  }
+
   pair<PDBSetPtr, long> whichPage = make_pair(me->getSet(), me->whichPage());
   auto it = allPages.find(whichPage);
 
@@ -389,12 +394,8 @@ bool PDBStorageManagerImpl::isRemovalStillValid(PDBPagePtr me) {
   }
 
   // was the page removed and then replaced by another one while we were waiting
-  if(it->second.get() != me.get()) {
-    return false;
-  }
-
-  // yeah we should still remove it
-  return true;
+  // (this is the last check it this works the removal is safe)
+  return !(it->second.get() != me.get());
 }
 
 // this is only called with a locked buffer manager
@@ -455,7 +456,7 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
 
         pwrite(tempFileFD, a->getBytes(), MIN_PAGE_SIZE << a->getLocation().numBytes, a->getLocation().startPos);
 
-        // lock it again so we can update the status
+        // lock it again so we can update the status and continue
         lock.lock();
         a->status = PDB_PAGE_NOT_LOADED;
 

@@ -21,8 +21,16 @@ if (APPLE)
     SET(CMAKE_CXX_FLAGS "-g -fPIC -Wno-deprecated-declarations -O3")
     SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -undefined dynamic_lookup")
 elseif (UNIX AND NOT APPLE)
-    SET(CMAKE_CXX_FLAGS "-fPIC -Wno-deprecated-declarations -O3")
+    SET(CMAKE_CXX_FLAGS "-fPIC -Wno-deprecated-declarations")
 endif ()
+
+# address sanetizer uncomment if needed
+#set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+#set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+
+#set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=thread -fPIE -pie -g")
+#set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=thread -fPIE -pie -g")
+
 
 # set the definitions for the compiler
 ADD_DEFINITIONS(-DINITIALIZE_ALLOCATOR_BLOCK)
