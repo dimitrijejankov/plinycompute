@@ -541,6 +541,291 @@ TEST(BufferManagerTest, Test8) {
   }
 }
 
+// this test tests anonymous pages of size 32 when the largest page size is 64
+TEST(BufferManagerTest, Test9) {
+
+  // create the storage manager
+  PDBStorageManagerImpl myMgr;
+  myMgr.initialize("tempDSFSD", 64, 10, "metadata", ".");
+
+  // parameters
+  const int numPages = 1000;
+  const int numThreads = 4;
+
+  // used to sync
+  atomic_int32_t sync;
+  sync = 0;
+
+  // run multiple threads
+  std::vector<std::thread> threads;
+  threads.reserve(numThreads);
+  for(int t = 0; t < numThreads; ++t) {
+
+    threads.emplace_back(std::thread([&](int tmp) {
+
+      // sync the threads to make sure there is more overlapping
+      sync++;
+      while (sync != numThreads) {}
+
+      int offset = 0;
+
+      std::vector<PDBPageHandle> pageHandles;
+
+      // grab anon pages
+      for(int i = 0; i < numPages; ++i) {
+
+        // grab the page
+        auto page = myMgr.getPage(32);
+
+        // grab the page and fill it in
+        char* bytes = (char*) page->getBytes();
+        for(char j = 0; j < 32; ++j) {
+          bytes[j] = static_cast<char>((j + offset + tmp) % 128);
+        }
+
+        // store page
+        pageHandles.push_back(page);
+
+        // unpin the page
+        page->unpin();
+
+        // increment the offset
+        offset++;
+      }
+
+      // sync the threads to make sure there is more overlapping
+      sync++;
+      while (sync != 2 * numThreads) {}
+
+      offset = 0;
+      for(auto &page : pageHandles) {
+
+        // repin the page
+        page->repin();
+
+        // grab the page and fill it in
+        char* bytes = (char*) page->getBytes();
+        for(char j = 0; j < 32; ++j) {
+          EXPECT_EQ(bytes[j], static_cast<char>((j + offset + tmp) % 128));
+        }
+
+        // unpin the page
+        page->unpin();
+
+        // increment the offset
+        offset++;
+      }
+
+      // remove all the page handles
+      pageHandles.clear();
+
+    }, t));
+  }
+
+  for(auto &t : threads) {
+    t.join();
+  }
+}
+
+// tests anonymous pages of different sizes 8, 16, 32 when the largest page size is 64
+TEST(BufferManagerTest, Test10) {
+
+  // create the storage manager
+  PDBStorageManagerImpl myMgr;
+  myMgr.initialize("tempDSFSD", 64, 10, "metadata", ".");
+
+  // parameters
+  const int numPages = 1000;
+  const int numThreads = 4;
+
+  // used to sync
+  atomic_int32_t sync;
+  sync = 0;
+
+  // the page sizes we are testing
+  std::vector<size_t> pageSizes {8, 16, 32};
+
+  // run multiple threads
+  std::vector<std::thread> threads;
+  threads.reserve(numThreads);
+  for(int t = 0; t < numThreads; ++t) {
+
+    threads.emplace_back(std::thread([&](int tmp) {
+
+      // sync the threads to make sure there is more overlapping
+      sync++;
+      while (sync != numThreads) {}
+
+      int offset = 0;
+
+      std::vector<PDBPageHandle> pageHandles;
+
+      // grab anon pages
+      for(int i = 0; i < numPages; ++i) {
+
+        // use a different page size
+        size_t pageSize = pageSizes[i % 3];
+
+        // grab the page
+        auto page = myMgr.getPage(pageSize);
+
+        // grab the page and fill it in
+        char* bytes = (char*) page->getBytes();
+        for(char j = 0; j < pageSize; ++j) {
+          bytes[j] = static_cast<char>((j + offset + tmp) % 128);
+        }
+
+        // store page
+        pageHandles.push_back(page);
+
+        // unpin the page
+        page->unpin();
+
+        // increment the offset
+        offset++;
+      }
+
+      // sync the threads to make sure there is more overlapping
+      sync++;
+      while (sync != 2 * numThreads) {}
+
+      offset = 0;
+      for(int i = 0; i < numPages; ++i) {
+
+        // use a different page size
+        size_t pageSize = pageSizes[i % 3];
+
+        // grab the page
+        auto page = pageHandles[i];
+
+        // repin the page
+        page->repin();
+
+        // grab the page and fill it in
+        char* bytes = (char*) page->getBytes();
+        for(char j = 0; j < pageSize; ++j) {
+          EXPECT_EQ(bytes[j], static_cast<char>((j + offset + tmp) % 128));
+        }
+
+        // unpin the page
+        page->unpin();
+
+        // increment the offset
+        offset++;
+      }
+
+      // remove all the page handles
+      pageHandles.clear();
+
+    }, t));
+  }
+
+  for(auto &t : threads) {
+    t.join();
+  }
+}
+
+// tests freezing on anonymous pages
+TEST(BufferManagerTest, Test11) {
+
+  // create the storage manager
+  PDBStorageManagerImpl myMgr;
+  myMgr.initialize("tempDSFSD", 64, 10, "metadata", ".");
+
+  // parameters
+  const int numPages = 1000;
+  const int numThreads = 4;
+
+  // used to sync
+  atomic_int32_t sync;
+  sync = 0;
+
+  // the page sizes we are testing
+  std::vector<size_t> pageSizes {8, 16, 32};
+
+  // run multiple threads
+  std::vector<std::thread> threads;
+  threads.reserve(numThreads);
+  for(int t = 0; t < numThreads; ++t) {
+
+    threads.emplace_back(std::thread([&](int tmp) {
+
+      // sync the threads to make sure there is more overlapping
+      sync++;
+      while (sync != numThreads) {}
+
+      int offset = 0;
+
+      std::vector<PDBPageHandle> pageHandles;
+
+      // grab anon pages
+      for(int i = 0; i < numPages; ++i) {
+
+        // use a different page size
+        size_t pageSize = pageSizes[i % 3];
+
+        // grab the page
+        auto page = myMgr.getPage();
+
+        // freeze the size
+        page->freezeSize(pageSize);
+
+        // grab the page and fill it in
+        char* bytes = (char*) page->getBytes();
+        for(char j = 0; j < pageSize; ++j) {
+          bytes[j] = static_cast<char>((j + offset + tmp) % 128);
+        }
+
+        // store page
+        pageHandles.push_back(page);
+
+        // unpin the page
+        page->unpin();
+
+        // increment the offset
+        offset++;
+      }
+
+      // sync the threads to make sure there is more overlapping
+      sync++;
+      while (sync != 2 * numThreads) {}
+
+      offset = 0;
+      for(int i = 0; i < numPages; ++i) {
+
+        // use a different page size
+        size_t pageSize = pageSizes[i % 3];
+
+        // grab the page
+        auto page = pageHandles[i];
+
+        // repin the page
+        page->repin();
+
+        // grab the page and fill it in
+        char* bytes = (char*) page->getBytes();
+        for(char j = 0; j < pageSize; ++j) {
+          EXPECT_EQ(bytes[j], static_cast<char>((j + offset + tmp) % 128));
+        }
+
+        // unpin the page
+        page->unpin();
+
+        // increment the offset
+        offset++;
+      }
+
+      // remove all the page handles
+      pageHandles.clear();
+
+    }, t));
+  }
+
+  for(auto &t : threads) {
+    t.join();
+  }
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

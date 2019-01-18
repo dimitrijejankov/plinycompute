@@ -420,19 +420,6 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
     // remove the evicted page from the queue this prevents other threads from using it
     lastUsed.erase(pageIt);
 
-    // first we need to remove all the mini pages that this page is split into and are not used
-    auto &unused = unusedMiniPages[page.first];
-    auto &miniPages = emptyMiniPages[unused.second];
-
-    // go through each unused minipage and remove it!
-    for(auto const &it : unused.first) {
-      auto const jt = std::find(miniPages.begin(), miniPages.end(), it);
-      miniPages.erase(jt);
-    }
-
-    // clear the unused pages
-    unused.first.clear();
-
     // now let all of the constituent pages know the RAM is no longer usable
     // this loop is safe since nobody can access it since we removed the page from lastUsed
     for (auto &a: constituentPages[page.first]) {
@@ -577,7 +564,7 @@ void PDBStorageManagerImpl::unpin(PDBPagePtr me, unique_lock<mutex> &lock) {
 
   // freeze the size, if needed
   if (!me->sizeIsFrozen()) {
-    freezeSize(me, sharedMemory.pageSize, lock);
+    freezeSize(me, me->location.numBytes, lock);
   }
 
   // first, we find the parent of this guy
@@ -590,6 +577,21 @@ void PDBStorageManagerImpl::unpin(PDBPagePtr me, unique_lock<mutex> &lock) {
 
   // if the number of pinned minipages is now zero, put into the LRU structure
   if (numPinned[memLoc] == 0) {
+
+    // first we need to remove all the mini pages that this page is split into and are not used
+    auto &unused = unusedMiniPages[memLoc];
+    auto &miniPages = emptyMiniPages[unused.second];
+
+    // go through each unused minipage and remove it!
+    for(auto const &it : unused.first) {
+      auto const jt = std::find(miniPages.begin(), miniPages.end(), it);
+      miniPages.erase(jt);
+    }
+
+    // clear the unused pages
+    unused.first.clear();
+
+    // add it to the lru
     numPinned[memLoc] = -lastTimeTick;
     lastUsed.insert(make_pair(memLoc, lastTimeTick));
     lastTimeTick++;
