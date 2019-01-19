@@ -18,14 +18,16 @@ int main(int argc, char **argv) {
 
   // create the storage manager
   PDBStorageManagerImpl myMgr;
-  myMgr.initialize("tempDSFSD", 64, 5, "metadata", ".");
+  myMgr.initialize("tempDSFSD", 64, 4, "metadata", ".");
 
   // the page sizes we are testing
   std::vector<size_t> pageSizes {8, 16, 32};
 
   const int numRequestsPerPage = 2000;
-  const int numPages = 20;
-  const int numThreads = 2;
+  const int numPages = 60;
+
+  // note the number of threads must be less than 8 or equal to 8 or else we can exceed the page size
+  const int numThreads = 4;
 
   // generate the pages
   PDBSetPtr set = make_shared<PDBSet>("set1", "DB");
@@ -38,8 +40,8 @@ int main(int argc, char **argv) {
     page->freezeSize(pageSizes[i % 3]);
 
     for(int t = 0; t < numThreads; ++t) {
-      // set the first 4 bytes to 0
-      ((int *) page->getBytes())[t] = 0;
+      // set the first numThreads bytes to 0
+      ((char *) page->getBytes())[t] = 0;
     }
 
     // mark as dirty
@@ -56,6 +58,7 @@ int main(int argc, char **argv) {
     threads.emplace_back(std::thread([&](int tmp) {
 
       int myThraed = tmp;
+      int myThreadClamp = ((myThraed + 1) * 100) % 127;
 
       // generate the page indices
       std::vector<uint64_t> pageIndices;
@@ -77,7 +80,7 @@ int main(int argc, char **argv) {
         auto page = myMgr.getPage(set, it);
 
         // increment the page
-        ((int*) page->getBytes())[myThraed]++;
+        ((char *) page->getBytes())[myThraed] = (char) ((((char *) page->getBytes())[myThraed] + 1) % myThreadClamp);
 
         // set as dirty
         page->setDirty();
@@ -96,8 +99,10 @@ int main(int argc, char **argv) {
 
     for(int t = 0; t < numThreads; ++t) {
 
+      int myThreadClamp = ((t + 1) * 100) % 127;
+
       // check them
-      if (((int*) page->getBytes())[t] != numRequestsPerPage) {
+      if (((char*) page->getBytes())[t] != (numRequestsPerPage % myThreadClamp)) {
         std::cout << "why " << ((int*) page->getBytes())[t] << std::endl;
       }
     }

@@ -294,6 +294,12 @@ protected:
   // condition variable
   std::condition_variable cv;
 
+  // condition variable to grab new mini pages
+  std::condition_variable spaceLock;
+
+  // false if it is not creating a conditional variable of a certain size, true if it is. The size is in log(pageSize).
+  std::vector<bool> isCreatingSpace;
+
   // this locks the file descriptor structure
   std::mutex fdLck;
 

@@ -241,8 +241,10 @@ void PDBStorageManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn
   for (curSize = MIN_PAGE_SIZE; curSize <= sharedMemory.pageSize; curSize *= 2) {
     vector<size_t> temp;
     vector<void *> tempAgain;
+
     availablePositions.push_back(temp);
     emptyMiniPages.push_back(tempAgain);
+    isCreatingSpace.push_back(false);
 
     logOfPageSize++;
   }
@@ -401,6 +403,16 @@ bool PDBStorageManagerImpl::isRemovalStillValid(PDBPagePtr me) {
 // this is only called with a locked buffer manager
 void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_lock<mutex> &lock) {
 
+  // wait while the page is loading
+  spaceLock.wait(lock, [&] { return !isCreatingSpace[whichSize]; });
+
+  // did somebody create them while we were waiting
+  if(!emptyMiniPages[whichSize].empty()) {
+    return;
+  }
+
+  isCreatingSpace[whichSize] = true;
+
   // first, we see if there is a page that we can break up; if not, then make one
   if (emptyFullPages.empty()) {
 
@@ -457,12 +469,12 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
           // the page is not unloading unlock the buffer manager so we don't stall
           a->status = PDB_PAGE_UNLOADING;
 
-          lock.unlock();
+          //lock.unlock();
 
           PDBPageInfo myInfo = a->getLocation();
           pwrite(fds[a->getSet()], a->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
 
-          lock.lock();
+          //lock.lock();
 
           // lock it again so we can update the status
           a->status = PDB_PAGE_NOT_LOADED;
@@ -515,6 +527,9 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
 
   // and get rid of the empty full page
   emptyFullPages.pop_back();
+
+  isCreatingSpace[whichSize] = false;
+  spaceLock.notify_all();
 }
 
 void PDBStorageManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes) {
@@ -564,7 +579,7 @@ void PDBStorageManagerImpl::unpin(PDBPagePtr me, unique_lock<mutex> &lock) {
 
   // freeze the size, if needed
   if (!me->sizeIsFrozen()) {
-    freezeSize(me, me->location.numBytes, lock);
+    me->freezeSize();
   }
 
   // first, we find the parent of this guy
