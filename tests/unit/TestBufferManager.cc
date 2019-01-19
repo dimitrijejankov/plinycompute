@@ -830,10 +830,10 @@ TEST(BufferManagerTest, Test11) {
 TEST(BufferManagerTest, Test12) {
   // create the storage manager
   PDBStorageManagerImpl myMgr;
-  myMgr.initialize("tempDSFSD", 64, 4, "metadata", ".");
+  myMgr.initialize("tempDSFSD", 128, 4, "metadata", ".");
 
   // the page sizes we are testing
-  std::vector<size_t> pageSizes {8, 16, 32};
+  std::vector<size_t> pageSizes {8, 16, 32, 64, 128};
 
   const int numRequestsPerPage = 2000;
   const int numPages = 60;
@@ -849,7 +849,7 @@ TEST(BufferManagerTest, Test12) {
     auto page = myMgr.getPage(set, i);
 
     // freeze the size
-    page->freezeSize(pageSizes[i % 3]);
+    page->freezeSize(pageSizes[i % 5]);
 
     for(int t = 0; t < numThreads; ++t) {
       // set the first numThreads bytes to 0

@@ -303,6 +303,8 @@ protected:
   // this locks the file descriptor structure
   std::mutex fdLck;
 
+  atomic_int32_t cc;
+
   friend class PDBPage;
 };
 

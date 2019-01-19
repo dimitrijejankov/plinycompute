@@ -226,7 +226,7 @@ void PDBStorageManagerImpl::initialize(std::string metaDataFile) {
 
 void PDBStorageManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn, size_t numPagesIn,
                                        std::string metaFile, std::string storageLocIn) {
-
+  cc = 0;
   initialized = true;
   storageLoc = std::move(storageLocIn);
   sharedMemory.pageSize = pageSizeIn;
@@ -382,6 +382,11 @@ bool PDBStorageManagerImpl::isRemovalStillValid(PDBPagePtr me) {
     return false;
   }
 
+  // did we in the mean time started doing something with the page
+  if(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_UNLOADING) {
+    return false;
+  }
+
   // if the page is anonymous we are done here
   if(me->isAnonymous()) {
     return true;
@@ -403,7 +408,7 @@ bool PDBStorageManagerImpl::isRemovalStillValid(PDBPagePtr me) {
 // this is only called with a locked buffer manager
 void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_lock<mutex> &lock) {
 
-  // wait while the page is loading
+  // if somebody else is making a mini page of the requested size wait here
   spaceLock.wait(lock, [&] { return !isCreatingSpace[whichSize]; });
 
   // did somebody create them while we were waiting
@@ -411,6 +416,7 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
     return;
   }
 
+  // mark that we are creating the page of the requested size
   isCreatingSpace[whichSize] = true;
 
   // first, we see if there is a page that we can break up; if not, then make one
@@ -432,6 +438,9 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
     // remove the evicted page from the queue this prevents other threads from using it
     lastUsed.erase(pageIt);
 
+    // mark all pages as unloading
+    std::for_each(constituentPages[page.first].begin(), constituentPages[page.first].end(), [](auto &a){ a->status = PDB_PAGE_UNLOADING; });
+
     // now let all of the constituent pages know the RAM is no longer usable
     // this loop is safe since nobody can access it since we removed the page from lastUsed
     for (auto &a: constituentPages[page.first]) {
@@ -450,37 +459,25 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
         }
 
         // the page is not unloading unlock the buffer manager so we don't stall
-        a->status = PDB_PAGE_UNLOADING;
         lock.unlock();
 
         pwrite(tempFileFD, a->getBytes(), MIN_PAGE_SIZE << a->getLocation().numBytes, a->getLocation().startPos);
 
-        // lock it again so we can update the status and continue
+        // lock it again
         lock.lock();
-        a->status = PDB_PAGE_NOT_LOADED;
-
-        // notify all the threads that are pause because of a status
-        cv.notify_all();
 
       } else {
 
         if (a->isDirty()) {
 
           // the page is not unloading unlock the buffer manager so we don't stall
-          a->status = PDB_PAGE_UNLOADING;
-
-          //lock.unlock();
+          lock.unlock();
 
           PDBPageInfo myInfo = a->getLocation();
           pwrite(fds[a->getSet()], a->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
 
-          //lock.lock();
-
-          // lock it again so we can update the status
-          a->status = PDB_PAGE_NOT_LOADED;
-
-          // notify all the threads that are pause because of a status
-          cv.notify_all();
+          // lock the thing again
+          lock.lock();
         }
 
         // lock the page so we can check the references
@@ -500,6 +497,12 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
       a->setClean();
       a->setBytes(nullptr);
     }
+
+    // mark all pages as not loaded
+    std::for_each(constituentPages[page.first].begin(), constituentPages[page.first].end(), [](auto &a){ a->status = PDB_PAGE_NOT_LOADED; });
+
+    // notify all the threads that are paused because of a status
+    cv.notify_all();
 
     // and erase the page
     constituentPages[page.first].clear();
