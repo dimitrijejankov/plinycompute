@@ -177,6 +177,13 @@ class PDBStorageManagerImpl : public PDBStorageManagerInterface {
   int getFileDescriptor(const PDBSetPtr &whichSet);
 
   /**
+   * Returns the nearest log of page size that can accommodate the requested number of bytes
+   * @param numBytes - the number of bytes that needs to the be on that page
+   * @return - the value
+   */
+  size_t getLogPageSize(size_t numBytes);
+
+  /**
    * "registers" a min-page.  That is, do record-keeping so that we can link the mini-page
    * to the full page that it is located on top of.  Since this is called when a page is created
    * or read back from disk, it calls "pinParent" to make sure that the parent (full) page cannot be

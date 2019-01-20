@@ -11,14 +11,14 @@
 #ifndef STORAGE_MGR_C
 #define STORAGE_MGR_C
 
-#include <fcntl.h>
-#include <iostream>
-#include <sstream>
+
 #include "PDBPage.h"
 #include "PDBStorageFileWriter.h"
 #include "PDBStorageManagerImpl.h"
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/operations.hpp>
+
+#include <fcntl.h>
+#include <iostream>
+#include <sstream>
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <unistd.h>
@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <cstring>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <PDBStorageManagerImpl.h>
 
 namespace pdb {
@@ -553,11 +555,7 @@ void PDBStorageManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes, unique_lo
 
   me->freezeSize();
 
-  size_t bytesRequired = 0;
-  size_t curSize = MIN_PAGE_SIZE;
-  for (; curSize < numBytes; curSize = (curSize << 1)) {
-    bytesRequired++;
-  }
+  size_t bytesRequired = getLogPageSize(numBytes);
 
   me->getLocation().numBytes = bytesRequired;
 }
@@ -728,11 +726,7 @@ PDBPageHandle PDBStorageManagerImpl::getPage(size_t maxBytes) {
   unique_lock<mutex> lock(m);
 
   // figure out the size of the page that we need
-  size_t bytesRequired = 0;
-  size_t curSize = MIN_PAGE_SIZE;
-  for (; curSize < maxBytes; curSize = (curSize << 1)) {
-    bytesRequired++;
-  }
+  size_t bytesRequired = getLogPageSize(maxBytes);
 
   // grab space from an empty page
   void *space = getEmptyMemory(bytesRequired, lock);
@@ -938,7 +932,16 @@ void PDBStorageManagerImpl::checkIfOpen(PDBSetPtr &whichSet) {
     }
   }
 }
+size_t PDBStorageManagerImpl::getLogPageSize(size_t numBytes)  {
 
+  size_t bytesRequired = 0;
+  size_t curSize = MIN_PAGE_SIZE;
+  for (; curSize < numBytes; curSize = (curSize << 1)) {
+    bytesRequired++;
+  }
+
+  return bytesRequired;
+}
 
 }
 
