@@ -99,7 +99,7 @@ public:
   virtual PDBPageHandle getPage (size_t minBytes) = 0;
 
   // gets the page size
-  virtual size_t getPageSize () = 0;
+  virtual size_t getMaxPageSize() = 0;
 
   // simply loop through and write back any dirty pages.  
   virtual ~PDBStorageManagerInterface () = default;

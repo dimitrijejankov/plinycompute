@@ -67,7 +67,7 @@ public:
    * Returns the maximum page size as set in the configuration
    * @return - the value
    */
-  size_t getPageSize() override;
+  size_t getMaxPageSize() override;
 
   void registerHandlers(PDBServer &forMe) override;
 

@@ -79,10 +79,10 @@ PDBStorageManagerImpl::PDBStorageManagerImpl(pdb::NodeConfigPtr config) {
              dataPath.string());
 }
 
-size_t PDBStorageManagerImpl::getPageSize() {
+size_t PDBStorageManagerImpl::getMaxPageSize() {
 
   if (!initialized) {
-    cerr << "Can't call getPageSize () without initializing the storage manager\n";
+    cerr << "Can't call getMaxPageSize () without initializing the storage manager\n";
     exit(1);
   }
 
@@ -167,6 +167,7 @@ PDBStorageManagerImpl::~PDBStorageManagerImpl() {
 
 void PDBStorageManagerImpl::initialize(std::string metaDataFile) {
 
+  // mark the manager as initialized
   initialized = true;
 
   // first, get the basic info and initialize everything
@@ -226,7 +227,6 @@ void PDBStorageManagerImpl::initialize(std::string metaDataFile) {
 
 void PDBStorageManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn, size_t numPagesIn,
                                        std::string metaFile, std::string storageLocIn) {
-  cc = 0;
   initialized = true;
   storageLoc = std::move(storageLocIn);
   sharedMemory.pageSize = pageSizeIn;
@@ -402,14 +402,14 @@ bool PDBStorageManagerImpl::isRemovalStillValid(PDBPagePtr me) {
 
   // was the page removed and then replaced by another one while we were waiting
   // (this is the last check it this works the removal is safe)
-  return !(it->second.get() != me.get());
+  return it->second.get() == me.get();
 }
 
 // this is only called with a locked buffer manager
 void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_lock<mutex> &lock) {
 
   // if somebody else is making a mini page of the requested size wait here
-  spaceLock.wait(lock, [&] { return !isCreatingSpace[whichSize]; });
+  spaceCV.wait(lock, [&] { return !isCreatingSpace[whichSize]; });
 
   // did somebody create them while we were waiting
   if(!emptyMiniPages[whichSize].empty()) {
@@ -502,7 +502,7 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
     std::for_each(constituentPages[page.first].begin(), constituentPages[page.first].end(), [](auto &a){ a->status = PDB_PAGE_NOT_LOADED; });
 
     // notify all the threads that are paused because of a status
-    cv.notify_all();
+    pagesCV.notify_all();
 
     // and erase the page
     constituentPages[page.first].clear();
@@ -532,7 +532,7 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
   emptyFullPages.pop_back();
 
   isCreatingSpace[whichSize] = false;
-  spaceLock.notify_all();
+  spaceCV.notify_all();
 }
 
 void PDBStorageManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes) {
@@ -706,7 +706,7 @@ void PDBStorageManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
 
   // notify all waiting conditional variables
   lock.unlock();
-  cv.notify_all();
+  pagesCV.notify_all();
 }
 
 PDBPageHandle PDBStorageManagerImpl::getPage() {
@@ -716,7 +716,7 @@ PDBPageHandle PDBStorageManagerImpl::getPage() {
 PDBPageHandle PDBStorageManagerImpl::getPage(size_t maxBytes) {
 
   if (!initialized) {
-    cerr << "Can't call getPageSize () without initializing the storage manager\n";
+    cerr << "Can't call getMaxPageSize () without initializing the storage manager\n";
     exit(1);
   }
 
@@ -752,7 +752,7 @@ PDBPageHandle PDBStorageManagerImpl::getPage(size_t maxBytes) {
 PDBPageHandle PDBStorageManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
 
   if (!initialized) {
-    cerr << "Can't call getPageSize () without initializing the storage manager\n";
+    cerr << "Can't call getMaxPageSize () without initializing the storage manager\n";
     exit(1);
   }
 
@@ -812,7 +812,7 @@ PDBPageHandle PDBStorageManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
 
       // notify all waiting conditional variables
       lock.unlock();
-      cv.notify_all();
+      pagesCV.notify_all();
 
       // return page handle
       return pageHandle;
@@ -867,7 +867,7 @@ PDBPageHandle PDBStorageManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
 
       // notify all waiting conditional variables
       lock.unlock();
-      cv.notify_all();
+      pagesCV.notify_all();
 
       // return the page handle
       return pagerHandle;
@@ -882,7 +882,7 @@ PDBPageHandle PDBStorageManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
   auto ret = make_shared<PDBPageHandleBase>(page);
 
   // wait while the page is loading
-  cv.wait(lock, [&] { return !(page->status == PDB_PAGE_LOADING || page->status == PDB_PAGE_UNLOADING); });
+  pagesCV.wait(lock, [&] { return !(page->status == PDB_PAGE_LOADING || page->status == PDB_PAGE_UNLOADING); });
 
   // it is there, so return it
   repin(page, lock);

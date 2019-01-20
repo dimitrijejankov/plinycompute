@@ -136,7 +136,7 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd::getPage(size_t minBytes) {
   return std::move(res);
 }
 
-size_t pdb::PDBStorageManagerBackEnd::getPageSize() {
+size_t pdb::PDBStorageManagerBackEnd::getMaxPageSize() {
   return getConfiguration()->pageSize;
 }
 
