@@ -9,7 +9,7 @@
 #include <thread>
 #include <random>
 #include <gtest/gtest.h>
-#include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include <PDBStorageManagerFrontEnd.h>
 
@@ -17,11 +17,7 @@ class CommunicatorMock {
 
 public:
 
-  template <class ObjType>
-  bool sendObject(pdb::Handle<ObjType>& sendMe, std::string& errMsg) {
-
-    return true;
-  }
+  MOCK_METHOD2(sendObject, bool(pdb::Handle<pdb::StoGetPageResult>&, std::string& errMsg));
 
 };
 
@@ -38,6 +34,12 @@ TEST(StorageManagerFrontendTest, Test1) {
 
   // make the mock communicator
   auto comm = std::make_shared<CommunicatorMock>();
+
+  // make sure the mock function returns true
+  ON_CALL(*comm, sendObject).WillByDefault(testing::Return(true));
+
+  // it should call send object exactly once
+  EXPECT_CALL(*comm, sendObject).Times(1);
 
   frontEnd.handleGetPageRequest(request, comm);
 }
