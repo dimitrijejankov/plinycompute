@@ -13,6 +13,18 @@
 
 #include <PDBStorageManagerFrontEnd.h>
 
+class CommunicatorMock {
+
+public:
+
+  template <class ObjType>
+  bool sendObject(pdb::Handle<ObjType>& sendMe, std::string& errMsg) {
+
+    return true;
+  }
+
+};
+
 TEST(StorageManagerFrontendTest, Test1) {
 
   // create the frontend
@@ -21,8 +33,13 @@ TEST(StorageManagerFrontendTest, Test1) {
   // call the init method the server would usually call
   frontEnd.init();
 
+  // create a get page request
+  pdb::Handle<pdb::StoGetPageRequest> request = pdb::makeObject<pdb::StoGetPageRequest>("set1", "db1", 0);
 
+  // make the mock communicator
+  auto comm = std::make_shared<CommunicatorMock>();
 
+  frontEnd.handleGetPageRequest(request, comm);
 }
 
 int main(int argc, char **argv) {

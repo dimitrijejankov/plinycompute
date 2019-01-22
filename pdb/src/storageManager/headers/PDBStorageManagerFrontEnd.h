@@ -70,9 +70,6 @@ public:
   // register the handlers
   void registerHandlers(PDBServer &forMe) override;
 
-  // sends a page to the backend via the communicator
-  bool sendPageToBackend(PDBPageHandle page, PDBCommunicatorPtr sendUsingMe, std::string &error);
-
   // returns the backend
   PDBStorageManagerInterfacePtr getBackEnd();
 
@@ -105,6 +102,10 @@ public:
   std::pair<bool, std::string> handleUnpinPageRequest(pdb::Handle<pdb::StoUnpinPageRequest> &request, std::shared_ptr<T> &sendUsingMe);
 
 private:
+
+  // sends a page to the backend via the communicator
+  template <class T>
+  bool sendPageToBackend(PDBPageHandle page, std::shared_ptr<T> &sendUsingMe, std::string &error);
 
   // Logger to debug information
   PDBLoggerPtr logger;

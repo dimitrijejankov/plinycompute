@@ -7,6 +7,8 @@
 
 #include <SimpleRequestResult.h>
 #include <StoPinPageResult.h>
+#include <StoGetPageResult.h>
+
 
 template <class T>
 std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleGetPageRequest(pdb::Handle<pdb::StoGetPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
@@ -200,6 +202,40 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleUnpinPageRequ
 
   // return
   return make_pair(res, errMsg);
+}
+
+template <class T>
+bool pdb::PDBStorageManagerFrontEnd::sendPageToBackend(pdb::PDBPageHandle page, std::shared_ptr<T> &sendUsingMe, std::string &error) {
+
+  // figure out the page parameters
+  auto offset = (uint64_t) page->page->bytes - (uint64_t) sharedMemory.memory;
+  auto pageNumber = page->whichPage();
+  auto isAnonymous = page->page->isAnonymous();
+  auto sizeFrozen = page->page->sizeIsFrozen();
+  auto startPos = page->page->location.startPos;
+  auto numBytes = page->page->location.numBytes;
+
+  // make an allocation block
+  const UseTemporaryAllocationBlock tempBlock{1024};
+
+  std::string setName = isAnonymous ? "" : page->getSet()->getSetName();
+  std::string dbName = isAnonymous ? "" : page->getSet()->getDBName();
+
+  // create the object
+  Handle<pdb::StoGetPageResult> objectToSend = pdb::makeObject<StoGetPageResult>(offset, pageNumber, isAnonymous, sizeFrozen, startPos, numBytes, setName, dbName);
+
+  // send the thing
+  bool res = sendUsingMe->sendObject(objectToSend, error);
+
+  // did we succeed
+  if(res) {
+
+    // mark that we have sent the page, store a handle so that we keep the reference count
+    sentPages[std::make_pair(page->getSet(), pageNumber)] = page;
+  }
+
+  // return the result
+  return res;
 }
 
 #endif //PDB_PDBSTORAGEMANAGERFRONTENDTEMPLATE_H

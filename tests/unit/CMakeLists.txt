@@ -31,6 +31,7 @@ foreach(file ${files})
     target_link_libraries(${fileName} pdb-tests-common)
     target_link_libraries(${fileName} ${GSL_LIBRARIES})
     target_link_libraries(${fileName} gtest_main gtest ${CMAKE_THREAD_LIBS_INIT})
+    target_link_libraries(${fileName} gmock_main gmock ${CMAKE_THREAD_LIBS_INIT})
 
     # add the test as a dependency of the unit test target
     add_dependencies(unit-tests ${fileName})
