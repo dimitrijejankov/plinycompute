@@ -27,6 +27,13 @@ class StoFreezeSizeRequest : public Object {
     }
   }
 
+  StoFreezeSizeRequest(const std::string &setName, const std::string &dbName, const size_t &pageNumber, size_t freezeSize)
+      : isAnonymous(false), pageNumber(pageNumber), freezeSize(freezeSize) {
+
+    this->setName = pdb::makeObject<pdb::String>(setName);
+    this->databaseName = pdb::makeObject<pdb::String>(dbName);
+  }
+
   StoFreezeSizeRequest() = default;
 
   ~StoFreezeSizeRequest() = default;
