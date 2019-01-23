@@ -42,8 +42,21 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleReturnPageReq
   // create the page key
   auto key = std::make_pair(std::make_shared<PDBSet>(request->setName, request->databaseName), request->pageNumber);
 
-  // try to remove it, if we manage to do this res will be true
-  bool res = this->sentPages.erase(key) != 0;
+  // find the page
+  auto it = this->sentPages.find(key);
+
+  bool res = false;
+  if(it != this->sentPages.end()) {
+
+    // mark it as dirty
+    it->second->setDirty();
+
+    // remove it
+    this->sentPages.erase(it);
+
+    // ok this request is a success
+    res = true;
+  }
 
   // create an allocation block to hold the response
   const UseTemporaryAllocationBlock tempBlock{1024};

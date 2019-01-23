@@ -19,6 +19,10 @@
 #include <StoPinPageRequest.h>
 #include <StoUnpinPageRequest.h>
 
+// this is needed so we can declare friend tests here
+#include <gtest/gtest_prod.h>
+
+
 /**
  * This is the part of the storage manager that is running in the front end.
  * There are two storage managers running on each machine: one on the front
@@ -102,6 +106,8 @@ public:
   std::pair<bool, std::string> handleUnpinPageRequest(pdb::Handle<pdb::StoUnpinPageRequest> &request, std::shared_ptr<T> &sendUsingMe);
 
 private:
+
+  FRIEND_TEST(StorageManagerFrontendTest, Test1);
 
   // sends a page to the backend via the communicator
   template <class T>

@@ -254,7 +254,7 @@ void pdb::PDBStorageManagerBackEnd::downToZeroReferences(pdb::PDBPagePtr me) {
 
         return false;
       },
-      me->whichSet->getSetName(), me->whichSet->getDBName(), me->pageNum);
+      me->whichSet->getSetName(), me->whichSet->getDBName(), me->pageNum, me->isDirty());
 
   // did we succeed in returning the page
   if (!res) {

@@ -33,8 +33,8 @@ class StoReturnPageRequest : public Object {
 
 public:
 
-  StoReturnPageRequest(const std::string &setName, const std::string &databaseName, const size_t &pageNumber)
-      : databaseName(databaseName), setName(setName), pageNumber(pageNumber) {}
+  StoReturnPageRequest(const std::string &setName, const std::string &databaseName, const size_t &pageNumber, bool isDirty)
+      : databaseName(databaseName), setName(setName), pageNumber(pageNumber), isDirty(isDirty) {}
 
   StoReturnPageRequest() = default;
 
@@ -57,6 +57,10 @@ public:
    */
   size_t pageNumber = 0;
 
+  /**
+   * Is the page we are returning dirty
+   */
+  bool isDirty = false;
 };
 }
 
