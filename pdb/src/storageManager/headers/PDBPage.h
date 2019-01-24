@@ -31,7 +31,7 @@ typedef shared_ptr <PDBPage> PDBPagePtr;
 typedef weak_ptr <PDBPage> PDBPageWeakPtr;
 
 struct PDBPageInfo {
-  size_t startPos = 0;
+  int64_t startPos = 0;
   int64_t numBytes = 0;
 };
 

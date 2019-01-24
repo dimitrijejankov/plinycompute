@@ -359,7 +359,7 @@ class PDBStorageManagerImpl : public PDBStorageManagerInterface {
   /**
    * all of the positions in the temporary file that are currently not in use
    */
-  vector<vector<size_t>> availablePositions;
+  vector<vector<int64_t>> availablePositions;
 
   /**
    * info about the shared memory of this storage manager contains the page size, number of pages and a pointer to

@@ -78,7 +78,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleReturnAnonPag
   // create the page key
   auto key = std::make_pair((PDBSetPtr) nullptr, request->pageNumber);
 
-  // try to remove it, if we manage to do this res will be true
+  // did we find it
   bool res = this->sentPages.erase(key) != 0;
 
   // create an allocation block to hold the response

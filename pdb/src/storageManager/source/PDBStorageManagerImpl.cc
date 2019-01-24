@@ -241,7 +241,7 @@ void PDBStorageManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn
   logOfPageSize = -1;
   size_t curSize;
   for (curSize = MIN_PAGE_SIZE; curSize <= sharedMemory.pageSize; curSize *= 2) {
-    vector<size_t> temp;
+    vector<int64_t> temp;
     vector<void *> tempAgain;
 
     availablePositions.push_back(temp);
@@ -765,6 +765,7 @@ PDBPageHandle PDBStorageManagerImpl::getPage(size_t maxBytes) {
   returnVal->setAnonymous(true);
   returnVal->setPageNum(pageNum);
   returnVal->getLocation().numBytes = bytesRequired;
+  returnVal->getLocation().startPos = -1;
   registerMiniPage(returnVal);
 
   return make_shared<PDBPageHandleBase>(returnVal);
