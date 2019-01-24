@@ -432,6 +432,17 @@ class PDBStorageManagerImpl : public PDBStorageManagerInterface {
   std::vector<bool> isCreatingSpace;
 
   /**
+   * this vector holds all the free page numbers we can assign to an anonymous page.
+   */
+  std::vector<uint64_t> freeAnonPageNumbers;
+
+  /**
+   * so we assign a unique number to each anonymous page so we can identify them, if we already assigned
+   * a all available numbers to anonymous pages this number will tell us what is the next number we need to generate
+   */
+  int lastFreeAnonPageNumber = 0;
+
+  /**
    * this locks the file descriptor structure
    */
   std::mutex fdLck;

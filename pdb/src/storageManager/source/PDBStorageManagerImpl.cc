@@ -316,10 +316,11 @@ void PDBStorageManagerImpl::freeAnonymousPage(PDBPagePtr me) {
   // first, unpin him, if he's not unpinned
   unpin(me, lock);
 
-  // recycle his location
+  // recycle his location and page
   PDBPageInfo temp = me->getLocation();
   if (temp.startPos != -1) {
     availablePositions[temp.numBytes].push_back(temp.startPos);
+    freeAnonPageNumbers.emplace_back(me->whichPage());
   }
 
   // if this guy as no associated memory, get outta here
@@ -329,6 +330,7 @@ void PDBStorageManagerImpl::freeAnonymousPage(PDBPagePtr me) {
   // if he is not dirty, it means that he has an associated spot on disk.  Kill it so we can reuse
   if (!me->isDirty()) {
     availablePositions[me->getLocation().numBytes].push_back(me->getLocation().startPos);
+    freeAnonPageNumbers.emplace_back(me->whichPage());
   }
 
   // now, remove him from the set of constituent pages
@@ -731,12 +733,37 @@ PDBPageHandle PDBStorageManagerImpl::getPage(size_t maxBytes) {
   // grab space from an empty page
   void *space = getEmptyMemory(bytesRequired, lock);
 
+  // figure out a free page number
+  if(freeAnonPageNumbers.empty()) {
+
+    // figure out a new page
+    lastFreeAnonPageNumber++;
+
+    // did we hit an overflow
+    if(lastFreeAnonPageNumber == std::numeric_limits<uint64_t>::max()) {
+
+      // log what happened
+      getLogger()->fatal("Too many anonymous pages " + std::to_string(lastFreeAnonPageNumber) + " were requested at the same time .");
+
+      // kill the server.. we might consider a more graceful shutdown
+      exit(-1);
+    }
+
+    // store the new free page
+    freeAnonPageNumbers.emplace_back(lastFreeAnonPageNumber);
+  }
+
+  // grab a page number
+  uint64_t pageNum = freeAnonPageNumbers.back();
+  freeAnonPageNumbers.pop_back();
+
   PDBPagePtr returnVal = make_shared<PDBPage>(*this);
   returnVal->setMe(returnVal);
   returnVal->setPinned();
   returnVal->setDirty();
   returnVal->setBytes(space);
   returnVal->setAnonymous(true);
+  returnVal->setPageNum(pageNum);
   returnVal->getLocation().numBytes = bytesRequired;
   registerMiniPage(returnVal);
 

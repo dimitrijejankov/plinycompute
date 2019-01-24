@@ -26,6 +26,8 @@ public:
 
   MOCK_METHOD2(sendObject, bool(pdb::Handle<pdb::SimpleRequestResult>& res, std::string& errMsg));
 
+  MOCK_METHOD2(sendObject, bool(pdb::Handle<pdb::StoPinPageResult>& res, std::string& errMsg));
+
 };
 
 auto getRandomIndices(int numRequestsPerPage, int numPages) {
@@ -282,9 +284,6 @@ TEST(StorageManagerFrontendTest, Test3) {
 
     /// 1. Get the page init to seed
 
-    // create a get page request
-    pdb::Handle<pdb::StoGetPageRequest> pageRequest = pdb::makeObject<pdb::StoGetPageRequest>("set1", "db1", i);
-
     // make sure the mock function returns true
     ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoGetPageResult>&>(), testing::An<std::string&>())).WillByDefault(testing::Invoke(
         [&] (pdb::Handle<pdb::StoGetPageResult>& res, std::string& errMsg) {
@@ -306,6 +305,9 @@ TEST(StorageManagerFrontendTest, Test3) {
 
     // it should call send object exactly once
     EXPECT_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoGetPageResult>&>(), testing::An<std::string&>())).Times(1);
+
+    // create a get page request
+    pdb::Handle<pdb::StoGetPageRequest> pageRequest = pdb::makeObject<pdb::StoGetPageRequest>("set1", "db1", i);
 
     // invoke the get page handler
     frontEnd.handleGetPageRequest(pageRequest, comm);
@@ -419,6 +421,155 @@ TEST(StorageManagerFrontendTest, Test3) {
       // check
       EXPECT_EQ(((int*) page->getBytes())[j / sizeof(int)], numRequests * (j / sizeof(int)) + seed);
     }
+  }
+}
+
+// this test tests anonymous pages
+TEST(StorageManagerFrontendTest, Test4) {
+
+  const int numPages = 1000;
+  const int pageSize = 64;
+
+  // create the frontend
+  pdb::PDBStorageManagerFrontEnd frontEnd("tempDSFSD", pageSize, 16, "metadata", ".");
+
+  // call the init method the server would usually call
+  frontEnd.init();
+
+  // make the mock communicator
+  auto comm = std::make_shared<CommunicatorMock>();
+
+  std::vector<uint64_t> pageNumbers;
+  pageNumbers.reserve(numPages);
+
+  for(int i = 0; i < numPages; ++i) {
+
+    /// 1. Grab an anonymous page
+
+    // make sure the mock function returns true, write something to the page and
+    ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoGetPageResult>&>(), testing::An<std::string&>())).WillByDefault(testing::Invoke(
+        [&] (pdb::Handle<pdb::StoGetPageResult>& res, std::string& errMsg) {
+
+          // check if it actually is an anonymous page
+          EXPECT_TRUE(res->isAnonymous);
+          EXPECT_EQ(MIN_PAGE_SIZE << res->numBytes, pageSize);
+          EXPECT_TRUE(res->setName.operator==(""));
+          EXPECT_TRUE(res->dbName.operator==(""));
+
+          // figure out the bytes offset
+          auto bytes = (char*) frontEnd.sharedMemory.memory + res->offset;
+
+          // fill up the age
+          for(int j = 0; j < pageSize; j += sizeof(int)) {
+
+            // increment
+            ((int*) bytes)[j / sizeof(int)] = (j + i) / sizeof(int);
+          }
+
+          // store the page number
+          pageNumbers.emplace_back(res->pageNum);
+
+          // return true since we assume this succeeded
+          return true;
+        }
+    ));
+
+    // it should call send object exactly once
+    EXPECT_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoGetPageResult>&>(), testing::An<std::string&>())).Times(1);
+
+    // create a get page request
+    pdb::Handle<pdb::StoGetAnonymousPageRequest> pageRequest = pdb::makeObject<pdb::StoGetAnonymousPageRequest>(pageSize);
+
+    // invoke the get page handler
+    frontEnd.handleGetAnonymousPageRequest(pageRequest, comm);
+
+
+    /// 2. Unpin the anonymous page
+
+    // make sure the mock function returns true
+    ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::SimpleRequestResult>&>(), testing::An<std::string&>())).WillByDefault(testing::Invoke(
+        [&] (pdb::Handle<pdb::SimpleRequestResult>& res, std::string& errMsg) {
+
+          // must be true!
+          EXPECT_EQ(res->getRes().first, true);
+
+          // return true since we assume this succeeded
+          return true;
+        }
+    ));
+
+    // it should call send object exactly once
+    EXPECT_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::SimpleRequestResult>&>(), testing::An<std::string&>())).Times(1);
+
+    // create a unpin request
+    pdb::Handle<pdb::StoUnpinPageRequest> unpinRequest = pdb::makeObject<pdb::StoUnpinPageRequest>(nullptr, pageNumbers.back());
+
+    // invoke the get page handler
+    frontEnd.handleUnpinPageRequest(unpinRequest, comm);
+  }
+
+  // go through each page
+  int counter = 0;
+  for(auto page : pageNumbers) {
+
+    /// 1. Pin the page
+
+    // make sure the mock function returns true
+    ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoPinPageResult>&>(), testing::An<std::string&>())).WillByDefault(testing::Invoke(
+        [&] (pdb::Handle<pdb::StoPinPageResult>& res, std::string& errMsg) {
+
+          // make sure the pin succeeded
+          EXPECT_TRUE(res->success);
+
+          // figure out the bytes offset
+          auto bytes = (char*) frontEnd.sharedMemory.memory + res->offset;
+
+          // fill up the age
+          for(int j = 0; j < pageSize; j += sizeof(int)) {
+
+            // check if this is equal
+            EXPECT_EQ(((int*) bytes)[j / sizeof(int)], (j + counter) / sizeof(int));
+          }
+
+          // return true since we assume this succeeded
+          return true;
+        }
+    ));
+
+    // it should call send object exactly once
+    EXPECT_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoPinPageResult>&>(), testing::An<std::string&>())).Times(1);
+
+    // create a get page request
+    pdb::Handle<pdb::StoPinPageRequest> pinRequest = pdb::makeObject<pdb::StoPinPageRequest>(nullptr, page);
+
+    // invoke the get page handler
+    frontEnd.handlePinPageRequest(pinRequest, comm);
+
+    /// 2. Unpin the anonymous page
+
+    // make sure the mock function returns true
+    ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::SimpleRequestResult>&>(), testing::An<std::string&>())).WillByDefault(testing::Invoke(
+        [&] (pdb::Handle<pdb::SimpleRequestResult>& res, std::string& errMsg) {
+
+          // must be true!
+          EXPECT_EQ(res->getRes().first, true);
+
+          // return true since we assume this succeeded
+          return true;
+        }
+    ));
+
+    // it should call send object exactly once
+    EXPECT_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::SimpleRequestResult>&>(), testing::An<std::string&>())).Times(1);
+
+    // create a unpin request
+    pdb::Handle<pdb::StoUnpinPageRequest> unpinRequest = pdb::makeObject<pdb::StoUnpinPageRequest>(nullptr, page);
+
+    // invoke the get page handler
+    frontEnd.handleUnpinPageRequest(unpinRequest, comm);
+
+    // increment it
+    counter++;
   }
 }
 

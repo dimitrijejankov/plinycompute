@@ -107,9 +107,11 @@ public:
 
 private:
 
+  // mark the tests for the frontend
   FRIEND_TEST(StorageManagerFrontendTest, Test1);
   FRIEND_TEST(StorageManagerFrontendTest, Test2);
   FRIEND_TEST(StorageManagerFrontendTest, Test3);
+  FRIEND_TEST(StorageManagerFrontendTest, Test4);
 
   // sends a page to the backend via the communicator
   template <class T>
