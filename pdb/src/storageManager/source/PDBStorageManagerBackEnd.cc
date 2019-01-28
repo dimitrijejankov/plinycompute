@@ -208,7 +208,7 @@ void pdb::PDBStorageManagerBackEnd::freeAnonymousPage(pdb::PDBPagePtr me) {
         errMsg = "Could not return the requested page";
 
         return false;
-      }, me->pageNum);
+      }, me->pageNum, me->isDirty());
 
 
   // did we succeed in returning the page
@@ -345,7 +345,7 @@ void pdb::PDBStorageManagerBackEnd::unpin(pdb::PDBPagePtr me) {
         // yeah we could not
         return false;
       },
-      me->whichSet, me->pageNum);
+      me->whichSet, me->pageNum, me->isDirty());
 
   // did we succeed in returning the page
   if (!res) {

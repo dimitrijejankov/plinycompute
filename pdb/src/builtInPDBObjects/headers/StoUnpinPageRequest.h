@@ -17,8 +17,8 @@ class StoUnpinPageRequest : public Object {
 
 public:
 
-  StoUnpinPageRequest(const PDBSetPtr &set, const size_t &pageNumber)
-      : isAnonymous(set == nullptr), pageNumber(pageNumber) {
+  StoUnpinPageRequest(const PDBSetPtr &set, const size_t &pageNumber, bool isDirty)
+      : isAnonymous(set == nullptr), pageNumber(pageNumber), isDirty(isDirty) {
 
     // is this an anonymous page if it is
     if(!isAnonymous) {
@@ -33,7 +33,15 @@ public:
 
   ENABLE_DEEP_COPY;
 
+  /**
+   * is the page we are unpinning dirty
+   */
   bool isAnonymous = false;
+
+  /**
+   * is the page dirty
+   */
+  bool isDirty = false;
 
   /**
    * The database name

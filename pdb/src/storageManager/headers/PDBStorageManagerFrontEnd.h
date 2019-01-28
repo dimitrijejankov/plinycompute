@@ -122,6 +122,7 @@ private:
   FRIEND_TEST(StorageManagerFrontendTest, Test4);
   FRIEND_TEST(StorageManagerFrontendTest, Test5);
   FRIEND_TEST(StorageManagerFrontendTest, Test6);
+  FRIEND_TEST(StorageManagerFrontendTest, Test7);
 
   // sends a page to the backend via the communicator
   template <class T>

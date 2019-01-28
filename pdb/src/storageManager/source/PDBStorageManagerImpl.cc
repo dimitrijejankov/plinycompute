@@ -316,22 +316,18 @@ void PDBStorageManagerImpl::freeAnonymousPage(PDBPagePtr me) {
   // first, unpin him, if he's not unpinned
   unpin(me, lock);
 
-  // recycle his location and page
+  // recycle his location if it had a location assigned to it
   PDBPageInfo temp = me->getLocation();
   if (temp.startPos != -1) {
     availablePositions[temp.numBytes].push_back(temp.startPos);
-    freeAnonPageNumbers.emplace_back(me->whichPage());
   }
+
+  // return the anonymous page number
+  freeAnonPageNumbers.emplace_back(me->whichPage());
 
   // if this guy as no associated memory, get outta here
   if (me->getBytes() == nullptr)
     return;
-
-  // if he is not dirty, it means that he has an associated spot on disk.  Kill it so we can reuse
-  if (!me->isDirty()) {
-    availablePositions[me->getLocation().numBytes].push_back(me->getLocation().startPos);
-    freeAnonPageNumbers.emplace_back(me->whichPage());
-  }
 
   // now, remove him from the set of constituent pages
   void *whichPage = (char *) sharedMemory.memory + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);

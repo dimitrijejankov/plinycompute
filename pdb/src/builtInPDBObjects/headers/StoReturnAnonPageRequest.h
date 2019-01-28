@@ -32,7 +32,7 @@ class StoReturnAnonPageRequest : public Object {
 
 public:
 
-  explicit StoReturnAnonPageRequest(const size_t &pageNumber) : pageNumber(pageNumber) {}
+  explicit StoReturnAnonPageRequest(const size_t &pageNumber, bool isDirty) : pageNumber(pageNumber), isDirty(isDirty) {}
 
   StoReturnAnonPageRequest() = default;
 
@@ -44,6 +44,11 @@ public:
    * The page number
    */
   size_t pageNumber = 0;
+
+  /**
+   * Is the page dirty
+   */
+  bool isDirty = false;
 
 };
 }

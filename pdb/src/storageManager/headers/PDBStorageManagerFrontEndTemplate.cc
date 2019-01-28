@@ -91,8 +91,19 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleReturnAnonPag
     // lock the thing
     unique_lock<mutex> lck(m);
 
+    // find the page
+    auto it = this->sentPages.find(key);
+
+    // set the dirty bit
+    if(request->isDirty) {
+      it->second->isDirty();
+    }
+
     // did we find it
-    res = this->sentPages.erase(key) != 0;
+    res = it != this->sentPages.end();
+
+    // remove it
+    this->sentPages.erase(it);
   }
 
   // create an allocation block to hold the response
@@ -242,6 +253,11 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleUnpinPageRequ
 
   // if we did find it, if so unpin it
   if(res) {
+
+    // update the dirty bit
+    if(request->isDirty) {
+      handle->setDirty();
+    }
 
     // unpin it
     handle->unpin();
