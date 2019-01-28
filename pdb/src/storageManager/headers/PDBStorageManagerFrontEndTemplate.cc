@@ -42,20 +42,27 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleReturnPageReq
   // create the page key
   auto key = std::make_pair(std::make_shared<PDBSet>(request->setName, request->databaseName), request->pageNumber);
 
-  // find the page
-  auto it = this->sentPages.find(key);
-
+  // do the bookkeeping of the sent pages
   bool res = false;
-  if(it != this->sentPages.end()) {
+  {
+    // lock to do it in a thread safe manner
+    unique_lock<mutex> lck(m);
 
-    // mark it as dirty
-    it->second->setDirty();
+    // try find the page
+    auto it = this->sentPages.find(key);
 
-    // remove it
-    this->sentPages.erase(it);
+    // did we find it
+    if(it != this->sentPages.end()) {
 
-    // ok this request is a success
-    res = true;
+      // mark it as dirty
+      it->second->setDirty();
+
+      // remove it
+      this->sentPages.erase(it);
+
+      // ok this request is a success
+      res = true;
+    }
   }
 
   // create an allocation block to hold the response
@@ -78,8 +85,15 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleReturnAnonPag
   // create the page key
   auto key = std::make_pair((PDBSetPtr) nullptr, request->pageNumber);
 
-  // did we find it
-  bool res = this->sentPages.erase(key) != 0;
+  // remove the anonymous page
+  bool res;
+  {
+    // lock the thing
+    unique_lock<mutex> lck(m);
+
+    // did we find it
+    res = this->sentPages.erase(key) != 0;
+  }
 
   // create an allocation block to hold the response
   const UseTemporaryAllocationBlock tempBlock{1024};
@@ -109,17 +123,27 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleFreezeSizeReq
   // create the page key
   auto key = std::make_pair(set, request->pageNumber);
 
-  // find if the thing exists
-  auto it = sentPages.find(key);
+  PDBPageHandle handle;
+  bool res;
+  {
+    // lock the thing
+    unique_lock<mutex> lck(m);
 
-  // did we find it?
-  bool res = it != sentPages.end();
+    // find if the thing exists
+    auto it = sentPages.find(key);
+
+    // did we find it?
+    res = it != sentPages.end();
+
+    // grab the page handle
+    handle = it->second;
+  }
 
   // if we did find it freeze it
   if(res) {
 
     // freeze it!
-    it->second->freezeSize(request->freezeSize);
+    handle->freezeSize(request->freezeSize);
   }
 
   // create an allocation block to hold the response
@@ -146,27 +170,37 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handlePinPageReques
     set = make_shared<PDBSet>(*request->setName, *request->databaseName);
   }
 
-  // create the page key
-  auto key = std::make_pair(set, request->pageNumber);
+  bool res;
+  PDBPageHandle handle;
+  {
+    // lock the thing
+    unique_lock<mutex> lck(m);
 
-  // find if the thing exists
-  auto it = sentPages.find(key);
+    // create the page key
+    auto key = std::make_pair(set, request->pageNumber);
 
-  // did we find it?
-  bool res = it != sentPages.end();
+    // find if the thing exists
+    auto it = sentPages.find(key);
+
+    // did we find it?
+    res = it != sentPages.end();
+
+    // grab a handle
+    handle = it->second;
+  }
 
   // if we did find it, if so pin it
   if(res) {
 
     // pin it
-    it->second->repin();
+    handle->repin();
   }
 
   // create an allocation block to hold the response
   const UseTemporaryAllocationBlock tempBlock{1024};
 
   // create the response
-  Handle<StoPinPageResult> response = makeObject<StoPinPageResult>((uint64_t) it->second->page->bytes - (uint64_t) sharedMemory.memory, res);
+  Handle<StoPinPageResult> response = makeObject<StoPinPageResult>((uint64_t) handle->page->bytes - (uint64_t) sharedMemory.memory, res);
 
   // sends result to requester
   std::string errMsg;
@@ -187,20 +221,30 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleUnpinPageRequ
     set = make_shared<PDBSet>(*request->setName, *request->databaseName);
   }
 
-  // create the page key
-  auto key = std::make_pair(set, request->pageNumber);
+  bool res;
+  PDBPageHandle handle;
+  {
+    // lock the thing
+    unique_lock<mutex> lck(m);
 
-  // find if the thing exists
-  auto it = sentPages.find(key);
+    // create the page key
+    auto key = std::make_pair(set, request->pageNumber);
 
-  // did we find it?
-  bool res = it != sentPages.end();
+    // find if the thing exists
+    auto it = sentPages.find(key);
+
+    // did we find it?
+    res = it != sentPages.end();
+
+    // grab a handle
+    handle = it->second;
+  }
 
   // if we did find it, if so unpin it
   if(res) {
 
     // unpin it
-    it->second->unpin();
+    handle->unpin();
   }
 
   // create an allocation block to hold the response
@@ -237,14 +281,25 @@ bool pdb::PDBStorageManagerFrontEnd::sendPageToBackend(pdb::PDBPageHandle page, 
   // create the object
   Handle<pdb::StoGetPageResult> objectToSend = pdb::makeObject<StoGetPageResult>(offset, pageNumber, isAnonymous, sizeFrozen, startPos, numBytes, setName, dbName);
 
-  // send the thing
-  bool res = sendUsingMe->sendObject(objectToSend, error);
-
-  // did we succeed
-  if(res) {
+  {
+    // lock so we can mark the page as sent
+    unique_lock<mutex> lck(m);
 
     // mark that we have sent the page, store a handle so that we keep the reference count
     sentPages[std::make_pair(page->getSet(), pageNumber)] = page;
+  }
+
+  // send the thing
+  bool res = sendUsingMe->sendObject(objectToSend, error);
+
+  // did we fail?
+  if(!res) {
+
+    // if we failed do a cleanup
+    unique_lock<mutex> lck(m);
+
+    // erase the stuff that failed
+    sentPages.erase(std::make_pair(page->getSet(), pageNumber));
   }
 
   // return the result

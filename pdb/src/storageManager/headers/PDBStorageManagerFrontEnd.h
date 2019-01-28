@@ -47,13 +47,21 @@
  * be handled.  For example, if someone calls GetPage () at the back end, the back end
  * creates an object of type GetPageRequest detailing the request, and sends it to
  * the front end.  The front end's handler for that request creates the requested page,
- * and then sends it (via a call to SendPageAccrossConnection ()) back to the back end.
+ * and then sends it (via a call to sendPageToBackend ()) back to the back end.
  * Or if the destructor on a PDBPage is called at the backed (meaning that a page
- * received from SendPageAccrossConnection () no longer has any references) then
- * the backed creates an object of type NoMoreReferences with information on the page
+ * received from sendPageToBackend () no longer has any references) then
+ * the backed creates an object of type StoReturnPageRequest with information on the page
  * that has no more references, and lets the front end know that all copies (of the
- * copy) of a page sent via SendPageAccrossConnection () are now dead, and that
+ * copy) of a page sent via sendPageToBackend () are now dead, and that
  * the front end should take appropriate action.
+ *
+ * Regarding concurrency and thread safety. [IMPORTANT!]
+ *
+ * The frontend is designed so that it can handle concurrent requests from different pages.
+ * Meaning if the backend makes a request to get/return/pin/unpin pages (db1, set1, 0) and (db1, set1, 1)
+ * it is perfectly thread safe. But getting and returning the for example (db1, set1, 0) at the same time is NOT!
+ * Therefore it is the responsibility of the backend to ensure that requests for the same page are not sent at the
+ * same time.
  */
 namespace pdb {
 
@@ -113,6 +121,7 @@ private:
   FRIEND_TEST(StorageManagerFrontendTest, Test3);
   FRIEND_TEST(StorageManagerFrontendTest, Test4);
   FRIEND_TEST(StorageManagerFrontendTest, Test5);
+  FRIEND_TEST(StorageManagerFrontendTest, Test6);
 
   // sends a page to the backend via the communicator
   template <class T>
@@ -125,6 +134,11 @@ private:
   // in the case that the backend fails this is simply cleared
   // when a page is released by the backend the entry is removed
   map <std::pair<PDBSetPtr, size_t>, PDBPageHandle, PDBPageCompare> sentPages;
+
+  /**
+   * The mutex to keep this thing synced
+   */
+  std::mutex m;
 
 };
 
