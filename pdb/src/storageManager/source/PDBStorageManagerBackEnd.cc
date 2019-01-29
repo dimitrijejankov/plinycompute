@@ -49,7 +49,7 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd::getPage(pdb::PDBSetPtr whichSe
   }
 
   // make a request
-  auto res = heapRequest<StoGetPageRequest, StoGetPageResult, pdb::PDBPageHandle>(
+  auto res = heapRequest<PDBCommunicator, StoGetPageRequest, StoGetPageResult, pdb::PDBPageHandle>(
       myLogger, port, address, nullptr, 1024,
       [&](Handle<StoGetPageResult> result) {
 
@@ -101,7 +101,7 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd::getPage(size_t minBytes) {
   std::string errMsg;
 
   // make a request
-  auto res = heapRequest<StoGetAnonymousPageRequest, StoGetPageResult, pdb::PDBPageHandle>(
+  auto res = heapRequest<PDBCommunicator, StoGetAnonymousPageRequest, StoGetPageResult, pdb::PDBPageHandle>(
       myLogger, port, address, nullptr, 1024,
       [&](Handle<StoGetPageResult> result) {
 
@@ -141,9 +141,6 @@ size_t pdb::PDBStorageManagerBackEnd::getMaxPageSize() {
 }
 
 pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd::getBackendPage(pdb::PDBSetPtr whichSet, uint64_t i) {
-
-  // lock
-  unique_lock<std::mutex> ul(lck);
 
   // the key to find the pages
   auto key = std::make_pair(whichSet, i);
@@ -195,7 +192,7 @@ void pdb::PDBStorageManagerBackEnd::freeAnonymousPage(pdb::PDBPagePtr me) {
   std::string errMsg;
 
   // make a request
-  auto res = heapRequest<StoReturnAnonPageRequest, SimpleRequestResult, bool>(
+  auto res = heapRequest<PDBCommunicator, StoReturnAnonPageRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
 
@@ -232,7 +229,7 @@ void pdb::PDBStorageManagerBackEnd::downToZeroReferences(pdb::PDBPagePtr me) {
   std::string errMsg;
 
   // make a request
-  auto res = heapRequest<StoReturnPageRequest, SimpleRequestResult, bool>(
+  auto res = heapRequest<PDBCommunicator, StoReturnPageRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
 
@@ -274,7 +271,7 @@ void pdb::PDBStorageManagerBackEnd::freezeSize(pdb::PDBPagePtr me, size_t numByt
   std::string errMsg;
 
   // make a request
-  auto res = heapRequest<StoFreezeSizeRequest, SimpleRequestResult, bool>(
+  auto res = heapRequest<PDBCommunicator, StoFreezeSizeRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
 
@@ -322,7 +319,7 @@ void pdb::PDBStorageManagerBackEnd::unpin(pdb::PDBPagePtr me) {
   std::string errMsg;
 
   // make a request
-  auto res = heapRequest<StoUnpinPageRequest, SimpleRequestResult, bool>(
+  auto res = heapRequest<PDBCommunicator, StoUnpinPageRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
 
@@ -379,7 +376,7 @@ void pdb::PDBStorageManagerBackEnd::repin(pdb::PDBPagePtr me) {
   std::string errMsg;
 
   // make a request
-  auto res = heapRequest<StoPinPageRequest, StoPinPageResult, bool>(
+  auto res = heapRequest<PDBCommunicator, StoPinPageRequest, StoPinPageResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<StoPinPageResult> result) {
 

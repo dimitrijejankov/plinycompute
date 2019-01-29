@@ -35,81 +35,100 @@ using std::string;
 #define BLOCK_HEADER_SIZE 20
 namespace pdb {
 
-template <class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
+template <class CommunicatorType, class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
 ReturnType heapRequest(PDBLoggerPtr myLogger,
-                         int port,
-                         std::string address,
-                         ReturnType onErr,
-                         size_t bytesForRequest,
-                         function<ReturnType(Handle<ResponseType>)> processResponse,
-                         RequestTypeParams&&... args) {
+                       int port,
+                       std::string address,
+                       ReturnType onErr,
+                       size_t bytesForRequest,
+                       function<ReturnType(Handle<ResponseType>)> processResponse,
+                       RequestTypeParams&&... args) {
 
+
+    // try multiple times if we fail to connect
     int numRetries = 0;
-
     while (numRetries <= MAX_RETRIES) {
-        PDBCommunicator temp;
+
+        // used for error handling
         string errMsg;
         bool success;
 
+        // connect to the server
+        CommunicatorType temp;
         if (temp.connectToInternetServer(myLogger, port, address, errMsg)) {
+
+            // log the error
             myLogger->error(errMsg);
-            myLogger->error("heapRequest: not able to connect to server.\n");
-            // return onErr;
-            std::cout << "ERROR: can not connect to remote server with port=" << port
-                      << " and address=" << address << std::endl;
+            myLogger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
+
             return onErr;
         }
-        myLogger->info(std::string("Successfully connected to remote server with port=") +
-                       std::to_string(port) + std::string(" and address=") + address);
-        PDB_COUT << "Successfully connected to remote server with port=" << port
-                 << " and address=" << address << std::endl;
-        // build the request
-        PDB_COUT << "bytesForRequest=" << bytesForRequest << std::endl;
+
+        // log that we are connected
+        myLogger->info(std::string("Successfully connected to remote server with port=") + std::to_string(port) + std::string(" and address=") + address);
+
+        // check if it is invalid
         if (bytesForRequest <= BLOCK_HEADER_SIZE) {
-            std::cout << "ERROR: too small buffer size for processing simple request" << std::endl;
+
+            // ok this is an unrecoverable error
+            myLogger->error("Too small buffer size for processing simple request");
             return onErr;
         }
+
+        // make a block to send the request
         const UseTemporaryAllocationBlock tempBlock{bytesForRequest};
-        PDB_COUT << "to make object" << std::endl;
+
+        // make the request
         Handle<RequestType> request = makeObject<RequestType>(args...);
-        PDB_COUT << "to send object" << std::endl;
+
+        // send the object
         if (!temp.sendObject(request, errMsg)) {
+
+            // yeah something happened
             myLogger->error(errMsg);
-            myLogger->error("heapRequest: not able to send request to server.\n");
-            if (numRetries < MAX_RETRIES) {
-                numRetries++;
-                continue;
-            } else {
-                return onErr;
-            }
+            myLogger->error("Not able to send request to server.\n");
+
+            // retry
+            numRetries++;
+            continue;
         }
-        PDB_COUT << "sent object..." << std::endl;
+
+        // log that the object is sent
+        myLogger->info("Object sent.");
+
         // get the response and process it
         ReturnType finalResult;
         size_t objectSize = temp.getSizeOfNextObject();
+
+        // check if we did get a response
         if (objectSize == 0) {
-            if (numRetries < MAX_RETRIES) {
-                numRetries++;
-                continue;
-            } else {
-                return onErr;
-            }
+
+            // ok we did not that sucks log what happened
+            myLogger->error("We did not get a response.\n");
+
+            // retry
+            numRetries++;
+            continue;
         }
-        void* memory = malloc(objectSize);
+
+        // allocate the memory
+        std::unique_ptr<char[]> memory(new char[objectSize]);
         if (memory == nullptr) {
+
+
             errMsg = "FATAL ERROR in heapRequest: Can't allocate memory";
             myLogger->error(errMsg);
             std::cout << errMsg << std::endl;
             exit(-1);
         }
+
         {
-            Handle<ResponseType> result = temp.getNextObject<ResponseType>(memory, success, errMsg);
+            Handle<ResponseType> result =  temp.template getNextObject<ResponseType> (memory.get(), success, errMsg);
             if (!success) {
                 myLogger->error(errMsg);
                 myLogger->error("heapRequest: not able to get next object over the wire.\n");
                 /// JiaNote: we need free memory here !!!
 
-                free(memory);
                 if (numRetries < MAX_RETRIES) {
                     numRetries++;
                     continue;
@@ -120,9 +139,10 @@ ReturnType heapRequest(PDBLoggerPtr myLogger,
 
             finalResult = processResponse(result);
         }
-        free(memory);
         return finalResult;
     }
+
+    //
     return onErr;
 }
 

@@ -115,7 +115,7 @@ if (typeName != getTypeName <Type> ()) {
 
     bool deleteSet(std::string databaseName, std::string setName) {
         // this is for query testing stuff
-        return heapRequest<DeleteSet, SimpleRequestResult, bool, String, String>(
+        return heapRequest<PDBCommunicator, DeleteSet, SimpleRequestResult, bool, String, String>(
             myLogger,
             port,
             address,
@@ -169,7 +169,7 @@ if (typeName != getTypeName <Type> ()) {
                          std::vector<Handle<Computation>> computations) {
          std::string errMsg;
          std::cout << "to register Replica at query cient: " << computations.size() << " computations" << std::endl; 
-         return heapRequest<RegisterReplica, SimpleRequestResult, bool>(
+         return heapRequest<PDBCommunicator, RegisterReplica, SimpleRequestResult, bool>(
             myLogger,
             port,
             address,

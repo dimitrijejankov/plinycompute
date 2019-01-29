@@ -72,7 +72,7 @@ bool StorageClient::createSet(std::string databaseName, std::string setName, std
     } else {
         std::string typeName = getTypeName<DataType>();
         std::cout << "typeName for set to create =" << typeName << std::endl;
-        return heapRequest<StorageAddSet, SimpleRequestResult, bool>(
+        return heapRequest<PDBCommunicator, StorageAddSet, SimpleRequestResult, bool>(
             myLogger,
             port,
             address,
@@ -203,7 +203,7 @@ bool StorageClient::scanData(std::string databaseName, std::string setName, std:
     }
     std::string typeName = getTypeName<DataType>();
     std::cout << "typeName for set to create =" << typeName << std::endl;
-    return heapRequest<StorageTestSetScan, SimpleRequestResult, bool>(
+    return heapRequest<PDBCommunicator, StorageTestSetScan, SimpleRequestResult, bool>(
         myLogger,
         port,
         address,
@@ -237,7 +237,7 @@ bool StorageClient::copyData(std::string srcDatabaseName,
     }
     std::string typeName = getTypeName<DataType>();
     std::cout << "typeName for set to create =" << typeName << std::endl;
-    return heapRequest<StorageTestSetCopy, SimpleRequestResult, bool>(
+    return heapRequest<PDBCommunicator, StorageTestSetCopy, SimpleRequestResult, bool>(
         myLogger,
         port,
         address,

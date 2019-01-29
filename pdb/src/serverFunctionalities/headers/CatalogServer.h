@@ -181,7 +181,7 @@ public:
     // copy the request we want to forward
     Handle<Type> requestCopy = makeObject<Type>(request);
 
-    return heapRequest<Type, SimpleRequestResult, bool>(
+    return heapRequest<PDBCommunicator, Type, SimpleRequestResult, bool>(
         this->logger, port, address, false, bufferSize,
         [&](Handle<SimpleRequestResult> result) {
 

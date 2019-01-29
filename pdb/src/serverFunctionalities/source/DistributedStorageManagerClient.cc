@@ -52,7 +52,7 @@ void DistributedStorageManagerClient::registerHandlers(PDBServer& forMe) {
 
 bool DistributedStorageManagerClient::createDatabase(const std::string& databaseName,
                                                      std::string& errMsg) {
-    return heapRequest<DistributedStorageAddDatabase, SimpleRequestResult, bool>(
+    return heapRequest<PDBCommunicator, DistributedStorageAddDatabase, SimpleRequestResult, bool>(
         logger,
         port,
         address,
@@ -67,7 +67,7 @@ bool DistributedStorageManagerClient::createSet(const std::string& databaseName,
                                                 const std::string& typeName,
                                                 std::string& errMsg,
                                                 size_t pageSize) {
-    return heapRequest<DistributedStorageAddSet, SimpleRequestResult, bool>(
+    return heapRequest<PDBCommunicator, DistributedStorageAddSet, SimpleRequestResult, bool>(
         logger,
         port,
         address,
@@ -85,7 +85,7 @@ bool DistributedStorageManagerClient::createTempSet(const std::string& databaseN
                                                     const std::string& typeName,
                                                     std::string& errMsg,
                                                     size_t pageSize) {
-    return heapRequest<DistributedStorageAddTempSet, SimpleRequestResult, bool>(
+    return heapRequest<PDBCommunicator, DistributedStorageAddTempSet, SimpleRequestResult, bool>(
         logger,
         port,
         address,
@@ -101,7 +101,7 @@ bool DistributedStorageManagerClient::createTempSet(const std::string& databaseN
 
 bool DistributedStorageManagerClient::removeDatabase(const std::string& databaseName,
                                                      std::string& errMsg) {
-    return heapRequest<DistributedStorageRemoveDatabase, SimpleRequestResult, bool>(
+    return heapRequest<PDBCommunicator, DistributedStorageRemoveDatabase, SimpleRequestResult, bool>(
         logger,
         port,
         address,
@@ -115,7 +115,7 @@ bool DistributedStorageManagerClient::removeDatabase(const std::string& database
 bool DistributedStorageManagerClient::removeSet(const std::string& databaseName,
                                                 const std::string& setName,
                                                 std::string& errMsg) {
-    return heapRequest<DistributedStorageRemoveSet, SimpleRequestResult, bool>(
+    return heapRequest<PDBCommunicator, DistributedStorageRemoveSet, SimpleRequestResult, bool>(
         logger,
         port,
         address,
@@ -130,7 +130,7 @@ bool DistributedStorageManagerClient::removeTempSet(const std::string& databaseN
                                                     const std::string& setName,
                                                     const std::string& typeName,
                                                     std::string& errMsg) {
-    return heapRequest<DistributedStorageRemoveTempSet, SimpleRequestResult, bool>(
+    return heapRequest<PDBCommunicator, DistributedStorageRemoveTempSet, SimpleRequestResult, bool>(
         logger,
         port,
         address,
@@ -148,7 +148,7 @@ bool DistributedStorageManagerClient::exportSet(const std::string& databaseName,
                                                 const std::string& outputFilePath,
                                                 const std::string& format,
                                                 std::string& errMsg) {
-    return heapRequest<DistributedStorageExportSet, SimpleRequestResult, bool>(
+    return heapRequest<PDBCommunicator, DistributedStorageExportSet, SimpleRequestResult, bool>(
         logger,
         port,
         address,
@@ -166,7 +166,7 @@ bool DistributedStorageManagerClient::clearSet(const std::string& databaseName,
                                                const std::string& setName,
                                                const std::string& typeName,
                                                std::string& errMsg) {
-    return heapRequest<DistributedStorageClearSet, SimpleRequestResult, bool>(
+    return heapRequest<PDBCommunicator, DistributedStorageClearSet, SimpleRequestResult, bool>(
         logger,
         port,
         address,
@@ -180,7 +180,7 @@ bool DistributedStorageManagerClient::clearSet(const std::string& databaseName,
 
 
 bool DistributedStorageManagerClient::flushData(std::string& errMsg) {
-    return heapRequest<DistributedStorageCleanup, SimpleRequestResult, bool>(
+    return heapRequest<PDBCommunicator, DistributedStorageCleanup, SimpleRequestResult, bool>(
         logger,
         port,
         address,

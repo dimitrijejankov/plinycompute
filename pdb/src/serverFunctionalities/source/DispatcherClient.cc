@@ -41,7 +41,7 @@ bool DispatcherClient::registerSet(std::pair<std::string, std::string> setAndDat
                                    PartitionPolicy::Policy policy,
                                    std::string& errMsg) {
 
-    return heapRequest<DispatcherRegisterPartitionPolicy, SimpleRequestResult, bool>(
+    return heapRequest<PDBCommunicator, DispatcherRegisterPartitionPolicy, SimpleRequestResult, bool>(
         logger,
         port,
         address,
