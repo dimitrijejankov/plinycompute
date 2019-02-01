@@ -20,7 +20,7 @@
 
 
 #include "PDBVector.h"
-#include "SimpleRequest.h"
+#include "HeapRequest.h"
 #include "SimpleRequestResult.h"
 #include "SimpleSendDataRequest.h"
 #include "DataTypes.h"

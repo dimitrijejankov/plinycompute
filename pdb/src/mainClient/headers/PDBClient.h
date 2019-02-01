@@ -29,7 +29,7 @@
 #include "PDBVector.h"
 #include "PartitionPolicy.h"
 #include "PartitionComp.h"
-#include "SimpleRequest.h"
+#include "HeapRequest.h"
 
 /**
  * This class provides functionality so users can connect and access

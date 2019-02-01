@@ -154,15 +154,6 @@ void PDBPage :: setClean () {
 	dirty = false;
 }
 
-void PDBPage::unlock() {
-	lk.unlock();
-}
-
-void PDBPage::lock() {
-	lk.lock();
-}
-
-
 }
 
 #endif

@@ -115,7 +115,7 @@ if (typeName != getTypeName <Type> ()) {
 
     bool deleteSet(std::string databaseName, std::string setName) {
         // this is for query testing stuff
-        return heapRequest<PDBCommunicator, DeleteSet, SimpleRequestResult, bool, String, String>(
+        return RequestFactory::heapRequest< DeleteSet, SimpleRequestResult, bool, String, String>(
             myLogger,
             port,
             address,
@@ -169,7 +169,7 @@ if (typeName != getTypeName <Type> ()) {
                          std::vector<Handle<Computation>> computations) {
          std::string errMsg;
          std::cout << "to register Replica at query cient: " << computations.size() << " computations" << std::endl; 
-         return heapRequest<PDBCommunicator, RegisterReplica, SimpleRequestResult, bool>(
+         return RequestFactory::heapRequest< RegisterReplica, SimpleRequestResult, bool>(
             myLogger,
             port,
             address,
@@ -234,30 +234,29 @@ if (typeName != getTypeName <Type> ()) {
         // within each of the results, as well as the database connection information
 
         // this is for query scheduling stuff
-        if (useScheduler == true) {
-            return simpleDoubleRequest<ExecuteComputation,
-                                       Vector<Handle<Computation>>,
-                                       SimpleRequestResult,
-                                       bool>(
+        if (useScheduler) {
+            return RequestFactory::doubleHeapRequest<ExecuteComputation,
+                                                     Vector<Handle<Computation>>,
+                                                     SimpleRequestResult,
+                                                     bool>(
                 myLogger,
                 port,
                 address,
                 false,
                 124 * 1024,
                 [&](Handle<SimpleRequestResult> result) {
-                    if (result != nullptr) {
-                        if (!result->getRes().first) {
-                            errMsg = "Error in query: " + result->getRes().second;
-                            myLogger->error("Error querying data: " + result->getRes().second);
-                            return false;
-                        }
-                        this->queryGraph = makeObject<Vector<Handle<Computation>>>();
-                        return true;
+                  if (result != nullptr) {
+                    if (!result->getRes().first) {
+                      errMsg = "Error in query: " + result->getRes().second;
+                      myLogger->error("Error querying data: " + result->getRes().second);
+                      return false;
                     }
-                    errMsg = "Error getting type name: got nothing back from server";
                     this->queryGraph = makeObject<Vector<Handle<Computation>>>();
-                    return false;
-
+                    return true;
+                  }
+                  errMsg = "Error getting type name: got nothing back from server";
+                  this->queryGraph = makeObject<Vector<Handle<Computation>>>();
+                  return false;
 
                 },
                 executeComputation,

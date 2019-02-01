@@ -78,20 +78,6 @@ class PDBPageHandleBase {
     page->repin();
   }
 
-  /**
-   * Lock the page
-   */
-  void lock() {
-    page->lock();
-  }
-
-  /**
-   * Unlock the page
-   */
-  void unlock() {
-    page->unlock();
-  }
-
   // at destruction, we simply reduce the reference count of the page
   ~PDBPageHandleBase() {
     page->decRefCount();
@@ -109,6 +95,8 @@ class PDBPageHandleBase {
 
   friend class PDBStorageManagerImpl;
   friend class PDBStorageManagerFrontEnd;
+
+  template <class T>
   friend class PDBStorageManagerBackEnd;
 };
 

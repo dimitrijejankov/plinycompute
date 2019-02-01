@@ -19,7 +19,7 @@
 #define OBJECTQUERYMODEL_DISPATCHERCLIENT_CC
 
 #include "DispatcherClient.h"
-#include "SimpleRequest.h"
+#include "HeapRequest.h"
 #include "DispatcherRegisterPartitionPolicy.h"
 
 namespace pdb {
@@ -41,7 +41,7 @@ bool DispatcherClient::registerSet(std::pair<std::string, std::string> setAndDat
                                    PartitionPolicy::Policy policy,
                                    std::string& errMsg) {
 
-    return heapRequest<PDBCommunicator, DispatcherRegisterPartitionPolicy, SimpleRequestResult, bool>(
+    return RequestFactory::heapRequest< DispatcherRegisterPartitionPolicy, SimpleRequestResult, bool>(
         logger,
         port,
         address,

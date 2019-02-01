@@ -35,14 +35,14 @@ using std::string;
 #define BLOCK_HEADER_SIZE 20
 namespace pdb {
 
-template <class CommunicatorType, class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
-ReturnType heapRequest(PDBLoggerPtr myLogger,
-                       int port,
-                       std::string address,
-                       ReturnType onErr,
-                       size_t bytesForRequest,
-                       function<ReturnType(Handle<ResponseType>)> processResponse,
-                       RequestTypeParams&&... args) {
+template<class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
+ReturnType RequestFactory::heapRequest(PDBLoggerPtr myLogger,
+                                       int port,
+                                       std::string address,
+                                       ReturnType onErr,
+                                       size_t bytesForRequest,
+                                       function<ReturnType(Handle<ResponseType>)> processResponse,
+                                       RequestTypeParams &&... args) {
 
 
     // try multiple times if we fail to connect
@@ -54,14 +54,16 @@ ReturnType heapRequest(PDBLoggerPtr myLogger,
         bool success;
 
         // connect to the server
-        CommunicatorType temp;
+        PDBCommunicator temp;
         if (temp.connectToInternetServer(myLogger, port, address, errMsg)) {
 
             // log the error
             myLogger->error(errMsg);
             myLogger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
 
-            return onErr;
+            // retry
+            numRetries++;
+            continue;
         }
 
         // log that we are connected
@@ -88,9 +90,8 @@ ReturnType heapRequest(PDBLoggerPtr myLogger,
             myLogger->error(errMsg);
             myLogger->error("Not able to send request to server.\n");
 
-            // retry
-            numRetries++;
-            continue;
+            // we are done here we do not recover from this error
+            return onErr;
         }
 
         // log that the object is sent
@@ -106,35 +107,32 @@ ReturnType heapRequest(PDBLoggerPtr myLogger,
             // ok we did not that sucks log what happened
             myLogger->error("We did not get a response.\n");
 
-            // retry
-            numRetries++;
-            continue;
+            // we are done here we do not recover from this error
+            return onErr;
         }
 
         // allocate the memory
         std::unique_ptr<char[]> memory(new char[objectSize]);
         if (memory == nullptr) {
 
-
             errMsg = "FATAL ERROR in heapRequest: Can't allocate memory";
             myLogger->error(errMsg);
-            std::cout << errMsg << std::endl;
+
+            /// TODO this needs to be an exception or something
+            // this is a fatal error we should not be running out of memory
             exit(-1);
         }
 
         {
-            Handle<ResponseType> result =  temp.template getNextObject<ResponseType> (memory.get(), success, errMsg);
+            Handle<ResponseType> result =  temp.getNextObject<ResponseType> (memory.get(), success, errMsg);
             if (!success) {
+
+                // log the error
                 myLogger->error(errMsg);
                 myLogger->error("heapRequest: not able to get next object over the wire.\n");
-                /// JiaNote: we need free memory here !!!
 
-                if (numRetries < MAX_RETRIES) {
-                    numRetries++;
-                    continue;
-                } else {
-                    return onErr;
-                }
+                // we are done here we do not recover from this error
+                return onErr;
             }
 
             finalResult = processResponse(result);
@@ -146,58 +144,73 @@ ReturnType heapRequest(PDBLoggerPtr myLogger,
     return onErr;
 }
 
-template <class RequestType, class SecondRequestType, class ResponseType, class ReturnType>
-ReturnType simpleDoubleRequest(PDBLoggerPtr myLogger,
-                               int port,
-                               std::string address,
-                               ReturnType onErr,
-                               size_t bytesForRequest,
-                               function<ReturnType(Handle<ResponseType>)> processResponse,
-                               Handle<RequestType>& firstRequest,
-                               Handle<SecondRequestType>& secondRequest) {
+template<class RequestType, class SecondRequestType, class ResponseType, class ReturnType>
+ReturnType RequestFactory::doubleHeapRequest(PDBLoggerPtr myLogger,
+                                             int port,
+                                             std::string address,
+                                             ReturnType onErr,
+                                             size_t bytesForRequest,
+                                             function<ReturnType(Handle < ResponseType > )> processResponse,
+                                             Handle<RequestType> &firstRequest,
+                                             Handle<SecondRequestType> &secondRequest) {
+    int numRetries = 0;
+    while (numRetries <= MAX_RETRIES) {
 
-    PDBCommunicator temp;
-    string errMsg;
-    bool success;
+        // used for error handling
+        string errMsg;
+        bool success;
 
-    if (temp.connectToInternetServer(myLogger, port, address, errMsg)) {
-        myLogger->error(errMsg);
-        myLogger->error("heapRequest: not able to connect to server.\n");
-        // return onErr;
-        std::cout << "ERROR: can not connect to remote server with port=" << port
-                  << " and address=" << address << std::endl;
-        return onErr;
-    }
-    std::cout << "Successfully connected to remote server with port=" << port
-              << " and address=" << address << std::endl;
-    // build the request
-    if (!temp.sendObject(firstRequest, errMsg)) {
-        myLogger->error(errMsg);
-        myLogger->error("simpleDoubleRequest: not able to send first request to server.\n");
-        return onErr;
-    }
+        // connect to the server
+        PDBCommunicator temp;
+        if (temp.connectToInternetServer(myLogger, port, address, errMsg)) {
 
-    if (!temp.sendObject(secondRequest, errMsg)) {
-        myLogger->error(errMsg);
-        myLogger->error("simpleDoubleRequest: not able to send second request to server.\n");
-        return onErr;
-    }
-
-    // get the response and process it
-    ReturnType finalResult;
-    void* memory = malloc(temp.getSizeOfNextObject());
-    {
-        Handle<ResponseType> result = temp.getNextObject<ResponseType>(memory, success, errMsg);
-        if (!success) {
+            // log the error
             myLogger->error(errMsg);
-            myLogger->error("heapRequest: not able to get next object over the wire.\n");
+            myLogger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
+
+            // retry
+            numRetries++;
+            continue;
+        }
+
+        // log that we are connected
+        myLogger->info(std::string("Successfully connected to remote server with port=") + std::to_string(port) + std::string(" and address=") + address);
+
+        // build the request
+        if (!temp.sendObject(firstRequest, errMsg)) {
+
+            myLogger->error(errMsg);
+            myLogger->error("doubleHeapRequest: not able to send first request to server.\n");
+
             return onErr;
         }
 
-        finalResult = processResponse(result);
+        if (!temp.sendObject(secondRequest, errMsg)) {
+            myLogger->error(errMsg);
+            myLogger->error("doubleHeapRequest: not able to send second request to server.\n");
+            return onErr;
+        }
+
+        // get the response and process it
+        ReturnType finalResult;
+        void *memory = malloc(temp.getSizeOfNextObject());
+        {
+            Handle<ResponseType> result = temp.getNextObject<ResponseType>(memory, success, errMsg);
+            if (!success) {
+                myLogger->error(errMsg);
+                myLogger->error("heapRequest: not able to get next object over the wire.\n");
+                return onErr;
+            }
+
+            finalResult = processResponse(result);
+        }
+
+        free(memory);
+        return finalResult;
     }
-    free(memory);
-    return finalResult;
+
+  // we default to error all retries have been used
+  return onErr;
 }
 }
 #endif

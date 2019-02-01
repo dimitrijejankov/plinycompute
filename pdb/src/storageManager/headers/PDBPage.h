@@ -40,8 +40,8 @@ enum PDBPageStatus {
   PDB_PAGE_LOADING,
   PDB_PAGE_LOADED,
   PDB_PAGE_UNLOADING,
-  PDB_PAGE_NOT_LOADED
-
+  PDB_PAGE_FREEZING,
+  PDB_PAGE_NOT_LOADED,
 };
 
 // forward definition to handle circular dependencies
@@ -106,8 +106,6 @@ class PDBPage {
   void setMe (PDBPagePtr toMe);
   void incRefCount ();
   void decRefCount ();
-  void lock();
-  void unlock();
 
   // a pointer to the raw bytes
   void *bytes;
@@ -135,6 +133,8 @@ class PDBPage {
   friend class PDBPageHandleBase;
   friend class PDBStorageManagerImpl;
   friend class PDBStorageManagerFrontEnd;
+
+  template <class T>
   friend class PDBStorageManagerBackEnd;
 };
 

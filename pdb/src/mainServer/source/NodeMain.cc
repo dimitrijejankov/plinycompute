@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
   pid_t pid = fork();
 
   // check whether we are the frontend or the backend
-  if(pid == 0) {
+  if(pid != 0) {
 
     // do backend setup
     pdb::PDBLoggerPtr logger = make_shared<pdb::PDBLogger>("manager.log");
@@ -94,9 +94,9 @@ int main(int argc, char *argv[]) {
     backEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
 
       // sync me with the cluster
-      sleep(30);
+      sleep(5);
 
-      const int numNodes = 20;
+      const int numNodes = 3;
       int counter = 0;
 
       // create the buzzer
@@ -151,6 +151,8 @@ int main(int argc, char *argv[]) {
       while (counter < numNodes) {
         tempBuzzer->wait();
       }
+
+      std::cout << "Done" << std::endl;
 
       auto page1 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
 

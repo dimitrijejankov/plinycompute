@@ -29,7 +29,6 @@
 #include "StorageTestSetCopy.h"
 #include "SimpleRequestResult.h"
 #include "SimpleSendDataRequest.h"
-#include "CompositeRequest.h"
 #include "DataTypes.h"
 #include <cstddef>
 #include <fcntl.h>
@@ -72,7 +71,7 @@ bool StorageClient::createSet(std::string databaseName, std::string setName, std
     } else {
         std::string typeName = getTypeName<DataType>();
         std::cout << "typeName for set to create =" << typeName << std::endl;
-        return heapRequest<PDBCommunicator, StorageAddSet, SimpleRequestResult, bool>(
+        return RequestFactory::heapRequest< StorageAddSet, SimpleRequestResult, bool>(
             myLogger,
             port,
             address,
@@ -103,7 +102,7 @@ bool StorageClient::removeSet(std::string databaseName, std::string setName, std
 
         std::string typeName = getTypeName<DataType>();
         std::cout << "typeName for set to remove =" << typeName << std::endl;
-        return heapRequest<StorageRemoveUserSet, SimpleRequestResult, bool>(
+        return RequestFactory::heapRequest<StorageRemoveUserSet, SimpleRequestResult, bool>(
             myLogger,
             port,
             address,
@@ -132,133 +131,5 @@ bool StorageClient::removeSet(std::string databaseName, std::string setName, std
     }
 }
 
-
-template <class DataType>
-bool StorageClient::retrieveData(std::string databaseName,
-                                 std::string setName,
-                                 std::string& errMsg) {
-    if (this->usePangea == false) {
-        std::cout << "retrieveData can only work for PangeaStorageServer\n";
-        return false;
-    }
-    std::string typeName = getTypeName<DataType>();
-    return compositeRequest<StorageGetData, StorageGetDataResponse, bool>(
-        myLogger,
-        port,
-        address,
-        false,
-        1024,
-        [&](Handle<StorageGetDataResponse> response, PDBCommunicator communicator) {
-            if (response == nullptr) {
-                errMsg = "Error getting type name : got nothing back from storage";
-                return false;
-            }
-            int numPages = response->getNumPages();
-            std::string fileName = response->getSetName();
-            std::cout << "fileName =" << fileName << std::endl;
-            int filedesc = open(fileName.c_str(), O_CREAT | O_WRONLY | O_APPEND);
-            bool success;
-            std::cout << "total page number =" << numPages << std::endl;
-            if (numPages > 0) {
-                for (int i = 0; i < numPages; i++) {
-                    // the protocol is that each page is corresponding to a Vector
-                    // let's get next Vector
-                    char* recvBuffer = (char*)malloc(response->getRawPageSize());
-                    success = communicator.receiveBytes(recvBuffer, errMsg);
-                    if (success == false) {
-                        close(filedesc);
-                        return false;
-                    }
-                    Record<Vector<Handle<Object>>>* temp =
-                        (Record<Vector<Handle<Object>>>*)(recvBuffer + sizeof(NodeID) +
-                                                          sizeof(DatabaseID) + sizeof(UserTypeID) +
-                                                          sizeof(SetID) + sizeof(PageID) +
-                                                          sizeof(int) + sizeof(size_t));
-                    Handle<Vector<Handle<Object>>> objects = temp->getRootObject();
-                    for (int j = 0; j < objects->size(); j++) {
-                        if (j % 10000 == 0) {
-                            std::cout << "the " << j << "-th object:" << std::endl;
-                            unsafeCast<DataType, Object>((*objects)[j])->print();
-                            std::cout << std::endl;
-                        }
-                    }
-                    write(filedesc, recvBuffer, response->getRawPageSize());
-                }
-            }
-            close(filedesc);
-            return true;
-
-        },
-
-        databaseName,
-        setName,
-        typeName);
-}
-
-template <class DataType>
-bool StorageClient::scanData(std::string databaseName, std::string setName, std::string& errMsg) {
-    if (this->usePangea == false) {
-        std::cout << "scanData can only work for PangeaStorageServer\n";
-        return false;
-    }
-    std::string typeName = getTypeName<DataType>();
-    std::cout << "typeName for set to create =" << typeName << std::endl;
-    return heapRequest<PDBCommunicator, StorageTestSetScan, SimpleRequestResult, bool>(
-        myLogger,
-        port,
-        address,
-        false,
-        1024,
-        [&](Handle<SimpleRequestResult> result) {
-            if (result != nullptr) {
-                if (!result->getRes().first) {
-                    errMsg = "Error creating set: " + result->getRes().second;
-                    myLogger->error("Error scanning data: " + result->getRes().second);
-                    return false;
-                }
-                return true;
-            }
-            errMsg = "Error getting type name: got nothing back from server";
-            return false;
-        },
-        databaseName,
-        setName);
-}
-
-template <class DataType>
-bool StorageClient::copyData(std::string srcDatabaseName,
-                             std::string srcSetName,
-                             std::string destDatabaseName,
-                             std::string destSetName,
-                             std::string& errMsg) {
-    if (this->usePangea == false) {
-        std::cout << "scanData can only work for PangeaStorageServer\n";
-        return false;
-    }
-    std::string typeName = getTypeName<DataType>();
-    std::cout << "typeName for set to create =" << typeName << std::endl;
-    return heapRequest<PDBCommunicator, StorageTestSetCopy, SimpleRequestResult, bool>(
-        myLogger,
-        port,
-        address,
-        false,
-        1024,
-        [&](Handle<SimpleRequestResult> result) {
-            if (result != nullptr) {
-                if (!result->getRes().first) {
-                    errMsg = "Error creating set: " + result->getRes().second;
-                    myLogger->error("Error copying data: " + result->getRes().second);
-                    return false;
-                }
-                return true;
-            }
-            errMsg = "Error getting type name: got nothing back from server";
-            return false;
-        },
-        srcDatabaseName,
-        srcSetName,
-        destDatabaseName,
-        destSetName);
-}
 }
 #endif

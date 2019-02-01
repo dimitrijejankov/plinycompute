@@ -88,7 +88,7 @@ void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
 pdb::PDBStorageManagerInterfacePtr pdb::PDBStorageManagerFrontEnd::getBackEnd() {
 
   // init the backend storage manager with the shared memory
-  return std::make_shared<PDBStorageManagerBackEnd>(sharedMemory);
+  return std::make_shared<PDBStorageManagerBackEnd<RequestFactory>>(sharedMemory);
 }
 
 

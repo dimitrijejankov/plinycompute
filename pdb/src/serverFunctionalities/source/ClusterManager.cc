@@ -18,7 +18,7 @@
 
 #include <ClusterManager.h>
 #include <SimpleRequestResult.h>
-#include <SimpleRequest.h>
+#include <HeapRequest.h>
 #include <PDBFlushConsumerWork.h>
 #include <PDBHeartBeatWork.h>
 
@@ -127,7 +127,7 @@ bool ClusterManager::syncCluster(std::string &error) {
   // figure out the type of the node
   std::string type = getConfiguration()->isManager ? "manager" : "worker";
 
-  return heapRequest<PDBCommunicator, CluSyncRequest, SimpleRequestResult, bool>(
+  return RequestFactory::heapRequest< CluSyncRequest, SimpleRequestResult, bool>(
       logger, conf->managerPort, conf->managerAddress, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
         if (result != nullptr) {

@@ -1,0 +1,536 @@
+#ifndef BE_STORAGE_MGR_CCT
+#define BE_STORAGE_MGR_CCT
+
+#include <PDBStorageManagerBackEnd.h>
+#include <HeapRequest.h>
+#include <StoGetPageRequest.h>
+#include <SimpleRequestResult.h>
+#include <StoGetPageResult.h>
+#include <StoGetAnonymousPageRequest.h>
+#include <StoReturnPageRequest.h>
+#include <StoReturnAnonPageRequest.h>
+#include <StoFreezeSizeRequest.h>
+#include <StoUnpinPageRequest.h>
+#include <StoPinPageRequest.h>
+#include <StoPinPageResult.h>
+#include <mutex>
+
+namespace pdb {
+
+template <class T>
+pdb::PDBStorageManagerBackEnd<T>::PDBStorageManagerBackEnd(const PDBSharedMemory &sharedMemory) : sharedMemory(sharedMemory) {
+
+  // make a logger
+  myLogger = make_shared<pdb::PDBLogger>("storageLog");
+}
+
+template <class T>
+pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage(pdb::PDBSetPtr whichSet, uint64_t i) {
+
+
+  /// 1. Go and check if we are the only ones working on the page if we are mark it with a loading status
+
+  PDBPageHandle pageHandle;
+  {
+    // lock the pages
+    unique_lock<std::mutex> lock(m);
+
+    // make the key
+    pair<PDBSetPtr, long> key = std::make_pair(whichSet, i);
+
+    cv.wait(lock, [&] {
+
+      // find the page
+      auto it = allPages.find(key);
+
+      // if it does not exist create it
+      if(it == allPages.end()) {
+
+        // make a page
+        PDBPagePtr returnVal = make_shared<PDBPage>(*this);
+        returnVal->setMe(returnVal);
+        returnVal->setSet(whichSet);
+        returnVal->setPageNum(i);
+        returnVal->status = PDB_PAGE_NOT_LOADED;
+
+        // insert the page
+        allPages[key] = returnVal;
+
+        return true;
+      }
+
+      // grab the status
+      auto status = it->second->status;
+
+      // are we working on it if so wait a bit?
+      return !(status == PDB_PAGE_LOADING || status == PDB_PAGE_UNLOADING || status == PDB_PAGE_FREEZING);
+    });
+
+    // make a page handle
+    pageHandle = make_shared<PDBPageHandleBase>(allPages.find(key)->second);
+
+    // set the status to loading since we are doing stuff with it
+    pageHandle->page->status = PDB_PAGE_LOADING;
+  }
+
+  /// 2. At this point it is safe to assume we are the only one with access to the page. Now check if it is already
+  /// on the backend
+
+  // grab the address of the frontend
+  auto port = getConfiguration()->port;
+  auto address = getConfiguration()->address;
+
+  // do we have the page return it!
+  if (pageHandle->getBytes() != nullptr) {
+
+    // mark the page as loaded
+    pageHandle->page->status = PDB_PAGE_LOADED;
+
+    // notify all threads that the state has changed
+    cv.notify_all();
+
+    // return it
+    return pageHandle;
+  }
+
+  /// 3. Request the page from the frontend since we don't have it...
+
+  // ok we don't have the page loaded, make a request to get it...
+  auto res = T::template heapRequest<StoGetPageRequest, StoGetPageResult, pdb::PDBPageHandle>(
+      myLogger, port, address, nullptr, 1024,
+      [&](Handle<StoGetPageResult> result) {
+
+        if (result != nullptr) {
+
+          // fill in the stuff
+          PDBPagePtr returnVal = pageHandle->page;
+          returnVal->isAnon = result->isAnonymous;
+          returnVal->pinned = true;
+          returnVal->dirty = result->isDirty;
+          returnVal->pageNum = result->pageNum;
+          returnVal->whichSet = std::make_shared<PDBSet>(result->setName, result->dbName);
+          returnVal->location.startPos = result->startPos;
+          returnVal->location.numBytes = result->numBytes;
+          returnVal->bytes = (void *) (((uint64_t) this->sharedMemory.memory) + (uint64_t) result->offset);
+          returnVal->status = PDB_PAGE_LOADED;
+
+          // notify all threads that the state has changed
+          cv.notify_all();
+
+          // return the page handle
+          return pageHandle;
+        }
+
+        // set the error since we failed
+        myLogger->error("Could not get the requested page (" + whichSet->getDBName() +  ", " + whichSet->getSetName() + ", " + std::to_string(i) + ")");
+
+        // something strange happened kill the backend!
+        exit(-1);
+      },
+      whichSet->getSetName(), whichSet->getDBName(), i);
+
+  // return the page
+  return std::move(res);
+}
+
+template <class T>
+pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage() {
+  return getPage(getConfiguration()->pageSize);
+}
+
+template <class T>
+pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage(size_t minBytes) {
+
+  // grab the address of the frontend
+  auto port = getConfiguration()->port;
+  auto address = getConfiguration()->address;
+
+  // somewhere to put the message.
+  std::string errMsg;
+
+  /// 1. We simply request the page it is safe since it is a new anonymous page
+
+  // make a request
+  auto res = T::template heapRequest<StoGetAnonymousPageRequest, StoGetPageResult, pdb::PDBPageHandle>(
+      myLogger, port, address, nullptr, 1024,
+      [&](Handle<StoGetPageResult> result) {
+
+        if (result != nullptr) {
+
+          PDBPagePtr returnVal = make_shared<PDBPage>(*this);
+          returnVal->setMe(returnVal);
+          returnVal->isAnon = result->isAnonymous;
+          returnVal->pinned = true;
+          returnVal->dirty = result->isDirty;
+          returnVal->pageNum = result->pageNum;
+          returnVal->location.startPos = result->startPos;
+          returnVal->location.numBytes = result->numBytes;
+          returnVal->bytes = (char *) this->sharedMemory.memory + result->offset;
+
+          // this an anonymous page if it is not set the database and set name
+          if (!result->isAnonymous) {
+            returnVal->whichSet = std::make_shared<PDBSet>(result->setName, result->dbName);
+          }
+
+          // put in the the all pages
+          {
+            // lock all pages to add the page there
+            unique_lock<std::mutex> lck(mutex);
+
+            // insert the page
+            allPages[std::make_pair(returnVal->whichSet, returnVal->pageNum)] = returnVal;
+          }
+
+          // mark the page as loaded
+          returnVal->status = PDB_PAGE_LOADED;
+
+          // notify all threads that the state has changed
+          cv.notify_all();
+
+          // return the page handle
+          return make_shared<PDBPageHandleBase>(returnVal);
+        }
+
+        // set the error since we failed
+        myLogger->error("Could not get the requested anonymous page of size " + std::to_string(minBytes));
+
+        return (pdb::PDBPageHandle) nullptr;
+      },
+      minBytes);
+
+  // return the page
+  return std::move(res);
+}
+
+template <class T>
+size_t pdb::PDBStorageManagerBackEnd<T>::getMaxPageSize() {
+  return getConfiguration()->pageSize;
+}
+
+template <class T>
+void pdb::PDBStorageManagerBackEnd<T>::freeAnonymousPage(pdb::PDBPagePtr me) {
+
+  /// 1. Since the count of references for the anon page has hit zero we simply remove it from the allPages
+
+  PDBPageHandle pageHandle;
+  {
+    // lock the pages
+    unique_lock<std::mutex> lck(mutex);
+
+    // remove if from all the pages
+    auto key = std::make_pair(me->whichSet, me->whichPage());
+
+    // just remove the page
+    allPages.erase(key);
+  }
+
+  // grab the address of the frontend
+  auto port = getConfiguration()->port;
+  auto address = getConfiguration()->address;
+
+  /// 2. We make a request to return it to the other side
+
+  // make a request
+  auto res = RequestFactory::template heapRequest<StoReturnAnonPageRequest, SimpleRequestResult, bool>(
+      myLogger, port, address, false, 1024,
+      [&](Handle<SimpleRequestResult> result) {
+
+        // return the result
+        if (result != nullptr && result->getRes().first) {
+          return true;
+        }
+
+        // set the error since we failed
+        myLogger->error("Could not return the requested page");
+
+        return false;
+      }, me->pageNum, me->isDirty());
+
+
+  // did we succeed in returning the page
+  if (!res) {
+
+    // ok something is wrong kill the backend...
+    exit(-1);
+  }
+}
+
+template <class T>
+void pdb::PDBStorageManagerBackEnd<T>::downToZeroReferences(pdb::PDBPagePtr me) {
+
+  /// 1. Wait till we have exclusive access to tha page and then check if the removal is still valid
+  PDBPageHandle pageHandle;
+  {
+    // lock the pages
+    unique_lock<std::mutex> lck(m);
+
+    // wait as long as something is happening with the page
+    cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
+
+    // ok if by some chance we made another reference while we were waiting for the lock
+    // do not free it!
+    if(me->refCount != 0) {
+      return;
+    }
+
+    // find the page
+    auto it = allPages.find(std::make_pair(me->whichSet, me->whichPage()));
+
+    // was the page removed while we were waiting if so we are done here
+    if(it == allPages.end()) {
+      return;
+    }
+
+    // was the page removed and then replaced by another one while we were waiting
+    if(it->second.get() == me.get()) {
+      return;
+    }
+
+    // mark the page as unloading
+    me->status = PDB_PAGE_UNLOADING;
+  }
+
+  /// 2. We need to notify the frontend that we are returning this page
+
+  // grab the address of the frontend
+  auto port = getConfiguration()->port;
+  auto address = getConfiguration()->address;
+
+  // make a request
+  auto res = T::template heapRequest<StoReturnPageRequest, SimpleRequestResult, bool>(
+      myLogger, port, address, false, 1024,
+      [&](Handle<SimpleRequestResult> result) {
+
+        // return the result
+        if (result != nullptr && result->getRes().first) {
+
+          // remove the page
+          allPages.erase(std::make_pair(me->whichSet, me->whichPage()));
+
+          // set the bytes to null
+          me->bytes = nullptr;
+
+          // mark it as unloaded
+          me->status = PDB_PAGE_NOT_LOADED;
+
+          // notify all threads that the state has changed
+          cv.notify_all();
+
+          // true because we succeeded :D
+          return true;
+        }
+
+        // set the error since we failed
+        myLogger->error("Could not return the requested page");
+
+        return false;
+      },
+      me->whichSet->getSetName(), me->whichSet->getDBName(), me->pageNum, me->isDirty());
+
+  // did we succeed in returning the page
+  if (!res) {
+
+    // ok something is wrong kill the backend...
+    exit(-1);
+  }
+}
+
+template <class T>
+void pdb::PDBStorageManagerBackEnd<T>::freezeSize(pdb::PDBPagePtr me, size_t numBytes) {
+
+  /// 1.  Make sure we are the only ones working on the page
+  PDBPageHandle pageHandle;
+  {
+    // lock the pages
+    unique_lock<std::mutex> lck(m);
+
+    // wait as long as something is happening with the page
+    cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
+
+    // mark that we are freezing the page
+    me->status = PDB_PAGE_FREEZING;
+  }
+
+  // grab the address of the frontend
+  auto port = getConfiguration()->port;
+  auto address = getConfiguration()->address;
+
+  // somewhere to put the message.
+  std::string errMsg;
+
+  /// 2. Make the request to freeze it
+
+  // make a request
+  auto res = T::template heapRequest<StoFreezeSizeRequest, SimpleRequestResult, bool>(
+      myLogger, port, address, false, 1024,
+      [&](Handle<SimpleRequestResult> result) {
+
+        // return the result
+        if (result != nullptr && result->getRes().first) {
+
+          // mark the thing as frozen
+          me->sizeFrozen = true;
+          me->status = PDB_PAGE_LOADED;
+
+          // notify all threads that the state has changed
+          cv.notify_all();
+
+          return true;
+        }
+
+        // set the error since we failed
+        myLogger->error("Could not freeze the page page");
+
+        return false;
+      },
+      me->whichSet, me->pageNum, numBytes);
+
+  // did we succeed in returning the page
+  if (!res) {
+
+    // ok something is wrong kill the backend...
+    exit(-1);
+  }
+}
+
+template <class T>
+void pdb::PDBStorageManagerBackEnd<T>::unpin(pdb::PDBPagePtr me) {
+
+  PDBPageHandle pageHandle;
+  {
+    // lock the pages
+    unique_lock<std::mutex> lck(m);
+
+    // wait as long as something is happening with the page
+    cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
+
+    // update status
+    me->status = PDB_PAGE_UNLOADING;
+  }
+
+  // are we already unpinned if so just return no need to send messages around
+  if(me->bytes == nullptr) {
+
+    // mark the page as unloaded
+    me->status = PDB_PAGE_NOT_LOADED;
+
+    // notify all threads that the state has changed
+    cv.notify_all();
+
+    // finish
+    return;
+  }
+
+  // grab the address of the frontend
+  auto port = getConfiguration()->port;
+  auto address = getConfiguration()->address;
+
+  // somewhere to put the message.
+  std::string errMsg;
+
+  // make a request
+  auto res = T::template heapRequest<StoUnpinPageRequest, SimpleRequestResult, bool>(
+      myLogger, port, address, false, 1024,
+      [&](Handle<SimpleRequestResult> result) {
+
+        // return the result
+        if (result != nullptr && result->getRes().first) {
+
+          // invalidate the page
+          me->bytes = nullptr;
+          me->status = PDB_PAGE_NOT_LOADED;
+
+          // notify all threads that the state has changed
+          cv.notify_all();
+
+          // so it worked
+          return true;
+        }
+
+        // set the error since we failed
+        errMsg = "Could not return the requested page";
+
+        // yeah we could not
+        return false;
+      },
+      me->whichSet, me->pageNum, me->isDirty());
+
+  // did we succeed in returning the page
+  if (!res) {
+
+    // ok something is wrong kill the backend...
+    exit(-1);
+  }
+}
+
+template <class T>
+void pdb::PDBStorageManagerBackEnd<T>::repin(pdb::PDBPagePtr me) {
+
+  PDBPageHandle pageHandle;
+  {
+    // lock the pages
+    unique_lock<std::mutex> lck(m);
+
+    // wait as long as something is happening with the page
+    cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
+
+    // update status
+    me->status = PDB_PAGE_LOADING;
+  }
+
+  // check whether the page is already pinned, if so no need to repin it
+  if(me->bytes != nullptr) {
+
+    // finish
+    return;
+  }
+
+  // grab the address of the frontend
+  auto port = getConfiguration()->port;
+  auto address = getConfiguration()->address;
+
+  // somewhere to put the message.
+  std::string errMsg;
+
+  // make a request
+  auto res = T::template heapRequest<StoPinPageRequest, StoPinPageResult, bool>(
+      myLogger, port, address, false, 1024,
+      [&](Handle<StoPinPageResult> result) {
+
+        // return the result
+        if (result != nullptr && result->success) {
+
+          // figure out the pointer for the offset and update status
+          me->bytes = (void *) ((uint64_t) this->sharedMemory.memory + (uint64_t) result->offset);
+          me->status = PDB_PAGE_LOADED;
+
+          // notify all threads that the state has changed
+          cv.notify_all();
+
+          // we succeeded
+          return true;
+        }
+
+        // set the error since we failed
+        errMsg = "Could not return the requested page";
+
+        return false;
+      },
+      me->whichSet, me->pageNum);
+
+  // did we succeed in returning the page
+  if (!res) {
+
+    // ok something is wrong kill the backend...
+    exit(-1);
+  }
+}
+
+template <class T>
+void pdb::PDBStorageManagerBackEnd<T>::registerHandlers(pdb::PDBServer &forMe) {}
+
+}
+
+#endif
+
+

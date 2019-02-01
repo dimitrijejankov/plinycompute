@@ -21,7 +21,7 @@
 
 #include "CatalogClient.h"
 #include "CatCreateSetRequest.h"
-#include "SimpleRequest.h"
+#include "HeapRequest.h"
 #include "SimpleRequestResult.h"
 
 namespace pdb {
@@ -36,7 +36,7 @@ bool CatalogClient::createSet(std::string databaseName, std::string setName,
     return -1;
   }
 
-  return heapRequest<PDBCommunicator, CatCreateSetRequest, SimpleRequestResult, bool>(
+  return RequestFactory::heapRequest< CatCreateSetRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
         if (result != nullptr) {

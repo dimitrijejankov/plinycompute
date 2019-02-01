@@ -151,6 +151,6 @@ private:
 };
 }
 
-#include "CommunicatorTemplates.cc"
+#include "PDBCommunicatorTemplate.cc"
 
 #endif /* PDBCOMMUNICATOR_H */
