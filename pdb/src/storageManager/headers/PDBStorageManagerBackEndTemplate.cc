@@ -48,6 +48,7 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage(pdb::PDBSetPtr whic
 
         // make a page
         PDBPagePtr returnVal = make_shared<PDBPage>(*this);
+        returnVal->setBytes(nullptr);
         returnVal->setMe(returnVal);
         returnVal->setSet(whichSet);
         returnVal->setPageNum(i);

@@ -63,7 +63,7 @@ PDBStorageManagerImpl::PDBStorageManagerImpl(pdb::NodeConfigPtr config) {
 
   // grab the memory size and he page size
   auto memorySize = config->sharedMemSize * 1024 * 1024;
-  auto pageSize = config->pageSize * 1024 * 1024;
+  auto pageSize = config->pageSize;
 
   // just a quick sanity check
   if (pageSize == 0 || memorySize == 0) {
@@ -762,6 +762,7 @@ PDBPageHandle PDBStorageManagerImpl::getPage(size_t maxBytes) {
   returnVal->setPageNum(pageNum);
   returnVal->getLocation().numBytes = bytesRequired;
   returnVal->getLocation().startPos = -1;
+  returnVal->status = PDB_PAGE_LOADED;
   registerMiniPage(returnVal);
 
   return make_shared<PDBPageHandleBase>(returnVal);

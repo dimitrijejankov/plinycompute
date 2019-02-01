@@ -29,6 +29,53 @@
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
+using namespace pdb;
+
+void writeBytes(int fileName, int pageNum, int pageSize, char *toMe) {
+
+  char foo[1000];
+  int num = 0;
+  while (num < 900)
+    num += sprintf(foo + num, "F: %d, P: %d ", fileName, pageNum);
+  memcpy(toMe, foo, pageSize);
+  sprintf(toMe + pageSize - 5, "END#");
+}
+
+pdb::PDBPageHandle createRandomPage(pdb::PDBStorageManagerInterface &myMgr, vector<pdb::PDBSetPtr> &mySets, vector<unsigned> &myEnds, vector<vector<size_t>> &lens) {
+
+  // choose a set
+  auto whichSet = lrand48() % mySets.size();
+
+  // choose a length
+  size_t len = 16;
+  for (; (lrand48() % 3 != 0) && (len < 64); len *= 2);
+
+  // store the random len
+  lens[whichSet].push_back(len);
+
+  pdb::PDBPageHandle returnVal = myMgr.getPage(mySets[whichSet], myEnds[whichSet]);
+  writeBytes(whichSet, myEnds[whichSet], len, (char *) returnVal->getBytes());
+  myEnds[whichSet]++;
+  returnVal->freezeSize(len);
+  return returnVal;
+}
+
+static int counter = 0;
+pdb::PDBPageHandle createRandomTempPage(pdb::PDBStorageManagerImpl &myMgr, vector<size_t> &lengths) {
+
+  // choose a length
+  size_t len = 16;
+  for (; (lrand48() % 3 != 0) && (len < 64); len *= 2);
+
+  // store the length
+  lengths.push_back(len);
+
+  pdb::PDBPageHandle returnVal = myMgr.getPage();
+  writeBytes(-1, counter, len, (char *) returnVal->getBytes());
+  counter++;
+  returnVal->freezeSize(len);
+  return returnVal;
+}
 
 
 int main(int argc, char *argv[]) {
@@ -47,7 +94,7 @@ int main(int argc, char *argv[]) {
   desc.add_options()("managerAddress,d", po::value<std::string>(&config->managerAddress)->default_value("localhost"), "IP of the manager");
   desc.add_options()("managerPort,o", po::value<int32_t>(&config->managerPort)->default_value(8108), "Port of the manager");
   desc.add_options()("sharedMemSize,s", po::value<size_t>(&config->sharedMemSize)->default_value(2048), "The size of the shared memory (MB)");
-  desc.add_options()("pageSize,e", po::value<size_t>(&config->pageSize)->default_value(64), "The size of a page (MB)");
+  desc.add_options()("pageSize,e", po::value<size_t>(&config->pageSize)->default_value(1024 * 1024), "The size of a page (bytes)");
   desc.add_options()("numThreads,t", po::value<int32_t>(&config->numThreads)->default_value(1), "The number of threads we want to use");
   desc.add_options()("rootDirectory,r", po::value<std::string>(&config->rootDirectory)->default_value("./pdbRoot"), "The root directory we want to use.");
   desc.add_options()("maxRetries", po::value<uint32_t>(&config->maxRetries)->default_value(5), "The maximum number of retries before we give up.");
@@ -96,71 +143,49 @@ int main(int argc, char *argv[]) {
       // sync me with the cluster
       sleep(5);
 
-      const int numNodes = 3;
-      int counter = 0;
+      auto& myMgr = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>();
 
-      // create the buzzer
-      PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, int& cnt) {
-        cnt++;
-        PDB_COUT << "counter = " << cnt << std::endl;
-      });
+      // grab two pages
+      PDBPageHandle page1 = myMgr.getPage();
+      PDBPageHandle page2 = myMgr.getPage();
 
-      for (unsigned long i = 0; i < numNodes; i++) {
+      // write 64 bytes to page 2
+      char *bytes = (char *) page1->getBytes();
+      memset(bytes, 'A', 64);
+      bytes[63] = 0;
 
-        // grab a worker
-        pdb::PDBWorkerPtr myWorker = backEnd.getWorkerQueue()->getWorker();
+      // write 32 bytes to page 1
+      bytes = (char *) page2->getBytes();
+      memset(bytes, 'V', 32);
+      bytes[31] = 0;
 
-        // create some work for it
-        pdb::PDBWorkPtr myWork = make_shared<pdb::GenericWork>([&, i](PDBBuzzerPtr callerBuzzer) {
+      // unpin page 1
+      page1->unpin();
 
-          auto page1 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
-          auto page11 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
+      // freeze the size to 32 and unpin it
+      page2->freezeSize(1024 * 512);
+      page2->unpin();
 
-          if(page1->getBytes() != nullptr) {
-
-            ((char*)page1->getBytes())[i] = (char)('a' + i);
-
-            std::cout << "Works1" << std::endl;
-          }
-
-          page1->unpin();
-
-          if(page1->getBytes() == nullptr) {
-            std::cout << "Works2" << std::endl;
-          }
-
-          auto page111 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
-          auto page1111 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
-
-          if(page1->getBytes() != nullptr) {
-
-            ((char*)page1->getBytes())[i + numNodes] = (char)('z' - i);
-            std::cout << "Works3" << std::endl;
-          }
-
-          page1->unpin();
-
-          callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
-        });
-
-        // execute the work
-        myWorker->execute(myWork, tempBuzzer);
+      // just grab some random pages
+      for (int i = 0; i < 32; i++) {
+        PDBPageHandle page3 = myMgr.getPage();
+        PDBPageHandle page4 = myMgr.getPage();
+        PDBPageHandle page5 = myMgr.getPage();
       }
 
-      // wait until all the nodes are finished
-      while (counter < numNodes) {
-        tempBuzzer->wait();
+      // repin page 1 and check
+      page1->repin();
+      bytes = (char *) page1->getBytes();
+      if(memcmp("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\0", bytes, 64) != 0) {
+        std::cout << "BAD1" << std::endl;
       }
 
-      std::cout << "Done" << std::endl;
-
-      auto page1 = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>().getPage(std::make_shared<pdb::PDBSet>("set", "db"), 1);
-
-      for(int i = 0; i < 2 * numNodes; ++i) {
-        std::cout << ((char*)page1->getBytes())[i];
+      // repin page 2 and check
+      page2->repin();
+      bytes = (char *) page2->getBytes();
+      if(memcmp("VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\0", bytes, 32) != 0){
+        std::cout << "BAD2" << std::endl;
       }
-
-      std::cout << std::endl;
 
       // log that the server has started
       std::cout << "Distributed storage manager server started!\n";
