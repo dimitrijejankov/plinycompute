@@ -63,6 +63,8 @@ public:
     BACKEND
   };
 
+  PDBServer() = default;
+
   PDBServer(NodeType type, const NodeConfigPtr &config, const PDBLoggerPtr &logger);
 
   // a server has many possible functionalities... storage, catalog client, query planning, etc.
@@ -127,13 +129,13 @@ public:
   // Jia: I understand it is bad, however we need to create threads in a handler, and I feel you
   // do
   //      not want multiple worker queue in one process. So I temprarily enabled this...
-  PDBWorkerQueuePtr getWorkerQueue();
+  virtual PDBWorkerQueuePtr getWorkerQueue();
 
   // gets access to logger
-  PDBLoggerPtr getLogger();
+  virtual PDBLoggerPtr getLogger();
 
   // returns the configuration of this node
-  pdb::NodeConfigPtr getConfiguration();
+  virtual pdb::NodeConfigPtr getConfiguration();
 
 private:
 

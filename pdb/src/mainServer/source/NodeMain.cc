@@ -26,6 +26,7 @@
 #include <ClusterManager.h>
 #include <CatalogServer.h>
 #include <PDBStorageManagerFrontEnd.h>
+#include <random>
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
@@ -145,46 +146,110 @@ int main(int argc, char *argv[]) {
 
       auto& myMgr = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>();
 
-      // grab two pages
-      PDBPageHandle page1 = myMgr.getPage();
-      PDBPageHandle page2 = myMgr.getPage();
+      // the page sizes we are testing
+      std::vector<size_t> pageSizes {8, 16, 32, 64, 128};
 
-      // write 64 bytes to page 2
-      char *bytes = (char *) page1->getBytes();
-      memset(bytes, 'A', 64);
-      bytes[63] = 0;
+      const int numRequestsPerPage = 2000;
+      const int numPages = 60;
 
-      // write 32 bytes to page 1
-      bytes = (char *) page2->getBytes();
-      memset(bytes, 'V', 32);
-      bytes[31] = 0;
+      // note the number of threads must be less than 8 or equal to 8 or else we can exceed the page size
+      const int numThreads = 4;
 
-      // unpin page 1
-      page1->unpin();
+      // generate the pages
+      PDBSetPtr set = make_shared<PDBSet>("set1", "DB");
+      for(uint64_t i = 0; i < numPages; ++i) {
 
-      // freeze the size to 32 and unpin it
-      page2->freezeSize(1024 * 512);
-      page2->unpin();
+        // grab the page
+        auto page = myMgr.getPage(set, i);
 
-      // just grab some random pages
-      for (int i = 0; i < 32; i++) {
-        PDBPageHandle page3 = myMgr.getPage();
-        PDBPageHandle page4 = myMgr.getPage();
-        PDBPageHandle page5 = myMgr.getPage();
+        // freeze the size
+        page->freezeSize(pageSizes[i % 5]);
+
+        for(int t = 0; t < numThreads; ++t) {
+          // set the first numThreads bytes to 0
+          ((char *) page->getBytes())[t] = 0;
+        }
+
+        // mark as dirty
+        page->setDirty();
       }
 
-      // repin page 1 and check
-      page1->repin();
-      bytes = (char *) page1->getBytes();
-      if(memcmp("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\0", bytes, 64) != 0) {
-        std::cout << "BAD1" << std::endl;
+      atomic_int32_t sync;
+      sync = 0;
+
+      // create the buzzer
+      int counter = 0;
+      PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, int& cnt) {
+        cnt++;
+      });
+
+      // start the threads
+      for(int t = 0; t < numThreads; ++t) {
+
+        // grab a worker
+        PDBWorkerPtr myWorker = backEnd.getWorkerQueue()->getWorker();
+
+        // the thread
+        int myThraed = t;
+
+        // start the thread
+        PDBWorkPtr myWork = make_shared<pdb::GenericWork>([&, myThraed](PDBBuzzerPtr callerBuzzer) {
+
+          int myThreadClamp = ((myThraed + 1) * 100) % 127;
+
+          // generate the page indices
+          std::vector<uint64_t> pageIndices;
+          for(int i = 0; i < numRequestsPerPage; ++i) {
+            for(int j = 0; j < numPages; ++j) {
+              pageIndices.emplace_back(j);
+            }
+          }
+
+          // shuffle the page indices
+          auto seed = std::chrono::system_clock::now().time_since_epoch().count();
+          shuffle (pageIndices.begin(), pageIndices.end(), std::default_random_engine(seed));
+
+          sync++;
+          while (sync != numThreads) {}
+          for(auto it : pageIndices) {
+
+            // grab the page
+            auto page = myMgr.getPage(set, it);
+
+            // increment the page
+            ((char *) page->getBytes())[myThraed] = (char) ((((char *) page->getBytes())[myThraed] + 1) % myThreadClamp);
+
+            // set as dirty
+            page->setDirty();
+          }
+
+          // excellent everything worked just as expected
+          callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+        });
+
+        // run the work
+        myWorker->execute(myWork, tempBuzzer);
       }
 
-      // repin page 2 and check
-      page2->repin();
-      bytes = (char *) page2->getBytes();
-      if(memcmp("VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\0", bytes, 32) != 0){
-        std::cout << "BAD2" << std::endl;
+      // wait until all the nodes are finished
+      while (counter < numThreads) {
+        tempBuzzer->wait();
+      }
+
+      for(uint64_t i = 0; i < numPages; ++i) {
+
+        // the page
+        auto page = myMgr.getPage(set, i);
+
+        for(int t = 0; t < numThreads; ++t) {
+
+          int myThreadClamp = ((t + 1) * 100) % 127;
+
+          // check them
+          if(((char*) page->getBytes())[t] != (numRequestsPerPage % myThreadClamp)) {
+            std::cout << "BAD!" << std::endl;
+          }
+        }
       }
 
       // log that the server has started
@@ -193,7 +258,6 @@ int main(int argc, char *argv[]) {
       // buzz that we are done
       callerBuzzer->buzz(PDBAlarm::WorkAllDone);
     }));
-
   }
   else {
 

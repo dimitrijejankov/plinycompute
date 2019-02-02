@@ -68,7 +68,7 @@ public:
     }
 
 private:
-    PDBServer* parent;
+    PDBServer* parent = nullptr;
 };
 }
 
