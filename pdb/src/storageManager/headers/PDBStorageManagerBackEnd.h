@@ -9,6 +9,9 @@
 #include "PDBStorageManagerInterface.h"
 #include "PDBPageCompare.h"
 
+// this is needed so we can declare friend tests here
+#include <gtest/gtest_prod.h>
+
 namespace pdb {
 
 
@@ -137,6 +140,9 @@ private:
 
   // Logger to debug information
   PDBLoggerPtr myLogger;
+
+  // mark the tests for the backend
+  FRIEND_TEST(StorageManagerBackendTest, Test1);
 };
 
 }

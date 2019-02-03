@@ -67,8 +67,10 @@ public:
         return parent->getConfiguration();
     }
 
-private:
+protected:
     PDBServer* parent = nullptr;
+
+
 };
 }
 

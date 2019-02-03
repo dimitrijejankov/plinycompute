@@ -14,6 +14,7 @@
 #include <StoPinPageRequest.h>
 #include <StoPinPageResult.h>
 #include <mutex>
+#include <StoFreezeRequestResult.h>
 
 namespace pdb {
 
@@ -232,7 +233,7 @@ void pdb::PDBStorageManagerBackEnd<T>::freeAnonymousPage(pdb::PDBPagePtr me) {
   /// 2. We make a request to return it to the other side
 
   // make a request
-  auto res = RequestFactory::template heapRequest<StoReturnAnonPageRequest, SimpleRequestResult, bool>(
+  auto res = T::template heapRequest<StoReturnAnonPageRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
 
@@ -362,12 +363,12 @@ void pdb::PDBStorageManagerBackEnd<T>::freezeSize(pdb::PDBPagePtr me, size_t num
   /// 2. Make the request to freeze it
 
   // make a request
-  auto res = T::template heapRequest<StoFreezeSizeRequest, SimpleRequestResult, bool>(
+  auto res = T::template heapRequest<StoFreezeSizeRequest, StoFreezeRequestResult, bool>(
       myLogger, port, address, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
+      [&](Handle<StoFreezeRequestResult> result) {
 
         // return the result
-        if (result != nullptr && result->getRes().first) {
+        if (result != nullptr && result->res) {
 
           // mark the thing as frozen
           me->sizeFrozen = true;

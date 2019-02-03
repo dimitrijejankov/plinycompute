@@ -8,7 +8,7 @@
 #include <SimpleRequestResult.h>
 #include <StoPinPageResult.h>
 #include <StoGetPageResult.h>
-
+#include <StoFreezeRequestResult.h>
 
 template <class T>
 std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleGetPageRequest(pdb::Handle<pdb::StoGetPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
@@ -161,7 +161,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleFreezeSizeReq
   const UseTemporaryAllocationBlock tempBlock{1024};
 
   // create the response
-  Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(res, res ? std::string("") : std::string("Could not find the page to freeze!"));
+  Handle<StoFreezeRequestResult> response = makeObject<StoFreezeRequestResult>(res);
 
   // sends result to requester
   std::string errMsg;
