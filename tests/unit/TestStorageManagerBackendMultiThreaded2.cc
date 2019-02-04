@@ -237,24 +237,11 @@ TEST(StorageManagerBackendTest, Test4) {
     // the page sizes we are testing
     std::vector<size_t> pageSizes {8, 16, 32, 64, 128};
 
-    // generate the pages
-    PDBSetPtr set = make_shared<PDBSet>("set1", "DB");
-    for(uint64_t i = 0; i < numPages; ++i) {
+    // used to make sure we freeze only once
+    std::vector<bool> firstTime(numPages, true);
 
-      // grab the page
-      auto page = myMgr.getPage(set, i);
-
-      // freeze the size
-      page->freezeSize(pageSizes[i % 5]);
-
-      for(int t = 0; t < numThreads; ++t) {
-        // set the first numThreads bytes to 0
-        ((char *) page->getBytes())[t] = 0;
-      }
-
-      // mark as dirty
-      page->setDirty();
-    }
+    // lock
+    std::mutex firstTimeMutex;
 
     atomic_int32_t sync;
     sync = 0;
@@ -267,6 +254,9 @@ TEST(StorageManagerBackendTest, Test4) {
     PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, int &cnt) {
       cnt++;
     });
+
+    // generate the pages
+    PDBSetPtr set = make_shared<PDBSet>("set1", "DB");
 
     for(int t = 0; t < numThreads; ++t) {
 
@@ -300,6 +290,27 @@ TEST(StorageManagerBackendTest, Test4) {
 
           // grab the page
           auto page = myMgr.getPage(set, it);
+
+          firstTimeMutex.lock();
+
+          if(firstTime[it]) {
+
+            // freeze the size
+            page->freezeSize(pageSizes[it % 5]);
+
+            for(int k = 0; k < numThreads; ++k) {
+              // set the first numThreads bytes to 0
+              ((char *) page->getBytes())[k] = 0;
+            }
+
+            // mark as dirty
+            page->setDirty();
+
+            // mark it as false
+            firstTime[it] = false;
+          }
+
+          firstTimeMutex.unlock();
 
           // increment the page
           ((char *) page->getBytes())[myThread] = (char) ((((char *) page->getBytes())[myThread] + 1) % myThreadClamp);

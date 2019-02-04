@@ -270,11 +270,15 @@ TEST(StorageManagerBackendTest, Test3) {
             bytes[j] = static_cast<char>((j + offset + thread) % 128);
           }
 
+          // check
+          EXPECT_NE(bytes, nullptr);
+
           // store page
           pageHandles.push_back(page);
 
           // unpin the page
           page->unpin();
+          EXPECT_EQ(page->getBytes(), nullptr);
 
           // increment the offset
           offset++;
@@ -295,6 +299,7 @@ TEST(StorageManagerBackendTest, Test3) {
 
           // repin the page
           page->repin();
+          EXPECT_NE(page->getBytes(), nullptr);
 
           // grab the page and fill it in
           char *bytes = (char *) page->getBytes();
@@ -304,6 +309,7 @@ TEST(StorageManagerBackendTest, Test3) {
 
           // unpin the page
           page->unpin();
+          EXPECT_EQ(page->getBytes(), nullptr);
 
           // increment the offset
           offset++;
