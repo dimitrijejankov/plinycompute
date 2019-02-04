@@ -68,8 +68,14 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage(pdb::PDBSetPtr whic
       return !(status == PDB_PAGE_LOADING || status == PDB_PAGE_UNLOADING || status == PDB_PAGE_FREEZING);
     });
 
+    auto it = allPages.find(key);
+
+    if(it == allPages.end()) {
+      std::cout << "asd" << std::endl;
+    }
+
     // make a page handle
-    pageHandle = make_shared<PDBPageHandleBase>(allPages.find(key)->second);
+    pageHandle = make_shared<PDBPageHandleBase>(it->second);
 
     // set the status to loading since we are doing stuff with it
     pageHandle->page->status = PDB_PAGE_LOADING;
@@ -306,14 +312,20 @@ void pdb::PDBStorageManagerBackEnd<T>::downToZeroReferences(pdb::PDBPagePtr me) 
         // return the result
         if (result != nullptr && result->getRes().first) {
 
-          // remove the page
-          allPages.erase(std::make_pair(me->whichSet, me->whichPage()));
+          // do the book keeping
+          {
+            // lock the pages
+            unique_lock<std::mutex> lck(m);
 
-          // set the bytes to null
-          me->bytes = nullptr;
+            // remove the page
+            allPages.erase(std::make_pair(me->whichSet, me->whichPage()));
 
-          // mark it as unloaded
-          me->status = PDB_PAGE_NOT_LOADED;
+            // set the bytes to null
+            me->bytes = nullptr;
+
+            // mark it as unloaded
+            me->status = PDB_PAGE_NOT_LOADED;
+          }
 
           // notify all threads that the state has changed
           cv.notify_all();

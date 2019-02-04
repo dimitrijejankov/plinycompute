@@ -144,6 +144,8 @@ private:
   // mark the tests for the backend
   FRIEND_TEST(StorageManagerBackendTest, Test1);
   FRIEND_TEST(StorageManagerBackendTest, Test2);
+  FRIEND_TEST(StorageManagerBackendTest, Test3);
+  FRIEND_TEST(StorageManagerBackendTest, Test4);
 };
 
 }
