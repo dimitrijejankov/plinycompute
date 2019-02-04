@@ -177,7 +177,7 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage(size_t minBytes) {
           // put in the the all pages
           {
             // lock all pages to add the page there
-            unique_lock<std::mutex> lck(mutex);
+            unique_lock<std::mutex> lck(m);
 
             // insert the page
             allPages[std::make_pair(returnVal->whichSet, returnVal->pageNum)] = returnVal;
@@ -217,7 +217,7 @@ void pdb::PDBStorageManagerBackEnd<T>::freeAnonymousPage(pdb::PDBPagePtr me) {
   PDBPageHandle pageHandle;
   {
     // lock the pages
-    unique_lock<std::mutex> lck(mutex);
+    unique_lock<std::mutex> lck(m);
 
     // remove if from all the pages
     auto key = std::make_pair(me->whichSet, me->whichPage());

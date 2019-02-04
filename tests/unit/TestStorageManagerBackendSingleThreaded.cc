@@ -55,7 +55,7 @@ TEST(StorageManagerBackendTest, Test1) {
 
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
-        int64_t myPage = pages.find(pageSize) == pages.end() ? curPage++ : pages.find(pageSize)->second;
+        int64_t myPage = curPage++;
 
         // make the page
         pdb::Handle<pdb::StoGetPageResult> returnPageRequest =
@@ -385,6 +385,7 @@ TEST(StorageManagerBackendTest, Test2) {
       }
   ));
 
+  // expected to be called 33 times
   EXPECT_CALL(*MockRequestFactory::_requestFactory, freezeSize).Times(33);
 
   /// 4. Mock the pin page
@@ -416,6 +417,7 @@ TEST(StorageManagerBackendTest, Test2) {
       }
   ));
 
+  // expected to be called twice
   EXPECT_CALL(*MockRequestFactory::_requestFactory, pinPage).Times(2);
 
   /// 5. Mock return page
@@ -451,7 +453,7 @@ TEST(StorageManagerBackendTest, Test2) {
   ));
 
   // it should call send object exactly 98 times
-  EXPECT_CALL(*MockRequestFactory::_requestFactory, returnPage).Times(testing::AtLeast(1));
+  EXPECT_CALL(*MockRequestFactory::_requestFactory, returnPage).Times(98);
 
   {
     PDBSetPtr set1 = make_shared<PDBSet>("set1", "DB");
