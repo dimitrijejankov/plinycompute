@@ -284,7 +284,7 @@ void pdb::PDBStorageManagerBackEnd<T>::downToZeroReferences(pdb::PDBPagePtr me) 
     }
 
     // was the page removed and then replaced by another one while we were waiting
-    if(it->second.get() == me.get()) {
+    if(it->second.get() != me.get()) {
       return;
     }
 

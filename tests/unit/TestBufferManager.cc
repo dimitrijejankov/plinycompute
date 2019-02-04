@@ -125,7 +125,7 @@ TEST(BufferManagerTest, Test2) {
   page1->unpin();
   page2->freezeSize(32);
   page2->unpin();
-  for (int i = 0; i < 32; i++) {
+  for (uint64_t i = 0; i < 32; i++) {
     PDBPageHandle page3 = myMgr.getPage(set1, i + 1);
     PDBPageHandle page4 = myMgr.getPage(set1, i + 31);
     PDBPageHandle page5 = myMgr.getPage(set2, i + 1);

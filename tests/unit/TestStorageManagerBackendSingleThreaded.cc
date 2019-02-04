@@ -2,203 +2,13 @@
 // Created by dimitrije on 2/1/19.
 //
 
-#include <gtest/gtest.h>
+
 #include <PDBStorageManagerBackEnd.h>
-#include <gmock/gmock.h>
+#include "TestStorageManagerBackend.h"
 
 namespace pdb {
 
-class MockServer : public pdb::PDBServer {
-public:
-
-  MOCK_METHOD0(getConfiguration, pdb::NodeConfigPtr());
-
-  // mark the tests for the backend
-  FRIEND_TEST(StorageManagerBackendTest, Test1);
-};
-
-class MockRequestFactoryImpl {
-public:
-
-MOCK_METHOD9(getPage, pdb::PDBPageHandle(pdb::PDBLoggerPtr &myLogger,
-                                         int port,
-                                         const std::string address,
-                                         pdb::PDBPageHandle onErr,
-                                         size_t bytesForRequest,
-                                         const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::StoGetPageResult>)> &processResponse,
-                                         std::string setName,
-                                         std::string dbName,
-                                         uint64_t pageNum));
-
-MOCK_METHOD7(getAnonPage, pdb::PDBPageHandle(pdb::PDBLoggerPtr &myLogger,
-                                             int port,
-                                             const std::string &address,
-                                             pdb::PDBPageHandle onErr,
-                                             size_t bytesForRequest,
-                                             const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::StoGetPageResult>)> &processResponse,
-                                             size_t minSize));
-
-MOCK_METHOD9(unpinPage, bool(pdb::PDBLoggerPtr &myLogger,
-                               int port,
-                               const std::string &address,
-                               bool onErr,
-                               size_t bytesForRequest,
-                               const std::function<bool(pdb::Handle<pdb::SimpleRequestResult>)> &processResponse,
-                               PDBSetPtr &set,
-                               size_t pageNum,
-                               bool isDirty));
-
-MOCK_METHOD10(returnPage, bool(pdb::PDBLoggerPtr &myLogger,
-                              int port,
-                              const std::string &address,
-                              bool onErr,
-                              size_t bytesForRequest,
-                              const std::function<bool(pdb::Handle<pdb::SimpleRequestResult>)> &processResponse,
-                              std::string setName,
-                              std::string dbName,
-                              size_t pageNum,
-                              bool isDirty));
-
-MOCK_METHOD8(returnAnonPage, bool(pdb::PDBLoggerPtr &myLogger,
-                                  int port,
-                                  const std::string &address,
-                                  bool onErr,
-                                  size_t bytesForRequest,
-                                  const std::function<bool(pdb::Handle<pdb::SimpleRequestResult>)> &processResponse,
-                                  size_t pageNum,
-                                  bool isDirty));
-
-MOCK_METHOD9(freezeSize, bool(pdb::PDBLoggerPtr &myLogger,
-                              int port,
-                              const std::string address,
-                              bool onErr,
-                              size_t bytesForRequest,
-                              const std::function<bool(pdb::Handle<pdb::StoFreezeRequestResult>)> &processResponse,
-                              pdb::PDBSetPtr setPtr,
-                              size_t pageNum,
-                              size_t numBytes));
-
-MOCK_METHOD8(pinPage, bool(pdb::PDBLoggerPtr &myLogger,
-                           int port,
-                           const std::string &address,
-                           bool onErr,
-                           size_t bytesForRequest,
-                           const std::function<bool(pdb::Handle<pdb::StoPinPageResult>)> &processResponse,
-                           const pdb::PDBSetPtr &setPtr,
-                           size_t pageNum));
-
-};
-
-
-class MockRequestFactory {
-public:
-
-  // the mock get page request
-  template <class RequestType, class ResponseType, class ReturnType>
-  static pdb::PDBPageHandle heapRequest(pdb::PDBLoggerPtr &myLogger,
-                                            int port,
-                                            const std::string &address,
-                                            pdb::PDBPageHandle onErr,
-                                            size_t bytesForRequest,
-                                            const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::StoGetPageResult>)> &processResponse,
-                                            const std::string &setName,
-                                            const std::string &dbName,
-                                            uint64_t pageNum) {
-
-    return _requestFactory->getPage(myLogger, port, address, onErr, bytesForRequest, processResponse, setName, dbName, pageNum);
-  }
-
-  // the mock anonymous page request
-  template <class RequestType, class ResponseType, class ReturnType>
-  static pdb::PDBPageHandle heapRequest(pdb::PDBLoggerPtr &myLogger,
-                                        int port,
-                                        const std::string &address,
-                                        pdb::PDBPageHandle onErr,
-                                        size_t bytesForRequest,
-                                        const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::StoGetPageResult>)> &processResponse,
-                                        size_t minSize) {
-
-    return _requestFactory->getAnonPage(myLogger, port, address, onErr, bytesForRequest, processResponse, minSize);
-  }
-
-  // return anonymous page
-  template <class RequestType, class ResponseType, class ReturnType>
-  static bool heapRequest(pdb::PDBLoggerPtr &myLogger,
-                          int port,
-                          const std::string &address,
-                          bool onErr,
-                          size_t bytesForRequest,
-                          const std::function<bool(pdb::Handle<pdb::SimpleRequestResult>)> &processResponse,
-                          size_t pageNum,
-                          bool isDirty) {
-
-    return _requestFactory->returnAnonPage(myLogger, port, address, onErr, bytesForRequest, processResponse, pageNum, isDirty);
-  }
-
-  // return page
-  template <class RequestType, class ResponseType, class ReturnType>
-  static bool heapRequest(pdb::PDBLoggerPtr &myLogger,
-                          int port,
-                          const std::string &address,
-                          bool onErr,
-                          size_t bytesForRequest,
-                          const std::function<bool(pdb::Handle<pdb::SimpleRequestResult>)> &processResponse,
-                          const std::string &setName,
-                          const std::string &dbName,
-                          size_t pageNum,
-                          bool isDirty) {
-
-    return _requestFactory->returnPage(myLogger, port, address, onErr, bytesForRequest, processResponse, setName, dbName, pageNum, isDirty);
-  }
-
-  template <class RequestType, class ResponseType, class ReturnType>
-  static bool heapRequest(pdb::PDBLoggerPtr &myLogger,
-                          int port,
-                          const std::string &address,
-                          bool onErr,
-                          size_t bytesForRequest,
-                          const std::function<bool(pdb::Handle<pdb::SimpleRequestResult>)> &processResponse,
-                          PDBSetPtr &set,
-                          size_t pageNum,
-                          bool isDirty) {
-
-    return _requestFactory->unpinPage(myLogger, port, address, onErr, bytesForRequest, processResponse, set, pageNum, isDirty);
-  }
-
-  // freeze size
-  template <class RequestType, class ResponseType, class ReturnType>
-  static bool heapRequest(pdb::PDBLoggerPtr &myLogger,
-                          int port,
-                          const std::string &address,
-                          bool onErr,
-                          size_t bytesForRequest,
-                          const std::function<bool(pdb::Handle<pdb::StoFreezeRequestResult>)> &processResponse,
-                          pdb::PDBSetPtr &setPtr,
-                          size_t pageNum,
-                          size_t numBytes) {
-
-    return _requestFactory->freezeSize(myLogger, port, address, onErr, bytesForRequest, processResponse, setPtr, pageNum, numBytes);
-  }
-
-  // pin page
-  template <class RequestType, class ResponseType, class ReturnType>
-  static bool heapRequest(pdb::PDBLoggerPtr &myLogger,
-                          int port,
-                          const std::string &address,
-                          bool onErr,
-                          size_t bytesForRequest,
-                          const std::function<bool(pdb::Handle<pdb::StoPinPageResult>)> &processResponse,
-                          const pdb::PDBSetPtr &setPtr,
-                          size_t pageNum) {
-
-    return _requestFactory->pinPage(myLogger, port, address, onErr, bytesForRequest, processResponse, setPtr, pageNum);
-  }
-
-  static shared_ptr<MockRequestFactoryImpl> _requestFactory;
-};
-
-shared_ptr<MockRequestFactoryImpl> MockRequestFactory::_requestFactory = nullptr;
-
+// this test checks whether anonymous pages work on the backend
 TEST(StorageManagerBackendTest, Test1) {
 
   const size_t numPages = 100;
@@ -248,7 +58,8 @@ TEST(StorageManagerBackendTest, Test1) {
         int64_t myPage = pages.find(pageSize) == pages.end() ? curPage++ : pages.find(pageSize)->second;
 
         // make the page
-        pdb::Handle<pdb::StoGetPageResult> returnPageRequest = pdb::makeObject<pdb::StoGetPageResult>(myPage * pageSize, myPage, true, false, -1, pageSize, "", "");
+        pdb::Handle<pdb::StoGetPageResult> returnPageRequest =
+            pdb::makeObject<pdb::StoGetPageResult>(myPage * pageSize, myPage, true, false, -1, pageSize, "", "");
 
         // mark it as pinned
         pinned[myPage] = true;
@@ -258,7 +69,7 @@ TEST(StorageManagerBackendTest, Test1) {
       }
   ));
 
-  // it should call send object exactly once
+  // it should call send object exactly 98 times
   EXPECT_CALL(*MockRequestFactory::_requestFactory, getAnonPage).Times(98);
 
   /// 2. Mock the unpin page
@@ -288,7 +99,7 @@ TEST(StorageManagerBackendTest, Test1) {
       }
   ));
 
-  // it should call send object exactly once
+  // it should call send object exactly twice
   EXPECT_CALL(*MockRequestFactory::_requestFactory, unpinPage).Times(2);
 
   /// 3. Mock the freeze size
@@ -346,7 +157,7 @@ TEST(StorageManagerBackendTest, Test1) {
       }
   ));
 
-  // it should call send object exactly once
+  // it should call send object exactly twice
   EXPECT_CALL(*MockRequestFactory::_requestFactory, pinPage).Times(2);
 
   /// 5. Mock return anon page
@@ -376,7 +187,7 @@ TEST(StorageManagerBackendTest, Test1) {
       }
   ));
 
-  // it should call send object exactly once
+  // it should call send object exactly 98 times
   EXPECT_CALL(*MockRequestFactory::_requestFactory, returnAnonPage).Times(98);
 
   {
@@ -433,5 +244,255 @@ TEST(StorageManagerBackendTest, Test1) {
   storageManager.parent = nullptr;
 }
 
+// tests set pages
+TEST(StorageManagerBackendTest, Test2) {
+
+  const size_t numPages = 1000;
+  const size_t numSets = 2;
+  const size_t pageSize = 64;
+
+  vector<bool> pinned(numPages * numSets, false);
+  vector<bool> frozen(numPages * numSets, false);
+  std::unordered_map<int64_t, int64_t> pages;
+
+  // allocate memory
+  std::unique_ptr<char[]> memory(new char[numPages * pageSize * numSets]);
+
+  // make the shared memory object
+  PDBSharedMemory sharedMemory{};
+  sharedMemory.pageSize = pageSize;
+  sharedMemory.numPages = numPages * numSets;
+  sharedMemory.memory = memory.get();
+
+  pdb::PDBStorageManagerBackEnd<MockRequestFactory> myMgr(sharedMemory);
+
+  MockRequestFactory::_requestFactory = std::make_shared<MockRequestFactoryImpl>();
+
+  MockServer server;
+  ON_CALL(server, getConfiguration).WillByDefault(testing::Invoke(
+      [&]() {
+        return std::make_shared<pdb::NodeConfig>();
+      }));
+
+  EXPECT_CALL(server, getConfiguration).Times(testing::AtLeast(1));
+
+  myMgr.recordServer(server);
+
+  /// 1. Mock the get page for the set
+
+  ON_CALL(*MockRequestFactory::_requestFactory, getPage).WillByDefault(testing::Invoke(
+      [&](pdb::PDBLoggerPtr &myLogger,
+          int port,
+          const std::string &address,
+          pdb::PDBPageHandle onErr,
+          size_t bytesForRequest,
+          const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::StoGetPageResult>)> &processResponse,
+          const std::string &setName,
+          const std::string &dbName,
+          uint64_t pageNum) {
+
+        const pdb::UseTemporaryAllocationBlock tempBlock{1024};
+
+        // check the page
+        EXPECT_GE(pageNum, 0);
+        EXPECT_LE(pageNum, numPages);
+        EXPECT_TRUE(setName == "set1" || setName == "set2");
+        EXPECT_TRUE(dbName == "DB");
+
+        // figure out which set
+        int whichSet = setName == "set1" ? 0 : 1;
+
+        // make the page
+        pdb::Handle<pdb::StoGetPageResult> returnPageRequest = pdb::makeObject<pdb::StoGetPageResult>((whichSet * numPages + pageNum) * pageSize, pageNum, false, false, -1, pageSize, setName, dbName);
+
+        // mark it as pinned
+        pinned[whichSet * numPages + pageNum] = true;
+
+        // return true since we assume this succeeded
+        return processResponse(returnPageRequest);
+      }
+  ));
+
+  // it should call send object exactly 98 times
+  EXPECT_CALL(*MockRequestFactory::_requestFactory, getPage).Times(98);
+
+
+  /// 2. Mock the unpin page
+
+  ON_CALL(*MockRequestFactory::_requestFactory, unpinPage).WillByDefault(testing::Invoke(
+      [&](pdb::PDBLoggerPtr &myLogger, int port, const std::string &address, bool onErr, size_t bytesForRequest,
+          const std::function<bool(pdb::Handle<pdb::SimpleRequestResult>)> &processResponse,
+          PDBSetPtr &set, size_t pageNum, bool isDirty) {
+
+        const pdb::UseTemporaryAllocationBlock tempBlock{1024};
+
+        // check the page
+        EXPECT_GE(pageNum, 0);
+        EXPECT_LE(pageNum, numPages);
+
+        EXPECT_TRUE(set->getSetName() == "set1" || set->getSetName() == "set2");
+        EXPECT_TRUE(set->getDBName() == "DB");
+
+        // figure out which set
+        int whichSet = set->getSetName() == "set1" ? 0 : 1;
+
+        // make the page
+        pdb::Handle<pdb::SimpleRequestResult> returnPageRequest = pdb::makeObject<pdb::SimpleRequestResult>(true, "");
+
+        // expect it to be pinned when you return it
+        EXPECT_TRUE(pinned[whichSet * numPages + pageNum]);
+
+        // mark it as unpinned
+        pinned[whichSet * numPages + pageNum] = false;
+
+        // return true since we assume this succeeded
+        return processResponse(returnPageRequest);
+      }
+  ));
+
+  // it should call send object exactly twice
+  EXPECT_CALL(*MockRequestFactory::_requestFactory, unpinPage).Times(2);
+
+  /// 3. Mock the freeze size
+
+  ON_CALL(*MockRequestFactory::_requestFactory, freezeSize).WillByDefault(testing::Invoke(
+      [&](pdb::PDBLoggerPtr &myLogger, int port, const std::string address, bool onErr,
+          size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::StoFreezeRequestResult>)> &processResponse,
+          pdb::PDBSetPtr setPtr, size_t pageNum, size_t numBytes) {
+
+        const pdb::UseTemporaryAllocationBlock tempBlock{1024};
+
+        // check the page
+        EXPECT_GE(pageNum, 0);
+        EXPECT_LE(pageNum, numPages);
+        EXPECT_TRUE(setPtr->getSetName() == "set1" || setPtr->getSetName() == "set2");
+        EXPECT_TRUE(setPtr->getDBName() == "DB");
+
+        // figure out which set
+        int whichSet = setPtr->getSetName() == "set1" ? 0 : 1;
+
+        // make the page
+        pdb::Handle<pdb::StoFreezeRequestResult> returnPageRequest = pdb::makeObject<pdb::StoFreezeRequestResult>(true);
+
+        // expect not to be frozen
+        EXPECT_FALSE(frozen[whichSet * numPages + pageNum]);
+
+        // mark it as frozen
+        frozen[whichSet * numPages + pageNum] = true;
+
+        // return true since we assume this succeeded
+        return processResponse(returnPageRequest);
+      }
+  ));
+
+  EXPECT_CALL(*MockRequestFactory::_requestFactory, freezeSize).Times(33);
+
+  /// 4. Mock the pin page
+
+  ON_CALL(*MockRequestFactory::_requestFactory, pinPage).WillByDefault(testing::Invoke(
+      [&](pdb::PDBLoggerPtr &myLogger, int port, const std::string &address, bool onErr,
+          size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::StoPinPageResult>)> &processResponse,
+          const pdb::PDBSetPtr &setPtr, size_t pageNum) {
+
+        const pdb::UseTemporaryAllocationBlock tempBlock{1024};
+
+        // check the page
+        EXPECT_GE(pageNum, 0);
+        EXPECT_LE(pageNum, numPages);
+        EXPECT_TRUE(setPtr->getSetName() == "set1" || setPtr->getSetName() == "set2");
+        EXPECT_TRUE(setPtr->getDBName() == "DB");
+
+        // figure out which set
+        int whichSet = setPtr->getSetName() == "set1" ? 0 : 1;
+
+        // make the page
+        pdb::Handle<pdb::StoPinPageResult> returnPageRequest = pdb::makeObject<pdb::StoPinPageResult>((whichSet * numPages + pageNum) * pageSize, true);
+
+        // mark it as unpinned
+        pinned[whichSet * numPages + pageNum] = true;
+
+        // return true since we assume this succeeded
+        return processResponse(returnPageRequest);
+      }
+  ));
+
+  EXPECT_CALL(*MockRequestFactory::_requestFactory, pinPage).Times(2);
+
+  /// 5. Mock return page
+
+  ON_CALL(*MockRequestFactory::_requestFactory, returnPage).WillByDefault(testing::Invoke(
+      [&](pdb::PDBLoggerPtr &myLogger, int port, const std::string &address, bool onErr,
+          size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::SimpleRequestResult>)> &processResponse,
+          std::string setName, std::string dbName, size_t pageNum, bool isDirty) {
+
+        const pdb::UseTemporaryAllocationBlock tempBlock{1024};
+
+        // check the page
+        EXPECT_GE(pageNum, 0);
+        EXPECT_LE(pageNum, numPages);
+        EXPECT_TRUE(setName == "set1" || setName == "set2");
+        EXPECT_TRUE(dbName == "DB");
+
+        // make the page
+        pdb::Handle<pdb::SimpleRequestResult> returnPageRequest = pdb::makeObject<pdb::SimpleRequestResult>(true, "");
+
+        // figure out which set
+        int whichSet = setName == "set1" ? 0 : 1;
+
+        // expect it to be pinned when you return it
+        EXPECT_TRUE(pinned[whichSet * numPages + pageNum]);
+
+        // mark it as unpinned
+        pinned[whichSet * numPages + pageNum] = false;
+
+        // return true since we assume this succeeded
+        return processResponse(returnPageRequest);
+      }
+  ));
+
+  // it should call send object exactly 98 times
+  EXPECT_CALL(*MockRequestFactory::_requestFactory, returnPage).Times(testing::AtLeast(1));
+
+  {
+    PDBSetPtr set1 = make_shared<PDBSet>("set1", "DB");
+    PDBSetPtr set2 = make_shared<PDBSet>("set2", "DB");
+    PDBPageHandle page1 = myMgr.getPage(set1, 0);
+    PDBPageHandle page2 = myMgr.getPage(set2, 0);
+    char *bytes = (char *) page1->getBytes();
+    memset(bytes, 'A', 64);
+    bytes[63] = 0;
+    bytes = (char *) page2->getBytes();
+    memset(bytes, 'V', 32);
+    bytes[31] = 0;
+    page1->unpin();
+    page2->freezeSize(32);
+    page2->unpin();
+    for (uint64_t i = 0; i < 32; i++) {
+      PDBPageHandle page3 = myMgr.getPage(set1, i + 1);
+      PDBPageHandle page4 = myMgr.getPage(set1, i + 31);
+      PDBPageHandle page5 = myMgr.getPage(set2, i + 1);
+      bytes = (char *) page5->getBytes();
+      memset(bytes, 'V', 32);
+      if (i % 3 == 0) {
+        bytes[31] = 0;
+        page5->freezeSize(32);
+      } else {
+        bytes[15] = 0;
+        page5->freezeSize(16);
+      }
+    }
+    page1->repin();
+    bytes = (char *) page1->getBytes();
+    EXPECT_EQ(memcmp("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\0", bytes, 64), 0);
+
+    page2->repin();
+    bytes = (char *) page2->getBytes();
+    EXPECT_EQ(memcmp("VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\0", bytes, 32), 0);
+  }
+
+  // just to remove the mock object
+  MockRequestFactory::_requestFactory = nullptr;
+  myMgr.parent = nullptr;
+}
 
 }
