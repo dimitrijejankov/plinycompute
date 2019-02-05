@@ -116,8 +116,9 @@ TEST(StorageManagerFrontendTest, Test6) {
   auto workers = make_shared<PDBWorkerQueue>(make_shared<PDBLogger>("worker.log"), numThreads + 2);
 
   // create the buzzer
-  int counter = 0;
-  PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, int& cnt) {
+  atomic_int counter;
+  counter = 0;
+  PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int& cnt) {
     cnt++;
   });
 

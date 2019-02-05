@@ -29,6 +29,8 @@ public:
 
   MOCK_METHOD2(sendObject, bool(pdb::Handle<pdb::StoPinPageResult>& res, std::string& errMsg));
 
+  MOCK_METHOD2(sendObject, bool(pdb::Handle<pdb::StoFreezeRequestResult>& res, std::string& errMsg));
+
 };
 
 auto getRandomIndices(int numRequestsPerPage, int numPages) {
@@ -105,13 +107,15 @@ TEST(StorageManagerFrontendTest, Test6) {
   auto workers = make_shared<PDBWorkerQueue>(make_shared<PDBLogger>("worker.log"), numThreads + 2);
 
   // create the buzzer
-  int counter = 0;
-  PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, int& cnt) {
+  atomic_int counter;
+  counter = 0;
+  PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int& cnt) {
     cnt++;
   });
 
   // init the frozen vector, this marks which pages are false
-  std::vector<bool> frozen(numPages, false);
+  std::vector<atomic_bool> frozen(numPages);
+  for_each(frozen.begin(), frozen.end(), [](auto & f) { f = false; });
 
   // start the threads
   for(int t = 0; t < numThreads; ++t) {
@@ -176,11 +180,11 @@ TEST(StorageManagerFrontendTest, Test6) {
         if(!frozen[requests[i] ]) {
 
           // make sure the mock function returns true
-          ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::SimpleRequestResult> &>(), testing::An<std::string &>())).WillByDefault(testing::Invoke(
-              [&](pdb::Handle<pdb::SimpleRequestResult> &res, std::string &errMsg) {
+          ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoFreezeRequestResult> &>(), testing::An<std::string &>())).WillByDefault(testing::Invoke(
+              [&](pdb::Handle<pdb::StoFreezeRequestResult> &res, std::string &errMsg) {
 
                 // must be true!
-                EXPECT_EQ(res->getRes().first, true);
+                EXPECT_EQ(res->res, true);
 
                 // return true since we assume this succeeded
                 return true;
@@ -188,7 +192,7 @@ TEST(StorageManagerFrontendTest, Test6) {
           ));
 
           // it should call send object exactly once
-          EXPECT_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::SimpleRequestResult> &>(), testing::An<std::string &>())).Times(1);
+          EXPECT_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoFreezeRequestResult> &>(), testing::An<std::string &>())).Times(1);
 
           // return page request
           pdb::Handle<pdb::StoFreezeSizeRequest> returnPageRequest = pdb::makeObject<pdb::StoFreezeSizeRequest>("set1", "db1", requests[i], pageSizes[requests[i] % 3]);

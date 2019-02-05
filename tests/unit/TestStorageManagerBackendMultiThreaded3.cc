@@ -14,13 +14,17 @@ TEST(StorageManagerBackendTest, Test5) {
 
   const int maxPageSize = 128;
   const int numRequestsPerPage = 500;
-  const int numPages = 60;
+  const int numPages = 2;
+  const int processingTime = 100;
 
   // note the number of threads must be less than 8 or equal to 8 or else we can exceed the page size
   const int numThreads = 4;
 
   vector<bool> pinned(numPages, false);
   vector<bool> frozen(numPages, false);
+  vector<bool> accessed(numPages, false);
+  std::mutex accessedLock;
+
   std::unordered_map<int64_t, int64_t> pages;
 
   // allocate memory
@@ -60,11 +64,25 @@ TEST(StorageManagerBackendTest, Test5) {
           const std::string &setName, const std::string &dbName, uint64_t pageNum) {
 
         {
+          unique_lock<std::mutex> lck(accessedLock);
+
+          if(accessed[pageNum]) {
+            std::cout << "Ok this might be a problem" << std::endl;
+          }
+
+          EXPECT_FALSE(accessed[pageNum]);
+          accessed[pageNum] = true;
+        }
+
+        {
           unique_lock<std::mutex> lock(m);
 
           // mark it as pinned
           pinned[pageNum] = true;
         }
+
+        // sleep a bit
+        usleep(processingTime);
 
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
@@ -76,6 +94,11 @@ TEST(StorageManagerBackendTest, Test5) {
 
         // make the page
         pdb::Handle<pdb::StoGetPageResult> returnPageRequest = pdb::makeObject<pdb::StoGetPageResult>(pageNum * maxPageSize, pageNum, false, false, -1, maxPageSize, setName, dbName);
+
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+          accessed[pageNum] = false;
+        }
 
         // return true since we assume this succeeded
         return processResponse(returnPageRequest);
@@ -93,6 +116,13 @@ TEST(StorageManagerBackendTest, Test5) {
           const std::function<bool(pdb::Handle<pdb::SimpleRequestResult>)> &processResponse,
           PDBSetPtr &set, size_t pageNum, bool isDirty) {
 
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+
+          EXPECT_FALSE(accessed[pageNum]);
+          accessed[pageNum] = true;
+        }
+
         // do the bookkeeping
         {
           unique_lock<std::mutex> lock(m);
@@ -100,6 +130,9 @@ TEST(StorageManagerBackendTest, Test5) {
           // mark it as unpinned
           pinned[pageNum] = false;
         }
+
+        // sleep a bit
+        usleep(processingTime);
 
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
@@ -112,6 +145,11 @@ TEST(StorageManagerBackendTest, Test5) {
 
         // make the page
         pdb::Handle<pdb::SimpleRequestResult> returnPageRequest = pdb::makeObject<pdb::SimpleRequestResult>(true, "");
+
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+          accessed[pageNum] = false;
+        }
 
         // return true since we assume this succeeded
         return processResponse(returnPageRequest);
@@ -128,6 +166,13 @@ TEST(StorageManagerBackendTest, Test5) {
           size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::StoFreezeRequestResult>)> &processResponse,
           pdb::PDBSetPtr setPtr, size_t pageNum, size_t numBytes) {
 
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+
+          EXPECT_FALSE(accessed[pageNum]);
+          accessed[pageNum] = true;
+        }
+
         // do the bookkeeping
         {
           unique_lock<std::mutex> lock(m);
@@ -139,6 +184,9 @@ TEST(StorageManagerBackendTest, Test5) {
           frozen[pageNum] = true;
         }
 
+        // sleep a bit
+        usleep(processingTime);
+
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
         // check the page
@@ -149,6 +197,11 @@ TEST(StorageManagerBackendTest, Test5) {
 
         // make the page
         pdb::Handle<pdb::StoFreezeRequestResult> returnPageRequest = pdb::makeObject<pdb::StoFreezeRequestResult>(true);
+
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+          accessed[pageNum] = false;
+        }
 
         // return true since we assume this succeeded
         return processResponse(returnPageRequest);
@@ -165,6 +218,13 @@ TEST(StorageManagerBackendTest, Test5) {
           size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::StoPinPageResult>)> &processResponse,
           const pdb::PDBSetPtr &setPtr, size_t pageNum) {
 
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+
+          EXPECT_FALSE(accessed[pageNum]);
+          accessed[pageNum] = true;
+        }
+
         // do the bookkeeping
         {
           unique_lock<std::mutex> lock(m);
@@ -172,6 +232,9 @@ TEST(StorageManagerBackendTest, Test5) {
           // mark it as unpinned
           pinned[pageNum] = true;
         }
+
+        // sleep a bit
+        usleep(processingTime);
 
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
@@ -183,6 +246,11 @@ TEST(StorageManagerBackendTest, Test5) {
 
         // make the page
         pdb::Handle<pdb::StoPinPageResult> returnPageRequest = pdb::makeObject<pdb::StoPinPageResult>(pageNum * maxPageSize, true);
+
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+          accessed[pageNum] = false;
+        }
 
         // return true since we assume this succeeded
         return processResponse(returnPageRequest);
@@ -199,6 +267,13 @@ TEST(StorageManagerBackendTest, Test5) {
           size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::SimpleRequestResult>)> &processResponse,
           std::string setName, std::string dbName, size_t pageNum, bool isDirty) {
 
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+
+          EXPECT_FALSE(accessed[pageNum]);
+          accessed[pageNum] = true;
+        }
+
         // do the bookkeeping
         {
           unique_lock<std::mutex> lock(m);
@@ -206,6 +281,9 @@ TEST(StorageManagerBackendTest, Test5) {
           // mark it as unpinned
           pinned[pageNum] = false;
         }
+
+        // sleep a bit
+        usleep(processingTime);
 
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
@@ -217,6 +295,11 @@ TEST(StorageManagerBackendTest, Test5) {
 
         // make the page
         pdb::Handle<pdb::SimpleRequestResult> returnPageRequest = pdb::makeObject<pdb::SimpleRequestResult>(true, "");
+
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+          accessed[pageNum] = false;
+        }
 
         // return true since we assume this succeeded
         return processResponse(returnPageRequest);
