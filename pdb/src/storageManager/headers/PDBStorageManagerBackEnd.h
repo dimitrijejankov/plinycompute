@@ -146,6 +146,7 @@ private:
   FRIEND_TEST(StorageManagerBackendTest, Test2);
   FRIEND_TEST(StorageManagerBackendTest, Test3);
   FRIEND_TEST(StorageManagerBackendTest, Test4);
+  FRIEND_TEST(StorageManagerBackendTest, Test5);
 };
 
 }

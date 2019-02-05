@@ -30,10 +30,9 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage(pdb::PDBSetPtr whic
 
 
   /// 1. Go and check if we are the only ones working on the page if we are mark it with a loading status
-
   PDBPageHandle pageHandle;
   {
-    // lock the pages
+    // lock the page
     unique_lock<std::mutex> lock(m);
 
     // make the key
@@ -70,38 +69,36 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage(pdb::PDBSetPtr whic
 
     auto it = allPages.find(key);
 
-    if(it == allPages.end()) {
-      std::cout << "asd" << std::endl;
-    }
-
     // make a page handle
     pageHandle = make_shared<PDBPageHandleBase>(it->second);
 
     // set the status to loading since we are doing stuff with it
     pageHandle->page->status = PDB_PAGE_LOADING;
+
+    /// 2. At this point it is safe to assume we are the only one with access to the page. Now check if it is already
+    /// on the backend
+
+    // do we have the page return it!
+    if (pageHandle->getBytes() != nullptr) {
+
+      // mark the page as loaded
+      pageHandle->page->status = PDB_PAGE_LOADED;
+
+      lock.unlock();
+
+      // notify all threads that the state has changed
+      cv.notify_all();
+
+      // return it
+      return pageHandle;
+    }
   }
 
-  /// 2. At this point it is safe to assume we are the only one with access to the page. Now check if it is already
-  /// on the backend
+  /// 3. Request the page from the frontend since we don't have it...
 
   // grab the address of the frontend
   auto port = getConfiguration()->port;
   auto address = getConfiguration()->address;
-
-  // do we have the page return it!
-  if (pageHandle->getBytes() != nullptr) {
-
-    // mark the page as loaded
-    pageHandle->page->status = PDB_PAGE_LOADED;
-
-    // notify all threads that the state has changed
-    cv.notify_all();
-
-    // return it
-    return pageHandle;
-  }
-
-  /// 3. Request the page from the frontend since we don't have it...
 
   // ok we don't have the page loaded, make a request to get it...
   auto res = T::template heapRequest<StoGetPageRequest, StoGetPageResult, pdb::PDBPageHandle>(
@@ -110,17 +107,22 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage(pdb::PDBSetPtr whic
 
         if (result != nullptr) {
 
-          // fill in the stuff
-          PDBPagePtr returnVal = pageHandle->page;
-          returnVal->isAnon = result->isAnonymous;
-          returnVal->pinned = true;
-          returnVal->dirty = result->isDirty;
-          returnVal->pageNum = result->pageNum;
-          returnVal->whichSet = std::make_shared<PDBSet>(result->setName, result->dbName);
-          returnVal->location.startPos = result->startPos;
-          returnVal->location.numBytes = result->numBytes;
-          returnVal->bytes = (void *) (((uint64_t) this->sharedMemory.memory) + (uint64_t) result->offset);
-          returnVal->status = PDB_PAGE_LOADED;
+          {
+            // lock the pages
+            unique_lock<std::mutex> lock(m);
+
+            // fill in the stuff
+            PDBPagePtr returnVal = pageHandle->page;
+            returnVal->isAnon = result->isAnonymous;
+            returnVal->pinned = true;
+            returnVal->dirty = result->isDirty;
+            returnVal->pageNum = result->pageNum;
+            returnVal->whichSet = std::make_shared<PDBSet>(result->setName, result->dbName);
+            returnVal->location.startPos = result->startPos;
+            returnVal->location.numBytes = result->numBytes;
+            returnVal->bytes = (void *) (((uint64_t) this->sharedMemory.memory) + (uint64_t) result->offset);
+            returnVal->status = PDB_PAGE_LOADED;
+          }
 
           // notify all threads that the state has changed
           cv.notify_all();
@@ -185,12 +187,12 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage(size_t minBytes) {
             // lock all pages to add the page there
             unique_lock<std::mutex> lck(m);
 
+            // mark the page as loaded
+            returnVal->status = PDB_PAGE_LOADED;
+
             // insert the page
             allPages[std::make_pair(returnVal->whichSet, returnVal->pageNum)] = returnVal;
           }
-
-          // mark the page as loaded
-          returnVal->status = PDB_PAGE_LOADED;
 
           // notify all threads that the state has changed
           cv.notify_all();
@@ -275,10 +277,15 @@ void pdb::PDBStorageManagerBackEnd<T>::downToZeroReferences(pdb::PDBPagePtr me) 
     // wait as long as something is happening with the page
     cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
 
-    // ok if by some chance we made another reference while we were waiting for the lock
-    // do not free it!
-    if(me->refCount != 0) {
-      return;
+    // check the reference count
+    {
+      unique_lock<std::mutex> pageLck(me->lk);
+
+      // ok if by some chance we made another reference while we were waiting for the lock
+      // do not free it!
+      if(me->refCount != 0) {
+        return;
+      }
     }
 
     // find the page
@@ -382,12 +389,17 @@ void pdb::PDBStorageManagerBackEnd<T>::freezeSize(pdb::PDBPagePtr me, size_t num
         // return the result
         if (result != nullptr && result->res) {
 
-          // mark the thing as frozen
-          me->sizeFrozen = true;
-          me->status = PDB_PAGE_LOADED;
+          {
+            // lock the pages
+            unique_lock<std::mutex> lck(m);
 
-          // notify all threads that the state has changed
-          cv.notify_all();
+            // mark the thing as frozen
+            me->sizeFrozen = true;
+            me->status = PDB_PAGE_LOADED;
+
+            // notify all threads that the state has changed
+            cv.notify_all();
+          }
 
           return true;
         }
@@ -420,19 +432,22 @@ void pdb::PDBStorageManagerBackEnd<T>::unpin(pdb::PDBPagePtr me) {
 
     // update status
     me->status = PDB_PAGE_UNLOADING;
-  }
 
-  // are we already unpinned if so just return no need to send messages around
-  if(me->bytes == nullptr) {
+    // are we already unpinned if so just return no need to send messages around
+    if(me->bytes == nullptr) {
 
-    // mark the page as unloaded
-    me->status = PDB_PAGE_NOT_LOADED;
+      // mark the page as unloaded
+      me->status = PDB_PAGE_NOT_LOADED;
 
-    // notify all threads that the state has changed
-    cv.notify_all();
+      // unlock
+      lck.unlock();
 
-    // finish
-    return;
+      // notify all threads that the state has changed
+      cv.notify_all();
+
+      // finish
+      return;
+    }
   }
 
   // grab the address of the frontend
@@ -450,9 +465,14 @@ void pdb::PDBStorageManagerBackEnd<T>::unpin(pdb::PDBPagePtr me) {
         // return the result
         if (result != nullptr && result->getRes().first) {
 
-          // invalidate the page
-          me->bytes = nullptr;
-          me->status = PDB_PAGE_NOT_LOADED;
+          {
+            // lock the page
+            unique_lock<std::mutex> lck(m);
+
+            // invalidate the page
+            me->bytes = nullptr;
+            me->status = PDB_PAGE_NOT_LOADED;
+          }
 
           // notify all threads that the state has changed
           cv.notify_all();
@@ -482,7 +502,7 @@ void pdb::PDBStorageManagerBackEnd<T>::repin(pdb::PDBPagePtr me) {
 
   PDBPageHandle pageHandle;
   {
-    // lock the pages
+    // lock the page
     unique_lock<std::mutex> lck(m);
 
     // wait as long as something is happening with the page
@@ -490,13 +510,16 @@ void pdb::PDBStorageManagerBackEnd<T>::repin(pdb::PDBPagePtr me) {
 
     // update status
     me->status = PDB_PAGE_LOADING;
-  }
 
-  // check whether the page is already pinned, if so no need to repin it
-  if(me->bytes != nullptr) {
+    // check whether the page is already pinned, if so no need to repin it
+    if(me->bytes != nullptr) {
 
-    // finish
-    return;
+      // mark as loaded
+      me->status = PDB_PAGE_LOADED;
+
+      // finish
+      return;
+    }
   }
 
   // grab the address of the frontend
@@ -514,9 +537,14 @@ void pdb::PDBStorageManagerBackEnd<T>::repin(pdb::PDBPagePtr me) {
         // return the result
         if (result != nullptr && result->success) {
 
-          // figure out the pointer for the offset and update status
-          me->bytes = (void *) ((uint64_t) this->sharedMemory.memory + (uint64_t) result->offset);
-          me->status = PDB_PAGE_LOADED;
+          {
+            // lock the page
+            unique_lock<std::mutex> lck(m);
+
+            // figure out the pointer for the offset and update status
+            me->bytes = (void *) ((uint64_t) this->sharedMemory.memory + (uint64_t) result->offset);
+            me->status = PDB_PAGE_LOADED;
+          }
 
           // notify all threads that the state has changed
           cv.notify_all();
