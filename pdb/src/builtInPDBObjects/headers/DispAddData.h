@@ -16,26 +16,46 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef CUSTOMER_WRITE_SET_H
-#define CUSTOMER_WRITE_SET_H
 
-#include "WriteUserSet.h"
-#include "Customer.h"
+#ifndef OBJECTQUERYMODEL_DISPADDDATA_H
+#define OBJECTQUERYMODEL_DISPADDDATA_H
 
-using namespace pdb;
-class CustomerWriteSet : public WriteUserSet<Customer> {
+#include "Object.h"
+#include "Handle.h"
+#include "PDBString.h"
+
+// PRELOAD %DispAddData%
+
+namespace pdb {
+
+// encapsulates a request to add data to a set in storage
+class DispAddData : public Object {
 
 public:
-    ENABLE_DEEP_COPY
 
-    CustomerWriteSet() {}
+  DispAddData() = default;
+  ~DispAddData() = default;
 
-    // below constructor is not required, but if we do not call setOutput() here, we must call
-    // setOutput() later to set the output set
-    CustomerWriteSet(std::string dbName, std::string setName) {
-        this->setOutput(dbName, setName);
-    }
+  DispAddData(const std::string &databaseName, const std::string &setName, const std::string &typeName)
+      : databaseName(databaseName), setName(setName), typeName(typeName) {
+  }
+
+  /**
+   * The name of the database the set belongs to
+   */
+  String databaseName;
+
+  /**
+   * The name of the set we are adding the data to
+   */
+  String setName;
+
+  /**
+   * The name of the type we are adding
+   */
+  String typeName;
 };
 
+}
 
-#endif
+#endif  // OBJECTQUERYMODEL_DISPATCHERADDDATA_H

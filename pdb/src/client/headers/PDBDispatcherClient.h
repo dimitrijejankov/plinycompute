@@ -34,41 +34,51 @@ class PDBDispatcherClient : public ServerFunctionality {
 
 public:
 
-    PDBDispatcherClient();
+  PDBDispatcherClient() = default;
 
-    PDBDispatcherClient(int portIn, std::string addressIn, PDBLoggerPtr myLoggerIn);
+  /**
+   * Constructor for the client
+   * @param portIn - the port of the manager
+   * @param addressIn - the address of the manager
+   * @param myLoggerIn - the logger of the client
+   */
+  PDBDispatcherClient(int portIn, std::string addressIn, PDBLoggerPtr myLoggerIn)
+                      : port(portIn), address(std::move(addressIn)), logger(std::move(myLoggerIn)) {};
 
-    ~PDBDispatcherClient();
+  ~PDBDispatcherClient() = default;
 
-    /**
-     *
-     * @param forMe
-     */
-    void registerHandlers(PDBServer& forMe) override;  // no-op
+  /**
+   * Registers the handles needed for the server functionality
+   * @param forMe
+   */
+  void registerHandlers(PDBServer &forMe) override {};
 
-    /**
-     *
-     * @param setAndDatabase
-     * @return
-     */
-    template <class DataType>
-    bool sendData(std::pair<std::string, std::string> setAndDatabase,
-                  Handle<Vector<Handle<DataType>>> dataToSend,
-                  std::string& errMsg);
+  /**
+   * Send the data to the dispatcher
+   * @param setAndDatabase - the set and database pair where we want to
+   * @return true if we succeed false otherwise
+   */
+  template<class DataType>
+  bool sendData(const std::string &db, const std::string &set, Handle<Vector<Handle<DataType>>> dataToSend, std::string &errMsg);
 
-    template <class DataType>
-    bool sendBytes(std::pair<std::string, std::string> setAndDatabase,
-                   char* bytes,
-                   size_t numBytes,
-                   std::string& errMsg);
 private:
 
-    int port;
+  /**
+   * The port of the manager
+   */
+  int port;
 
-    std::string address;
+  /**
+   * The address of the manager
+   */
+  std::string address;
 
-    PDBLoggerPtr logger;
+  /**
+   * The logger of the client
+   */
+  PDBLoggerPtr logger;
 };
+
 }
 
 #include "PDBDispatcherClientTemplate.cc"

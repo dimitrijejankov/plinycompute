@@ -20,7 +20,7 @@
 #define SIMPLE_REQUEST_H
 
 #include "PDBLogger.h"
-
+#include <snappy.h>
 
 
 namespace pdb {
@@ -35,7 +35,8 @@ public:
    * @tparam RequestType - the type of object to create to send over the wire
    * @tparam ResponseType - the type of object we expect to receive over the wire
    * @tparam ReturnType - the type we will return to the caller
-   * @tparam RequestTypeParams - type of the params to use for the contructor to the object we send over the wire
+   * @tparam RequestTypeParams - type of the params to use for the constructor to the object we send over the wire
+   *
    * @param myLogger - The logger we write error messages toThe logger we write error messages to
    * @param port - the port to send the request to
    * @param address - the address to send the request to
@@ -56,14 +57,15 @@ public:
 
 
   /**
-   * This is a similar template d function that sends two objects, in sequence and then asks for the
+   * This is a similar templated function that sends two objects, in sequence and then asks for the
    * results.
    *
    * @tparam RequestType - the type of object to create to send over the wire
    * @tparam SecondRequestType - the second object to create and send over the wirte
    * @tparam ResponseType - the type of object we expect to receive over the wire
    * @tparam ReturnType - the type we will return to the caller
-   * @param myLogger - The logger we write error messages to
+   *
+   * @param logger - The logger we write error messages to
    * @param port - the port to send the request to
    * @param address - the address to send the request to
    * @param onErr - the value to return if there is an error sending/receiving data
@@ -74,7 +76,7 @@ public:
    * @return
    */
   template <class RequestType, class SecondRequestType, class ResponseType, class ReturnType>
-  static ReturnType doubleHeapRequest(PDBLoggerPtr myLogger,
+  static ReturnType doubleHeapRequest(PDBLoggerPtr logger,
                                       int port,
                                       std::string address,
                                       ReturnType onErr,
@@ -83,11 +85,34 @@ public:
                                       Handle<RequestType> &firstRequest,
                                       Handle<SecondRequestType> &secondRequest);
 
+
+  /**
+   * This method a vector of data in addition to the object of RequestType to the particular node.
+   *
+   * @tparam RequestType - the type of object to create to send over the wire
+   * @tparam DataType - the type of data we want to send
+   * @tparam ResponseType - the type of object we expect to receive over the wire
+   * @tparam ReturnType - the type we will return to the caller
+   * @tparam RequestTypeParams - type of the params to use for the constructor to the object we send over the wire
+   *
+   * @param myLogger - The logger we write error messages to
+   * @param port - the port to send the request to
+   * @param address - the address to send the request to
+   * @param onErr - the value to return if there is an error sending/receiving data
+   * @param bytesForRequest - the number of bytes to give to the allocator used to build the request
+   * @param processResponse - the function used to process the response to the request
+   * @param dataToSend - the vector of data we want to send
+   * @param args - the arguments to give to the constructor of the request
+   * @return
+   */
+  template <class RequestType, class DataType, class ResponseType, class ReturnType, class... RequestTypeParams>
+  static ReturnType dataHeapRequest(PDBLoggerPtr myLogger, int port, const std::string &address,
+                                    ReturnType onErr, size_t bytesForRequest, function<ReturnType(Handle<ResponseType>)> processResponse,
+                                    Handle<Vector<Handle<DataType>>> dataToSend, RequestTypeParams&&... args);
 };
 
-
-
 };
+
 
 
 #endif

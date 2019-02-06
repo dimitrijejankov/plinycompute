@@ -110,7 +110,7 @@ pdb::Handle<pdb::Computation>& LAInitializerNode::evaluate(LAPDBInstance& instan
                     }
                     if (writtenBlocks == totalBlocks) {
                         if (!instance.getDispatchClient().sendData<MatrixBlock>(
-                                std::pair<std::string, std::string>(setName, "LA_db"),
+                                setName, "LA_db",
                                 storeMatrix,
                                 instance.instanceErrMsg())) {
                             std::cerr << "Failed to send data to dispatcher server" << std::endl;
@@ -121,7 +121,7 @@ pdb::Handle<pdb::Computation>& LAInitializerNode::evaluate(LAPDBInstance& instan
                     }
                 } catch (pdb::NotEnoughSpace& n) {
                     if (!instance.getDispatchClient().sendData<MatrixBlock>(
-                            std::pair<std::string, std::string>(setName, "LA_db"),
+                            setName, "LA_db",
                             storeMatrix,
                             instance.instanceErrMsg())) {
                         std::cerr << "Failed to send data to dispatcher server" << std::endl;
@@ -180,7 +180,7 @@ pdb::Handle<pdb::Computation>& LAInitializerNode::evaluate(LAPDBInstance& instan
                     }
                     if (writtenBlocks == totalBlocks) {
                         if (!instance.getDispatchClient().sendData<MatrixBlock>(
-                                std::pair<std::string, std::string>(setName, "LA_db"),
+                                setName, "LA_db",
                                 storeMatrix,
                                 instance.instanceErrMsg())) {
                             std::cerr << "Failed to send data to dispatcher server" << std::endl;
@@ -191,7 +191,7 @@ pdb::Handle<pdb::Computation>& LAInitializerNode::evaluate(LAPDBInstance& instan
                     }
                 } catch (pdb::NotEnoughSpace& n) {
                     if (!instance.getDispatchClient().sendData<MatrixBlock>(
-                            std::pair<std::string, std::string>(setName, "LA_db"),
+                            setName, "LA_db",
                             storeMatrix,
                             instance.instanceErrMsg())) {
                         std::cerr << "Failed to send data to dispatcher server" << std::endl;

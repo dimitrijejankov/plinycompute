@@ -58,8 +58,7 @@ namespace pdb {
     bool PDBClient::sendData(std::pair<std::string, std::string> setAndDatabase,
                              Handle<Vector<Handle<DataType>>> dataToSend) {
 
-      bool result = dispatcherClient->sendData<DataType>(setAndDatabase, dataToSend,
-                                                 returnedMsg);
+      bool result = dispatcherClient->sendData<DataType>(setAndDatabase.second, setAndDatabase.first, dataToSend, returnedMsg);
 
       if (result==false) {
           errorMsg = "Not able to send data: " + returnedMsg;
@@ -68,26 +67,6 @@ namespace pdb {
           cout << "Data sent.\n";
       }
       return result;
-    }
-
-    template <class DataType>
-    bool PDBClient::sendBytes(std::pair<std::string, std::string> setAndDatabase,
-                   char* bytes,
-                   size_t numBytes){
-
-      bool result = dispatcherClient->sendBytes<DataType>(
-                setAndDatabase,
-                bytes,
-                numBytes,
-                returnedMsg);
-
-        if (result==false) {
-            errorMsg = "Not able to send bytes: " + returnedMsg;
-            exit(-1);
-        } else {
-            cout << "Bytes sent.\n";
-        }
-        return result;
     }
 
     template <class... Types>

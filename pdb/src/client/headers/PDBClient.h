@@ -153,15 +153,6 @@ namespace pdb {
       /* Lists user-defined types registered in the catalog. */
       void listUserDefinedTypes();
 
-      /****
-       * Methods for invoking Dispatcher-related operations
-       *
-       * @param setAndDatabase
-       * @return
-       */
-      bool registerSet(std::pair<std::string, std::string> setAndDatabase,
-                       PartitionPolicy::Policy policy);
-
       /**
        *
        * @param setAndDatabase
@@ -170,10 +161,6 @@ namespace pdb {
       template <class DataType>
       bool sendData(std::pair<std::string, std::string> setAndDatabase,
                     Handle<Vector<Handle<DataType>>> dataToSend);
-
-      template <class DataType>
-      bool sendBytes(std::pair<std::string, std::string> setAndDatabase,
-                     char *bytes, size_t numBytes);
 
       /****
        * Methods for invoking Query-related operations
