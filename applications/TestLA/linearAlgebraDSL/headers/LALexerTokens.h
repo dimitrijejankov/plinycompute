@@ -92,7 +92,7 @@
 
 
 #define DOUBLE 790
-#define INTEGER 791
+#define INTEGERT 791
 #define IDENTIFIERLITERAL 792
 #define STRINGLITERAL 793
 

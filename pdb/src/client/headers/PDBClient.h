@@ -19,7 +19,7 @@
 #define PDBCLIENT_H
 
 #include "CatalogClient.h"
-#include "DispatcherClient.h"
+#include "PDBDispatcherClient.h"
 #include "DistributedStorageManagerClient.h"
 #include "QueryClient.h"
 #include "ServerFunctionality.h"
@@ -194,7 +194,7 @@ namespace pdb {
 
     private:
       std::shared_ptr<pdb::CatalogClient> catalogClient;
-      std::shared_ptr<pdb::DispatcherClient> dispatcherClient;
+      std::shared_ptr<pdb::PDBDispatcherClient> dispatcherClient;
       std::shared_ptr<pdb::DistributedStorageManagerClient> distributedStorageClient;
       std::shared_ptr<pdb::QueryClient> queryClient;
 
@@ -219,7 +219,7 @@ namespace pdb {
 }
 
 #include "PDBClientTemplate.cc"
-#include "DispatcherClientTemplate.cc"
+#include "PDBDispatcherClientTemplate.cc"
 #include "StorageClientTemplate.cc"
 
 #endif

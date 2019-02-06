@@ -29,30 +29,22 @@
 namespace pdb {
 
 // this class serves as a dispatcher client to talk with the DispatcherServer
-// to send Vector<Objects> from clients to the distributed storage server. 
-
-
-class DispatcherClient : public ServerFunctionality {
+// to send Vector<Objects> from clients to the distributed storage server.
+class PDBDispatcherClient : public ServerFunctionality {
 
 public:
-    DispatcherClient();
-    DispatcherClient(int portIn, std::string addressIn, PDBLoggerPtr myLoggerIn);
-    ~DispatcherClient();
+
+    PDBDispatcherClient();
+
+    PDBDispatcherClient(int portIn, std::string addressIn, PDBLoggerPtr myLoggerIn);
+
+    ~PDBDispatcherClient();
 
     /**
      *
      * @param forMe
      */
     void registerHandlers(PDBServer& forMe) override;  // no-op
-
-    /**
-     *
-     * @param setAndDatabase
-     * @return
-     */
-    bool registerSet(std::pair<std::string, std::string> setAndDatabase,
-                     PartitionPolicy::Policy policy,
-                     std::string& errMsg);
 
     /**
      *
@@ -69,15 +61,16 @@ public:
                    char* bytes,
                    size_t numBytes,
                    std::string& errMsg);
-
 private:
-    CatalogClient myHelper;
+
     int port;
+
     std::string address;
+
     PDBLoggerPtr logger;
 };
 }
 
-#include "DispatcherClientTemplate.cc"
+#include "PDBDispatcherClientTemplate.cc"
 
 #endif  // OBJECTQUERYMODEL_DISPATCHERCLIENT_H

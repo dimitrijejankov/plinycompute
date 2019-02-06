@@ -89,7 +89,7 @@
 %token TOKEN_DUPLICATECOL       760
 
 %token <doubleVal>        DOUBLE                790
-%token <intVal>           INTEGER               791
+%token <intVal>           INTEGERT              791
 %token <stringVal>        IDENTIFIERLITERAL     792
 %token <stringVal>        STRINGLITERAL         793
 
@@ -349,7 +349,7 @@ primaryExpression
     $$ = makePrimaryExpressionFromExpression("colSum",$3);
   }
   // suppose expression is a row vector, duplicate to blockColSize, blockColNum 
-  | TOKEN_DUPLICATEROW TOKEN_LEFT_BRACKET expression TOKEN_COMMA INTEGER TOKEN_COMMA INTEGER TOKEN_RIGHT_BRACKET
+  | TOKEN_DUPLICATEROW TOKEN_LEFT_BRACKET expression TOKEN_COMMA INTEGERT TOKEN_COMMA INTEGERT TOKEN_RIGHT_BRACKET
   {
     if(LAPARSEPRINTFLAG){
       printf("duplicateRow function Expression\n");
@@ -357,7 +357,7 @@ primaryExpression
     $$ = makePrimaryExpressionFromExpressionDuplicate("duplicateRow",$3,$5,$7);
   }
   // suppose experssion is a col vector, duplicate to blockRowSize, blockRowNum
-  | TOKEN_DUPLICATECOL TOKEN_LEFT_BRACKET expression TOKEN_COMMA INTEGER TOKEN_COMMA INTEGER TOKEN_RIGHT_BRACKET
+  | TOKEN_DUPLICATECOL TOKEN_LEFT_BRACKET expression TOKEN_COMMA INTEGERT TOKEN_COMMA INTEGERT TOKEN_RIGHT_BRACKET
   {
     if(LAPARSEPRINTFLAG){
       printf("duplicateCol function Expression\n");
@@ -369,7 +369,7 @@ primaryExpression
 
 // integer order: (blockRowSize, blockColSize, blockRowNum, blockColNum)
 initializer
-  : TOKEN_ZEROS TOKEN_LEFT_BRACKET INTEGER TOKEN_COMMA INTEGER TOKEN_COMMA INTEGER TOKEN_COMMA INTEGER TOKEN_RIGHT_BRACKET 
+  : TOKEN_ZEROS TOKEN_LEFT_BRACKET INTEGERT TOKEN_COMMA INTEGERT TOKEN_COMMA INTEGERT TOKEN_COMMA INTEGERT TOKEN_RIGHT_BRACKET 
   {
     if(LAPARSEPRINTFLAG){
       printf("zeros(%d, %d, %d, %d)\n",$3,$5,$7,$9);
@@ -377,7 +377,7 @@ initializer
     $$ = makeZerosInitializer($3,$5,$7,$9);
   }
 
-  | TOKEN_ONES TOKEN_LEFT_BRACKET INTEGER TOKEN_COMMA INTEGER TOKEN_COMMA INTEGER TOKEN_COMMA INTEGER TOKEN_RIGHT_BRACKET   
+  | TOKEN_ONES TOKEN_LEFT_BRACKET INTEGERT TOKEN_COMMA INTEGERT TOKEN_COMMA INTEGERT TOKEN_COMMA INTEGERT TOKEN_RIGHT_BRACKET   
   { 
     if(LAPARSEPRINTFLAG){
       printf("ones(%d, %d, %d, %d)\n",$3,$5,$7,$9);
@@ -385,7 +385,7 @@ initializer
     $$ = makeOnesInitializer($3,$5,$7,$9);
   }
 
-  | TOKEN_IDENTITY TOKEN_LEFT_BRACKET INTEGER TOKEN_COMMA INTEGER TOKEN_RIGHT_BRACKET   
+  | TOKEN_IDENTITY TOKEN_LEFT_BRACKET INTEGERT TOKEN_COMMA INTEGERT TOKEN_RIGHT_BRACKET   
   { 
     if(LAPARSEPRINTFLAG){
       printf("identity(%d, %d)\n",$3,$5);
@@ -393,7 +393,7 @@ initializer
     $$ = makeIdentityInitializer($3,$5);
   }
 
-  | TOKEN_LOAD TOKEN_LEFT_BRACKET INTEGER TOKEN_COMMA INTEGER TOKEN_COMMA INTEGER TOKEN_COMMA INTEGER TOKEN_COMMA STRINGLITERAL TOKEN_RIGHT_BRACKET 
+  | TOKEN_LOAD TOKEN_LEFT_BRACKET INTEGERT TOKEN_COMMA INTEGERT TOKEN_COMMA INTEGERT TOKEN_COMMA INTEGERT TOKEN_COMMA STRINGLITERAL TOKEN_RIGHT_BRACKET 
   {
     if(LAPARSEPRINTFLAG){
       printf("load(%d, %d, %d, %d, %s)\n",$3,$5,$7,$9,$11);
@@ -417,7 +417,7 @@ identifier
 
 /*
 constant
-  : INTEGER
+  : INTEGERT
   | DOUBLE
   ;
 */

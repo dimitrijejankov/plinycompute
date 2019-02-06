@@ -37,7 +37,7 @@ namespace pdb {
               make_shared<pdb::PDBLogger>("catalogClientLog"));
 
       dispatcherClient =
-          std::make_shared<pdb::DispatcherClient>(
+          std::make_shared<pdb::PDBDispatcherClient>(
               portIn,
               addressIn,
               make_shared<pdb::PDBLogger>("dispatcherClientLog"));
@@ -269,30 +269,13 @@ namespace pdb {
     }
 
     /****
-     * Methods for invoking Dispatcher-related operations
-     */
-
-    bool PDBClient::registerSet(std::pair<std::string, std::string> setAndDatabase,
-                                PartitionPolicy::Policy policy) {
-
-      bool result = dispatcherClient->registerSet(setAndDatabase, policy, returnedMsg);
-      if (result==false) {
-          errorMsg = "Not able to register set: " + returnedMsg;
-          exit(-1);
-      } else {
-          cout << "Set has been registered.\n";
-      }
-      return result;
-    }
-
-    /****
      * Methods for invoking Query-related operations
      */
     bool PDBClient::deleteSet(std::string databaseName, std::string setName) {
 
       bool result = queryClient->deleteSet(databaseName, setName);
 
-      if (result==false) {
+      if (!result) {
           errorMsg = "Not able to delete set: ";
           exit(-1);
       } else {

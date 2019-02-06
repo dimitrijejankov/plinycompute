@@ -32,7 +32,7 @@
 #include "Lambda.h"
 #include "QueryClient.h"
 #include "DistributedStorageManagerClient.h"
-#include "DispatcherClient.h"
+#include "PDBDispatcherClient.h"
 #include "Set.h"
 #include "DataTypes.h"
 #include "LADimension.h"
@@ -50,7 +50,7 @@ private:
     pdb::PDBLoggerPtr clientLogger;
     pdb::DistributedStorageManagerClient storageClient;
     pdb::CatalogClient catalogClient;
-    pdb::DispatcherClient dispatcherClient;
+    pdb::PDBDispatcherClient dispatcherClient;
     pdb::QueryClient queryClient;
 
     std::string errMsg;
@@ -125,7 +125,7 @@ public:
         return this->storageClient;
     }
 
-    pdb::DispatcherClient& getDispatchClient() {
+    pdb::PDBDispatcherClient& getDispatchClient() {
         return this->dispatcherClient;
     }
 

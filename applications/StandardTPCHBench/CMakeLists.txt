@@ -16,7 +16,6 @@ endforeach()
 
 # create the target
 add_pdb_application(tpchDataLoader)
-add_pdb_application(tpchDataPartitioner)
 add_pdb_application(RunQuery01)
 add_pdb_application(RunQuery02)
 add_pdb_application(RunQuery03)
@@ -107,11 +106,6 @@ add_dependencies(tpchDataLoader Q22TPCHOrderCountPerTPCHCustomer)
 add_dependencies(tpchDataLoader Q22TPCHOrderCountSelection)
 add_dependencies(tpchDataLoader TPCHRegion)
 add_dependencies(tpchDataLoader TPCHSupplier)
-
-add_dependencies(build-standard-tpch-tests tpchDataPartitioner)
-add_dependencies(tpchDataPartitioner TPCHLineItem)
-add_dependencies(tpchDataPartitioner LineItemPartitionComp)
-add_dependencies(tpchDataPartitioner LineItemPartitionTransformationComp)
 
 
 add_dependencies(build-standard-tpch-tests RunQuery01)

@@ -18,7 +18,7 @@
 #ifndef OBJECTQUERYMODEL_DISPATCHERCLIENTTEMPLATE_CC
 #define OBJECTQUERYMODEL_DISPATCHERCLIENTTEMPLATE_CC
 
-#include "DispatcherClient.h"
+#include "PDBDispatcherClient.h"
 #include "DispatcherAddData.h"
 #include "SimpleSendDataRequest.h"
 #include "SimpleSendBytesRequest.h"
@@ -27,7 +27,7 @@
 namespace pdb {
 
 template <class DataType>
-bool DispatcherClient::sendData(std::pair<std::string, std::string> setAndDatabase,
+bool PDBDispatcherClient::sendData(std::pair<std::string, std::string> setAndDatabase,
                                 Handle<Vector<Handle<DataType>>> dataToSend,
                                 std::string& errMsg) {
     return simpleSendDataRequest<DispatcherAddData, Handle<DataType>, SimpleRequestResult, bool>(
@@ -53,7 +53,7 @@ bool DispatcherClient::sendData(std::pair<std::string, std::string> setAndDataba
 
 
 template <class DataType>
-bool DispatcherClient::sendBytes(std::pair<std::string, std::string> setAndDatabase,
+bool PDBDispatcherClient::sendBytes(std::pair<std::string, std::string> setAndDatabase,
                                  char* bytes,
                                  size_t numBytes,
                                  std::string& errMsg) {

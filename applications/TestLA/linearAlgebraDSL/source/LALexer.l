@@ -61,7 +61,7 @@
 [0-9]+                    { 
                             yylval->intVal = atoi( yytext );
                             if(LALEXPRINTFLAG){printf("integer token! <%d>\n",yylval->intVal);}
-                            return (INTEGER);
+                            return (INTEGERT);
                           }
 
 [A-Za-z][A-Za-z0-9_]*     { 
