@@ -718,6 +718,7 @@ PDBPageHandle PDBStorageManagerImpl::getPage(size_t maxBytes) {
 
   if (maxBytes > sharedMemory.pageSize) {
     std::cerr << maxBytes << " is larger than the system page size of " << sharedMemory.pageSize << "\n";
+    return nullptr;
   }
 
   // lock the buffer manager

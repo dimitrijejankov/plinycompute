@@ -28,7 +28,7 @@
 #include "PDBCatalogClient.h"
 #include "PangeaStorageServer.h"
 #include "DistributedStorageManagerServer.h"
-#include "DispatcherServer.h"
+#include "PDBDispatcherServer.h"
 #include "QuerySchedulerServer.h"
 #include "StorageAddDatabase.h"
 #include "SharedEmployee.h"
@@ -108,7 +108,7 @@ int main(int argc, char* argv[]) {
     serverListFile = pseudoClusterMode ? "conf/serverlist.test" : "conf/serverlist";
 
     frontEnd.addFunctionality(std::make_shared<pdb::DistributedStorageManagerServer>(myLogger));
-    frontEnd.addFunctionality(std::make_shared<pdb::DispatcherServer>());
+    frontEnd.addFunctionality(std::make_shared<pdb::PDBDispatcherServer>());
     frontEnd.addFunctionality(std::make_shared<pdb::QuerySchedulerServer>(port, myLogger, conf, pseudoClusterMode, partitionToCoreRatio));
     frontEnd.addFunctionality(std::make_shared<pdb::ClusterManager>());
     frontEnd.startServer(make_shared<GenericWork>([&](PDBBuzzerPtr callerBuzzer) {

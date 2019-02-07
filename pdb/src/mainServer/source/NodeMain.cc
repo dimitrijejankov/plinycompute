@@ -24,7 +24,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <ClusterManager.h>
-#include <DispatcherServer.h>
+#include <PDBDispatcherServer.h>
 #include <CatalogServer.h>
 #include <PDBStorageManagerFrontEnd.h>
 #include <random>
@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
 
     frontEnd.addFunctionality(std::make_shared<pdb::ClusterManager>());
     frontEnd.addFunctionality(std::make_shared<pdb::CatalogServer>());
-    frontEnd.addFunctionality(std::make_shared<pdb::DispatcherServer>());
+    frontEnd.addFunctionality(std::make_shared<pdb::PDBDispatcherServer>());
     frontEnd.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(config->port, config->address, logger));
 
     frontEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {

@@ -16,41 +16,50 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef DISPATCHER_SERVER_CC
-#define DISPATCHER_SERVER_CC
 
-#include "DispatcherServer.h"
-#include <snappy.h>
-#include <DispatcherServer.h>
-#include <HeapRequestHandler.h>
-#include <DispAddData.h>
-#include <StoGetPageRequest.h>
+#ifndef OBJECTQUERYMODEL_DISPDISPATCHDATA_H
+#define OBJECTQUERYMODEL_DISPDISPATCHDATA_H
 
-#define MAX_CONCURRENT_REQUESTS 10
+#include "Object.h"
+#include "Handle.h"
+#include "PDBString.h"
+
+// PRELOAD %DispDispatchData%
 
 namespace pdb {
 
-void DispatcherServer::registerHandlers(PDBServer &forMe) {
+/**
+ * This one looks exactly like the add data but it is sent by the @see PDBDispatcherServer
+ */
+class DispDispatchData : public Object {
 
-forMe.registerHandler(
-    DispAddData_TYPEID,
-    make_shared<HeapRequestHandler<pdb::DispAddData>>(
-        [&](Handle<pdb::DispAddData> request, PDBCommunicatorPtr sendUsingMe) {
+public:
 
-          std::cout << "Got the data" << std::endl;
+  DispDispatchData() = default;
+  ~DispDispatchData() = default;
 
-          size_t numBytes = sendUsingMe->getSizeOfNextObject();
-          std::unique_ptr<char[]> compressedBytes(new char[numBytes]);
+  DispDispatchData(const std::string &databaseName, const std::string &setName, const std::string &typeName)
+      : databaseName(databaseName), setName(setName), typeName(typeName) {
+  }
 
-          std::string error;
-          sendUsingMe->receiveBytes(compressedBytes.get(), error);
+  ENABLE_DEEP_COPY
 
-          return std::make_pair<bool, std::string>(true, "");
-    }));
+  /**
+   * The name of the database the set belongs to
+   */
+  String databaseName;
 
+  /**
+   * The name of the set we are adding the data to
+   */
+  String setName;
+
+  /**
+   * The name of the type we are adding
+   */
+  String typeName;
+};
 
 }
 
-}
-
-#endif
+#endif  // OBJECTQUERYMODEL_DISPATCHERADDDATA_H

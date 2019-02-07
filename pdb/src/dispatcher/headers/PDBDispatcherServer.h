@@ -27,6 +27,7 @@
 
 #include "NodeDispatcherData.h"
 #include "StorageClient.h"
+#include "PDBDispatcherPolicy.h"
 
 #include <string>
 #include <queue>
@@ -39,15 +40,15 @@ namespace pdb {
  * The DispatcherServer partitions and then forwards a Vector of pdb::Objects received from a
  * PDBDispatcherClient to the proper storage servers
  */
-class DispatcherServer : public ServerFunctionality {
+class PDBDispatcherServer : public ServerFunctionality {
 
 public:
 
-    DispatcherServer() = default;
+    PDBDispatcherServer() = default;
 
-    ~DispatcherServer() = default;
+    ~PDBDispatcherServer() = default;
 
-    void initialize() {};
+    void initialize();
 
     /**
      * Inherited function from ServerFunctionality
@@ -55,6 +56,11 @@ public:
      */
     void registerHandlers(PDBServer& forMe) override;
 
+private:
+
+  PDBDispatcherPolicyPtr policy;
+
+  PDBLoggerPtr logger;
 };
 }
 

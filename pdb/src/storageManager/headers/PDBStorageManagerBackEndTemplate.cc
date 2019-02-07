@@ -151,6 +151,11 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage() {
 template <class T>
 pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage(size_t minBytes) {
 
+  if (minBytes > sharedMemory.pageSize) {
+    std::cerr << minBytes << " is larger than the system page size of " << sharedMemory.pageSize << "\n";
+    return nullptr;
+  }
+
   // grab the address of the frontend
   auto port = getConfiguration()->port;
   auto address = getConfiguration()->address;
