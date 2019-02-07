@@ -29,7 +29,7 @@
 #include "StorageCollectStatsResponse.h"
 #include "Profiling.h"
 #include "RegisterReplica.h"
-#include "CatalogClient.h"
+#include "PDBCatalogClient.h"
 #include <SimplePhysicalOptimizer/SimplePhysicalNodeFactory.h>
 #include <AdvancedPhysicalOptimizer/AdvancedPhysicalNodeFactory.h>
 
@@ -90,7 +90,7 @@ void QuerySchedulerServer::initialize() {
   delete this->standardResources;
   this->standardResources = new std::vector<StandardResourceInfoPtr>();
 
-  for(const auto &node : getFunctionality<CatalogClient>().getActiveWorkerNodes()) {
+  for(const auto &node : getFunctionality<PDBCatalogClient>().getActiveWorkerNodes()) {
       StandardResourceInfoPtr currentResource = std::make_shared<StandardResourceInfo>(node->numCores,
                                                                                        node->totalMemory,
                                                                                        node->address,

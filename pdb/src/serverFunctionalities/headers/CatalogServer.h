@@ -21,7 +21,7 @@
 #include <mutex>
 #include <CatDeleteDatabaseRequest.h>
 
-#include "CatalogClient.h"
+#include "PDBCatalogClient.h"
 #include "PDBCatalog.h"
 #include "PDBDebug.h"
 #include "PDBServer.h"

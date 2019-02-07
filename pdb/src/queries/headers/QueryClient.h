@@ -24,7 +24,7 @@
 #include "Handle.h"
 #include "PDBLogger.h"
 #include "PDBVector.h"
-#include "CatalogClient.h"
+#include "PDBCatalogClient.h"
 #include "DeleteSet.h"
 #include "ExecuteQuery.h"
 #include "RegisterReplica.h"
@@ -279,7 +279,7 @@ if (typeName != getTypeName <Type> ()) {
 
 private:
     // how we connect to the catalog
-    CatalogClient myHelper;
+    PDBCatalogClient myHelper;
 
     // deprecated
     // this is the query graph we'll execute

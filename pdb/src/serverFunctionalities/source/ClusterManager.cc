@@ -22,7 +22,7 @@
 #include <PDBFlushConsumerWork.h>
 #include <PDBHeartBeatWork.h>
 
-#include "CatalogClient.h"
+#include "PDBCatalogClient.h"
 #include "ClusterManager.h"
 #include "CluSyncRequest.h"
 #include "HeapRequestHandler.h"
@@ -78,7 +78,7 @@ void ClusterManager::registerHandlers(PDBServer &forMe) {
 
             // sync the catalog server on this node with the one on the one that is requesting it.
             std::string error;
-            bool success = getFunctionality<CatalogClient>().syncWithNode(std::make_shared<PDBCatalogNode>(nodeIdentifier,
+            bool success = getFunctionality<PDBCatalogClient>().syncWithNode(std::make_shared<PDBCatalogNode>(nodeIdentifier,
                                                                                                            request->nodeIP,
                                                                                                            request->nodePort,
                                                                                                            request->nodeType,
@@ -154,7 +154,7 @@ void ClusterManager::startHeartBeat() {
     PDBFlushConsumerWorkPtr flusher;
     PDBWorkerPtr worker;
     // create a flush worker
-    auto sender = make_shared<PDBHeartBeatWork>(&getFunctionality<CatalogClient>());
+    auto sender = make_shared<PDBHeartBeatWork>(&getFunctionality<PDBCatalogClient>());
 
     // find a thread in thread pool, if we can not find a thread, we block.
     while ((worker = this->getWorker()) == nullptr) {

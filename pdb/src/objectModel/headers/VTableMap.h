@@ -38,7 +38,7 @@
 
 namespace pdb {
 
-class CatalogClient;
+class PDBCatalogClient;
 
 /**
  *   VTableMap is a helper class for maintaining information about registered
@@ -97,10 +97,10 @@ public:
     static std::vector<std::pair<std::string, int16_t>> getBuiltInTypes();
 
     // sets the catalog client for the vtable
-    static void setCatalogClient(CatalogClient* catalog);
+    static void setCatalogClient(PDBCatalogClient* catalog);
 
     // gets the catalog client for the vtable
-    static CatalogClient* getCatalogClient();
+    static PDBCatalogClient* getCatalogClient();
 
 private:
     // a map containing the typeIDs indexed by object name---a -1 for the typeID means that
@@ -111,7 +111,7 @@ private:
     std::vector<void*> allVTables;
 
     // this is a pointer to the catalog client that we are using to access the catalog
-    CatalogClient* catalog;
+    PDBCatalogClient* catalog;
 
     // and a pointer to the logger
     PDBLoggerPtr logger;

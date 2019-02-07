@@ -24,7 +24,7 @@
 #include "PDBVector.h"
 #include "PDBObject.h"
 #include "PartitionPolicy.h"
-#include "CatalogClient.h"
+#include "PDBCatalogClient.h"
 
 namespace pdb {
 

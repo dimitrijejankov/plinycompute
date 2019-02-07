@@ -18,7 +18,7 @@
 #ifndef RUN_QUERY13_CC
 #define RUN_QUERY13_CC
 
-#include "CatalogClient.h"
+#include "PDBCatalogClient.h"
 
 #include <iostream>
 #include <string>

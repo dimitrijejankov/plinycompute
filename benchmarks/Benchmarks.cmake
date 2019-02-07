@@ -21,7 +21,7 @@ foreach(file ${files})
     # add the executable
     add_executable(${fileName} ${file} $<TARGET_OBJECTS:logical-plan-parser>
                                        $<TARGET_OBJECTS:linear-algebra-parser>
-                                       $<TARGET_OBJECTS:pdb-client>
+                                       $<TARGET_OBJECTS:client>
                                        $<TARGET_OBJECTS:linear-algebra-parser>)
 
     # link the libraries

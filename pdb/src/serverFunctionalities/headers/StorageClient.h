@@ -25,7 +25,7 @@ class StorageClient;
 }
 
 #include "ServerFunctionality.h"
-#include "CatalogClient.h"
+#include "PDBCatalogClient.h"
 #include "PDBLogger.h"
 #include "PDBServer.h"
 
@@ -84,7 +84,7 @@ public:
 
 
 private:
-    CatalogClient myHelper;
+    PDBCatalogClient myHelper;
 
     int port;
     std::string address;

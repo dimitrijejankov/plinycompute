@@ -49,7 +49,7 @@ private:
     int port;
     pdb::PDBLoggerPtr clientLogger;
     pdb::DistributedStorageManagerClient storageClient;
-    pdb::CatalogClient catalogClient;
+    pdb::PDBCatalogClient catalogClient;
     pdb::PDBDispatcherClient dispatcherClient;
     pdb::QueryClient queryClient;
 

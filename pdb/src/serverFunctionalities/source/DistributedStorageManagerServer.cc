@@ -20,7 +20,7 @@
 
 #include "PDBDebug.h"
 #include "DistributedStorageManagerServer.h"
-#include "CatalogClient.h"
+#include "PDBCatalogClient.h"
 #include "CatalogServer.h"
 #include "DispatcherServer.h"
 #include "PDBCatalogMsgType.h"
@@ -87,11 +87,11 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
                 std::string database = request->getDatabase();
                 std::string value;
 
-                if (getFunctionality<CatalogClient>().databaseExists(database)) {
+                if (getFunctionality<PDBCatalogClient>().databaseExists(database)) {
                     PDB_COUT << "Database " << database << " already exists " << std::endl;
                 } else {
                     PDB_COUT << "Database " << database << " does not exist" << std::endl;
-                    if (!getFunctionality<CatalogClient>().createDatabase(database, errMsg)) {
+                    if (!getFunctionality<PDBCatalogClient>().createDatabase(database, errMsg)) {
                         std::cout << "Could not register db, because: " << errMsg << std::endl;
                         Handle<SimpleRequestResult> response =
                             makeObject<SimpleRequestResult>(false, errMsg);
@@ -106,7 +106,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
                 auto nodesToBroadcastTo = std::vector<std::string>();
 
                 std::vector<std::string> allNodes;
-                const auto nodes = getFunctionality<CatalogClient>().getActiveWorkerNodes();
+                const auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
                 for (const auto &node : nodes) {
                   allNodes.push_back(node->address + ":" + std::to_string(node->port));
                 }
@@ -151,11 +151,11 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
                 std::string database = request->getDatabase();
                 std::string set = request->getSetName();
 
-                if (getFunctionality<CatalogClient>().setExists(database, set)) {
+                if (getFunctionality<PDBCatalogClient>().setExists(database, set)) {
                     std::cout << "Set " << set << ":" << database << " already exists " << std::endl;
 
                     std::vector<std::string> allNodes;
-                    const auto nodes = getFunctionality<CatalogClient>().getActiveWorkerNodes();
+                    const auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
                     allNodes.reserve(nodes.size());
                     for (const auto &node : nodes) {
                       allNodes.push_back(node->address + ":" + std::to_string(node->port));
@@ -212,7 +212,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
             std::string value;
 
             std::vector<std::string> allNodes;
-            const auto nodes = getFunctionality<CatalogClient>().getActiveWorkerNodes();
+            const auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
             allNodes.reserve(nodes.size());
             for (const auto &node : nodes) {
               allNodes.push_back(node->address + ":" + std::to_string(node->port));
@@ -280,7 +280,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
 
             std::string database = request->getDatabase();
             std::string set = request->getSetName();
-            if (getFunctionality<CatalogClient>().setExists(database, set)) {
+            if (getFunctionality<PDBCatalogClient>().setExists(database, set)) {
                 std::cout << "Set " << database << " : " << set << " already exists " << std::endl;
             } else {
                 PDB_COUT << "Set " << database << " : " << set << " does not exist" << std::endl;
@@ -288,7 +288,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
                 // JiaNote: comment out below line because searchForObjectTypeName doesn't work for
                 // complex type like Vector<Handle<Foo>>
                 // int16_t typeId =
-                // getFunctionality<CatalogClient>().searchForObjectTypeName(request->getTypeName());
+                // getFunctionality<PDBCatalogClient>().searchForObjectTypeName(request->getTypeName());
                 std::string typeName = request->getTypeName();
 
                 // might need to remove this
@@ -299,7 +299,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
 
                 beforeCreateSet = std::chrono::high_resolution_clock::now();
 
-                if (!getFunctionality<CatalogClient>().createSet(typeName, typeId, database, set, errMsg)) {
+                if (!getFunctionality<PDBCatalogClient>().createSet(typeName, typeId, database, set, errMsg)) {
                     std::cout << "Could not register set, because: " << errMsg << std::endl;
                     Handle<SimpleRequestResult> response =
                         makeObject<SimpleRequestResult>(false, errMsg);
@@ -310,7 +310,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
             }
 
             std::vector<std::string> allNodes;
-            const auto nodes = getFunctionality<CatalogClient>().getActiveWorkerNodes();
+            const auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
             allNodes.reserve(nodes.size());
             for (const auto &node : nodes) {
               allNodes.push_back(node->address + ":" + std::to_string(node->port));
@@ -394,7 +394,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
             std::string value;
             int catalogType = PDBCatalogMsgType::CatalogPDBDatabase;
 
-            if (!getFunctionality<CatalogClient>().databaseExists(database)) {
+            if (!getFunctionality<PDBCatalogClient>().databaseExists(database)) {
                 errMsg = "Cannot delete database, database " + database + " does not exist\n";
                 Handle<SimpleRequestResult> response =
                     makeObject<SimpleRequestResult>(false, errMsg);
@@ -405,7 +405,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
             auto nodesToBroadcastTo = std::vector<std::string>();
 
             std::vector<std::string> allNodes;
-            const auto nodes = getFunctionality<CatalogClient>().getActiveWorkerNodes();
+            const auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
             allNodes.reserve(nodes.size());
             for (const auto &node : nodes) {
               allNodes.push_back(node->address + ":" + std::to_string(node->port));
@@ -432,7 +432,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
                 return make_pair(res, errMsg);
             }
 
-            if (!getFunctionality<CatalogClient>().deleteDatabase(database, errMsg)) {
+            if (!getFunctionality<PDBCatalogClient>().deleteDatabase(database, errMsg)) {
                 std::cout << "Could not delete database, because: " << errMsg << std::endl;
                 Handle<SimpleRequestResult> response =
                     makeObject<SimpleRequestResult>(false, errMsg);
@@ -464,7 +464,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
                 std::string set = request->getSetName();
                 std::string fullSetName = database + "." + set;
                 std::vector<std::string> allNodes;
-                const auto nodes = getFunctionality<CatalogClient>().getActiveWorkerNodes();
+                const auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
                 allNodes.reserve(nodes.size());
                 for (const auto &node : nodes) {
                   allNodes.push_back(node->address + ":" + std::to_string(node->port));
@@ -531,7 +531,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
             std::string typeName;
 
             std::string error;
-            auto set = getFunctionality<CatalogClient>().getSet(databaseName, setName, error);
+            auto set = getFunctionality<PDBCatalogClient>().getSet(databaseName, setName, error);
 
             // check if the set exists
             if (set == nullptr) {
@@ -545,7 +545,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
             assert(set->type != nullptr);
 
             // grab the type associated with the set
-            auto type = getFunctionality<CatalogClient>().getType(*set->type, errMsg);
+            auto type = getFunctionality<PDBCatalogClient>().getType(*set->type, errMsg);
 
             // check if the type exists
             if(type == nullptr) {
@@ -559,7 +559,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
             typeName = type->name;
 
             std::vector<std::string> allNodes;
-            const auto nodes = getFunctionality<CatalogClient>().getActiveWorkerNodes();
+            const auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
             allNodes.reserve(nodes.size());
             for (const auto &node : nodes) {
               allNodes.push_back(node->address + ":" + std::to_string(node->port));
@@ -606,7 +606,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
                 // catalog
                 PDB_COUT << "Succeeded in deleting set " << fullSetName << " on all nodes"
                          << std::endl;
-                if (!getFunctionality<CatalogClient>().deleteSet(databaseName, setName, errMsg)) {
+                if (!getFunctionality<PDBCatalogClient>().deleteSet(databaseName, setName, errMsg)) {
                     std::cout << "Could not delete set, because: " << errMsg << std::endl;
                     Handle<SimpleRequestResult> response =
                         makeObject<SimpleRequestResult>(false, errMsg);
@@ -664,7 +664,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
                 std::vector<std::string> allNodes;
                 getFunctionality<DispatcherServer>().waitAllRequestsProcessed();
                 std::cout << "All data requests have been served" << std::endl;
-                const auto nodes = getFunctionality<CatalogClient>().getActiveWorkerNodes();
+                const auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
                 allNodes.reserve(nodes.size());
                 for (const auto &node : nodes) {
                       allNodes.push_back(node->address + ":" + std::to_string(node->port));
@@ -711,7 +711,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
                 auto failureNodes = std::vector<std::string>();
 
                 std::vector<std::string> allNodes;
-                const auto nodes = getFunctionality<CatalogClient>().getActiveWorkerNodes();
+                const auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
                 allNodes.reserve(nodes.size());
                 for (const auto &node : nodes) {
                   allNodes.push_back(node->address + ":" + std::to_string(node->port));
@@ -778,7 +778,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
             // to get all nodes having data for this set
             std::vector<std::string> nodesToBroadcast;
             std::vector<std::string> allNodes;
-            const auto nodes = getFunctionality<CatalogClient>().getActiveWorkerNodes();
+            const auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
             allNodes.reserve(nodes.size());
             for (const auto &node : nodes) {
               allNodes.push_back(node->address + ":" + std::to_string(node->port));

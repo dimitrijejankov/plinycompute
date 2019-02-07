@@ -22,7 +22,7 @@
 #include <ClusterManager.h>
 #include "PDBServer.h"
 #include "CatalogServer.h"
-#include "CatalogClient.h"
+#include "PDBCatalogClient.h"
 #include "StorageClient.h"
 #include "PangeaStorageServer.h"
 #include "FrontendQueryTestServer.h"
@@ -171,14 +171,14 @@ int main(int argc, char *argv[]) {
         string nodeType = "manager";
         frontEnd.addFunctionality(std::make_shared<pdb::CatalogServer>());
         frontEnd.addFunctionality(std::make_shared<pdb::ClusterManager>());
-        frontEnd.addFunctionality(std::make_shared<pdb::CatalogClient>(localPort, "localhost", logger));
+        frontEnd.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(localPort, "localhost", logger));
 
       } else {
 
         std::string catalogFile = std::string("CatalogDir_") + localIp + std::string("_") + std::to_string(localPort);
         frontEnd.addFunctionality(std::make_shared<pdb::ClusterManager>());
         frontEnd.addFunctionality(std::make_shared<pdb::CatalogServer>());
-        frontEnd.addFunctionality(std::make_shared<pdb::CatalogClient>(localPort, "localhost", logger));
+        frontEnd.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(localPort, "localhost", logger));
       }
 
       frontEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {

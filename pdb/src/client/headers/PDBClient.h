@@ -18,7 +18,7 @@
 #ifndef PDBCLIENT_H
 #define PDBCLIENT_H
 
-#include "CatalogClient.h"
+#include "PDBCatalogClient.h"
 #include "PDBDispatcherClient.h"
 #include "DistributedStorageManagerClient.h"
 #include "QueryClient.h"
@@ -57,9 +57,9 @@ namespace pdb {
 
       PDBClient(int portIn, std::string addressIn);
 
-      PDBClient();
+      PDBClient() = default;
 
-      ~PDBClient();
+      ~PDBClient() = default;
 
       void registerHandlers(PDBServer &forMe); // no - op
 
@@ -132,7 +132,7 @@ namespace pdb {
       /* Sends a request to the Catalog Server to register a user-defined type
        * defined
        * in a shared library. */
-      bool registerType(std::string fileContainingSharedLib);
+      bool registerType(const std::string &fileContainingSharedLib);
 
       /* Prints the content of the catalog. */
       void
@@ -145,7 +145,7 @@ namespace pdb {
       void listRegisteredDatabases();
 
       /* Lists the Sets for a given database registered in the catalog. */
-      void listRegisteredSetsForADatabase(std::string databaseName);
+      void listRegisteredSetsForADatabase(const std::string &databaseName);
 
       /* Lists the Nodes registered in the catalog. */
       void listNodesInCluster();
@@ -180,7 +180,7 @@ namespace pdb {
                                        std::string setName);
 
     private:
-      std::shared_ptr<pdb::CatalogClient> catalogClient;
+      std::shared_ptr<pdb::PDBCatalogClient> catalogClient;
       std::shared_ptr<pdb::PDBDispatcherClient> dispatcherClient;
       std::shared_ptr<pdb::DistributedStorageManagerClient> distributedStorageClient;
       std::shared_ptr<pdb::QueryClient> queryClient;

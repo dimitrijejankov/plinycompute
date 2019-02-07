@@ -28,14 +28,14 @@
 
 namespace pdb {
 
-class CatalogClient : public ServerFunctionality {
+class PDBCatalogClient : public ServerFunctionality {
 
 public:
   /* Destructor */
-  ~CatalogClient();
+  ~PDBCatalogClient();
 
   /* Default Constructor */
-  CatalogClient() = default;
+  PDBCatalogClient() = default;
 
   /*
    * Creates a Catalog Client given the port and address of the catalog
@@ -43,19 +43,7 @@ public:
    *   for a remote catalog, the address is the IP address of the machine
    *   where the catalog resides
    */
-  CatalogClient(int port, std::string address, PDBLoggerPtr myLogger);
-
-  /*
-   * Creates a Catalog Client given the port and address of the catalog
-   *   for a local catalog the address is typically "localhost"
-   *   for a remote catalog, the address is the IP address of the machine
-   *   where the catalog resides.
-   *   If this catalog client points to a catalog in a remote machine, the
-   *   pointsToCatalogManagerIn argument must be set to "true"
-   *
-   */
-  CatalogClient(int port, std::string address, PDBLoggerPtr myLogger,
-                bool pointsToCatalogManagerIn);
+  PDBCatalogClient(int port, std::string address, PDBLoggerPtr myLogger);
 
   /* Registers event handlers associated with this server functionality */
   void registerHandlers(PDBServer &forMe) override;
@@ -166,8 +154,7 @@ public:
   string listRegisteredDatabases(std::string &errMsg);
 
   /* Lists the Sets for a given database registered in the catalog. */
-  string listRegisteredSetsForADatabase(std::string databaseName,
-                                        std::string &errMsg);
+  string listRegisteredSetsForADatabase(const std::string &databaseName, std::string &errMsg);
 
   /* Lists the Nodes registered in the catalog. */
   string listNodesInCluster(std::string &errMsg);
@@ -177,14 +164,12 @@ public:
 
 
 private:
-  /* True if this Catalog Client points to the Manager Catalog Server */
-  bool pointsToCatalogManager;
 
   /* The IP address where this Catalog Client is connected to */
   std::string address;
 
   /* The port where this Catalog Client is connected to */
-  int port;
+  int port = -1;
 
   /* Logger to debug information */
   PDBLoggerPtr myLogger;
@@ -194,6 +179,6 @@ private:
 };
 }
 
-#include "CatalogClientTemplates.cc"
+#include "PDBCatalogClientTemplate.cc"
 
 #endif

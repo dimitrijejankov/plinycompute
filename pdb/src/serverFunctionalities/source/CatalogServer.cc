@@ -432,7 +432,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
           // process the case where the type is not registered in this local
           PDB_COUT << "Connecting to the Remote Catalog Server via Catalog Client\n";
-          PDB_COUT << "Invoking CatalogClient.getSharedLibraryByName(typeName) from CatalogServer b/c this is Local Catalog \n";
+          PDB_COUT << "Invoking PDBCatalogClient.getSharedLibraryByName(typeName) from CatalogServer b/c this is Local Catalog \n";
 
           // uses a dummyObjectFile since this is just making a remote call to
           // the Catalog Manager Server and what matters is the returned bytes.
@@ -448,7 +448,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
           // retrieves from remote catalog the Shared Library bytes in "returnedBytes" and metadata in the "response" object
           auto conf = getConfiguration();
-          auto client = CatalogClient(conf->managerPort, conf->managerAddress, make_shared<pdb::PDBLogger>("clientCatalogToServerLog"));
+          auto client = PDBCatalogClient(conf->managerPort, conf->managerAddress, make_shared<pdb::PDBLogger>("clientCatalogToServerLog"));
           bool res = client.getSharedLibraryByTypeName(typeId, outTypeName, dummyObjectFile, bytes, errMsg);
 
           PDB_COUT << "Bytes returned from manager: "  << std::to_string(bytes.size()) << "\n";

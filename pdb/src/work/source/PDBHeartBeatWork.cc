@@ -6,9 +6,9 @@
 
 #include "PDBHeartBeatWork.h"
 #include "CatSetObjectTypeRequest.h"
-#include "CatalogClient.h"
+#include "PDBCatalogClient.h"
 
-PDBHeartBeatWork::PDBHeartBeatWork(pdb::CatalogClient *client) : client(client), isStopped(false) {
+PDBHeartBeatWork::PDBHeartBeatWork(pdb::PDBCatalogClient *client) : client(client), isStopped(false) {
   logger = make_shared<pdb::PDBLogger>("heartBeatLog.log");
 }
 

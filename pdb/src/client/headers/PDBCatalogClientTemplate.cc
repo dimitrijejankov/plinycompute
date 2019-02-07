@@ -19,7 +19,7 @@
 #ifndef CAT_CLIENT_TEMPL_CC
 #define CAT_CLIENT_TEMPL_CC
 
-#include "CatalogClient.h"
+#include "PDBCatalogClient.h"
 #include "CatCreateSetRequest.h"
 #include "HeapRequest.h"
 #include "SimpleRequestResult.h"
@@ -27,7 +27,7 @@
 namespace pdb {
 
 template <class DataType>
-bool CatalogClient::createSet(std::string databaseName, std::string setName,
+bool PDBCatalogClient::createSet(std::string databaseName, std::string setName,
                               std::string &errMsg) {
 
   int16_t typeID = VTableMap::getIDByName(VTableMap::getInternalTypeName(getTypeName<DataType>()), false);

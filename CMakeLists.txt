@@ -108,7 +108,7 @@ file(GLOB STORAGE_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/storage/source/*.cc")
 file(GLOB DISTRIBUTION_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/distributionManager/source/*.cc")
 file(GLOB LAMBDAS_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/lambdas/source/*.cc")
 file(GLOB LOGICAL_PLAN_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/logicalPlan/source/*.cc")
-file(GLOB PDB_CLIENT_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/client/source/*.cc")
+file(GLOB CLIENT_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/client/source/*.cc")
 file(GLOB STORAGE_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/storageManager/source/*.cc")
 file(GLOB QUERY_PANNING_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/queryPlanning/source/**/*.cc"
                                "${PROJECT_SOURCE_DIR}/pdb/src/queryPlanning/source/**/**/*.cc"
@@ -224,7 +224,7 @@ add_library(memory OBJECT ${MEMORY_SOURCE})
 add_library(storage OBJECT ${STORAGE_SOURCE})
 add_library(lambdas OBJECT ${LAMBDAS_SOURCE})
 add_library(logical-plan OBJECT ${LOGICAL_PLAN_SOURCE})
-add_library(pdb-client OBJECT ${PDB_CLIENT_SOURCE})
+add_library(client OBJECT ${CLIENT_SOURCE})
 add_library(object-model OBJECT ${OBJECT_MODEL_SOURCE})
 add_library(storage-manager OBJECT ${STORAGE_MANAGER_SOURCE})
 
@@ -232,7 +232,7 @@ add_library(storage-manager OBJECT ${STORAGE_MANAGER_SOURCE})
 add_dependencies(server-functionalities object-type-ids)
 add_dependencies(communication object-type-ids)
 add_dependencies(object-model object-type-ids)
-add_dependencies(pdb-client object-type-ids)
+add_dependencies(client object-type-ids)
 add_dependencies(logical-plan object-type-ids)
 add_dependencies(lib-pdb-server object-type-ids)
 
@@ -245,6 +245,7 @@ add_library(pdb-server-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:linear-algebra>
         $<TARGET_OBJECTS:lib-pdb-server>
         $<TARGET_OBJECTS:memory>
+        $<TARGET_OBJECTS:client>
         $<TARGET_OBJECTS:object-model>
         $<TARGET_OBJECTS:query-execution>
         $<TARGET_OBJECTS:query-planning>
@@ -263,6 +264,7 @@ add_library(pdb-shared-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:linear-algebra>
         $<TARGET_OBJECTS:lib-pdb-server>
         $<TARGET_OBJECTS:memory>
+        $<TARGET_OBJECTS:client>
         $<TARGET_OBJECTS:object-model>
         $<TARGET_OBJECTS:query-execution>
         $<TARGET_OBJECTS:query-planning>
@@ -281,6 +283,7 @@ add_library(pdb-tests-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:linear-algebra>
         $<TARGET_OBJECTS:lib-pdb-server>
         $<TARGET_OBJECTS:memory>
+        $<TARGET_OBJECTS:client>
         $<TARGET_OBJECTS:object-model>
         $<TARGET_OBJECTS:query-execution>
         $<TARGET_OBJECTS:query-planning>

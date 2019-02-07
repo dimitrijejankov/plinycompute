@@ -25,7 +25,7 @@
 
 #include "PDBServer.h"
 #include "CatalogServer.h"
-#include "CatalogClient.h"
+#include "PDBCatalogClient.h"
 #include "PangeaStorageServer.h"
 #include "DistributedStorageManagerServer.h"
 #include "DispatcherServer.h"
@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
     ConfigurationPtr conf = make_shared<Configuration>();
 
     frontEnd.addFunctionality(std::make_shared<pdb::CatalogServer>());
-    frontEnd.addFunctionality(std::make_shared<pdb::CatalogClient>(port, "localhost", myLogger));
+    frontEnd.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(port, "localhost", myLogger));
 
     std::string errMsg = " ";
     int numNodes = 1;

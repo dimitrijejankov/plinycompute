@@ -270,7 +270,7 @@ int main(int argc, char *argv[]) {
 
     frontEnd.addFunctionality(std::make_shared<pdb::ClusterManager>());
     frontEnd.addFunctionality(std::make_shared<pdb::CatalogServer>());
-    frontEnd.addFunctionality(std::make_shared<pdb::CatalogClient>(config->port, config->address, logger));
+    frontEnd.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(config->port, config->address, logger));
 
     frontEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
 

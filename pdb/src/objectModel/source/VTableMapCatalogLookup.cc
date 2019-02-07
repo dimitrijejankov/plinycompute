@@ -25,7 +25,7 @@
 #include "PDBDebug.h"
 #include "PDBLogger.h"
 #include <cctype>
-#include "CatalogClient.h"
+#include "PDBCatalogClient.h"
 
 namespace pdb {
 

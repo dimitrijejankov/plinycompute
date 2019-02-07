@@ -469,7 +469,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
                 if (!res) {
                     errMsg = "Database already exists\n";
                 } else {
-                    res = getFunctionality<CatalogClient>().createDatabase(request->getDatabase(), errMsg);
+                    res = getFunctionality<PDBCatalogClient>().createDatabase(request->getDatabase(), errMsg);
                 }
 
             } else {
@@ -521,7 +521,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
                             res = false;
                         } else {
                             PDB_COUT << "to add set in catalog" << std::endl;
-                            res = getFunctionality<CatalogClient>().getFunctionality<CatalogClient>().createSet(request->getTypeName(),
+                            res = getFunctionality<PDBCatalogClient>().getFunctionality<PDBCatalogClient>().createSet(request->getTypeName(),
                                                                                                                 typeID,
                                                                                                                 request->getDatabase(),
                                                                                                                 request->getSetName(),
@@ -608,7 +608,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
                 if (!res) {
                     errMsg = "Failed to delete database\n";
                 } else {
-                    res = getFunctionality<CatalogClient>().deleteDatabase(databaseName, errMsg);
+                    res = getFunctionality<PDBCatalogClient>().deleteDatabase(databaseName, errMsg);
                 }
             } else {
                 res = getFunctionality<PangeaStorageServer>().removeDatabase(databaseName);
@@ -654,7 +654,7 @@ void PangeaStorageServer::registerHandlers(PDBServer& forMe) {
                 }
 
                 // deletes set in catalog
-                res = getFunctionality<CatalogClient>().deleteSet(request->getDatabase(), request->getSetName(), errMsg);
+                res = getFunctionality<PDBCatalogClient>().deleteSet(request->getDatabase(), request->getSetName(), errMsg);
 
             } else {
                 if ((res = getFunctionality<PangeaStorageServer>().removeSet(databaseName,

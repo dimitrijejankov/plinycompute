@@ -18,7 +18,7 @@
 #ifndef TPCH_DATA_LOADER_CC
 #define TPCH_DATA_LOADER_CC
 
-#include "CatalogClient.h"
+#include "PDBCatalogClient.h"
 
 #include <iostream>
 #include <string>
@@ -535,7 +535,7 @@ int main(int argc, char* argv[]) {
     pdb::PDBClient pdbClient(
             managerPort, managerHostname);
 
-    CatalogClient catalogClient(
+    PDBCatalogClient catalogClient(
             managerPort,
             managerHostname,
             clientLogger);

@@ -14,7 +14,7 @@ typedef std::shared_ptr<PDBHeartBeatWork> PDBHeartBeatWorkPtr;
 class PDBHeartBeatWork : public pdb::PDBWork {
  public:
 
-  explicit PDBHeartBeatWork(pdb::CatalogClient *server);
+  explicit PDBHeartBeatWork(pdb::PDBCatalogClient *server);
   ~PDBHeartBeatWork() = default;
 
   /**
@@ -39,7 +39,7 @@ class PDBHeartBeatWork : public pdb::PDBWork {
   /**
    * The catalog client we use to grab the info about the nodes in the cluster
    */
-  pdb::CatalogClient *client;
+  pdb::PDBCatalogClient *client;
 
   /**
    * Are we still running if not this is true

@@ -185,7 +185,7 @@ inline int16_t VTableMap::getIDByName(std::string objectTypeName, bool withLock)
     }
 }
 
-inline void VTableMap::setCatalogClient(CatalogClient* catalogIn) {
+inline void VTableMap::setCatalogClient(PDBCatalogClient* catalogIn) {
     // std :: stringstream ss;
     // ss << &(theVTable->myLock);
     // std :: cout << "to get lock at " << ss.str() << "in setCatalogClient" << std :: endl;
@@ -198,13 +198,13 @@ inline void VTableMap::setCatalogClient(CatalogClient* catalogIn) {
     // std :: cout << "to release lock at " << ss.str() << " in setCatalogClient" << std :: endl;
 }
 
-inline CatalogClient* VTableMap::getCatalogClient() {
+inline PDBCatalogClient* VTableMap::getCatalogClient() {
     // std :: stringstream ss;
     // ss << &(theVTable->myLock);
     // std :: cout << "to get lock at " << ss.str() << "in getCatalogClient" << std :: endl;
     const LockGuard guard{theVTable->myLock};
     // std :: cout << "got lock at " << ss.str() << " in getCatalogClient" << std :: endl;
-    CatalogClient* client = theVTable->catalog;
+    PDBCatalogClient* client = theVTable->catalog;
     // std :: cout << "to release lock at " << ss.str() << " in getCatalogClient" << std :: endl;
     return client;
 }
