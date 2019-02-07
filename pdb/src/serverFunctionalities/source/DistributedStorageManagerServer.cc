@@ -662,7 +662,7 @@ void DistributedStorageManagerServer::registerHandlers(PDBServer& forMe) {
                 auto failureNodes = std::vector<std::string>();
 
                 std::vector<std::string> allNodes;
-                getFunctionality<DispatcherServer>().waitAllRequestsProcessed();
+                //getFunctionality<DispatcherServer>().waitAllRequestsProcessed(); Dimitrije commented this out
                 std::cout << "All data requests have been served" << std::endl;
                 const auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
                 allNodes.reserve(nodes.size());

@@ -23,13 +23,14 @@
 #include "Handle.h"
 #include "PDBVector.h"
 #include "PDBObject.h"
-#include "PartitionPolicy.h"
 #include "PDBCatalogClient.h"
 
 namespace pdb {
 
-// this class serves as a dispatcher client to talk with the DispatcherServer
-// to send Vector<Objects> from clients to the distributed storage server.
+/**
+ * this class serves as a dispatcher client to talk with the DispatcherServer
+ * to send Vector<Objects> from clients to the distributed storage server.
+ */
 class PDBDispatcherClient : public ServerFunctionality {
 
 public:
@@ -66,7 +67,7 @@ private:
   /**
    * The port of the manager
    */
-  int port;
+  int port = -1;
 
   /**
    * The address of the manager

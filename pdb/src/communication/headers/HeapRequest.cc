@@ -232,8 +232,10 @@ ReturnType RequestFactory::dataHeapRequest(PDBLoggerPtr logger, int port, const 
     // get the record
     auto* myRecord = (Record<Vector<Handle<Object>>>*) getRecord(dataToSend);
 
+    auto maxCompressedSize = snappy::MaxCompressedLength(myRecord->numBytes());
+
     // allocate the bytes for the compressed record
-    std::unique_ptr<char[]> compressedBytes(new char[snappy::MaxCompressedLength(myRecord->numBytes())]);
+    std::unique_ptr<char[]> compressedBytes(new char[maxCompressedSize]);
 
     // compress the record
     size_t compressedSize;

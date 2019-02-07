@@ -24,6 +24,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <ClusterManager.h>
+#include <DispatcherServer.h>
 #include <CatalogServer.h>
 #include <PDBStorageManagerFrontEnd.h>
 #include <random>
@@ -144,114 +145,6 @@ int main(int argc, char *argv[]) {
       // sync me with the cluster
       sleep(5);
 
-      auto& myMgr = backEnd.getFunctionality<pdb::PDBStorageManagerInterface>();
-
-      // the page sizes we are testing
-      std::vector<size_t> pageSizes {8, 16, 32, 64, 128};
-
-      const int numRequestsPerPage = 2000;
-      const int numPages = 60;
-
-      // note the number of threads must be less than 8 or equal to 8 or else we can exceed the page size
-      const int numThreads = 4;
-
-      // generate the pages
-      PDBSetPtr set = make_shared<PDBSet>("set1", "DB");
-      for(uint64_t i = 0; i < numPages; ++i) {
-
-        // grab the page
-        auto page = myMgr.getPage(set, i);
-
-        // freeze the size
-        page->freezeSize(pageSizes[i % 5]);
-
-        for(int t = 0; t < numThreads; ++t) {
-          // set the first numThreads bytes to 0
-          ((char *) page->getBytes())[t] = 0;
-        }
-
-        // mark as dirty
-        page->setDirty();
-      }
-
-      atomic_int32_t sync;
-      sync = 0;
-
-      // create the buzzer
-      int counter = 0;
-      PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, int& cnt) {
-        cnt++;
-      });
-
-      // start the threads
-      for(int t = 0; t < numThreads; ++t) {
-
-        // grab a worker
-        PDBWorkerPtr myWorker = backEnd.getWorkerQueue()->getWorker();
-
-        // the thread
-        int myThraed = t;
-
-        // start the thread
-        PDBWorkPtr myWork = make_shared<pdb::GenericWork>([&, myThraed](PDBBuzzerPtr callerBuzzer) {
-
-          int myThreadClamp = ((myThraed + 1) * 100) % 127;
-
-          // generate the page indices
-          std::vector<uint64_t> pageIndices;
-          for(int i = 0; i < numRequestsPerPage; ++i) {
-            for(int j = 0; j < numPages; ++j) {
-              pageIndices.emplace_back(j);
-            }
-          }
-
-          // shuffle the page indices
-          auto seed = std::chrono::system_clock::now().time_since_epoch().count();
-          shuffle (pageIndices.begin(), pageIndices.end(), std::default_random_engine(seed));
-
-          sync++;
-          while (sync != numThreads) {}
-          for(auto it : pageIndices) {
-
-            // grab the page
-            auto page = myMgr.getPage(set, it);
-
-            // increment the page
-            ((char *) page->getBytes())[myThraed] = (char) ((((char *) page->getBytes())[myThraed] + 1) % myThreadClamp);
-
-            // set as dirty
-            page->setDirty();
-          }
-
-          // excellent everything worked just as expected
-          callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
-        });
-
-        // run the work
-        myWorker->execute(myWork, tempBuzzer);
-      }
-
-      // wait until all the nodes are finished
-      while (counter < numThreads) {
-        tempBuzzer->wait();
-      }
-
-      for(uint64_t i = 0; i < numPages; ++i) {
-
-        // the page
-        auto page = myMgr.getPage(set, i);
-
-        for(int t = 0; t < numThreads; ++t) {
-
-          int myThreadClamp = ((t + 1) * 100) % 127;
-
-          // check them
-          if(((char*) page->getBytes())[t] != (numRequestsPerPage % myThreadClamp)) {
-            std::cout << "BAD!" << std::endl;
-          }
-        }
-      }
-
       // log that the server has started
       std::cout << "Distributed storage manager server started!\n";
 
@@ -270,6 +163,7 @@ int main(int argc, char *argv[]) {
 
     frontEnd.addFunctionality(std::make_shared<pdb::ClusterManager>());
     frontEnd.addFunctionality(std::make_shared<pdb::CatalogServer>());
+    frontEnd.addFunctionality(std::make_shared<pdb::DispatcherServer>());
     frontEnd.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(config->port, config->address, logger));
 
     frontEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {

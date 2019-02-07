@@ -40,6 +40,8 @@ public:
       : databaseName(databaseName), setName(setName), typeName(typeName) {
   }
 
+  ENABLE_DEEP_COPY
+
   /**
    * The name of the database the set belongs to
    */

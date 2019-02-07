@@ -16,8 +16,47 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef OBJECTQUERYMODEL_PARTITIONPOLICY_CC
-#define OBJECTQUERYMODEL_PARTITIONPOLICY_CC
+#ifndef OBJECTQUERYMODEL_DISPATCHER_H
+#define OBJECTQUERYMODEL_DISPATCHER_H
+
+#include "ServerFunctionality.h"
+#include "PDBLogger.h"
+#include "PDBWork.h"
+#include "UseTemporaryAllocationBlock.h"
+#include "PDBVector.h"
+
+#include "NodeDispatcherData.h"
+#include "StorageClient.h"
+
+#include <string>
+#include <queue>
+#include <unordered_map>
+#include <vector>
+
+namespace pdb {
+
+/**
+ * The DispatcherServer partitions and then forwards a Vector of pdb::Objects received from a
+ * PDBDispatcherClient to the proper storage servers
+ */
+class DispatcherServer : public ServerFunctionality {
+
+public:
+
+    DispatcherServer() = default;
+
+    ~DispatcherServer() = default;
+
+    void initialize() {};
+
+    /**
+     * Inherited function from ServerFunctionality
+     * @param forMe
+     */
+    void registerHandlers(PDBServer& forMe) override;
+
+};
+}
 
 
-#endif
+#endif  // OBJECTQUERYMODEL_DISPATCHER_H

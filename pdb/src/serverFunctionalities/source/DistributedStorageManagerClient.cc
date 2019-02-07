@@ -50,8 +50,7 @@ void DistributedStorageManagerClient::registerHandlers(PDBServer& forMe) {
     // no-op
 }
 
-bool DistributedStorageManagerClient::createDatabase(const std::string& databaseName,
-                                                     std::string& errMsg) {
+bool DistributedStorageManagerClient::createDatabase(const std::string& databaseName, std::string& errMsg) {
     return RequestFactory::heapRequest< DistributedStorageAddDatabase, SimpleRequestResult, bool>(
         logger,
         port,

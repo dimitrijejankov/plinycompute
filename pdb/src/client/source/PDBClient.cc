@@ -41,8 +41,6 @@ PDBClient::PDBClient(int portIn, std::string addressIn) : port(portIn), address(
   queryClient = std::make_shared<pdb::QueryClient>(portIn, addressIn, logger, true);
 }
 
-void PDBClient::registerHandlers(PDBServer &forMe) {}
-
 string PDBClient::getErrorMessage() {
   return errorMsg;
 }
@@ -52,11 +50,12 @@ string PDBClient::getErrorMessage() {
  */
 bool PDBClient::createDatabase(const std::string &databaseName) {
 
-  bool result = distributedStorageClient->createDatabase(databaseName, returnedMsg);
+  bool result = catalogClient->createDatabase(databaseName, returnedMsg);
 
   if (!result) {
+
     errorMsg = "Not able to create database: " + returnedMsg;
-    exit(-1);
+
   } else {
     cout << "Created database.\n";
   }
@@ -65,8 +64,7 @@ bool PDBClient::createDatabase(const std::string &databaseName) {
 
 bool PDBClient::createSet(const std::string &databaseName, const std::string &setName, const std::string &typeName) {
 
-  bool result = distributedStorageClient->createSet(databaseName, setName, typeName,
-                                                    returnedMsg, DEFAULT_PAGE_SIZE);
+  bool result = distributedStorageClient->createSet(databaseName, setName, typeName, returnedMsg, DEFAULT_PAGE_SIZE);
 
   if (!result) {
     errorMsg = "Not able to create set: " + returnedMsg;

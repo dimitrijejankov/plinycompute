@@ -15,54 +15,42 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
-//
-// Created by Joseph Hwang on 9/25/16.
-//
 
-#ifndef OBJECTQUERYMODEL_DISPATCHERREGISTERPARTITIONPOLICY_H
-#define OBJECTQUERYMODEL_DISPATCHERREGISTERPARTITIONPOLICY_H
+#ifndef DISPATCHER_SERVER_CC
+#define DISPATCHER_SERVER_CC
 
-#include "Object.h"
-#include "Handle.h"
-#include "PDBString.h"
+#include "DispatcherServer.h"
+#include <snappy.h>
+#include <DispatcherServer.h>
+#include <HeapRequestHandler.h>
+#include <DispAddData.h>
+#include <StoGetPageRequest.h>
 
-#include "PartitionPolicy.h"
-
-// PRELOAD %DispatcherRegisterPartitionPolicy%
+#define MAX_CONCURRENT_REQUESTS 10
 
 namespace pdb {
 
-class DispatcherRegisterPartitionPolicy : public Object {
+void DispatcherServer::registerHandlers(PDBServer &forMe) {
 
-public:
-    DispatcherRegisterPartitionPolicy() {}
-    ~DispatcherRegisterPartitionPolicy() {}
+forMe.registerHandler(
+    DispAddData_TYPEID,
+    make_shared<HeapRequestHandler<pdb::DispAddData>>(
+        [&](Handle<pdb::DispAddData> request, PDBCommunicatorPtr sendUsingMe) {
 
-    DispatcherRegisterPartitionPolicy(std::string setNameIn,
-                                      std::string databaseNameIn,
-                                      PartitionPolicy::Policy policyIn)
-        : setName(setNameIn), databaseName(databaseNameIn), policy(policyIn) {}
+          std::cout << "Got the data" << std::endl;
 
-    String getSetName() {
-        return this->setName;
-    }
+          size_t numBytes = sendUsingMe->getSizeOfNextObject();
+          std::unique_ptr<char[]> compressedBytes(new char[numBytes]);
 
-    String getDatabaseName() {
-        return this->databaseName;
-    }
+          std::string error;
+          sendUsingMe->receiveBytes(compressedBytes.get(), error);
 
-    PartitionPolicy::Policy getPolicy() {
-        return this->policy;
-    }
+          return std::make_pair<bool, std::string>(true, "");
+    }));
 
-    ENABLE_DEEP_COPY
 
-private:
-    String setName;
-    String databaseName;
-    PartitionPolicy::Policy policy;
-};
 }
 
+}
 
-#endif  // OBJECTQUERYMODEL_DISPATCHERREGISTERPARTITIONPOLICY_H
+#endif

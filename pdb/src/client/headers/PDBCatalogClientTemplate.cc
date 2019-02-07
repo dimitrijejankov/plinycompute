@@ -30,12 +30,17 @@ template <class DataType>
 bool PDBCatalogClient::createSet(std::string databaseName, std::string setName,
                               std::string &errMsg) {
 
+  // figure out the type name
+  std::string typeName = VTableMap::getInternalTypeName(getTypeName<DataType>());
+
+  // get the type id
   int16_t typeID = VTableMap::getIDByName(VTableMap::getInternalTypeName(getTypeName<DataType>()), false);
   if (typeID == -1) {
     errMsg = "Could not find type " + getTypeName<DataType>();
     return -1;
   }
 
+  // make the request
   return RequestFactory::heapRequest< CatCreateSetRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
@@ -50,7 +55,7 @@ bool PDBCatalogClient::createSet(std::string databaseName, std::string setName,
         errMsg = "Error getting type name: got nothing back from catalog";
         return false;
       },
-      databaseName, setName, typeID);
+      databaseName, setName, typeName, typeID);
 }
 }
 

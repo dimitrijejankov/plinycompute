@@ -39,18 +39,16 @@ namespace pdb {
     }
 
     template <class DataType>
-    bool PDBClient::createSet(const std::string &databaseName,
-                              const std::string &setName) {
+    bool PDBClient::createSet(const std::string &databaseName, const std::string &setName) {
 
-      bool result = distributedStorageClient->createSet<DataType>(
-          databaseName, setName, returnedMsg, DEFAULT_PAGE_SIZE);
+      bool result = catalogClient->createSet<DataType>(databaseName, setName, returnedMsg);
 
-      if (result==false) {
+      if (!result) {
           errorMsg = "Not able to create set: " + returnedMsg;
-          exit(-1);
       } else {
           cout << "Created set.\n";
       }
+
       return result;
     }
 
