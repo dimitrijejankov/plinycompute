@@ -86,7 +86,7 @@ include_directories("${PROJECT_SOURCE_DIR}/pdb/src/queryExecution/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/computations/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/computations/headers/base")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/pipeline/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/storageManager/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/bufferManager/headers")
 
 # add the third party libraries as includes
 include_directories("${PROJECT_SOURCE_DIR}/third-party/mustache/headers")
@@ -109,7 +109,7 @@ file(GLOB DISTRIBUTION_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/distributio
 file(GLOB LAMBDAS_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/lambdas/source/*.cc")
 file(GLOB LOGICAL_PLAN_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/logicalPlan/source/*.cc")
 file(GLOB CLIENT_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/client/source/*.cc")
-file(GLOB STORAGE_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/storageManager/source/*.cc")
+file(GLOB BUFFER_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/bufferManager/source/*.cc")
 file(GLOB QUERY_PANNING_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/queryPlanning/source/**/*.cc"
                                "${PROJECT_SOURCE_DIR}/pdb/src/queryPlanning/source/**/**/*.cc"
                                "${PROJECT_SOURCE_DIR}/pdb/src/queryPlanning/source/*.cc")
@@ -226,7 +226,7 @@ add_library(lambdas OBJECT ${LAMBDAS_SOURCE})
 add_library(logical-plan OBJECT ${LOGICAL_PLAN_SOURCE})
 add_library(client OBJECT ${CLIENT_SOURCE})
 add_library(object-model OBJECT ${OBJECT_MODEL_SOURCE})
-add_library(storage-manager OBJECT ${STORAGE_MANAGER_SOURCE})
+add_library(buffer-manager OBJECT ${BUFFER_MANAGER_SOURCE})
 
 # add the dependencies to the object type generationg
 add_dependencies(server-functionalities object-type-ids)
@@ -252,7 +252,7 @@ add_library(pdb-server-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:sql-lite>
         $<TARGET_OBJECTS:server-functionalities>
         $<TARGET_OBJECTS:storage>
-        $<TARGET_OBJECTS:storage-manager>
+        $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:work>)
 
 # used to link the shared libraries that the shared librarires use
@@ -271,7 +271,7 @@ add_library(pdb-shared-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:sql-lite>
         $<TARGET_OBJECTS:server-functionalities>
         $<TARGET_OBJECTS:storage>
-        $<TARGET_OBJECTS:storage-manager>
+        $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:work>)
 
 # used to link the shared libraries that the test use
@@ -290,7 +290,7 @@ add_library(pdb-tests-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:sql-lite>
         $<TARGET_OBJECTS:server-functionalities>
         $<TARGET_OBJECTS:storage>
-        $<TARGET_OBJECTS:storage-manager>
+        $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:work>)
 
 # link the dependent libraries so that they are made of the public interface

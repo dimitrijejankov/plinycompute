@@ -45,7 +45,7 @@ enum PDBPageStatus {
 };
 
 // forward definition to handle circular dependencies
-class PDBStorageManagerInterface;
+class PDBBufferManagerInterface;
 
 class PDBPage {
 
@@ -84,7 +84,7 @@ class PDBPage {
   void repin ();
 
   // create a page
-  explicit PDBPage (PDBStorageManagerInterface &);
+  explicit PDBPage (PDBBufferManagerInterface &);
 
  protected:
 
@@ -125,17 +125,17 @@ class PDBPage {
   PDBPageWeakPtr me;
 
   // pointer to the parent buffer manager
-  PDBStorageManagerInterface& parent;
+  PDBBufferManagerInterface& parent;
 
   // the mutex to lock the page
   std::mutex lk;
 
   friend class PDBPageHandleBase;
-  friend class PDBStorageManagerImpl;
-  friend class PDBStorageManagerFrontEnd;
+  friend class PDBBufferManagerImpl;
+  friend class PDBBufferManagerFrontEnd;
 
   template <class T>
-  friend class PDBStorageManagerBackEnd;
+  friend class PDBBufferManagerBackEnd;
 };
 
 }

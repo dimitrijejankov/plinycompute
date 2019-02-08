@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include <PDBStorageManagerFrontEnd.h>
+#include <PDBBufferManagerFrontEnd.h>
 #include <GenericWork.h>
 
 namespace pdb {
@@ -31,19 +31,16 @@ public:
 
 };
 
-/// this test test anonymous pages of different sizes
-TEST(StorageManagerFrontendTest, Test8) {
+TEST(StorageManagerFrontendTest, Test7) {
 
   const UseTemporaryAllocationBlock block(256 * 1024 * 1024);
 
-  // the page sizes
-  std::vector<size_t> pageSizes = {16, 32, 64};
-
   const int numPages = 1000;
+  const int pageSize = 64;
   const int numThreads = 8;
 
   // create the frontend
-  pdb::PDBStorageManagerFrontEnd frontEnd("tempDSFSD", pageSizes.back(), 16, "metadata", ".");
+  pdb::PDBBufferManagerFrontEnd frontEnd("tempDSFSD", pageSize, 16, "metadata", ".");
 
   // call the init method the server would usually call
   frontEnd.init();
@@ -86,7 +83,7 @@ TEST(StorageManagerFrontendTest, Test8) {
         /// 1. Request an anonymous page
 
         // create a get page request
-        pdb::Handle<pdb::StoGetAnonymousPageRequest> pageRequest = pdb::makeObject<pdb::StoGetAnonymousPageRequest>(pageSizes[i % 3]);
+        pdb::Handle<pdb::StoGetAnonymousPageRequest> pageRequest = pdb::makeObject<pdb::StoGetAnonymousPageRequest>(pageSize);
 
         // make sure the mock function returns true
         ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoGetPageResult> &>(), testing::An<std::string &>())).WillByDefault(testing::Invoke(
@@ -96,11 +93,10 @@ TEST(StorageManagerFrontendTest, Test8) {
               auto bytes = (char *) frontEnd.sharedMemory.memory + res->offset;
 
               // fill up the age
-              for(int j = 0; j < pageSizes[i % 3]; j += sizeof(int)) {
-
-                // init
-                ((int*) bytes)[j / sizeof(int)] = (j + i);
-              }
+              ((int*) bytes)[0] = i + 1;
+              ((int*) bytes)[1] = i + 2;
+              ((int*) bytes)[2] = i + 3;
+              ((int*) bytes)[3] = i + 4;
 
               // store the page number
               pages.emplace_back(res->pageNum);
@@ -157,11 +153,10 @@ TEST(StorageManagerFrontendTest, Test8) {
               auto bytes = (char *) frontEnd.sharedMemory.memory + res->offset;
 
               // fill up the age
-              for(int j = 0; j < pageSizes[cnt % 3]; j += sizeof(int)) {
-
-                // init
-                EXPECT_EQ(((int*) bytes)[j / sizeof(int)], (j + cnt));
-              }
+              ((int*) bytes)[0] = cnt + 1;
+              ((int*) bytes)[1] = cnt + 2;
+              ((int*) bytes)[2] = cnt + 3;
+              ((int*) bytes)[3] = cnt + 4;
 
               // return true since we assume this succeeded
               return true;

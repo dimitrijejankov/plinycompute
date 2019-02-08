@@ -3,10 +3,10 @@
 
 #include <PDBCommunicator.h>
 #include <PDBServer.h>
-#include <PDBSharedMemory.h>
+#include "PDBSharedMemory.h"
 #include <HeapRequest.h>
 #include <condition_variable>
-#include "PDBStorageManagerInterface.h"
+#include "PDBBufferManagerInterface.h"
 #include "PDBPageCompare.h"
 
 // this is needed so we can declare friend tests here
@@ -37,18 +37,18 @@ namespace pdb {
  * requests from the pages to the front end.
  */
 template <class T>
-class PDBStorageManagerBackEnd;
-using PDBStorageManagerBackEndPtr = std::shared_ptr<PDBStorageManagerBackEnd<RequestFactory>>;
+class PDBBufferManagerBackEnd;
+using PDBStorageManagerBackEndPtr = std::shared_ptr<PDBBufferManagerBackEnd<RequestFactory>>;
 
 
 template <class T>
-class PDBStorageManagerBackEnd : public PDBStorageManagerInterface {
+class PDBBufferManagerBackEnd : public PDBBufferManagerInterface {
 
 public:
 
-  explicit PDBStorageManagerBackEnd(const PDBSharedMemory &sharedMemory);
+  explicit PDBBufferManagerBackEnd(const PDBSharedMemory &sharedMemory);
 
-  ~PDBStorageManagerBackEnd() override = default;
+  ~PDBBufferManagerBackEnd() override = default;
 
 
   /**
@@ -151,7 +151,7 @@ private:
 
 }
 
-#include <PDBStorageManagerBackEndTemplate.cc>
+#include "PDBBufferManagerBackEndTemplate.cc"
 
 #endif
 

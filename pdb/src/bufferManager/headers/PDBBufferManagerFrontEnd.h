@@ -6,11 +6,11 @@
 
 #include <map>
 #include <memory>
-#include "PDBStorageManagerInterface.h"
-#include "PDBStorageManagerImpl.h"
+#include "PDBBufferManagerInterface.h"
+#include "PDBBufferManagerImpl.h"
 #include <queue>
 #include <set>
-#include <PDBStorageManagerImpl.h>
+#include <PDBBufferManagerImpl.h>
 #include <StoGetPageRequest.h>
 #include <StoGetAnonymousPageRequest.h>
 #include <StoReturnPageRequest.h>
@@ -65,16 +65,16 @@
  */
 namespace pdb {
 
-class PDBStorageManagerFrontEnd : public PDBStorageManagerImpl {
+class PDBBufferManagerFrontEnd : public PDBBufferManagerImpl {
 
 public:
 
   // initializes the the storage manager
-  explicit PDBStorageManagerFrontEnd(pdb::NodeConfigPtr config) : PDBStorageManagerImpl(std::move(config)) {};
+  explicit PDBBufferManagerFrontEnd(pdb::NodeConfigPtr config) : PDBBufferManagerImpl(std::move(config)) {};
 
-  PDBStorageManagerFrontEnd(std::string tempFileIn, size_t pageSizeIn, size_t numPagesIn, std::string metaFile, std::string storageLocIn);
+  PDBBufferManagerFrontEnd(std::string tempFileIn, size_t pageSizeIn, size_t numPagesIn, std::string metaFile, std::string storageLocIn);
 
-  ~PDBStorageManagerFrontEnd() override = default;
+  ~PDBBufferManagerFrontEnd() override = default;
 
   // init
   void init() override;
@@ -147,6 +147,6 @@ private:
 }
 
 // include the definitions for the storage manager handlers
-#include <PDBStorageManagerFrontEndTemplate.cc>
+#include <PDBBufferManagerFrontEndTemplate.cc>
 
 #endif

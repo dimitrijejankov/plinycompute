@@ -65,10 +65,10 @@
 
 namespace pdb {
 
-class PDBStorageManagerInterface;
-typedef shared_ptr<PDBStorageManagerInterface> PDBStorageManagerInterfacePtr;
+class PDBBufferManagerInterface;
+typedef shared_ptr<PDBBufferManagerInterface> PDBStorageManagerInterfacePtr;
 
-class PDBStorageManagerInterface : public ServerFunctionality {
+class PDBBufferManagerInterface : public ServerFunctionality {
 
 public:
 
@@ -102,7 +102,7 @@ public:
   virtual size_t getMaxPageSize() = 0;
 
   // simply loop through and write back any dirty pages.  
-  virtual ~PDBStorageManagerInterface () = default;
+  virtual ~PDBBufferManagerInterface () = default;
 
 private:
 

@@ -1,9 +1,9 @@
-#include <PDBStorageManagerFrontEnd.h>
+#include <PDBBufferManagerFrontEnd.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <PagedRequestHandler.h>
 #include <StoGetPageRequest.h>
-#include <PDBStorageManagerBackEnd.h>
+#include <PDBBufferManagerBackEnd.h>
 #include <StoGetAnonymousPageRequest.h>
 #include <PagedRequest.h>
 #include <StoGetPageResult.h>
@@ -17,20 +17,20 @@
 #include <HeapRequestHandler.h>
 
 
-pdb::PDBStorageManagerFrontEnd::PDBStorageManagerFrontEnd(std::string tempFileIn, size_t pageSizeIn, size_t numPagesIn, std::string metaFile, std::string storageLocIn) {
+pdb::PDBBufferManagerFrontEnd::PDBBufferManagerFrontEnd(std::string tempFileIn, size_t pageSizeIn, size_t numPagesIn, std::string metaFile, std::string storageLocIn) {
 
   // initialize the buffer manager
   initialize(std::move(tempFileIn), pageSizeIn, numPagesIn, std::move(metaFile), std::move(storageLocIn));
 }
 
-void pdb::PDBStorageManagerFrontEnd::init() {
+void pdb::PDBBufferManagerFrontEnd::init() {
 
   // init the logger
   //logger = make_shared<pdb::PDBLogger>((boost::filesystem::path(getConfiguration()->rootDirectory) / "PDBStorageManagerFrontend.log").string());
   logger = make_shared<pdb::PDBLogger>("PDBStorageManagerFrontend.log");
 }
 
-void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
+void pdb::PDBBufferManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
   forMe.registerHandler(StoGetPageRequest_TYPEID,
       make_shared<pdb::HeapRequestHandler<StoGetPageRequest>>(
           [&](Handle<StoGetPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
@@ -85,10 +85,10 @@ void pdb::PDBStorageManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
       }));
 }
 
-pdb::PDBStorageManagerInterfacePtr pdb::PDBStorageManagerFrontEnd::getBackEnd() {
+pdb::PDBStorageManagerInterfacePtr pdb::PDBBufferManagerFrontEnd::getBackEnd() {
 
   // init the backend storage manager with the shared memory
-  return std::make_shared<PDBStorageManagerBackEnd<RequestFactory>>(sharedMemory);
+  return std::make_shared<PDBBufferManagerBackEnd<RequestFactory>>(sharedMemory);
 }
 
 

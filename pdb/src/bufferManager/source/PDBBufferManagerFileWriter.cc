@@ -2,7 +2,7 @@
 #ifndef CATALOG_C
 #define CATALOG_C
 
-#include "PDBStorageFileWriter.h"
+#include "PDBBufferManagerFileWriter.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -10,11 +10,11 @@
 
 namespace pdb {
 
-void PDBStorageFileWriter :: putString (string key, string value) {
+void PDBBufferManagerFileWriter :: putString (string key, string value) {
 	myData [key] = std::move(value);
 }
 
-void PDBStorageFileWriter :: putStringList (string key, vector <string> value) {
+void PDBBufferManagerFileWriter :: putStringList (string key, vector <string> value) {
 	string res;
 	for (const string &s : value) {
 		res += s + "#";
@@ -22,19 +22,19 @@ void PDBStorageFileWriter :: putStringList (string key, vector <string> value) {
 	myData [key] = res;
 }
 
-void PDBStorageFileWriter :: putUnsignedLong(string key, uint64_t value) {
+void PDBBufferManagerFileWriter :: putUnsignedLong(string key, uint64_t value) {
 	ostringstream convert;
 	convert << value;
 	myData [key] = convert.str ();
 }
 
-void PDBStorageFileWriter :: putLong(string key, int64_t value) {
+void PDBBufferManagerFileWriter :: putLong(string key, int64_t value) {
 	ostringstream convert;
 	convert << value;
 	myData [key] = convert.str ();
 }
 
-bool PDBStorageFileWriter :: getStringList (string key, vector <string> &returnVal) {
+bool PDBBufferManagerFileWriter :: getStringList (string key, vector <string> &returnVal) {
 
 	// verify the entry is in the map
 	if (myData.count (key) == 0)
@@ -49,7 +49,7 @@ bool PDBStorageFileWriter :: getStringList (string key, vector <string> &returnV
 	return true;
 }
 
-bool PDBStorageFileWriter :: getString (string key, string &res) {
+bool PDBBufferManagerFileWriter :: getString (string key, string &res) {
 	if (myData.count (key) == 0)
 		return false;
 
@@ -57,7 +57,7 @@ bool PDBStorageFileWriter :: getString (string key, string &res) {
 	return true;
 }
 
-bool PDBStorageFileWriter :: getUnsignedLong(string key, uint64_t &value) {
+bool PDBBufferManagerFileWriter :: getUnsignedLong(string key, uint64_t &value) {
 
 	// verify the entry is in the map
 	if (myData.count (key) == 0)
@@ -76,7 +76,7 @@ bool PDBStorageFileWriter :: getUnsignedLong(string key, uint64_t &value) {
 	return true;
 }
 
-bool PDBStorageFileWriter :: getLong(string key, int64_t &value) {
+bool PDBBufferManagerFileWriter :: getLong(string key, int64_t &value) {
 
 	// verify the entry is in the map
 	if (myData.count (key) == 0)
@@ -96,7 +96,7 @@ bool PDBStorageFileWriter :: getLong(string key, int64_t &value) {
 }
 
 
-PDBStorageFileWriter :: PDBStorageFileWriter (string fNameIn) {
+PDBBufferManagerFileWriter :: PDBBufferManagerFileWriter (string fNameIn) {
 
 	// remember the catalog name
 	fName = std::move(fNameIn);
@@ -129,7 +129,7 @@ PDBStorageFileWriter :: PDBStorageFileWriter (string fNameIn) {
 	}
 }
 
-void PDBStorageFileWriter :: save () {
+void PDBBufferManagerFileWriter :: save () {
 
 	ofstream myFile (fName, ofstream::out | ofstream::trunc);
 	if (myFile.is_open()) {

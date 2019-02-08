@@ -25,7 +25,7 @@
 #include "UseTemporaryAllocationBlock.h"
 #include "PDBBuzzer.h"
 #include <memory>
-#include <PDBStorageManagerInterface.h>
+#include <PDBBufferManagerInterface.h>
 
 /**
  * This template is used to make a simple piece of work that accepts an object of type RequestType
@@ -64,7 +64,7 @@ public:
             return;
         }
 
-        auto page = server->getFunctionality<PDBStorageManagerInterface>().getPage(myCommunicator->getSizeOfNextObject());
+        auto page = server->getFunctionality<PDBBufferManagerInterface>().getPage(myCommunicator->getSizeOfNextObject());
         void* memory = page->getBytes();
         {
             Handle<RequestType> request = myCommunicator->getNextObject<RequestType>(memory, success, errMsg);

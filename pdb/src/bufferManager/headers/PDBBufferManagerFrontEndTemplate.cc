@@ -11,7 +11,7 @@
 #include <StoFreezeRequestResult.h>
 
 template <class T>
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleGetPageRequest(pdb::Handle<pdb::StoGetPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleGetPageRequest(pdb::Handle<pdb::StoGetPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
 
   // grab the page
   auto page = this->getPage(make_shared<pdb::PDBSet>(request->setName, request->dbName), request->pageNumber);
@@ -24,7 +24,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleGetPageReques
 }
 
 template <class T>
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleGetAnonymousPageRequest(pdb::Handle<pdb::StoGetAnonymousPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleGetAnonymousPageRequest(pdb::Handle<pdb::StoGetAnonymousPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
 
   // grab an anonymous page
   auto page = getPage(request->size);
@@ -37,7 +37,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleGetAnonymousP
 }
 
 template <class T>
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleReturnPageRequest(pdb::Handle<pdb::StoReturnPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleReturnPageRequest(pdb::Handle<pdb::StoReturnPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
 
   // create the page key
   auto key = std::make_pair(std::make_shared<PDBSet>(request->setName, request->databaseName), request->pageNumber);
@@ -80,7 +80,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleReturnPageReq
 }
 
 template <class T>
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleReturnAnonPageRequest(pdb::Handle<pdb::StoReturnAnonPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleReturnAnonPageRequest(pdb::Handle<pdb::StoReturnAnonPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
 
   // create the page key
   auto key = std::make_pair((PDBSetPtr) nullptr, request->pageNumber);
@@ -121,7 +121,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleReturnAnonPag
 }
 
 template <class T>
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleFreezeSizeRequest(pdb::Handle<pdb::StoFreezeSizeRequest> &request, std::shared_ptr<T> &sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleFreezeSizeRequest(pdb::Handle<pdb::StoFreezeSizeRequest> &request, std::shared_ptr<T> &sendUsingMe) {
 
   // if this is an anonymous page the set is a null ptr
   PDBSetPtr set = nullptr;
@@ -172,7 +172,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleFreezeSizeReq
 }
 
 template <class T>
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handlePinPageRequest(pdb::Handle<pdb::StoPinPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handlePinPageRequest(pdb::Handle<pdb::StoPinPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
   // if this is an anonymous page the set is a null ptr
   PDBSetPtr set = nullptr;
 
@@ -222,7 +222,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handlePinPageReques
 }
 
 template <class T>
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleUnpinPageRequest(pdb::Handle<pdb::StoUnpinPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleUnpinPageRequest(pdb::Handle<pdb::StoUnpinPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
 
   // if this is an anonymous page the set is a null ptr
   PDBSetPtr set = nullptr;
@@ -278,7 +278,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontEnd::handleUnpinPageRequ
 }
 
 template <class T>
-bool pdb::PDBStorageManagerFrontEnd::sendPageToBackend(pdb::PDBPageHandle page, std::shared_ptr<T> &sendUsingMe, std::string &error) {
+bool pdb::PDBBufferManagerFrontEnd::sendPageToBackend(pdb::PDBPageHandle page, std::shared_ptr<T> &sendUsingMe, std::string &error) {
 
   // figure out the page parameters
   auto offset = (uint64_t) page->page->bytes - (uint64_t) sharedMemory.memory;

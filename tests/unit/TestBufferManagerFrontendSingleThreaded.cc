@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include <PDBStorageManagerFrontEnd.h>
+#include <PDBBufferManagerFrontEnd.h>
 #include <GenericWork.h>
 
 namespace pdb {
@@ -58,7 +58,7 @@ TEST(StorageManagerFrontendTest, Test1) {
   const int pageSize = 64;
 
   // create the frontend
-  pdb::PDBStorageManagerFrontEnd frontEnd("tempDSFSD", pageSize, 16, "metadata", ".");
+  pdb::PDBBufferManagerFrontEnd frontEnd("tempDSFSD", pageSize, 16, "metadata", ".");
 
   // call the init method the server would usually call
   frontEnd.init();
@@ -158,7 +158,7 @@ TEST(StorageManagerFrontendTest, Test2) {
   const int numSets = 2;
 
   // create the frontend
-  pdb::PDBStorageManagerFrontEnd frontEnd("tempDSFSD", pageSize, 16, "metadata", ".");
+  pdb::PDBBufferManagerFrontEnd frontEnd("tempDSFSD", pageSize, 16, "metadata", ".");
 
   // call the init method the server would usually call
   frontEnd.init();
@@ -272,7 +272,7 @@ TEST(StorageManagerFrontendTest, Test3) {
   std::vector<int> pageSizes = {16, 32, 64};
 
   // create the frontend
-  pdb::PDBStorageManagerFrontEnd frontEnd("tempDSFSD", pageSize, 16, "metadata", ".");
+  pdb::PDBBufferManagerFrontEnd frontEnd("tempDSFSD", pageSize, 16, "metadata", ".");
 
   // call the init method the server would usually call
   frontEnd.init();
@@ -434,7 +434,7 @@ TEST(StorageManagerFrontendTest, Test4) {
   const int pageSize = 64;
 
   // create the frontend
-  pdb::PDBStorageManagerFrontEnd frontEnd("tempDSFSD", pageSize, 16, "metadata", ".");
+  pdb::PDBBufferManagerFrontEnd frontEnd("tempDSFSD", pageSize, 16, "metadata", ".");
 
   // call the init method the server would usually call
   frontEnd.init();
@@ -584,7 +584,7 @@ TEST(StorageManagerFrontendTest, Test5) {
   std::vector<int> pageSizes = {16, 32, 64};
 
   // create the frontend
-  pdb::PDBStorageManagerFrontEnd frontEnd("tempDSFSD", pageSize, 16, "metadata", ".");
+  pdb::PDBBufferManagerFrontEnd frontEnd("tempDSFSD", pageSize, 16, "metadata", ".");
 
   // call the init method the server would usually call
   frontEnd.init();

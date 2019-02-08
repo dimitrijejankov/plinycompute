@@ -2,25 +2,29 @@
 // Created by dimitrije on 2/4/19.
 //
 
-#include <PDBStorageManagerBackEnd.h>
+#include <PDBBufferManagerBackEnd.h>
 #include <GenericWork.h>
 #include <random>
-#include "TestStorageManagerBackend.h"
+#include "TestBufferManagerBackend.h"
 
 namespace pdb {
 
 
-TEST(StorageManagerBackendTest, Test4) {
+TEST(StorageManagerBackendTest, Test5) {
 
   const int maxPageSize = 128;
-  const int numRequestsPerPage = 2000;
-  const int numPages = 60;
+  const int numRequestsPerPage = 500;
+  const int numPages = 2;
+  const int processingTime = 100;
 
   // note the number of threads must be less than 8 or equal to 8 or else we can exceed the page size
   const int numThreads = 4;
 
   vector<bool> pinned(numPages, false);
   vector<bool> frozen(numPages, false);
+  vector<bool> accessed(numPages, false);
+  std::mutex accessedLock;
+
   std::unordered_map<int64_t, int64_t> pages;
 
   // allocate memory
@@ -33,7 +37,7 @@ TEST(StorageManagerBackendTest, Test4) {
   sharedMemory.memory = memory.get();
 
   // create the storage manager
-  pdb::PDBStorageManagerBackEnd<MockRequestFactory> myMgr(sharedMemory);
+  pdb::PDBBufferManagerBackEnd<MockRequestFactory> myMgr(sharedMemory);
 
   MockRequestFactory::_requestFactory = std::make_shared<MockRequestFactoryImpl>();
 
@@ -60,11 +64,25 @@ TEST(StorageManagerBackendTest, Test4) {
           const std::string &setName, const std::string &dbName, uint64_t pageNum) {
 
         {
+          unique_lock<std::mutex> lck(accessedLock);
+
+          if(accessed[pageNum]) {
+            std::cout << "Ok this might be a problem" << std::endl;
+          }
+
+          EXPECT_FALSE(accessed[pageNum]);
+          accessed[pageNum] = true;
+        }
+
+        {
           unique_lock<std::mutex> lock(m);
 
           // mark it as pinned
           pinned[pageNum] = true;
         }
+
+        // sleep a bit
+        usleep(processingTime);
 
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
@@ -76,6 +94,11 @@ TEST(StorageManagerBackendTest, Test4) {
 
         // make the page
         pdb::Handle<pdb::StoGetPageResult> returnPageRequest = pdb::makeObject<pdb::StoGetPageResult>(pageNum * maxPageSize, pageNum, false, false, -1, maxPageSize, setName, dbName);
+
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+          accessed[pageNum] = false;
+        }
 
         // return true since we assume this succeeded
         return processResponse(returnPageRequest);
@@ -93,16 +116,23 @@ TEST(StorageManagerBackendTest, Test4) {
           const std::function<bool(pdb::Handle<pdb::SimpleRequestResult>)> &processResponse,
           PDBSetPtr &set, size_t pageNum, bool isDirty) {
 
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+
+          EXPECT_FALSE(accessed[pageNum]);
+          accessed[pageNum] = true;
+        }
+
         // do the bookkeeping
         {
           unique_lock<std::mutex> lock(m);
 
           // mark it as unpinned
           pinned[pageNum] = false;
-
-          // expect it to be pinned when you return it
-          EXPECT_TRUE(pinned[pageNum]);
         }
+
+        // sleep a bit
+        usleep(processingTime);
 
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
@@ -116,13 +146,18 @@ TEST(StorageManagerBackendTest, Test4) {
         // make the page
         pdb::Handle<pdb::SimpleRequestResult> returnPageRequest = pdb::makeObject<pdb::SimpleRequestResult>(true, "");
 
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+          accessed[pageNum] = false;
+        }
+
         // return true since we assume this succeeded
         return processResponse(returnPageRequest);
       }
   ));
 
   // it should call send object exactly twice
-  EXPECT_CALL(*MockRequestFactory::_requestFactory, unpinPage).Times(0);
+  EXPECT_CALL(*MockRequestFactory::_requestFactory, unpinPage).Times(testing::AtLeast(1));
 
   /// 3. Mock the freeze size
 
@@ -130,6 +165,13 @@ TEST(StorageManagerBackendTest, Test4) {
       [&](pdb::PDBLoggerPtr &myLogger, int port, const std::string address, bool onErr,
           size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::StoFreezeRequestResult>)> &processResponse,
           pdb::PDBSetPtr setPtr, size_t pageNum, size_t numBytes) {
+
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+
+          EXPECT_FALSE(accessed[pageNum]);
+          accessed[pageNum] = true;
+        }
 
         // do the bookkeeping
         {
@@ -142,6 +184,9 @@ TEST(StorageManagerBackendTest, Test4) {
           frozen[pageNum] = true;
         }
 
+        // sleep a bit
+        usleep(processingTime);
+
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
         // check the page
@@ -152,6 +197,11 @@ TEST(StorageManagerBackendTest, Test4) {
 
         // make the page
         pdb::Handle<pdb::StoFreezeRequestResult> returnPageRequest = pdb::makeObject<pdb::StoFreezeRequestResult>(true);
+
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+          accessed[pageNum] = false;
+        }
 
         // return true since we assume this succeeded
         return processResponse(returnPageRequest);
@@ -168,6 +218,13 @@ TEST(StorageManagerBackendTest, Test4) {
           size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::StoPinPageResult>)> &processResponse,
           const pdb::PDBSetPtr &setPtr, size_t pageNum) {
 
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+
+          EXPECT_FALSE(accessed[pageNum]);
+          accessed[pageNum] = true;
+        }
+
         // do the bookkeeping
         {
           unique_lock<std::mutex> lock(m);
@@ -175,6 +232,9 @@ TEST(StorageManagerBackendTest, Test4) {
           // mark it as unpinned
           pinned[pageNum] = true;
         }
+
+        // sleep a bit
+        usleep(processingTime);
 
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
@@ -187,13 +247,18 @@ TEST(StorageManagerBackendTest, Test4) {
         // make the page
         pdb::Handle<pdb::StoPinPageResult> returnPageRequest = pdb::makeObject<pdb::StoPinPageResult>(pageNum * maxPageSize, true);
 
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+          accessed[pageNum] = false;
+        }
+
         // return true since we assume this succeeded
         return processResponse(returnPageRequest);
       }
   ));
 
   // expected to be called twice
-  EXPECT_CALL(*MockRequestFactory::_requestFactory, pinPage).Times(0);
+  EXPECT_CALL(*MockRequestFactory::_requestFactory, pinPage).Times(testing::AtLeast(1));
 
   /// 5. Mock return page
 
@@ -202,16 +267,23 @@ TEST(StorageManagerBackendTest, Test4) {
           size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::SimpleRequestResult>)> &processResponse,
           std::string setName, std::string dbName, size_t pageNum, bool isDirty) {
 
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+
+          EXPECT_FALSE(accessed[pageNum]);
+          accessed[pageNum] = true;
+        }
+
         // do the bookkeeping
         {
           unique_lock<std::mutex> lock(m);
 
-          // expect it to be pinned when you return it
-          EXPECT_TRUE(pinned[pageNum]);
-
           // mark it as unpinned
           pinned[pageNum] = false;
         }
+
+        // sleep a bit
+        usleep(processingTime);
 
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
@@ -223,6 +295,11 @@ TEST(StorageManagerBackendTest, Test4) {
 
         // make the page
         pdb::Handle<pdb::SimpleRequestResult> returnPageRequest = pdb::makeObject<pdb::SimpleRequestResult>(true, "");
+
+        {
+          unique_lock<std::mutex> lck(accessedLock);
+          accessed[pageNum] = false;
+        }
 
         // return true since we assume this succeeded
         return processResponse(returnPageRequest);
@@ -319,6 +396,36 @@ TEST(StorageManagerBackendTest, Test4) {
           // set as dirty
           page->setDirty();
         }
+
+        sync++;
+        while (sync != 2 * numThreads) {}
+
+        std::vector<pdb::PDBPageHandle> tmpPages;
+        for(uint64_t i = 0; i < numPages; ++i) {
+
+          // the page
+          auto page = myMgr.getPage(set, i);
+
+          // store the handle
+          tmpPages.emplace_back(page);
+
+          // unpin page
+          page->unpin();
+        }
+
+        for(auto it : pageIndices) {
+
+          // grab a handle
+          auto handle = tmpPages[it];
+
+          // repin
+          handle->repin();
+
+          // unpin
+          handle->unpin();
+        }
+
+        tmpPages.clear();
 
         // excellent everything worked just as expected
         callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);

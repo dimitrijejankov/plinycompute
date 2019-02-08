@@ -11,7 +11,7 @@
 #include <random>
 #include <gtest/gtest.h>
 
-#include "PDBStorageManagerImpl.h"
+#include "PDBBufferManagerImpl.h"
 #include "PDBPageHandle.h"
 #include "PDBSet.h"
 
@@ -28,7 +28,7 @@ void writeBytes(int fileName, int pageNum, int pageSize, char *toMe) {
   sprintf(toMe + pageSize - 5, "END#");
 }
 
-PDBPageHandle createRandomPage(PDBStorageManagerImpl &myMgr, vector<PDBSetPtr> &mySets, vector<unsigned> &myEnds, vector<vector<size_t>> &lens) {
+PDBPageHandle createRandomPage(PDBBufferManagerImpl &myMgr, vector<PDBSetPtr> &mySets, vector<unsigned> &myEnds, vector<vector<size_t>> &lens) {
 
   // choose a set
   auto whichSet = lrand48() % mySets.size();
@@ -48,7 +48,7 @@ PDBPageHandle createRandomPage(PDBStorageManagerImpl &myMgr, vector<PDBSetPtr> &
 }
 
 static int counter = 0;
-PDBPageHandle createRandomTempPage(PDBStorageManagerImpl &myMgr, vector<size_t> &lengths) {
+PDBPageHandle createRandomTempPage(PDBBufferManagerImpl &myMgr, vector<size_t> &lengths) {
 
   // choose a length
   size_t len = 16;
@@ -67,7 +67,7 @@ PDBPageHandle createRandomTempPage(PDBStorageManagerImpl &myMgr, vector<size_t> 
 TEST(BufferManagerTest, Test1) {
 
   // create the storage manager
-  PDBStorageManagerImpl myMgr;
+  PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 16, "metadata", ".");
 
   // grab two pages
@@ -110,7 +110,7 @@ TEST(BufferManagerTest, Test1) {
 }
 
 TEST(BufferManagerTest, Test2) {
-  PDBStorageManagerImpl myMgr;
+  PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 16, "metadata", ".");
   PDBSetPtr set1 = make_shared<PDBSet>("set1", "DB");
   PDBSetPtr set2 = make_shared<PDBSet>("set2", "DB");
@@ -149,7 +149,7 @@ TEST(BufferManagerTest, Test2) {
 }
 
 TEST(BufferManagerTest, Test3) {
-  PDBStorageManagerImpl myMgr;
+  PDBBufferManagerImpl myMgr;
   myMgr.initialize("metadata");
   PDBSetPtr set1 = make_shared<PDBSet>("set1", "DB");
   PDBSetPtr set2 = make_shared<PDBSet>("set2", "DB");
@@ -166,7 +166,7 @@ TEST(BufferManagerTest, Test3) {
 TEST(BufferManagerTest, Test4) {
 
   // create a buffer manager
-  PDBStorageManagerImpl myMgr;
+  PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 16, "metadata", ".");
 
   // create the three sets
@@ -208,7 +208,7 @@ TEST(BufferManagerTest, Test4) {
 }
 
 TEST(BufferManagerTest, Test5) {
-  PDBStorageManagerImpl myMgr;
+  PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 16, "metadata", ".");
 
   // create the three sets
@@ -301,7 +301,7 @@ TEST(BufferManagerTest, Test5) {
 TEST(BufferManagerTest, Test6) {
 
   {
-    PDBStorageManagerImpl myMgr;
+    PDBBufferManagerImpl myMgr;
     myMgr.initialize("tempDSFSD", 64, 16, "metadata", ".");
     PDBSetPtr set1 = make_shared<PDBSet>("set1", "DB");
     PDBSetPtr set2 = make_shared<PDBSet>("set2", "DB");
@@ -345,7 +345,7 @@ TEST(BufferManagerTest, Test6) {
   }
 
   {
-    PDBStorageManagerImpl myMgr;
+    PDBBufferManagerImpl myMgr;
     myMgr.initialize("metadata");
 
     char buffer[64];
@@ -376,7 +376,7 @@ TEST(BufferManagerTest, Test6) {
 TEST(BufferManagerTest, Test7) {
 
   // create the storage manager
-  PDBStorageManagerImpl myMgr;
+  PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 5, "metadata", ".");
 
   const int numRequestsPerPage = 2000;
@@ -459,7 +459,7 @@ TEST(BufferManagerTest, Test7) {
 TEST(BufferManagerTest, Test8) {
 
   // create the storage manager
-  PDBStorageManagerImpl myMgr;
+  PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 10, "metadata", ".");
 
   // parameters
@@ -545,7 +545,7 @@ TEST(BufferManagerTest, Test8) {
 TEST(BufferManagerTest, Test9) {
 
   // create the storage manager
-  PDBStorageManagerImpl myMgr;
+  PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 10, "metadata", ".");
 
   // parameters
@@ -631,7 +631,7 @@ TEST(BufferManagerTest, Test9) {
 TEST(BufferManagerTest, Test10) {
 
   // create the storage manager
-  PDBStorageManagerImpl myMgr;
+  PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 10, "metadata", ".");
 
   // parameters
@@ -729,7 +729,7 @@ TEST(BufferManagerTest, Test10) {
 TEST(BufferManagerTest, Test11) {
 
   // create the storage manager
-  PDBStorageManagerImpl myMgr;
+  PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 10, "metadata", ".");
 
   // parameters
@@ -829,7 +829,7 @@ TEST(BufferManagerTest, Test11) {
 // tests freezing on set pages of different sizes..
 TEST(BufferManagerTest, Test12) {
   // create the storage manager
-  PDBStorageManagerImpl myMgr;
+  PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 128, 4, "metadata", ".");
 
   // the page sizes we are testing

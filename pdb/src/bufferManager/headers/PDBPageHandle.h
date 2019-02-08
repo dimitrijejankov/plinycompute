@@ -93,11 +93,11 @@ class PDBPageHandleBase {
 
   PDBPagePtr page;
 
-  friend class PDBStorageManagerImpl;
-  friend class PDBStorageManagerFrontEnd;
+  friend class PDBBufferManagerImpl;
+  friend class PDBBufferManagerFrontEnd;
 
   template <class T>
-  friend class PDBStorageManagerBackEnd;
+  friend class PDBBufferManagerBackEnd;
 };
 
 }

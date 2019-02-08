@@ -12,7 +12,7 @@ using namespace std;
 namespace pdb {
 
 // this encapsulates a simple little key-value store
-class PDBStorageFileWriter {
+class PDBBufferManagerFileWriter {
 
  public:
 
@@ -36,10 +36,10 @@ class PDBStorageFileWriter {
   // creates an instance of the file.  If the specified file does
   // not exist, it is created.  Otherwise, the existing file is
   // opened.
-  explicit PDBStorageFileWriter (string fName);
+  explicit PDBBufferManagerFileWriter (string fName);
 
   // closes the file, and saves the contents.
-  ~PDBStorageFileWriter () = default;
+  ~PDBBufferManagerFileWriter () = default;
 
   // saves any updates to the file
   void save ();

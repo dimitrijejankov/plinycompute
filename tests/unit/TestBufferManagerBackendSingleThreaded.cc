@@ -3,8 +3,8 @@
 //
 
 
-#include <PDBStorageManagerBackEnd.h>
-#include "TestStorageManagerBackend.h"
+#include <PDBBufferManagerBackEnd.h>
+#include "TestBufferManagerBackend.h"
 
 namespace pdb {
 
@@ -28,7 +28,7 @@ TEST(StorageManagerBackendTest, Test1) {
   sharedMemory.numPages = numPages;
   sharedMemory.memory = memory.get();
 
-  pdb::PDBStorageManagerBackEnd<MockRequestFactory> storageManager(sharedMemory);
+  pdb::PDBBufferManagerBackEnd<MockRequestFactory> storageManager(sharedMemory);
 
   MockRequestFactory::_requestFactory = std::make_shared<MockRequestFactoryImpl>();
 
@@ -264,7 +264,7 @@ TEST(StorageManagerBackendTest, Test2) {
   sharedMemory.numPages = numPages * numSets;
   sharedMemory.memory = memory.get();
 
-  pdb::PDBStorageManagerBackEnd<MockRequestFactory> myMgr(sharedMemory);
+  pdb::PDBBufferManagerBackEnd<MockRequestFactory> myMgr(sharedMemory);
 
   MockRequestFactory::_requestFactory = std::make_shared<MockRequestFactoryImpl>();
 

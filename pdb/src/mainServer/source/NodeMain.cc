@@ -26,7 +26,7 @@
 #include <ClusterManager.h>
 #include <PDBDispatcherServer.h>
 #include <CatalogServer.h>
-#include <PDBStorageManagerFrontEnd.h>
+#include <PDBBufferManagerFrontEnd.h>
 #include <random>
 
 namespace po = boost::program_options;
@@ -43,7 +43,7 @@ void writeBytes(int fileName, int pageNum, int pageSize, char *toMe) {
   sprintf(toMe + pageSize - 5, "END#");
 }
 
-pdb::PDBPageHandle createRandomPage(pdb::PDBStorageManagerInterface &myMgr, vector<pdb::PDBSetPtr> &mySets, vector<unsigned> &myEnds, vector<vector<size_t>> &lens) {
+pdb::PDBPageHandle createRandomPage(pdb::PDBBufferManagerInterface &myMgr, vector<pdb::PDBSetPtr> &mySets, vector<unsigned> &myEnds, vector<vector<size_t>> &lens) {
 
   // choose a set
   auto whichSet = lrand48() % mySets.size();
@@ -63,7 +63,7 @@ pdb::PDBPageHandle createRandomPage(pdb::PDBStorageManagerInterface &myMgr, vect
 }
 
 static int counter = 0;
-pdb::PDBPageHandle createRandomTempPage(pdb::PDBStorageManagerImpl &myMgr, vector<size_t> &lengths) {
+pdb::PDBPageHandle createRandomTempPage(pdb::PDBBufferManagerImpl &myMgr, vector<size_t> &lengths) {
 
   // choose a length
   size_t len = 16;
@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
   config->maxConnections = 100;
 
   // init the storage manager, this has to be done before the fork!
-  auto storageManager = std::make_shared<pdb::PDBStorageManagerFrontEnd>(config);
+  auto storageManager = std::make_shared<pdb::PDBBufferManagerFrontEnd>(config);
 
   // fork this to split into a frontend and backend
   pid_t pid = fork();
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
     pdb::PDBServer backEnd(pdb::PDBServer::NodeType::BACKEND, config, logger);
 
     // add the functionaries
-    backEnd.addFunctionality<pdb::PDBStorageManagerInterface>(storageManager->getBackEnd());
+    backEnd.addFunctionality<pdb::PDBBufferManagerInterface>(storageManager->getBackEnd());
 
     // start the backend
     backEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
@@ -159,7 +159,7 @@ int main(int argc, char *argv[]) {
     pdb::PDBServer frontEnd(pdb::PDBServer::NodeType::FRONTEND, config, logger);
 
     // add the functionaries
-    frontEnd.addFunctionality<pdb::PDBStorageManagerInterface>(storageManager);
+    frontEnd.addFunctionality<pdb::PDBBufferManagerInterface>(storageManager);
 
     frontEnd.addFunctionality(std::make_shared<pdb::ClusterManager>());
     frontEnd.addFunctionality(std::make_shared<pdb::CatalogServer>());

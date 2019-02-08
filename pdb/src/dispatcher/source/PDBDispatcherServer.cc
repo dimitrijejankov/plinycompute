@@ -25,7 +25,7 @@
 #include <HeapRequestHandler.h>
 #include <DispAddData.h>
 #include <StoGetPageRequest.h>
-#include <PDBStorageManagerInterface.h>
+#include <PDBBufferManagerInterface.h>
 #include <PDBDispatcherRandomPolicy.h>
 #include <DispDispatchData.h>
 #include <boost/filesystem/path.hpp>
@@ -51,7 +51,7 @@ forMe.registerHandler(
         [&](Handle<pdb::DispAddData> request, PDBCommunicatorPtr sendUsingMe) {
 
           // grab the buffer manager
-          auto bufferManager = getFunctionalityPtr<PDBStorageManagerInterface>();
+          auto bufferManager = getFunctionalityPtr<PDBBufferManagerInterface>();
 
           // figure out how large the compressed payload is
           size_t numBytes = sendUsingMe->getSizeOfNextObject();

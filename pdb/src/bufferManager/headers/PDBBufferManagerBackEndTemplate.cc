@@ -1,7 +1,7 @@
 #ifndef BE_STORAGE_MGR_CCT
 #define BE_STORAGE_MGR_CCT
 
-#include <PDBStorageManagerBackEnd.h>
+#include "PDBBufferManagerBackEnd.h"
 #include <HeapRequest.h>
 #include <StoGetPageRequest.h>
 #include <SimpleRequestResult.h>
@@ -19,14 +19,14 @@
 namespace pdb {
 
 template <class T>
-pdb::PDBStorageManagerBackEnd<T>::PDBStorageManagerBackEnd(const PDBSharedMemory &sharedMemory) : sharedMemory(sharedMemory) {
+pdb::PDBBufferManagerBackEnd<T>::PDBBufferManagerBackEnd(const PDBSharedMemory &sharedMemory) : sharedMemory(sharedMemory) {
 
   // make a logger
   myLogger = make_shared<pdb::PDBLogger>("storageLog");
 }
 
 template <class T>
-pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage(pdb::PDBSetPtr whichSet, uint64_t i) {
+pdb::PDBPageHandle pdb::PDBBufferManagerBackEnd<T>::getPage(pdb::PDBSetPtr whichSet, uint64_t i) {
 
 
   /// 1. Go and check if we are the only ones working on the page if we are mark it with a loading status
@@ -144,12 +144,12 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage(pdb::PDBSetPtr whic
 }
 
 template <class T>
-pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage() {
+pdb::PDBPageHandle pdb::PDBBufferManagerBackEnd<T>::getPage() {
   return getPage(getConfiguration()->pageSize);
 }
 
 template <class T>
-pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage(size_t minBytes) {
+pdb::PDBPageHandle pdb::PDBBufferManagerBackEnd<T>::getPage(size_t minBytes) {
 
   if (minBytes > sharedMemory.pageSize) {
     std::cerr << minBytes << " is larger than the system page size of " << sharedMemory.pageSize << "\n";
@@ -218,12 +218,12 @@ pdb::PDBPageHandle pdb::PDBStorageManagerBackEnd<T>::getPage(size_t minBytes) {
 }
 
 template <class T>
-size_t pdb::PDBStorageManagerBackEnd<T>::getMaxPageSize() {
+size_t pdb::PDBBufferManagerBackEnd<T>::getMaxPageSize() {
   return getConfiguration()->pageSize;
 }
 
 template <class T>
-void pdb::PDBStorageManagerBackEnd<T>::freeAnonymousPage(pdb::PDBPagePtr me) {
+void pdb::PDBBufferManagerBackEnd<T>::freeAnonymousPage(pdb::PDBPagePtr me) {
 
   /// 1. Since the count of references for the anon page has hit zero we simply remove it from the allPages
 
@@ -271,7 +271,7 @@ void pdb::PDBStorageManagerBackEnd<T>::freeAnonymousPage(pdb::PDBPagePtr me) {
 }
 
 template <class T>
-void pdb::PDBStorageManagerBackEnd<T>::downToZeroReferences(pdb::PDBPagePtr me) {
+void pdb::PDBBufferManagerBackEnd<T>::downToZeroReferences(pdb::PDBPagePtr me) {
 
   /// 1. Wait till we have exclusive access to tha page and then check if the removal is still valid
   PDBPageHandle pageHandle;
@@ -362,7 +362,7 @@ void pdb::PDBStorageManagerBackEnd<T>::downToZeroReferences(pdb::PDBPagePtr me) 
 }
 
 template <class T>
-void pdb::PDBStorageManagerBackEnd<T>::freezeSize(pdb::PDBPagePtr me, size_t numBytes) {
+void pdb::PDBBufferManagerBackEnd<T>::freezeSize(pdb::PDBPagePtr me, size_t numBytes) {
 
   /// 1.  Make sure we are the only ones working on the page
   PDBPageHandle pageHandle;
@@ -425,7 +425,7 @@ void pdb::PDBStorageManagerBackEnd<T>::freezeSize(pdb::PDBPagePtr me, size_t num
 }
 
 template <class T>
-void pdb::PDBStorageManagerBackEnd<T>::unpin(pdb::PDBPagePtr me) {
+void pdb::PDBBufferManagerBackEnd<T>::unpin(pdb::PDBPagePtr me) {
 
   PDBPageHandle pageHandle;
   {
@@ -503,7 +503,7 @@ void pdb::PDBStorageManagerBackEnd<T>::unpin(pdb::PDBPagePtr me) {
 }
 
 template <class T>
-void pdb::PDBStorageManagerBackEnd<T>::repin(pdb::PDBPagePtr me) {
+void pdb::PDBBufferManagerBackEnd<T>::repin(pdb::PDBPagePtr me) {
 
   PDBPageHandle pageHandle;
   {
@@ -574,7 +574,7 @@ void pdb::PDBStorageManagerBackEnd<T>::repin(pdb::PDBPagePtr me) {
 }
 
 template <class T>
-void pdb::PDBStorageManagerBackEnd<T>::registerHandlers(pdb::PDBServer &forMe) {}
+void pdb::PDBBufferManagerBackEnd<T>::registerHandlers(pdb::PDBServer &forMe) {}
 
 }
 

@@ -13,8 +13,8 @@
 
 
 #include "PDBPage.h"
-#include "PDBStorageFileWriter.h"
-#include "PDBStorageManagerImpl.h"
+#include "PDBBufferManagerFileWriter.h"
+#include "PDBBufferManagerImpl.h"
 
 #include <fcntl.h>
 #include <iostream>
@@ -28,13 +28,13 @@
 #include <cstring>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
-#include <PDBStorageManagerImpl.h>
+#include <PDBBufferManagerImpl.h>
 
 namespace pdb {
 
 namespace fs = boost::filesystem;
 
-PDBStorageManagerImpl::PDBStorageManagerImpl(pdb::NodeConfigPtr config) {
+PDBBufferManagerImpl::PDBBufferManagerImpl(pdb::NodeConfigPtr config) {
 
   // create the root directory
   fs::path dataPath(config->rootDirectory);
@@ -81,7 +81,7 @@ PDBStorageManagerImpl::PDBStorageManagerImpl(pdb::NodeConfigPtr config) {
              dataPath.string());
 }
 
-size_t PDBStorageManagerImpl::getMaxPageSize() {
+size_t PDBBufferManagerImpl::getMaxPageSize() {
 
   if (!initialized) {
     cerr << "Can't call getMaxPageSize () without initializing the storage manager\n";
@@ -91,7 +91,7 @@ size_t PDBStorageManagerImpl::getMaxPageSize() {
   return sharedMemory.pageSize;
 }
 
-PDBStorageManagerImpl::~PDBStorageManagerImpl() {
+PDBBufferManagerImpl::~PDBBufferManagerImpl() {
 
   if (!initialized)
     return;
@@ -121,7 +121,7 @@ PDBStorageManagerImpl::~PDBStorageManagerImpl() {
   munmap(sharedMemory.memory, sharedMemory.pageSize * sharedMemory.numPages);
 
   remove(metaDataFile.c_str());
-  PDBStorageFileWriter myMetaFile(metaDataFile);
+  PDBBufferManagerFileWriter myMetaFile(metaDataFile);
 
   // now, write out the meta-data
   myMetaFile.putUnsignedLong("pageSize", sharedMemory.pageSize);
@@ -167,13 +167,13 @@ PDBStorageManagerImpl::~PDBStorageManagerImpl() {
   myMetaFile.save();
 }
 
-void PDBStorageManagerImpl::initialize(std::string metaDataFile) {
+void PDBBufferManagerImpl::initialize(std::string metaDataFile) {
 
   // mark the manager as initialized
   initialized = true;
 
   // first, get the basic info and initialize everything
-  PDBStorageFileWriter myMetaFile(metaDataFile);
+  PDBBufferManagerFileWriter myMetaFile(metaDataFile);
 
   // we use these to grab metadata
   uint64_t utemp;
@@ -227,7 +227,7 @@ void PDBStorageManagerImpl::initialize(std::string metaDataFile) {
   }
 }
 
-void PDBStorageManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn, size_t numPagesIn,
+void PDBBufferManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn, size_t numPagesIn,
                                        std::string metaFile, std::string storageLocIn) {
   initialized = true;
   storageLoc = std::move(storageLocIn);
@@ -291,7 +291,7 @@ void PDBStorageManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn
 
 }
 
-void PDBStorageManagerImpl::registerMiniPage(PDBPagePtr registerMe) {
+void PDBBufferManagerImpl::registerMiniPage(PDBPagePtr registerMe) {
 
   // first, compute the page this guy is on
   void *whichPage = (char *) sharedMemory.memory + ((((char *) registerMe->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
@@ -303,7 +303,7 @@ void PDBStorageManagerImpl::registerMiniPage(PDBPagePtr registerMe) {
   pinParent(registerMe);
 }
 
-void PDBStorageManagerImpl::freeAnonymousPage(PDBPagePtr me) {
+void PDBBufferManagerImpl::freeAnonymousPage(PDBPagePtr me) {
 
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
@@ -349,7 +349,7 @@ void PDBStorageManagerImpl::freeAnonymousPage(PDBPagePtr me) {
   }
 }
 
-void PDBStorageManagerImpl::downToZeroReferences(PDBPagePtr me) {
+void PDBBufferManagerImpl::downToZeroReferences(PDBPagePtr me) {
 
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
@@ -371,7 +371,7 @@ void PDBStorageManagerImpl::downToZeroReferences(PDBPagePtr me) {
   }
 }
 
-bool PDBStorageManagerImpl::isRemovalStillValid(PDBPagePtr me) {
+bool PDBBufferManagerImpl::isRemovalStillValid(PDBPagePtr me) {
 
   // lock the page counter so we can work with it
   std::unique_lock<std::mutex> page_lck(me->lk);
@@ -406,7 +406,7 @@ bool PDBStorageManagerImpl::isRemovalStillValid(PDBPagePtr me) {
 }
 
 // this is only called with a locked buffer manager
-void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_lock<mutex> &lock) {
+void PDBBufferManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_lock<mutex> &lock) {
 
   // if somebody else is making a mini page of the requested size wait here
   spaceCV.wait(lock, [&] { return !isCreatingSpace[whichSize]; });
@@ -535,7 +535,7 @@ void PDBStorageManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_
   spaceCV.notify_all();
 }
 
-void PDBStorageManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes) {
+void PDBBufferManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes) {
 
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
@@ -544,7 +544,7 @@ void PDBStorageManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes) {
   freezeSize(me, numBytes, lock);
 }
 
-void PDBStorageManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes, unique_lock<mutex> &lock) {
+void PDBBufferManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes, unique_lock<mutex> &lock) {
 
   if (me->sizeIsFrozen()) {
     std::cerr << "You cannot freeze the size of a page twice.\n";
@@ -558,7 +558,7 @@ void PDBStorageManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes, unique_lo
   me->getLocation().numBytes = bytesRequired;
 }
 
-void PDBStorageManagerImpl::unpin(PDBPagePtr me) {
+void PDBBufferManagerImpl::unpin(PDBPagePtr me) {
 
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
@@ -567,7 +567,7 @@ void PDBStorageManagerImpl::unpin(PDBPagePtr me) {
   unpin(me, lock);
 }
 
-void PDBStorageManagerImpl::unpin(PDBPagePtr me, unique_lock<mutex> &lock) {
+void PDBBufferManagerImpl::unpin(PDBPagePtr me, unique_lock<mutex> &lock) {
 
   if (!me->isPinned()) {
     return;
@@ -625,7 +625,7 @@ void PDBStorageManagerImpl::unpin(PDBPagePtr me, unique_lock<mutex> &lock) {
   }
 }
 
-void PDBStorageManagerImpl::pinParent(PDBPagePtr me) {
+void PDBBufferManagerImpl::pinParent(PDBPagePtr me) {
 
   // first, we determine the parent of this guy
   void *whichPage = (char *) sharedMemory.memory + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
@@ -640,7 +640,7 @@ void PDBStorageManagerImpl::pinParent(PDBPagePtr me) {
   }
 }
 
-void PDBStorageManagerImpl::repin(PDBPagePtr me) {
+void PDBBufferManagerImpl::repin(PDBPagePtr me) {
 
   // lock the buffer manager
   unique_lock<mutex> lock(m);
@@ -649,7 +649,7 @@ void PDBStorageManagerImpl::repin(PDBPagePtr me) {
   repin(me, lock);
 }
 
-void PDBStorageManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
+void PDBBufferManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
 
   // first, we need to see if this page is currently pinned
   if (me->isPinned()) {
@@ -705,11 +705,11 @@ void PDBStorageManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
   pagesCV.notify_all();
 }
 
-PDBPageHandle PDBStorageManagerImpl::getPage() {
+PDBPageHandle PDBBufferManagerImpl::getPage() {
   return getPage(sharedMemory.pageSize);
 }
 
-PDBPageHandle PDBStorageManagerImpl::getPage(size_t maxBytes) {
+PDBPageHandle PDBBufferManagerImpl::getPage(size_t maxBytes) {
 
   if (!initialized) {
     cerr << "Can't call getMaxPageSize () without initializing the storage manager\n";
@@ -718,7 +718,6 @@ PDBPageHandle PDBStorageManagerImpl::getPage(size_t maxBytes) {
 
   if (maxBytes > sharedMemory.pageSize) {
     std::cerr << maxBytes << " is larger than the system page size of " << sharedMemory.pageSize << "\n";
-    return nullptr;
   }
 
   // lock the buffer manager
@@ -769,7 +768,7 @@ PDBPageHandle PDBStorageManagerImpl::getPage(size_t maxBytes) {
   return make_shared<PDBPageHandleBase>(returnVal);
 }
 
-PDBPageHandle PDBStorageManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
+PDBPageHandle PDBBufferManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
 
   if (!initialized) {
     cerr << "Can't call getMaxPageSize () without initializing the storage manager\n";
@@ -910,7 +909,7 @@ PDBPageHandle PDBStorageManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
   return ret;
 }
 
-void *PDBStorageManagerImpl::getEmptyMemory(int64_t pageSize, unique_lock<mutex> &lock) {
+void *PDBBufferManagerImpl::getEmptyMemory(int64_t pageSize, unique_lock<mutex> &lock) {
 
   // get space for it... first see if the space is available
   if (emptyMiniPages[pageSize].empty()) {
@@ -932,7 +931,7 @@ void *PDBStorageManagerImpl::getEmptyMemory(int64_t pageSize, unique_lock<mutex>
   return space;
 }
 
-int PDBStorageManagerImpl::getFileDescriptor(const PDBSetPtr &whichSet) {
+int PDBBufferManagerImpl::getFileDescriptor(const PDBSetPtr &whichSet) {
 
   // lock the file descriptors structure to grab a descriptor
   unique_lock<mutex> blockLck(fdLck);
@@ -941,7 +940,7 @@ int PDBStorageManagerImpl::getFileDescriptor(const PDBSetPtr &whichSet) {
   return fd;
 }
 
-void PDBStorageManagerImpl::checkIfOpen(PDBSetPtr &whichSet) {
+void PDBBufferManagerImpl::checkIfOpen(PDBSetPtr &whichSet) {
 
   unique_lock<mutex> blockLck(fdLck);
 
@@ -958,7 +957,7 @@ void PDBStorageManagerImpl::checkIfOpen(PDBSetPtr &whichSet) {
     }
   }
 }
-size_t PDBStorageManagerImpl::getLogPageSize(size_t numBytes)  {
+size_t PDBBufferManagerImpl::getLogPageSize(size_t numBytes)  {
 
   size_t bytesRequired = 0;
   size_t curSize = MIN_PAGE_SIZE;

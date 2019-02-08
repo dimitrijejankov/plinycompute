@@ -3,14 +3,14 @@
 #ifndef STORAGE_MGR_H
 #define STORAGE_MGR_H
 
-#include "PDBStorageCheckLRU.h"
+#include "PDBBufferManagerCheckLRU.h"
 #include "PDBPage.h"
 #include "PDBPageHandle.h"
 #include "PDBSet.h"
 #include "PDBPageCompare.h"
 #include "PDBSetCompare.h"
 #include "PDBSharedMemory.h"
-#include "PDBStorageManagerInterface.h"
+#include "PDBBufferManagerInterface.h"
 #include "NodeConfig.h"
 
 #include <map>
@@ -70,14 +70,14 @@ using namespace std;
 
 namespace pdb {
 
-class PDBStorageManagerImpl : public PDBStorageManagerInterface {
+class PDBBufferManagerImpl : public PDBBufferManagerInterface {
 
  public:
 
   /**
    * we need the default constructor for our tests
    */
-  PDBStorageManagerImpl() = default;
+  PDBBufferManagerImpl() = default;
 
   /**
    * initializes the storage manager using the node configuration
@@ -86,12 +86,12 @@ class PDBStorageManagerImpl : public PDBStorageManagerInterface {
    * to create a new storage
    * @param config - the configuration of the node we need this so we can figure out where to put the data and metadata
    */
-  explicit PDBStorageManagerImpl(pdb::NodeConfigPtr config);
+  explicit PDBBufferManagerImpl(pdb::NodeConfigPtr config);
 
   /**
    * Simply loop through and write back any dirty pages.
    */
-  ~PDBStorageManagerImpl() override;
+  ~PDBBufferManagerImpl() override;
 
   /**
    * Initialize a storage manager.  Anonymous pages will be written to tempFile.  Use the given pageSize.
@@ -319,7 +319,7 @@ class PDBStorageManagerImpl : public PDBStorageManagerInterface {
   /**
    * tells us the LRU number of each of the memory pages
    */
-  set<pair<void *, size_t>, PDBStorageCheckLRU> lastUsed;
+  set<pair<void *, size_t>, PDBBufferManagerCheckLRU> lastUsed;
 
   /**
    * tells us how many of the minipages constructed from each page are pinned if the long is a negative value, it gives us the LRU number

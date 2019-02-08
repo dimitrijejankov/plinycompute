@@ -18,7 +18,7 @@ using namespace std;
 namespace pdb {
 
 // so that pages can be searched based on LRU access time
-class PDBStorageCheckLRU {
+class PDBBufferManagerCheckLRU {
 
  public:
   bool operator() (const pair <void *, size_t> lhs, const pair <void *, size_t> rhs) const {

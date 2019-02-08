@@ -19,7 +19,7 @@
 #ifndef PDB_PAGED_REQUEST_H
 #define PDB_PAGED_REQUEST_H
 
-#include "PDBStorageManagerInterface.h"
+#include "PDBBufferManagerInterface.h"
 #include "PDBLogger.h"
 
 namespace pdb {

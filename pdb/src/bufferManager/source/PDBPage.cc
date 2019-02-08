@@ -14,13 +14,13 @@
 
 #include <PDBPage.h>
 
-#include "PDBStorageManagerImpl.h"
+#include "PDBBufferManagerImpl.h"
 #include "PDBPage.h"
 #include "PDBSet.h"
 
 namespace pdb {
 
-PDBPage :: PDBPage (PDBStorageManagerInterface &parent) : parent (parent), status(PDB_PAGE_NOT_LOADED), dirty(false) {}
+PDBPage :: PDBPage (PDBBufferManagerInterface &parent) : parent (parent), status(PDB_PAGE_NOT_LOADED), dirty(false) {}
 
 void PDBPage :: incRefCount () {
 
