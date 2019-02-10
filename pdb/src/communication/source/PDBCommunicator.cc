@@ -462,7 +462,6 @@ bool PDBCommunicator::doTheWrite(char* start, char* end) {
                          << std::endl;
                 logToMe->info("PDBCommunicator: Retry to see whether network can recover");
                 continue;
-                continue;
             } else {
                 // std :: cout << "############################################" << std :: endl;
                 // std :: cout << "WARNING: CONNECTION CLOSED DUE TO WRITE ERROR AFTER RETRY" << std
@@ -505,16 +504,6 @@ bool PDBCommunicator::doTheRead(char* dataIn) {
             logToMe->error(strerror(errno));
             close(socketFD);
             socketFD = -1;
-            if (longConnection) {
-                // std :: cout << "############################################" << std :: endl;
-                // std :: cout << "WARNING: LONG CONNECTION CLOSED DUE TO READ ERROR" << std ::
-                // endl;
-                // std :: cout << "############################################" << std :: endl;
-            } else {
-                // std :: cout << "############################################" << std :: endl;
-                // std :: cout << "WARNING: CONNECTION CLOSED DUE TO READ ERROR" << std :: endl;
-                // std :: cout << "############################################" << std :: endl;
-            }
             socketClosed = true;
             return true;
         } else if (numBytes == 0) {

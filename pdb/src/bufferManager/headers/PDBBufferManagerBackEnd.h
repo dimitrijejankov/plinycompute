@@ -31,7 +31,7 @@ namespace pdb {
  * is actually sent over the PDBCommunicator is only a pointer into the shared
  * memory.
  *
- * The end doesn't do much work.  All it does is (perhaps?) some internal bookkepping
+ * The end doesn't do much work.  All it does is some internal bookkepping
  * to manage the pages it has received from the front end.  It does not actually buffer
  * anything; all of the buffering happens in the front end.  It basically just forwards
  * requests from the pages to the front end.
@@ -49,7 +49,6 @@ public:
   explicit PDBBufferManagerBackEnd(const PDBSharedMemory &sharedMemory);
 
   ~PDBBufferManagerBackEnd() override = default;
-
 
   /**
    * Returns a handle to an anonymous page with the maximum page size.
@@ -74,6 +73,8 @@ public:
    */
   PDBPageHandle getPage(size_t minBytes) override;
 
+  PDBPageHandle expectPage(std::shared_ptr<PDBCommunicator> &communicator);
+
   /**
    * Returns the maximum page size as set in the configuration
    * @return - the value
@@ -83,6 +84,15 @@ public:
   void registerHandlers(PDBServer &forMe) override;
 
 private:
+
+  /**
+   * Expect the page from the frontend
+   * @param whichSet
+   * @param pageNum
+   * @return
+   */
+  template <class Communicator>
+  PDBPageHandle handleExpectPage(std::shared_ptr<Communicator> &communicator);
 
   /**
    * This method is called by the @see pdb::PDBPage when the reference count falls to zero and the page is anonymous.

@@ -15,7 +15,7 @@
 #include <StoUnpinPageRequest.h>
 #include <StoPinPageResult.h>
 #include <HeapRequestHandler.h>
-
+#include <StoForwardPageRequest.h>
 
 pdb::PDBBufferManagerFrontEnd::PDBBufferManagerFrontEnd(std::string tempFileIn, size_t pageSizeIn, size_t numPagesIn, std::string metaFile, std::string storageLocIn) {
 
@@ -28,6 +28,33 @@ void pdb::PDBBufferManagerFrontEnd::init() {
   // init the logger
   //logger = make_shared<pdb::PDBLogger>((boost::filesystem::path(getConfiguration()->rootDirectory) / "PDBStorageManagerFrontend.log").string());
   logger = make_shared<pdb::PDBLogger>("PDBStorageManagerFrontend.log");
+}
+
+bool pdb::PDBBufferManagerFrontEnd::forwardPage(pdb::PDBPageHandle &page, pdb::PDBCommunicatorPtr &communicator, std::string &error) {
+
+  // handle the page forwarding request
+  return handleForwardPage(page, communicator, error);
+}
+
+void pdb::PDBBufferManagerFrontEnd::finishForwarding(pdb::PDBPageHandle &page)  {
+
+    // lock so we can mark the page as sent
+    unique_lock<mutex> lck(this->m);
+
+    // mark that we have finished forwarding
+    this->forwarding.erase(make_pair(page->getSet(), page->page->whichPage()));
+}
+
+void pdb::PDBBufferManagerFrontEnd::initForwarding(pdb::PDBPageHandle &page) {
+
+    // lock so we can mark the page as sent
+    unique_lock<mutex> lck(this->m);
+
+    // mark the page as sent
+    this->sentPages[make_pair(page->getSet(), page->page->whichPage())] = page;
+
+    // mark that we are forwarding the page
+    this->forwarding.insert(make_pair(page->getSet(), page->page->whichPage()));
 }
 
 void pdb::PDBBufferManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {

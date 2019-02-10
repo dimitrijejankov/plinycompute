@@ -217,6 +217,11 @@ pdb::PDBPageHandle pdb::PDBBufferManagerBackEnd<T>::getPage(size_t minBytes) {
   return std::move(res);
 }
 
+template<class T>
+PDBPageHandle PDBBufferManagerBackEnd<T>::expectPage(std::shared_ptr<PDBCommunicator> &communicator) {
+  return handleExpectPage(communicator);
+}
+
 template <class T>
 size_t pdb::PDBBufferManagerBackEnd<T>::getMaxPageSize() {
   return getConfiguration()->pageSize;
@@ -573,8 +578,17 @@ void pdb::PDBBufferManagerBackEnd<T>::repin(pdb::PDBPagePtr me) {
   }
 }
 
+template<class T>
+template<class Communicator>
+PDBPageHandle PDBBufferManagerBackEnd<T>::handleExpectPage(shared_ptr<Communicator> &communicator) {
+
+  return nullptr;
+}
+
 template <class T>
 void pdb::PDBBufferManagerBackEnd<T>::registerHandlers(pdb::PDBServer &forMe) {}
+
+
 
 }
 

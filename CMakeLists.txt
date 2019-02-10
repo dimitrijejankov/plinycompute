@@ -80,6 +80,7 @@ include_directories("${PROJECT_SOURCE_DIR}/pdb/src/builtInPDBObjects/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/conf/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/dataPartition/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/storage/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/storageManager/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/objectModel/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/sharedLibraries/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/queryExecution/headers")
@@ -105,6 +106,7 @@ file(GLOB QUERY_EXECUTION_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/queryExecution/s
 file(GLOB WORK_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/work/source/*.cc")
 file(GLOB MEMORY_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/memory/source/*.cc")
 file(GLOB STORAGE_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/storage/source/*.cc")
+file(GLOB STORAGE_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/storageManager/source/*.cc")
 file(GLOB DISTRIBUTION_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/distributionManager/source/*.cc")
 file(GLOB LAMBDAS_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/lambdas/source/*.cc")
 file(GLOB LOGICAL_PLAN_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/logicalPlan/source/*.cc")
@@ -222,6 +224,7 @@ add_library(query-planning OBJECT ${QUERY_PANNING_SOURCE})
 add_library(work OBJECT ${WORK_SOURCE})
 add_library(memory OBJECT ${MEMORY_SOURCE})
 add_library(storage OBJECT ${STORAGE_SOURCE})
+add_library(storageManager OBJECT ${STORAGE_MANAGER_SOURCE})
 add_library(lambdas OBJECT ${LAMBDAS_SOURCE})
 add_library(logical-plan OBJECT ${LOGICAL_PLAN_SOURCE})
 add_library(client OBJECT ${CLIENT_SOURCE})
@@ -252,6 +255,7 @@ add_library(pdb-server-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:sql-lite>
         $<TARGET_OBJECTS:server-functionalities>
         $<TARGET_OBJECTS:storage>
+        $<TARGET_OBJECTS:storageManager>
         $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:work>)
 
@@ -271,6 +275,7 @@ add_library(pdb-shared-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:sql-lite>
         $<TARGET_OBJECTS:server-functionalities>
         $<TARGET_OBJECTS:storage>
+        $<TARGET_OBJECTS:storageManager>
         $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:work>)
 
@@ -290,6 +295,7 @@ add_library(pdb-tests-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:sql-lite>
         $<TARGET_OBJECTS:server-functionalities>
         $<TARGET_OBJECTS:storage>
+        $<TARGET_OBJECTS:storageManager>
         $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:work>)
 

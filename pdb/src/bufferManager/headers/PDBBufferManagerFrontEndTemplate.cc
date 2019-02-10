@@ -9,6 +9,7 @@
 #include <StoPinPageResult.h>
 #include <StoGetPageResult.h>
 #include <StoFreezeRequestResult.h>
+#include <StoForwardPageRequest.h>
 
 template <class T>
 std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleGetPageRequest(pdb::Handle<pdb::StoGetPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
@@ -57,8 +58,12 @@ std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleReturnPageRequ
       // mark it as dirty
       it->second->setDirty();
 
-      // remove it
-      this->sentPages.erase(it);
+      // are we currently forwarding this page if we are not
+      if(this->forwarding.find(key) == this->forwarding.end()) {
+
+        // remove it
+        this->sentPages.erase(it);
+      }
 
       // ok this request is a success
       res = true;
@@ -102,8 +107,12 @@ std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleReturnAnonPage
     // did we find it
     res = it != this->sentPages.end();
 
-    // remove it
-    this->sentPages.erase(it);
+    // are we currently forwarding this page if we are not
+    if(this->forwarding.find(key) == this->forwarding.end()) {
+
+      // remove it
+      this->sentPages.erase(it);
+    }
   }
 
   // create an allocation block to hold the response
@@ -277,6 +286,79 @@ std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleUnpinPageReque
   return make_pair(res, errMsg);
 }
 
+template<class T>
+bool pdb::PDBBufferManagerFrontEnd::handleForwardPage(pdb::PDBPageHandle &page, shared_ptr<T> &communicator, std::string &error) {
+
+  // init the forwarding process
+  initForwarding(page);
+
+  // make an allocation block
+  const UseTemporaryAllocationBlock tempBlock{1024};
+
+  // forward the page
+  Handle<pdb::StoForwardPageRequest> objectToSend = page->page->isAnon ? pdb::makeObject<StoForwardPageRequest>(page->whichPage())
+                                                                       : pdb::makeObject<StoForwardPageRequest>(page->getSet()->getSetName(), page->getSet()->getDBName(), page->whichPage());
+
+  // send the object
+  if (!communicator->sendObject(objectToSend, error)) {
+
+    // yeah something happened
+    logger->error(error);
+    logger->error("Not able to forward the page.\n");
+
+    // we are done here since we failed
+    finishForwarding(page);
+
+    // we are done here we do not recover from this error
+    return false;
+  }
+
+  // get the response and process it
+  size_t objectSize = communicator->getSizeOfNextObject();
+
+  // check if we did get a response
+  if (objectSize == 0) {
+
+    // ok we did not that sucks log what happened
+    logger->error("We did not get a response.\n");
+
+    // we are done here since we failed
+    finishForwarding(page);
+
+    // we are done here we do not recover from this error
+    return false;
+  }
+
+  // allocate the memory
+  std::unique_ptr<char[]> memory(new char[objectSize]);
+  if (memory == nullptr) {
+
+    error = "FATAL ERROR in heapRequest: Can't allocate memory";
+    logger->error(error);
+
+    // this is a problem
+    exit(-1);
+  }
+
+  // block to get the response
+  bool success;
+  Handle<SimpleRequestResult> result = communicator->template getNextObject<SimpleRequestResult>(memory.get(), success, error);
+
+  // did we fail
+  if (!success) {
+
+    // log the error
+    logger->error(error);
+    logger->error("not able to get next object over the wire.\n");
+  }
+
+  // finish forwarding
+  finishForwarding(page);
+
+  // we are done here
+  return success;
+}
+
 template <class T>
 bool pdb::PDBBufferManagerFrontEnd::sendPageToBackend(pdb::PDBPageHandle page, std::shared_ptr<T> &sendUsingMe, std::string &error) {
 
@@ -321,5 +403,6 @@ bool pdb::PDBBufferManagerFrontEnd::sendPageToBackend(pdb::PDBPageHandle page, s
   // return the result
   return res;
 }
+
 
 #endif //PDB_PDBSTORAGEMANAGERFRONTENDTEMPLATE_H

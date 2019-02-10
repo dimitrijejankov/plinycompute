@@ -76,6 +76,9 @@ public:
 
   ~PDBBufferManagerFrontEnd() override = default;
 
+  // forwards the page to the backend
+  bool forwardPage(pdb::PDBPageHandle &page,  PDBCommunicatorPtr &communicator, std::string &error);
+
   // init
   void init() override;
 
@@ -84,6 +87,14 @@ public:
 
   // returns the backend
   PDBStorageManagerInterfacePtr getBackEnd();
+
+private:
+
+  // init the forwarding
+  void initForwarding(pdb::PDBPageHandle &page);
+
+  // finish the forwarding
+  void finishForwarding(pdb::PDBPageHandle &page);
 
   // handles the get page request from the backend
   template <class T>
@@ -113,7 +124,9 @@ public:
   template <class T>
   std::pair<bool, std::string> handleUnpinPageRequest(pdb::Handle<pdb::StoUnpinPageRequest> &request, std::shared_ptr<T> &sendUsingMe);
 
-private:
+  // handles the logic for the forwarding
+  template <class T>
+  bool handleForwardPage(pdb::PDBPageHandle &page, std::shared_ptr<T> &communicator, std::string &error);
 
   // mark the tests for the frontend
   FRIEND_TEST(StorageManagerFrontendTest, Test1);
@@ -136,6 +149,11 @@ private:
   // in the case that the backend fails this is simply cleared
   // when a page is released by the backend the entry is removed
   map <std::pair<PDBSetPtr, size_t>, PDBPageHandle, PDBPageCompare> sentPages;
+
+  /**
+   * All the pages that we are currently forwarding
+   */
+  set <std::pair<PDBSetPtr, size_t>, PDBPageCompare> forwarding;
 
   /**
    * The mutex to keep this thing synced
