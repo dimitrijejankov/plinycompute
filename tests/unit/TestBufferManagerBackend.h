@@ -22,14 +22,13 @@ public:
 class MockRequestFactoryImpl {
 public:
 
-MOCK_METHOD9(getPage, pdb::PDBPageHandle(pdb::PDBLoggerPtr &myLogger,
+MOCK_METHOD8(getPage, pdb::PDBPageHandle(pdb::PDBLoggerPtr &myLogger,
                                          int port,
                                          const std::string address,
                                          pdb::PDBPageHandle onErr,
                                          size_t bytesForRequest,
                                          const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::StoGetPageResult>)> &processResponse,
-                                         std::string setName,
-                                         std::string dbName,
+                                         pdb::PDBSetPtr set,
                                          uint64_t pageNum));
 
 MOCK_METHOD7(getAnonPage, pdb::PDBPageHandle(pdb::PDBLoggerPtr &myLogger,
@@ -103,11 +102,10 @@ public:
                                             pdb::PDBPageHandle onErr,
                                             size_t bytesForRequest,
                                             const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::StoGetPageResult>)> &processResponse,
-                                            const std::string &setName,
-                                            const std::string &dbName,
+                                            const pdb::PDBSetPtr set,
                                             uint64_t pageNum) {
 
-    return _requestFactory->getPage(myLogger, port, address, onErr, bytesForRequest, processResponse, setName, dbName, pageNum);
+    return _requestFactory->getPage(myLogger, port, address, onErr, bytesForRequest, processResponse, set, pageNum);
   }
 
   // the mock anonymous page request

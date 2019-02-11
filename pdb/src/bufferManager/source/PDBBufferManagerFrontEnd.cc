@@ -50,6 +50,12 @@ void pdb::PDBBufferManagerFrontEnd::initForwarding(pdb::PDBPageHandle &page) {
     // lock so we can mark the page as sent
     unique_lock<mutex> lck(this->m);
 
+    // make the key
+    pair<PDBSetPtr, long> key = std::make_pair(page->getSet(), page->whichPage());
+
+    // wait if there is a forward of the page is happening
+    cv.wait(lck, [&] { return !(forwarding.find(key) != forwarding.end()); });
+
     // mark the page as sent
     this->sentPages[make_pair(page->getSet(), page->page->whichPage())] = page;
 

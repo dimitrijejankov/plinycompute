@@ -160,6 +160,10 @@ private:
    */
   std::mutex m;
 
+  /**
+   * Used to sync page forwarding
+   */
+  std::condition_variable cv;
 };
 
 }

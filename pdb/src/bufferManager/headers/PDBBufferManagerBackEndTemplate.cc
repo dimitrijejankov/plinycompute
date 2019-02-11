@@ -5,6 +5,7 @@
 #include <HeapRequest.h>
 #include <StoGetPageRequest.h>
 #include <SimpleRequestResult.h>
+#include <StoForwardPageRequest.h>
 #include <StoGetPageResult.h>
 #include <StoGetAnonymousPageRequest.h>
 #include <StoReturnPageRequest.h>
@@ -132,12 +133,18 @@ pdb::PDBPageHandle pdb::PDBBufferManagerBackEnd<T>::getPage(pdb::PDBSetPtr which
         }
 
         // set the error since we failed
-        myLogger->error("Could not get the requested page (" + whichSet->getDBName() +  ", " + whichSet->getSetName() + ", " + std::to_string(i) + ")");
+        if(whichSet != nullptr) {
+          myLogger->error("Could not get the requested page (" + whichSet->getDBName() +  ", " + whichSet->getSetName() + ", " + std::to_string(i) + ")");
+        }
+        else {
+          myLogger->error("Could not get the requested anonymous page with the page number " + std::to_string(i) + ")");
+        }
 
         // something strange happened kill the backend!
         exit(-1);
+
       },
-      whichSet->getSetName(), whichSet->getDBName(), i);
+      whichSet, i);
 
   // return the page
   return std::move(res);
@@ -219,7 +226,63 @@ pdb::PDBPageHandle pdb::PDBBufferManagerBackEnd<T>::getPage(size_t minBytes) {
 
 template<class T>
 PDBPageHandle PDBBufferManagerBackEnd<T>::expectPage(std::shared_ptr<PDBCommunicator> &communicator) {
-  return handleExpectPage(communicator);
+
+  /// 1. Wait to receive the request for forwarding
+
+  size_t objectSize = communicator->getSizeOfNextObject();
+
+  // check if we did get a response
+  if (objectSize == 0) {
+
+    // ok we did not that sucks log what happened
+    myLogger->error("we did not get a response.\n");
+  }
+
+  // allocate the memory
+  std::unique_ptr<char[]> memory(new char[objectSize]);
+
+  // block to get the response
+  bool success;
+  std::string error;
+  Handle<StoForwardPageRequest> result = communicator->template getNextObject<StoForwardPageRequest>(memory.get(), success, error);
+
+  // did we fail
+  if (!success) {
+
+    // log the error
+    myLogger->error(error);
+    myLogger->error("not able to get forward request over the wire.\n");
+
+    // we failed
+    return nullptr;
+  }
+
+  /// 2. we got the forward now send a request for that page
+
+  // figure out the set
+  auto set = result->isAnon ? nullptr : std::make_shared<PDBSet>(result->setName, result->dbName);
+
+  // grab the handle
+  auto handle = getPage(set, result->pageNumber);
+
+  /// 3. Send an acknowledgment that we received the page
+
+  // create an allocation block to hold the response
+  const UseTemporaryAllocationBlock tempBlock{1024};
+
+  // create the response
+  Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(true, std::string("Could not find the page to remove!"));
+
+  // sends result to requester
+  std::string errMsg;
+  bool res = communicator->sendObject(response, errMsg);
+
+  // if we fail
+  if(!res) {
+    return nullptr;
+  }
+
+  return handle;
 }
 
 template <class T>

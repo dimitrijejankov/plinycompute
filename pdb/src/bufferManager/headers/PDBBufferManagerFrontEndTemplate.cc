@@ -304,7 +304,7 @@ bool pdb::PDBBufferManagerFrontEnd::handleForwardPage(pdb::PDBPageHandle &page, 
 
     // yeah something happened
     logger->error(error);
-    logger->error("Not able to forward the page.\n");
+    logger->error("not able to forward the page.\n");
 
     // we are done here since we failed
     finishForwarding(page);
@@ -320,7 +320,7 @@ bool pdb::PDBBufferManagerFrontEnd::handleForwardPage(pdb::PDBPageHandle &page, 
   if (objectSize == 0) {
 
     // ok we did not that sucks log what happened
-    logger->error("We did not get a response.\n");
+    logger->error("we did not get a response.\n");
 
     // we are done here since we failed
     finishForwarding(page);
@@ -333,7 +333,7 @@ bool pdb::PDBBufferManagerFrontEnd::handleForwardPage(pdb::PDBPageHandle &page, 
   std::unique_ptr<char[]> memory(new char[objectSize]);
   if (memory == nullptr) {
 
-    error = "FATAL ERROR in heapRequest: Can't allocate memory";
+    error = "can't allocate memory";
     logger->error(error);
 
     // this is a problem

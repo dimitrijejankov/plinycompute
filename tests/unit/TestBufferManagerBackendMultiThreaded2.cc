@@ -57,7 +57,7 @@ TEST(StorageManagerBackendTest, Test4) {
   ON_CALL(*MockRequestFactory::_requestFactory, getPage).WillByDefault(testing::Invoke(
       [&](pdb::PDBLoggerPtr &myLogger, int port, const std::string &address,pdb::PDBPageHandle onErr,
           size_t bytesForRequest, const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::StoGetPageResult>)> &processResponse,
-          const std::string &setName, const std::string &dbName, uint64_t pageNum) {
+          const pdb::PDBSetPtr &set, uint64_t pageNum) {
 
         {
           unique_lock<std::mutex> lock(m);
@@ -71,11 +71,11 @@ TEST(StorageManagerBackendTest, Test4) {
         // check the page
         EXPECT_GE(pageNum, 0);
         EXPECT_LE(pageNum, numPages);
-        EXPECT_TRUE(setName == "set1");
-        EXPECT_TRUE(dbName == "DB");
+        EXPECT_TRUE(set->getSetName() == "set1");
+        EXPECT_TRUE(set->getDBName() == "DB");
 
         // make the page
-        pdb::Handle<pdb::StoGetPageResult> returnPageRequest = pdb::makeObject<pdb::StoGetPageResult>(pageNum * maxPageSize, pageNum, false, false, -1, maxPageSize, setName, dbName);
+        pdb::Handle<pdb::StoGetPageResult> returnPageRequest = pdb::makeObject<pdb::StoGetPageResult>(pageNum * maxPageSize, pageNum, false, false, -1, maxPageSize, set->getSetName(), set->getDBName());
 
         // return true since we assume this succeeded
         return processResponse(returnPageRequest);

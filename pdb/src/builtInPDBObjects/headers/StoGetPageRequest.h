@@ -22,6 +22,7 @@
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
+#include "PDBSet.h"
 
 // PRELOAD %StoGetPageRequest%
 
@@ -36,8 +37,21 @@ public:
 
   ~StoGetPageRequest() = default;
 
-  StoGetPageRequest(const std::string &setName, const  std::string &dbName, uint64_t pageNumber)
-      : setName(setName), dbName(dbName), pageNumber(pageNumber) {}
+  StoGetPageRequest(const pdb::PDBSetPtr &whichSet, uint64_t pageNumber) : pageNumber(pageNumber) {
+
+
+    if(whichSet != nullptr){
+
+      setName = whichSet->getSetName();
+      dbName = whichSet->getDBName();
+      isAnon = false;
+    }
+    else {
+      setName = "";
+      dbName = "";
+      isAnon = true;
+    }
+  }
 
 
   ENABLE_DEEP_COPY
@@ -56,6 +70,11 @@ public:
    * The page number
    */
   uint64_t pageNumber = 0;
+
+  /**
+   * Is this an anonymous page
+   */
+  bool isAnon;
 };
 }
 

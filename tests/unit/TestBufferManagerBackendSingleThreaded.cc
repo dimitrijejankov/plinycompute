@@ -287,8 +287,7 @@ TEST(StorageManagerBackendTest, Test2) {
           pdb::PDBPageHandle onErr,
           size_t bytesForRequest,
           const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::StoGetPageResult>)> &processResponse,
-          const std::string &setName,
-          const std::string &dbName,
+          pdb::PDBSetPtr set,
           uint64_t pageNum) {
 
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
@@ -296,14 +295,14 @@ TEST(StorageManagerBackendTest, Test2) {
         // check the page
         EXPECT_GE(pageNum, 0);
         EXPECT_LE(pageNum, numPages);
-        EXPECT_TRUE(setName == "set1" || setName == "set2");
-        EXPECT_TRUE(dbName == "DB");
+        EXPECT_TRUE(set->getSetName() == "set1" || set->getSetName() == "set2");
+        EXPECT_TRUE(set->getDBName() == "DB");
 
         // figure out which set
-        int whichSet = setName == "set1" ? 0 : 1;
+        int whichSet = set->getSetName() == "set1" ? 0 : 1;
 
         // make the page
-        pdb::Handle<pdb::StoGetPageResult> returnPageRequest = pdb::makeObject<pdb::StoGetPageResult>((whichSet * numPages + pageNum) * pageSize, pageNum, false, false, -1, pageSize, setName, dbName);
+        pdb::Handle<pdb::StoGetPageResult> returnPageRequest = pdb::makeObject<pdb::StoGetPageResult>((whichSet * numPages + pageNum) * pageSize, pageNum, false, false, -1, pageSize, set->getSetName(), set->getDBName());
 
         // mark it as pinned
         pinned[whichSet * numPages + pageNum] = true;
