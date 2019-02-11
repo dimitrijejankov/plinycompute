@@ -57,10 +57,13 @@ forMe.registerHandler(
           size_t numBytes = sendUsingMe->getSizeOfNextObject();
 
           // check if it is larger than a page
-          if(bufferManager->getMaxPageSize() > numBytes) {
+          if(bufferManager->getMaxPageSize() < numBytes) {
 
             // make the error string
             std::string errMsg = "The compressed size is larger than the maximum page size";
+
+            // log the error
+            logger->error(errMsg);
 
             // create an allocation block to hold the response
             const UseTemporaryAllocationBlock tempBlock{1024};
@@ -81,15 +84,36 @@ forMe.registerHandler(
           // grab all active nodes
           const auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
 
+          // if we have no nodes
+          if(nodes.empty()) {
+
+            // make the error string
+            std::string errMsg = "There are no nodes where we can dispatch the data to!";
+
+            // log the error
+            logger->error(errMsg);
+
+            // create an allocation block to hold the response
+            const UseTemporaryAllocationBlock tempBlock{1024};
+            Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+
+            // sends result to requester
+            sendUsingMe->sendObject(response, errMsg);
+            return make_pair(false, errMsg);
+          }
+
           // check the uncompressed size
           size_t uncompressedSize = 0;
           snappy::GetUncompressedLength((char*) page->getBytes(), numBytes, &uncompressedSize);
 
           // check the uncompressed size
-          if(bufferManager->getMaxPageSize() > uncompressedSize) {
+          if(bufferManager->getMaxPageSize() < uncompressedSize) {
 
             // make the error string
             std::string errMsg = "The uncompressed size is larger than the maximum page size";
+
+            // log the error
+            logger->error(errMsg);
 
             // create an allocation block to hold the response
             const UseTemporaryAllocationBlock tempBlock{1024};
