@@ -65,6 +65,9 @@ forMe.registerHandler(
             // log the error
             logger->error(errMsg);
 
+            // skip the data part
+            sendUsingMe->skipBytes(errMsg);
+
             // create an allocation block to hold the response
             const UseTemporaryAllocationBlock tempBlock{1024};
             Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
@@ -144,7 +147,15 @@ forMe.registerHandler(
               (char*) page->getBytes(), numBytes, request->databaseName, request->setName, request->typeName, numBytes);
 
 
-          return std::make_pair(ret, error);
+          // create an allocation block to hold the response
+          const UseTemporaryAllocationBlock tempBlock{1024};
+          Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(ret, error);
+
+          // sends result to requester
+          ret = sendUsingMe->sendObject(response, error) && ret;
+
+
+          return make_pair(ret, error);
     }));
 
 

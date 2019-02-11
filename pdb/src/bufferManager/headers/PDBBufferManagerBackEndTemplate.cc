@@ -280,6 +280,7 @@ PDBPageHandle PDBBufferManagerBackEnd<T>::expectPage(std::shared_ptr<PDBCommunic
 
         // make a page
         PDBPagePtr returnVal = make_shared<PDBPage>(*this);
+        returnVal->setMe(returnVal);
         returnVal->isAnon = result->isAnonymous;
         returnVal->pinned = true;
         returnVal->dirty = result->isDirty;

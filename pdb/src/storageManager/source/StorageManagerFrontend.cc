@@ -42,6 +42,14 @@ void pdb::StorageManagerFrontend::registerHandlers(PDBServer &forMe) {
 
         // did we fail
         if(!success) {
+
+          // create an allocation block to hold the response
+          const UseTemporaryAllocationBlock tempBlock{1024};
+          Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, error);
+
+          // sends result to requester
+          sendUsingMe->sendObject(response, error);
+
           return std::make_pair(false, error);
         }
 
@@ -95,6 +103,12 @@ void pdb::StorageManagerFrontend::registerHandlers(PDBServer &forMe) {
 
         // forward the page
         success = bufferManager->forwardPage(page, communicatorToBackend, error);
+
+        // create an allocation block to hold the response
+        Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(false, error);
+
+        // sends result to requester
+        sendUsingMe->sendObject(simpleResponse, error);
 
         // finish
         return std::make_pair(success, error);

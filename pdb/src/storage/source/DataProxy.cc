@@ -50,7 +50,6 @@ DataProxy::DataProxy(NodeID nodeId,
     this->communicator = communicator;
     this->shm = shm;
     this->logger = logger;
-    this->communicator->setLongConnection(true);
 }
 
 DataProxy::~DataProxy() {}

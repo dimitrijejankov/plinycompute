@@ -86,6 +86,9 @@ public:
     // receives a bunch of binary data over a channel
     bool receiveBytes(void* data, std::string& errMsg);
 
+    // skips a bunch of binary data
+    bool skipBytes(std::string& errMsg);
+
     // note that the file descriptor corresponding to the socket is always closed by the destructor!
     virtual ~PDBCommunicator();
 
@@ -101,10 +104,6 @@ public:
 
     bool isSocketClosed();
 
-    bool isLongConnection();
-
-    void setLongConnection(bool longConnection);
-
     bool reconnect(std::string& errMsg);
 
 private:
@@ -113,6 +112,9 @@ private:
 
     // read the message data from socket
     bool doTheRead(char* dataIn);
+
+    // skips the read of bytes
+    bool skipTheRead();
 
     // the size of the next message; keep these two declarations together so they can be read into
     // at once!
@@ -136,9 +138,6 @@ private:
 
     // JiaNote: to add logic to support long connection
     bool socketClosed;
-
-    bool longConnection;
-
 
     // JiaNote: to add logic to support reconnection
     int portNumber;
