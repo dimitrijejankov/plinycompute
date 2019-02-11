@@ -16,62 +16,53 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef CAT_STO_GET_FORWARD_REQ_H
-#define CAT_STO_GET_FORWARD_REQ_H
+
+#ifndef OBJECTQUERYMODEL_StoStoreOnPageRequest_H
+#define OBJECTQUERYMODEL_StoStoreOnPageRequest_H
 
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %StoForwardPageRequest%
+// PRELOAD %StoStoreOnPageRequest%
 
 namespace pdb {
 
-// encapsulates a request to forward the page
-class StoForwardPageRequest : public Object {
+// encapsulates a request to add data to a set in storage
+class StoStoreOnPageRequest : public Object {
 
 public:
 
-  StoForwardPageRequest() = default;
+  StoStoreOnPageRequest() = default;
+  ~StoStoreOnPageRequest() = default;
 
-  ~StoForwardPageRequest() = default;
-
-  StoForwardPageRequest(const uint64_t &offset, const uint64_t &pageNum, bool isAnonymous,
-                        bool sizeFrozen, const uint64_t &startPos, const int64_t &numBytes,
-                        const std::string &setName, const std::string &dbName): offset(offset), pageNum(pageNum),
-                                                                                isAnonymous(isAnonymous), sizeFrozen(sizeFrozen),
-                                                                                startPos(startPos), numBytes(numBytes), setName(setName),
-                                                                                dbName(dbName) {}
+  StoStoreOnPageRequest(const std::string &databaseName, const std::string &setName, const uint64_t page, uint64_t compressedSize)
+      : databaseName(databaseName), setName(setName), page(page), compressedSize(compressedSize) {
+  }
 
   ENABLE_DEEP_COPY
 
-  // a pointer to the raw bytes
-  uint64_t offset;
+  /**
+   * The name of the database the set belongs to
+   */
+  String databaseName;
 
-  // the page number
-  uint64_t pageNum = 0;
+  /**
+   * The name of the set we are storing the stuff
+   */
+  String setName;
 
-  // is this an anonymous page
-  bool isAnonymous = true;
+  /**
+   * page of the set where we are storing the stuff
+   */
+  uint64_t page = 0;
 
-  // is the size frozen
-  bool sizeFrozen = false;
-
-  // is this page dirty or not
-  bool isDirty = false;
-
-  // the start position in the file
-  uint64_t startPos = 0;
-
-  // the size of the page
-  int64_t numBytes = 0;
-
-  // the name of the set this page belongs to
-  pdb::String setName;
-
-  // the database the set belongs to
-  pdb::String dbName;
+  /**
+   * The compressed size
+   */
+  uint64_t compressedSize = 0;
 };
+
 }
 
 #endif

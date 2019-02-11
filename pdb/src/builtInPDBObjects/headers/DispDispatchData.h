@@ -38,8 +38,8 @@ public:
   DispDispatchData() = default;
   ~DispDispatchData() = default;
 
-  DispDispatchData(const std::string &databaseName, const std::string &setName, const std::string &typeName)
-      : databaseName(databaseName), setName(setName), typeName(typeName) {
+  DispDispatchData(const std::string &databaseName, const std::string &setName, const std::string &typeName, uint64_t compressedSize)
+      : databaseName(databaseName), setName(setName), typeName(typeName), compressedSize(compressedSize) {
   }
 
   ENABLE_DEEP_COPY
@@ -58,6 +58,11 @@ public:
    * The name of the type we are adding
    */
   String typeName;
+
+  /**
+   * The size of the compressed stuff
+   */
+  uint64_t compressedSize;
 };
 
 }

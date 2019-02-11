@@ -289,29 +289,53 @@ std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleUnpinPageReque
 template<class T>
 bool pdb::PDBBufferManagerFrontEnd::handleForwardPage(pdb::PDBPageHandle &page, shared_ptr<T> &communicator, std::string &error) {
 
+  // this method must never be called with an unpinned page
+  assert (page->isPinned());
+
   // init the forwarding process
   initForwarding(page);
+
+  /// 1. Sent the request
+
+  auto offset = (uint64_t) page->page->bytes - (uint64_t) sharedMemory.memory;
+  auto pageNum = page->whichPage();
+  auto isAnon = page->page->isAnon;
+  auto sizeFrozen = page->page->sizeFrozen;
+  auto startPos = page->page->getLocation().startPos;
+  auto numBytes = page->page->getLocation().numBytes;
+
+  std::string setName;
+  std::string dbName;
+
+  if(!isAnon) {
+
+    // set the database name and set name
+    dbName = page->getSet()->getDBName();
+    setName = page->getSet()->getSetName();
+  }
 
   // make an allocation block
   const UseTemporaryAllocationBlock tempBlock{1024};
 
   // forward the page
-  Handle<pdb::StoForwardPageRequest> objectToSend = page->page->isAnon ? pdb::makeObject<StoForwardPageRequest>(page->whichPage())
-                                                                       : pdb::makeObject<StoForwardPageRequest>(page->getSet()->getSetName(), page->getSet()->getDBName(), page->whichPage());
+  Handle<pdb::StoForwardPageRequest> objectToSend = pdb::makeObject<StoForwardPageRequest>(offset, pageNum, isAnon, sizeFrozen, startPos, numBytes, setName, dbName);
 
   // send the object
-  if (!communicator->sendObject(objectToSend, error)) {
+  std::string errMsg;
+  if (!communicator->sendObject(objectToSend, errMsg)) {
 
     // yeah something happened
-    logger->error(error);
-    logger->error("not able to forward the page.\n");
-
-    // we are done here since we failed
-    finishForwarding(page);
+    logger->error(errMsg);
+    logger->error("Not able to send request to server.\n");
 
     // we are done here we do not recover from this error
     return false;
   }
+
+  // log that the object is sent
+  logger->info("Forward request sent.");
+
+  /// 2. Get the response
 
   // get the response and process it
   size_t objectSize = communicator->getSizeOfNextObject();
@@ -320,10 +344,7 @@ bool pdb::PDBBufferManagerFrontEnd::handleForwardPage(pdb::PDBPageHandle &page, 
   if (objectSize == 0) {
 
     // ok we did not that sucks log what happened
-    logger->error("we did not get a response.\n");
-
-    // we are done here since we failed
-    finishForwarding(page);
+    logger->error("We did not get a response.\n");
 
     // we are done here we do not recover from this error
     return false;
@@ -333,23 +354,25 @@ bool pdb::PDBBufferManagerFrontEnd::handleForwardPage(pdb::PDBPageHandle &page, 
   std::unique_ptr<char[]> memory(new char[objectSize]);
   if (memory == nullptr) {
 
-    error = "can't allocate memory";
-    logger->error(error);
+    errMsg = "FATAL ERROR in heapRequest: Can't allocate memory";
+    logger->error(errMsg);
 
-    // this is a problem
+    /// TODO this needs to be an exception or something
+    // this is a fatal error we should not be running out of memory
     exit(-1);
   }
 
-  // block to get the response
+  // grab the result
   bool success;
-  Handle<SimpleRequestResult> result = communicator->template getNextObject<SimpleRequestResult>(memory.get(), success, error);
-
-  // did we fail
+  Handle<SimpleRequestResult> result = communicator->template getNextObject<SimpleRequestResult> (memory.get(), success, errMsg);
   if (!success) {
 
     // log the error
-    logger->error(error);
+    logger->error(errMsg);
     logger->error("not able to get next object over the wire.\n");
+
+    // we are done here we do not recover from this error
+    return false;
   }
 
   // finish forwarding

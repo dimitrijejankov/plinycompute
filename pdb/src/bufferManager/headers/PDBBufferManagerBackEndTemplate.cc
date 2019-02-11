@@ -257,15 +257,86 @@ PDBPageHandle PDBBufferManagerBackEnd<T>::expectPage(std::shared_ptr<PDBCommunic
     return nullptr;
   }
 
-  /// 2. we got the forward now send a request for that page
+  /// 2. we got the forward do the book keeping
 
-  // figure out the set
-  auto set = result->isAnon ? nullptr : std::make_shared<PDBSet>(result->setName, result->dbName);
+  PDBPageHandle pageHandle;
+  {
+    // lock the page
+    unique_lock<std::mutex> lock(m);
 
-  // grab the handle
-  auto handle = getPage(set, result->pageNumber);
+    // make the set
+    auto whichSet = make_shared<PDBSet>(result->setName, result->dbName);
 
-  /// 3. Send an acknowledgment that we received the page
+    // make the key
+    pair<PDBSetPtr, long> key = std::make_pair(whichSet, result->pageNum);
+
+    cv.wait(lock, [&] {
+
+      // find the page
+      auto it = allPages.find(key);
+
+      // if it does not exist create it with the info from the forward page
+      if(it == allPages.end()) {
+
+        // make a page
+        PDBPagePtr returnVal = make_shared<PDBPage>(*this);
+        returnVal->isAnon = result->isAnonymous;
+        returnVal->pinned = true;
+        returnVal->dirty = result->isDirty;
+        returnVal->pageNum = result->pageNum;
+        returnVal->whichSet = std::make_shared<PDBSet>(result->setName, result->dbName);
+        returnVal->location.startPos = result->startPos;
+        returnVal->location.numBytes = result->numBytes;
+        returnVal->bytes = (void *) (((uint64_t) this->sharedMemory.memory) + (uint64_t) result->offset);
+        returnVal->status = PDB_PAGE_LOADED;
+
+        // insert the page
+        allPages[key] = returnVal;
+
+        return true;
+      }
+
+      // grab the status
+      auto status = it->second->status;
+
+      // are we working on it if so wait a bit?
+      return !(status == PDB_PAGE_LOADING || status == PDB_PAGE_UNLOADING || status == PDB_PAGE_FREEZING);
+    });
+
+    // find the page
+    auto it = allPages.find(key);
+
+    // make a page handle
+    pageHandle = make_shared<PDBPageHandleBase>(it->second);
+
+    /// 3. At this point it is safe to assume we are the only one with access to the page. Now check if it is unpinned
+
+    // is the page maybe not loaded, then fill it up with the forwarding info. Note we are not caring if somebody
+    // unpinned the page in the mean time, since this is an obvious usage error
+    if (pageHandle->getBytes() == nullptr) {
+
+      // grab the page
+      auto &page = pageHandle->page;
+
+      // mark the page as loaded
+      page->isAnon = result->isAnonymous;
+      page->pinned = true;
+      page->dirty = result->isDirty;
+      page->pageNum = result->pageNum;
+      page->whichSet = std::make_shared<PDBSet>(result->setName, result->dbName);
+      page->location.startPos = result->startPos;
+      page->location.numBytes = result->numBytes;
+      page->bytes = (void *) (((uint64_t) this->sharedMemory.memory) + (uint64_t) result->offset);
+      page->status = PDB_PAGE_LOADED;
+
+      lock.unlock();
+
+      // notify all threads that the state has changed
+      cv.notify_all();
+    }
+  }
+
+  /// 4. Send an acknowledgment that we received the page
 
   // create an allocation block to hold the response
   const UseTemporaryAllocationBlock tempBlock{1024};
@@ -282,7 +353,7 @@ PDBPageHandle PDBBufferManagerBackEnd<T>::expectPage(std::shared_ptr<PDBCommunic
     return nullptr;
   }
 
-  return handle;
+  return pageHandle;
 }
 
 template <class T>

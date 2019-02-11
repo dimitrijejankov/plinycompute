@@ -42,6 +42,10 @@ typedef std::shared_ptr<PDBLogger> PDBLoggerPtr;
 
 class PDBLogger {
 public:
+
+    // opens a logger to a particular directory with the specified name
+    PDBLogger(const std::string &rootDir, const std::string &fName);
+
     // opens up a logger; output is written to the specified file
     PDBLogger(std::string fName);
 

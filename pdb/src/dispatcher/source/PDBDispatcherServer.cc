@@ -34,13 +34,13 @@
 
 namespace pdb {
 
-void PDBDispatcherServer::initialize() {
+void PDBDispatcherServer::init() {
 
   // init the policy
   policy = std::make_shared<PDBDispatcherRandomPolicy>();
 
   // init the class
-  logger = make_shared<pdb::PDBLogger>((boost::filesystem::path(getConfiguration()->rootDirectory) / "PDBDispatcherServer.log").string());
+  logger = make_shared<pdb::PDBLogger>((boost::filesystem::path(getConfiguration()->rootDirectory) / "logs").string(), "PDBDispatcherServer.log");
 }
 
 void PDBDispatcherServer::registerHandlers(PDBServer &forMe) {
@@ -117,7 +117,7 @@ forMe.registerHandler(
 
                 return false;
               },
-              (char*) page->getBytes(), numBytes, request->databaseName, request->setName, request->typeName);
+              (char*) page->getBytes(), numBytes, request->databaseName, request->setName, request->typeName, numBytes);
 
 
           return std::make_pair(ret, error);

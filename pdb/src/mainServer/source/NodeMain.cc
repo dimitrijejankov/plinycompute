@@ -27,6 +27,8 @@
 #include <PDBDispatcherServer.h>
 #include <CatalogServer.h>
 #include <PDBBufferManagerFrontEnd.h>
+#include <StorageManagerFrontend.h>
+#include <StorageManagerBackend.h>
 #include <random>
 
 namespace po = boost::program_options;
@@ -138,6 +140,7 @@ int main(int argc, char *argv[]) {
 
     // add the functionaries
     backEnd.addFunctionality<pdb::PDBBufferManagerInterface>(storageManager->getBackEnd());
+    backEnd.addFunctionality(std::make_shared<pdb::StorageManagerBackend>());
 
     // start the backend
     backEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
@@ -165,6 +168,7 @@ int main(int argc, char *argv[]) {
     frontEnd.addFunctionality(std::make_shared<pdb::CatalogServer>());
     frontEnd.addFunctionality(std::make_shared<pdb::PDBDispatcherServer>());
     frontEnd.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(config->port, config->address, logger));
+    frontEnd.addFunctionality(std::make_shared<pdb::StorageManagerFrontend>());
 
     frontEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
 

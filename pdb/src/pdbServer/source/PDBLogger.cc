@@ -26,11 +26,31 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <pthread.h>
+#include <boost/filesystem/path.hpp>
 #include "LogLevel.h"
 
-//#include "boost/filesystem.hpp"
 
 namespace pdb {
+
+PDBLogger::PDBLogger(const std::string &directory, const std::string &fName) {
+
+    // create a director logs if not exists
+    const int dir_err = mkdir(directory.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    if (-1 == dir_err) {
+        PDB_COUT << "logs folder created." << std::endl;
+    }
+
+    outputFile = fopen(fName.c_str(), "a");
+    if (outputFile == nullptr) {
+        std::cout << "Unable to open logging file : " << std::string(directory + "/" + fName) << ".\n";
+        perror(nullptr);
+        exit(-1);
+    }
+
+    pthread_mutex_init(&fileLock, nullptr);
+    loglevel = WARN;
+    this->enabled = true;
+}
 
 PDBLogger::PDBLogger(std::string fName) {
     //    bool folder = boost::filesystem::create_directories("logs");
@@ -44,7 +64,7 @@ PDBLogger::PDBLogger(std::string fName) {
 
     outputFile = fopen(std::string("logs/" + fName).c_str(), "a");
     if (outputFile == nullptr) {
-        std::cout << "Unable to open logging file.\n";
+        std::cout << "Unable to open logging file : " << std::string("logs/" + fName) << ".\n";
         perror(nullptr);
         exit(-1);
     }
@@ -61,7 +81,7 @@ void PDBLogger::open(std::string fName) {
     }
     outputFile = fopen((std::string("logs/") + fName).c_str(), "a");
     if (outputFile == nullptr) {
-        std::cout << "Unable to open logging file.\n";
+        std::cout << "Unable to open logging file : " << std::string("logs/") + fName <<"\n";
         perror(nullptr);
         exit(-1);
     }

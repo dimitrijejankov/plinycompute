@@ -48,7 +48,10 @@ public:
 
     ~PDBDispatcherServer() = default;
 
-    void initialize();
+    /**
+     * Initialize the dispatcher
+     */
+    void init() override;
 
     /**
      * Inherited function from ServerFunctionality
