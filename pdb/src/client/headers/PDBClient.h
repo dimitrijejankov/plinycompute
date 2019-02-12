@@ -20,14 +20,10 @@
 
 #include "PDBCatalogClient.h"
 #include "PDBDispatcherClient.h"
-#include "DistributedStorageManagerClient.h"
-#include "QueryClient.h"
 #include "ServerFunctionality.h"
 
 #include "Handle.h"
-#include "PDBObject.h"
 #include "PDBVector.h"
-#include "PartitionComp.h"
 #include "HeapRequest.h"
 
 /**
@@ -169,24 +165,12 @@ public:
        * Methods for invoking Query-related operations
        */
 
-      /* Executes some computations */
-      template <class... Types>
-      bool executeComputations(Handle<Computation> firstParam,
-                               Handle<Types>... args);
-
       /* Deletes a set. */
       bool deleteSet(std::string databaseName, std::string setName);
-
-      /* Gets a set iterator. */
-      template <class Type>
-      SetIterator<Type> getSetIterator(std::string databaseName,
-                                       std::string setName);
 
     private:
       std::shared_ptr<pdb::PDBCatalogClient> catalogClient;
       std::shared_ptr<pdb::PDBDispatcherClient> dispatcherClient;
-      std::shared_ptr<pdb::DistributedStorageManagerClient> distributedStorageClient;
-      std::shared_ptr<pdb::QueryClient> queryClient;
 
       std::function<bool(Handle<SimpleRequestResult>)>
       generateResponseHandler(std::string description, std::string &errMsg);
@@ -210,6 +194,5 @@ public:
 
 #include "PDBClientTemplate.cc"
 #include "PDBDispatcherClientTemplate.cc"
-#include "StorageClientTemplate.cc"
 
 #endif

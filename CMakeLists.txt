@@ -64,29 +64,23 @@ include_directories("${PROJECT_SOURCE_DIR}/pdb/src/qunit/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/client/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/dispatcher/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/bufferMgr/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/lambdas/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/lambdas/headers/lambdas")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/lambdas/headers/creationFunctions")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/tpchBench/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/work/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/distributionManager/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/communication/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/logicalPlan/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/queries/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/queriesTests/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/serverFunctionalities/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/catalog/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/builtInPDBObjects/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/conf/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/dataPartition/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/storage/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/storageManager/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/objectModel/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/sharedLibraries/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/queryExecution/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/computations/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/computations/headers/base")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/pipeline/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/bufferManager/headers")
 
 # add the third party libraries as includes
@@ -108,7 +102,6 @@ file(GLOB MEMORY_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/memory/source/*.cc")
 file(GLOB STORAGE_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/storage/source/*.cc")
 file(GLOB STORAGE_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/storageManager/source/*.cc")
 file(GLOB DISTRIBUTION_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/distributionManager/source/*.cc")
-file(GLOB LAMBDAS_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/lambdas/source/*.cc")
 file(GLOB LOGICAL_PLAN_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/logicalPlan/source/*.cc")
 file(GLOB CLIENT_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/client/source/*.cc")
 file(GLOB BUFFER_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/bufferManager/source/*.cc")
@@ -219,13 +212,9 @@ add_library(communication OBJECT ${COMMUNICATION_SOURCE})
 add_library(catalog OBJECT ${CATALOG_SOURCE})
 add_library(dispatcher OBJECT ${DISPATCHER_SOURCE})
 add_library(lib-pdb-server OBJECT ${PDB_SERVER_SOURCE})
-add_library(query-execution OBJECT ${QUERY_EXECUTION_SOURCE})
-add_library(query-planning OBJECT ${QUERY_PANNING_SOURCE})
 add_library(work OBJECT ${WORK_SOURCE})
 add_library(memory OBJECT ${MEMORY_SOURCE})
-add_library(storage OBJECT ${STORAGE_SOURCE})
 add_library(storageManager OBJECT ${STORAGE_MANAGER_SOURCE})
-add_library(lambdas OBJECT ${LAMBDAS_SOURCE})
 add_library(logical-plan OBJECT ${LOGICAL_PLAN_SOURCE})
 add_library(client OBJECT ${CLIENT_SOURCE})
 add_library(object-model OBJECT ${OBJECT_MODEL_SOURCE})
@@ -243,18 +232,13 @@ add_dependencies(lib-pdb-server object-type-ids)
 add_library(pdb-server-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:dispatcher>
         $<TARGET_OBJECTS:communication>
-        $<TARGET_OBJECTS:lambdas>
         $<TARGET_OBJECTS:logical-plan>
-        $<TARGET_OBJECTS:linear-algebra>
         $<TARGET_OBJECTS:lib-pdb-server>
         $<TARGET_OBJECTS:memory>
         $<TARGET_OBJECTS:client>
         $<TARGET_OBJECTS:object-model>
-        $<TARGET_OBJECTS:query-execution>
-        $<TARGET_OBJECTS:query-planning>
         $<TARGET_OBJECTS:sql-lite>
         $<TARGET_OBJECTS:server-functionalities>
-        $<TARGET_OBJECTS:storage>
         $<TARGET_OBJECTS:storageManager>
         $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:work>)
@@ -263,18 +247,13 @@ add_library(pdb-server-common $<TARGET_OBJECTS:catalog>
 add_library(pdb-shared-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:dispatcher>
         $<TARGET_OBJECTS:communication>
-        $<TARGET_OBJECTS:lambdas>
         $<TARGET_OBJECTS:logical-plan>
-        $<TARGET_OBJECTS:linear-algebra>
         $<TARGET_OBJECTS:lib-pdb-server>
         $<TARGET_OBJECTS:memory>
         $<TARGET_OBJECTS:client>
         $<TARGET_OBJECTS:object-model>
-        $<TARGET_OBJECTS:query-execution>
-        $<TARGET_OBJECTS:query-planning>
         $<TARGET_OBJECTS:sql-lite>
         $<TARGET_OBJECTS:server-functionalities>
-        $<TARGET_OBJECTS:storage>
         $<TARGET_OBJECTS:storageManager>
         $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:work>)
@@ -283,18 +262,13 @@ add_library(pdb-shared-common $<TARGET_OBJECTS:catalog>
 add_library(pdb-tests-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:dispatcher>
         $<TARGET_OBJECTS:communication>
-        $<TARGET_OBJECTS:lambdas>
         $<TARGET_OBJECTS:logical-plan>
-        $<TARGET_OBJECTS:linear-algebra>
         $<TARGET_OBJECTS:lib-pdb-server>
         $<TARGET_OBJECTS:memory>
         $<TARGET_OBJECTS:client>
         $<TARGET_OBJECTS:object-model>
-        $<TARGET_OBJECTS:query-execution>
-        $<TARGET_OBJECTS:query-planning>
         $<TARGET_OBJECTS:sql-lite>
         $<TARGET_OBJECTS:server-functionalities>
-        $<TARGET_OBJECTS:storage>
         $<TARGET_OBJECTS:storageManager>
         $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:work>)
@@ -317,23 +291,10 @@ add_library(logical-plan-parser OBJECT ${LogicalPlanFlexOutput} ${LogicalPlanPar
 
 # set dependencies for pdb-main
 add_custom_target(pdb-main)
-add_dependencies(pdb-main pdb-worker)
-add_dependencies(pdb-main pdb-manager)
-
-# set the pdb-manager build target
-set(SOURCE_FILES_PDB_CLUSTER ${PROJECT_SOURCE_DIR}/pdb/src/mainServer/source/ManagerMain.cc)
-add_executable(pdb-manager ${SOURCE_FILES_PDB_CLUSTER} $<TARGET_OBJECTS:logical-plan-parser> $<TARGET_OBJECTS:linear-algebra-parser>)
-target_link_libraries(pdb-manager pdb-server-common)
-target_link_libraries(pdb-manager ${GSL_LIBRARIES})
+add_dependencies(pdb-main pdb-node)
 
 # set the pdb-worker build target
-set(SOURCE_FILES_PDB_CLUSTER ${PROJECT_SOURCE_DIR}/pdb/src/mainServer/source/WorkerMain.cc $<TARGET_OBJECTS:logical-plan-parser> $<TARGET_OBJECTS:linear-algebra-parser>)
-add_executable(pdb-worker ${SOURCE_FILES_PDB_CLUSTER})
-target_link_libraries(pdb-worker pdb-server-common)
-target_link_libraries(pdb-worker ${GSL_LIBRARIES})
-
-# set the pdb-worker build target
-set(SOURCE_FILES_PDB_CLUSTER ${PROJECT_SOURCE_DIR}/pdb/src/mainServer/source/NodeMain.cc $<TARGET_OBJECTS:logical-plan-parser> $<TARGET_OBJECTS:linear-algebra-parser>)
+set(SOURCE_FILES_PDB_CLUSTER ${PROJECT_SOURCE_DIR}/pdb/src/mainServer/source/NodeMain.cc $<TARGET_OBJECTS:logical-plan-parser>)
 add_executable(pdb-node ${SOURCE_FILES_PDB_CLUSTER})
 target_link_libraries(pdb-node pdb-server-common)
 target_link_libraries(pdb-node ${GSL_LIBRARIES})

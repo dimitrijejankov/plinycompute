@@ -23,9 +23,7 @@ foreach(file ${files})
     # create the test executable
     add_executable(${fileName} ${file}
                                $<TARGET_OBJECTS:logical-plan-parser>
-                               $<TARGET_OBJECTS:linear-algebra-parser>
-                               $<TARGET_OBJECTS:client>
-                               $<TARGET_OBJECTS:linear-algebra-parser>)
+                               $<TARGET_OBJECTS:client>)
 
     # link the stuff we need
     target_link_libraries(${fileName} pdb-tests-common)

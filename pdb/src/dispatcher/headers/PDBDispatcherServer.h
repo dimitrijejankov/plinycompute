@@ -26,7 +26,6 @@
 #include "PDBVector.h"
 
 #include "NodeDispatcherData.h"
-#include "StorageClient.h"
 #include "PDBDispatcherPolicy.h"
 
 #include <string>

@@ -148,7 +148,7 @@ TEST(StorageManagerFrontendTest, Test6) {
         pageRequestStart(requests, requests[i]);
 
         // create a get page request
-        pdb::Handle<pdb::StoGetPageRequest> pageRequest = pdb::makeObject<pdb::StoGetPageRequest>("set1", "db1", requests[i]);
+        pdb::Handle<pdb::StoGetPageRequest> pageRequest = pdb::makeObject<pdb::StoGetPageRequest>(std::make_shared<pdb::PDBSet>("set1", "db1"), requests[i]);
 
         // make sure the mock function returns true
         ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoGetPageResult> &>(), testing::An<std::string &>())).WillByDefault(testing::Invoke(

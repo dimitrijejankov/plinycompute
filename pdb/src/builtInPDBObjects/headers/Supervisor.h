@@ -24,13 +24,12 @@
 #include "PDBString.h"
 #include "Handle.h"
 #include "Employee.h"
-#include "ExportableObject.h"
 
 //  PRELOAD %Supervisor%
 
 namespace pdb {
 
-class Supervisor : public ExportableObject {
+class Supervisor : public Object {
 
 public:
     Handle<Employee> me;
@@ -81,7 +80,7 @@ public:
         return me;
     }
 
-    void print() final {
+    void print() {
         me->print();
         std::cout << "\nPlus have " << myGuys.size() << " employees.\n";
         /*if (myGuys.size () > 0) {
@@ -97,11 +96,11 @@ public:
     }
 
 
-    std::string toSchemaString(std::string format) override {
+    std::string toSchemaString(std::string format) {
         return "";
     }
 
-    std::string toValueString(std::string format) override {
+    std::string toValueString(std::string format) {
         if (format == "json") {
             char buffer[1024];
             sprintf(
@@ -140,7 +139,7 @@ public:
     }
 
 
-    std::vector<std::string> getSupportedFormats() override {
+    std::vector<std::string> getSupportedFormats() {
         std::vector<std::string> ret;
         ret.push_back("json");
         return ret;

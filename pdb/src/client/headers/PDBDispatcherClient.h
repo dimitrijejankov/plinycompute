@@ -22,7 +22,6 @@
 #include "ServerFunctionality.h"
 #include "Handle.h"
 #include "PDBVector.h"
-#include "PDBObject.h"
 #include "PDBCatalogClient.h"
 
 namespace pdb {

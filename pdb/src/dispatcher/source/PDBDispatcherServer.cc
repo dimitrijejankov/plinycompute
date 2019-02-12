@@ -28,6 +28,7 @@
 #include <PDBBufferManagerInterface.h>
 #include <PDBDispatcherRandomPolicy.h>
 #include <DispDispatchData.h>
+#include "PDBCatalogClient.h"
 #include <boost/filesystem/path.hpp>
 
 #define MAX_CONCURRENT_REQUESTS 10

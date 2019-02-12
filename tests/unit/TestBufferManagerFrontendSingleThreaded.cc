@@ -88,7 +88,7 @@ TEST(StorageManagerFrontendTest, Test1) {
   for(int i = 0; i < numRequests * numPages; ++i) {
 
     // create a get page request
-    pdb::Handle<pdb::StoGetPageRequest> pageRequest = pdb::makeObject<pdb::StoGetPageRequest>("set1", "db1", requests[i]);
+    pdb::Handle<pdb::StoGetPageRequest> pageRequest = pdb::makeObject<pdb::StoGetPageRequest>(std::make_shared<pdb::PDBSet>("set1", "db1"), requests[i]);
 
     // make sure the mock function returns true
     ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoGetPageResult>&>(), testing::An<std::string&>())).WillByDefault(testing::Invoke(
@@ -199,7 +199,7 @@ TEST(StorageManagerFrontendTest, Test2) {
 
     // create a get page request
     std::string setName = "set" + std::to_string(i % numSets);
-    pdb::Handle<pdb::StoGetPageRequest> pageRequest = pdb::makeObject<pdb::StoGetPageRequest>(setName, "db1", setIndices[i % numSets][i / numSets]);
+    pdb::Handle<pdb::StoGetPageRequest> pageRequest = pdb::makeObject<pdb::StoGetPageRequest>(std::make_shared<PDBSet>(setName, "db1"), setIndices[i % numSets][i / numSets]);
 
     // make sure the mock function returns true
     ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoGetPageResult>&>(), testing::An<std::string&>())).WillByDefault(testing::Invoke(
@@ -310,7 +310,7 @@ TEST(StorageManagerFrontendTest, Test3) {
     EXPECT_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoGetPageResult>&>(), testing::An<std::string&>())).Times(1);
 
     // create a get page request
-    pdb::Handle<pdb::StoGetPageRequest> pageRequest = pdb::makeObject<pdb::StoGetPageRequest>("set1", "db1", i);
+    pdb::Handle<pdb::StoGetPageRequest> pageRequest = pdb::makeObject<pdb::StoGetPageRequest>(make_shared<PDBSet>("set1", "db1"), i);
 
     // invoke the get page handler
     frontEnd.handleGetPageRequest(pageRequest, comm);
@@ -366,7 +366,7 @@ TEST(StorageManagerFrontendTest, Test3) {
   for(int i = 0; i < numRequests * numPages; ++i) {
 
     // create a get page request
-    pdb::Handle<pdb::StoGetPageRequest> pageRequest = pdb::makeObject<pdb::StoGetPageRequest>("set1", "db1", requests[i]);
+    pdb::Handle<pdb::StoGetPageRequest> pageRequest = pdb::makeObject<pdb::StoGetPageRequest>(make_shared<PDBSet>("set1", "db1"), requests[i]);
 
     // make sure the mock function returns true
     ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoGetPageResult>&>(), testing::An<std::string&>())).WillByDefault(testing::Invoke(

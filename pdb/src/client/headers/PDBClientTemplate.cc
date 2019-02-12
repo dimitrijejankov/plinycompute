@@ -22,26 +22,11 @@
 
 namespace pdb {
 
-    template <class DataType>
-    bool PDBClient::createSet(const std::string &databaseName,
-                              const std::string &setName, size_t pageSize) {
-
-      bool result = distributedStorageClient->createSet<DataType>(
-            databaseName, setName, returnedMsg, pageSize);
-
-      if (result==false) {
-          errorMsg = "Not able to create set: " + returnedMsg;
-          exit(-1);
-      } else {
-          cout << "Created set.\n";
-      }
-      return result;
-    }
 
     template <class DataType>
     bool PDBClient::createSet(const std::string &databaseName, const std::string &setName) {
 
-      bool result = catalogClient->createSet<DataType>(databaseName, setName, returnedMsg);
+      bool result = catalogClient->template createSet<DataType>(databaseName, setName, returnedMsg);
 
       if (!result) {
           errorMsg = "Not able to create set: " + returnedMsg;
@@ -67,24 +52,5 @@ namespace pdb {
       return result;
     }
 
-    template <class... Types>
-    bool PDBClient::executeComputations(Handle<Computation> firstParam,
-                                        Handle<Types>... args) {
-
-      bool result = queryClient->executeComputations(returnedMsg, firstParam, args...);
-
-      if (result==false) {
-          errorMsg = "Not able to execute computations: " + returnedMsg;
-          exit(-1);
-      }
-      return result;
-    }
-
-    template <class Type>
-    SetIterator<Type> PDBClient::getSetIterator(std::string databaseName,
-                                                std::string setName) {
-
-      return queryClient->getSetIterator<Type>(databaseName, setName);
-    }
 }
 #endif

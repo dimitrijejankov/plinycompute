@@ -5,7 +5,7 @@
 #ifndef PDB_PDBHEARTBEATWORK_H
 #define PDB_PDBHEARTBEATWORK_H
 
-#include <PangeaStorageServer.h>
+#include <PDBCatalogClient.h>
 #include "PDBWork.h"
 
 class PDBHeartBeatWork;

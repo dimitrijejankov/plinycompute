@@ -34,12 +34,6 @@ PDBClient::PDBClient(int portIn, std::string addressIn) : port(portIn), address(
 
   // init the dispatcher client
   dispatcherClient = std::make_shared<pdb::PDBDispatcherClient>(portIn, addressIn, logger);
-
-  // init the distributed client
-  distributedStorageClient = std::make_shared<pdb::DistributedStorageManagerClient>(portIn, addressIn, logger);
-
-  // init the query client
-  queryClient = std::make_shared<pdb::QueryClient>(portIn, addressIn, logger, true);
 }
 
 string PDBClient::getErrorMessage() {
@@ -59,100 +53,6 @@ bool PDBClient::createDatabase(const std::string &databaseName) {
 
   } else {
     cout << "Created database.\n";
-  }
-  return result;
-}
-
-bool PDBClient::createSet(const std::string &databaseName, const std::string &setName, const std::string &typeName) {
-
-  bool result = distributedStorageClient->createSet(databaseName, setName, typeName, returnedMsg, DEFAULT_PAGE_SIZE);
-
-  if (!result) {
-    errorMsg = "Not able to create set: " + returnedMsg;
-    exit(-1);
-  } else {
-    cout << "Created set.\n";
-  }
-  return result;
-}
-
-bool PDBClient::createSet(const std::string &databaseName, const std::string &setName, const std::string &typeName, size_t pageSize) {
-
-  bool result = distributedStorageClient->createSet(databaseName, setName, typeName,
-                                                    returnedMsg, pageSize);
-  if (!result) {
-    errorMsg = "Not able to create set: " + returnedMsg;
-    exit(-1);
-  } else {
-    cout << "Created set.\n";
-  }
-  return result;
-}
-
-bool PDBClient::createTempSet(const std::string &databaseName,
-                              const std::string &setName,
-                              const std::string &typeName,
-                              size_t pageSize) {
-
-  bool result = distributedStorageClient->createTempSet(databaseName, setName, typeName, returnedMsg, pageSize);
-  if (!result) {
-    errorMsg = "Not able to create temp set: " + returnedMsg;
-    exit(-1);
-  } else {
-    cout << "Created temp set.\n";
-  }
-  return result;
-}
-
-bool PDBClient::removeDatabase(const std::string &databaseName) {
-
-  bool result = distributedStorageClient->removeDatabase(databaseName, returnedMsg);
-  if (!result) {
-    errorMsg = "Not able to remove database: " + returnedMsg;
-  } else {
-    cout << "Database has been removed.\n";
-  }
-  return result;
-}
-
-bool PDBClient::removeSet(const std::string &databaseName,
-                          const std::string &setName) {
-
-  bool result = distributedStorageClient->removeSet(databaseName, setName, returnedMsg);
-  if (!result) {
-    errorMsg = "Not able to remove set: " + returnedMsg;
-  } else {
-    cout << "Set has been removed.\n";
-  }
-  return result;
-}
-
-bool PDBClient::removeTempSet(const std::string &databaseName,
-                              const std::string &setName,
-                              const std::string &typeName) {
-
-  bool result = distributedStorageClient->removeTempSet(databaseName, setName, typeName,
-                                                        returnedMsg);
-  if (!result) {
-    errorMsg = "Not able to remove Temp set: " + returnedMsg;
-  } else {
-    cout << "Temp set removed.\n";
-  }
-  return result;
-}
-
-bool PDBClient::exportSet(const std::string &databaseName,
-                          const std::string &setName,
-                          const std::string &outputFilePath,
-                          const std::string &format) {
-
-  bool result = distributedStorageClient->exportSet(databaseName, setName,
-                                                    outputFilePath, format, returnedMsg);
-  if (!result) {
-    errorMsg = "Not able to export set: " + returnedMsg;
-    exit(-1);
-  } else {
-    cout << "Set has been exported.\n";
   }
   return result;
 }
@@ -215,32 +115,6 @@ bool PDBClient::shutDownServer(std::string &errMsg) {
       });
 }
 
-bool PDBClient::clearSet(const std::string &databaseName,
-                         const std::string &setName,
-                         const std::string &typeName) {
-
-  bool result = distributedStorageClient->clearSet(databaseName, setName, typeName,
-                                                   returnedMsg);
-  if (!result) {
-    errorMsg = "Not able to clear set: " + returnedMsg;
-  } else {
-    cout << "Set has been cleared.\n";
-  }
-  return result;
-}
-
-bool PDBClient::flushData() {
-
-  bool result = distributedStorageClient->flushData(returnedMsg);
-  if (!result) {
-    errorMsg = "Not able to flush data: " + returnedMsg;
-    exit(-1);
-  } else {
-    cout << "Data has been flushed.\n";
-  }
-  return result;
-}
-
 std::function<bool(Handle<SimpleRequestResult>)>
 PDBClient::generateResponseHandler(std::string description, std::string &returnedMsg) {
 
@@ -298,21 +172,6 @@ void PDBClient::listUserDefinedTypes() {
   cout << catalogClient->listUserDefinedTypes(returnedMsg);
 }
 
-/****
- * Methods for invoking Query-related operations
- */
-bool PDBClient::deleteSet(std::string databaseName, std::string setName) {
-
-  bool result = queryClient->deleteSet(databaseName, setName);
-
-  if (!result) {
-    errorMsg = "Not able to delete set: ";
-    exit(-1);
-  } else {
-    cout << "Set has been deleted.\n";
-  }
-  return result;
-}
 }
 
 #endif

@@ -19,7 +19,6 @@
 #include <ClusterManager.h>
 #include <SimpleRequestResult.h>
 #include <HeapRequest.h>
-#include <PDBFlushConsumerWork.h>
 #include <PDBHeartBeatWork.h>
 
 #include "PDBCatalogClient.h"
@@ -151,7 +150,6 @@ void ClusterManager::stopHeartBeat() {
 
 void ClusterManager::startHeartBeat() {
 
-    PDBFlushConsumerWorkPtr flusher;
     PDBWorkerPtr worker;
     // create a flush worker
     auto sender = make_shared<PDBHeartBeatWork>(&getFunctionality<PDBCatalogClient>());

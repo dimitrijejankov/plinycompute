@@ -29,9 +29,7 @@ function(add_pdb_integration_test test-name)
     # create the target
     add_executable(${test-name} "${test-path}/${test-name}.cc"
             $<TARGET_OBJECTS:logical-plan-parser>
-            $<TARGET_OBJECTS:linear-algebra-parser>
-            $<TARGET_OBJECTS:client>
-            $<TARGET_OBJECTS:linear-algebra-parser>)
+            $<TARGET_OBJECTS:client>)
 
     # link it to the required libraries
     target_link_libraries(${test-name} pdb-tests-common)
@@ -46,7 +44,7 @@ function(add_pdb_integration_test test-name)
     add_dependencies("RunLocal${test-name}" ${test-name})
 
     # we also need to build the pdb-worker and pdb-manager
-    add_dependencies("RunLocal${test-name}" pdb-worker pdb-manager)
+    add_dependencies("RunLocal${test-name}" pdb-node)
 
 endfunction(add_pdb_integration_test)
 
@@ -82,10 +80,10 @@ add_custom_target(run-docker-integration-tests
                   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 # add the dependency for building tests
-add_dependencies(run-integration-tests build-integration-tests shared-libraries pdb-worker pdb-manager)
-add_dependencies(run-tpch-tests build-tpch-tests shared-libraries pdb-worker pdb-manager)
-add_dependencies(run-la-tests build-la-tests shared-libraries pdb-worker pdb-manager)
-add_dependencies(run-ml-tests build-ml-tests shared-libraries pdb-worker pdb-manager)
+add_dependencies(run-integration-tests build-integration-tests shared-libraries pdb-node)
+add_dependencies(run-tpch-tests build-tpch-tests shared-libraries pdb-node)
+add_dependencies(run-la-tests build-la-tests shared-libraries pdb-node)
+add_dependencies(run-ml-tests build-ml-tests shared-libraries pdb-node)
 
 # clean integration tests target
 add_custom_target(clean-integration-tests
