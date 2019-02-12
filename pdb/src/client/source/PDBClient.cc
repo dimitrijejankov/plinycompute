@@ -19,6 +19,7 @@
 #ifndef PDBCLIENT_CC
 #define PDBCLIENT_CC
 
+#include <ShutDown.h>
 #include "PDBClient.h"
 
 namespace pdb {
@@ -154,6 +155,64 @@ bool PDBClient::exportSet(const std::string &databaseName,
     cout << "Set has been exported.\n";
   }
   return result;
+}
+
+// makes a request to shut down a PDB server /// TODO this should be moved
+bool PDBClient::shutDownServer(std::string &errMsg) {
+
+  // get the workers
+  auto workers = catalogClient->getActiveWorkerNodes();
+
+  // shutdown the workers
+  bool success = true;
+  for(const auto &w : workers) {
+    success = success && RequestFactory::heapRequest<ShutDown, SimpleRequestResult, bool>(logger, w->port, w->address, false, 1024,
+     [&](Handle<SimpleRequestResult> result) {
+
+       // do we have a result
+       if(result == nullptr) {
+
+         errMsg = "Error getting type name: got nothing back from catalog";
+         return false;
+       }
+
+       // did we succeed
+       if (!result->getRes().first) {
+
+         errMsg = "Error shutting down server: " + result->getRes().second;
+         logger->error("Error shutting down server: " + result->getRes().second);
+
+         return false;
+       }
+
+       // we succeeded
+       return true;
+     });
+  }
+
+  // shutdown
+  return success && RequestFactory::heapRequest<ShutDown, SimpleRequestResult, bool>(logger, port, address, false, 1024,
+      [&](Handle<SimpleRequestResult> result) {
+
+        // do we have a result
+        if(result == nullptr) {
+
+          errMsg = "Error getting type name: got nothing back from catalog";
+          return false;
+        }
+
+        // did we succeed
+        if (!result->getRes().first) {
+
+          errMsg = "Error shutting down server: " + result->getRes().second;
+          logger->error("Error shutting down server: " + result->getRes().second);
+
+          return false;
+        }
+
+        // we succeeded
+        return true;
+      });
 }
 
 bool PDBClient::clearSet(const std::string &databaseName,

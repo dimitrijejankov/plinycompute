@@ -128,25 +128,6 @@ bool PDBCatalogClient::registerType(std::string fileContainingSharedLib, std::st
   return res;
 }
 
-// makes a request to shut down a PDB server
-bool PDBCatalogClient::shutDownServer(std::string &errMsg) {
-
-  return RequestFactory::heapRequest< ShutDown, SimpleRequestResult, bool>(
-      myLogger, port, address, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
-        if (result != nullptr) {
-          if (!result->getRes().first) {
-            errMsg = "Error shutting down server: " + result->getRes().second;
-            myLogger->error("Error shutting down server: " +
-                            result->getRes().second);
-            return false;
-          }
-          return true;
-        }
-        errMsg = "Error getting type name: got nothing back from catalog";
-        return false;
-      });
-}
 
 // searches for a User-Defined Type give its name and returns it's TypeID
 PDBCatalogTypePtr PDBCatalogClient::getType(const std::string &typeName, std::string &error) {

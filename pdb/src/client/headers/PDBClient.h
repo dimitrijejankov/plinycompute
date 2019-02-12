@@ -122,6 +122,12 @@ public:
       bool exportSet(const std::string &databaseName, const std::string &setName,
                      const std::string &outputFilePath, const std::string &format);
 
+
+      /* Sends a request to the Catalog Server to shut down the server that we are
+       * connected to
+       * ... returns true on success */
+      bool shutDownServer(std::string &errMsg);
+
       /****
        * Methods for invoking Catalog-related operations
        */

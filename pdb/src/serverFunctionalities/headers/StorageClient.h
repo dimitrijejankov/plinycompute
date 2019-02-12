@@ -52,9 +52,6 @@ public:
     // this creates a new database... returns true on success
     bool createDatabase(std::string databaseName, std::string& errMsg);
 
-    // shuts down the server that we are connected to... returns true on success
-    bool shutDownServer(std::string& errMsg);
-
     // to flush buffered records into shared memory pages
     bool flushData(std::string& errMsg);
 

@@ -16,6 +16,8 @@ class StorageManagerFrontend : public ServerFunctionality {
 
 public:
 
+  virtual ~StorageManagerFrontend();
+
   /**
    * Initialize the storage manager frontend
    */

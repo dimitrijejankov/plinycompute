@@ -44,11 +44,6 @@ bool StorageClient::registerType(std::string regMe, std::string& errMsg) {
     return myHelper.registerType(regMe, errMsg);
 }
 
-bool StorageClient::shutDownServer(std::string& errMsg) {
-
-    return myHelper.shutDownServer(errMsg);
-}
-
 bool StorageClient::flushData(std::string& errMsg) {
     return RequestFactory::heapRequest< StorageCleanup, SimpleRequestResult, bool>(
         myLogger, port, address, false, 1024, [&](Handle<SimpleRequestResult> result) {

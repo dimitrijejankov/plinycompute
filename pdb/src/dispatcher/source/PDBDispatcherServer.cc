@@ -50,6 +50,30 @@ forMe.registerHandler(
     make_shared<HeapRequestHandler<pdb::DispAddData>>(
         [&](Handle<pdb::DispAddData> request, PDBCommunicatorPtr sendUsingMe) {
 
+          /// 0. Check if the set exists
+
+          if(!getFunctionalityPtr<PDBCatalogClient>()->setExists(request->databaseName, request->setName)) {
+
+            // make the error string
+            std::string errMsg = "The set does not exist!";
+
+            // log the error
+            logger->error(errMsg);
+
+            // skip the data part
+            sendUsingMe->skipBytes(errMsg);
+
+            // create an allocation block to hold the response
+            const UseTemporaryAllocationBlock tempBlock{1024};
+            Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+
+            // sends result to requester
+            sendUsingMe->sendObject(response, errMsg);
+            return make_pair(false, errMsg);
+          }
+
+          /// 1. Receive the bytes onto an anonymous page
+
           // grab the buffer manager
           auto bufferManager = getFunctionalityPtr<PDBBufferManagerInterface>();
 
@@ -84,14 +108,15 @@ forMe.registerHandler(
           std::string error;
           sendUsingMe->receiveBytes(page->getBytes(), error);
 
-          // grab all active nodes
-          const auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
+          // check the uncompressed size
+          size_t uncompressedSize = 0;
+          snappy::GetUncompressedLength((char*) page->getBytes(), numBytes, &uncompressedSize);
 
-          // if we have no nodes
-          if(nodes.empty()) {
+          // check the uncompressed size
+          if(bufferManager->getMaxPageSize() < uncompressedSize) {
 
             // make the error string
-            std::string errMsg = "There are no nodes where we can dispatch the data to!";
+            std::string errMsg = "The uncompressed size is larger than the maximum page size";
 
             // log the error
             logger->error(errMsg);
@@ -105,15 +130,16 @@ forMe.registerHandler(
             return make_pair(false, errMsg);
           }
 
-          // check the uncompressed size
-          size_t uncompressedSize = 0;
-          snappy::GetUncompressedLength((char*) page->getBytes(), numBytes, &uncompressedSize);
+          /// 2. Figure out on what node to forward the thing
 
-          // check the uncompressed size
-          if(bufferManager->getMaxPageSize() < uncompressedSize) {
+          // grab all active nodes
+          const auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
+
+          // if we have no nodes
+          if(nodes.empty()) {
 
             // make the error string
-            std::string errMsg = "The uncompressed size is larger than the maximum page size";
+            std::string errMsg = "There are no nodes where we can dispatch the data to!";
 
             // log the error
             logger->error(errMsg);
@@ -153,7 +179,6 @@ forMe.registerHandler(
 
           // sends result to requester
           ret = sendUsingMe->sendObject(response, error) && ret;
-
 
           return make_pair(ret, error);
     }));

@@ -3,7 +3,7 @@
 
 int main(int argc, char* argv[]) {
 
-  const size_t blockSize = 256;
+  const size_t blockSize = 64;
 
   // make a client
   pdb::PDBClient pdbClient(8108, "localhost");
@@ -41,6 +41,10 @@ int main(int argc, char* argv[]) {
 
     pdbClient.sendData<SharedEmployee>(std::pair<std::string, std::string>("chris_set", "chris_db"), storeMe);
   }
+
+  // shutdown the server
+  std::string err;
+  pdbClient.shutDownServer(err);
 
   return 0;
 }

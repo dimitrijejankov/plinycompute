@@ -74,11 +74,6 @@ public:
    * returns true on success, false on fail */
   bool registerType(std::string fileContainingSharedLib, std::string &errMsg);
 
-  /* Sends a request to the Catalog Server to shut down the server that we are
-   * connected to
-   * ... returns true on success */
-  bool shutDownServer(std::string &errMsg);
-
   /* Sends a request to the Catalog Server to return the typeName of a
    * user-defined type in the
    * specified database and set; returns "" on err */
