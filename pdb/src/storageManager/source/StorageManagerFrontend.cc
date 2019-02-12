@@ -180,7 +180,7 @@ void pdb::StorageManagerFrontend::registerHandlers(PDBServer &forMe) {
         /// 5. Send the response that we are done
 
         // create an allocation block to hold the response
-        Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(false, error);
+        Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(true, error);
 
         // sends result to requester
         sendUsingMe->sendObject(simpleResponse, error);
