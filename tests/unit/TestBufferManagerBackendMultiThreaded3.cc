@@ -6,6 +6,7 @@
 #include <GenericWork.h>
 #include <random>
 #include "TestBufferManagerBackend.h"
+#include <atomic>
 
 namespace pdb {
 
@@ -320,7 +321,7 @@ TEST(StorageManagerBackendTest, Test5) {
     // lock
     std::mutex firstTimeMutex;
 
-    atomic_int32_t sync;
+    std::atomic<std::int32_t> sync;
     sync = 0;
 
     // init the worker threads of this server

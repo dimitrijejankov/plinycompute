@@ -21,6 +21,8 @@
 
 #include "PDBLogger.h"
 #include <snappy.h>
+#include <PDBCommunicator.h>
+#include <functional>
 
 
 namespace pdb {
@@ -47,17 +49,17 @@ public:
    * @return whatever is returned from processResponse or onErr in case of failure
    */
   template <class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
-  static ReturnType heapRequest(PDBLoggerPtr myLogger,
+  static ReturnType heapRequest(pdb::PDBLoggerPtr myLogger,
                          int port,
                          std::string address,
                          ReturnType onErr,
                          size_t bytesForRequest,
-                         function<ReturnType(Handle<ResponseType>)> processResponse,
+                         std::function<ReturnType(pdb::Handle<ResponseType>)> processResponse,
                          RequestTypeParams&&... args);
 
 
   /**
-   * This is a similar templated function that sends two objects, in sequence and then asks for the
+   * This is a similar templated std::function that sends two objects, in sequence and then asks for the
    * results.
    *
    * @tparam RequestType - the type of object to create to send over the wire
@@ -70,20 +72,20 @@ public:
    * @param address - the address to send the request to
    * @param onErr - the value to return if there is an error sending/receiving data
    * @param bytesForRequest - the number of bytes to give to the allocator used to build the request
-   * @param processResponse - the function used to process the response to the request
+   * @param processResponse - the std::function used to process the response to the request
    * @param firstRequest - the first request to send over the wire
    * @param secondRequest - the second request to send over the wire
    * @return whatever is returned from processResponse or onErr in case of failure
    */
   template <class RequestType, class SecondRequestType, class ResponseType, class ReturnType>
-  static ReturnType doubleHeapRequest(PDBLoggerPtr logger,
+  static ReturnType doubleHeapRequest(pdb::PDBLoggerPtr logger,
                                       int port,
                                       std::string address,
                                       ReturnType onErr,
                                       size_t bytesForRequest,
-                                      function<ReturnType(Handle<ResponseType>)> processResponse,
-                                      Handle<RequestType> &firstRequest,
-                                      Handle<SecondRequestType> &secondRequest);
+                                      std::function<ReturnType(pdb::Handle<ResponseType>)> processResponse,
+                                      pdb::Handle<RequestType> &firstRequest,
+                                      pdb::Handle<SecondRequestType> &secondRequest);
 
 
   /**
@@ -100,15 +102,15 @@ public:
    * @param address - the address to send the request to
    * @param onErr - the value to return if there is an error sending/receiving data
    * @param bytesForRequest - the number of bytes to give to the allocator used to build the request
-   * @param processResponse - the function used to process the response to the request
+   * @param processResponse - the std::function used to process the response to the request
    * @param dataToSend - the vector of data we want to send
    * @param args - the arguments to give to the constructor of the request
    * @return whatever is returned from processResponse or onErr in case of failure
    */
   template <class RequestType, class DataType, class ResponseType, class ReturnType, class... RequestTypeParams>
-  static ReturnType dataHeapRequest(PDBLoggerPtr myLogger, int port, const std::string &address,
-                                    ReturnType onErr, size_t bytesForRequest, function<ReturnType(Handle<ResponseType>)> processResponse,
-                                    Handle<Vector<Handle<DataType>>> dataToSend, RequestTypeParams&&... args);
+  static ReturnType dataHeapRequest(pdb::PDBLoggerPtr myLogger, int port, const std::string &address,
+                                    ReturnType onErr, size_t bytesForRequest, std::function<ReturnType(pdb::Handle<ResponseType>)> processResponse,
+                                    pdb::Handle<Vector<pdb::Handle<DataType>>> dataToSend, RequestTypeParams&&... args);
 
 
   /**
@@ -129,12 +131,12 @@ public:
    * @return whatever is returned from processResponse or onErr in case of failure
    */
   template <class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
-  static ReturnType bytesHeapRequest(PDBLoggerPtr myLogger,
+  static ReturnType bytesHeapRequest(pdb::PDBLoggerPtr myLogger,
                                      int port,
                                      std::string address,
                                      ReturnType onErr,
                                      size_t bytesForRequest,
-                                     function<ReturnType(Handle<ResponseType>)> processResponse,
+                                     std::function<ReturnType(pdb::Handle<ResponseType>)> processResponse,
                                      char* bytes,
                                      size_t numBytes,
                                      RequestTypeParams&&... args);
@@ -144,17 +146,30 @@ public:
    * @tparam ResponseType - the type of data we want to get
    * @tparam ReturnType - the return type of the function
    * @param logger - the logger
-   * @param communicator - the communicator
+   * @param communicatorPtr - the communicator
    * @param onErr - what to return on error
    * @param processResponse - the function to process the response
    * @return whatever is returned from processResponse or onErr in case of failure
    */
   template <class ResponseType, class ReturnType, class... RequestTypeParams>
-  static ReturnType waitHeapRequest(PDBLoggerPtr logger,
-                                    PDBCommunicatorPtr communicator,
+  static ReturnType waitHeapRequest(pdb::PDBLoggerPtr logger,
+                                    pdb::PDBCommunicatorPtr communicatorPtr,
                                     ReturnType onErr,
-                                    function<ReturnType(Handle<ResponseType>)> processResponse);
+                                    std::function<ReturnType(pdb::Handle<ResponseType>)> processResponse);
 
+  /**
+   * Wait to for the bytes to arrive through the communicator
+   *
+   * @param logger - the logger
+   * @param communicatorPtr - the communicator
+   * @param buffer - where we want to put the bytes
+   * @param bufferSize - the size of the buffer
+   * @param error - error message if any
+   * @return -1 if we fail, num of bytes we got
+   */
+  static int64_t waitForBytes(pdb::PDBLoggerPtr logger,
+                              pdb::PDBCommunicatorPtr communicatorPtr,
+                              char* buffer, size_t bufferSize, std::string error);
 };
 
 };
@@ -163,4 +178,4 @@ public:
 
 #endif
 
-#include "HeapRequest.cc"
+#include "HeapRequestTemplate.cc"

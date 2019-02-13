@@ -399,7 +399,7 @@ TEST(BufferManagerTest, Test7) {
     page->setDirty();
   }
 
-  atomic_int32_t sync;
+  std::atomic<std::int32_t> sync;
   sync = 0;
 
   std::vector<std::thread> threads;
@@ -467,7 +467,7 @@ TEST(BufferManagerTest, Test8) {
   const int numThreads = 4;
 
   // used to sync
-  atomic_int32_t sync;
+  std::atomic<std::int32_t> sync;
   sync = 0;
 
   // run multiple threads
@@ -553,7 +553,7 @@ TEST(BufferManagerTest, Test9) {
   const int numThreads = 4;
 
   // used to sync
-  atomic_int32_t sync;
+  std::atomic<std::int32_t> sync;
   sync = 0;
 
   // run multiple threads
@@ -639,7 +639,7 @@ TEST(BufferManagerTest, Test10) {
   const int numThreads = 4;
 
   // used to sync
-  atomic_int32_t sync;
+  std::atomic<std::int32_t> sync;
   sync = 0;
 
   // the page sizes we are testing
@@ -737,7 +737,7 @@ TEST(BufferManagerTest, Test11) {
   const int numThreads = 4;
 
   // used to sync
-  atomic_int32_t sync;
+  std::atomic<std::int32_t> sync;
   sync = 0;
 
   // the page sizes we are testing
@@ -860,7 +860,7 @@ TEST(BufferManagerTest, Test12) {
     page->setDirty();
   }
 
-  atomic_int32_t sync;
+  std::atomic<std::int32_t> sync;
   sync = 0;
 
   std::vector<std::thread> threads;

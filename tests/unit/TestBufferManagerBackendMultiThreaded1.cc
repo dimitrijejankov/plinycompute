@@ -45,7 +45,7 @@ TEST(StorageManagerBackendTest, Test3) {
   /// 0. Init the mock server
 
   MockServer server;
-  ON_CALL(server, getConfiguration).WillByDefault(testing::Invoke(
+  ON_CALL(server, getConfiguration()).WillByDefault(testing::Invoke(
       [&]() {
         return std::make_shared<pdb::NodeConfig>();
       }));
@@ -223,7 +223,7 @@ TEST(StorageManagerBackendTest, Test3) {
 
   {
     // used to sync
-    atomic_int32_t sync;
+    std::atomic<std::int32_t> sync;
     sync = 0;
 
     // init the worker threads of this server

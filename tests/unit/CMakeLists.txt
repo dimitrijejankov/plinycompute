@@ -24,12 +24,13 @@ foreach(file ${files})
     add_executable(${fileName} ${file}
                                $<TARGET_OBJECTS:logical-plan-parser>
                                $<TARGET_OBJECTS:client>)
+    message("${GTEST_BOTH_LIBRARIES}")
 
     # link the stuff we need
     target_link_libraries(${fileName} pdb-tests-common)
     target_link_libraries(${fileName} ${GSL_LIBRARIES})
-    target_link_libraries(${fileName} gtest_main gtest ${CMAKE_THREAD_LIBS_INIT})
-    target_link_libraries(${fileName} gmock_main gmock ${CMAKE_THREAD_LIBS_INIT})
+    target_link_libraries(${fileName} ${GTEST_BOTH_LIBRARIES} gmock ${CMAKE_THREAD_LIBS_INIT})
+    target_compile_definitions(${fileName} PRIVATE -DGTEST_LINKED_AS_SHARED_LIBRARY )
 
     # add the test as a dependency of the unit test target
     add_dependencies(unit-tests ${fileName})

@@ -442,14 +442,14 @@ ReturnType RequestFactory::bytesHeapRequest(PDBLoggerPtr logger, int port, std::
 
 template<class ResponseType, class ReturnType, class... RequestTypeParams>
 ReturnType pdb::RequestFactory::waitHeapRequest(pdb::PDBLoggerPtr logger,
-                                                PDBCommunicatorPtr temp,
+                                                PDBCommunicatorPtr communicatorPtr,
                                                 ReturnType onErr,
                                                 function<ReturnType(Handle<ResponseType>)> processResponse) {
 
 
 
     // get the response and process it
-    size_t objectSize = temp->getSizeOfNextObject();
+    size_t objectSize = communicatorPtr->getSizeOfNextObject();
     if (objectSize == 0) {
 
         // log the error
@@ -476,7 +476,7 @@ ReturnType pdb::RequestFactory::waitHeapRequest(pdb::PDBLoggerPtr logger,
 
     ReturnType finalResult;
     {
-        Handle<ResponseType> result = temp->getNextObject<ResponseType>(memory.get(), success, errMsg);
+        Handle<ResponseType> result = communicatorPtr->getNextObject<ResponseType>(memory.get(), success, errMsg);
         if (!success) {
 
             // log the error
@@ -492,6 +492,7 @@ ReturnType pdb::RequestFactory::waitHeapRequest(pdb::PDBLoggerPtr logger,
 
     return finalResult;
 }
+
 
 }
 #endif
