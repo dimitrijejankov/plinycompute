@@ -58,7 +58,7 @@ endif (USE_DEBUG)
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/memory/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/utilities/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/optimizerBenchmark/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/pdbServer/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/server/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/queryPlanning/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/qunit/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/client/headers")
@@ -73,7 +73,7 @@ include_directories("${PROJECT_SOURCE_DIR}/pdb/src/queriesTests/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/serverFunctionalities/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/catalog/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/builtInPDBObjects/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/conf/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/configuration/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/dataPartition/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/storageManager/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/objectModel/headers")
@@ -94,12 +94,10 @@ file(GLOB SERVER_FUNCTIONALITIES_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/serverFun
 file(GLOB COMMUNICATION_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/communication/source/*.cc")
 file(GLOB CATALOG_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/catalog/source/*.cc")
 file(GLOB DISPATCHER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/dispatcher/source/*.cc")
-file(GLOB PDB_SERVER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/pdbServer/source/*.cc")
+file(GLOB SERVER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/server/source/*.cc")
 file(GLOB OBJECT_MODEL_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/objectModel/source/*.cc")
 file(GLOB QUERY_EXECUTION_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/queryExecution/source/*.cc")
 file(GLOB WORK_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/work/source/*.cc")
-file(GLOB MEMORY_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/memory/source/*.cc")
-file(GLOB STORAGE_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/storage/source/*.cc")
 file(GLOB STORAGE_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/storageManager/source/*.cc")
 file(GLOB DISTRIBUTION_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/distributionManager/source/*.cc")
 file(GLOB LOGICAL_PLAN_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/logicalPlan/source/*.cc")
@@ -211,9 +209,8 @@ add_library(server-functionalities OBJECT ${SERVER_FUNCTIONALITIES_SOURCE})
 add_library(communication OBJECT ${COMMUNICATION_SOURCE})
 add_library(catalog OBJECT ${CATALOG_SOURCE})
 add_library(dispatcher OBJECT ${DISPATCHER_SOURCE})
-add_library(lib-pdb-server OBJECT ${PDB_SERVER_SOURCE})
+add_library(server OBJECT ${SERVER_SOURCE})
 add_library(work OBJECT ${WORK_SOURCE})
-add_library(memory OBJECT ${MEMORY_SOURCE})
 add_library(storageManager OBJECT ${STORAGE_MANAGER_SOURCE})
 add_library(logical-plan OBJECT ${LOGICAL_PLAN_SOURCE})
 add_library(client OBJECT ${CLIENT_SOURCE})
@@ -226,15 +223,14 @@ add_dependencies(communication object-type-ids)
 add_dependencies(object-model object-type-ids)
 add_dependencies(client object-type-ids)
 add_dependencies(logical-plan object-type-ids)
-add_dependencies(lib-pdb-server object-type-ids)
+add_dependencies(server object-type-ids)
 
 # used to build the pdb-manager and pdb-worker
 add_library(pdb-server-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:dispatcher>
         $<TARGET_OBJECTS:communication>
         $<TARGET_OBJECTS:logical-plan>
-        $<TARGET_OBJECTS:lib-pdb-server>
-        $<TARGET_OBJECTS:memory>
+        $<TARGET_OBJECTS:server>
         $<TARGET_OBJECTS:client>
         $<TARGET_OBJECTS:object-model>
         $<TARGET_OBJECTS:sql-lite>
@@ -248,8 +244,7 @@ add_library(pdb-shared-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:dispatcher>
         $<TARGET_OBJECTS:communication>
         $<TARGET_OBJECTS:logical-plan>
-        $<TARGET_OBJECTS:lib-pdb-server>
-        $<TARGET_OBJECTS:memory>
+        $<TARGET_OBJECTS:server>
         $<TARGET_OBJECTS:client>
         $<TARGET_OBJECTS:object-model>
         $<TARGET_OBJECTS:sql-lite>
@@ -263,8 +258,7 @@ add_library(pdb-tests-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:dispatcher>
         $<TARGET_OBJECTS:communication>
         $<TARGET_OBJECTS:logical-plan>
-        $<TARGET_OBJECTS:lib-pdb-server>
-        $<TARGET_OBJECTS:memory>
+        $<TARGET_OBJECTS:server>
         $<TARGET_OBJECTS:client>
         $<TARGET_OBJECTS:object-model>
         $<TARGET_OBJECTS:sql-lite>
