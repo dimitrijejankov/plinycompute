@@ -5,7 +5,7 @@
 #ifndef PDB_STOFREEZESIZEREQUEST_H
 #define PDB_STOFREEZESIZEREQUEST_H
 
-// PRELOAD %StoFreezeSizeRequest%
+// PRELOAD %BufFreezeSizeRequest%
 
 #include "PDBString.h"
 #include "PDBSet.h"
@@ -13,11 +13,11 @@
 namespace pdb {
 
 // request to get an anonymous page
-class StoFreezeSizeRequest : public Object {
+class BufFreezeSizeRequest : public Object {
 
  public:
 
-  StoFreezeSizeRequest(const PDBSetPtr &set, const size_t &pageNumber, size_t freezeSize)
+  BufFreezeSizeRequest(const PDBSetPtr &set, const size_t &pageNumber, size_t freezeSize)
       : isAnonymous(set == nullptr), pageNumber(pageNumber), freezeSize(freezeSize) {
 
     // is this an anonymous page if it is
@@ -27,16 +27,16 @@ class StoFreezeSizeRequest : public Object {
     }
   }
 
-  StoFreezeSizeRequest(const std::string &setName, const std::string &dbName, const size_t &pageNumber, size_t freezeSize)
+  BufFreezeSizeRequest(const std::string &setName, const std::string &dbName, const size_t &pageNumber, size_t freezeSize)
       : isAnonymous(false), pageNumber(pageNumber), freezeSize(freezeSize) {
 
     this->setName = pdb::makeObject<pdb::String>(setName);
     this->databaseName = pdb::makeObject<pdb::String>(dbName);
   }
 
-  StoFreezeSizeRequest() = default;
+  BufFreezeSizeRequest() = default;
 
-  ~StoFreezeSizeRequest() = default;
+  ~BufFreezeSizeRequest() = default;
 
   ENABLE_DEEP_COPY;
 

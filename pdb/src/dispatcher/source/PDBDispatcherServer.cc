@@ -24,7 +24,7 @@
 #include <PDBDispatcherServer.h>
 #include <HeapRequestHandler.h>
 #include <DispAddData.h>
-#include <StoGetPageRequest.h>
+#include <BufGetPageRequest.h>
 #include <PDBBufferManagerInterface.h>
 #include <PDBDispatcherRandomPolicy.h>
 #include <DispDispatchData.h>

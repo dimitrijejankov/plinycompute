@@ -6,14 +6,14 @@
 #define PDB_PDBSTORAGEMANAGERFRONTENDTEMPLATE_CC
 
 #include <SimpleRequestResult.h>
-#include <StoPinPageResult.h>
-#include <StoGetPageResult.h>
-#include <StoFreezeRequestResult.h>
-#include <StoForwardPageRequest.h>
+#include <BufPinPageResult.h>
+#include <BufGetPageResult.h>
+#include <BufFreezeRequestResult.h>
+#include <BufForwardPageRequest.h>
 #include "assert.h"
 
 template <class T>
-std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleGetPageRequest(pdb::Handle<pdb::StoGetPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleGetPageRequest(pdb::Handle<pdb::BufGetPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
 
   // grab the page
   auto page = this->getPage(make_shared<pdb::PDBSet>(request->setName, request->dbName), request->pageNumber);
@@ -26,7 +26,7 @@ std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleGetPageRequest
 }
 
 template <class T>
-std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleGetAnonymousPageRequest(pdb::Handle<pdb::StoGetAnonymousPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleGetAnonymousPageRequest(pdb::Handle<pdb::BufGetAnonymousPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
 
   // grab an anonymous page
   auto page = getPage(request->size);
@@ -39,7 +39,7 @@ std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleGetAnonymousPa
 }
 
 template <class T>
-std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleReturnPageRequest(pdb::Handle<pdb::StoReturnPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleReturnPageRequest(pdb::Handle<pdb::BufReturnPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
 
   // create the page key
   auto key = std::make_pair(std::make_shared<PDBSet>(request->setName, request->databaseName), request->pageNumber);
@@ -86,7 +86,7 @@ std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleReturnPageRequ
 }
 
 template <class T>
-std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleReturnAnonPageRequest(pdb::Handle<pdb::StoReturnAnonPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleReturnAnonPageRequest(pdb::Handle<pdb::BufReturnAnonPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
 
   // create the page key
   auto key = std::make_pair((PDBSetPtr) nullptr, request->pageNumber);
@@ -131,7 +131,7 @@ std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleReturnAnonPage
 }
 
 template <class T>
-std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleFreezeSizeRequest(pdb::Handle<pdb::StoFreezeSizeRequest> &request, std::shared_ptr<T> &sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleFreezeSizeRequest(pdb::Handle<pdb::BufFreezeSizeRequest> &request, std::shared_ptr<T> &sendUsingMe) {
 
   // if this is an anonymous page the set is a null ptr
   PDBSetPtr set = nullptr;
@@ -171,7 +171,7 @@ std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleFreezeSizeRequ
   const UseTemporaryAllocationBlock tempBlock{1024};
 
   // create the response
-  Handle<StoFreezeRequestResult> response = makeObject<StoFreezeRequestResult>(res);
+  Handle<BufFreezeRequestResult> response = makeObject<BufFreezeRequestResult>(res);
 
   // sends result to requester
   std::string errMsg;
@@ -182,7 +182,7 @@ std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleFreezeSizeRequ
 }
 
 template <class T>
-std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handlePinPageRequest(pdb::Handle<pdb::StoPinPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handlePinPageRequest(pdb::Handle<pdb::BufPinPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
   // if this is an anonymous page the set is a null ptr
   PDBSetPtr set = nullptr;
 
@@ -221,7 +221,7 @@ std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handlePinPageRequest
   const UseTemporaryAllocationBlock tempBlock{1024};
 
   // create the response
-  Handle<StoPinPageResult> response = makeObject<StoPinPageResult>((uint64_t) handle->page->bytes - (uint64_t) sharedMemory.memory, res);
+  Handle<BufPinPageResult> response = makeObject<BufPinPageResult>((uint64_t) handle->page->bytes - (uint64_t) sharedMemory.memory, res);
 
   // sends result to requester
   std::string errMsg;
@@ -232,7 +232,7 @@ std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handlePinPageRequest
 }
 
 template <class T>
-std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleUnpinPageRequest(pdb::Handle<pdb::StoUnpinPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleUnpinPageRequest(pdb::Handle<pdb::BufUnpinPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
 
   // if this is an anonymous page the set is a null ptr
   PDBSetPtr set = nullptr;
@@ -319,7 +319,7 @@ bool pdb::PDBBufferManagerFrontEnd::handleForwardPage(pdb::PDBPageHandle &page, 
   const UseTemporaryAllocationBlock tempBlock{1024};
 
   // forward the page
-  Handle<pdb::StoForwardPageRequest> objectToSend = pdb::makeObject<StoForwardPageRequest>(offset, pageNum, isAnon, sizeFrozen, startPos, numBytes, setName, dbName);
+  Handle<pdb::BufForwardPageRequest> objectToSend = pdb::makeObject<BufForwardPageRequest>(offset, pageNum, isAnon, sizeFrozen, startPos, numBytes, setName, dbName);
 
   // send the object
   std::string errMsg;
@@ -401,7 +401,7 @@ bool pdb::PDBBufferManagerFrontEnd::sendPageToBackend(pdb::PDBPageHandle page, s
   std::string dbName = isAnonymous ? "" : page->getSet()->getDBName();
 
   // create the object
-  Handle<pdb::StoGetPageResult> objectToSend = pdb::makeObject<StoGetPageResult>(offset, pageNumber, isAnonymous, sizeFrozen, startPos, numBytes, setName, dbName);
+  Handle<pdb::BufGetPageResult> objectToSend = pdb::makeObject<BufGetPageResult>(offset, pageNumber, isAnonymous, sizeFrozen, startPos, numBytes, setName, dbName);
 
   {
     // lock so we can mark the page as sent

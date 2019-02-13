@@ -5,7 +5,7 @@
 #ifndef PDB_STOPINPAGERESULT_H
 #define PDB_STOPINPAGERESULT_H
 
-// PRELOAD %StoPinPageResult%
+// PRELOAD %BufPinPageResult%
 
 #include "PDBString.h"
 #include "PDBSet.h"
@@ -13,15 +13,15 @@
 namespace pdb {
 
 // request to get an anonymous page
-class StoPinPageResult : public Object {
+class BufPinPageResult : public Object {
 
 public:
 
-  StoPinPageResult(const size_t &offset, const bool success) : offset(offset), success(success) {}
+  BufPinPageResult(const size_t &offset, const bool success) : offset(offset), success(success) {}
 
-  StoPinPageResult() = default;
+  BufPinPageResult() = default;
 
-  ~StoPinPageResult() = default;
+  ~BufPinPageResult() = default;
 
   ENABLE_DEEP_COPY;
 

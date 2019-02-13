@@ -23,13 +23,13 @@ class CommunicatorMock {
 
 public:
 
-  MOCK_METHOD2(sendObject, bool(pdb::Handle<pdb::StoGetPageResult>& res, std::string& errMsg));
+  MOCK_METHOD2(sendObject, bool(pdb::Handle<pdb::BufGetPageResult>& res, std::string& errMsg));
 
   MOCK_METHOD2(sendObject, bool(pdb::Handle<pdb::SimpleRequestResult>& res, std::string& errMsg));
 
-  MOCK_METHOD2(sendObject, bool(pdb::Handle<pdb::StoPinPageResult>& res, std::string& errMsg));
+  MOCK_METHOD2(sendObject, bool(pdb::Handle<pdb::BufPinPageResult>& res, std::string& errMsg));
 
-  MOCK_METHOD2(sendObject, bool(pdb::Handle<pdb::StoFreezeRequestResult>& res, std::string& errMsg));
+  MOCK_METHOD2(sendObject, bool(pdb::Handle<pdb::BufFreezeRequestResult>& res, std::string& errMsg));
 
 };
 
@@ -143,11 +143,11 @@ TEST(StorageManagerFrontendTest, Test6) {
         pageRequestStart(requests, requests[i]);
 
         // create a get page request
-        pdb::Handle<pdb::StoGetPageRequest> pageRequest = pdb::makeObject<pdb::StoGetPageRequest>(std::make_shared<pdb::PDBSet>("set1", "db1"), requests[i]);
+        pdb::Handle<pdb::BufGetPageRequest> pageRequest = pdb::makeObject<pdb::BufGetPageRequest>(std::make_shared<pdb::PDBSet>("set1", "db1"), requests[i]);
 
         // make sure the mock function returns true
-        ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoGetPageResult> &>(), testing::An<std::string &>())).WillByDefault(testing::Invoke(
-            [&](pdb::Handle<pdb::StoGetPageResult> &res, std::string &errMsg) {
+        ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::BufGetPageResult> &>(), testing::An<std::string &>())).WillByDefault(testing::Invoke(
+            [&](pdb::Handle<pdb::BufGetPageResult> &res, std::string &errMsg) {
 
               // figure out the bytes offset
               auto bytes = (char *) frontEnd.sharedMemory.memory + res->offset;
@@ -170,7 +170,7 @@ TEST(StorageManagerFrontendTest, Test6) {
         ));
 
         // it should call send object exactly once
-        EXPECT_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoGetPageResult> &>(), testing::An<std::string &>())).Times(1);
+        EXPECT_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::BufGetPageResult> &>(), testing::An<std::string &>())).Times(1);
 
         // invoke the get page handler
         frontEnd.handleGetPageRequest(pageRequest, comm);
@@ -180,8 +180,8 @@ TEST(StorageManagerFrontendTest, Test6) {
         if(!frozen[requests[i] ]) {
 
           // make sure the mock function returns true
-          ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoFreezeRequestResult> &>(), testing::An<std::string &>())).WillByDefault(testing::Invoke(
-              [&](pdb::Handle<pdb::StoFreezeRequestResult> &res, std::string &errMsg) {
+          ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::BufFreezeRequestResult> &>(), testing::An<std::string &>())).WillByDefault(testing::Invoke(
+              [&](pdb::Handle<pdb::BufFreezeRequestResult> &res, std::string &errMsg) {
 
                 // must be true!
                 EXPECT_EQ(res->res, true);
@@ -192,10 +192,10 @@ TEST(StorageManagerFrontendTest, Test6) {
           ));
 
           // it should call send object exactly once
-          EXPECT_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::StoFreezeRequestResult> &>(), testing::An<std::string &>())).Times(1);
+          EXPECT_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::BufFreezeRequestResult> &>(), testing::An<std::string &>())).Times(1);
 
           // return page request
-          pdb::Handle<pdb::StoFreezeSizeRequest> returnPageRequest = pdb::makeObject<pdb::StoFreezeSizeRequest>("set1", "db1", requests[i], pageSizes[requests[i] % 3]);
+          pdb::Handle<pdb::BufFreezeSizeRequest> returnPageRequest = pdb::makeObject<pdb::BufFreezeSizeRequest>("set1", "db1", requests[i], pageSizes[requests[i] % 3]);
 
           // invoke the return page handler
           frontEnd.handleFreezeSizeRequest(returnPageRequest, comm);
@@ -222,7 +222,7 @@ TEST(StorageManagerFrontendTest, Test6) {
         EXPECT_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::SimpleRequestResult> &>(), testing::An<std::string &>())).Times(1);
 
         // return page request
-        pdb::Handle<pdb::StoReturnPageRequest> returnPageRequest = pdb::makeObject<pdb::StoReturnPageRequest>("set1", "db1", requests[i], true);
+        pdb::Handle<pdb::BufReturnPageRequest> returnPageRequest = pdb::makeObject<pdb::BufReturnPageRequest>("set1", "db1", requests[i], true);
 
         // invoke the return page handler
         frontEnd.handleReturnPageRequest(returnPageRequest, comm);

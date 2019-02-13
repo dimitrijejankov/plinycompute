@@ -148,7 +148,7 @@ void pdb::StorageManagerFrontend::registerHandlers(PDBServer &forMe) {
           else {
 
             // increment the last page
-            pageNum = it->second++;
+            pageNum = ++it->second;
           }
         }
 

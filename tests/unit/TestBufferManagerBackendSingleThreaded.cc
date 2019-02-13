@@ -50,7 +50,7 @@ TEST(StorageManagerBackendTest, Test1) {
           const std::string &address,
           pdb::PDBPageHandle onErr,
           size_t bytesForRequest,
-          const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::StoGetPageResult>)> &processResponse,
+          const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::BufGetPageResult>)> &processResponse,
           size_t minSize) {
 
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
@@ -58,8 +58,8 @@ TEST(StorageManagerBackendTest, Test1) {
         int64_t myPage = curPage++;
 
         // make the page
-        pdb::Handle<pdb::StoGetPageResult> returnPageRequest =
-            pdb::makeObject<pdb::StoGetPageResult>(myPage * pageSize, myPage, true, false, -1, pageSize, "", "");
+        pdb::Handle<pdb::BufGetPageResult> returnPageRequest =
+            pdb::makeObject<pdb::BufGetPageResult>(myPage * pageSize, myPage, true, false, -1, pageSize, "", "");
 
         // mark it as pinned
         pinned[myPage] = true;
@@ -106,7 +106,7 @@ TEST(StorageManagerBackendTest, Test1) {
 
   ON_CALL(*MockRequestFactory::_requestFactory, freezeSize).WillByDefault(testing::Invoke(
       [&](pdb::PDBLoggerPtr &myLogger, int port, const std::string address, bool onErr,
-          size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::StoFreezeRequestResult>)> &processResponse,
+          size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::BufFreezeRequestResult>)> &processResponse,
           pdb::PDBSetPtr setPtr, size_t pageNum, size_t numBytes) {
 
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
@@ -116,7 +116,7 @@ TEST(StorageManagerBackendTest, Test1) {
         EXPECT_LE(pageNum, numPages);
 
         // make the page
-        pdb::Handle<pdb::StoFreezeRequestResult> returnPageRequest = pdb::makeObject<pdb::StoFreezeRequestResult>(true);
+        pdb::Handle<pdb::BufFreezeRequestResult> returnPageRequest = pdb::makeObject<pdb::BufFreezeRequestResult>(true);
 
         // expect not to be frozen
         EXPECT_FALSE(frozen[pageNum]);
@@ -136,7 +136,7 @@ TEST(StorageManagerBackendTest, Test1) {
 
   ON_CALL(*MockRequestFactory::_requestFactory, pinPage).WillByDefault(testing::Invoke(
       [&](pdb::PDBLoggerPtr &myLogger, int port, const std::string &address, bool onErr,
-          size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::StoPinPageResult>)> &processResponse,
+          size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::BufPinPageResult>)> &processResponse,
           const pdb::PDBSetPtr &setPtr, size_t pageNum) {
 
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
@@ -146,8 +146,8 @@ TEST(StorageManagerBackendTest, Test1) {
         EXPECT_LE(pageNum, numPages);
 
         // make the page
-        pdb::Handle<pdb::StoPinPageResult>
-            returnPageRequest = pdb::makeObject<pdb::StoPinPageResult>(pageNum * pageSize, true);
+        pdb::Handle<pdb::BufPinPageResult>
+            returnPageRequest = pdb::makeObject<pdb::BufPinPageResult>(pageNum * pageSize, true);
 
         // mark it as unpinned
         pinned[pageNum] = true;
@@ -286,7 +286,7 @@ TEST(StorageManagerBackendTest, Test2) {
           const std::string &address,
           pdb::PDBPageHandle onErr,
           size_t bytesForRequest,
-          const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::StoGetPageResult>)> &processResponse,
+          const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::BufGetPageResult>)> &processResponse,
           pdb::PDBSetPtr set,
           uint64_t pageNum) {
 
@@ -302,7 +302,7 @@ TEST(StorageManagerBackendTest, Test2) {
         int whichSet = set->getSetName() == "set1" ? 0 : 1;
 
         // make the page
-        pdb::Handle<pdb::StoGetPageResult> returnPageRequest = pdb::makeObject<pdb::StoGetPageResult>((whichSet * numPages + pageNum) * pageSize, pageNum, false, false, -1, pageSize, set->getSetName(), set->getDBName());
+        pdb::Handle<pdb::BufGetPageResult> returnPageRequest = pdb::makeObject<pdb::BufGetPageResult>((whichSet * numPages + pageNum) * pageSize, pageNum, false, false, -1, pageSize, set->getSetName(), set->getDBName());
 
         // mark it as pinned
         pinned[whichSet * numPages + pageNum] = true;
@@ -356,7 +356,7 @@ TEST(StorageManagerBackendTest, Test2) {
 
   ON_CALL(*MockRequestFactory::_requestFactory, freezeSize).WillByDefault(testing::Invoke(
       [&](pdb::PDBLoggerPtr &myLogger, int port, const std::string address, bool onErr,
-          size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::StoFreezeRequestResult>)> &processResponse,
+          size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::BufFreezeRequestResult>)> &processResponse,
           pdb::PDBSetPtr setPtr, size_t pageNum, size_t numBytes) {
 
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
@@ -371,7 +371,7 @@ TEST(StorageManagerBackendTest, Test2) {
         int whichSet = setPtr->getSetName() == "set1" ? 0 : 1;
 
         // make the page
-        pdb::Handle<pdb::StoFreezeRequestResult> returnPageRequest = pdb::makeObject<pdb::StoFreezeRequestResult>(true);
+        pdb::Handle<pdb::BufFreezeRequestResult> returnPageRequest = pdb::makeObject<pdb::BufFreezeRequestResult>(true);
 
         // expect not to be frozen
         EXPECT_FALSE(frozen[whichSet * numPages + pageNum]);
@@ -391,7 +391,7 @@ TEST(StorageManagerBackendTest, Test2) {
 
   ON_CALL(*MockRequestFactory::_requestFactory, pinPage).WillByDefault(testing::Invoke(
       [&](pdb::PDBLoggerPtr &myLogger, int port, const std::string &address, bool onErr,
-          size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::StoPinPageResult>)> &processResponse,
+          size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::BufPinPageResult>)> &processResponse,
           const pdb::PDBSetPtr &setPtr, size_t pageNum) {
 
         const pdb::UseTemporaryAllocationBlock tempBlock{1024};
@@ -406,7 +406,7 @@ TEST(StorageManagerBackendTest, Test2) {
         int whichSet = setPtr->getSetName() == "set1" ? 0 : 1;
 
         // make the page
-        pdb::Handle<pdb::StoPinPageResult> returnPageRequest = pdb::makeObject<pdb::StoPinPageResult>((whichSet * numPages + pageNum) * pageSize, true);
+        pdb::Handle<pdb::BufPinPageResult> returnPageRequest = pdb::makeObject<pdb::BufPinPageResult>((whichSet * numPages + pageNum) * pageSize, true);
 
         // mark it as unpinned
         pinned[whichSet * numPages + pageNum] = true;

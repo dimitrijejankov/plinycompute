@@ -23,20 +23,20 @@
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %StoForwardPageRequest%
+// PRELOAD %BufForwardPageRequest%
 
 namespace pdb {
 
 // encapsulates a request to forward the page
-class StoForwardPageRequest : public Object {
+class BufForwardPageRequest : public Object {
 
 public:
 
-  StoForwardPageRequest() = default;
+  BufForwardPageRequest() = default;
 
-  ~StoForwardPageRequest() = default;
+  ~BufForwardPageRequest() = default;
 
-  StoForwardPageRequest(const uint64_t &offset, const uint64_t &pageNum, bool isAnonymous,
+  BufForwardPageRequest(const uint64_t &offset, const uint64_t &pageNum, bool isAnonymous,
                         bool sizeFrozen, const uint64_t &startPos, const int64_t &numBytes,
                         const std::string &setName, const std::string &dbName): offset(offset), pageNum(pageNum),
                                                                                 isAnonymous(isAnonymous), sizeFrozen(sizeFrozen),

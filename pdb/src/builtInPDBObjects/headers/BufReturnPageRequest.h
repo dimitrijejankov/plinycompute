@@ -16,35 +16,51 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef STO_FREEZE_RESULT_H
-#define STO_FREEZE_RESULT_H
+#ifndef STO_FREE_PAGE_REQ_H
+#define STO_FREE_PAGE_REQ_H
 
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
-#include <utility>
+#include "../../objectModel/headers/PDBString.h"
 
-// PRELOAD %StoFreezeRequestResult%
+// PRELOAD %BufReturnPageRequest%
 
 namespace pdb {
 
-// encapsulates a request to obtain a shared library from the catalog
-class StoFreezeRequestResult : public Object {
+// request to get an anonymous page
+class BufReturnPageRequest : public Object {
 
 public:
 
-    StoFreezeRequestResult() = default;
-    ~StoFreezeRequestResult() = default;
+  BufReturnPageRequest(const std::string &setName, const std::string &databaseName, const size_t &pageNumber, bool isDirty)
+      : databaseName(databaseName), setName(setName), pageNumber(pageNumber), isDirty(isDirty) {}
 
-    // generally res should be true on success
-    explicit StoFreezeRequestResult(bool res) : res(res) {}
+  BufReturnPageRequest() = default;
 
-    ENABLE_DEEP_COPY
+  ~BufReturnPageRequest() = default;
 
-    /**
-     * Did we succeed in freezing the thing
-     */
-    bool res = false;
+  ENABLE_DEEP_COPY;
+
+  /**
+   * The database name
+   */
+  pdb::String databaseName;
+
+  /**
+   * The set name
+   */
+  pdb::String setName;
+
+  /**
+   * The page number
+   */
+  size_t pageNumber = 0;
+
+  /**
+   * Is the page we are returning dirty
+   */
+  bool isDirty = false;
 };
 }
 

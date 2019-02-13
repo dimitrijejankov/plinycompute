@@ -3,19 +3,19 @@
 
 #include "PDBBufferManagerBackEnd.h"
 #include <HeapRequest.h>
-#include <StoGetPageRequest.h>
+#include <BufGetPageRequest.h>
 #include <SimpleRequestResult.h>
-#include <StoForwardPageRequest.h>
-#include <StoGetPageResult.h>
-#include <StoGetAnonymousPageRequest.h>
-#include <StoReturnPageRequest.h>
-#include <StoReturnAnonPageRequest.h>
-#include <StoFreezeSizeRequest.h>
-#include <StoUnpinPageRequest.h>
-#include <StoPinPageRequest.h>
-#include <StoPinPageResult.h>
+#include <BufForwardPageRequest.h>
+#include <BufGetPageResult.h>
+#include <BufGetAnonymousPageRequest.h>
+#include <BufReturnPageRequest.h>
+#include <BufReturnAnonPageRequest.h>
+#include <BufFreezeSizeRequest.h>
+#include <BufUnpinPageRequest.h>
+#include <BufPinPageRequest.h>
+#include <BufPinPageResult.h>
 #include <mutex>
-#include <StoFreezeRequestResult.h>
+#include <BufFreezeRequestResult.h>
 
 namespace pdb {
 
@@ -102,9 +102,9 @@ pdb::PDBPageHandle pdb::PDBBufferManagerBackEnd<T>::getPage(pdb::PDBSetPtr which
   auto address = getConfiguration()->address;
 
   // ok we don't have the page loaded, make a request to get it...
-  auto res = T::template heapRequest<StoGetPageRequest, StoGetPageResult, pdb::PDBPageHandle>(
+  auto res = T::template heapRequest<BufGetPageRequest, BufGetPageResult, pdb::PDBPageHandle>(
       myLogger, port, address, nullptr, 1024,
-      [&](Handle<StoGetPageResult> result) {
+      [&](Handle<BufGetPageResult> result) {
 
         if (result != nullptr) {
 
@@ -173,9 +173,9 @@ pdb::PDBPageHandle pdb::PDBBufferManagerBackEnd<T>::getPage(size_t minBytes) {
   /// 1. We simply request the page it is safe since it is a new anonymous page
 
   // make a request
-  auto res = T::template heapRequest<StoGetAnonymousPageRequest, StoGetPageResult, pdb::PDBPageHandle>(
+  auto res = T::template heapRequest<BufGetAnonymousPageRequest, BufGetPageResult, pdb::PDBPageHandle>(
       myLogger, port, address, nullptr, 1024,
-      [&](Handle<StoGetPageResult> result) {
+      [&](Handle<BufGetPageResult> result) {
 
         if (result != nullptr) {
 
@@ -244,7 +244,7 @@ PDBPageHandle PDBBufferManagerBackEnd<T>::expectPage(std::shared_ptr<PDBCommunic
   // block to get the response
   bool success;
   std::string error;
-  Handle<StoForwardPageRequest> result = communicator->template getNextObject<StoForwardPageRequest>(memory.get(), success, error);
+  Handle<BufForwardPageRequest> result = communicator->template getNextObject<BufForwardPageRequest>(memory.get(), success, error);
 
   // did we fail
   if (!success) {
@@ -386,7 +386,7 @@ void pdb::PDBBufferManagerBackEnd<T>::freeAnonymousPage(pdb::PDBPagePtr me) {
   /// 2. We make a request to return it to the other side
 
   // make a request
-  auto res = T::template heapRequest<StoReturnAnonPageRequest, SimpleRequestResult, bool>(
+  auto res = T::template heapRequest<BufReturnAnonPageRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
 
@@ -457,7 +457,7 @@ void pdb::PDBBufferManagerBackEnd<T>::downToZeroReferences(pdb::PDBPagePtr me) {
   auto address = getConfiguration()->address;
 
   // make a request
-  auto res = T::template heapRequest<StoReturnPageRequest, SimpleRequestResult, bool>(
+  auto res = T::template heapRequest<BufReturnPageRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
 
@@ -527,9 +527,9 @@ void pdb::PDBBufferManagerBackEnd<T>::freezeSize(pdb::PDBPagePtr me, size_t numB
   /// 2. Make the request to freeze it
 
   // make a request
-  auto res = T::template heapRequest<StoFreezeSizeRequest, StoFreezeRequestResult, bool>(
+  auto res = T::template heapRequest<BufFreezeSizeRequest, BufFreezeRequestResult, bool>(
       myLogger, port, address, false, 1024,
-      [&](Handle<StoFreezeRequestResult> result) {
+      [&](Handle<BufFreezeRequestResult> result) {
 
         // return the result
         if (result != nullptr && result->res) {
@@ -603,7 +603,7 @@ void pdb::PDBBufferManagerBackEnd<T>::unpin(pdb::PDBPagePtr me) {
   std::string errMsg;
 
   // make a request
-  auto res = T::template heapRequest<StoUnpinPageRequest, SimpleRequestResult, bool>(
+  auto res = T::template heapRequest<BufUnpinPageRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
 
@@ -675,9 +675,9 @@ void pdb::PDBBufferManagerBackEnd<T>::repin(pdb::PDBPagePtr me) {
   std::string errMsg;
 
   // make a request
-  auto res = T::template heapRequest<StoPinPageRequest, StoPinPageResult, bool>(
+  auto res = T::template heapRequest<BufPinPageRequest, BufPinPageResult, bool>(
       myLogger, port, address, false, 1024,
-      [&](Handle<StoPinPageResult> result) {
+      [&](Handle<BufPinPageResult> result) {
 
         // return the result
         if (result != nullptr && result->success) {

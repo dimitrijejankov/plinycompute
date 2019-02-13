@@ -5,7 +5,7 @@
 #ifndef PDB_STOUNPINPAGEREQUEST_H
 #define PDB_STOUNPINPAGEREQUEST_H
 
-// PRELOAD %StoUnpinPageRequest%
+// PRELOAD %BufUnpinPageRequest%
 
 #include "PDBString.h"
 #include "PDBSet.h"
@@ -13,11 +13,11 @@
 namespace pdb {
 
 // request to get an anonymous page
-class StoUnpinPageRequest : public Object {
+class BufUnpinPageRequest : public Object {
 
 public:
 
-  StoUnpinPageRequest(const PDBSetPtr &set, const size_t &pageNumber, bool isDirty)
+  BufUnpinPageRequest(const PDBSetPtr &set, const size_t &pageNumber, bool isDirty)
       : isAnonymous(set == nullptr), pageNumber(pageNumber), isDirty(isDirty) {
 
     // is this an anonymous page if it is
@@ -27,9 +27,9 @@ public:
     }
   }
 
-  StoUnpinPageRequest() = default;
+  BufUnpinPageRequest() = default;
 
-  ~StoUnpinPageRequest() = default;
+  ~BufUnpinPageRequest() = default;
 
   ENABLE_DEEP_COPY;
 

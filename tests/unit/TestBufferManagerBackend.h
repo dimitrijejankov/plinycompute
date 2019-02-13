@@ -27,7 +27,7 @@ MOCK_METHOD8(getPage, pdb::PDBPageHandle(pdb::PDBLoggerPtr &myLogger,
                                          const std::string address,
                                          pdb::PDBPageHandle onErr,
                                          size_t bytesForRequest,
-                                         const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::StoGetPageResult>)> &processResponse,
+                                         const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::BufGetPageResult>)> &processResponse,
                                          pdb::PDBSetPtr set,
                                          uint64_t pageNum));
 
@@ -36,7 +36,7 @@ MOCK_METHOD7(getAnonPage, pdb::PDBPageHandle(pdb::PDBLoggerPtr &myLogger,
                                              const std::string &address,
                                              pdb::PDBPageHandle onErr,
                                              size_t bytesForRequest,
-                                             const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::StoGetPageResult>)> &processResponse,
+                                             const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::BufGetPageResult>)> &processResponse,
                                              size_t minSize));
 
 MOCK_METHOD9(unpinPage, bool(pdb::PDBLoggerPtr &myLogger,
@@ -74,7 +74,7 @@ MOCK_METHOD9(freezeSize, bool(pdb::PDBLoggerPtr &myLogger,
                               const std::string address,
                               bool onErr,
                               size_t bytesForRequest,
-                              const std::function<bool(pdb::Handle<pdb::StoFreezeRequestResult>)> &processResponse,
+                              const std::function<bool(pdb::Handle<pdb::BufFreezeRequestResult>)> &processResponse,
                               pdb::PDBSetPtr setPtr,
                               size_t pageNum,
                               size_t numBytes));
@@ -84,7 +84,7 @@ MOCK_METHOD8(pinPage, bool(pdb::PDBLoggerPtr &myLogger,
                            const std::string &address,
                            bool onErr,
                            size_t bytesForRequest,
-                           const std::function<bool(pdb::Handle<pdb::StoPinPageResult>)> &processResponse,
+                           const std::function<bool(pdb::Handle<pdb::BufPinPageResult>)> &processResponse,
                            const pdb::PDBSetPtr &setPtr,
                            size_t pageNum));
 
@@ -101,7 +101,7 @@ public:
                                             const std::string &address,
                                             pdb::PDBPageHandle onErr,
                                             size_t bytesForRequest,
-                                            const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::StoGetPageResult>)> &processResponse,
+                                            const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::BufGetPageResult>)> &processResponse,
                                             const pdb::PDBSetPtr set,
                                             uint64_t pageNum) {
 
@@ -115,7 +115,7 @@ public:
                                         const std::string &address,
                                         pdb::PDBPageHandle onErr,
                                         size_t bytesForRequest,
-                                        const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::StoGetPageResult>)> &processResponse,
+                                        const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::BufGetPageResult>)> &processResponse,
                                         size_t minSize) {
 
     return _requestFactory->getAnonPage(myLogger, port, address, onErr, bytesForRequest, processResponse, minSize);
@@ -172,7 +172,7 @@ public:
                           const std::string &address,
                           bool onErr,
                           size_t bytesForRequest,
-                          const std::function<bool(pdb::Handle<pdb::StoFreezeRequestResult>)> &processResponse,
+                          const std::function<bool(pdb::Handle<pdb::BufFreezeRequestResult>)> &processResponse,
                           pdb::PDBSetPtr &setPtr,
                           size_t pageNum,
                           size_t numBytes) {
@@ -187,7 +187,7 @@ public:
                           const std::string &address,
                           bool onErr,
                           size_t bytesForRequest,
-                          const std::function<bool(pdb::Handle<pdb::StoPinPageResult>)> &processResponse,
+                          const std::function<bool(pdb::Handle<pdb::BufPinPageResult>)> &processResponse,
                           const pdb::PDBSetPtr &setPtr,
                           size_t pageNum) {
 

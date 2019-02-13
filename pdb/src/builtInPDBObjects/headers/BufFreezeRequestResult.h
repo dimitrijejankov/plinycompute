@@ -16,40 +16,35 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef STO_FREE_ANON_PAGE_REQ_H
-#define STO_FREE_ANON_PAGE_REQ_H
+#ifndef STO_FREEZE_RESULT_H
+#define STO_FREEZE_RESULT_H
 
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
+#include <utility>
 
-// PRELOAD %StoReturnAnonPageRequest%
+// PRELOAD %BufFreezeRequestResult%
 
 namespace pdb {
 
-// request to get an anonymous page
-class StoReturnAnonPageRequest : public Object {
+// encapsulates a request to obtain a shared library from the catalog
+class BufFreezeRequestResult : public Object {
 
 public:
 
-  explicit StoReturnAnonPageRequest(const size_t &pageNumber, bool isDirty) : pageNumber(pageNumber), isDirty(isDirty) {}
+    BufFreezeRequestResult() = default;
+    ~BufFreezeRequestResult() = default;
 
-  StoReturnAnonPageRequest() = default;
+    // generally res should be true on success
+    explicit BufFreezeRequestResult(bool res) : res(res) {}
 
-  ~StoReturnAnonPageRequest() = default;
+    ENABLE_DEEP_COPY
 
-  ENABLE_DEEP_COPY;
-
-  /**
-   * The page number
-   */
-  size_t pageNumber = 0;
-
-  /**
-   * Is the page dirty
-   */
-  bool isDirty = false;
-
+    /**
+     * Did we succeed in freezing the thing
+     */
+    bool res = false;
 };
 }
 

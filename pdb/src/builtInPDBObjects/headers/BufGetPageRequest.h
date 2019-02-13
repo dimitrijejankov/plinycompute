@@ -16,34 +16,65 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef CAT_STO_GET_ANON_PAGE_REQ_H
-#define CAT_STO_GET_ANON_PAGE_REQ_H
+#ifndef CAT_STO_GET_PAGE_REQ_H
+#define CAT_STO_GET_PAGE_REQ_H
 
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
+#include "PDBSet.h"
 
-// PRELOAD %StoGetAnonymousPageRequest%
+// PRELOAD %BufGetPageRequest%
 
 namespace pdb {
 
-// request to get an anonymous page
-class StoGetAnonymousPageRequest : public Object {
+// encapsulates a request to obtain a type name from the catalog
+class BufGetPageRequest : public Object {
 
 public:
 
-  StoGetAnonymousPageRequest() = default;
+  BufGetPageRequest() = default;
 
-  explicit StoGetAnonymousPageRequest(size_t size) : size(size) {};
+  ~BufGetPageRequest() = default;
 
-  ~StoGetAnonymousPageRequest() = default;
+  BufGetPageRequest(const pdb::PDBSetPtr &whichSet, uint64_t pageNumber) : pageNumber(pageNumber) {
 
-  ENABLE_DEEP_COPY;
+
+    if(whichSet != nullptr){
+
+      setName = whichSet->getSetName();
+      dbName = whichSet->getDBName();
+      isAnon = false;
+    }
+    else {
+      setName = "";
+      dbName = "";
+      isAnon = true;
+    }
+  }
+
+
+  ENABLE_DEEP_COPY
+
+  /**
+   * The name of the set we are requesting the page for
+   */
+  String setName;
+
+  /**
+   * The name of the database we are requesting the page for
+   */
+  String dbName;
 
   /**
    * The page number
    */
-  size_t size = 0;
+  uint64_t pageNumber = 0;
+
+  /**
+   * Is this an anonymous page
+   */
+  bool isAnon;
 };
 }
 

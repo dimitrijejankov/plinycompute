@@ -16,74 +16,34 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef CAT_GET_PAGE_RESULT_H
-#define CAT_GET_PAGE_RESULT_H
+#ifndef CAT_STO_GET_ANON_PAGE_REQ_H
+#define CAT_STO_GET_ANON_PAGE_REQ_H
 
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
-#include "PDBSet.h"
-#include "DeepCopy.h"
-#include "PDBString.h"
 
-// PRELOAD %StoGetPageResult%
+// PRELOAD %BufGetAnonymousPageRequest%
 
 namespace pdb {
 
-//
-class StoGetPageResult : public Object {
+// request to get an anonymous page
+class BufGetAnonymousPageRequest : public Object {
 
 public:
 
-  StoGetPageResult() = default;
+  BufGetAnonymousPageRequest() = default;
 
-  StoGetPageResult(const uint64_t &offset,
-                   const uint64_t &pageNum,
-                   bool isAnonymous,
-                   bool sizeFrozen,
-                   const uint64_t &startPos,
-                   const int64_t &numBytes,
-                   const std::string &setName,
-                   const std::string &dbName)
-      : offset(offset),
-        pageNum(pageNum),
-        isAnonymous(isAnonymous),
-        sizeFrozen(sizeFrozen),
-        startPos(startPos),
-        numBytes(numBytes),
-        setName(setName),
-        dbName(dbName) {}
+  explicit BufGetAnonymousPageRequest(size_t size) : size(size) {};
 
-  ~StoGetPageResult() = default;
+  ~BufGetAnonymousPageRequest() = default;
 
-  ENABLE_DEEP_COPY
+  ENABLE_DEEP_COPY;
 
-  // a pointer to the raw bytes
-  uint64_t offset;
-
-  // the page number
-  uint64_t pageNum = 0;
-
-  // is this an anonymous page
-  bool isAnonymous = true;
-
-  // is the size frozen
-  bool sizeFrozen = false;
-
-  // is this page dirty or not
-  bool isDirty = false;
-
-  // the start position in the file
-  uint64_t startPos = 0;
-
-  // the size of the page
-  int64_t numBytes = 0;
-
-  // the name of the set this page belongs to
-  pdb::String setName;
-
-  // the database the set belongs to
-  pdb::String dbName;
+  /**
+   * The page number
+   */
+  size_t size = 0;
 };
 }
 

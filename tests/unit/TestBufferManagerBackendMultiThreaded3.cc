@@ -60,7 +60,7 @@ TEST(StorageManagerBackendTest, Test5) {
 
   ON_CALL(*MockRequestFactory::_requestFactory, getPage).WillByDefault(testing::Invoke(
       [&](pdb::PDBLoggerPtr &myLogger, int port, const std::string &address,pdb::PDBPageHandle onErr,
-          size_t bytesForRequest, const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::StoGetPageResult>)> &processResponse,
+          size_t bytesForRequest, const std::function<pdb::PDBPageHandle(pdb::Handle<pdb::BufGetPageResult>)> &processResponse,
           const pdb::PDBSetPtr &set, uint64_t pageNum) {
 
         {
@@ -93,7 +93,7 @@ TEST(StorageManagerBackendTest, Test5) {
         EXPECT_TRUE(set->getDBName() == "DB");
 
         // make the page
-        pdb::Handle<pdb::StoGetPageResult> returnPageRequest = pdb::makeObject<pdb::StoGetPageResult>(pageNum * maxPageSize, pageNum, false, false, -1, maxPageSize, set->getSetName(), set->getDBName());
+        pdb::Handle<pdb::BufGetPageResult> returnPageRequest = pdb::makeObject<pdb::BufGetPageResult>(pageNum * maxPageSize, pageNum, false, false, -1, maxPageSize, set->getSetName(), set->getDBName());
 
         {
           unique_lock<std::mutex> lck(accessedLock);
@@ -163,7 +163,7 @@ TEST(StorageManagerBackendTest, Test5) {
 
   ON_CALL(*MockRequestFactory::_requestFactory, freezeSize).WillByDefault(testing::Invoke(
       [&](pdb::PDBLoggerPtr &myLogger, int port, const std::string address, bool onErr,
-          size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::StoFreezeRequestResult>)> &processResponse,
+          size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::BufFreezeRequestResult>)> &processResponse,
           pdb::PDBSetPtr setPtr, size_t pageNum, size_t numBytes) {
 
         {
@@ -196,7 +196,7 @@ TEST(StorageManagerBackendTest, Test5) {
         EXPECT_TRUE(setPtr->getDBName() == "DB");
 
         // make the page
-        pdb::Handle<pdb::StoFreezeRequestResult> returnPageRequest = pdb::makeObject<pdb::StoFreezeRequestResult>(true);
+        pdb::Handle<pdb::BufFreezeRequestResult> returnPageRequest = pdb::makeObject<pdb::BufFreezeRequestResult>(true);
 
         {
           unique_lock<std::mutex> lck(accessedLock);
@@ -215,7 +215,7 @@ TEST(StorageManagerBackendTest, Test5) {
 
   ON_CALL(*MockRequestFactory::_requestFactory, pinPage).WillByDefault(testing::Invoke(
       [&](pdb::PDBLoggerPtr &myLogger, int port, const std::string &address, bool onErr,
-          size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::StoPinPageResult>)> &processResponse,
+          size_t bytesForRequest, const std::function<bool(pdb::Handle<pdb::BufPinPageResult>)> &processResponse,
           const pdb::PDBSetPtr &setPtr, size_t pageNum) {
 
         {
@@ -245,7 +245,7 @@ TEST(StorageManagerBackendTest, Test5) {
         EXPECT_TRUE(setPtr->getDBName() == "DB");
 
         // make the page
-        pdb::Handle<pdb::StoPinPageResult> returnPageRequest = pdb::makeObject<pdb::StoPinPageResult>(pageNum * maxPageSize, true);
+        pdb::Handle<pdb::BufPinPageResult> returnPageRequest = pdb::makeObject<pdb::BufPinPageResult>(pageNum * maxPageSize, true);
 
         {
           unique_lock<std::mutex> lck(accessedLock);

@@ -16,65 +16,40 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef CAT_STO_GET_PAGE_REQ_H
-#define CAT_STO_GET_PAGE_REQ_H
+#ifndef STO_FREE_ANON_PAGE_REQ_H
+#define STO_FREE_ANON_PAGE_REQ_H
 
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
-#include "PDBSet.h"
 
-// PRELOAD %StoGetPageRequest%
+// PRELOAD %BufReturnAnonPageRequest%
 
 namespace pdb {
 
-// encapsulates a request to obtain a type name from the catalog
-class StoGetPageRequest : public Object {
+// request to get an anonymous page
+class BufReturnAnonPageRequest : public Object {
 
 public:
 
-  StoGetPageRequest() = default;
+  explicit BufReturnAnonPageRequest(const size_t &pageNumber, bool isDirty) : pageNumber(pageNumber), isDirty(isDirty) {}
 
-  ~StoGetPageRequest() = default;
+  BufReturnAnonPageRequest() = default;
 
-  StoGetPageRequest(const pdb::PDBSetPtr &whichSet, uint64_t pageNumber) : pageNumber(pageNumber) {
+  ~BufReturnAnonPageRequest() = default;
 
-
-    if(whichSet != nullptr){
-
-      setName = whichSet->getSetName();
-      dbName = whichSet->getDBName();
-      isAnon = false;
-    }
-    else {
-      setName = "";
-      dbName = "";
-      isAnon = true;
-    }
-  }
-
-
-  ENABLE_DEEP_COPY
-
-  /**
-   * The name of the set we are requesting the page for
-   */
-  String setName;
-
-  /**
-   * The name of the database we are requesting the page for
-   */
-  String dbName;
+  ENABLE_DEEP_COPY;
 
   /**
    * The page number
    */
-  uint64_t pageNumber = 0;
+  size_t pageNumber = 0;
 
   /**
-   * Is this an anonymous page
+   * Is the page dirty
    */
-  bool isAnon;
+  bool isDirty = false;
+
 };
 }
 

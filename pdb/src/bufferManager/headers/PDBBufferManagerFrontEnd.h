@@ -11,13 +11,13 @@
 #include <queue>
 #include <set>
 #include <PDBBufferManagerImpl.h>
-#include <StoGetPageRequest.h>
-#include <StoGetAnonymousPageRequest.h>
-#include <StoReturnPageRequest.h>
-#include <StoReturnAnonPageRequest.h>
-#include <StoFreezeSizeRequest.h>
-#include <StoPinPageRequest.h>
-#include <StoUnpinPageRequest.h>
+#include <BufGetPageRequest.h>
+#include <BufGetAnonymousPageRequest.h>
+#include <BufReturnPageRequest.h>
+#include <BufReturnAnonPageRequest.h>
+#include <BufFreezeSizeRequest.h>
+#include <BufPinPageRequest.h>
+#include <BufUnpinPageRequest.h>
 
 // this is needed so we can declare friend tests here
 #include <gtest/gtest_prod.h>
@@ -98,31 +98,31 @@ private:
 
   // handles the get page request from the backend
   template <class T>
-  std::pair<bool, std::string> handleGetPageRequest(pdb::Handle<pdb::StoGetPageRequest> &request, std::shared_ptr<T> &sendUsingMe);
+  std::pair<bool, std::string> handleGetPageRequest(pdb::Handle<pdb::BufGetPageRequest> &request, std::shared_ptr<T> &sendUsingMe);
 
   // handles the get anonymous page request from the backend
   template <class T>
-  std::pair<bool, std::string> handleGetAnonymousPageRequest(pdb::Handle<pdb::StoGetAnonymousPageRequest> &request, std::shared_ptr<T> &sendUsingMe);
+  std::pair<bool, std::string> handleGetAnonymousPageRequest(pdb::Handle<pdb::BufGetAnonymousPageRequest> &request, std::shared_ptr<T> &sendUsingMe);
 
   // handles the return page request from the backend
   template <class T>
-  std::pair<bool, std::string> handleReturnPageRequest(pdb::Handle<pdb::StoReturnPageRequest> &request, std::shared_ptr<T> &sendUsingMe);
+  std::pair<bool, std::string> handleReturnPageRequest(pdb::Handle<pdb::BufReturnPageRequest> &request, std::shared_ptr<T> &sendUsingMe);
 
   // handles the return anonymous page request
   template <class T>
-  std::pair<bool, std::string> handleReturnAnonPageRequest(pdb::Handle<pdb::StoReturnAnonPageRequest> &request, std::shared_ptr<T> &sendUsingMe);
+  std::pair<bool, std::string> handleReturnAnonPageRequest(pdb::Handle<pdb::BufReturnAnonPageRequest> &request, std::shared_ptr<T> &sendUsingMe);
 
   // handles the freeze size request from the backend
   template <class T>
-  std::pair<bool, std::string> handleFreezeSizeRequest(pdb::Handle<pdb::StoFreezeSizeRequest> &request, std::shared_ptr<T> &sendUsingMe);
+  std::pair<bool, std::string> handleFreezeSizeRequest(pdb::Handle<pdb::BufFreezeSizeRequest> &request, std::shared_ptr<T> &sendUsingMe);
 
   // handles the pin page request from the backend
   template <class T>
-  std::pair<bool, std::string> handlePinPageRequest(pdb::Handle<pdb::StoPinPageRequest> &request, std::shared_ptr<T> &sendUsingMe);
+  std::pair<bool, std::string> handlePinPageRequest(pdb::Handle<pdb::BufPinPageRequest> &request, std::shared_ptr<T> &sendUsingMe);
 
   // handles the unpin page request from the backend
   template <class T>
-  std::pair<bool, std::string> handleUnpinPageRequest(pdb::Handle<pdb::StoUnpinPageRequest> &request, std::shared_ptr<T> &sendUsingMe);
+  std::pair<bool, std::string> handleUnpinPageRequest(pdb::Handle<pdb::BufUnpinPageRequest> &request, std::shared_ptr<T> &sendUsingMe);
 
   // handles the logic for the forwarding
   template <class T>
