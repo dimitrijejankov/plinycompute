@@ -22,25 +22,29 @@ int main(int argc, char* argv[]) {
   pdb::makeObjectAllocatorBlock(blockSize * 1024l * 1024l, true);
   pdb::Handle<pdb::Vector<pdb::Handle<SharedEmployee>>> storeMe = pdb::makeObject<pdb::Vector<pdb::Handle<SharedEmployee>>>();
 
-  try {
+  for(int j = 0; j < 5; j++) {
+    try {
 
-    for (int i = 0; true; i++) {
+      for (int i = 0; true; i++) {
 
-      pdb::Handle<SharedEmployee> myData;
+        pdb::Handle<SharedEmployee> myData;
 
-      if (i % 100 == 0) {
-        myData = pdb::makeObject<SharedEmployee>("Frank", i);
-      } else {
-        myData = pdb::makeObject<SharedEmployee>("Joe Johnson" + to_string(i), i + 45);
+        if (i % 100 == 0) {
+          myData = pdb::makeObject<SharedEmployee>("Frank", i);
+        } else {
+          myData = pdb::makeObject<SharedEmployee>("Joe Johnson" + to_string(i), i + 45);
+        }
+
+        storeMe->push_back(myData);
       }
 
-      storeMe->push_back(myData);
+    } catch (pdb::NotEnoughSpace& n) {
+
+      pdbClient.sendData<SharedEmployee>(std::pair<std::string, std::string>("chris_set", "chris_db"), storeMe);
     }
-
-  } catch (pdb::NotEnoughSpace& n) {
-
-    pdbClient.sendData<SharedEmployee>(std::pair<std::string, std::string>("chris_set", "chris_db"), storeMe);
   }
+
+  sleep(20);
 
   // shutdown the server
   std::string err;

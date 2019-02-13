@@ -57,6 +57,21 @@ if [[ -n $(find /mnt/pdbRoot -name "*" 2>/dev/null) ]]; then
     rm -rf /mnt/pdbRoot*
 fi
 
+# remove the any directory starting with pdbWorker only if they exist
+if [[ -n $(find ./ -name "pdbWorker*" 2>/dev/null) ]]; then
+    rm -rf pdbWorker*
+fi
+
+# remove the directory pdbWorker only if they exist
+if [[ -e pdbWorker ]]; then
+    rm -rf pdbWorker
+fi
+
+# remove any directory from /mnt that start with pdbWorker only if they exist
+if [[ -n $(find /mnt/pdbWorker -name "*" 2>/dev/null) ]]; then
+    rm -rf /mnt/pdbWorker*
+fi
+
 # remove the /tmp/CatalogDir only if they exist
 if [[ -e /tmp/CatalogDir ]]; then
     rm -rf /tmp/CatalogDir

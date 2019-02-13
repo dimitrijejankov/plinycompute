@@ -30,6 +30,9 @@ void pdb::StorageManagerBackend::registerHandlers(PDBServer &forMe) {
             // uncompress and copy to page
             snappy::RawUncompress((char*) inPage->getBytes(), request->compressedSize, (char*) outPage->getBytes());
 
+            // freeze the size
+            outPage->freezeSize(uncompressedSize);
+
             // finish
             return std::make_pair(true, std::string(""));
           }));

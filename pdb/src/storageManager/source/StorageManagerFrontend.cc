@@ -37,7 +37,7 @@ pdb::StorageManagerFrontend::~StorageManagerFrontend() {
     ofs.write(it.first->getSetName().c_str(), size);
 
     // write the number of pages
-    ofs.write((char*) &it.second, sizeof(unsigned long));
+    ofs.write(reinterpret_cast<char*>(&it.second),sizeof(it.second));
   }
 
   ofs.close();
@@ -70,13 +70,13 @@ void pdb::StorageManagerFrontend::init() {
 
       // read the set name
       ifs.read((char *) &size, sizeof(unsigned long));
-      std::unique_ptr<char[]> dbBuffer(new char[size + 1]);
-      ifs.read(dbBuffer.get(), size + 1);
+      std::unique_ptr<char[]> dbBuffer(new char[size]);
+      ifs.read(dbBuffer.get(), size);
       std::string setName(dbBuffer.get(), size);
 
       // read the number of pages
-      size_t pageNum;
-      ifs.read((char *) &pageNum, sizeof(unsigned long));
+      unsigned long pageNum;
+      ifs.read(reinterpret_cast<char *>(&pageNum), sizeof(pageNum));
 
       // store the set info
       auto set = std::make_shared<PDBSet>(setName, dbName);
