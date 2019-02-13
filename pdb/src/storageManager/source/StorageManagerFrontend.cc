@@ -11,6 +11,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <fstream>
+#include <HeapRequest.h>
 
 namespace fs = boost::filesystem;
 
@@ -176,8 +177,24 @@ void pdb::StorageManagerFrontend::registerHandlers(PDBServer &forMe) {
         // forward the page
         success = bufferManager->forwardPage(page, communicatorToBackend, error);
 
+        /// 5. Wait for the backend to finish the stuff
 
-        /// 5. Send the response that we are done
+        RequestFactory::waitHeapRequest<SimpleRequestResult, bool>(logger, communicatorToBackend, false,
+            [&](Handle<SimpleRequestResult> result) {
+
+          // check the result
+          if (result != nullptr && result->getRes().first) {
+            return true;
+          }
+
+          // log the error
+          error = "Error response from dispatcher: " + result->getRes().second;
+          logger->error("Error response from dispatcher: " + result->getRes().second);
+
+          return false;
+        });
+
+        /// 6. Send the response that we are done
 
         // create an allocation block to hold the response
         Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(true, error);

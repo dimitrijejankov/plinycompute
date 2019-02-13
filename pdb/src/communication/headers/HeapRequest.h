@@ -114,7 +114,7 @@ public:
   /**
    * This method send raw bytes in addition to the object of RequestType to the particular node.
    * @tparam RequestType - the type of object to create to send over the wire
-   * @tparam ResponseType - the type of data we want to send
+   * @tparam ResponseType - the type of data we want to get
    * @tparam ReturnType - the type of object we expect to receive over the wire
    * @tparam RequestTypeParams - type of the params to use for the constructor to the object we send over the wire
    * @param myLogger - The logger we write error messages to
@@ -138,6 +138,22 @@ public:
                                      char* bytes,
                                      size_t numBytes,
                                      RequestTypeParams&&... args);
+
+  /**
+   * This method waits for a response from the communicator
+   * @tparam ResponseType - the type of data we want to get
+   * @tparam ReturnType - the return type of the function
+   * @param logger - the logger
+   * @param communicator - the communicator
+   * @param onErr - what to return on error
+   * @param processResponse - the function to process the response
+   * @return whatever is returned from processResponse or onErr in case of failure
+   */
+  template <class ResponseType, class ReturnType, class... RequestTypeParams>
+  static ReturnType waitHeapRequest(PDBLoggerPtr logger,
+                                    PDBCommunicatorPtr communicator,
+                                    ReturnType onErr,
+                                    function<ReturnType(Handle<ResponseType>)> processResponse);
 
 };
 

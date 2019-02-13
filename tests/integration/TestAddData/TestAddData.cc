@@ -44,8 +44,6 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  sleep(20);
-
   // shutdown the server
   std::string err;
   pdbClient.shutDownServer(err);

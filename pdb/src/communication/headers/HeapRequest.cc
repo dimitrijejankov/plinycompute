@@ -440,5 +440,58 @@ ReturnType RequestFactory::bytesHeapRequest(PDBLoggerPtr logger, int port, std::
     return onErr;
 }
 
+template<class ResponseType, class ReturnType, class... RequestTypeParams>
+ReturnType pdb::RequestFactory::waitHeapRequest(pdb::PDBLoggerPtr logger,
+                                                PDBCommunicatorPtr temp,
+                                                ReturnType onErr,
+                                                function<ReturnType(Handle<ResponseType>)> processResponse) {
+
+
+
+    // get the response and process it
+    size_t objectSize = temp->getSizeOfNextObject();
+    if (objectSize == 0) {
+
+        // log the error
+        logger->error("heapRequest: not able to get next object size");
+
+        // we are done here
+        return onErr;
+    }
+
+    std::unique_ptr<char[]> memory(new char[objectSize]);
+    if (memory == nullptr) {
+
+        // log the error
+        logger->error("can't allocate memory");
+
+        /// TODO this needs to be an exception or something
+        // this is a fatal error we should not be running out of memory
+        exit(-1);
+    }
+
+    // used for error handling
+    string errMsg;
+    bool success;
+
+    ReturnType finalResult;
+    {
+        Handle<ResponseType> result = temp->getNextObject<ResponseType>(memory.get(), success, errMsg);
+        if (!success) {
+
+            // log the error
+            logger->error(errMsg);
+            logger->error("heapRequest: not able to get next object over the wire.\n");
+
+            // we are done here
+            return onErr;
+        }
+
+        finalResult = processResponse(result);
+    }
+
+    return finalResult;
+}
+
 }
 #endif

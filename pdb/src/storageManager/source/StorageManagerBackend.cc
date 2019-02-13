@@ -14,6 +14,8 @@ void pdb::StorageManagerBackend::registerHandlers(PDBServer &forMe) {
       make_shared<pdb::HeapRequestHandler<pdb::StoStoreOnPageRequest>>(
           [&](Handle<pdb::StoStoreOnPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
 
+            /// 1. Grab a page and decompress the forwarded page
+
             // grab the buffer manager
             auto bufferManager = std::dynamic_pointer_cast<PDBStorageManagerBackEndImpl>(getFunctionalityPtr<PDBBufferManagerInterface>());
 
@@ -33,8 +35,17 @@ void pdb::StorageManagerBackend::registerHandlers(PDBServer &forMe) {
             // freeze the size
             outPage->freezeSize(uncompressedSize);
 
+            /// 2. Send the response that we are done
+
+            // create an allocation block to hold the response
+            std::string error;
+            Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(true, error);
+
+            // sends result to requester
+            sendUsingMe->sendObject(simpleResponse, error);
+
             // finish
-            return std::make_pair(true, std::string(""));
+            return std::make_pair(true, error);
           }));
 
 }
