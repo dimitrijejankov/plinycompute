@@ -66,58 +66,10 @@ public:
       /* Creates a database */
       bool createDatabase(const std::string &databaseName);
 
-      /* Creates a set with a given type for an existing database, no page_size
-       * needed in arg. */
-      bool createSet(const std::string &databaseName, const std::string &setName,
-                     const std::string &typeName);
-
       /* Creates a set with a given type (using a template) for an existing
        * database, no page_size needed in arg. */
       template <class DataType>
       bool createSet(const std::string &databaseName, const std::string &setName);
-
-      /* Creates a set with a given type for an existing database */
-      bool createSet(const std::string &databaseName, const std::string &setName,
-                     const std::string &typeName,
-                     size_t pageSize = DEFAULT_PAGE_SIZE);
-
-      /* Creates a set with a given type (using a template) for an existing
-       * database with page_size value. */
-      template <class DataType>
-      bool createSet(const std::string &databaseName,
-                                const std::string &setName, size_t pageSize);
-
-      /* Creates a temporary set with a given type for an existing database (only
-       * goes through storage) */
-      bool createTempSet(const std::string &databaseName,
-                         const std::string &setName, const std::string &typeName,
-                         size_t pageSize = DEFAULT_PAGE_SIZE);
-
-      /* Flushes data currently in memory into disk. */
-      bool flushData();
-
-      /* Removes a database from storage. */
-      bool removeDatabase(const std::string &databaseName);
-
-      /* Removes a set for an existing database from storage. */
-      bool removeSet(const std::string &databaseName, const std::string &setName);
-
-      /* Removes a set given a type from an existing database. */
-      bool clearSet(const std::string &databaseName, const std::string &setName,
-                    const std::string &typeName);
-
-      /* Removes a temporary set given a type from an existing database (only goes
-       * through storage). */
-      bool removeTempSet(const std::string &databaseName,
-                         const std::string &setName, const std::string &typeName);
-
-      /* Exports the content of a set from a database into a file. Note that the
-       * objects in
-       * set must be instances of ExportableObject
-       */
-      bool exportSet(const std::string &databaseName, const std::string &setName,
-                     const std::string &outputFilePath, const std::string &format);
-
 
       /* Sends a request to the Catalog Server to shut down the server that we are
        * connected to

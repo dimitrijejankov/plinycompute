@@ -10,6 +10,7 @@
 #include <StoGetPageResult.h>
 #include <StoFreezeRequestResult.h>
 #include <StoForwardPageRequest.h>
+#include "assert.h"
 
 template <class T>
 std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleGetPageRequest(pdb::Handle<pdb::StoGetPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {

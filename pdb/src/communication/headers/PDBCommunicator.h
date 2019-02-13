@@ -80,6 +80,10 @@ public:
     template <class ObjType>
     bool sendObject(Handle<ObjType>& sendMe, std::string& errMsg);
 
+    // sends an object over the communication channel that is on a different allocation block... return false on error
+    template <class ObjType>
+    bool sendObject(Handle<ObjType>& sendMe, std::string& errMsg, size_t blockSize);
+
     // sends a bunch of binary data over a channel
     bool sendBytes(void* data, size_t size, std::string& errMsg);
 

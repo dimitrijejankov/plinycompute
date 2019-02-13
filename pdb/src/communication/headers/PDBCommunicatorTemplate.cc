@@ -32,7 +32,6 @@
 #include "InterfaceFunctions.h"
 #include "PDBCommunicator.h"
 #include "UseTemporaryAllocationBlock.h"
-#include "Configuration.h"
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -49,62 +48,93 @@ bool PDBCommunicator::sendObject(Handle<ObjType>& sendMe, std::string& errMsg) {
     // first, write the record type
     int16_t recType = getTypeID<ObjType>();
     if (recType < 0) {
-        std::cout << "Fatal Error: BAD!  Trying to send a handle to a non-Object type.\n";
         logToMe->error("Fatal Error: BAD!  Trying to send a handle to a non-Object type.\n");
         exit(1);
     }
+
+    // write out the record type
     if (doTheWrite(((char*)&recType), ((char*)&recType) + sizeof(int16_t))) {
-        errMsg = "PDBCommunicator: not able to send the object type";
         logToMe->error(errMsg);
         logToMe->error(strerror(errno));
-        std::cout << errMsg << strerror(errno) << std::endl;
         return false;
     }
+
     // next, write the object
     auto* record = getRecord(sendMe);
 
-    void* mem = nullptr;
+    // check if the record is on a different allocation block
     if (record == nullptr) {
-        // JiaNote: below is refactored to make it more flexible.
-        // If sendMe is not in this thread's allocator block, we do a deep copy
-        mem = (void*)calloc(DEFAULT_PAGE_SIZE, sizeof(char));
-        record = getRecord(sendMe, mem, DEFAULT_PAGE_SIZE);
-        if (record == nullptr) {
-            int* a = 0;
-            *a = 12;
-            std::cout << "Fatal Error: BAD!  Trying to get a record for an object not created by "
-                         "this thread's allocator.\n";
-            logToMe->error(
-                "Fatal Error: BAD!  Trying to get a record for an object not created by this "
-                "thread's allocator.\n");
-            if (mem != nullptr) {
-                free(mem);
-            }
-            exit(1);
-        }
+        logToMe->error("Fatal Error: BAD!  Trying to get a record for an object not created by this thread's allocator.\n");
+        exit(1);
     }
 
+    // write it out
     if (doTheWrite((char*)record, ((char*)record) + record->numBytes())) {
-        PDB_COUT << "recType=" << recType << std::endl;
+
+        // set the error
         errMsg = "PDBCommunicator: not able to send the object size";
-        std::cout << errMsg << std::endl;
-        std::cout << strerror(errno) << std::endl;
+
+        // log stuff
         logToMe->error(errMsg);
         logToMe->error(strerror(errno));
-        if (mem != nullptr) {
-            free(mem);
-        }
+
         return false;
     }
-    if (mem != nullptr) {
-        free(mem);
-    }
 
-    PDB_COUT << "Sent object with typeName=" << getTypeName<ObjType>() << ", recType=" << recType
-             << " and socketFD=" << socketFD << std::endl;
+    // log the stuff
     logToMe->info(std::string("Sent object with typeName=") + getTypeName<ObjType>() +
                   std::string(", recType=") + std::to_string(recType) +
                   std::string(" and socketFD=") + std::to_string(socketFD));
+    return true;
+}
+
+template <class ObjType>
+bool PDBCommunicator::sendObject(Handle<ObjType>& sendMe, std::string& errMsg, size_t blockSize) {
+
+    // first, write the record type
+    int16_t recType = getTypeID<ObjType>();
+    if (recType < 0) {
+        logToMe->error("Fatal Error: BAD!  Trying to send a handle to a non-Object type.\n");
+        exit(1);
+    }
+
+    // write out the record type
+    if (doTheWrite(((char*)&recType), ((char*)&recType) + sizeof(int16_t))) {
+        logToMe->error(errMsg);
+        logToMe->error(strerror(errno));
+        return false;
+    }
+
+    // since we assume that sendMe is not in this thread's allocator block, we do a deep copy
+    std::unique_ptr<char[]> mem(new char[blockSize]);
+    auto* record = getRecord(sendMe, mem.get(), blockSize);
+    if (record == nullptr) {
+
+        // log the error
+        logToMe->error("Fatal Error: BAD!  Trying to get a record for an object not created by this thread's allocator.\n");
+
+        // exit
+        exit(1);
+    }
+
+    // do the write
+    if (doTheWrite((char*)record, ((char*)record) + record->numBytes())) {
+
+        // set the error
+        errMsg = "PDBCommunicator: not able to send the object size";
+
+        // log it
+        logToMe->error(errMsg);
+        logToMe->error(strerror(errno));
+
+        return false;
+    }
+
+    // log the info
+    logToMe->info(std::string("Sent object with typeName=") + getTypeName<ObjType>() +
+                  std::string(", recType=") + std::to_string(recType) +
+                  std::string(" and socketFD=") + std::to_string(socketFD));
+
     return true;
 }
 

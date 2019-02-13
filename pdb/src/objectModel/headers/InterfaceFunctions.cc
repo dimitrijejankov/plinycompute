@@ -255,7 +255,6 @@ Record<ObjType>* getRecord(Handle<ObjType>& forMe) {
     if(res == nullptr) {
 
         std::cout << "the handle to get record is not in current allocation block" << std::endl;
-
     }
     // and return that
     return (Record<ObjType>*)res;
