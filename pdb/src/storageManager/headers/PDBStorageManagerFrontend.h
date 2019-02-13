@@ -12,11 +12,11 @@
 
 namespace pdb {
 
-class StorageManagerFrontend : public ServerFunctionality {
+class PDBStorageManagerFrontend : public ServerFunctionality {
 
 public:
 
-  virtual ~StorageManagerFrontend();
+  virtual ~PDBStorageManagerFrontend();
 
   /**
    * Initialize the storage manager frontend

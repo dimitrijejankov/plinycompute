@@ -7,6 +7,7 @@
 
 #include <ServerFunctionality.h>
 #include <PDBPage.h>
+#include <PDBStorageIterator.h>
 
 namespace pdb {
 
@@ -21,19 +22,12 @@ public:
   void registerHandlers(PDBServer &forMe) override {};
 
   /**
-   *
-   * @param set
-   * @param page
-   * @return
+   * Returns an iterator that can fetch records from the storage
+   * @param set - the set want to grab the iterator for
+   * @return the iterator
    */
-  PDBPagePtr requestPage(PDBSetPtr set, size_t page, std::string &error, bool &success);
-
-  /**
-   *
-   * @param set
-   * @return
-   */
-  size_t getNumPages(PDBSetPtr set, std::string &error, bool &success);
+  template <class T>
+  PDBStorageIteratorPtr<T> getIterator(PDBSetPtr set, std::string &error, bool &success);
 
 private:
 
@@ -51,10 +45,12 @@ private:
    * The logger of the client
    */
   PDBLoggerPtr logger;
+
 };
 
 
 }
 
+#include "PDBStorageManagerClientTemplate.cc"
 
 #endif //PDB_PDBSTORAGEMANAGERCLIENT_H

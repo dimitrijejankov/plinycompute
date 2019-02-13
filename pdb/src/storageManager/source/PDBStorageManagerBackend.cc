@@ -3,11 +3,12 @@
 //
 
 #include <PDBBufferManagerBackEnd.h>
-#include "StorageManagerBackend.h"
+#include <SharedEmployee.h>
+#include "PDBStorageManagerBackend.h"
 #include "HeapRequestHandler.h"
 #include "StoStoreOnPageRequest.h"
 
-void pdb::StorageManagerBackend::registerHandlers(PDBServer &forMe) {
+void pdb::PDBStorageManagerBackend::registerHandlers(PDBServer &forMe) {
 
   forMe.registerHandler(
       StoStoreOnPageRequest_TYPEID,

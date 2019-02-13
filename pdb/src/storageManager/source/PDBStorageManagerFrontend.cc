@@ -2,7 +2,7 @@
 // Created by dimitrije on 2/9/19.
 //
 
-#include <StorageManagerFrontend.h>
+#include <PDBStorageManagerFrontend.h>
 #include <HeapRequestHandler.h>
 #include <DispDispatchData.h>
 #include <PDBBufferManagerInterface.h>
@@ -15,7 +15,7 @@
 
 namespace fs = boost::filesystem;
 
-pdb::StorageManagerFrontend::~StorageManagerFrontend() {
+pdb::PDBStorageManagerFrontend::~PDBStorageManagerFrontend() {
 
   // open the output file
   std::ofstream ofs;
@@ -44,7 +44,7 @@ pdb::StorageManagerFrontend::~StorageManagerFrontend() {
   ofs.close();
 }
 
-void pdb::StorageManagerFrontend::init() {
+void pdb::PDBStorageManagerFrontend::init() {
 
   // init the class
   logger = make_shared<pdb::PDBLogger>((boost::filesystem::path(getConfiguration()->rootDirectory) / "logs").string(), "PDBStorageManagerFrontend.log");
@@ -89,7 +89,7 @@ void pdb::StorageManagerFrontend::init() {
   }
 }
 
-void pdb::StorageManagerFrontend::registerHandlers(PDBServer &forMe) {
+void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
 
   forMe.registerHandler(
     DispDispatchData_TYPEID,

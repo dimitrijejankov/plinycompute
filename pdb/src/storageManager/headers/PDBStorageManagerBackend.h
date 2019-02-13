@@ -9,7 +9,7 @@
 
 namespace pdb {
 
-class StorageManagerBackend : public ServerFunctionality {
+class PDBStorageManagerBackend : public ServerFunctionality {
 
 public:
 
