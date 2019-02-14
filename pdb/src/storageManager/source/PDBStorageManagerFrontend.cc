@@ -12,6 +12,10 @@
 #include <boost/filesystem/operations.hpp>
 #include <fstream>
 #include <HeapRequest.h>
+#include <StoGetNextPageRequest.h>
+#include <StoGetNextPageResult.h>
+#include <CatalogServer.h>
+#include <StoGetPageRequest.h>
 
 namespace fs = boost::filesystem;
 
@@ -90,6 +94,103 @@ void pdb::PDBStorageManagerFrontend::init() {
 }
 
 void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
+
+  forMe.registerHandler(
+      StoGetNextPageRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoGetNextPageRequest>>(
+          [&](Handle<pdb::StoGetNextPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
+
+            /// 1. Check if we are the manager
+
+            if(!getConfiguration()->isManager) {
+
+              std::string error = "Only a manager can serve pages!";
+
+              // create an allocation block to hold the response
+              Handle<StoGetNextPageResult> simpleResponse = makeObject<StoGetNextPageResult>(0, "", 0, false);
+
+              // sends result to requester
+              sendUsingMe->sendObject(simpleResponse, error);
+
+              // This is an issue we simply return false only a manager can serve pages
+              return std::make_pair(false, error);
+            }
+
+            /// 2. Figure out if the node we last accessed is still there
+
+            // sort the nodes
+            auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
+            sort(nodes.begin(), nodes.end(), [](const PDBCatalogNodePtr & a, const PDBCatalogNodePtr & b) {
+              return a->nodeID > b->nodeID;
+            });
+
+            // try to find the last used node
+            auto node = std::find_if(nodes.begin(), nodes.end(), [&] (PDBCatalogNodePtr s) { return request->nodeID == s->nodeID; } );
+
+            // if the node is not active anymore
+            if(node != nodes.end()) {
+
+              std::string error = "Could not find the specified previous node";
+
+              // create an allocation block to hold the response
+              Handle<StoGetNextPageResult> simpleResponse = makeObject<StoGetNextPageResult>(0, "", 0, false);
+
+              // sends result to requester
+              sendUsingMe->sendObject(simpleResponse, error);
+
+              // This is an issue we simply return false only a manager can serve pages
+              return std::make_pair(false, error);
+            }
+
+            /// 3. Find the next page
+
+            for(auto it = node; it != nodes.end(); ++it) {
+
+              // the communicator
+              PDBCommunicator comm;
+              string errMsg;
+
+              // try multiple times if we fail to connect
+              int numRetries = 0;
+              while (numRetries <= getConfiguration()->maxRetries) {
+
+                // connect to the server
+                if (comm.connectToInternetServer(logger, (*it)->port, (*it)->address, errMsg)) {
+
+                  // log the error
+                  logger->error(errMsg);
+                  logger->error("Can not connect to remote server with port=" + std::to_string((*it)->port) + " and address=" + (*it)->address + ");");
+
+                  // throw an exception
+                  throw std::runtime_error(errMsg);
+                }
+
+                // we connected
+                break;
+              }
+
+              // make a block to send the request
+              const UseTemporaryAllocationBlock tempBlock{1024};
+
+              // make the request
+              Handle<StoGetPageRequest> pageRequest = makeObject<StoGetPageRequest>();
+
+              // send the object
+              if (!comm.sendObject(pageRequest, errMsg)) {
+
+                // yeah something happened
+                logger->error(errMsg);
+                logger->error("Not able to send request to server.\n");
+
+                // throw an exception
+                throw std::runtime_error(errMsg);
+              }
+
+            }
+
+
+            return std::make_pair(true, std::string(""));
+          }));
 
   forMe.registerHandler(
     DispDispatchData_TYPEID,
