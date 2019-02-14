@@ -16,27 +16,52 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef GET_LIST_OF_NODES
-#define GET_LIST_OF_NODES
+
+#ifndef OBJECTQUERYMODEL_StoGetNextPageResult_H
+#define OBJECTQUERYMODEL_StoGetNextPageResult_H
 
 #include "Object.h"
+#include "Handle.h"
+#include "PDBString.h"
 
-//  PRELOAD %GetListOfNodes%
+// PRELOAD %StoGetNextPageResult%
 
 namespace pdb {
 
-// A request to get the list of current cluster nodes from distribution manager master.
-class GetListOfNodes : public Object {
+// encapsulates a request to add data to a set in storage
+class StoGetNextPageResult : public Object {
 
 public:
-    GetListOfNodes() {}
-    ~GetListOfNodes() {}
 
-    ENABLE_DEEP_COPY
+  StoGetNextPageResult() = default;
+  ~StoGetNextPageResult() = default;
 
+  StoGetNextPageResult(const uint64_t page, const std::string &nodeID, size_t pageSize, bool hasNext)
+      : page(page), nodeID(nodeID), hasNext(hasNext), pageSize(pageSize) {}
 
-private:
+  ENABLE_DEEP_COPY
+
+  /**
+   * page of the set where we are storing the stuff
+   */
+  uint64_t page = 0;
+
+  /**
+   * The id of the node
+   */
+  String nodeID;
+
+  /**
+   * The size of the page
+   */
+  size_t pageSize = 0;
+
+  /**
+   * Do we have another one
+   */
+  bool hasNext = false;
 };
+
 }
 
 #endif

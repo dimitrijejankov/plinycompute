@@ -16,41 +16,53 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef LIST_OF_NODES_H
-#define LIST_OF_NODES_H
+
+#ifndef OBJECTQUERYMODEL_StoGetNextPaest_H
+#define OBJECTQUERYMODEL_StoGetNextPaest_H
 
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
-#include "PDBVector.h"
 
-using pdb::Vector;
+// PRELOAD %StoGetNextPageRequest%
 
-//  PRELOAD %ListOfNodes%
-
-// List of current cluster nodes from distribution manager.
 namespace pdb {
 
-class ListOfNodes : public Object {
+// encapsulates a request to add data to a set in storage
+class StoGetNextPageRequest : public Object {
 
 public:
-    ENABLE_DEEP_COPY
 
-    ListOfNodes() {}
+  StoGetNextPageRequest() = default;
+  ~StoGetNextPageRequest() = default;
 
-    ~ListOfNodes() {}
+  StoGetNextPageRequest(const std::string &databaseName, const std::string &setName, const uint64_t page, const std::string &nodeID)
+      : databaseName(databaseName), setName(setName), page(page), nodeID(nodeID) {}
 
-    Handle<Vector<String>> getHostNames() {
-        return hostNames;
-    }
+  ENABLE_DEEP_COPY
 
-    void setHostNames(Handle<Vector<String>> hostNames) {
-        this->hostNames = hostNames;
-    }
+  /**
+   * The name of the database the set belongs to
+   */
+  String databaseName;
 
-private:
-    // hostnames of the nodes
-    Handle<Vector<String>> hostNames;
+  /**
+   * The name of the set we are storing the stuff
+   */
+  String setName;
+
+  /**
+   * page of the set where we are storing the stuff
+   */
+  uint64_t page = 0;
+
+  /**
+   * The id of the node
+   */
+  String nodeID;
+
 };
+
 }
+
 #endif

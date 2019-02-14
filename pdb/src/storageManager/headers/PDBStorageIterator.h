@@ -36,14 +36,30 @@ class PDBStorageIterator {
 private:
 
   /**
-   * The buffer we are storing the records
+   * Grab the next page
+   * @return true if we could grab the next page
    */
-  std::unique_ptr<char[]> buffer;
+  bool getNextPage();
 
   /**
-   * The size of the buffer
+   * the address of the manager
    */
-  size_t bufferSize = 0;
+  std::string address;
+
+  /**
+   * the port of the manager
+   */
+  int port = -1;
+
+  /**
+   * How many times should we retry to connect to the manager if we fail
+   */
+  int maxRetries = 1;
+
+  /**
+   * the logger
+   */
+  PDBLoggerPtr logger;
 
   /**
    * The set this iterator belongs to
@@ -56,19 +72,29 @@ private:
   std::string db;
 
   /**
+   * The number of the page we want to get
+   */
+  int64_t currPage = -1;
+
+  /**
    * The node we want to grab the page from
    */
   std::string currNode;
 
   /**
-   * The number of the page we want to get
-   */
-  int64_t  currPage = -1;
-
-  /**
    * The current record on the page
    */
   int64_t currRecord = -1;
+
+  /**
+   * The buffer we are storing the records
+   */
+  std::unique_ptr<char[]> buffer;
+
+  /**
+   * The size of the buffer
+   */
+  size_t bufferSize = 0;
 };
 
 }
