@@ -21,6 +21,15 @@ using PDBStorageIteratorPtr = std::shared_ptr<PDBStorageIterator<T>>;
 template <class T>
 class PDBStorageIterator {
 
+public:
+
+  PDBStorageIterator(const std::string &address,
+                     int port,
+                     int maxRetries,
+                     const std::string &set,
+                     const std::string &db);
+
+
   /**
    * Checks if there is another record that we haven't visited
    * @return true if there is false otherwise
@@ -39,7 +48,7 @@ private:
    * Grab the next page
    * @return true if we could grab the next page
    */
-  bool getNextPage();
+  bool getNextPage(bool isFirst);
 
   /**
    * the address of the manager
@@ -74,12 +83,12 @@ private:
   /**
    * The number of the page we want to get
    */
-  int64_t currPage = -1;
+  uint64_t currPage = 0;
 
   /**
    * The node we want to grab the page from
    */
-  std::string currNode;
+  std::string currNode = "none";
 
   /**
    * The current record on the page

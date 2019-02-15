@@ -36,8 +36,8 @@ public:
   StoGetNextPageRequest() = default;
   ~StoGetNextPageRequest() = default;
 
-  StoGetNextPageRequest(const std::string &databaseName, const std::string &setName, const uint64_t page, const std::string &nodeID)
-      : databaseName(databaseName), setName(setName), page(page), nodeID(nodeID) {}
+  StoGetNextPageRequest(const std::string &databaseName, const std::string &setName, const uint64_t page, const std::string &nodeID, bool isFirst)
+      : databaseName(databaseName), setName(setName), page(page), nodeID(nodeID), isFirst(isFirst) {}
 
   ENABLE_DEEP_COPY
 
@@ -60,6 +60,11 @@ public:
    * The id of the node
    */
   String nodeID;
+
+  /**
+   * Are we requesting a page for the first time
+   */
+   bool isFirst = false;
 
 };
 

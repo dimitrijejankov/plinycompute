@@ -40,9 +40,10 @@ PDBLogger::PDBLogger(const std::string &directory, const std::string &fName) {
         PDB_COUT << "logs folder created." << std::endl;
     }
 
-    outputFile = fopen(fName.c_str(), "a");
+    std::string outFile = (boost::filesystem::path(directory) / fName).string();
+    outputFile = fopen(outFile.c_str(), "a");
     if (outputFile == nullptr) {
-        std::cout << "Unable to open logging file : " << std::string(directory + "/" + fName) << ".\n";
+        std::cout << "Unable to open logging file : " << outFile << ".\n";
         perror(nullptr);
         exit(-1);
     }

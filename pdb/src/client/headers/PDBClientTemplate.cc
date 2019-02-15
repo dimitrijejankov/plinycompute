@@ -23,34 +23,38 @@
 namespace pdb {
 
 
-    template <class DataType>
-    bool PDBClient::createSet(const std::string &databaseName, const std::string &setName) {
+  template <class DataType>
+  bool PDBClient::createSet(const std::string &databaseName, const std::string &setName) {
 
-      bool result = catalogClient->template createSet<DataType>(databaseName, setName, returnedMsg);
+    bool result = catalogClient->template createSet<DataType>(databaseName, setName, returnedMsg);
 
-      if (!result) {
-          errorMsg = "Not able to create set: " + returnedMsg;
-      } else {
-          cout << "Created set.\n";
-      }
-
-      return result;
+    if (!result) {
+        errorMsg = "Not able to create set: " + returnedMsg;
+    } else {
+        cout << "Created set.\n";
     }
 
-    template <class DataType>
-    bool PDBClient::sendData(std::pair<std::string, std::string> setAndDatabase,
-                             Handle<Vector<Handle<DataType>>> dataToSend) {
+    return result;
+  }
 
-      bool result = dispatcherClient->sendData<DataType>(setAndDatabase.second, setAndDatabase.first, dataToSend, returnedMsg);
+  template <class DataType>
+  bool PDBClient::sendData(const std::string &database, const std::string &set, Handle<Vector<Handle<DataType>>> dataToSend) {
 
-      if (result==false) {
-          errorMsg = "Not able to send data: " + returnedMsg;
-          exit(-1);
-      } else {
-          cout << "Data sent.\n";
-      }
-      return result;
+    bool result = dispatcherClient->sendData<DataType>(database, set, dataToSend, returnedMsg);
+
+    if (result==false) {
+        errorMsg = "Not able to send data: " + returnedMsg;
+        exit(-1);
+    } else {
+        cout << "Data sent.\n";
     }
+    return result;
+  }
+
+  template<class DataType>
+  PDBStorageIteratorPtr<DataType> PDBClient::getSetIterator(std::string dbName, std::string setName) {
+    return std::make_shared<PDBStorageIterator<DataType>>(address, port, 5, setName, dbName);
+  }
 
 }
 #endif

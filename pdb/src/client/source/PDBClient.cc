@@ -20,6 +20,8 @@
 #define PDBCLIENT_CC
 
 #include <ShutDown.h>
+#include <PDBClient.h>
+
 #include "PDBClient.h"
 
 namespace pdb {
@@ -58,7 +60,7 @@ bool PDBClient::createDatabase(const std::string &databaseName) {
 }
 
 // makes a request to shut down a PDB server /// TODO this should be moved
-bool PDBClient::shutDownServer(std::string &errMsg) {
+bool PDBClient::shutDownServer() {
 
   // get the workers
   auto workers = catalogClient->getActiveWorkerNodes();
@@ -72,14 +74,14 @@ bool PDBClient::shutDownServer(std::string &errMsg) {
        // do we have a result
        if(result == nullptr) {
 
-         errMsg = "Error getting type name: got nothing back from catalog";
+         errorMsg = "Error getting type name: got nothing back from catalog";
          return false;
        }
 
        // did we succeed
        if (!result->getRes().first) {
 
-         errMsg = "Error shutting down server: " + result->getRes().second;
+         errorMsg = "Error shutting down server: " + result->getRes().second;
          logger->error("Error shutting down server: " + result->getRes().second);
 
          return false;
@@ -97,14 +99,14 @@ bool PDBClient::shutDownServer(std::string &errMsg) {
         // do we have a result
         if(result == nullptr) {
 
-          errMsg = "Error getting type name: got nothing back from catalog";
+          errorMsg = "Error getting type name: got nothing back from catalog";
           return false;
         }
 
         // did we succeed
         if (!result->getRes().first) {
 
-          errMsg = "Error shutting down server: " + result->getRes().second;
+          errorMsg = "Error shutting down server: " + result->getRes().second;
           logger->error("Error shutting down server: " + result->getRes().second);
 
           return false;
@@ -145,13 +147,6 @@ bool PDBClient::registerType(const std::string &fileContainingSharedLib) {
   return result;
 }
 
-void PDBClient::printCatalogMetadata(
-    pdb::Handle<pdb::CatPrintCatalogRequest> itemToSearch) {
-  cout << catalogClient->printCatalogMetadata(
-      itemToSearch,
-      returnedMsg);
-}
-
 void PDBClient::listAllRegisteredMetadata() {
   cout << catalogClient->listAllRegisteredMetadata(returnedMsg);
 }
@@ -171,6 +166,7 @@ void PDBClient::listNodesInCluster() {
 void PDBClient::listUserDefinedTypes() {
   cout << catalogClient->listUserDefinedTypes(returnedMsg);
 }
+
 
 }
 

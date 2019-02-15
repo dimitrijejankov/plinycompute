@@ -78,6 +78,11 @@ class PDBPageHandleBase {
     page->repin();
   }
 
+  // returns the size of the page. If this is frozen it will return the frozen size, if not it will return
+  size_t getSize() {
+    return MIN_PAGE_SIZE << page->location.numBytes;
+  }
+
   // at destruction, we simply reduce the reference count of the page
   ~PDBPageHandleBase() {
     page->decRefCount();

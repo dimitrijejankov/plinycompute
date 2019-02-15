@@ -3,73 +3,85 @@
 #include <HeapRequest.h>
 #include <StoGetNextPageRequest.h>
 #include <StoGetNextPageResult.h>
+#include <snappy.h>
 
 namespace pdb {
+
+template<class T>
+PDBStorageIterator<T>::PDBStorageIterator(const string &address,
+                                          int port,
+                                          int maxRetries,
+                                          const string &set,
+                                          const string &db)
+    : address(address), port(port), maxRetries(maxRetries), set(set), db(db) {
+
+      // init the logger
+      logger = std::make_shared<PDBLogger>("setIterator");
+}
 
 template<class T>
 bool PDBStorageIterator<T>::hasNextRecord() {
 
   // are we starting out
-  if(buffer == nullptr) {
+  if (buffer == nullptr) {
 
     // get the next page
-    getNextPage();
+    getNextPage(true);
   }
 
   do {
 
     // grab the vector
-    Handle<Vector<Handle<T>>> pageVector = (Record<Vector<Handle<T>>>*) (buffer.get())->getRootObject();
+    Handle<Vector<Handle<T>>> pageVector = ((Record<Vector<Handle<T>>> *) (buffer.get()))->getRootObject();
 
     // does this page have more records
-    if(currRecord < pageVector->size()) {
+    if (currRecord < pageVector->size()) {
       return true;
     }
 
-  // get the next page since we need it.
-  } while (getNextPage());
+    // get the next page since we need it.
+  } while (getNextPage(false));
 
   // we are out of pages
   return false;
 }
 
-
 template<class T>
 Handle<T> PDBStorageIterator<T>::getNextRecord() {
 
   // are we starting out
-  if(buffer == nullptr) {
+  if (buffer == nullptr) {
 
     // get the next page
-    getNextPage();
+    getNextPage(true);
   }
 
   do {
 
     // grab the vector
-    Handle<Vector<Handle<T>>> pageVector = (Record<Vector<Handle<T>>>*) (buffer.get())->getRootObject();
+    Handle<Vector<Handle<T>>> pageVector = ((Record<Vector<Handle<T>>> *) (buffer.get()))->getRootObject();
 
     // does this page have more records
-    if(currRecord < pageVector->size()) {
+    if (currRecord < pageVector->size()) {
       return (*pageVector)[currRecord++];
     }
 
     // get the next page since we need it.
-  } while (getNextPage());
+  } while (getNextPage(false));
 
   // we are out of pages
   return nullptr;
 }
 
 template<class T>
-bool PDBStorageIterator<T>::getNextPage() {
+bool PDBStorageIterator<T>::getNextPage(bool isFirst) {
 
   // the buffer for the compressed data
   std::unique_ptr<char[]> compressedBuffer;
   size_t compressedBufferSize;
 
   // the communicator
-  PDBCommunicator comm;
+  PDBCommunicatorPtr comm = std::make_shared<PDBCommunicator>();
   string errMsg;
 
   // try multiple times if we fail to connect
@@ -77,11 +89,12 @@ bool PDBStorageIterator<T>::getNextPage() {
   while (numRetries <= maxRetries) {
 
     // connect to the server
-    if (comm.connectToInternetServer(logger, port, address, errMsg)) {
+    if (comm->connectToInternetServer(logger, port, address, errMsg)) {
 
       // log the error
       logger->error(errMsg);
-      logger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
+      logger->error(
+          "Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
 
       // throw an exception
       throw std::runtime_error(errMsg);
@@ -95,10 +108,10 @@ bool PDBStorageIterator<T>::getNextPage() {
   const UseTemporaryAllocationBlock tempBlock{1024};
 
   // make the request
-  Handle<StoGetNextPageRequest> request = makeObject<StoGetNextPageRequest>(db, set, currPage, currNode);
+  Handle<StoGetNextPageRequest> request = makeObject<StoGetNextPageRequest>(db, set, ++currPage, currNode, isFirst);
 
   // send the object
-  if (!comm.sendObject(request, errMsg)) {
+  if (!comm->sendObject(request, errMsg)) {
 
     // yeah something happened
     logger->error(errMsg);
@@ -110,17 +123,17 @@ bool PDBStorageIterator<T>::getNextPage() {
 
   // get the response and process it
   bool success;
-  Handle<StoGetNextPageResult> result = comm.getNextObject<StoGetNextPageResult> (success, errMsg);
+  Handle<StoGetNextPageResult> result = comm->getNextObject<StoGetNextPageResult>(success, errMsg);
 
   // did we get a response
-  if(result == nullptr) {
+  if (result == nullptr) {
 
     // throw an exception
     throw std::runtime_error(errMsg);
   }
 
   // do we have a next page
-  if(!result->hasNext) {
+  if (!result->hasNext) {
     return false;
   }
 
@@ -133,7 +146,7 @@ bool PDBStorageIterator<T>::getNextPage() {
   compressedBuffer = std::unique_ptr<char[]>(new char[result->pageSize]);
 
   // check if we failed to allocate
-  if(compressedBuffer == nullptr) {
+  if (compressedBuffer == nullptr) {
     throw std::bad_alloc();
   }
 
@@ -141,31 +154,31 @@ bool PDBStorageIterator<T>::getNextPage() {
   currRecord = 0;
 
   // read the size
-  auto readSize = RequestFactory::waitForBytes(logger, comm, compressedBuffer, compressedBufferSize, errMsg);
+  auto readSize = RequestFactory::waitForBytes(logger, comm, compressedBuffer.get(), compressedBufferSize, errMsg);
 
   // did we read anything
-  if(readSize == -1) {
+  if (readSize == -1) {
     throw std::runtime_error(errMsg);
   }
 
   // get the uncompressed size
   size_t uncompressedSize = 0;
-  snappy::GetUncompressedLength(compressedBuffer.get(), bufferSize, &uncompressedSize);
+  snappy::GetUncompressedLength(compressedBuffer.get(), compressedBufferSize, &uncompressedSize);
 
   // allocate some memory if we need it
-  if(bufferSize < uncompressedSize) {
+  if (bufferSize < uncompressedSize) {
 
     // allocate the memory
     buffer = std::unique_ptr<char[]>(new char[uncompressedSize]);
 
     // check if we failed to allocate
-    if(buffer == nullptr) {
+    if (buffer == nullptr) {
       throw std::bad_alloc();
     }
   }
 
   // uncompress and copy to buffer
-  snappy::RawUncompress((char*) compressedBuffer.get(), compressedBuffer, buffer.get());
+  snappy::RawUncompress((char *) compressedBuffer.get(), compressedBufferSize, (char *) buffer.get());
 
   // we succeeded
   return true;

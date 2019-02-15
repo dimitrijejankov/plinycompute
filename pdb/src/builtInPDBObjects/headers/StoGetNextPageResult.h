@@ -36,7 +36,7 @@ public:
   StoGetNextPageResult() = default;
   ~StoGetNextPageResult() = default;
 
-  StoGetNextPageResult(const uint64_t page, const std::string &nodeID, size_t pageSize, bool hasNext)
+  StoGetNextPageResult(const uint64_t page, const std::string &nodeID, uint64_t pageSize, bool hasNext)
       : page(page), nodeID(nodeID), hasNext(hasNext), pageSize(pageSize) {}
 
   ENABLE_DEEP_COPY
@@ -54,7 +54,7 @@ public:
   /**
    * The size of the page
    */
-  size_t pageSize = 0;
+  uint64_t pageSize = 0;
 
   /**
    * Do we have another one

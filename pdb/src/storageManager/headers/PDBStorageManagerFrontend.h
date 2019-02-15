@@ -5,10 +5,13 @@
 #ifndef PDB_STORAGEMANAGERFRONTEND_H
 #define PDB_STORAGEMANAGERFRONTEND_H
 
-#include <ServerFunctionality.h>
+#include <mutex>
+
 #include <PDBSet.h>
 #include <PDBPageCompare.h>
-#include <mutex>
+#include <PDBCatalogNode.h>
+#include <ServerFunctionality.h>
+#include <PDBPageHandle.h>
 
 namespace pdb {
 
@@ -25,6 +28,7 @@ public:
 
   void registerHandlers(PDBServer &forMe) override;
 
+  std::pair<PDBPageHandle, size_t> requestPage(const PDBCatalogNodePtr& node, const std::string &databaseName, const std::string &setName, uint64_t page);
 
  private:
 
