@@ -1,5 +1,6 @@
 #include <PDBClient.h>
 #include <SharedEmployee.h>
+#include <GenericWork.h>
 
 int main(int argc, char* argv[]) {
 
@@ -17,37 +18,73 @@ int main(int argc, char* argv[]) {
   // now, create a new set in that database
   pdbClient.createSet<SharedEmployee>("chris_db", "chris_set");
 
-  int count = 0;
+  // init the worker threads of this server
+  auto workers = make_shared<pdb::PDBWorkerQueue>(make_shared<pdb::PDBLogger>("worker.log"),  10);
+
+  // create the buzzer
+  atomic_int counter;
+  counter = 0;
+  PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
+    cnt++;
+  });
+
+  atomic_int count;
+  count = 0;
+
+
+  std::vector<std::string> names = {"Frank", "Joe", "Mark", "David", "Zoe"};
   for(int j = 0; j < 5; j++) {
 
-    // allocate the thing
-    pdb::makeObjectAllocatorBlock(blockSize * 1024l, true);
+    // the thread
+    int thread = j;
 
-    // allocate the vector
-    pdb::Handle<pdb::Vector<pdb::Handle<SharedEmployee>>> storeMe = pdb::makeObject<pdb::Vector<pdb::Handle<SharedEmployee>>>();
+    // grab a worker
+    pdb::PDBWorkerPtr myWorker = workers->getWorker();
 
-    try {
+    // start the thread
+    pdb::PDBWorkPtr myWork = make_shared<pdb::GenericWork>([&, thread](PDBBuzzerPtr callerBuzzer) {
 
-      for (int i = 0; true; i++) {
+      // allocate the thing
+      pdb::makeObjectAllocatorBlock(blockSize * 1024l * 1024, true);
 
-        pdb::Handle<SharedEmployee> myData;
+      // allocate the vector
+      pdb::Handle<pdb::Vector<pdb::Handle<SharedEmployee>>> storeMe = pdb::makeObject<pdb::Vector<pdb::Handle<SharedEmployee>>>();
 
-        if (i % 100 == 0) {
-          myData = pdb::makeObject<SharedEmployee>("Frank", count);
-        } else {
-          myData = pdb::makeObject<SharedEmployee>("Joe Johnson" + to_string(count), count + 45);
+      try {
+
+        for (int i = 0; true; i++) {
+
+          pdb::Handle<SharedEmployee> myData;
+
+          if (i % 100 == 0) {
+            myData = pdb::makeObject<SharedEmployee>(names[thread] + " Frank", count);
+          } else {
+            myData = pdb::makeObject<SharedEmployee>(names[thread] + " " + to_string(count), count + 45);
+          }
+
+          count++;
+
+          storeMe->push_back(myData);
         }
 
-        count++;
+      } catch (pdb::NotEnoughSpace &n) {
 
-        storeMe->push_back(myData);
+        pdbClient.sendData<SharedEmployee>("chris_db", "chris_set", storeMe);
       }
 
-    } catch (pdb::NotEnoughSpace& n) {
+      // excellent everything worked just as expected
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+    });
 
-      pdbClient.sendData<SharedEmployee>("chris_db", "chris_set", storeMe);
-    }
+    // run the work
+    myWorker->execute(myWork, tempBuzzer);
   }
+
+  // wait until all the nodes are finished
+  while (counter < 5) {
+    tempBuzzer->wait();
+  }
+
 
   // grab the iterator
   auto it = pdbClient.getSetIterator<SharedEmployee>("chris_db", "chris_set");
@@ -58,7 +95,7 @@ int main(int argc, char* argv[]) {
     // grab the record
     auto r = it->getNextRecord();
 
-    // print every 1000th
+    // print every 100th
     if(i % 100 == 0) {
       std::cout << *r->getName() << std::endl;
     }
