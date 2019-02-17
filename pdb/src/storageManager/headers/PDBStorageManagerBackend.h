@@ -36,6 +36,6 @@ private:
 
 }
 
-#include <PDBStorageManagerBackendTemplate.h>
+#include <PDBStorageManagerBackendTemplate.cc>
 
 #endif //PDB_STORAGEMANAGERBACKEND_H

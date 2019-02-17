@@ -113,6 +113,6 @@ public:
 
 }
 
-#include <PDBStorageManagerFrontendTemplate.h>
+#include <PDBStorageManagerFrontendTemplate.cc>
 
 #endif //PDB_STORAGEMANAGERFRONTEND_H
