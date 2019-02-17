@@ -38,8 +38,8 @@ namespace pdb {
  */
 template <class T>
 class PDBBufferManagerBackEnd;
-using PDBStorageManagerBackEndPtr = std::shared_ptr<PDBBufferManagerBackEnd<RequestFactory>>;
-using PDBStorageManagerBackEndImpl = PDBBufferManagerBackEnd<RequestFactory>;
+using PDBBufferManagerBackEndPtr = std::shared_ptr<PDBBufferManagerBackEnd<RequestFactory>>;
+using PDBBufferManagerBackEndImpl = PDBBufferManagerBackEnd<RequestFactory>;
 
 
 template <class T>
