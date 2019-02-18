@@ -25,11 +25,11 @@
 
 namespace pdb {
 
-class SimpleComputeExecutor;
-typedef std :: shared_ptr <SimpleComputeExecutor> SimpleComputeExecutorPtr;
+class ApplyComputeExecutor;
+typedef std :: shared_ptr <ApplyComputeExecutor> SimpleComputeExecutorPtr;
 
 // this is a simple generic implementation of a ComputeExecutor
-class SimpleComputeExecutor : public ComputeExecutor {
+class ApplyComputeExecutor : public ComputeExecutor {
 
 private:
 
@@ -41,7 +41,7 @@ private:
 
 public:
 
-	SimpleComputeExecutor (TupleSetPtr outputIn, std :: function <TupleSetPtr (TupleSetPtr)> processInputIn) {
+	ApplyComputeExecutor (TupleSetPtr outputIn, std :: function <TupleSetPtr (TupleSetPtr)> processInputIn) {
 		output = outputIn;
 		processInput = processInputIn;
 	}

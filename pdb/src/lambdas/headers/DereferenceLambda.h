@@ -22,7 +22,7 @@
 #include <vector>
 #include "LambdaHelperClasses.h"
 #include "ComputeExecutor.h"
-#include "SimpleComputeExecutor.h"
+#include "ApplyComputeExecutor.h"
 #include "TupleSetMachine.h"
 #include "TupleSet.h"
 #include "Ptr.h"
@@ -32,80 +32,9 @@ namespace pdb {
 template<class OutType>
 class DereferenceLambda : public TypedLambdaObject<OutType> {
 
- public:
+public:
 
-  LambdaTree<Ptr<OutType>> input;
-
- public:
-
-  DereferenceLambda(LambdaTree<Ptr<OutType>> &input) : input(input) {}
-
-  std::string getTypeOfLambda() override {
-    return std::string("deref");
-  }
-
-  std::string toTCAPString(std::string inputTupleSetName,
-                           std::vector<std::string> inputColumnNames,
-                           std::vector<std::string> inputColumnsToApply,
-                           int lambdaLabel,
-                           std::string computationName,
-                           int computationLabel,
-                           std::string &outputTupleSetName,
-                           std::vector<std::string> &outputColumns,
-                           std::string &outputColumnName) override {
-    std::string tcapString = "";
-    outputTupleSetName =
-        "deref_" + std::to_string(lambdaLabel) + "OutFor" + computationName + std::to_string(computationLabel);
-
-    outputColumnName = inputColumnsToApply[0];
-    PDB_COUT << "OuputColumnName: " << outputColumnName << std::endl;
-    outputColumns.clear();
-    for (int i = 0; i < inputColumnNames.size(); i++) {
-      outputColumns.push_back(inputColumnNames[i]);
-    }
-    tcapString += outputTupleSetName + "(" + outputColumns[0];
-    for (int i = 1; i < outputColumns.size(); i++) {
-      tcapString += ",";
-      tcapString += outputColumns[i];
-    }
-    tcapString += ") <= APPLY (";
-    tcapString += inputTupleSetName + "(" + inputColumnsToApply[0];
-    for (int i = 1; i < inputColumnsToApply.size(); i++) {
-      tcapString += ",";
-      tcapString += inputColumnsToApply[i];
-    }
-    std::vector<std::string> inputColumnsToKeep;
-    for (int i = 0; i < inputColumnNames.size(); i++) {
-      int j = 0;
-      for (j = 0; j < inputColumnsToApply.size(); j++) {
-        if (inputColumnNames[i] == inputColumnsToApply[j]) {
-          break;
-        }
-      }
-      if (j == inputColumnsToApply.size()) {
-        inputColumnsToKeep.push_back(inputColumnNames[i]);
-      }
-    }
-    tcapString += "), " + inputTupleSetName + "(" + inputColumnsToKeep[0];
-    for (int i = 1; i < inputColumnsToKeep.size(); i++) {
-      tcapString += ",";
-      tcapString += inputColumnsToKeep[i];
-    }
-    tcapString += "), '" + computationName + "_" + std::to_string(computationLabel) + "', '" + getTypeOfLambda() + "_"
-        + std::to_string(lambdaLabel) + "')\n";
-    return tcapString;
-
-  }
-
-  int getNumChildren() override {
-    return 1;
-  }
-
-  GenericLambdaObjectPtr getChild(int which) override {
-    if (which == 0)
-      return input.getPtr();
-    return nullptr;
-  }
+  explicit DereferenceLambda(LambdaTree<Ptr<OutType>> &input) : input(input) {}
 
   ComputeExecutorPtr getExecutor(TupleSpec &inputSchema,
                                  TupleSpec &attsToOperateOn,
@@ -122,9 +51,9 @@ class DereferenceLambda : public TypedLambdaObject<OutType> {
     int firstAtt = inputAtts[0];
 
     // this is the output attribute
-    int outAtt = attsToIncludeInOutput.getAtts().size();
+    int outAtt = (int) attsToIncludeInOutput.getAtts().size();
 
-    return std::make_shared<SimpleComputeExecutor>(
+    return std::make_shared<ApplyComputeExecutor>(
         output,
         [=](TupleSetPtr input) {
 
@@ -136,15 +65,14 @@ class DereferenceLambda : public TypedLambdaObject<OutType> {
 
           // create the output attribute, if needed
           if (!output->hasColumn(outAtt)) {
-            std::vector<OutType> *outColumn = new std::vector<OutType>;
-            output->addColumn(outAtt, outColumn, true);
+            output->addColumn(outAtt, new std::vector<OutType>, true);
           }
 
           // get the output column
           std::vector<OutType> &outColumn = output->getColumn<OutType>(outAtt);
 
           // loop down the columns, setting the output
-          int numTuples = inColumn.size();
+          auto numTuples = inColumn.size();
           outColumn.resize(numTuples);
           for (int i = 0; i < numTuples; i++) {
             outColumn[i] = *inColumn[i];
@@ -154,6 +82,80 @@ class DereferenceLambda : public TypedLambdaObject<OutType> {
     );
 
   }
+
+  std::string getTypeOfLambda() override {
+    return std::string("deref");
+  }
+
+
+  int getNumChildren() override {
+    return 1;
+  }
+
+  GenericLambdaObjectPtr getChild(int which) override {
+    if (which == 0) {
+      return input.getPtr();
+    }
+
+    return nullptr;
+  }
+
+  std::string toTCAPString(std::string inputTupleSetName,
+                           std::vector<std::string> inputColumnNames,
+                           std::vector<std::string> inputColumnsToApply,
+                           int lambdaLabel,
+                           std::string computationName,
+                           int computationLabel,
+                           std::string &outputTupleSetName,
+                           std::vector<std::string> &outputColumns,
+                           std::string &outputColumnName) override {
+    std::string tcapString;
+    outputTupleSetName = "deref_" + std::to_string(lambdaLabel) + "OutFor" + computationName + std::to_string(computationLabel);
+
+    outputColumnName = inputColumnsToApply[0];
+    PDB_COUT << "OuputColumnName: " << outputColumnName << std::endl;
+    outputColumns.clear();
+    for (const auto &inputColumnName : inputColumnNames) {
+      outputColumns.push_back(inputColumnName);
+    }
+    tcapString += outputTupleSetName + "(" + outputColumns[0];
+    for (int i = 1; i < outputColumns.size(); i++) {
+      tcapString += ",";
+      tcapString += outputColumns[i];
+    }
+    tcapString += ") <= APPLY (";
+    tcapString += inputTupleSetName + "(" + inputColumnsToApply[0];
+    for (int i = 1; i < inputColumnsToApply.size(); i++) {
+      tcapString += ",";
+      tcapString += inputColumnsToApply[i];
+    }
+    std::vector<std::string> inputColumnsToKeep;
+    for (const auto &inputColumnName : inputColumnNames) {
+      int j = 0;
+      for (j = 0; j < inputColumnsToApply.size(); j++) {
+        if (inputColumnName == inputColumnsToApply[j]) {
+          break;
+        }
+      }
+      if (j == inputColumnsToApply.size()) {
+        inputColumnsToKeep.push_back(inputColumnName);
+      }
+    }
+    tcapString += "), " + inputTupleSetName + "(" + inputColumnsToKeep[0];
+    for (int i = 1; i < inputColumnsToKeep.size(); i++) {
+      tcapString += ",";
+      tcapString += inputColumnsToKeep[i];
+    }
+    tcapString += "), '" + computationName + "_" + std::to_string(computationLabel) + "', '" + getTypeOfLambda() + "_"
+        + std::to_string(lambdaLabel) + "')\n";
+    return tcapString;
+
+  }
+
+
+private:
+
+  LambdaTree<Ptr<OutType>> input;
 };
 
 }

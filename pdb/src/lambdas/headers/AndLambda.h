@@ -69,6 +69,54 @@ class AndLambda : public TypedLambdaObject<bool> {
     rhs = rhsIn;
   }
 
+  ComputeExecutorPtr getExecutor(TupleSpec& inputSchema,
+                                 TupleSpec& attsToOperateOn,
+                                 TupleSpec& attsToIncludeInOutput) override {
+
+    // create the output tuple set
+    TupleSetPtr output = std::make_shared<TupleSet>();
+
+    // create the machine that is going to setup the output tuple set, using the input tuple set
+    TupleSetSetupMachinePtr myMachine = std::make_shared<TupleSetSetupMachine>(inputSchema, attsToIncludeInOutput);
+
+    // these are the input attributes that we will process
+    std::vector<int> inputAtts = myMachine->match(attsToOperateOn);
+    int firstAtt = inputAtts[0];
+    int secondAtt = inputAtts[1];
+
+    // this is the output attribute
+    auto outAtt = (int) attsToIncludeInOutput.getAtts().size();
+
+    return std::make_shared<ApplyComputeExecutor>(
+        output,
+        [=](TupleSetPtr input) {
+
+          // set up the output tuple set
+          myMachine->setup(input, output);
+
+          // get the columns to operate on
+          std::vector<LeftType>& leftColumn = input->getColumn<LeftType>(firstAtt);
+          std::vector<RightType>& rightColumn = input->getColumn<RightType>(secondAtt);
+
+          // create the output attribute, if needed
+          if (!output->hasColumn(outAtt)) {
+            auto outColumn = new std::vector<bool>;
+            output->addColumn(outAtt, outColumn, true);
+          }
+
+          // get the output column
+          std::vector<bool>& outColumn = output->getColumn<bool>(outAtt);
+
+          // loop down the columns, setting the output
+          auto numTuples = leftColumn.size();
+          outColumn.resize(numTuples);
+          for (int i = 0; i < numTuples; i++) {
+            outColumn[i] = checkAnd(leftColumn[i], rightColumn[i]);
+          }
+          return output;
+        });
+  }
+
   std::string getTypeOfLambda() override {
     return std::string("&&");
   }
@@ -94,64 +142,16 @@ class AndLambda : public TypedLambdaObject<bool> {
                            std::string &outputTupleSetName,
                            std::vector<std::string> &outputColumns,
                            std::string &outputColumnName) override {
+
     //it doesn't do anything for Join selection
     if (computationName == "JoinComp") {
       return "";
     }
+
     //TODO
     return "";
-
   }
 
-  ComputeExecutorPtr getExecutor(TupleSpec &inputSchema,
-                                 TupleSpec &attsToOperateOn,
-                                 TupleSpec &attsToIncludeInOutput) override {
-
-    // create the output tuple set
-    TupleSetPtr output = std::make_shared<TupleSet>();
-
-    // create the machine that is going to setup the output tuple set, using the input tuple set
-    TupleSetSetupMachinePtr myMachine = std::make_shared<TupleSetSetupMachine>(inputSchema, attsToIncludeInOutput);
-
-    // these are the input attributes that we will process
-    std::vector<int> inputAtts = myMachine->match(attsToOperateOn);
-    int firstAtt = inputAtts[0];
-    int secondAtt = inputAtts[1];
-
-    // this is the output attribute
-    int outAtt = attsToIncludeInOutput.getAtts().size();
-
-    return std::make_shared<SimpleComputeExecutor>(
-        output,
-        [=](TupleSetPtr input) {
-
-          // set up the output tuple set
-          myMachine->setup(input, output);
-
-          // get the columns to operate on
-          std::vector<LeftType> &leftColumn = input->getColumn<LeftType>(firstAtt);
-          std::vector<RightType> &rightColumn = input->getColumn<RightType>(secondAtt);
-
-          // create the output attribute, if needed
-          if (!output->hasColumn(outAtt)) {
-            std::vector<bool> *outColumn = new std::vector<bool>;
-            output->addColumn(outAtt, outColumn, true);
-          }
-
-          // get the output column
-          std::vector<bool> &outColumn = output->getColumn<bool>(outAtt);
-
-          // loop down the columns, setting the output
-          int numTuples = leftColumn.size();
-          outColumn.resize(numTuples);
-          for (int i = 0; i < numTuples; i++) {
-            outColumn[i] = checkAnd(leftColumn[i], rightColumn[i]);
-          }
-          return output;
-        }
-    );
-
-  }
 };
 
 }

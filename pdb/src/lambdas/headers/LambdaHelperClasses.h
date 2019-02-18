@@ -61,7 +61,14 @@ class LambdaTree {
 
  public:
 
-  LambdaTree() {}
+  LambdaTree() = default;
+
+  LambdaTree(const LambdaTree<ReturnType> &toMe) : me(toMe.me) {}
+
+  template<class Type>
+  explicit LambdaTree(std::shared_ptr<Type> meIn) {
+    me = meIn;
+  }
 
   auto &getPtr() {
     return me;
@@ -74,13 +81,6 @@ class LambdaTree {
   LambdaTree<ReturnType> &operator*() const {
     return *me;
   }
-
-  template<class Type>
-  LambdaTree(std::shared_ptr<Type> meIn) {
-    me = meIn;
-  }
-
-  LambdaTree(const LambdaTree<ReturnType> &toMe) : me(toMe.me) {}
 
   LambdaTree<ReturnType> &operator=(const LambdaTree<ReturnType> &toMe) {
     me = toMe.me;
@@ -112,7 +112,7 @@ class GenericLambdaObject {
   virtual ComputeExecutorPtr getExecutor(TupleSpec &inputSchema,
                                          TupleSpec &attsToOperateOn,
                                          TupleSpec &attsToIncludeInOutput,
-                                         ComputeInfoPtr) {
+                                         const ComputeInfoPtr&) {
     return getExecutor(inputSchema, attsToOperateOn, attsToIncludeInOutput);
   }
 
@@ -128,7 +128,7 @@ class GenericLambdaObject {
   virtual ComputeExecutorPtr getLeftHasher(TupleSpec &inputSchema,
                                            TupleSpec &attsToOperateOn,
                                            TupleSpec &attsToIncludeInOutput,
-                                           ComputeInfoPtr) {
+                                           const ComputeInfoPtr &) {
     return getLeftHasher(inputSchema, attsToOperateOn, attsToIncludeInOutput);
   }
 
@@ -144,7 +144,7 @@ class GenericLambdaObject {
   virtual ComputeExecutorPtr getRightHasher(TupleSpec &inputSchema,
                                             TupleSpec &attsToOperateOn,
                                             TupleSpec &attsToIncludeInOutput,
-                                            ComputeInfoPtr) {
+                                            const ComputeInfoPtr &) {
     return getRightHasher(inputSchema, attsToOperateOn, attsToIncludeInOutput);
   }
 
@@ -187,7 +187,7 @@ class GenericLambdaObject {
                                    std::vector<std::string> &outputColumns,
                                    std::string &outputColumnName) {
 
-    std::string tcapString = "";
+    std::string tcapString;
     std::string lambdaType = getTypeOfLambda();
     outputTupleSetName = lambdaType.substr(0, 5) + "_" + std::to_string(lambdaLabel) + "OutFor" + computationName
         + std::to_string(computationLabel);
@@ -195,8 +195,8 @@ class GenericLambdaObject {
     outputColumnName =
         lambdaType.substr(0, 5) + "_" + std::to_string(lambdaLabel) + "_" + std::to_string(computationLabel);
     outputColumns.clear();
-    for (int i = 0; i < inputColumnNames.size(); i++) {
-      outputColumns.push_back(inputColumnNames[i]);
+    for (const auto &inputColumnName : inputColumnNames) {
+      outputColumns.push_back(inputColumnName);
     }
     outputColumns.push_back(outputColumnName);
     tcapString += outputTupleSetName + "(" + outputColumns[0];

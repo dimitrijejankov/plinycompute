@@ -70,16 +70,151 @@ std::enable_if_t<!(std::is_base_of<PtrBase, LHS>::value) && !(std::is_base_of<Pt
 template<class LeftType, class RightType>
 class EqualsLambda : public TypedLambdaObject<bool> {
 
- public:
-
-  LambdaTree<LeftType> lhs;
-  LambdaTree<RightType> rhs;
-
- public:
+public:
 
   EqualsLambda(LambdaTree<LeftType> lhsIn, LambdaTree<RightType> rhsIn) {
     lhs = lhsIn;
     rhs = rhsIn;
+  }
+
+  ComputeExecutorPtr getExecutor(TupleSpec &inputSchema,
+                                 TupleSpec &attsToOperateOn,
+                                 TupleSpec &attsToIncludeInOutput) override {
+
+    // create the output tuple set
+    TupleSetPtr output = std::make_shared<TupleSet>();
+
+    // create the machine that is going to setup the output tuple set, using the input tuple set
+    TupleSetSetupMachinePtr myMachine = std::make_shared<TupleSetSetupMachine>(inputSchema, attsToIncludeInOutput);
+
+    // these are the input attributes that we will process
+    std::vector<int> inputAtts = myMachine->match(attsToOperateOn);
+    int firstAtt = inputAtts[0];
+    int secondAtt = inputAtts[1];
+
+    // this is the output attribute
+    int outAtt = (int) attsToIncludeInOutput.getAtts().size();
+
+    return std::make_shared<ApplyComputeExecutor>(
+        output,
+        [=](TupleSetPtr input) {
+
+          // set up the output tuple set
+          myMachine->setup(input, output);
+
+          // get the columns to operate on
+          std::vector<LeftType> &leftColumn = input->getColumn<LeftType>(firstAtt);
+          std::vector<RightType> &rightColumn = input->getColumn<RightType>(secondAtt);
+
+          // create the output attribute, if needed
+          if (!output->hasColumn(outAtt)) {
+            output->addColumn(outAtt, new std::vector<bool>, true);
+          }
+
+          // get the output column
+          std::vector<bool> &outColumn = output->getColumn<bool>(outAtt);
+
+          // loop down the columns, setting the output
+          auto numTuples = leftColumn.size();
+          outColumn.resize(numTuples);
+          for (int i = 0; i < numTuples; i++) {
+            outColumn[i] = checkEquals(leftColumn[i], rightColumn[i]);
+          }
+          return output;
+        }
+    );
+  }
+
+  ComputeExecutorPtr getRightHasher(TupleSpec &inputSchema,
+                                    TupleSpec &attsToOperateOn,
+                                    TupleSpec &attsToIncludeInOutput) override {
+
+    // create the output tuple set
+    TupleSetPtr output = std::make_shared<TupleSet>();
+
+    // create the machine that is going to setup the output tuple set, using the input tuple set
+    TupleSetSetupMachinePtr myMachine = std::make_shared<TupleSetSetupMachine>(inputSchema, attsToIncludeInOutput);
+
+    // these are the input attributes that we will process
+    std::vector<int> inputAtts = myMachine->match(attsToOperateOn);
+    int secondAtt = inputAtts[0];
+
+    // this is the output attribute
+    int outAtt = (int) attsToIncludeInOutput.getAtts().size();
+
+    return std::make_shared<ApplyComputeExecutor>(
+        output,
+        [=](TupleSetPtr input) {
+
+          // set up the output tuple set
+          myMachine->setup(input, output);
+
+          // get the columns to operate on
+          std::vector<RightType> &rightColumn = input->getColumn<RightType>(secondAtt);
+
+          // create the output attribute, if needed
+          if (!output->hasColumn(outAtt)) {
+            output->addColumn(outAtt, new std::vector<size_t>, true);
+          }
+
+          // get the output column
+          std::vector<size_t> &outColumn = output->getColumn<size_t>(outAtt);
+
+          // loop down the columns, setting the output
+          auto numTuples = rightColumn.size();
+          outColumn.resize(numTuples);
+          for (int i = 0; i < numTuples; i++) {
+            outColumn[i] = hashHim(rightColumn[i]);
+          }
+          return output;
+        }
+    );
+  }
+
+  ComputeExecutorPtr getLeftHasher(TupleSpec &inputSchema,
+                                   TupleSpec &attsToOperateOn,
+                                   TupleSpec &attsToIncludeInOutput) override {
+
+    // create the output tuple set
+    TupleSetPtr output = std::make_shared<TupleSet>();
+
+    // create the machine that is going to setup the output tuple set, using the input tuple set
+    TupleSetSetupMachinePtr myMachine = std::make_shared<TupleSetSetupMachine>(inputSchema, attsToIncludeInOutput);
+
+    // these are the input attributes that we will process
+    std::vector<int> inputAtts = myMachine->match(attsToOperateOn);
+    int firstAtt = inputAtts[0];
+
+    // this is the output attribute
+    int outAtt = (int) attsToIncludeInOutput.getAtts().size();
+
+    return std::make_shared<ApplyComputeExecutor>(
+        output,
+        [=](TupleSetPtr input) {
+
+          // set up the output tuple set
+          myMachine->setup(input, output);
+
+          // get the columns to operate on
+          std::vector<LeftType> &leftColumn = input->getColumn<LeftType>(firstAtt);
+
+          // create the output attribute, if needed
+          if (!output->hasColumn(outAtt)) {
+            output->addColumn(outAtt, new std::vector<size_t>, true);
+          }
+
+          // get the output column
+          std::vector<size_t> &outColumn = output->getColumn<size_t>(outAtt);
+
+          // loop down the columns, setting the output
+          auto numTuples = leftColumn.size();
+          outColumn.resize(numTuples);
+          for (int i = 0; i < numTuples; i++) {
+            outColumn[i] = hashHim(leftColumn[i]);
+          }
+          return output;
+        }
+    );
   }
 
   std::string getTypeOfLambda() override {
@@ -95,14 +230,14 @@ class EqualsLambda : public TypedLambdaObject<bool> {
                            std::string &outputTupleSetName,
                            std::vector<std::string> &outputColumns,
                            std::string &outputColumnName) override {
-    std::string tcapString = "";
+    std::string tcapString;
     outputTupleSetName =
         "equals_" + std::to_string(lambdaLabel) + "OutFor" + computationName + std::to_string(computationLabel);
 
     outputColumnName = "bool_" + std::to_string(lambdaLabel) + "_" + std::to_string(computationLabel);
     outputColumns.clear();
-    for (int i = 0; i < inputColumnNames.size(); i++) {
-      outputColumns.push_back(inputColumnNames[i]);
+    for (const auto &inputColumnName : inputColumnNames) {
+      outputColumns.push_back(inputColumnName);
     }
     outputColumns.push_back(outputColumnName);
     tcapString += outputTupleSetName + "(" + outputColumns[0];
@@ -140,151 +275,10 @@ class EqualsLambda : public TypedLambdaObject<bool> {
     return nullptr;
   }
 
+private:
 
-  ComputeExecutorPtr getExecutor(TupleSpec &inputSchema,
-                                 TupleSpec &attsToOperateOn,
-                                 TupleSpec &attsToIncludeInOutput) override {
-
-    // create the output tuple set
-    TupleSetPtr output = std::make_shared<TupleSet>();
-
-    // create the machine that is going to setup the output tuple set, using the input tuple set
-    TupleSetSetupMachinePtr myMachine = std::make_shared<TupleSetSetupMachine>(inputSchema, attsToIncludeInOutput);
-
-    // these are the input attributes that we will process
-    std::vector<int> inputAtts = myMachine->match(attsToOperateOn);
-    int firstAtt = inputAtts[0];
-    int secondAtt = inputAtts[1];
-
-    // this is the output attribute
-    int outAtt = attsToIncludeInOutput.getAtts().size();
-
-    return std::make_shared<SimpleComputeExecutor>(
-        output,
-        [=](TupleSetPtr input) {
-
-          // set up the output tuple set
-          myMachine->setup(input, output);
-
-          // get the columns to operate on
-          std::vector<LeftType> &leftColumn = input->getColumn<LeftType>(firstAtt);
-          std::vector<RightType> &rightColumn = input->getColumn<RightType>(secondAtt);
-
-          // create the output attribute, if needed
-          if (!output->hasColumn(outAtt)) {
-            std::vector<bool> *outColumn = new std::vector<bool>;
-            output->addColumn(outAtt, outColumn, true);
-          }
-
-          // get the output column
-          std::vector<bool> &outColumn = output->getColumn<bool>(outAtt);
-
-          // loop down the columns, setting the output
-          int numTuples = leftColumn.size();
-          outColumn.resize(numTuples);
-          for (int i = 0; i < numTuples; i++) {
-            outColumn[i] = checkEquals(leftColumn[i], rightColumn[i]);
-          }
-          return output;
-        }
-    );
-
-  }
-
-  ComputeExecutorPtr getRightHasher(TupleSpec &inputSchema,
-                                    TupleSpec &attsToOperateOn,
-                                    TupleSpec &attsToIncludeInOutput) override {
-
-    // create the output tuple set
-    TupleSetPtr output = std::make_shared<TupleSet>();
-
-    // create the machine that is going to setup the output tuple set, using the input tuple set
-    TupleSetSetupMachinePtr myMachine = std::make_shared<TupleSetSetupMachine>(inputSchema, attsToIncludeInOutput);
-
-    // these are the input attributes that we will process
-    std::vector<int> inputAtts = myMachine->match(attsToOperateOn);
-    int secondAtt = inputAtts[0];
-
-    // this is the output attribute
-    int outAtt = attsToIncludeInOutput.getAtts().size();
-
-    return std::make_shared<SimpleComputeExecutor>(
-        output,
-        [=](TupleSetPtr input) {
-
-          // set up the output tuple set
-          myMachine->setup(input, output);
-
-          // get the columns to operate on
-          std::vector<RightType> &rightColumn = input->getColumn<RightType>(secondAtt);
-
-          // create the output attribute, if needed
-          if (!output->hasColumn(outAtt)) {
-            std::vector<size_t> *outColumn = new std::vector<size_t>;
-            output->addColumn(outAtt, outColumn, true);
-          }
-
-          // get the output column
-          std::vector<size_t> &outColumn = output->getColumn<size_t>(outAtt);
-
-          // loop down the columns, setting the output
-          int numTuples = rightColumn.size();
-          outColumn.resize(numTuples);
-          for (int i = 0; i < numTuples; i++) {
-            outColumn[i] = hashHim(rightColumn[i]);
-          }
-          return output;
-        }
-    );
-  }
-
-  ComputeExecutorPtr getLeftHasher(TupleSpec &inputSchema,
-                                   TupleSpec &attsToOperateOn,
-                                   TupleSpec &attsToIncludeInOutput) override {
-
-    // create the output tuple set
-    TupleSetPtr output = std::make_shared<TupleSet>();
-
-    // create the machine that is going to setup the output tuple set, using the input tuple set
-    TupleSetSetupMachinePtr myMachine = std::make_shared<TupleSetSetupMachine>(inputSchema, attsToIncludeInOutput);
-
-    // these are the input attributes that we will process
-    std::vector<int> inputAtts = myMachine->match(attsToOperateOn);
-    int firstAtt = inputAtts[0];
-
-    // this is the output attribute
-    int outAtt = attsToIncludeInOutput.getAtts().size();
-
-    return std::make_shared<SimpleComputeExecutor>(
-        output,
-        [=](TupleSetPtr input) {
-
-          // set up the output tuple set
-          myMachine->setup(input, output);
-
-          // get the columns to operate on
-          std::vector<LeftType> &leftColumn = input->getColumn<LeftType>(firstAtt);
-
-          // create the output attribute, if needed
-          if (!output->hasColumn(outAtt)) {
-            std::vector<size_t> *outColumn = new std::vector<size_t>;
-            output->addColumn(outAtt, outColumn, true);
-          }
-
-          // get the output column
-          std::vector<size_t> &outColumn = output->getColumn<size_t>(outAtt);
-
-          // loop down the columns, setting the output
-          int numTuples = leftColumn.size();
-          outColumn.resize(numTuples);
-          for (int i = 0; i < numTuples; i++) {
-            outColumn[i] = hashHim(leftColumn[i]);
-          }
-          return output;
-        }
-    );
-  }
-
+  LambdaTree<LeftType> lhs;
+  LambdaTree<RightType> rhs;
 };
 
 }

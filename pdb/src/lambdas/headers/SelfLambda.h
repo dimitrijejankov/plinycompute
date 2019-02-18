@@ -24,7 +24,7 @@
 #include "Ptr.h"
 #include "TupleSet.h"
 #include <vector>
-#include "SimpleComputeExecutor.h"
+#include "ApplyComputeExecutor.h"
 #include "TupleSetMachine.h"
 
 namespace pdb {
@@ -79,7 +79,7 @@ public:
         // this is the output attribute
         int outAtt = attsToIncludeInOutput.getAtts ().size ();
 
-        return std :: make_shared <SimpleComputeExecutor> (
+        return std :: make_shared <ApplyComputeExecutor> (
                 output,
                 [=] (TupleSetPtr input) {
 

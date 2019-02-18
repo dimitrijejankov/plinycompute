@@ -26,7 +26,7 @@
 #include "SelfLambda.h"
 #include "MethodCallLambda.h"
 #include "EqualsLambda.h"
-#include "SimpleComputeExecutor.h"
+#include "ApplyComputeExecutor.h"
 #include "CPlusPlusLambda.h"
 #include "TypeName.h"
 
@@ -309,7 +309,7 @@ typename std::enable_if_t<!B, InputType *> {
         /* this is the output attribute */                                                    \
         int outAtt = attsToIncludeInOutput.getAtts ().size ();                                            \
                                                                             \
-        return std :: make_shared <SimpleComputeExecutor> (                                            \
+        return std :: make_shared <ApplyComputeExecutor> (                                            \
             output,                                                                \
             [=] (TupleSetPtr input) {                                                    \
                                                                             \

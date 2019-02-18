@@ -19,6 +19,9 @@
 #ifndef TUPLE_SET_ITER_H
 #define TUPLE_SET_ITER_H
 
+#include <PDBVector.h>
+#include <TupleSet.h>
+
 namespace pdb {
 
 // this class iterates over an input pdb :: Vector, breaking it up into a series of TupleSet objects
@@ -35,8 +38,7 @@ public:
 
 	TupleSetIterator (Handle <Vector <Handle <Object>>> &iterateOverMe, size_t chunkSize) : iterateOverMe (iterateOverMe), chunkSize (chunkSize) {
 		output = std :: make_shared <TupleSet> ();
-		std :: vector <Handle <Object>> *inputColumn = new std :: vector <Handle <Object>>;
-		output->addColumn (0, inputColumn, true); 
+		output->addColumn (0, new std :: vector <Handle <Object>>, true);
 		pos = 0;
 	}
 
@@ -45,7 +47,7 @@ public:
 		if (pos == iterateOverMe->size ())
 			return nullptr;
 
-		int numSlotsToIterate = chunkSize;
+		auto numSlotsToIterate = chunkSize;
 		if (numSlotsToIterate + pos > iterateOverMe->size ()) {
 			numSlotsToIterate = iterateOverMe->size () - pos;
 		}
@@ -58,7 +60,7 @@ public:
 		}
 
 		return output;
-	}	
+	}
 };
 
 }
