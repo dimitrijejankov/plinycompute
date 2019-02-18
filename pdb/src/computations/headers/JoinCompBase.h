@@ -24,13 +24,20 @@ namespace pdb {
 
 class JoinCompBase : public Computation {
 
-public:
+ public:
 
-        virtual ComputeExecutorPtr getExecutor (bool needToSwapAtts, TupleSpec &hashedInputSchema, TupleSpec &pipelinedInputSchema,
-                TupleSpec &pipelinedAttsToOperateOn, TupleSpec &pipelinedAttsToIncludeInOutput, ComputeInfoPtr arg) = 0;
+  virtual ComputeExecutorPtr getExecutor(bool needToSwapAtts,
+                                         TupleSpec &hashedInputSchema,
+                                         TupleSpec &pipelinedInputSchema,
+                                         TupleSpec &pipelinedAttsToOperateOn,
+                                         TupleSpec &pipelinedAttsToIncludeInOutput,
+                                         ComputeInfoPtr arg) = 0;
 
-        virtual ComputeExecutorPtr getExecutor (bool needToSwapAtts, TupleSpec &hashedInputSchema, TupleSpec &pipelinedInputSchema,
-                TupleSpec &pipelinedAttsToOperateOn, TupleSpec &pipelinedAttsToIncludeInOutput) = 0;
+  virtual ComputeExecutorPtr getExecutor(bool needToSwapAtts,
+                                         TupleSpec &hashedInputSchema,
+                                         TupleSpec &pipelinedInputSchema,
+                                         TupleSpec &pipelinedAttsToOperateOn,
+                                         TupleSpec &pipelinedAttsToIncludeInOutput) = 0;
 };
 
 }
