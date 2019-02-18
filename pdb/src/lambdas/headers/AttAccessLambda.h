@@ -29,7 +29,7 @@
 
 namespace pdb {
 
-template <class Out, class ClassType> 
+template <class Out, class ClassType>
 class AttAccessLambda : public TypedLambdaObject <Ptr <Out>> {
 
 public:
@@ -42,7 +42,7 @@ public:
 public:
 
 	// create an att access lambda; offset is the position in the input object where we are going to find the input att
-	AttAccessLambda (std :: string inputTypeNameIn, std :: string attNameIn, 
+	AttAccessLambda (std :: string inputTypeNameIn, std :: string attNameIn,
 		std :: string attType, Handle <ClassType> & input, size_t offset) :
 		offsetOfAttToProcess (offset), inputTypeName (inputTypeNameIn), attName (attNameIn), attTypeName (attType) {
 
@@ -51,15 +51,7 @@ public:
 
 	}
 
-/*        bool addColumnToTupleSet (std :: string &pleaseCreateThisType, TupleSetPtr input, int outAtt) override {  
-                if (pleaseCreateThisType == getTypeName <Ptr <Out>> ()) {  
-                        std :: vector <Ptr <Out>> *outColumn = new std :: vector <Ptr <Out>>; 
-                        input->addColumn (outAtt, outColumn, true); 
-                        return true;   
-                } 
-		return false;
-	}
-*/
+
 	std :: string getTypeOfLambda () override {
 		return std :: string ("attAccess");
 	}
@@ -116,14 +108,14 @@ public:
 	}
 
 	ComputeExecutorPtr getExecutor (TupleSpec &inputSchema, TupleSpec &attsToOperateOn, TupleSpec &attsToIncludeInOutput) override {
-	
+
 		// create the output tuple set
 		TupleSetPtr output = std :: make_shared <TupleSet> ();
 
 		// create the machine that is going to setup the output tuple set, using the input tuple set
 		TupleSetSetupMachinePtr myMachine = std :: make_shared <TupleSetSetupMachine> (inputSchema, attsToIncludeInOutput);
 
-		// this is the input attribute that we will process    
+		// this is the input attribute that we will process
 		std :: vector <int> matches = myMachine->match (attsToOperateOn);
 		int whichAtt = matches[0];
 
@@ -131,11 +123,11 @@ public:
 		int outAtt = attsToIncludeInOutput.getAtts ().size ();
 
 		return std :: make_shared <SimpleComputeExecutor> (
-			output, 
+			output,
 			[=] (TupleSetPtr input) {
 
 				// set up the output tuple set
-				myMachine->setup (input, output);	
+				myMachine->setup (input, output);
 
 				// get the columns to operate on
 				std :: vector <Handle<ClassType>> &inputColumn = input->getColumn <Handle<ClassType>> (whichAtt);
@@ -143,7 +135,7 @@ public:
 				// setup the output column, if it is not already set up
 				if (!output->hasColumn (outAtt)) {
 					std :: vector <Ptr <Out>> *outputCol = new std :: vector <Ptr <Out>>;
-					output->addColumn (outAtt, outputCol, true); 
+					output->addColumn (outAtt, outputCol, true);
 				}
 
 				// get the output column
@@ -155,11 +147,11 @@ public:
 				for (int i = 0; i < numTuples; i++) {
 					outColumn [i] = (Out *) ((char *) &(*(inputColumn[i])) + offsetOfAttToProcess);
 				}
-				
+
 				return output;
 			}
 		);
-		
+
 	}
 };
 

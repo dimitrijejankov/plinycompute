@@ -29,7 +29,7 @@
 
 namespace pdb {
 
-template <class ClassType> 
+template <class ClassType>
 class SelfLambda : public TypedLambdaObject <Ptr <ClassType>> {
 
 public:
@@ -40,7 +40,7 @@ public:
 
 	// create an att access lambda; offset is the position in the input object where we are going to find the input att
 	SelfLambda (Handle <ClassType> & input) {
-		inputTypeName = getTypeName <ClassType> ();		
+		inputTypeName = getTypeName <ClassType> ();
                 std :: cout << "SelfLambda: input class is " << input.getExactTypeInfoValue() << std :: endl;
 	}
 
@@ -64,52 +64,52 @@ public:
 		return nullptr;
 	}
 
-        ComputeExecutorPtr getExecutor (TupleSpec &inputSchema, TupleSpec &attsToOperateOn, TupleSpec &attsToIncludeInOutput) override {
+    ComputeExecutorPtr getExecutor (TupleSpec &inputSchema, TupleSpec &attsToOperateOn, TupleSpec &attsToIncludeInOutput) override {
 
-	        // create the output tuple set
-	        TupleSetPtr output = std :: make_shared <TupleSet> ();
+        // create the output tuple set
+        TupleSetPtr output = std :: make_shared <TupleSet> ();
 
-       		// create the machine that is going to setup the output tuple set, using the input tuple set
-	        TupleSetSetupMachinePtr myMachine = std :: make_shared <TupleSetSetupMachine> (inputSchema, attsToIncludeInOutput);
+        // create the machine that is going to setup the output tuple set, using the input tuple set
+        TupleSetSetupMachinePtr myMachine = std :: make_shared <TupleSetSetupMachine> (inputSchema, attsToIncludeInOutput);
 
-	        // this is the input attribute that we will process
-	        std :: vector <int> matches = myMachine->match (attsToOperateOn);
-	        int whichAtt = matches[0];
+        // this is the input attribute that we will process
+        std :: vector <int> matches = myMachine->match (attsToOperateOn);
+        int whichAtt = matches[0];
 
-	        // this is the output attribute
-	        int outAtt = attsToIncludeInOutput.getAtts ().size ();
+        // this is the output attribute
+        int outAtt = attsToIncludeInOutput.getAtts ().size ();
 
-                return std :: make_shared <SimpleComputeExecutor> (
-                        output,
-                        [=] (TupleSetPtr input) {
+        return std :: make_shared <SimpleComputeExecutor> (
+                output,
+                [=] (TupleSetPtr input) {
 
-                                // set up the output tuple set
-                                myMachine->setup (input, output);
+                        // set up the output tuple set
+                        myMachine->setup (input, output);
 
-                                // get the columns to operate on
-                                std :: vector <Handle<ClassType>> &inputColumn = input->getColumn <Handle<ClassType>> (whichAtt);
+                        // get the columns to operate on
+                        std :: vector <Handle<ClassType>> &inputColumn = input->getColumn <Handle<ClassType>> (whichAtt);
 
-                                // setup the output column, if it is not already set up
-                                if (!output->hasColumn (outAtt)) {
-                                        std :: vector <Ptr <ClassType>> *outputCol = new std :: vector <Ptr <ClassType>>;
-                                        output->addColumn (outAtt, outputCol, true);
-                                }
-
-                                // get the output column
-                                std :: vector <Ptr <ClassType>> &outColumn = output->getColumn <Ptr <ClassType>> (outAtt);
-
-                                // loop down the columns, setting the output
-                                int numTuples = inputColumn.size ();
-                                outColumn.resize (numTuples);
-                                for (int i = 0; i < numTuples; i++) {
-                                        outColumn [i] = (ClassType *) &(*(inputColumn[i]));
-                                }
-
-                                return output;
+                        // setup the output column, if it is not already set up
+                        if (!output->hasColumn (outAtt)) {
+                                std :: vector <Ptr <ClassType>> *outputCol = new std :: vector <Ptr <ClassType>>;
+                                output->addColumn (outAtt, outputCol, true);
                         }
-                );
 
-        }
+                        // get the output column
+                        std :: vector <Ptr <ClassType>> &outColumn = output->getColumn <Ptr <ClassType>> (outAtt);
+
+                        // loop down the columns, setting the output
+                        int numTuples = inputColumn.size ();
+                        outColumn.resize (numTuples);
+                        for (int i = 0; i < numTuples; i++) {
+                                outColumn [i] = (ClassType *) &(*(inputColumn[i]));
+                        }
+
+                        return output;
+                }
+        );
+
+    }
 
 };
 
