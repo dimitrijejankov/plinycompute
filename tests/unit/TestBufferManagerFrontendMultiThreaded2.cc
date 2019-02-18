@@ -31,7 +31,7 @@ public:
 
 };
 
-TEST(StorageManagerFrontendTest, Test7) {
+TEST(BufferManagerFrontendTest, Test7) {
 
   const UseTemporaryAllocationBlock block(256 * 1024 * 1024);
 

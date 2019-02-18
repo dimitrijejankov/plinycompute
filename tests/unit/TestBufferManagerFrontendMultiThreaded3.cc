@@ -32,7 +32,7 @@ public:
 };
 
 /// this test test anonymous pages of different sizes
-TEST(StorageManagerFrontendTest, Test8) {
+TEST(BufferManagerFrontendTest, Test8) {
 
   const UseTemporaryAllocationBlock block(256 * 1024 * 1024);
 

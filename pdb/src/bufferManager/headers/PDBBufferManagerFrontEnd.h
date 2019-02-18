@@ -129,14 +129,14 @@ private:
   bool handleForwardPage(pdb::PDBPageHandle &page, std::shared_ptr<T> &communicator, std::string &error);
 
   // mark the tests for the frontend
-  FRIEND_TEST(StorageManagerFrontendTest, Test1);
-  FRIEND_TEST(StorageManagerFrontendTest, Test2);
-  FRIEND_TEST(StorageManagerFrontendTest, Test3);
-  FRIEND_TEST(StorageManagerFrontendTest, Test4);
-  FRIEND_TEST(StorageManagerFrontendTest, Test5);
-  FRIEND_TEST(StorageManagerFrontendTest, Test6);
-  FRIEND_TEST(StorageManagerFrontendTest, Test7);
-  FRIEND_TEST(StorageManagerFrontendTest, Test8);
+  FRIEND_TEST(BufferManagerFrontendTest, Test1);
+  FRIEND_TEST(BufferManagerFrontendTest, Test2);
+  FRIEND_TEST(BufferManagerFrontendTest, Test3);
+  FRIEND_TEST(BufferManagerFrontendTest, Test4);
+  FRIEND_TEST(BufferManagerFrontendTest, Test5);
+  FRIEND_TEST(BufferManagerFrontendTest, Test6);
+  FRIEND_TEST(BufferManagerFrontendTest, Test7);
+  FRIEND_TEST(BufferManagerFrontendTest, Test8);
 
   // sends a page to the backend via the communicator
   template <class T>

@@ -2,8 +2,8 @@
 // Created by dimitrije on 2/3/19.
 //
 
-#ifndef PDB_TESTSTORAGEMANAGERBACKENDSINGLETHREADED_H
-#define PDB_TESTSTORAGEMANAGERBACKENDSINGLETHREADED_H
+#ifndef PDB_TESTBUFFERMANAGERBACKENDSINGLETHREADED_H
+#define PDB_TESTBUFFERMANAGERBACKENDSINGLETHREADED_H
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -16,7 +16,7 @@ public:
   MOCK_METHOD0(getConfiguration, pdb::NodeConfigPtr());
 
   // mark the tests for the backend
-  FRIEND_TEST(StorageManagerBackendTest, Test1);
+  FRIEND_TEST(BufferManagerBackendTest, Test1);
 };
 
 class MockRequestFactoryImpl {
@@ -202,4 +202,4 @@ shared_ptr<MockRequestFactoryImpl> MockRequestFactory::_requestFactory = nullptr
 }
 
 
-#endif //PDB_TESTSTORAGEMANAGERBACKENDSINGLETHREADED_H
+#endif //PDB_TESTBUFFERMANAGERBACKENDSINGLETHREADED_H

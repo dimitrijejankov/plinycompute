@@ -66,7 +66,7 @@ PDBPageHandle createRandomTempPage(PDBBufferManagerImpl &myMgr, vector<size_t> &
 
 TEST(BufferManagerTest, Test1) {
 
-  // create the storage manager
+  // create the buffer manager
   PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 16, "metadata", ".");
 
@@ -375,7 +375,7 @@ TEST(BufferManagerTest, Test6) {
 // this tests tests concurrent set pages
 TEST(BufferManagerTest, Test7) {
 
-  // create the storage manager
+  // create the buffer manager
   PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 5, "metadata", ".");
 
@@ -458,7 +458,7 @@ TEST(BufferManagerTest, Test7) {
 // this test tests concurrent anonymous pages
 TEST(BufferManagerTest, Test8) {
 
-  // create the storage manager
+  // create the buffer manager
   PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 10, "metadata", ".");
 
@@ -544,7 +544,7 @@ TEST(BufferManagerTest, Test8) {
 // this test tests anonymous pages of size 32 when the largest page size is 64
 TEST(BufferManagerTest, Test9) {
 
-  // create the storage manager
+  // create the buffer manager
   PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 10, "metadata", ".");
 
@@ -630,7 +630,7 @@ TEST(BufferManagerTest, Test9) {
 // tests anonymous pages of different sizes 8, 16, 32 when the largest page size is 64
 TEST(BufferManagerTest, Test10) {
 
-  // create the storage manager
+  // create the buffer manager
   PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 10, "metadata", ".");
 
@@ -728,7 +728,7 @@ TEST(BufferManagerTest, Test10) {
 // tests freezing on anonymous pages
 TEST(BufferManagerTest, Test11) {
 
-  // create the storage manager
+  // create the buffer manager
   PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 10, "metadata", ".");
 
@@ -828,7 +828,7 @@ TEST(BufferManagerTest, Test11) {
 
 // tests freezing on set pages of different sizes..
 TEST(BufferManagerTest, Test12) {
-  // create the storage manager
+  // create the buffer manager
   PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 128, 4, "metadata", ".");
 
