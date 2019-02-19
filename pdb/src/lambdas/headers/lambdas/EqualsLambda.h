@@ -26,6 +26,8 @@
 #include "TupleSet.h"
 #include "Ptr.h"
 #include "PDBMap.h"
+#include <TypedLambdaObject.h>
+
 namespace pdb {
 
 // only one of these two versions is going to work... used to automatically hash on the underlying type

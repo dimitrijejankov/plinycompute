@@ -24,7 +24,6 @@ foreach(file ${files})
     add_executable(${fileName} ${file}
                                $<TARGET_OBJECTS:logical-plan-parser>
                                $<TARGET_OBJECTS:client>)
-    message("${GTEST_BOTH_LIBRARIES}")
 
     # link the stuff we need
     target_link_libraries(${fileName} pdb-tests-common)

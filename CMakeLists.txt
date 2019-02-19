@@ -73,6 +73,7 @@ include_directories("${PROJECT_SOURCE_DIR}/pdb/src/storageManager/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/objectModel/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/sharedLibraries/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/computations/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/computationServer/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/bufferManager/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/pipeline/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/pipeline/headers/sinks")
@@ -98,6 +99,7 @@ file(GLOB DISTRIBUTION_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/distributio
 file(GLOB LOGICAL_PLAN_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/logicalPlan/source/*.cc")
 file(GLOB CLIENT_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/client/source/*.cc")
 file(GLOB BUFFER_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/bufferManager/source/*.cc")
+file(GLOB COMPUTATION_SERVER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/computationServer/sources/*.cc")
 
 set(SOURCE_FILES_SQL_LITE ${PROJECT_SOURCE_DIR}/third-party/sqlite/source/sqlite3.c)
 
@@ -209,6 +211,7 @@ add_library(logical-plan OBJECT ${LOGICAL_PLAN_SOURCE})
 add_library(client OBJECT ${CLIENT_SOURCE})
 add_library(object-model OBJECT ${OBJECT_MODEL_SOURCE})
 add_library(buffer-manager OBJECT ${BUFFER_MANAGER_SOURCE})
+add_library(computation-server OBJECT ${COMPUTATION_SERVER_SOURCE})
 
 # add the dependencies to the object type generationg
 add_dependencies(server-functionalities object-type-ids)
@@ -230,6 +233,7 @@ add_library(pdb-server-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:server-functionalities>
         $<TARGET_OBJECTS:storageManager>
         $<TARGET_OBJECTS:buffer-manager>
+        $<TARGET_OBJECTS:computation-server>
         $<TARGET_OBJECTS:work>)
 
 # used to link the shared libraries that the shared librarires use
@@ -244,6 +248,7 @@ add_library(pdb-shared-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:server-functionalities>
         $<TARGET_OBJECTS:storageManager>
         $<TARGET_OBJECTS:buffer-manager>
+        $<TARGET_OBJECTS:computation-server>
         $<TARGET_OBJECTS:work>)
 
 # used to link the shared libraries that the test use
@@ -258,6 +263,7 @@ add_library(pdb-tests-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:server-functionalities>
         $<TARGET_OBJECTS:storageManager>
         $<TARGET_OBJECTS:buffer-manager>
+        $<TARGET_OBJECTS:computation-server>
         $<TARGET_OBJECTS:work>)
 
 # link the dependent libraries so that they are made of the public interface

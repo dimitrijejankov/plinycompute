@@ -16,7 +16,7 @@
  *                                                                           *
  *****************************************************************************/
 /*
- * CatalogUserTypeMetadata.h
+ * CatUserTypeMetadata.h
  *
  */
 
@@ -30,7 +30,7 @@
 #include "PDBString.h"
 #include "PDBVector.h"
 
-//  PRELOAD %CatalogUserTypeMetadata%
+//  PRELOAD %CatUserTypeMetadata%
 
 using namespace std;
 
@@ -46,19 +46,19 @@ namespace pdb {
  *   3) soBytes: are the bytes of the .so library
  */
 
-class CatalogUserTypeMetadata : public pdb::Object {
+class CatUserTypeMetadata : public pdb::Object {
 
 public:
   ENABLE_DEEP_COPY
 
-  CatalogUserTypeMetadata() {
+  CatUserTypeMetadata() {
     this->typeID = -1;
     this->soBytes = nullptr;
   };
 
-  ~CatalogUserTypeMetadata() = default;
+  ~CatUserTypeMetadata() = default;
 
-  CatalogUserTypeMetadata(int32_t typeID,
+  CatUserTypeMetadata(int32_t typeID,
                           const std::string &name,
                           const std::string &typeCategory,
                           const char *libraryBytes,
@@ -74,7 +74,7 @@ public:
     memcpy(this->soBytes->c_ptr(), libraryBytes, librarySize);
   }
 
-  CatalogUserTypeMetadata(const CatalogUserTypeMetadata &pdbCatalogEntryToCopy) {
+  CatUserTypeMetadata(const CatUserTypeMetadata &pdbCatalogEntryToCopy) {
 
     // copy the type info
     this->typeID = pdbCatalogEntryToCopy.typeID;

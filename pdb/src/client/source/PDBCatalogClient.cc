@@ -45,7 +45,7 @@
 #include "PDBCatalogClient.h"
 #include "ShutDown.h"
 #include "SimpleSendDataRequest.h"
-#include "CatalogUserTypeMetadata.h"
+#include "CatUserTypeMetadata.h"
 #include "CatGetWorkersResult.h"
 
 namespace pdb {
@@ -224,9 +224,9 @@ bool PDBCatalogClient::getSharedLibraryByTypeName(
 
   PDB_COUT << "inside PDBCatalogClient getSharedLibraryByTypeName for type=" << typeNameToSearch << " and id=" << identifier << std::endl;
 
-  return RequestFactory::heapRequest< CatSharedLibraryByNameRequest, CatalogUserTypeMetadata, bool>(
+  return RequestFactory::heapRequest< CatSharedLibraryByNameRequest, CatUserTypeMetadata, bool>(
       myLogger, port, address, false, 1024 * 1024 * 4,
-      [&](Handle<CatalogUserTypeMetadata> result) {
+      [&](Handle<CatUserTypeMetadata> result) {
 
         PDB_COUT << "In PDBCatalogClient- Handling CatSharedLibraryByNameRequest "
                     "received from "

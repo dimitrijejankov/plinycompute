@@ -45,7 +45,7 @@
 #include "CatUpdateNodeStatusRequest.h"
 #include "CatGetSetResult.h"
 #include "CatGetWorkersResult.h"
-#include "CatalogUserTypeMetadata.h"
+#include "CatUserTypeMetadata.h"
 #include "CatPrintCatalogRequest.h"
 #include "CatPrintCatalogResult.h"
 #include "CatalogServer.h"
@@ -389,7 +389,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         return make_pair(res, errMsg);
       }));
 
-  // handles a request to retrieve an .so library given a Type Name along with its metadata (stored as a serialized CatalogUserTypeMetadata object)
+  // handles a request to retrieve an .so library given a Type Name along with its metadata (stored as a serialized CatUserTypeMetadata object)
   forMe.registerHandler(
       CatSharedLibraryByNameRequest_TYPEID,
       make_shared<HeapRequestHandler<CatSharedLibraryByNameRequest>>([&](Handle<CatSharedLibraryByNameRequest> request,
@@ -409,7 +409,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
           // create an allocation block that can fit .so library and allocate a response and init the response data
           const UseTemporaryAllocationBlock tempBlock{ type->soBytes.size() + 1024 * 1024 };
-          Handle<CatalogUserTypeMetadata> response = makeObject<CatalogUserTypeMetadata>(type->id,
+          Handle<CatUserTypeMetadata> response = makeObject<CatUserTypeMetadata>(type->id,
                                                                                          type->name,
                                                                                          type->typeCategory,
                                                                                          type->soBytes.data(),
@@ -472,7 +472,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
             // create a not found response
             const UseTemporaryAllocationBlock tempBlock{1024};
-            Handle<CatalogUserTypeMetadata> notFoundResponse = makeObject<CatalogUserTypeMetadata>();
+            Handle<CatUserTypeMetadata> notFoundResponse = makeObject<CatUserTypeMetadata>();
 
             // send it
             res = sendUsingMe->sendObject(notFoundResponse, errMsg);
@@ -494,7 +494,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
             const UseTemporaryAllocationBlock tempBlock{1024 * 1024 + bytes.size()};
 
             // prepares Object to be sent to caller
-            Handle<CatalogUserTypeMetadata> objectToBeSent = makeObject<CatalogUserTypeMetadata>(type->id, type->name, type->typeCategory, bytes.data(), bytes.size());
+            Handle<CatUserTypeMetadata> objectToBeSent = makeObject<CatUserTypeMetadata>(type->id, type->name, type->typeCategory, bytes.data(), bytes.size());
 
             // sends result to requester
             res = sendUsingMe->sendObject(objectToBeSent, errMsg);
@@ -515,7 +515,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         PDB_COUT << errMsg;
 
         // Creates an empty Object just to send the response to caller
-        Handle<CatalogUserTypeMetadata> notFoundResponse = makeObject<CatalogUserTypeMetadata>();
+        Handle<CatUserTypeMetadata> notFoundResponse = makeObject<CatUserTypeMetadata>();
 
         // send the object
         bool res = sendUsingMe->sendObject(notFoundResponse, errMsg);

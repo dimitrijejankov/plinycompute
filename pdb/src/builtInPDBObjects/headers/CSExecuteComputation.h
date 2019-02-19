@@ -21,34 +21,35 @@
 
 #include "Object.h"
 #include "PDBString.h"
+#include <Computation.h>
 
-// PRELOAD %ExecuteComputation%
+// PRELOAD %CSExecuteComputation%
 
 namespace pdb {
 
 // encapsulates a request to run a query
-class ExecuteComputation : public Object {
+class CSExecuteComputation : public Object {
 
 public:
-    ExecuteComputation() {}
-    ~ExecuteComputation() {}
 
-    ExecuteComputation(std::string tcapString) {
+    CSExecuteComputation() = default;
+    ~CSExecuteComputation() = default;
+
+    explicit CSExecuteComputation(const std::string &tcapString) {
         this->tcapString = tcapString;
-    }
-
-    void setTCAPString(std::string tcapString) {
-        this->tcapString = tcapString;
-    }
-
-    std::string getTCAPString() {
-        return tcapString;
     }
 
     ENABLE_DEEP_COPY
 
-private:
+    /**
+     * The tcap string associated with the computations
+     */
     String tcapString;
+
+    /**
+     * The computations
+     */
+    Handle<Vector<Handle<pdb::Computation>>> computations;
 };
 }
 
