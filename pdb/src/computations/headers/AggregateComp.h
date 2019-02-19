@@ -44,7 +44,7 @@ class AggregateComp : public Computation {
   virtual Lambda<ValueClass> getValueProjection(Handle<InputClass> aggMe) = 0;
 
   // extract the key projection and value projection
-  void extractLambdas(std::map<std::string, GenericLambdaObjectPtr> &returnVal) override {
+  void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
     int suffix = 0;
     Handle<InputClass> checkMe = nullptr;
     Lambda<KeyClass> keyLambda = getKeyProjection(checkMe);
@@ -105,50 +105,7 @@ class AggregateComp : public Computation {
                            std::string &outputTupleSetName,
                            std::vector<std::string> &outputColumnNames,
                            std::string &addedOutputColumnName) {
-    std::string tcapString = "";
-    Handle<InputClass> checkMe = nullptr;
-    Lambda<KeyClass> keyLambda = getKeyProjection(checkMe);
-    std::string tupleSetName;
-    std::vector<std::string> columnNames;
-    std::string addedColumnName;
-    int lambdaLabel = 0;
-    tcapString += keyLambda.toTCAPString(inputTupleSetName,
-                                         inputColumnNames,
-                                         inputColumnsToApply,
-                                         lambdaLabel,
-                                         getComputationType(),
-                                         computationLabel,
-                                         tupleSetName,
-                                         columnNames,
-                                         addedColumnName,
-                                         false);
-    Lambda<ValueClass> valueLambda = getValueProjection(checkMe);
-    std::vector<std::string> columnsToApply;
-    columnsToApply.push_back(addedColumnName);
-    tcapString += valueLambda.toTCAPString(tupleSetName,
-                                           columnNames,
-                                           columnsToApply,
-                                           lambdaLabel,
-                                           getComputationType(),
-                                           computationLabel,
-                                           outputTupleSetName,
-                                           outputColumnNames,
-                                           addedOutputColumnName,
-                                           false);
-
-    std::string newTupleSetName = "aggOutFor" + getComputationType() + std::to_string(computationLabel);
-    addedOutputColumnName = "aggOutFor" + getComputationType() + "_" + std::to_string(computationLabel);
-    tcapString += newTupleSetName +=
-        "(" + addedOutputColumnName + ") <= AGGREGATE (" + outputTupleSetName + " (" + addedColumnName + ", "
-            + addedOutputColumnName + "), '";
-    tcapString += getComputationType() + "_" + std::to_string(computationLabel) + "')";
-    outputTupleSetName = newTupleSetName;
-    outputColumnNames.clear();
-    outputColumnNames.push_back(addedOutputColumnName);
-    this->setTraversed(true);
-    this->setOutputTupleSetName(outputTupleSetName);
-    this->setOutputColumnToApply(addedOutputColumnName);
-    return tcapString;
+    return "";
   }
 
   bool needsMaterializeOutput() override {

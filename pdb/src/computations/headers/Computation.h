@@ -38,7 +38,7 @@ class Computation : public Object {
 
   // this is implemented by the actual computation object... as the name implies, it is used
   // to extract the lambdas from the computation
-  virtual void extractLambdas(std::map<std::string, GenericLambdaObjectPtr> &returnVal) {}
+  virtual void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) {}
 
   // if this particular computation can be used as a compute source in a pipeline, this
   // method will return the compute source object associated with the computation...

@@ -129,7 +129,7 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
     return std::string("native_lambda");
   }
 
-  GenericLambdaObjectPtr getChild(int which) override {
+  LambdaObjectPtr getChild(int which) override {
     return nullptr;
   }
 

@@ -83,17 +83,7 @@ class SetWriter : public Computation {
                            std::string &outputTupleSetName,
                            std::vector<std::string> &outputColumnNames,
                            std::string &addedOutputColumnName) {
-    std::string ret =
-        std::string("out() <= OUTPUT (") + inputTupleSetName + " (" + addedOutputColumnName + ")" + std::string(", '")
-            + std::string("EmptySet()") + std::string("', '") + std::string("EmptySet()") + std::string("', '")
-            + getComputationType() + std::string("_") + std::to_string(computationLabel) + std::string("')");
-    outputTupleSetName = "out";
-    outputColumnNames.push_back("");
-    addedOutputColumnName = "";
-    this->setTraversed(true);
-    this->setOutputTupleSetName(outputTupleSetName);
-    this->setOutputColumnToApply(addedOutputColumnName);
-    return ret;
+    return "";
   }
 
 };

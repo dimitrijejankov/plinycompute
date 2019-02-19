@@ -1,3 +1,5 @@
+#include <utility>
+
 /*****************************************************************************
  *                                                                           *
  *  Copyright 2018 Rice University                                           *
@@ -45,16 +47,12 @@ class MethodCallLambda : public TypedLambdaObject<Out> {
                    Handle<ClassType> &input,
                    std::function<bool(std::string &, TupleSetPtr, int)> columnBuilder,
                    std::function<ComputeExecutorPtr(TupleSpec & , TupleSpec & , TupleSpec & )> getExecutorFunc) :
-      getExecutorFunc(getExecutorFunc), columnBuilder(columnBuilder), inputTypeName(inputTypeName),
-      methodName(methodName), returnTypeName(returnTypeName) {
+      getExecutorFunc(std::move(getExecutorFunc)), columnBuilder(std::move(columnBuilder)), inputTypeName(std::move(inputTypeName)),
+      methodName(std::move(methodName)), returnTypeName(std::move(returnTypeName)) {
 
     std::cout << "MethodCallLambda: input type code is " << input.getExactTypeInfoValue() << std::endl;
 
   }
-
-  /* bool addColumnToTupleSet (std :: string &typeToMatch, TupleSetPtr addToMe, int posToAddTo) override {
-      return columnBuilder (typeToMatch, addToMe, posToAddTo);
-  } */
 
   std::string getTypeOfLambda() override {
     return std::string("methodCall");
@@ -72,53 +70,11 @@ class MethodCallLambda : public TypedLambdaObject<Out> {
     return returnTypeName;
   }
 
-  std::string toTCAPString(std::string inputTupleSetName,
-                           std::vector<std::string> inputColumnNames,
-                           std::vector<std::string> inputColumnsToApply,
-                           int lambdaLabel,
-                           std::string computationName,
-                           int computationLabel,
-                           std::string &outputTupleSetName,
-                           std::vector<std::string> &outputColumns,
-                           std::string &outputColumnName) override {
-    std::string tcapString = "";
-    outputTupleSetName =
-        "methodCall_" + std::to_string(lambdaLabel) + "OutFor" + computationName + std::to_string(computationLabel);
-
-    outputColumnName = "methodCall_" + methodName;
-    outputColumns.clear();
-    for (int i = 0; i < inputColumnNames.size(); i++) {
-      outputColumns.push_back(inputColumnNames[i]);
-    }
-    outputColumns.push_back(outputColumnName);
-    tcapString += outputTupleSetName + "(" + outputColumns[0];
-    for (int i = 1; i < outputColumns.size(); i++) {
-      tcapString += ",";
-      tcapString += outputColumns[i];
-    }
-    tcapString += ") <= APPLY (";
-    tcapString += inputTupleSetName + "(" + inputColumnsToApply[0];
-    for (int i = 1; i < inputColumnsToApply.size(); i++) {
-      tcapString += ",";
-      tcapString += inputColumnsToApply[i];
-    }
-    tcapString += "), " + inputTupleSetName + "(" + inputColumnNames[0];
-    for (int i = 1; i < inputColumnNames.size(); i++) {
-      tcapString += ",";
-      tcapString += inputColumnNames[i];
-    }
-    tcapString += "), '" + computationName + "_" + std::to_string(computationLabel) + "', '" + getTypeOfLambda() + "_"
-        + std::to_string(lambdaLabel) + "')\n";
-
-    return tcapString;
-
-  }
-
   int getNumChildren() override {
     return 0;
   }
 
-  GenericLambdaObjectPtr getChild(int which) override {
+  LambdaObjectPtr getChild(int which) override {
     return nullptr;
   }
 
