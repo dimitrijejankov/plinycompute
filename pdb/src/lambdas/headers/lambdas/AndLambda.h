@@ -21,8 +21,9 @@
 
 #include <vector>
 #include "Lambda.h"
-#include "ComputeExecutor.h"
+#include "executors/ComputeExecutor.h"
 #include "TupleSetMachine.h"
+#include "TypedLambdaObject.h"
 #include "TupleSet.h"
 #include "Ptr.h"
 
@@ -125,31 +126,12 @@ class AndLambda : public TypedLambdaObject<bool> {
     return 2;
   }
 
-  GenericLambdaObjectPtr getChild(int which) override {
+  LambdaObjectPtr getChild(int which) override {
     if (which == 0)
       return lhs.getPtr();
     if (which == 1)
       return rhs.getPtr();
     return nullptr;
-  }
-
-  std::string toTCAPString(std::string inputTupleSetName,
-                           std::vector<std::string> inputColumnNames,
-                           std::vector<std::string> inputColumnsToApply,
-                           int lambdaLabel,
-                           std::string computationName,
-                           int computationLabel,
-                           std::string &outputTupleSetName,
-                           std::vector<std::string> &outputColumns,
-                           std::string &outputColumnName) override {
-
-    //it doesn't do anything for Join selection
-    if (computationName == "JoinComp") {
-      return "";
-    }
-
-    //TODO
-    return "";
   }
 
 };

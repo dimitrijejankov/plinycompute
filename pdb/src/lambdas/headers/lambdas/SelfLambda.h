@@ -24,7 +24,7 @@
 #include "Ptr.h"
 #include "TupleSet.h"
 #include <vector>
-#include "ApplyComputeExecutor.h"
+#include "executors/ApplyComputeExecutor.h"
 #include "TupleSetMachine.h"
 
 namespace pdb {
@@ -39,7 +39,7 @@ public:
 public:
 
 	// create an att access lambda; offset is the position in the input object where we are going to find the input att
-	SelfLambda (Handle <ClassType> & input) {
+	explicit SelfLambda (Handle <ClassType> & input) {
 		inputTypeName = getTypeName <ClassType> ();
                 std :: cout << "SelfLambda: input class is " << input.getExactTypeInfoValue() << std :: endl;
 	}
@@ -60,7 +60,7 @@ public:
 		return 0;
 	}
 
-	GenericLambdaObjectPtr getChild (int which) override {
+	LambdaObjectPtr getChild (int which) override {
 		return nullptr;
 	}
 
@@ -91,8 +91,7 @@ public:
 
                         // setup the output column, if it is not already set up
                         if (!output->hasColumn (outAtt)) {
-                                std :: vector <Ptr <ClassType>> *outputCol = new std :: vector <Ptr <ClassType>>;
-                                output->addColumn (outAtt, outputCol, true);
+                            output->addColumn (outAtt, new std :: vector <Ptr <ClassType>>, true);
                         }
 
                         // get the output column

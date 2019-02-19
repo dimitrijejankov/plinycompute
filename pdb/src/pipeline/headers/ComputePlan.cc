@@ -20,9 +20,9 @@
 #define COMPUTE_PLAN_CC
 
 #include "ComputePlan.h"
-#include "FilterExecutor.h"
+#include "executors/FilterExecutor.h"
 #include "AtomicComputationClasses.h"
-#include "EqualsLambda.h"
+#include "lambdas/EqualsLambda.h"
 #include "JoinCompBase.h"
 #include "Lexer.h"
 #include "Parser.h"

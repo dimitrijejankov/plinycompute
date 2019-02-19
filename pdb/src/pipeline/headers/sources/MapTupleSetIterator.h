@@ -49,7 +49,7 @@ public:
 		chunkSize (chunkSize), begin (iterateOverMe->begin ()), end (iterateOverMe->end ()) {
 
 		output = std :: make_shared <TupleSet> ();
-		std :: vector <Handle <OutputType>> *inputColumn = new std :: vector <Handle <OutputType>>;
+		auto *inputColumn = new std :: vector <Handle <OutputType>>;
 		output->addColumn (0, inputColumn, true); 
 	}
 
@@ -62,7 +62,7 @@ public:
 		}
 
 		std :: vector <Handle <OutputType>> &inputColumn = output->getColumn <Handle <OutputType>> (0);
-		int limit = inputColumn.size ();
+		int limit = (int) inputColumn.size ();
 		for (int i = 0; i < chunkSize; i++) {
 			
 			if (i >= limit) {
@@ -90,7 +90,7 @@ public:
 
 	}	
 
-	~MapTupleSetIterator () {}
+	~MapTupleSetIterator () override = default;
 };
 
 }

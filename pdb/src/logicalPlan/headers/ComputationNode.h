@@ -29,7 +29,7 @@ class ComputationNode {
 
 private:
     // allows us to access the executors for this plan node... the key is a name of a lambda
-    std::map<std::string, GenericLambdaObjectPtr> allLambdas;
+    std::map<std::string, LambdaObjectPtr> allLambdas;
 
     // the computation itself
     Handle<Computation> me;
@@ -65,7 +65,7 @@ public:
     }
 
     // get the particular lambda
-    GenericLambdaObjectPtr getLambda(std::string me) {
+    LambdaObjectPtr getLambda(std::string me) {
         if (allLambdas.count(me) == 0) {
             std::cout << "This is bad.  Didn't find a lambda corresponding to " << me << "\n";
             exit(1);

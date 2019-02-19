@@ -21,16 +21,16 @@
 
 namespace pdb {
 
-// this class iterates over an input pdb :: Vector, breaking it up into a series of TupleSet objects
+// this class iterates over an input pdb::Vector, breaking it up into a series of TupleSet objects
 class VectorTupleSetIterator : public ComputeSource {
 
 private:
 
 	// function to call to get another vector to process
-	std :: function <void * ()> getAnotherVector;
+	std::function <void * ()> getAnotherVector;
 
 	// function to call to free the vector
-	std :: function <void (void *)> doneWithVector;
+	std::function <void (void *)> doneWithVector;
 
 	// this is the vector to process
 	Handle <Vector <Handle <Object>>> iterateOverMe;
@@ -52,12 +52,12 @@ public:
 	// the first param is a callback function that the iterator will call in order to obtain the page holding the next vector to iterate
 	// over.  The secomd param is a callback that the iterator will call when the specified page is done being processed and can be
 	// freed.  The third param tells us how many objects to put into a tuple set
-	VectorTupleSetIterator (std :: function <void * ()> getAnotherVector, 
-		std :: function <void (void *)> doneWithVector, size_t chunkSize) : 
+	VectorTupleSetIterator (std::function <void * ()> getAnotherVector, 
+		std::function <void (void *)> doneWithVector, size_t chunkSize) : 
 		getAnotherVector (getAnotherVector), doneWithVector (doneWithVector), chunkSize (chunkSize) {
 
 		// create the tuple set that we'll return during iteration
-		output = std :: make_shared <TupleSet> ();
+		output = std::make_shared <TupleSet> ();
 
 		// extract the vector from the input page
 		myRec = (Record <Vector <Handle <Object>>> *) getAnotherVector ();
@@ -67,7 +67,7 @@ public:
 		    iterateOverMe = myRec->getRootObject ();
 
 		    // create the output vector and put it into the tuple set
-		    std :: vector <Handle <Object>> *inputColumn = new std :: vector <Handle <Object>>;
+		    std::vector <Handle <Object>> *inputColumn = new std::vector <Handle <Object>>;
 		    output->addColumn (0, inputColumn, true); 
                 } else {
 
@@ -119,7 +119,7 @@ public:
 		}
 
 		// resize the output vector as appropriate
-		std :: vector <Handle <Object>> &inputColumn = output->getColumn <Handle <Object>> (0);
+		std::vector <Handle <Object>> &inputColumn = output->getColumn <Handle <Object>> (0);
 		inputColumn.resize (numSlotsToIterate);
 
 		// fill it up
@@ -132,7 +132,7 @@ public:
 		return output;
 	}	
 
-	~VectorTupleSetIterator () {
+	~VectorTupleSetIterator () override {
 		
 		// if lastRec is not a nullptr, then it means that we have not yet freed it
 		if (lastRec != nullptr)

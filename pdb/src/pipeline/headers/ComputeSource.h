@@ -36,7 +36,7 @@ public:
 	// this gets another tuple set for processing
 	virtual TupleSetPtr getNextTupleSet () = 0;
 
-	virtual ~ComputeSource () {}
+	virtual ~ComputeSource () = default;
 
 };
 

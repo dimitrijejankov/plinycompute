@@ -25,7 +25,7 @@ class TupleSetSetupMachine {
 
 	// there is one entry here for each item in attsToIncludeInOutput
 	// that entry tells us where to find that attribute in the input
-	std :: vector <int> matches;
+	std::vector <int> matches;
 
 	TupleSpec &inputSchema;
 
@@ -34,15 +34,15 @@ public:
 	TupleSetSetupMachine (TupleSpec &inputSchema) : inputSchema (inputSchema) {}
 
 	TupleSetSetupMachine (TupleSpec &inputSchema, TupleSpec &attsToIncludeInOutput) : inputSchema (inputSchema) {
-		std :: cout << "input schema: " << inputSchema << " and outputs to include: " << attsToIncludeInOutput << "\n";
+		std::cout << "input schema: " << inputSchema << " and outputs to include: " << attsToIncludeInOutput << "\n";
 		matches = match (attsToIncludeInOutput);
 	}	
 	
 	// gets a vector that tells us where all of the attributes match
-	std :: vector <int> match (TupleSpec &attsToMatch) {
+	std::vector <int> match (TupleSpec &attsToMatch) {
 		
 		// find the positions of all of the matches
-		std :: vector <int> matches;	
+		std::vector <int> matches;	
 		for (auto &s : attsToMatch.getAtts ()) {
 			int counter = 0;
 			for (auto &t : inputSchema.getAtts ()) {
@@ -54,9 +54,9 @@ public:
 				counter++;
 			}
 			if (counter != -1) {
-				std :: cout << "This is bad... could not find a matching attribute\n";
-				std :: cout << "Atts to match was: " << attsToMatch << "\n";
-				std :: cout << "Input schema was: " << inputSchema << "\n";
+				std::cout << "This is bad... could not find a matching attribute\n";
+				std::cout << "Atts to match was: " << attsToMatch << "\n";
+				std::cout << "Input schema was: " << inputSchema << "\n";
 			}
 		}
 		return matches;
@@ -75,7 +75,7 @@ public:
 	}
 
 	// this is used by a join to replicate a bunch of input columns
-	void replicate (TupleSetPtr input, TupleSetPtr output, std :: vector <uint32_t> &counts, int offset) {
+	void replicate (TupleSetPtr input, TupleSetPtr output, std::vector <uint32_t> &counts, int offset) {
 
 		// first, do a shallow copy of all of the atts that are being copied over
 		int counter = 0;
@@ -87,7 +87,7 @@ public:
 
 };
 
-using TupleSetSetupMachinePtr = std :: shared_ptr <TupleSetSetupMachine>;
+using TupleSetSetupMachinePtr = std::shared_ptr <TupleSetSetupMachine>;
 
 }
 

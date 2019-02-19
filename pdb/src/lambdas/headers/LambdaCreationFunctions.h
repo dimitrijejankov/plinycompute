@@ -21,13 +21,13 @@
 
 #include "Lambda.h"
 #include "Ptr.h"
-#include "AttAccessLambda.h"
-#include "AndLambda.h"
-#include "SelfLambda.h"
-#include "MethodCallLambda.h"
-#include "EqualsLambda.h"
-#include "ApplyComputeExecutor.h"
-#include "CPlusPlusLambda.h"
+#include "lambdas/AttAccessLambda.h"
+#include "lambdas/AndLambda.h"
+#include "lambdas/SelfLambda.h"
+#include "lambdas/MethodCallLambda.h"
+#include "lambdas/EqualsLambda.h"
+#include "executors/ApplyComputeExecutor.h"
+#include "lambdas/CPlusPlusLambda.h"
 #include "TypeName.h"
 
 namespace pdb {

@@ -19,6 +19,7 @@
 #ifndef JOIN_COMP
 #define JOIN_COMP
 
+#include <JoinTupleSingleton.h>
 #include "Computation.h"
 #include "JoinTests.h"
 #include "ComputePlan.h"
@@ -40,7 +41,7 @@ class JoinArg : public ComputeInfo {
 
   JoinArg(ComputePlan &plan, void *pageWhereHashTableIs) : plan(plan), pageWhereHashTableIs(pageWhereHashTableIs) {}
 
-  ~JoinArg() {}
+  ~JoinArg() = default;
 };
 
 template<typename Out, typename In1, typename In2, typename ...Rest>
@@ -59,7 +60,7 @@ class JoinComp : public JoinCompBase {
   virtual Lambda<Handle<Out>> getProjection(Handle<In1> in1, Handle<In2> in2, Handle<Rest> ...otherArgs) = 0;
 
   // calls getProjection and getSelection to extract the lambdas
-  void extractLambdas(std::map<std::string, GenericLambdaObjectPtr> &returnVal) override {
+  void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
     int suffix = 0;
     Lambda<bool> selectionLambda = callGetSelection(*this);
     Lambda<Handle<Out>> projectionLambda = callGetProjection(*this);
@@ -159,24 +160,7 @@ class JoinComp : public JoinCompBase {
                                    std::string &outputTupleSetName,
                                    std::vector<std::string> &outputColumnNames,
                                    std::string &addedOutputColumnName) override {
-    if (inputTupleSets.size() == getNumInputs()) {
-      std::string tcapString = "";
-
-      //update tupleset name for input sets
-      for (unsigned int i = 0; i < inputTupleSets.size(); i++) {
-        //setTupleSetNameForIthInput(i, inputTupleSets[i]);
-      }
-      Lambda<bool> selectionLambda = callGetSelection(*this);
-      //tcapString += selectionLambda.toJoinSelectionTCAPString (...);
-      Lambda<Handle<Out>> projectionLambda = callGetProjection(*this);
-      //tcapString += projectionLambda.toTCAPString (...);
-      return tcapString;
-
-    } else {
-      std::cout << "ERROR: inputTupleSet size is " << inputTupleSets.size() << " and not equivalent with Join's inputs "
-                << getNumInputs() << std::endl;
-      return "";
-    }
+    return "";
   }
 
   // JiaNote: returns the latest tuple set name that contains the i-th input
@@ -229,7 +213,7 @@ class JoinComp : public JoinCompBase {
       std::pair<std::string, std::string> res = producer->findSource(a, joinArg.plan.getPlan()->getComputations());
 
       // and find its type... in the first case, there is not a particular lambda that we need to ask for
-      if (res.second == "") {
+      if (res.second.empty()) {
         typeList.push_back(
             "pdb::Handle<" + joinArg.plan.getPlan()->getNode(res.first).getComputation().getOutputType() + ">");
       } else {
