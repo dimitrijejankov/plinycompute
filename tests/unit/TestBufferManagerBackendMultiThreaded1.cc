@@ -9,7 +9,7 @@
 namespace pdb {
 
 // this test checks whether anonymous pages work on the backend
-TEST(StorageManagerBackendTest, Test3) {
+TEST(BufferManagerBackendTest, Test3) {
 
   // parameters
   const int numPages = 4000;
@@ -34,8 +34,8 @@ TEST(StorageManagerBackendTest, Test3) {
   sharedMemory.numPages = numPages;
   sharedMemory.memory = memory.get();
 
-  // create the storage manager
-  pdb::PDBBufferManagerBackEnd<MockRequestFactory> storageManager(sharedMemory);
+  // create the buffer manager
+  pdb::PDBBufferManagerBackEnd<MockRequestFactory> bufferManager(sharedMemory);
 
   MockRequestFactory::_requestFactory = std::make_shared<MockRequestFactoryImpl>();
 
@@ -52,7 +52,7 @@ TEST(StorageManagerBackendTest, Test3) {
 
   EXPECT_CALL(server, getConfiguration).Times(testing::AtLeast(1));
 
-  storageManager.recordServer(server);
+  bufferManager.recordServer(server);
 
   /// 1. Mock the anonymous pages request
 
@@ -263,7 +263,7 @@ TEST(StorageManagerBackendTest, Test3) {
           size_t pageSize = pageSizes[i % 3];
 
           // grab the page
-          auto page = storageManager.getPage(pageSize);
+          auto page = bufferManager.getPage(pageSize);
 
           // grab the page and fill it in
           char *bytes = (char *) page->getBytes();
@@ -335,7 +335,7 @@ TEST(StorageManagerBackendTest, Test3) {
 
   // just to remove the mock object
   MockRequestFactory::_requestFactory = nullptr;
-  storageManager.parent = nullptr;
+  bufferManager.parent = nullptr;
 }
 
 }

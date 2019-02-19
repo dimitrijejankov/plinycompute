@@ -51,7 +51,7 @@ auto getRandomIndices(int numRequestsPerPage, int numPages) {
 }
 
 // this tests just regular pages
-TEST(StorageManagerFrontendTest, Test1) {
+TEST(BufferManagerFrontendTest, Test1) {
 
   const int numRequests = 1000;
   const int numPages = 100;
@@ -150,7 +150,7 @@ TEST(StorageManagerFrontendTest, Test1) {
 }
 
 // this tests just regular pages with different sets
-TEST(StorageManagerFrontendTest, Test2) {
+TEST(BufferManagerFrontendTest, Test2) {
 
   const int numRequests = 100;
   const int numPages = 100;
@@ -264,7 +264,7 @@ TEST(StorageManagerFrontendTest, Test2) {
 }
 
 // this tests just regular pages
-TEST(StorageManagerFrontendTest, Test3) {
+TEST(BufferManagerFrontendTest, Test3) {
 
   const int numRequests = 1000;
   const int numPages = 100;
@@ -428,7 +428,7 @@ TEST(StorageManagerFrontendTest, Test3) {
 }
 
 // this test tests anonymous pages
-TEST(StorageManagerFrontendTest, Test4) {
+TEST(BufferManagerFrontendTest, Test4) {
 
   const int numPages = 1000;
   const int pageSize = 64;
@@ -577,7 +577,7 @@ TEST(StorageManagerFrontendTest, Test4) {
 }
 
 // this test tests anonymous pages with different page sizes
-TEST(StorageManagerFrontendTest, Test5) {
+TEST(BufferManagerFrontendTest, Test5) {
 
   const int numPages = 1000;
   const int pageSize = 64;

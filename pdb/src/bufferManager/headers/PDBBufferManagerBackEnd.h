@@ -153,11 +153,11 @@ private:
   PDBLoggerPtr myLogger;
 
   // mark the tests for the backend
-  FRIEND_TEST(StorageManagerBackendTest, Test1);
-  FRIEND_TEST(StorageManagerBackendTest, Test2);
-  FRIEND_TEST(StorageManagerBackendTest, Test3);
-  FRIEND_TEST(StorageManagerBackendTest, Test4);
-  FRIEND_TEST(StorageManagerBackendTest, Test5);
+  FRIEND_TEST(BufferManagerBackendTest, Test1);
+  FRIEND_TEST(BufferManagerBackendTest, Test2);
+  FRIEND_TEST(BufferManagerBackendTest, Test3);
+  FRIEND_TEST(BufferManagerBackendTest, Test4);
+  FRIEND_TEST(BufferManagerBackendTest, Test5);
 };
 
 }

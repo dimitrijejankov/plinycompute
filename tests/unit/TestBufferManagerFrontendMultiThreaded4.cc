@@ -51,7 +51,7 @@ auto getRandomIndices(int numRequestsPerPage, int numPages) {
 }
 
 // this tests getting a page while a return request is being processed.
-TEST(StorageManagerFrontendTest, Test6) {
+TEST(BufferManagerFrontendTest, Test6) {
 
   const UseTemporaryAllocationBlock block(256 * 1024 * 1024);
 

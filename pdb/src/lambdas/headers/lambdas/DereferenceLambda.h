@@ -22,8 +22,8 @@
 #include <vector>
 #include "LambdaTree.h"
 #include "LambdaObject.h"
-#include "executors/ComputeExecutor.h"
-#include "executors/ApplyComputeExecutor.h"
+#include "ComputeExecutor.h"
+#include "ApplyComputeExecutor.h"
 #include "TupleSetMachine.h"
 #include "TupleSet.h"
 #include "Ptr.h"

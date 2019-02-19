@@ -9,7 +9,7 @@
 namespace pdb {
 
 // this test checks whether anonymous pages work on the backend
-TEST(StorageManagerBackendTest, Test1) {
+TEST(BufferManagerBackendTest, Test1) {
 
   const size_t numPages = 100;
   const size_t pageSize = 64;
@@ -28,7 +28,7 @@ TEST(StorageManagerBackendTest, Test1) {
   sharedMemory.numPages = numPages;
   sharedMemory.memory = memory.get();
 
-  pdb::PDBBufferManagerBackEnd<MockRequestFactory> storageManager(sharedMemory);
+  pdb::PDBBufferManagerBackEnd<MockRequestFactory> bufferManager(sharedMemory);
 
   MockRequestFactory::_requestFactory = std::make_shared<MockRequestFactoryImpl>();
 
@@ -40,7 +40,7 @@ TEST(StorageManagerBackendTest, Test1) {
 
   EXPECT_CALL(server, getConfiguration).Times(testing::AtLeast(1));
 
-  storageManager.recordServer(server);
+  bufferManager.recordServer(server);
 
   /// 1. Mock the anonymous pages request
 
@@ -193,8 +193,8 @@ TEST(StorageManagerBackendTest, Test1) {
   {
 
     // grab two pages
-    pdb::PDBPageHandle page1 = storageManager.getPage();
-    pdb::PDBPageHandle page2 = storageManager.getPage();
+    pdb::PDBPageHandle page1 = bufferManager.getPage();
+    pdb::PDBPageHandle page2 = bufferManager.getPage();
 
     // write 64 bytes to page 2
     char *bytes = (char *) page1->getBytes();
@@ -223,9 +223,9 @@ TEST(StorageManagerBackendTest, Test1) {
 
     // just grab some random pages
     for (int i = 0; i < 32; i++) {
-      pdb::PDBPageHandle page3 = storageManager.getPage();
-      pdb::PDBPageHandle page4 = storageManager.getPage();
-      pdb::PDBPageHandle page5 = storageManager.getPage();
+      pdb::PDBPageHandle page3 = bufferManager.getPage();
+      pdb::PDBPageHandle page4 = bufferManager.getPage();
+      pdb::PDBPageHandle page5 = bufferManager.getPage();
     }
 
     // repin page 1 and check
@@ -241,11 +241,11 @@ TEST(StorageManagerBackendTest, Test1) {
 
   // just to remove the mock object
   MockRequestFactory::_requestFactory = nullptr;
-  storageManager.parent = nullptr;
+  bufferManager.parent = nullptr;
 }
 
 // tests set pages
-TEST(StorageManagerBackendTest, Test2) {
+TEST(BufferManagerBackendTest, Test2) {
 
   const size_t numPages = 1000;
   const size_t numSets = 2;

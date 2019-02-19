@@ -26,7 +26,7 @@
 #include "Handle.h"
 #include "Ptr.h"
 #include "TupleSpec.h"
-#include "executors/ComputeExecutor.h"
+#include "ComputeExecutor.h"
 #include "ComputeInfo.h"
 
 namespace pdb {

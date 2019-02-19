@@ -5,7 +5,7 @@
 #ifndef PDB_GENERICLAMBDAOBJECT_H
 #define PDB_GENERICLAMBDAOBJECT_H
 
-#include "executors/ComputeExecutor.h"
+#include "ComputeExecutor.h"
 
 namespace pdb {
 

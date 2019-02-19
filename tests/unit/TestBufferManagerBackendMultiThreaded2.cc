@@ -10,7 +10,7 @@
 namespace pdb {
 
 
-TEST(StorageManagerBackendTest, Test4) {
+TEST(BufferManagerBackendTest, Test4) {
 
   const int maxPageSize = 128;
   const int numRequestsPerPage = 2000;
@@ -32,7 +32,7 @@ TEST(StorageManagerBackendTest, Test4) {
   sharedMemory.numPages = numPages;
   sharedMemory.memory = memory.get();
 
-  // create the storage manager
+  // create the buffer manager
   pdb::PDBBufferManagerBackEnd<MockRequestFactory> myMgr(sharedMemory);
 
   MockRequestFactory::_requestFactory = std::make_shared<MockRequestFactoryImpl>();
