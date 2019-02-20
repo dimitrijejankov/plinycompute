@@ -9,7 +9,7 @@
 
 namespace pdb {
 
-class ComputationServer : public ServerFunctionality {
+class PDBComputationServerFrontend : public ServerFunctionality {
 
 public:
 
