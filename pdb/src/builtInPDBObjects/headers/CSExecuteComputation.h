@@ -35,7 +35,10 @@ public:
     CSExecuteComputation() = default;
     ~CSExecuteComputation() = default;
 
-    CSExecuteComputation(Handle<Vector<Handle<Computation>>> &computations, const String &tcapString) {
+    CSExecuteComputation(Handle<Vector<Handle<Computation>>> &computations, const String &tcapString, size_t numBytes) {
+
+      // set the num bytes
+      this->numBytes = numBytes;
 
       // store the string
       this->tcapString = tcapString;
@@ -60,6 +63,11 @@ public:
      * The computations
      */
     Handle<Vector<Handle<Computation>>> computations;
+
+    /**
+     * How large should the allocation block be to store the computations
+     */
+    size_t numBytes;
 };
 }
 

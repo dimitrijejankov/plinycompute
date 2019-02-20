@@ -13,9 +13,11 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
       make_shared<pdb::HeapRequestHandler<pdb::CSExecuteComputation>>(
           [&](Handle<pdb::CSExecuteComputation> request, PDBCommunicatorPtr sendUsingMe) {
 
-            for(int i = 0; i < request->computations->size(); i++) {
+            for (int i = 0; i < request->computations->size(); i++) {
               std::cout << (*request->computations)[i]->getComputationType() << std::endl;
             }
+
+            std::cout << "Size : " << request->numBytes << std::endl;
 
             return make_pair(true, std::string(""));
           }));
