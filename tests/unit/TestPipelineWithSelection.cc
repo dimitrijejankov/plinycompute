@@ -34,133 +34,13 @@
 #include "MapTupleSetIterator.h"
 #include "VectorTupleSetIterator.h"
 #include "ComputePlan.h"
+#include "ScanEmployeeSet.h"
+#include "EmployeeBuiltInIdentitySelection.h"
+#include "WriteBuiltinEmployeeSet.h"
 
 // to run the aggregate, the system first passes each through the hash operation...
 // then the system
 using namespace pdb;
-
-class WriteBuiltinEmployeeSet : public SetWriter<Employee> {
-
- public:
-
-  ENABLE_DEEP_COPY
-
-  WriteBuiltinEmployeeSet() = default;
-
-  // below constructor is not required, but if we do not call setOutput() here, we must call
-  // setOutput() later to set the output set
-  WriteBuiltinEmployeeSet(std::string dbName, std::string setName) {
-    this->setOutput(std::move(dbName), std::move(setName));
-  }
-
-  // eventually, this method should be moved into a class that works with the system to
-  // iterate through pages that are pulled from disk/RAM by the system... a programmer
-  // should not provide this particular method
-  ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection, ComputePlan &plan) override {
-    return std::make_shared<VectorSink<double>>(consumeMe, projection);
-  }
-};
-
-class EmployeeBuiltInIdentitySelection : public SelectionComp<Employee, Employee> {
-
- public:
-
-  ENABLE_DEEP_COPY
-
-  EmployeeBuiltInIdentitySelection() = default;
-
-  Lambda<bool> getSelection(Handle<Employee> &checkMe) override {
-    return makeLambda(checkMe, [](Handle<Employee>& checkMe) { return true; });
-  }
-
-  Lambda<Handle<Employee>> getProjection(Handle<Employee> &checkMe) override {
-    return makeLambda(checkMe, [](Handle<Employee>& checkMe) {
-      Handle<Employee> newEmployee = makeObject<Employee>(*(checkMe->getName()), 100);  // cannot get age!
-      return newEmployee;
-    });
-  }
-
-};
-
-class ScanEmployeeSet : public ScanSet<Employee> {
-
- public:
-
-  ENABLE_DEEP_COPY
-
-  ScanEmployeeSet() = default;
-
-  // eventually, this method should be moved into a class that works with the system to
-  // iterate through pages that are pulled from disk/RAM by the system... a programmer
-  // should not provide this particular method
-  ComputeSourcePtr getComputeSource(TupleSpec &schema, ComputePlan &plan) override {
-
-    return std::make_shared<VectorTupleSetIterator>(
-
-        // constructs a list of data objects to iterate through
-        []() -> void * {
-
-          // this implementation only serves six pages
-          static int numPages = 0;
-          if (numPages == 6)
-            return nullptr;
-
-          // create a page, loading it with random data
-          void *myPage = malloc(1024 * 1024);
-          {
-            const UseTemporaryAllocationBlock tempBlock{myPage, 1024 * 1024};
-
-            // write a bunch of supervisors to it
-            Handle<Vector<Handle<Employee>>> employees = makeObject<Vector<Handle<Employee>>>();
-
-            // this will build up the department
-            char first = 'A', second = 'B';
-            char myString[3];
-            myString[2] = 0;
-
-            try {
-              for (int i = 0; true; i++) {
-
-                myString[0] = first;
-                myString[1] = second;
-
-                // this will allow us to cycle through "AA", "AB", "AC", "BA", ...
-                first++;
-                if (first == 'D') {
-                  first = 'A';
-                  second++;
-                  if (second == 'D')
-                    second = 'A';
-                }
-
-                if(i % 2 == 0) {
-
-                  Handle<Employee> temp = makeObject<Employee>("Steve Stevens", 20 + ((i) % 29), std::string(myString), i * 3.54);
-                  employees->push_back(temp);
-                }
-                else {
-                  Handle<Employee> temp = makeObject<Employee>("Ninja Turtles", 20 + ((i) % 29), std::string(myString), i * 3.54);
-                  employees->push_back(temp);
-                }
-              }
-            } catch (NotEnoughSpace &e) {
-
-              getRecord (employees);
-            }
-          }
-          numPages++;
-          return myPage;
-        },
-
-        // frees the list of data objects that have been iterated
-        [](void *freeMe) -> void {
-          free(freeMe);
-        },
-
-        // and this is the chunk size, or number of items to put into each tuple set
-        24);
-  }
-};
 
 int main() {
 

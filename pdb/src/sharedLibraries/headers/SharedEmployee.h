@@ -25,7 +25,7 @@
 #include "Handle.h"
 #include <vector>
 
- class SharedEmployee : public pdb::Object {
+class SharedEmployee : public pdb::Object {
 
     int age;
     double salary;
@@ -35,8 +35,8 @@ public:
 
     ENABLE_DEEP_COPY
 
-    ~SharedEmployee() {}
-    SharedEmployee() {}
+    ~SharedEmployee() = default;
+    SharedEmployee() = default;
 
     void print() {
         std::cout << "name is: " << *name << " age is: " << age;
@@ -66,7 +66,6 @@ public:
         ret.push_back("csv");
         return ret;
     }
-
 
     pdb::Handle<pdb::String>& getName() {
         return name;
