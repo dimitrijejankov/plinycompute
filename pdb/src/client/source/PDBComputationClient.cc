@@ -7,6 +7,15 @@
 #include <CSExecuteComputation.h>
 #include <SimpleRequestResult.h>
 
+pdb::PDBComputationClient::PDBComputationClient(const string &address, int port, const pdb::PDBLoggerPtr &myLogger)
+    : address(address), port(port), myLogger(myLogger) {
+
+  // get the communicator information
+  this->port = port;
+  this->address = address;
+  this->myLogger = myLogger;
+}
+
 bool pdb::PDBComputationClient::executeComputations(Handle<Vector<Handle<Computation>>> &computations, const pdb::String &tcap, std::string &error) {
 
   // essentially the buffer should be of this size
@@ -30,15 +39,5 @@ bool pdb::PDBComputationClient::executeComputations(Handle<Vector<Handle<Computa
         // awesome we finished
         return true;
       },
-      computations, tcap);
+      computations, tcap, bufferSize);
 }
-
-pdb::PDBComputationClient::PDBComputationClient(const string &address, int port, const pdb::PDBLoggerPtr &myLogger)
-    : address(address), port(port), myLogger(myLogger) {
-
-  // get the communicator information
-  this->port = port;
-  this->address = address;
-  this->myLogger = myLogger;
-}
-
