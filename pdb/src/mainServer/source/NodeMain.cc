@@ -28,6 +28,7 @@
 #include <CatalogServer.h>
 #include <PDBBufferManagerFrontEnd.h>
 #include <PDBStorageManagerFrontend.h>
+#include <PDBComputationServerFrontend.h>
 #include <PDBStorageManagerBackend.h>
 #include <random>
 
@@ -169,6 +170,7 @@ int main(int argc, char *argv[]) {
     frontEnd.addFunctionality(std::make_shared<pdb::PDBDispatcherServer>());
     frontEnd.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(config->port, config->address, logger));
     frontEnd.addFunctionality(std::make_shared<pdb::PDBStorageManagerFrontend>());
+    frontEnd.addFunctionality(std::make_shared<pdb::PDBComputationServerFrontend>());
 
     frontEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
 

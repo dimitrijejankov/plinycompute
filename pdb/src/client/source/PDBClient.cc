@@ -36,6 +36,12 @@ PDBClient::PDBClient(int portIn, std::string addressIn) : port(portIn), address(
 
   // init the dispatcher client
   dispatcherClient = std::make_shared<pdb::PDBDispatcherClient>(portIn, addressIn, logger);
+
+  // init the storage manager
+  storageManagerClient = std::make_shared<pdb::PDBStorageManagerClient>();
+
+  // init the computation client
+  computationClient = std::make_shared<pdb::PDBComputationClient>(addressIn, portIn, logger);
 }
 
 string PDBClient::getErrorMessage() {
@@ -117,23 +123,6 @@ bool PDBClient::shutDownServer() {
       });
 }
 
-std::function<bool(Handle<SimpleRequestResult>)>
-PDBClient::generateResponseHandler(std::string description, std::string &returnedMsg) {
-
-  return [&](Handle<SimpleRequestResult> result) {
-    if (result != nullptr) {
-      if (!result->getRes().first) {
-        errorMsg = description + result->getRes().second;
-        logger->error(description + ": " + result->getRes().second);
-        return false;
-      }
-      return true;
-    }
-    errorMsg = "Received nullptr as response";
-    logger->error(description + ": received nullptr as response");
-    return false;
-  };
-}
 
 bool PDBClient::registerType(const std::string &fileContainingSharedLib) {
 
@@ -145,6 +134,10 @@ bool PDBClient::registerType(const std::string &fileContainingSharedLib) {
     cout << "Type has been registered.\n";
   }
   return result;
+}
+
+bool PDBClient::executeComputations(Handle<Vector<Handle<Computation>>> &computations, const pdb::String &tcap) {
+  return computationClient->executeComputations(computations, tcap, errorMsg);
 }
 
 void PDBClient::listAllRegisteredMetadata() {

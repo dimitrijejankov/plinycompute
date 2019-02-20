@@ -56,7 +56,7 @@ PDBCatalogClient::PDBCatalogClient(int portIn, std::string addressIn, PDBLoggerP
   // get the communicator information
   port = portIn;
   address = std::move(addressIn);
-  myLogger = std::move(myLoggerIn);
+  myLogger = myLoggerIn;
 
   // and let the v-table map know this information
   if (!theVTable->getCatalogClient()) {

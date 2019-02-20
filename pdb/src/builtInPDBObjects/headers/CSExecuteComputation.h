@@ -35,8 +35,18 @@ public:
     CSExecuteComputation() = default;
     ~CSExecuteComputation() = default;
 
-    explicit CSExecuteComputation(const std::string &tcapString) {
-        this->tcapString = tcapString;
+    CSExecuteComputation(Handle<Vector<Handle<Computation>>> &computations, const String &tcapString) {
+
+      // store the string
+      this->tcapString = tcapString;
+
+      // init the computations vector
+      this->computations = makeObject<Vector<Handle<Computation>>>(computations->size(), 0);
+
+      // copy the computations
+      for(int i = 0; i < computations->size(); ++i) {
+        this->computations->push_back((*computations)[i]);
+      }
     }
 
     ENABLE_DEEP_COPY
@@ -49,7 +59,7 @@ public:
     /**
      * The computations
      */
-    Handle<Vector<Handle<pdb::Computation>>> computations;
+    Handle<Vector<Handle<Computation>>> computations;
 };
 }
 
