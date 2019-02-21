@@ -37,8 +37,6 @@ public:
 
   std::unique_ptr<AtomicComputationList> atomicComputations;
 
-  std::map<size_t, AtomicComputationPtr>
-
   PDBLoggerPtr logger;
 
 };
