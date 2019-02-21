@@ -34,7 +34,7 @@ PDBPhysicalOptimizer::PDBPhysicalOptimizer(String tcapString, PDBLoggerPtr &logg
   }
 
   // this is the logical plan to return
-  atomicComputations = std::unique_ptr<AtomicComputationList>(myResult);
+  atomicComputations = std::shared_ptr<AtomicComputationList>(myResult);
 }
 
 }

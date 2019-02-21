@@ -35,7 +35,7 @@ public:
 
  private:
 
-  std::unique_ptr<AtomicComputationList> atomicComputations;
+  std::shared_ptr<AtomicComputationList> atomicComputations;
 
   PDBLoggerPtr logger;
 
