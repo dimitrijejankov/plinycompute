@@ -74,6 +74,7 @@ include_directories("${PROJECT_SOURCE_DIR}/pdb/src/objectModel/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/sharedLibraries/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/computations/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/computationServer/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/computationServer/headers/physicalOptimizer")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/bufferManager/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/pipeline/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/pipeline/headers/sinks")
@@ -99,7 +100,8 @@ file(GLOB DISTRIBUTION_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/distributio
 file(GLOB LOGICAL_PLAN_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/logicalPlan/source/*.cc")
 file(GLOB CLIENT_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/client/source/*.cc")
 file(GLOB BUFFER_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/bufferManager/source/*.cc")
-file(GLOB COMPUTATION_SERVER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/computationServer/sources/*.cc")
+file(GLOB COMPUTATION_SERVER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/computationServer/sources/*.cc"
+                                    "${PROJECT_SOURCE_DIR}/pdb/src/computationServer/sources/physicalOptimizer/*.cc")
 
 set(SOURCE_FILES_SQL_LITE ${PROJECT_SOURCE_DIR}/third-party/sqlite/source/sqlite3.c)
 

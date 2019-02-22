@@ -16,10 +16,10 @@
  *                                                                           *
  *****************************************************************************/
 
-#include <PDBJoinPhysicalNode.h>
-#include "PDBPipeNodeBuilder.h"
-#include "PDBStraightPhysicalNode.h"
-#include "PDBAggregationPhysicalNode.h"
+#include <physicalOptimizer/PDBJoinPhysicalNode.h>
+#include "physicalOptimizer/PDBPipeNodeBuilder.h"
+#include "physicalOptimizer/PDBStraightPhysicalNode.h"
+#include "physicalOptimizer/PDBAggregationPhysicalNode.h"
 #include "AtomicComputationList.h"
 
 
