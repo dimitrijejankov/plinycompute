@@ -33,7 +33,7 @@ public:
 
   ~PDBPhysicalOptimizer() = default;
 
- private:
+private:
 
   std::shared_ptr<AtomicComputationList> atomicComputations;
 
