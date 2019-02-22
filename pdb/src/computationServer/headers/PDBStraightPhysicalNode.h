@@ -15,7 +15,6 @@ public:
   PDBStraightPhysicalNode(const std::vector<AtomicComputationPtr>& pipeline, size_t currentNodeIndex) : PDBAbstractPhysicalNode(pipeline, currentNodeIndex) {};
 
   PDBPipelineType getType() override;
-  std::string getNodeIdentifier() override;
 };
 
 }

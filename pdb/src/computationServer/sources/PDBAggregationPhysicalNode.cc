@@ -7,7 +7,3 @@
 PDBPipelineType pdb::PDBAggregationPhysicalNode::getType() {
   return PDB_AGGREGATION_PIPELINE;
 }
-
-std::string pdb::PDBAggregationPhysicalNode::getNodeIdentifier() {
-  return "";
-}

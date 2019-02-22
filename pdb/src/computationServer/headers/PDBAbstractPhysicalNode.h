@@ -27,7 +27,7 @@ class PDBAbstractPhysicalNode {
 public:
 
   // TODO
-  PDBAbstractPhysicalNode(const std::vector<AtomicComputationPtr>& pipeline, size_t currentNodeIndex) {};
+  PDBAbstractPhysicalNode(const std::vector<AtomicComputationPtr>& pipeline, size_t id) : pipeline(pipeline), id(id) {};
 
   virtual ~PDBAbstractPhysicalNode() = default;
 
@@ -36,7 +36,19 @@ public:
    * @return the shared pointer handle
    */
   PDBAbstractPhysicalNodePtr getHandle() {
-    return getWeakHandle().lock();
+
+    std::shared_ptr<PDBAbstractPhysicalNode> tmp;
+
+    // if we do not have a handle to this node already
+    if(handle.expired()) {
+
+      // make a handle and set the weak ptr handle
+      tmp = std::shared_ptr<PDBAbstractPhysicalNode> (this);
+      handle = tmp;
+    }
+
+    // return it
+    return handle.lock();
   }
 
   /**
@@ -73,7 +85,11 @@ public:
    */
   virtual PDBPipelineType getType() = 0;
 
-  virtual std::string getNodeIdentifier() = 0;
+  /**
+   * Returns the identififer
+   * @return
+   */
+  std::string getNodeIdentifier() { return std::string("node_") + std::to_string(id); };
 
   /**
    * Returns all the atomic computations the make up this pipeline
@@ -85,7 +101,16 @@ public:
    * // TODO remove this somehow
    * @return
    */
-  bool hasScanSet() { return false;};
+  bool hasScanSet() {
+
+    // just to make sure the pipeline is not empty
+    if(pipeline.empty()) {
+      return false;
+    }
+
+    // check if the first computation is an atomic computation
+    return pipeline.front()->getAtomicComputationTypeID() == ScanSetAtomicTypeID;
+  };
 
 private:
 
@@ -94,18 +119,17 @@ private:
    * @return the weak pointer handle
    */
   PDBAbstractPhysicalNodeWeakPtr getWeakHandle() {
-
-    // if we do not have a handle to this node already
-    if(handle.expired()) {
-      handle = std::shared_ptr<PDBAbstractPhysicalNode> (this);
-    }
-
     return handle;
   }
 
   /**
- * Where the pipeline begins
- */
+   * The identifier of this node
+   */
+  size_t id;
+
+  /**
+   * Where the pipeline begins
+   */
   std::vector<AtomicComputationPtr> pipeline;
 
   /**

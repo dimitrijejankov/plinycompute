@@ -17,8 +17,6 @@ public:
 
   PDBPipelineType getType() override;
 
-  std::string getNodeIdentifier() override;
-
 };
 
 }
