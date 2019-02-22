@@ -308,7 +308,6 @@ int main() {
         }
         free(page);
       }
-
   );
 
   // run and then kill the pipeline

@@ -16,6 +16,7 @@
  *                                                                           *
  *****************************************************************************/
 
+#include <PDBJoinPhysicalNode.h>
 #include "PDBPipeNodeBuilder.h"
 #include "PDBStraightPhysicalNode.h"
 #include "PDBAggregationPhysicalNode.h"
@@ -78,7 +79,7 @@ void pdb::PDBPipeNodeBuilder::transverseTCAPGraph(AtomicComputationPtr curNode) 
 
       // we got a hash operation, create a join pipe
       // TODO need to add the join
-      /// createPhysicalPipeline<PDBJoinPhysicalNode>();
+      createPhysicalPipeline<PDBJoinPhysicalNode>();
       currentPipe.clear();
 
       break;
