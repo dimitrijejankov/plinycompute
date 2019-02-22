@@ -16,7 +16,7 @@
  *                                                                           *
  *****************************************************************************/
 
-#include "PDBPhysicalNodeFactory.h"
+#include "PDBPipeNodeBuilder.h"
 #include "PDBStraightPhysicalNode.h"
 #include "PDBAggregationPhysicalNode.h"
 #include "AtomicComputationList.h"
@@ -24,16 +24,14 @@
 
 namespace pdb {
 
-PDBPhysicalNodeFactory::PDBPhysicalNodeFactory(const std::shared_ptr<AtomicComputationList> &computations)
-    : atomicComps(computations) {}
+PDBPipeNodeBuilder::PDBPipeNodeBuilder(const std::shared_ptr<AtomicComputationList> &computations)
+    : atomicComps(computations), currentNodeIndex(0) {}
 }
 
-std::vector<pdb::PDBAbstractPhysicalNodePtr> pdb::PDBPhysicalNodeFactory::generateAnalyzerGraph(std::vector<AtomicComputationPtr> sources) {
+std::vector<pdb::PDBAbstractPhysicalNodePtr> pdb::PDBPipeNodeBuilder::generateAnalyzerGraph() {
 
   // go through each source in the sources
-  for(const AtomicComputationPtr &source : sources) {
-
-    std::cout << source->getAtomicComputationType() << std::endl;
+  for(const AtomicComputationPtr &source : atomicComps->getAllScanSets()) {
 
     // go trough each consumer of this node
     for(const auto &consumer : atomicComps->getConsumingAtomicComputations(source->getOutputName())) {
@@ -56,7 +54,7 @@ std::vector<pdb::PDBAbstractPhysicalNodePtr> pdb::PDBPhysicalNodeFactory::genera
   return this->physicalSourceNodes;
 }
 
-void pdb::PDBPhysicalNodeFactory::transverseTCAPGraph(AtomicComputationPtr curNode) {
+void pdb::PDBPipeNodeBuilder::transverseTCAPGraph(AtomicComputationPtr curNode) {
 
   // did we already visit this node
   if(visitedNodes.find(curNode) != visitedNodes.end()) {
@@ -131,7 +129,7 @@ void pdb::PDBPhysicalNodeFactory::transverseTCAPGraph(AtomicComputationPtr curNo
   }
 }
 
-void pdb::PDBPhysicalNodeFactory::setConsumers(std::shared_ptr<PDBAbstractPhysicalNode> node) {
+void pdb::PDBPipeNodeBuilder::setConsumers(std::shared_ptr<PDBAbstractPhysicalNode> node) {
 
   // all the consumers of these pipes
   std::vector<std::string> consumers;
@@ -142,7 +140,6 @@ void pdb::PDBPhysicalNodeFactory::setConsumers(std::shared_ptr<PDBAbstractPhysic
     // if the next pipe begins with a write set we just ignore it...
     // this is happening usually when we have an aggregation connected to a write set which is not really necessary
     if(consumer->getAtomicComputationTypeID() == WriteSetTypeID){
-      std::cout << consumer->getOutputName() << std::endl;
       continue;
     }
 
@@ -156,7 +153,7 @@ void pdb::PDBPhysicalNodeFactory::setConsumers(std::shared_ptr<PDBAbstractPhysic
   }
 }
 
-void pdb::PDBPhysicalNodeFactory::connectThePipes() {
+void pdb::PDBPipeNodeBuilder::connectThePipes() {
 
   for(auto node : physicalNodes) {
 
@@ -166,7 +163,6 @@ void pdb::PDBPhysicalNodeFactory::connectThePipes() {
     // go through each at
     for(const auto &atomicComputation : consumingAtomicComputation) {
 
-      std::cout << node.second->getPipeComputations().back()->getOutputName() << ":" << atomicComputation << std::endl;
       // get the consuming pipeline
       auto consumer = startsWith[atomicComputation];
 

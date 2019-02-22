@@ -7,7 +7,3 @@
 PDBPipelineType pdb::PDBStraightPhysicalNode::getType() {
   return PDB_STRAIGHT_PIPELINE;
 }
-
-std::string pdb::PDBStraightPhysicalNode::getNodeIdentifier() {
-  return "";
-}

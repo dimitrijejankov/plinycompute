@@ -26,18 +26,18 @@
 
 namespace pdb {
 
-class PDBPhysicalNodeFactory {
+class PDBPipeNodeBuilder {
 
 public:
 
-  PDBPhysicalNodeFactory(const std::shared_ptr<AtomicComputationList> &computations);
+  PDBPipeNodeBuilder(const std::shared_ptr<AtomicComputationList> &computations);
 
   /**
    *
    * @param sources
    * @return
    */
-  std::vector<PDBAbstractPhysicalNodePtr> generateAnalyzerGraph(std::vector<AtomicComputationPtr> sources);
+  std::vector<PDBAbstractPhysicalNodePtr> generateAnalyzerGraph();
 
  protected:
 
@@ -83,13 +83,6 @@ public:
       // add the source node
       physicalSourceNodes.push_back(nodeHandle);
     }
-
-    for(auto &c : currentPipe) {
-      std::cout << c->getOutputName() << std::endl;
-    }
-
-    std::cout << "-----------------------------------------" << std::endl;
-
 
     // add the starts with
     startsWith[currentPipe.front()->getOutputName()] = nodeHandle;
