@@ -39,7 +39,7 @@ public:
    * @tparam ReturnType - the type we will return to the caller
    * @tparam RequestTypeParams - type of the params to use for the constructor to the object we send over the wire
    *
-   * @param myLogger - The logger we write error messages toThe logger we write error messages to
+   * @param myLogger - The logger we write error messages to
    * @param port - the port to send the request to
    * @param address - the address to send the request to
    * @param onErr - the value to return if there is an error sending/receiving data
@@ -63,7 +63,7 @@ public:
    * results.
    *
    * @tparam RequestType - the type of object to create to send over the wire
-   * @tparam SecondRequestType - the second object to create and send over the wirte
+   * @tparam SecondRequestType - the second object to create and send over the wire
    * @tparam ResponseType - the type of object we expect to receive over the wire
    * @tparam ReturnType - the type we will return to the caller
    *
