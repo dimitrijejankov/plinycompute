@@ -127,6 +127,8 @@ public:
 			inputColumn[i] = (*iterateOverMe)[pos];	
 			pos++;
 		}
+		// Question: why do we have to do a copy? Why can't we just return a pointer to the appropriate
+		// location in iterateOverMe? Or rather, why can't we just set column 0 of output to iterateOverMe?
 
 		// and return the output TupleSet
 		return output;

@@ -80,6 +80,7 @@ public:
 			// and exit if we are done
 			if (!(begin != end)) {
 				if (i + 1 < limit) {
+					// toss out any elements which are left over from last time but were not overwritten
 					inputColumn.resize (i);	
 				}
 				return output;

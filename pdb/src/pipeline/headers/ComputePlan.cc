@@ -136,7 +136,6 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
                        writeBackPage,
                        params);
 }
-
 inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
                                               std::string targetTupleSetName,
                                               std::string targetComputationName,
@@ -146,8 +145,7 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
                                               std::map<std::string, ComputeInfoPtr> &params) {
 
   // build the plan if it is not already done
-  if (myPlan == nullptr)
-    getPlan();
+  getPlan();
 
   // get all of the computations
   AtomicComputationList &allComps = myPlan->getComputations();
@@ -164,7 +162,8 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
   TupleSpec &origSpec = allComps.getProducingAtomicComputation(sourceTupleSetName)->getOutput();
 
   // now we are going to ask that particular node for the compute source
-  ComputeSourcePtr computeSource = myPlan->getNode(producerName).getComputation().getComputeSource(origSpec, *this);
+  ComputeSourcePtr computeSource = myPlan->getNode(producerName).getComputation().getComputeSource(origSpec, *this);//VQUESTION: why are these the 2 params for getComputeSource?
+
 
   std::cout << "\nBUILDING PIPELINE\n";
   std::cout << "Source: " << origSpec << "\n";
@@ -201,9 +200,12 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
 
   // and get the projection for this guy
   std::vector<AtomicComputationPtr> &consumers = allComps.getConsumingAtomicComputations(targetSpec.getSetName());
+  //Question: isn't targetSpec.getSetName() just targetTupleSetName? -Vicram
+
   //JiaNote: change the reference into a new variable based on Chris' Join code
   //TupleSpec &targetProjection = targetSpec;
-  TupleSpec targetProjection;
+  TupleSpec targetProjection; //Question: Why do we have to look for this info? Did we not know it when calling buildPipeline? 
+                              // And do we not have the TCAP with us? -Vicram
   TupleSpec targetAttsToOpOn;
   for (auto &a : consumers) {
     if (a->getComputationName() == targetComputationName) {
@@ -364,12 +366,14 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
                 << ") inside of a pipeline.\n";
     }
 
+
     lastOne = a;
   }
-
+  
   std::cout << "Sink: " << targetSpec << " [" << targetProjection << "]\n";
   return returnVal;
 }
+
 
 inline ComputePlan::ComputePlan(String &TCAPComputation, Vector<Handle<Computation>> &allComputations) :
     TCAPComputation(TCAPComputation), allComputations(allComputations) {}

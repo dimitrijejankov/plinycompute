@@ -43,6 +43,12 @@ public:
 		// to setup the output tuple set
 		TupleSpec empty;
 		TupleSetSetupMachine myMachine (inputSchema, empty);
+		// The way this works seems kinda weird. We're specifically creating an empty
+		// TupleSpec to pass into myMachine, which will run myMachine.match on inputSchema
+		// and empty. Then we don't use that result, and we instead call myMachine.match
+		// on attsToOperateOn, which we've had the whole time.
+		// Why don't we either use the default constructor of TupleSetSetupMachine or
+		// create a getter for matches? -Vicram
 
 		// this is the input attribute that we will process
 		std :: vector <int> matches = myMachine.match (attsToOperateOn);
