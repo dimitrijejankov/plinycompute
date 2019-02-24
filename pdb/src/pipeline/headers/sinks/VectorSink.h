@@ -47,6 +47,8 @@ class VectorSink : public ComputeSink {
     // this is the input attribute that we will process
     std::vector<int> matches = myMachine.match(attsToOperateOn);
     whichAttToStore = matches[0];
+    // Question: are we using the 0th index because we know that the newly-created column comes first
+    // in the schema for the output TupleSet?
   }
 
   ~VectorSink() override = default;

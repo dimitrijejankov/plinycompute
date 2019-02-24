@@ -137,8 +137,7 @@ inline PipelinePtr ComputePlan :: buildPipeline (std :: string sourceTupleSetNam
 	std :: function <void (void *)> writeBackPage, std :: map <std :: string, ComputeInfoPtr> &params) {
 
 	// build the plan if it is not already done
-	if (myPlan == nullptr)
-		getPlan ();
+	getPlan ();
 		
 	// get all of the computations
 	AtomicComputationList &allComps = myPlan->getComputations ();
@@ -152,10 +151,10 @@ inline PipelinePtr ComputePlan :: buildPipeline (std :: string sourceTupleSetNam
         std :: cout << "producerName = " << producerName << std :: endl;
 
 	// and get the schema for the output TupleSet objects that it is supposed to produce
-	TupleSpec &origSpec = allComps.getProducingAtomicComputation (sourceTupleSetName)->getOutput ();
+	TupleSpec &origSpec = allComps.getProducingAtomicComputation (sourceTupleSetName)->getOutput ();//VNOTE: get TupleSpec of sourceTupleSetName
 
 	// now we are going to ask that particular node for the compute source
-	ComputeSourcePtr computeSource = myPlan->getNode (producerName).getComputation ().getComputeSource (origSpec, *this);
+	ComputeSourcePtr computeSource = myPlan->getNode (producerName).getComputation ().getComputeSource (origSpec, *this);//VQUESTION: why are these the 2 params for getComputeSource?
 
 	std :: cout << "\nBUILDING PIPELINE\n";
 	std :: cout << "Source: " << origSpec << "\n";
@@ -192,10 +191,10 @@ inline PipelinePtr ComputePlan :: buildPipeline (std :: string sourceTupleSetNam
 
 
 	// and get the projection for this guy
-	std :: vector <AtomicComputationPtr> &consumers = allComps.getConsumingAtomicComputations (targetSpec.getSetName ());
+	std :: vector <AtomicComputationPtr> &consumers = allComps.getConsumingAtomicComputations (targetSpec.getSetName ());//VQUESTION: isn't targetSpec.getSetName() just targetTupleSetName?
         //JiaNote: change the reference into a new variable based on Chris' Join code
 	//TupleSpec &targetProjection = targetSpec;
-        TupleSpec targetProjection;
+        TupleSpec targetProjection;//VQUESTION: Why do we have to look for this info? Did we not know it when calling buildPipeline? And do we not have the TCAP with us?
         TupleSpec targetAttsToOpOn;
 	for (auto &a : consumers) {
 		if (a->getComputationName () == targetComputationName) {
@@ -206,12 +205,12 @@ inline PipelinePtr ComputePlan :: buildPipeline (std :: string sourceTupleSetNam
 			if (targetSpec == a->getInput ()) {
 				targetProjection = a->getProjection ();
 
-                                //added following to merge join code
-                                if(targetComputationName.find("JoinComp") == std :: string :: npos) {
-                                    targetSpec = targetProjection;
-                                }
+				//added following to merge join code
+				if(targetComputationName.find("JoinComp") == std :: string :: npos) {
+					targetSpec = targetProjection;//VQUESTION: what's going on in this whole thing?
+				}
 
-                                targetAttsToOpOn = a->getInput();
+				targetAttsToOpOn = a->getInput();
 				break;
 			}	
 
@@ -225,15 +224,16 @@ inline PipelinePtr ComputePlan :: buildPipeline (std :: string sourceTupleSetNam
 			// get the join and make sure it matches
 			ApplyJoin *myGuy = (ApplyJoin *) a.get ();
 			if (!(myGuy->getRightInput () == targetSpec)) {
+				// targetSpec was not equal to the left input so it must be equal to the right input
 				std :: cout << "This is bad... is the target computation name correct??";
                                 std :: cout << "Find a JoinSets, target was " << targetSpec.getSetName () << "\n";
 				exit (1);
 			}
 			
-                        std :: cout << "Building sink for: " << targetSpec << " " << myGuy->getRightProjection () << " " << myGuy->getRightInput () << "\n";
-                        targetProjection = myGuy->getRightProjection ();
-                        targetAttsToOpOn = myGuy->getRightInput ();
-                        std :: cout << "Building sink for: " << targetSpec << " " << targetAttsToOpOn << " " << targetProjection << "\n";
+			std :: cout << "Building sink for: " << targetSpec << " " << myGuy->getRightProjection () << " " << myGuy->getRightInput () << "\n";
+			targetProjection = myGuy->getRightProjection ();
+			targetAttsToOpOn = myGuy->getRightInput ();
+			std :: cout << "Building sink for: " << targetSpec << " " << targetAttsToOpOn << " " << targetProjection << "\n";
 		}
 	}
 	
@@ -250,6 +250,7 @@ inline PipelinePtr ComputePlan :: buildPipeline (std :: string sourceTupleSetNam
 		// if we have a filter, then just go ahead and create it
 		if (a->getAtomicComputationType () == "Filter") {
     			std :: cout << "Adding: " << a->getProjection () << " + filter [" << a->getInput () << "] => " << a->getOutput () << "\n";
+    			        // Question: can we merge these two if-statements into one and put the conditional logic into FilterExecutor's ctor? -Vicram
                         if (params.count(a->getOutput ().getSetName ()) == 0)    {
 			    returnVal->addStage (std :: make_shared <FilterExecutor> (lastOne->getOutput (), a->getInput (), a->getProjection ()));
                         } else {
