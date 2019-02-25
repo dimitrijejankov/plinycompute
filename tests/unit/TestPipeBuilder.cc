@@ -619,7 +619,7 @@ TEST(BufferManagerBackendTest, Test3) {
       visitedNodes.insert(out.back());
     }
     else {
-      std::cout << "sucks" << std::endl;
+      EXPECT_FALSE(true);
     }
 
     // get the last

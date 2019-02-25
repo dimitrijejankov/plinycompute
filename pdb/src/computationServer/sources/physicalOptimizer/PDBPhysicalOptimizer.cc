@@ -34,7 +34,11 @@ PDBPhysicalOptimizer::PDBPhysicalOptimizer(String tcapString, PDBLoggerPtr &logg
   }
 
   // this is the logical plan to return
-  atomicComputations = std::shared_ptr<AtomicComputationList>(myResult);
+  auto atomicComputations = std::shared_ptr<AtomicComputationList>(myResult);
+
+  // split the computations into pipes
+  pdb::PDBPipeNodeBuilder factory(atomicComputations);
+  sources = factory.generateAnalyzerGraph();
 }
 
 }
