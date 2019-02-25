@@ -42,9 +42,11 @@ class Job : public Object {
   // to have Handles here.
 
   // Each PageSetSpec contains information about a TCAP TupleSet (I think), a
-  // ComputeSink/Source type, and a PageSet identifier. Question: should we
-  // make a separate class for PageSetSpecs that have Sink types, and PageSetSpecs
-  // that have Source types?
+  // ComputeSink/Source type, and a PageSet identifier.
+  // Question: should we make a separate class for PageSetSpecs that have
+  // Sink types, and PageSetSpecs that have Source types?
+  //
+  // Another question: should inputs and outputs be in physAlg? What makes more sense?
   Handle<Vector<Handle<PageSetSpec>>> inputs;
   Handle<PageSetSpec> output;
   Handle<PhysicalAlgorithm> physAlg;
