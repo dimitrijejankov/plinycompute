@@ -347,5 +347,292 @@ TEST(BufferManagerBackendTest, Test3) {
   pdb::PDBPipeNodeBuilder factory(atomicComputations);
 
   auto out = factory.generateAnalyzerGraph();
+  std::set<pdb::PDBAbstractPhysicalNodePtr> visitedNodes;
+
+  // check size
+  EXPECT_EQ(out.size(), 3);
+
+  // chec pipelines
+  while(!out.empty()) {
+
+    auto firstComp = out.back()->getPipeComputations().front();
+
+    if(firstComp->getAtomicComputationTypeID() == ScanSetAtomicTypeID && firstComp->getOutputName() == "A") {
+
+      int i = 0;
+      for(auto &it : out.back()->getPipeComputations()) {
+        switch (i) {
+
+          case 0: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ScanSetAtomicTypeID);
+            EXPECT_EQ(it->getOutputName(), "A");
+
+            break;
+          };
+          case 1: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+            EXPECT_EQ(it->getOutputName(), "AWithAExtracted");
+
+            break;
+          };
+          case 2: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), HashLeftTypeID);
+            EXPECT_EQ(it->getOutputName(), "AHashed");
+
+            break;
+          };
+          default: { EXPECT_FALSE(true); break;};
+        }
+
+        i++;
+      }
+
+      // this must be the first time we visited this
+      EXPECT_EQ(visitedNodes.find(out.back()), visitedNodes.end());
+      visitedNodes.insert(out.back());
+
+      // do we have one consumer
+      EXPECT_EQ(out.back()->getConsumers().size(), 1);
+      EXPECT_EQ(out.back()->getConsumers().front()->getPipeComputations().front()->getOutputName(), "AandBJoined");
+    }
+    else if(firstComp->getAtomicComputationTypeID() == ScanSetAtomicTypeID && firstComp->getOutputName() == "B") {
+
+      int i = 0;
+      for(auto &it : out.back()->getPipeComputations()) {
+        switch (i) {
+
+          case 0: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ScanSetAtomicTypeID);
+            EXPECT_EQ(it->getOutputName(), "B");
+
+            break;
+          };
+          case 1: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+            EXPECT_EQ(it->getOutputName(), "BWithAExtracted");
+
+            break;
+          };
+          case 2: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), HashRightTypeID);
+            EXPECT_EQ(it->getOutputName(), "BHashedOnA");
+
+            break;
+          };
+          default: { EXPECT_FALSE(true); break;};
+        }
+
+        i++;
+      }
+
+      // this must be the first time we visited this
+      EXPECT_EQ(visitedNodes.find(out.back()), visitedNodes.end());
+      visitedNodes.insert(out.back());
+
+      // do we have one consumer
+      EXPECT_EQ(out.back()->getConsumers().size(), 1);
+      EXPECT_EQ(out.back()->getConsumers().front()->getPipeComputations().front()->getOutputName(), "AandBJoined");
+    }
+    else if(firstComp->getAtomicComputationTypeID() == ScanSetAtomicTypeID && firstComp->getOutputName() == "C") {
+
+      int i = 0;
+      for(auto &it : out.back()->getPipeComputations()) {
+        switch (i) {
+
+          case 0: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ScanSetAtomicTypeID);
+            EXPECT_EQ(it->getOutputName(), "C");
+
+            break;
+          };
+          case 1: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+            EXPECT_EQ(it->getOutputName(), "CwithCExtracted");
+
+            break;
+          };
+          case 2: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), HashRightTypeID);
+            EXPECT_EQ(it->getOutputName(), "CHashedOnC");
+
+            break;
+          };
+          default: { EXPECT_FALSE(true); break;};
+        }
+
+        i++;
+      }
+
+      // this must be the first time we visited this
+      EXPECT_EQ(visitedNodes.find(out.back()), visitedNodes.end());
+      visitedNodes.insert(out.back());
+
+      // do we have one consumer
+      EXPECT_EQ(out.back()->getConsumers().size(), 1);
+      EXPECT_EQ(out.back()->getConsumers().front()->getPipeComputations().front()->getOutputName(), "BandCJoined");
+    }
+    else if(firstComp->getAtomicComputationTypeID() == ApplyJoinTypeID && firstComp->getOutputName() == "AandBJoined") {
+
+      int i = 0;
+      for(auto &it : out.back()->getPipeComputations()) {
+        switch (i) {
+
+          case 0: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyJoinTypeID);
+            EXPECT_EQ(it->getOutputName(), "AandBJoined");
+
+            break;
+          };
+          case 1: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+            EXPECT_EQ(it->getOutputName(), "AandBJoinedWithAExtracted");
+
+            break;
+          };
+          case 2: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+            EXPECT_EQ(it->getOutputName(), "AandBJoinedWithBothExtracted");
+
+            break;
+          };
+          case 3: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+            EXPECT_EQ(it->getOutputName(), "AandBJoinedWithBool");
+
+            break;
+          };
+          case 4: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyFilterTypeID);
+            EXPECT_EQ(it->getOutputName(), "AandBJoinedFiltered");
+
+            break;
+          };
+          case 5: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+            EXPECT_EQ(it->getOutputName(), "AandBJoinedFilteredWithC");
+
+            break;
+          };
+          case 6: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), HashLeftTypeID);
+            EXPECT_EQ(it->getOutputName(), "BHashedOnC");
+
+            break;
+          };
+          default: { EXPECT_FALSE(true); break;};
+        }
+
+        i++;
+      }
+
+      // this must be the first time we visited this
+      EXPECT_EQ(visitedNodes.find(out.back()), visitedNodes.end());
+      visitedNodes.insert(out.back());
+
+      // do we have one consumer
+      EXPECT_EQ(out.back()->getConsumers().size(), 1);
+      EXPECT_EQ(out.back()->getConsumers().front()->getPipeComputations().front()->getOutputName(), "BandCJoined");
+    }
+    else if(firstComp->getAtomicComputationTypeID() == ApplyJoinTypeID && firstComp->getOutputName() == "BandCJoined") {
+
+      int i = 0;
+      for(auto &it : out.back()->getPipeComputations()) {
+        switch (i) {
+
+          case 0: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyJoinTypeID);
+            EXPECT_EQ(it->getOutputName(), "BandCJoined");
+
+            break;
+          };
+          case 1: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+            EXPECT_EQ(it->getOutputName(), "BandCJoinedWithCExtracted");
+
+            break;
+          };
+          case 2: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+            EXPECT_EQ(it->getOutputName(), "BandCJoinedWithBoth");
+
+            break;
+          };
+          case 3: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+            EXPECT_EQ(it->getOutputName(), "BandCJoinedWithBool");
+
+            break;
+          };
+          case 4: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyFilterTypeID);
+            EXPECT_EQ(it->getOutputName(), "last");
+
+            break;
+          };
+          case 5: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+            EXPECT_EQ(it->getOutputName(), "almostFinal");
+
+            break;
+          };
+          case 6: {
+
+            EXPECT_EQ(it->getAtomicComputationTypeID(), WriteSetTypeID);
+            EXPECT_EQ(it->getOutputName(), "nothing");
+
+            break;
+          };
+          default: {
+            EXPECT_FALSE(true);
+            break;
+          };
+        }
+
+        ++i;
+      }
+
+
+      // this must be the first time we visited this
+      EXPECT_EQ(visitedNodes.find(out.back()), visitedNodes.end());
+      visitedNodes.insert(out.back());
+    }
+    else {
+      std::cout << "sucks" << std::endl;
+    }
+
+    // get the last
+    auto me = out.back();
+    out.pop_back();
+
+    // go through all consumers if they are not visited visit them
+    for(auto &it : me->getConsumers()) {
+      if(visitedNodes.find(it) == visitedNodes.end()) {
+        out.push_back(it);
+      }
+    }
+  }
+
 
 }
