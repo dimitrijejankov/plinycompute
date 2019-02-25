@@ -55,7 +55,7 @@ public:
    * Removes a consumer of this node
    * @param consumer the consumer we want to remove
    */
-  virtual void removeConsumer(const PDBAbstractPhysicalNodePtr &consumer) {
+  void removeConsumer(const PDBAbstractPhysicalNodePtr &consumer) {
 
     // detach them
     consumers.remove(consumer);
@@ -66,10 +66,14 @@ public:
   * Adds a consumer to the node
   * @param consumer the consumer
   */
-  virtual void addConsumer(const pdb::PDBAbstractPhysicalNodePtr &consumer) {
+  void addConsumer(const pdb::PDBAbstractPhysicalNodePtr &consumer) {
     consumers.push_back(consumer);
     consumer->producers.push_back(getWeakHandle());
   }
+
+  const std::list<PDBAbstractPhysicalNodePtr> &getConsumers();
+
+  const std::list<PDBAbstractPhysicalNodePtr> &getProducers();
 
   /**
    * Returns the cost of running this pipeline
