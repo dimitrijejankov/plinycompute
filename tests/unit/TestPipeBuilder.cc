@@ -44,6 +44,56 @@ TEST(BufferManagerBackendTest, Test1) {
   pdb::PDBPipeNodeBuilder factory(atomicComputations);
 
   auto out = factory.generateAnalyzerGraph();
+
+  EXPECT_EQ(out.size(), 1);
+
+  int i = 0;
+  for(auto &it : out.front()->getPipeComputations()) {
+
+    switch (i) {
+
+      case 0: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ScanSetAtomicTypeID);
+        EXPECT_EQ(it->getOutputName(), "inputDataForScanSet_0");
+
+        break;
+      };
+      case 1: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+        EXPECT_EQ(it->getOutputName(), "nativ_0OutForSelectionComp1");
+
+        break;
+      };
+      case 2: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyFilterTypeID);
+        EXPECT_EQ(it->getOutputName(), "filteredInputForSelectionComp1");
+
+        break;
+      };
+      case 3: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+        EXPECT_EQ(it->getOutputName(), "nativ_1OutForSelectionComp1");
+
+        break;
+      };
+      case 4: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), WriteSetTypeID);
+        EXPECT_EQ(it->getOutputName(), "nativ_1OutForSelectionComp1_out");
+
+        break;
+      };
+      default: { EXPECT_FALSE(true); break;};
+    }
+
+    // increment
+    i++;
+  }
+
 }
 
 TEST(BufferManagerBackendTest, Test2) {
@@ -92,6 +142,140 @@ TEST(BufferManagerBackendTest, Test2) {
   pdb::PDBPipeNodeBuilder factory(atomicComputations);
 
   auto out = factory.generateAnalyzerGraph();
+
+  EXPECT_EQ(out.size(), 1);
+
+  auto c = out.front();
+  int i = 0;
+  for(auto &it : c->getPipeComputations()) {
+
+    switch (i) {
+
+      case 0: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ScanSetAtomicTypeID);
+        EXPECT_EQ(it->getOutputName(), "inputData");
+
+        break;
+      };
+      case 1: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+        EXPECT_EQ(it->getOutputName(), "inputWithAtt");
+
+        break;
+      };
+      case 2: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+        EXPECT_EQ(it->getOutputName(), "inputWithAttAndMethod");
+
+        break;
+      };
+      case 3: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+        EXPECT_EQ(it->getOutputName(), "inputWithBool");
+
+        break;
+      };
+      case 4: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyFilterTypeID);
+        EXPECT_EQ(it->getOutputName(), "filteredInput");
+
+        break;
+      };
+      case 5: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+        EXPECT_EQ(it->getOutputName(), "projectedInputWithPtr");
+
+        break;
+      };
+      case 6: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+        EXPECT_EQ(it->getOutputName(), "projectedInput");
+
+        break;
+      };
+      case 7: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+        EXPECT_EQ(it->getOutputName(), "aggWithKeyWithPtr");
+
+        break;
+      };
+      case 8: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+        EXPECT_EQ(it->getOutputName(), "aggWithKey");
+
+        break;
+      };
+      case 9: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+        EXPECT_EQ(it->getOutputName(), "aggWithValue");
+
+        break;
+      };
+      default: { EXPECT_FALSE(true); break;};
+    }
+
+    // increment
+    i++;
+  }
+
+  auto producers = c->getConsumers();
+  EXPECT_EQ(producers.size(), 1);
+
+  i = 0;
+  for(auto &it : producers.front()->getPipeComputations()) {
+    switch (i) {
+
+      case 0: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyAggTypeID);
+        EXPECT_EQ(it->getOutputName(), "agg");
+
+        break;
+      };
+      case 1: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+        EXPECT_EQ(it->getOutputName(), "checkSales");
+
+        break;
+      };
+      case 2: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyFilterTypeID);
+        EXPECT_EQ(it->getOutputName(), "justSales");
+
+        break;
+      };
+      case 3: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), ApplyLambdaTypeID);
+        EXPECT_EQ(it->getOutputName(), "final");
+
+        break;
+      };
+      case 4: {
+
+        EXPECT_EQ(it->getAtomicComputationTypeID(), WriteSetTypeID);
+        EXPECT_EQ(it->getOutputName(), "nothing");
+
+        break;
+      };
+      default: { EXPECT_FALSE(true); break;};
+    }
+
+    i++;
+  }
+
 }
 
 TEST(BufferManagerBackendTest, Test3) {
