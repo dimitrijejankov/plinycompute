@@ -23,6 +23,7 @@
 #include "Computation.h"
 #include "Object.h"
 #include "PDBVector.h"
+#include "PageSetSpec.h"
 
 // PRELOAD %Job%
 // Question: what is the above line for?
@@ -60,8 +61,8 @@ class Job : public Object {
       const String &tcapString,
       const Handle<Vector<Handle<PageSetSpec>>> &inputs,
       const Handle<PageSetSpec> &output,
-      const Handle<PhysicalAlgorithm> &physAlg),
-      const Handle<Vector<Handle<Computation>>> &computations,
+      const Handle<PhysicalAlgorithm> &physAlg,
+      const Handle<Vector<Handle<Computation>>> &computations,)
       : jobID(jobID),
         tcapString(tcapString),
         inputs(inputs),

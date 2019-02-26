@@ -5,6 +5,8 @@
 #ifndef PDB_PDBPHYSICALALGORITHM_H
 #define PDB_PDBPHYSICALALGORITHM_H
 
+#include "SourcePageSetSpec.h"
+#include "SinkPageSetSpec.h"
 
 namespace pdb {
 
@@ -33,7 +35,7 @@ enum PDBSinkType {
   BroadcastJoinSink
 };
 
-class PDBAbstractAlgorithm {
+class PDBAbstractAlgorithm { // Shouldn't this inherit from pdb::Object?
 public:
 
   /**
@@ -54,14 +56,15 @@ public:
 private:
 
   /**
-   * The source type the algorithm should setup
+   * The input page set specifiers. Note that a PDBAbstractAlgorithm, even a StraightPipe,
+   * can have multiple page sets as input.
    */
-  PDBSourceType sourceType;
+  Handle<Vector<Handle<SourcePageSetSpec>>> sourceTypes;
 
   /**
-   * The sink type the algorithm should setup
+   * The output page set specifier. There can only be a single PageSet as output.
    */
-  PDBSinkType sinkType;
+  Handle<SinkPageSetSpec> sinkType;
 
 };
 

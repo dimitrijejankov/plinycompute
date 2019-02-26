@@ -13,7 +13,7 @@
 
 namespace pdb {
 
-class PDBJob {
+class PDBJob { // Shouldn't this inherit from pdb::Object?
 public:
 
   /**

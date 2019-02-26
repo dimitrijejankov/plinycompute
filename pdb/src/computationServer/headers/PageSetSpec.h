@@ -18,21 +18,22 @@ namespace pdb {
  * Might split this into 2 classes on account of the Source/Sink split.
  */
 class PageSetSpec : public Object {
+  // Note: this is an abstract class so it does not have ENABLE_DEEP_COPY
  private:
   // This represents the name of a TupleSet in the TCAP string.
   // Question: will a PageSet always map exactly to a single TupleSet? Can a PageSet contain
   // only a part of a TupleSet? Can a PageSet contain more than one TupleSet?
   Handle<String> tupleSetID;
 
-  // Identifies the type of ComputeSource or ComputeSink which can produce/consume this PageSet.
-  // Can also have a null value which represents that this can correspond to any ComputeSource/Sink.
+  // Each PageSetSpec will contain ether a PDBSourceType or a PDBSinkType. This attribute
+  // identifies the type of Source or Sink which can produce/consume this PageSet.
+  // Can also have a null value which represents that this can correspond to any Source/Sink.
   // Question: is it actually useful to allow this to be null? I was under the impression that
-  // the PhysicalOptimizer will decide which type of ComputeSource/Sink to use. But the PageSetSpec
+  // the PhysicalOptimizer will decide which type of Source/Sink to use. But the PageSetSpec
   // is being created at the same time as the PhysicalOptimizer is making all those decisions, so wouldn't
   // we have full knowledge of which type of Source/Sink this is gonna be?
   //
   // Another question: should this be String or some type of enum?
-  Handle<String> sourceOrSinkType;
 
   // Name of the PageSet which this will correspond to. Note that the PageSet is only created at
   // execution time, while the PageSetSpec (including pageSetID) is created at planning time.
