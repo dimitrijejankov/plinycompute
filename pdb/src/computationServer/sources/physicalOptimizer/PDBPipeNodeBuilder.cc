@@ -77,7 +77,7 @@ void pdb::PDBPipeNodeBuilder::transverseTCAPGraph(AtomicComputationPtr curNode) 
     case HashLeftTypeID:
     case HashRightTypeID: {
 
-      // we got a hash operation, create a join pipe
+      // we got a hash operation, create a PDBJoinPhysicalNode
       // TODO need to add the join
       createPhysicalPipeline<PDBJoinPhysicalNode>();
       currentPipe.clear();
@@ -86,19 +86,18 @@ void pdb::PDBPipeNodeBuilder::transverseTCAPGraph(AtomicComputationPtr curNode) 
     }
     case ApplyAggTypeID: {
 
-      // we got a aggregation so we need to create an aggregation shuffle pipe
+      // we got a aggregation so we need to create an PDBAggregationPhysicalNode
+      // we need to remove the ApplyAgg since it will be run in the next pipeline this one is just preparing the data for it.
+      currentPipe.pop_back();
       createPhysicalPipeline<PDBAggregationPhysicalNode>();
+
+      // add the ApplyAgg back to an empty pipeline
       currentPipe.clear();
+      currentPipe.push_back(curNode);
 
       break;
     }
     case WriteSetTypeID: {
-
-      // do we just have one write set that was after an aggregation in this pipeline we just skip it no pipe is created
-      if(currentPipe.size() == 1) {
-        currentPipe.clear();
-        return;
-      }
 
       // write set also breaks the pipe because this is where the pipe ends
       createPhysicalPipeline<pdb::PDBStraightPhysicalNode>();
