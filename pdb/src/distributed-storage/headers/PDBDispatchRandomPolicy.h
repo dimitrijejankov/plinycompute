@@ -5,18 +5,18 @@
 #ifndef PDB_PDBDISPATCHERRANDOMPOLICY_H
 #define PDB_PDBDISPATCHERRANDOMPOLICY_H
 
-#include <PDBDispatcherPolicy.h>
+#include <PDBDispatchPolicy.h>
 #include <random>
 #include <mutex>
 #include <chrono>
 
 namespace pdb {
 
-class PDBDispatcherRandomPolicy : public PDBDispatcherPolicy {
+class PDBDispatchRandomPolicy : public PDBDispatchPolicy {
 
 public:
 
-  PDBDispatcherRandomPolicy() : generator((unsigned long) std::chrono::system_clock::now().time_since_epoch().count()) {}
+  PDBDispatchRandomPolicy() : generator((unsigned long) std::chrono::system_clock::now().time_since_epoch().count()) {}
 
   /**
    * Returns the next node we are about to send our stuff to

@@ -9,10 +9,10 @@
 
 namespace pdb {
 
-class PDBDispatcherPolicy;
-using PDBDispatcherPolicyPtr = std::shared_ptr<PDBDispatcherPolicy>;
+class PDBDispatchPolicy;
+using PDBDispatcherPolicyPtr = std::shared_ptr<PDBDispatchPolicy>;
 
-class PDBDispatcherPolicy {
+class PDBDispatchPolicy {
 
 public:
 

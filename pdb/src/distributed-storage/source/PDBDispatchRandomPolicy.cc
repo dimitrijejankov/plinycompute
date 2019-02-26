@@ -2,11 +2,11 @@
 // Created by dimitrije on 2/7/19.
 //
 
-#include <PDBDispatcherRandomPolicy.h>
+#include <PDBDispatchRandomPolicy.h>
 
 namespace pdb {
 
-PDBCatalogNodePtr PDBDispatcherRandomPolicy::getNextNode(const std::string &database, const std::string &set, const std::vector<PDBCatalogNodePtr> &nodes) {
+PDBCatalogNodePtr PDBDispatchRandomPolicy::getNextNode(const std::string &database, const std::string &set, const std::vector<PDBCatalogNodePtr> &nodes) {
 
   // lock the thing
   std::unique_lock<std::mutex> lck(m);

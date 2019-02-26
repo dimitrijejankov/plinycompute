@@ -16,54 +16,48 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef OBJECTQUERYMODEL_DISPATCHER_H
-#define OBJECTQUERYMODEL_DISPATCHER_H
 
-#include "ServerFunctionality.h"
-#include "PDBLogger.h"
-#include "PDBWork.h"
-#include "UseTemporaryAllocationBlock.h"
-#include "PDBVector.h"
+#ifndef OBJECTQUERYMODEL_DISPADDDATA_H
+#define OBJECTQUERYMODEL_DISPADDDATA_H
 
-#include "PDBDispatcherPolicy.h"
+#include "Object.h"
+#include "Handle.h"
+#include "PDBString.h"
 
-#include <string>
-#include <queue>
-#include <unordered_map>
-#include <vector>
+// PRELOAD %DisAddData%
 
 namespace pdb {
 
-/**
- * The DispatcherServer partitions and then forwards a Vector of pdb::Objects received from a
- * PDBDispatcherClient to the proper storage servers
- */
-class PDBDispatcherServer : public ServerFunctionality {
+// encapsulates a request to add data to a set in storage
+class DisAddData : public Object {
 
 public:
 
-    PDBDispatcherServer() = default;
+  DisAddData() = default;
+  ~DisAddData() = default;
 
-    ~PDBDispatcherServer() = default;
+  DisAddData(const std::string &databaseName, const std::string &setName, const std::string &typeName)
+      : databaseName(databaseName), setName(setName), typeName(typeName) {
+  }
 
-    /**
-     * Initialize the dispatcher
-     */
-    void init() override;
+  ENABLE_DEEP_COPY
 
-    /**
-     * Inherited function from ServerFunctionality
-     * @param forMe
-     */
-    void registerHandlers(PDBServer& forMe) override;
+  /**
+   * The name of the database the set belongs to
+   */
+  String databaseName;
 
-private:
+  /**
+   * The name of the set we are adding the data to
+   */
+  String setName;
 
-  PDBDispatcherPolicyPtr policy;
-
-  PDBLoggerPtr logger;
+  /**
+   * The name of the type we are adding
+   */
+  String typeName;
 };
+
 }
 
-
-#endif  // OBJECTQUERYMODEL_DISPATCHER_H
+#endif  // OBJECTQUERYMODEL_DISPATCHERADDDATA_H

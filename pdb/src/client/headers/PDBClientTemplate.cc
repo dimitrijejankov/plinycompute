@@ -40,7 +40,7 @@ namespace pdb {
   template <class DataType>
   bool PDBClient::sendData(const std::string &database, const std::string &set, Handle<Vector<Handle<DataType>>> dataToSend) {
 
-    bool result = dispatcherClient->sendData<DataType>(database, set, dataToSend, returnedMsg);
+    bool result = distributedStorage->sendData<DataType>(database, set, dataToSend, returnedMsg);
 
     if (result==false) {
         errorMsg = "Not able to send data: " + returnedMsg;
@@ -53,7 +53,7 @@ namespace pdb {
 
   template<class DataType>
   PDBStorageIteratorPtr<DataType> PDBClient::getSetIterator(std::string dbName, std::string setName) {
-    return std::make_shared<PDBStorageIterator<DataType>>(address, port, 5, setName, dbName);
+    return distributedStorage->getIterator<DataType>(dbName, setName);
   }
 
 }

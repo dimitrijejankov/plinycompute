@@ -34,11 +34,8 @@ PDBClient::PDBClient(int portIn, std::string addressIn) : port(portIn), address(
   // init the catalog client
   catalogClient = std::make_shared<pdb::PDBCatalogClient>(portIn, addressIn, logger);
 
-  // init the dispatcher client
-  dispatcherClient = std::make_shared<pdb::PDBDispatcherClient>(portIn, addressIn, logger);
-
-  // init the storage manager
-  storageManagerClient = std::make_shared<pdb::PDBStorageManagerClient>();
+  // init the distributed storage client
+  distributedStorage = std::make_shared<pdb::PDBDistributedStorageClient>(portIn, addressIn, logger);
 
   // init the computation client
   computationClient = std::make_shared<pdb::PDBComputationClient>(addressIn, portIn, logger);

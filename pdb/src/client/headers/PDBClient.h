@@ -19,13 +19,12 @@
 #define PDBCLIENT_H
 
 #include "PDBCatalogClient.h"
-#include "PDBDispatcherClient.h"
+#include "PDBDistributedStorageClient.h"
 #include "ServerFunctionality.h"
 
 #include "Handle.h"
 #include "PDBVector.h"
 #include "HeapRequest.h"
-#include "PDBStorageManagerClient.h"
 #include "PDBComputationClient.h"
 
 /**
@@ -147,8 +146,7 @@ class PDBClient : public ServerFunctionality {
  private:
 
   std::shared_ptr<pdb::PDBCatalogClient> catalogClient;
-  std::shared_ptr<pdb::PDBDispatcherClient> dispatcherClient;
-  std::shared_ptr<pdb::PDBStorageManagerClient> storageManagerClient;
+  std::shared_ptr<pdb::PDBDistributedStorageClient> distributedStorage;
   std::shared_ptr<pdb::PDBComputationClient> computationClient;
 
   // Port of the PlinyCompute manager node
@@ -169,6 +167,6 @@ class PDBClient : public ServerFunctionality {
 }
 
 #include "PDBClientTemplate.cc"
-#include "PDBDispatcherClientTemplate.cc"
+#include "PDBDistributedStorageClientTemplate.cc"
 
 #endif

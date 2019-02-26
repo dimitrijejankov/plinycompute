@@ -15,60 +15,44 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
-//
-// Created by Joseph Hwang on 9/12/16.
-//
+#ifndef OBJECTQUERYMODEL_DISPATCHERCLIENTTEMPLATE_CC
+#define OBJECTQUERYMODEL_DISPATCHERCLIENTTEMPLATE_CC
 
-#ifndef OBJECTQUERYMODEL_DISPATCHERADDDATA_H
-#define OBJECTQUERYMODEL_DISPATCHERADDDATA_H
+#include "PDBDistributedStorageClient.h"
+#include "DisAddData.h"
+#include "SimpleSendDataRequest.h"
+#include "SimpleSendBytesRequest.h"
+#include "SimpleRequestResult.h"
 
-#include "Object.h"
-#include "Handle.h"
-#include "PDBString.h"
-
-// PRELOAD %DispatcherAddData%
 
 namespace pdb {
 
-// encapsulates a request to add data to a set in storage
-class DispatcherAddData : public Object {
+template<class DataType>
+bool PDBDistributedStorageClient::sendData(const std::string &db, const std::string &set,
+                                   Handle<Vector<Handle<DataType>>> dataToSend, std::string &errMsg) {
 
-public:
-    DispatcherAddData() {}
-    ~DispatcherAddData() {}
 
-    DispatcherAddData(std::string databaseName,
-                      std::string setName,
-                      std::string typeName,
-                      bool shallowCopyOrNot = false)
-        : databaseName(databaseName), setName(setName), typeName(typeName) {
-        this->shallowCopyOrNot = shallowCopyOrNot;
-    }
+  return RequestFactory::dataHeapRequest<DisAddData, DataType, SimpleRequestResult, bool>(
+      logger, port, address, false, 1024, [&](Handle<SimpleRequestResult> result) {
 
-    std::string getDatabaseName() {
-        return databaseName;
-    }
+        // check the response
+        if (result != nullptr && !result->getRes().first) {
 
-    std::string getSetName() {
-        return setName;
-    }
+          logger->error("Error sending data: " + result->getRes().second);
+          errMsg = "Error sending data: " + result->getRes().second;
+        }
 
-    std::string getTypeName() {
-        return typeName;
-    }
-
-    bool isShallowCopy() {
-        return shallowCopyOrNot;
-    }
-
-    ENABLE_DEEP_COPY
-
-private:
-    String databaseName;
-    String setName;
-    String typeName;
-    bool shallowCopyOrNot;
-};
+        return true;
+      },
+      dataToSend, db, set, getTypeName<DataType>());
 }
 
-#endif  // OBJECTQUERYMODEL_DISPATCHERADDDATA_H
+template<class DataType>
+PDBStorageIteratorPtr<DataType> PDBDistributedStorageClient::getIterator(const std::string &database, const std::string &set) {
+
+  return std::make_shared<PDBStorageIterator<DataType>>(address, port, 5, set, database);
+}
+
+}
+
+#endif

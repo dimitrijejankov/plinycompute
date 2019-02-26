@@ -19,15 +19,14 @@
 #ifndef DISPATCHER_SERVER_CC
 #define DISPATCHER_SERVER_CC
 
-#include "PDBDispatcherServer.h"
+#include "PDBDistributedStorage.h"
 #include <snappy.h>
-#include <PDBDispatcherServer.h>
 #include <HeapRequestHandler.h>
-#include <DispAddData.h>
+#include <DisAddData.h>
 #include <BufGetPageRequest.h>
 #include <PDBBufferManagerInterface.h>
-#include <PDBDispatcherRandomPolicy.h>
-#include <DispDispatchData.h>
+#include <PDBDispatchRandomPolicy.h>
+#include <DisDispatchData.h>
 #include "PDBCatalogClient.h"
 #include <boost/filesystem/path.hpp>
 
@@ -35,21 +34,29 @@
 
 namespace pdb {
 
-void PDBDispatcherServer::init() {
+void PDBDistributedStorage::init() {
 
   // init the policy
-  policy = std::make_shared<PDBDispatcherRandomPolicy>();
+  policy = std::make_shared<PDBDispatchRandomPolicy>();
 
   // init the class
-  logger = make_shared<pdb::PDBLogger>((boost::filesystem::path(getConfiguration()->rootDirectory) / "logs").string(), "PDBDispatcherServer.log");
+  logger = make_shared<pdb::PDBLogger>((boost::filesystem::path(getConfiguration()->rootDirectory) / "logs").string(), "PDBDistributedStorage.log");
 }
 
-void PDBDispatcherServer::registerHandlers(PDBServer &forMe) {
+void PDBDistributedStorage::registerHandlers(PDBServer &forMe) {
 
 forMe.registerHandler(
-    DispAddData_TYPEID,
-    make_shared<HeapRequestHandler<pdb::DispAddData>>(
-        [&](Handle<pdb::DispAddData> request, PDBCommunicatorPtr sendUsingMe) {
+    StoGetNextPageRequest_TYPEID,
+    make_shared<pdb::HeapRequestHandler<pdb::StoGetNextPageRequest>>(
+        [&](Handle<pdb::StoGetNextPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
+
+          return handleGetNextPage<PDBCommunicator, RequestFactory>(request, sendUsingMe);
+        }));
+
+forMe.registerHandler(
+    DisAddData_TYPEID,
+    make_shared<HeapRequestHandler<pdb::DisAddData>>(
+        [&](Handle<pdb::DisAddData> request, PDBCommunicatorPtr sendUsingMe) {
 
           /// 0. Check if the set exists
 
@@ -158,7 +165,7 @@ forMe.registerHandler(
           auto node = policy->getNextNode(request->databaseName, request->setName, nodes);
 
           // time to send the stuff
-          auto ret = RequestFactory::bytesHeapRequest<DispDispatchData, SimpleRequestResult, bool>(
+          auto ret = RequestFactory::bytesHeapRequest<DisDispatchData, SimpleRequestResult, bool>(
               logger, node->port, node->address, false, 1024,
               [&](Handle<SimpleRequestResult> result) {
 

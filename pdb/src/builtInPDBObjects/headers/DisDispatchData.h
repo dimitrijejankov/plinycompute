@@ -17,27 +17,29 @@
  *****************************************************************************/
 
 
-#ifndef OBJECTQUERYMODEL_DISPADDDATA_H
-#define OBJECTQUERYMODEL_DISPADDDATA_H
+#ifndef OBJECTQUERYMODEL_DISPDISPATCHDATA_H
+#define OBJECTQUERYMODEL_DISPDISPATCHDATA_H
 
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %DispAddData%
+// PRELOAD %DisDispatchData%
 
 namespace pdb {
 
-// encapsulates a request to add data to a set in storage
-class DispAddData : public Object {
+/**
+ * This one looks exactly like the add data but it is sent by the @see PDBDistributedStorage
+ */
+class DisDispatchData : public Object {
 
 public:
 
-  DispAddData() = default;
-  ~DispAddData() = default;
+  DisDispatchData() = default;
+  ~DisDispatchData() = default;
 
-  DispAddData(const std::string &databaseName, const std::string &setName, const std::string &typeName)
-      : databaseName(databaseName), setName(setName), typeName(typeName) {
+  DisDispatchData(const std::string &databaseName, const std::string &setName, const std::string &typeName, uint64_t compressedSize)
+      : databaseName(databaseName), setName(setName), typeName(typeName), compressedSize(compressedSize) {
   }
 
   ENABLE_DEEP_COPY
@@ -56,6 +58,11 @@ public:
    * The name of the type we are adding
    */
   String typeName;
+
+  /**
+   * The size of the compressed stuff
+   */
+  uint64_t compressedSize;
 };
 
 }

@@ -16,9 +16,11 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef OBJECTQUERYMODEL_DISPATCHERCLIENT_H
-#define OBJECTQUERYMODEL_DISPATCHERCLIENT_H
+#ifndef OBJECTQUERYMODEL_DISTRIBUTESTORAGECLIENT_H
+#define OBJECTQUERYMODEL_DISTRIBUTESTORAGECLIENT_H
 
+#include <PDBSet.h>
+#include <PDBStorageIterator.h>
 #include "ServerFunctionality.h"
 #include "Handle.h"
 #include "PDBVector.h"
@@ -27,14 +29,14 @@
 namespace pdb {
 
 /**
- * this class serves as a dispatcher client to talk with the DispatcherServer
+ * this class serves as a distributed storage client to talk with the DistributedStorage
  * to send Vector<Objects> from clients to the distributed storage server.
  */
-class PDBDispatcherClient : public ServerFunctionality {
+class PDBDistributedStorageClient : public ServerFunctionality {
 
 public:
 
-  PDBDispatcherClient() = default;
+  PDBDistributedStorageClient() = default;
 
   /**
    * Constructor for the client
@@ -42,10 +44,10 @@ public:
    * @param addressIn - the address of the manager
    * @param myLoggerIn - the logger of the client
    */
-  PDBDispatcherClient(int portIn, std::string addressIn, PDBLoggerPtr myLoggerIn)
+  PDBDistributedStorageClient(int portIn, std::string addressIn, PDBLoggerPtr myLoggerIn)
                       : port(portIn), address(std::move(addressIn)), logger(std::move(myLoggerIn)) {};
 
-  ~PDBDispatcherClient() = default;
+  ~PDBDistributedStorageClient() = default;
 
   /**
    * Registers the handles needed for the server functionality
@@ -54,12 +56,20 @@ public:
   void registerHandlers(PDBServer &forMe) override {};
 
   /**
-   * Send the data to the dispatcher
+   * Send the data to the distributed storage
    * @param setAndDatabase - the set and database pair where we want to
    * @return true if we succeed false otherwise
    */
   template<class DataType>
   bool sendData(const std::string &db, const std::string &set, Handle<Vector<Handle<DataType>>> dataToSend, std::string &errMsg);
+
+  /**
+   * Returns an iterator that can fetch records from the storage
+   * @param set - the set want to grab the iterator for
+   * @return the iterator
+   */
+  template <class DataType>
+  PDBStorageIteratorPtr<DataType> getIterator(const std::string &database, const std::string &set);
 
 private:
 
@@ -81,6 +91,6 @@ private:
 
 }
 
-#include "PDBDispatcherClientTemplate.cc"
+#include "PDBDistributedStorageClientTemplate.cc"
 
-#endif  // OBJECTQUERYMODEL_DISPATCHERCLIENT_H
+#endif  // OBJECTQUERYMODEL_DISTRIBUTESTORAGECLIENT_H

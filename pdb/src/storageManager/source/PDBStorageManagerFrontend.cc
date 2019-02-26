@@ -4,7 +4,7 @@
 
 #include <PDBStorageManagerFrontend.h>
 #include <HeapRequestHandler.h>
-#include <DispDispatchData.h>
+#include <DisDispatchData.h>
 #include <PDBBufferManagerInterface.h>
 #include <PDBBufferManagerFrontEnd.h>
 #include <StoStoreOnPageRequest.h>
@@ -107,17 +107,9 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
       }));
 
   forMe.registerHandler(
-      StoGetNextPageRequest_TYPEID,
-      make_shared<pdb::HeapRequestHandler<pdb::StoGetNextPageRequest>>(
-          [&](Handle<pdb::StoGetNextPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
-
-            return handleGetNextPage<PDBCommunicator, RequestFactory>(request, sendUsingMe);
-          }));
-
-  forMe.registerHandler(
-      DispDispatchData_TYPEID,
-      make_shared<pdb::HeapRequestHandler<pdb::DispDispatchData>>(
-          [&](Handle<pdb::DispDispatchData> request, PDBCommunicatorPtr sendUsingMe) {
+      DisDispatchData_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::DisDispatchData>>(
+          [&](Handle<pdb::DisDispatchData> request, PDBCommunicatorPtr sendUsingMe) {
 
             return handleDispatchedData<PDBCommunicator, RequestFactory>(request, sendUsingMe);
           }));
