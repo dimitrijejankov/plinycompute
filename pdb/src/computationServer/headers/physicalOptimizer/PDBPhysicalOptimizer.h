@@ -23,6 +23,7 @@
 #include "PDBVector.h"
 #include <PDBLogger.h>
 #include <AtomicComputationList.h>
+#include <PDBPipeNodeBuilder.h>
 
 namespace pdb {
 
@@ -35,7 +36,10 @@ public:
 
 private:
 
-  std::shared_ptr<AtomicComputationList> atomicComputations;
+  /**
+   *
+   */
+  std::vector<pdb::PDBAbstractPhysicalNodePtr> sources;
 
   PDBLoggerPtr logger;
 
