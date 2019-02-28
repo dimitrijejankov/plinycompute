@@ -23,24 +23,58 @@
 #include "PDBVector.h"
 #include <PDBLogger.h>
 #include <AtomicComputationList.h>
+#include <PDBPhysicalAlgorithm.h>
 #include <PDBPipeNodeBuilder.h>
 
 namespace pdb {
 
+/**
+ * This class basically takes in a TCAP and breaks it up into PhysicalAlgorithms, that are going to be sent to,
+ * the @see ExecutionServerFrontend
+ */
 class PDBPhysicalOptimizer {
 public:
 
+  /**
+   * Takes in the TCAP string that we want to analyze and to the physical optimization on
+   * @param tcapString - the TACP string
+   * @param logger - the logger
+   */
   PDBPhysicalOptimizer(String tcapString, PDBLoggerPtr &logger);
 
+  /**
+   * Default destructor
+   */
   ~PDBPhysicalOptimizer() = default;
+
+  /**
+   * Returns the next algorithm we want to run.
+   * Warning this assumes a that an allocating block has been setup previously
+   * @return the algorithm - the algorithm we want to run
+   */
+  pdb::Handle<pdb::PDBPhysicalAlgorithm> getNextAlgorithm();
+
+  /**
+   * This returns true if there is an algorithm we need to run in order to finish the computation
+   * @return true if there is false otherwise
+   */
+  bool hasAlgorithmToRun();
+
+  /**
+   * Updates the set statistics
+   */
+  void updateStats();
 
 private:
 
   /**
-   *
+   * These are all the sources we currently have
    */
   std::vector<pdb::PDBAbstractPhysicalNodePtr> sources;
 
+  /**
+   * The logger associated with the physical optimizer
+   */
   PDBLoggerPtr logger;
 
 };

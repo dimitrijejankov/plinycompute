@@ -5,6 +5,7 @@
 #ifndef PDB_PDBPHYSICALALGORITHM_H
 #define PDB_PDBPHYSICALALGORITHM_H
 
+#include <Object.h>
 
 namespace pdb {
 
@@ -33,7 +34,7 @@ enum PDBSinkType {
   BroadcastJoinSink
 };
 
-class PDBAbstractAlgorithm {
+class PDBPhysicalAlgorithm : public Object {
 public:
 
   /**
@@ -62,9 +63,6 @@ private:
    * The sink type the algorithm should setup
    */
   PDBSinkType sinkType;
-
-
-
 
 };
 

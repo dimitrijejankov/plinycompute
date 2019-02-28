@@ -9,7 +9,7 @@
 
 namespace pdb {
 
-class StraightPipeAlgorithm : public PDBAbstractAlgorithm {
+class PDBStraightPipeAlgorithm : public PDBPhysicalAlgorithm {
 public:
 
   /**

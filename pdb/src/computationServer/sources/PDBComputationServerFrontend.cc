@@ -28,7 +28,17 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
             // init the optimizer
             pdb::PDBPhysicalOptimizer optimizer(request->tcapString, logger);
 
+            // while we still have jobs to execute
+            while(optimizer.hasAlgorithmToRun()) {
 
+              // grab a algorithm
+              auto algorithm = optimizer.getNextAlgorithm();
+
+              /// TODO pack this into a job, broadcast the job and wait for it to finish...
+
+              // update stats
+              optimizer.updateStats();
+            }
 
             // stop the computation
             this->statsManager.endComputation(compID);

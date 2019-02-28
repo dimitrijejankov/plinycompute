@@ -19,7 +19,7 @@ public:
   /**
    * The physical algorithm we want to run.
    */
-  Handle<PDBAbstractAlgorithm> physicalAlgorithm;
+  Handle<PDBPhysicalAlgorithm> physicalAlgorithm;
 
   /**
    * The computations we want to send

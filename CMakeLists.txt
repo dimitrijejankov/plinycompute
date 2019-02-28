@@ -55,31 +55,33 @@ elseif (NOT USE_DEBUG)
 endif (USE_DEBUG)
 
 # set the directories with the common header files
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/server/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/client/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/distributed-storage/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/bufferMgr/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/work/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/distributionManager/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/communication/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/logicalPlan/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/lambdas/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/lambdas/headers/lambdas")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/serverFunctionalities/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/catalog/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/bufferManager/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/builtInPDBObjects/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/configuration/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/storageManager/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/objectModel/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/sharedLibraries/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/client/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/communication/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/catalog/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/computations/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/computationServer/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/computationServer/headers/physicalOptimizer")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/bufferManager/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/configuration/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/distributedStorage/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/executionServer/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/executionServer/headers/physicalAlgorithms")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/lambdas/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/lambdas/headers/lambdas")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/logicalPlan/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/objectModel/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/pipeline/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/pipeline/headers/sinks")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/pipeline/headers/sources")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/pipeline/headers/executors")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/server/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/serverFunctionalities/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/sharedLibraries/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/storageManager/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/work/headers")
+
+
 
 # add the third party libraries as includes
 include_directories("${PROJECT_SOURCE_DIR}/third-party/mustache/headers")
@@ -91,7 +93,7 @@ include_directories("${PROJECT_SOURCE_DIR}/third-party/sqlite/headers")
 file(GLOB SERVER_FUNCTIONALITIES_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/serverFunctionalities/source/*.cc")
 file(GLOB COMMUNICATION_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/communication/source/*.cc")
 file(GLOB CATALOG_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/catalog/source/*.cc")
-file(GLOB DISTRIBUTED_STORAGE_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/distributed-storage/source/*.cc")
+file(GLOB DISTRIBUTED_STORAGE_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/distributedStorage/source/*.cc")
 file(GLOB SERVER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/server/source/*.cc")
 file(GLOB OBJECT_MODEL_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/objectModel/source/*.cc")
 file(GLOB WORK_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/work/source/*.cc")
@@ -102,6 +104,8 @@ file(GLOB CLIENT_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/client/source/*.cc")
 file(GLOB BUFFER_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/bufferManager/source/*.cc")
 file(GLOB COMPUTATION_SERVER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/computationServer/sources/*.cc"
                                     "${PROJECT_SOURCE_DIR}/pdb/src/computationServer/sources/physicalOptimizer/*.cc")
+file(GLOB EXECUTION_SERVER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/executionServer/sources/*.cc"
+                                  "${PROJECT_SOURCE_DIR}/pdb/src/executionServer/sources/physicalAlgorithms/*.cc")
 
 set(SOURCE_FILES_SQL_LITE ${PROJECT_SOURCE_DIR}/third-party/sqlite/source/sqlite3.c)
 
@@ -214,6 +218,7 @@ add_library(client OBJECT ${CLIENT_SOURCE})
 add_library(object-model OBJECT ${OBJECT_MODEL_SOURCE})
 add_library(buffer-manager OBJECT ${BUFFER_MANAGER_SOURCE})
 add_library(computation-server OBJECT ${COMPUTATION_SERVER_SOURCE})
+add_library(execution-server OBJECT ${EXECUTION_SERVER_SOURCE})
 
 # add the dependencies to the object type generationg
 add_dependencies(server-functionalities object-type-ids)
@@ -236,6 +241,7 @@ add_library(pdb-server-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:storageManager>
         $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:computation-server>
+        $<TARGET_OBJECTS:execution-server>
         $<TARGET_OBJECTS:work>)
 
 # used to link the shared libraries that the shared librarires use
@@ -251,6 +257,7 @@ add_library(pdb-shared-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:storageManager>
         $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:computation-server>
+        $<TARGET_OBJECTS:execution-server>
         $<TARGET_OBJECTS:work>)
 
 # used to link the shared libraries that the test use
@@ -266,6 +273,7 @@ add_library(pdb-tests-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:storageManager>
         $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:computation-server>
+        $<TARGET_OBJECTS:execution-server>
         $<TARGET_OBJECTS:work>)
 
 # link the dependent libraries so that they are made of the public interface

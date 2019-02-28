@@ -41,5 +41,17 @@ PDBPhysicalOptimizer::PDBPhysicalOptimizer(String tcapString, PDBLoggerPtr &logg
   sources = factory.generateAnalyzerGraph();
 }
 
+pdb::Handle<pdb::PDBPhysicalAlgorithm> PDBPhysicalOptimizer::getNextAlgorithm() {
+  return nullptr;
+}
+
+bool PDBPhysicalOptimizer::hasAlgorithmToRun() {
+  return false;
+}
+
+void PDBPhysicalOptimizer::updateStats() {
+
+}
+
 }
 
