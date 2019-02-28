@@ -2,9 +2,18 @@
 // Created by dimitrije on 2/19/19.
 //
 
+#include <boost/filesystem/path.hpp>
 #include "PDBComputationServerFrontend.h"
 #include "HeapRequestHandler.h"
 #include "CSExecuteComputation.h"
+#include "PDBPhysicalOptimizer.h"
+
+void pdb::PDBComputationServerFrontend::init() {
+
+  // init the class
+  logger = make_shared<pdb::PDBLogger>((boost::filesystem::path(getConfiguration()->rootDirectory) / "logs").string(),
+                                       "PDBComputationServerFrontend.log");
+}
 
 void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) {
 
@@ -13,11 +22,16 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
       make_shared<pdb::HeapRequestHandler<pdb::CSExecuteComputation>>(
           [&](Handle<pdb::CSExecuteComputation> request, PDBCommunicatorPtr sendUsingMe) {
 
-            for (int i = 0; i < request->computations->size(); i++) {
-              std::cout << (*request->computations)[i]->getComputationType() << std::endl;
-            }
+            // the id associated with this computation
+            auto compID = this->statsManager.startComputation();
 
-            std::cout << "Size : " << request->numBytes << std::endl;
+            // init the optimizer
+            pdb::PDBPhysicalOptimizer optimizer(request->tcapString, logger);
+
+
+
+            // stop the computation
+            this->statsManager.endComputation(compID);
 
             return make_pair(true, std::string(""));
           }));

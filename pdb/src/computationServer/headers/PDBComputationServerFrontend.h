@@ -5,7 +5,9 @@
 #ifndef PDB_COMPUTATIONSERVER_H
 #define PDB_COMPUTATIONSERVER_H
 
+#include "PDBComputationStatsManager.h"
 #include <ServerFunctionality.h>
+#include <mutex>
 
 namespace pdb {
 
@@ -13,8 +15,21 @@ class PDBComputationServerFrontend : public ServerFunctionality {
 
 public:
 
+  void init() override;
+
   void registerHandlers(PDBServer &forMe) override;
 
+private:
+
+  /**
+   * This manages the stats about each computation
+   */
+  PDBComputationStatsManager statsManager;
+
+  /**
+   * The logger for this thing
+   */
+  pdb::PDBLoggerPtr logger;
 };
 
 

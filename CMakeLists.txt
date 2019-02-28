@@ -57,7 +57,7 @@ endif (USE_DEBUG)
 # set the directories with the common header files
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/server/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/client/headers")
-include_directories("${PROJECT_SOURCE_DIR}/pdb/src/dispatcher/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/distributed-storage/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/bufferMgr/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/work/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/distributionManager/headers")
@@ -91,7 +91,7 @@ include_directories("${PROJECT_SOURCE_DIR}/third-party/sqlite/headers")
 file(GLOB SERVER_FUNCTIONALITIES_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/serverFunctionalities/source/*.cc")
 file(GLOB COMMUNICATION_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/communication/source/*.cc")
 file(GLOB CATALOG_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/catalog/source/*.cc")
-file(GLOB DISPATCHER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/dispatcher/source/*.cc")
+file(GLOB DISTRIBUTED_STORAGE_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/distributed-storage/source/*.cc")
 file(GLOB SERVER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/server/source/*.cc")
 file(GLOB OBJECT_MODEL_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/objectModel/source/*.cc")
 file(GLOB WORK_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/work/source/*.cc")
@@ -205,7 +205,7 @@ add_library(sql-lite OBJECT ${SOURCE_FILES_SQL_LITE})
 add_library(server-functionalities OBJECT ${SERVER_FUNCTIONALITIES_SOURCE})
 add_library(communication OBJECT ${COMMUNICATION_SOURCE})
 add_library(catalog OBJECT ${CATALOG_SOURCE})
-add_library(dispatcher OBJECT ${DISPATCHER_SOURCE})
+add_library(distributed-storage OBJECT ${DISTRIBUTED_STORAGE_SOURCE})
 add_library(server OBJECT ${SERVER_SOURCE})
 add_library(work OBJECT ${WORK_SOURCE})
 add_library(storageManager OBJECT ${STORAGE_MANAGER_SOURCE})
@@ -225,7 +225,7 @@ add_dependencies(server object-type-ids)
 
 # used to build the pdb-manager and pdb-worker
 add_library(pdb-server-common $<TARGET_OBJECTS:catalog>
-        $<TARGET_OBJECTS:dispatcher>
+        $<TARGET_OBJECTS:distributed-storage>
         $<TARGET_OBJECTS:communication>
         $<TARGET_OBJECTS:logical-plan>
         $<TARGET_OBJECTS:server>
@@ -240,7 +240,7 @@ add_library(pdb-server-common $<TARGET_OBJECTS:catalog>
 
 # used to link the shared libraries that the shared librarires use
 add_library(pdb-shared-common $<TARGET_OBJECTS:catalog>
-        $<TARGET_OBJECTS:dispatcher>
+        $<TARGET_OBJECTS:distributed-storage>
         $<TARGET_OBJECTS:communication>
         $<TARGET_OBJECTS:logical-plan>
         $<TARGET_OBJECTS:server>
@@ -255,7 +255,7 @@ add_library(pdb-shared-common $<TARGET_OBJECTS:catalog>
 
 # used to link the shared libraries that the test use
 add_library(pdb-tests-common $<TARGET_OBJECTS:catalog>
-        $<TARGET_OBJECTS:dispatcher>
+        $<TARGET_OBJECTS:distributed-storage>
         $<TARGET_OBJECTS:communication>
         $<TARGET_OBJECTS:logical-plan>
         $<TARGET_OBJECTS:server>

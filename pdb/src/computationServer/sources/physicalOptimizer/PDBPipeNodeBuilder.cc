@@ -78,7 +78,6 @@ void pdb::PDBPipeNodeBuilder::transverseTCAPGraph(AtomicComputationPtr curNode) 
     case HashRightTypeID: {
 
       // we got a hash operation, create a PDBJoinPhysicalNode
-      // TODO need to add the join
       createPhysicalPipeline<PDBJoinPhysicalNode>();
       currentPipe.clear();
 
@@ -155,7 +154,7 @@ void pdb::PDBPipeNodeBuilder::setConsumers(std::shared_ptr<PDBAbstractPhysicalNo
 
 void pdb::PDBPipeNodeBuilder::connectThePipes() {
 
-  for(auto node : physicalNodes) {
+  for(const auto &node : physicalNodes) {
 
     // get all the consumers of this pipe
     auto consumingAtomicComputation = consumedBy[node.second->getNodeIdentifier()];

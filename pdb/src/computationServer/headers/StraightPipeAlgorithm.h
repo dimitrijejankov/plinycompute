@@ -5,7 +5,7 @@
 #ifndef PDB_STRAIGHTPIPEALGORITHM_H
 #define PDB_STRAIGHTPIPEALGORITHM_H
 
-#include "PDBAbstractAlgorithm.h"
+#include "PDBPhysicalAlgorithm.h"
 
 namespace pdb {
 

@@ -9,7 +9,7 @@
 #include <PDBString.h>
 #include <PDBVector.h>
 #include <Computation.h>
-#include "PDBAbstractAlgorithm.h"
+#include "PDBPhysicalAlgorithm.h"
 
 namespace pdb {
 
