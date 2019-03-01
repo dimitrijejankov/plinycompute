@@ -15,6 +15,9 @@ object_headers = os.path.join(SRC_ROOT, 'builtInPDBObjects', 'headers')
 # the computations
 computation_headers = os.path.join(SRC_ROOT, 'computations', 'headers')
 
+# physical algorithms
+physical_headers = os.path.join(SRC_ROOT, 'executionServer', 'headers', 'physicalAlgorithms')
+
 # this is where we want to dump the generated files
 objectTargetDir = os.path.join(SRC_ROOT, 'objectModel', 'headers')
 
@@ -25,6 +28,10 @@ only_files = [abspath(join(object_headers, f))
 # grab all the headers from the computations
 only_files.extend([abspath(join(computation_headers, f))
                    for f in listdir(computation_headers) if isfile(join(computation_headers, f)) and f[-2:] == '.h'])
+
+# grab the physical algorithms
+only_files.extend([abspath(join(physical_headers, f))
+                   for f in listdir(physical_headers) if isfile(join(physical_headers, f)) and f[-2:] == '.h'])
 
 def check_if_changed(includes, classes):
 

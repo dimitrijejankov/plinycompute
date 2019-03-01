@@ -7,6 +7,12 @@
 
 #include "PDBPhysicalAlgorithm.h"
 
+/**
+ * This is important do not remove, it is used by the generator
+ */
+// PRELOAD %PDBStraightPipeAlgorithm%
+
+
 namespace pdb {
 
 class PDBStraightPipeAlgorithm : public PDBPhysicalAlgorithm {
