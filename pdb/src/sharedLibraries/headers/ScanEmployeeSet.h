@@ -6,11 +6,11 @@
 #define PDB_SCANEMPLOYEESET_H
 
 #include <Employee.h>
-#include <ScanSet.h>
+#include <SetScanner.h>
 #include <LambdaCreationFunctions.h>
 #include <VectorTupleSetIterator.h>
 
-class ScanEmployeeSet : public pdb::ScanSet<pdb::Employee> {
+class ScanEmployeeSet : public pdb::SetScanner<pdb::Employee> {
 
  public:
 

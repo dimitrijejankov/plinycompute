@@ -11,3 +11,7 @@
 PDBPipelineType pdb::PDBJoinPhysicalNode::getType() {
   return PDB_JOIN_SIDE_PIPELINE;
 }
+
+pdb::Handle<pdb::PDBPhysicalAlgorithm> pdb::PDBJoinPhysicalNode::generateAlgorithm() {
+  return nullptr;
+}

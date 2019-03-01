@@ -27,7 +27,7 @@
 #include "SetWriter.h"
 #include "SelectionComp.h"
 #include "AggregateComp.h"
-#include "ScanSet.h"
+#include "SetScanner.h"
 #include "DepartmentTotal.h"
 #include "VectorSink.h"
 #include "HashSink.h"

@@ -5,9 +5,12 @@
 #ifndef PDB_PDBABSTRACTPIPELINE_H
 #define PDB_PDBABSTRACTPIPELINE_H
 
-#include <AtomicComputation.h>
 #include <list>
 
+#include <AtomicComputation.h>
+#include <AtomicComputationClasses.h>
+#include <PDBPhysicalAlgorithm.h>
+#include <Handle.h>
 
 enum PDBPipelineType {
 
@@ -102,8 +105,8 @@ public:
   const std::vector<AtomicComputationPtr>& getPipeComputations() { return pipeline; }
 
   /**
-   * // TODO remove this somehow
-   * @return
+   * Checks whether this starts with a scan set in this case this means that it has a source set
+   * @return true if it has one false otherwise.
    */
   bool hasScanSet() {
 
@@ -115,6 +118,23 @@ public:
     // check if the first computation is an atomic computation
     return pipeline.front()->getAtomicComputationTypeID() == ScanSetAtomicTypeID;
   };
+
+  /**
+   * Returns the source set, it assumes that it has one
+   * @return (dbName, setName)
+   */
+  std::pair<std::string, std::string> getSourceSet() {
+
+    // grab the scan set from the pipeline
+    auto scanSet = std::dynamic_pointer_cast<ScanSet>(pipeline.front());
+    return std::make_pair(scanSet->getDBName(), scanSet->getSetName());
+  }
+
+  /**
+   * Returns the algorithm we chose to run this pipeline
+   * @return the algorithm
+   */
+  virtual pdb::Handle<pdb::PDBPhysicalAlgorithm> generateAlgorithm() = 0;
 
 private:
 

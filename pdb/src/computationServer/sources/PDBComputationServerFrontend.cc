@@ -7,6 +7,7 @@
 #include "HeapRequestHandler.h"
 #include "CSExecuteComputation.h"
 #include "PDBPhysicalOptimizer.h"
+#include "PDBDistributedStorage.h"
 
 void pdb::PDBComputationServerFrontend::init() {
 
@@ -25,8 +26,11 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
             // the id associated with this computation
             auto compID = this->statsManager.startComputation();
 
+            // distributed storage
+            auto distributedStorage = getFunctionalityPtr<pdb::PDBDistributedStorage>();
+
             // init the optimizer
-            pdb::PDBPhysicalOptimizer optimizer(request->tcapString, logger);
+            pdb::PDBPhysicalOptimizer optimizer(request->tcapString, distributedStorage, logger);
 
             // while we still have jobs to execute
             while(optimizer.hasAlgorithmToRun()) {

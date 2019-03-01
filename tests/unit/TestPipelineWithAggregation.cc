@@ -26,7 +26,7 @@
 #include "SetWriter.h"
 #include "SelectionComp.h"
 #include "AggregateComp.h"
-#include "ScanSet.h"
+#include "SetScanner.h"
 #include "DepartmentTotal.h"
 #include "VectorSink.h"
 #include "HashSink.h"
@@ -120,7 +120,7 @@ class SillyQuery : public SelectionComp<Employee, Supervisor> {
 
 };
 
-class SillyRead : public ScanSet<Supervisor> {
+class SillyRead : public SetScanner<Supervisor> {
 
   ENABLE_DEEP_COPY
 

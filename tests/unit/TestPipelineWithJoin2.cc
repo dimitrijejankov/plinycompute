@@ -25,7 +25,7 @@
 #include "Pipeline.h"
 #include "SetWriter.h"
 #include "JoinComp.h"
-#include "ScanSet.h"
+#include "SetScanner.h"
 #include "VectorSink.h"
 #include "HashSink.h"
 #include "MapTupleSetIterator.h"
@@ -73,7 +73,7 @@ public:
 	}
 };
 
-class SillyReadOfA : public ScanSet <int> {
+class SillyReadOfA : public SetScanner <int> {
 
 	ENABLE_DEEP_COPY
 
@@ -124,7 +124,7 @@ class SillyReadOfA : public ScanSet <int> {
 	}
 };
 
-class SillyReadOfB : public ScanSet <StringIntPair> {
+class SillyReadOfB : public SetScanner <StringIntPair> {
 
 	ENABLE_DEEP_COPY
 
@@ -178,7 +178,7 @@ class SillyReadOfB : public ScanSet <StringIntPair> {
 	}
 };
 
-class SillyReadOfC : public ScanSet <String> {
+class SillyReadOfC : public SetScanner <String> {
 
 	ENABLE_DEEP_COPY
 

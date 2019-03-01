@@ -6,6 +6,7 @@
 #define PDB_PDBPHYSICALALGORITHM_H
 
 #include <Object.h>
+#include <PDBString.h>
 
 namespace pdb {
 
@@ -33,6 +34,45 @@ enum PDBSinkType {
   JoinShuffleSink,
   BroadcastJoinSink
 };
+
+struct SourcePageSetSpec {
+
+  /**
+   * The computation that is consuming or producing this page set
+   */
+  pdb::String tupleSetIdentifier;
+
+  /**
+   *
+   */
+  PDBSourceType sourceType;
+
+  /**
+   * Each page set is identified by a integer and a string. Generally set to (computationID, tupleSetIdentifier)
+   * but relying on that is considered bad practice
+   */
+  std::pair<size_t, pdb::String> pageSetIdentifier;
+};
+
+struct SinkPageSetSpec {
+
+  /**
+   * The computation that is consuming or producing this page set
+   */
+  pdb::String tupleSetIdentifier;
+
+  /**
+   *
+   */
+  PDBSinkType sinkType;
+
+  /**
+   * Each page set is identified by a integer and a string. Generally set to (computationID, tupleSetIdentifier)
+   * but relying on that is considered bad practice
+   */
+  std::pair<size_t, pdb::String> pageSetIdentifier;
+};
+
 
 class PDBPhysicalAlgorithm : public Object {
 public:

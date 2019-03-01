@@ -25,8 +25,11 @@
 #include <AtomicComputationList.h>
 #include <PDBPhysicalAlgorithm.h>
 #include <PDBPipeNodeBuilder.h>
+#include <PDBDistributedStorage.h>
 
 namespace pdb {
+
+using OptimizerSource = std::pair<size_t, PDBAbstractPhysicalNodePtr>;
 
 /**
  * This class basically takes in a TCAP and breaks it up into PhysicalAlgorithms, that are going to be sent to,
@@ -40,7 +43,7 @@ public:
    * @param tcapString - the TACP string
    * @param logger - the logger
    */
-  PDBPhysicalOptimizer(String tcapString, PDBLoggerPtr &logger);
+  PDBPhysicalOptimizer(String tcapString, PDBDistributedStoragePtr &distributedStorage, PDBLoggerPtr &logger);
 
   /**
    * Default destructor
@@ -61,7 +64,7 @@ public:
   bool hasAlgorithmToRun();
 
   /**
-   * Updates the set statistics
+   * Updates the set statistics //TODO this needs to be implemented
    */
   void updateStats();
 
@@ -70,7 +73,7 @@ private:
   /**
    * These are all the sources we currently have
    */
-  std::vector<pdb::PDBAbstractPhysicalNodePtr> sources;
+  priority_queue<OptimizerSource, vector<OptimizerSource>, function<bool(const OptimizerSource&, const OptimizerSource&)>> sources;
 
   /**
    * The logger associated with the physical optimizer

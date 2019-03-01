@@ -24,10 +24,10 @@
 namespace pdb {
 
 template<class OutputClass>
-class ScanSet : public Computation {
+class SetScanner : public Computation {
 
   std::string getComputationType() override {
-    return std::string("ScanSet");
+    return std::string("SetScanner");
   }
 
   // gets the name of the i^th input type...

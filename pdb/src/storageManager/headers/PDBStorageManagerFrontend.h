@@ -74,7 +74,9 @@ public:
    */
   map <PDBSetPtr, size_t, PDBSetCompare> lastPages;
 
-
+  /**
+   * Lock last pages
+   */
   std::mutex m;
 };
 

@@ -7,3 +7,7 @@
 PDBPipelineType pdb::PDBAggregationPhysicalNode::getType() {
   return PDB_AGGREGATION_PIPELINE;
 }
+
+pdb::Handle<pdb::PDBPhysicalAlgorithm> pdb::PDBAggregationPhysicalNode::generateAlgorithm() {
+  return nullptr;
+}

@@ -17,6 +17,8 @@ public:
 
   PDBPipelineType getType() override;
 
+  Handle<PDBPhysicalAlgorithm> generateAlgorithm() override;
+
 };
 
 }

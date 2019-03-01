@@ -6,10 +6,14 @@
 #include <AtomicComputationList.h>
 #include <Lexer.h>
 #include <Parser.h>
+#include <SetScanner.h>
+#include <AtomicComputationClasses.h>
 
 namespace pdb {
 
-PDBPhysicalOptimizer::PDBPhysicalOptimizer(String tcapString, PDBLoggerPtr &logger) : logger(logger) {
+PDBPhysicalOptimizer::PDBPhysicalOptimizer(String tcapString,
+                                           PDBDistributedStoragePtr &distributedStorage,
+                                           PDBLoggerPtr &logger) : logger(logger), sources(([](const OptimizerSource& s1, const OptimizerSource& s2) {return s1.first > s2.first;})){
 
   // get the string to compile
   std::string myLogicalPlan = tcapString;
@@ -38,15 +42,33 @@ PDBPhysicalOptimizer::PDBPhysicalOptimizer(String tcapString, PDBLoggerPtr &logg
 
   // split the computations into pipes
   pdb::PDBPipeNodeBuilder factory(atomicComputations);
-  sources = factory.generateAnalyzerGraph();
+
+  // fill the sources up
+  auto sourcesVector = factory.generateAnalyzerGraph();
+  for(const auto &source : sourcesVector) {
+
+    // if the source does not have a scan set something went horribly wrong
+    if(!source->hasScanSet()) {
+      throw runtime_error("There was a pipe at the beginning of the query plan without a scan set");
+    }
+
+    // add the source to the pq
+    sources.push(std::make_pair(distributedStorage->getSetSize(source->getSourceSet()), source));
+  }
 }
 
 pdb::Handle<pdb::PDBPhysicalAlgorithm> PDBPhysicalOptimizer::getNextAlgorithm() {
-  return nullptr;
+
+  // select a source
+  auto source = sources.top();
+  sources.pop();
+
+  // runs the algorithm generation part
+  return source.second->generateAlgorithm();
 }
 
 bool PDBPhysicalOptimizer::hasAlgorithmToRun() {
-  return false;
+  return !sources.empty();
 }
 
 void PDBPhysicalOptimizer::updateStats() {

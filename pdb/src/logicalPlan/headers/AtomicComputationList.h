@@ -39,7 +39,7 @@ private:
     // a map from the name of a TupleSet to the AtomicComputation(s) that will consume it
     std::map<std::string, std::vector<AtomicComputationPtr>> consumers;
 
-    // a list of all of the ScanSet objects
+    // a list of all of the SetScanner objects
     std::vector<AtomicComputationPtr> scans;
 
 public:
@@ -51,7 +51,7 @@ public:
 
     // this effectively gets all of the leaves of the graph, since it returns all of the scans...
     // every
-    // AtomicComputationPtr in the returned list will point to a ScanSet object
+    // AtomicComputationPtr in the returned list will point to a SetScanner object
     std::vector<AtomicComputationPtr>& getAllScanSets();
 
     // add an atomic computation to the graph

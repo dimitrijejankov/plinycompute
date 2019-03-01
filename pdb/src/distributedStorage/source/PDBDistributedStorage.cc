@@ -30,10 +30,42 @@
 #include "PDBCatalogClient.h"
 #include <boost/filesystem/path.hpp>
 #include <PDBDistributedStorage.h>
-
-#define MAX_CONCURRENT_REQUESTS 10
+#include <fstream>
+#include <boost/filesystem/operations.hpp>
 
 namespace pdb {
+
+namespace fs = boost::filesystem;
+
+PDBDistributedStorage::~PDBDistributedStorage() {
+
+  // open the output file
+  std::ofstream ofs;
+  ofs.open((boost::filesystem::path(getConfiguration()->rootDirectory) / "distributedStorage.pdb").string(),
+           ios::binary | std::ofstream::out | std::ofstream::trunc);
+
+  unsigned long numSets = setSizes.size();
+  ofs.write((char *) &numSets, sizeof(unsigned long));
+
+  // serialize the stuff
+  for (auto &it : setSizes) {
+
+    // write the database name
+    unsigned long size = it.first.first.size();
+    ofs.write((char *) &size, sizeof(unsigned long));
+    ofs.write(it.first.first.c_str(), size);
+
+    // write the set name
+    size = it.first.second.size();
+    ofs.write((char *) &size, sizeof(unsigned long));
+    ofs.write(it.first.second.c_str(), size);
+
+    // write the set size
+    ofs.write(reinterpret_cast<char *>(&it.second), sizeof(it.second));
+  }
+
+  ofs.close();
+}
 
 void PDBDistributedStorage::init() {
 
@@ -41,7 +73,45 @@ void PDBDistributedStorage::init() {
   policy = std::make_shared<PDBDispatchRandomPolicy>();
 
   // init the class
-  logger = make_shared<pdb::PDBLogger>((boost::filesystem::path(getConfiguration()->rootDirectory) / "logs").string(), "PDBDistributedStorage.log");
+  logger = make_shared<pdb::PDBLogger>((fs::path(getConfiguration()->rootDirectory) / "logs").string(), "PDBDistributedStorage.log");
+
+  // do we have the metadata for the storage
+  if (fs::exists(fs::path(getConfiguration()->rootDirectory) / "distributedStorage.pdb")) {
+
+    // open if stream
+    std::ifstream ifs;
+    ifs.open((fs::path(getConfiguration()->rootDirectory) / "distributedStorage.pdb").string(),
+             ios::binary | std::ifstream::in);
+
+    size_t numSets;
+    ifs.read((char *) &numSets, sizeof(unsigned long));
+
+    for (int i = 0; i < numSets; ++i) {
+
+      // read the database name
+      unsigned long size;
+      ifs.read((char *) &size, sizeof(unsigned long));
+      std::unique_ptr<char[]> setBuffer(new char[size]);
+      ifs.read(setBuffer.get(), size);
+      std::string dbName(setBuffer.get(), size);
+
+      // read the set name
+      ifs.read((char *) &size, sizeof(unsigned long));
+      std::unique_ptr<char[]> dbBuffer(new char[size]);
+      ifs.read(dbBuffer.get(), size);
+      std::string setName(dbBuffer.get(), size);
+
+      // read the set size
+      unsigned long setSize;
+      ifs.read(reinterpret_cast<char *>(&setSize), sizeof(setSize));
+
+      // store the set info
+      setSizes[std::make_pair(dbName, setName)] = setSize;
+    }
+
+    // close
+    ifs.close();
+  }
 }
 
 void PDBDistributedStorage::registerHandlers(PDBServer &forMe) {
@@ -61,6 +131,17 @@ forMe.registerHandler(
 
           return handleAddData<PDBCommunicator, RequestFactory>(request, sendUsingMe);
     }));
+}
+
+size_t PDBDistributedStorage::getSetSize(const std::pair<std::string, std::string> &set) {
+
+  // return the set size if it exists
+  auto it = setSizes.find(set);
+  if(it != setSizes.end()) {
+    return it->second;
+  }
+
+  return 0;
 }
 
 }

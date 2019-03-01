@@ -36,79 +36,92 @@
 
 namespace pdb {
 
+// just make a ptr to the distributed storage
+class PDBDistributedStorage;
+using PDBDistributedStoragePtr = std::shared_ptr<PDBDistributedStorage>;
+
 /**
  * The DispatcherServer partitions and then forwards a Vector of pdb::Objects received from a
  * PDBDispatcherClient to the proper storage servers
  */
 class PDBDistributedStorage : public ServerFunctionality {
 
-public:
+ public:
 
-    PDBDistributedStorage() = default;
+  ~PDBDistributedStorage();
 
-    ~PDBDistributedStorage() = default;
+  /**
+   * Initialize the dispatcher
+   */
+  void init() override;
 
-    /**
-     * Initialize the dispatcher
-     */
-    void init() override;
+  /**
+   * Inherited function from ServerFunctionality
+   * @param forMe
+   */
+  void registerHandlers(PDBServer &forMe) override;
 
-    /**
-     * Inherited function from ServerFunctionality
-     * @param forMe
-     */
-    void registerHandlers(PDBServer& forMe) override;
+  /**
+   * Requests a page from a node and stores it's compressed bytes onto an anonymous page.
+   *
+   * @tparam Communicator - the communicator class PDBCommunicator is used to handle the request. This is basically here
+   * so we could write unit tests
+   *
+   * @tparam Requests - the factory class to make request. RequestsFactory class is being used this is just here as a template so we
+   * can mock it in the unit tests
+   *
+   * @param node - the node we want to request a page from.
+   * @param databaseName - the database the page belongs to
+   * @param setName - the set the page belongs to
+   * @param page - the number of page
+   * @return - the page handle of the anonymous page
+   */
+  template<class Communicator, class Requests>
+  std::pair<PDBPageHandle, size_t> requestPage(const PDBCatalogNodePtr &node,
+                                               const std::string &databaseName,
+                                               const std::string &setName,
+                                               uint64_t page);
 
-    /**
-     * Requests a page from a node and stores it's compressed bytes onto an anonymous page.
-     *
-     * @tparam Communicator - the communicator class PDBCommunicator is used to handle the request. This is basically here
-     * so we could write unit tests
-     *
-     * @tparam Requests - the factory class to make request. RequestsFactory class is being used this is just here as a template so we
-     * can mock it in the unit tests
-     *
-     * @param node - the node we want to request a page from.
-     * @param databaseName - the database the page belongs to
-     * @param setName - the set the page belongs to
-     * @param page - the number of page
-     * @return - the page handle of the anonymous page
-     */
-    template <class Communicator, class Requests>
-    std::pair<PDBPageHandle, size_t> requestPage(const PDBCatalogNodePtr& node, const std::string &databaseName, const std::string &setName, uint64_t page);
+  /**
+  * This handler is used by the iterator to grab it's next page. It will try to find the next page that is just an
+  * increment from the last page on a certain node. If it can not find that page on that node it will go to the next node
+  * to see if it has any pages. If it has them it stores it's bytes onto an anonymous page and forwards that to the iterator.
+  *
+  * @tparam Communicator - the communicator class PDBCommunicator is used to handle the request. This is basically here
+  * so we could write unit tests
+  *
+  * @param request - the request for the page we got
+  * @param sendUsingMe - the communicator to the node that made the request
+  * @return - the result of the handler (success, error)
+  */
+  template<class Communicator, class Requests>
+  std::pair<bool, std::string> handleGetNextPage(const pdb::Handle<pdb::StoGetNextPageRequest> &request,
+                                                 std::shared_ptr<Communicator> &sendUsingMe);
 
-    /**
-    * This handler is used by the iterator to grab it's next page. It will try to find the next page that is just an
-    * increment from the last page on a certain node. If it can not find that page on that node it will go to the next node
-    * to see if it has any pages. If it has them it stores it's bytes onto an anonymous page and forwards that to the iterator.
-    *
-    * @tparam Communicator - the communicator class PDBCommunicator is used to handle the request. This is basically here
-    * so we could write unit tests
-    *
-    * @param request - the request for the page we got
-    * @param sendUsingMe - the communicator to the node that made the request
-    * @return - the result of the handler (success, error)
-    */
-    template <class Communicator, class Requests>
-    std::pair<bool, std::string> handleGetNextPage(const pdb::Handle<pdb::StoGetNextPageRequest> &request, std::shared_ptr<Communicator> &sendUsingMe);
+  /**
+   * This handler adds data to the distributed storage. Basically it checks whether the size of the sent data can fit
+   * on a single page. If it can it finds a node the data should be stored on and forwards the data to it.
+   *
+   * @tparam Communicator - the communicator class PDBCommunicator is used to handle the request. This is basically here
+   * so we could write unit tests
+   *
+   * @tparam Requests - is the request factory for this
+   *
+   * @param request - the request that contains the data
+   * @param sendUsingMe - the communicator that is sending the data
+   * @return - the result of the handler (success, error)
+   */
+  template<class Communicator, class Requests>
+  std::pair<bool, std::string> handleAddData(const pdb::Handle<pdb::DisAddData> &request,
+                                             std::shared_ptr<Communicator> &sendUsingMe);
 
-    /**
-     * This handler adds data to the distributed storage. Basically it checks whether the size of the sent data can fit
-     * on a single page. If it can it finds a node the data should be stored on and forwards the data to it.
-     *
-     * @tparam Communicator - the communicator class PDBCommunicator is used to handle the request. This is basically here
-     * so we could write unit tests
-     *
-     * @tparam Requests - is the request factory for this
-     *
-     * @param request - the request that contains the data
-     * @param sendUsingMe - the communicator that is sending the data
-     * @return - the result of the handler (success, error)
-     */
-    template <class Communicator, class Requests>
-    std::pair<bool, std::string> handleAddData(const pdb::Handle<pdb::DisAddData> &request, std::shared_ptr<Communicator> &sendUsingMe);
+  /**
+   * Returns the size for a particular set
+   * @return the set size
+   */
+  size_t getSetSize(const std::pair<std::string, std::string> &set);
 
-private:
+ private:
 
   /**
    * The policy we want to use for dispatching.
@@ -122,7 +135,7 @@ private:
   PDBLoggerPtr logger;
 
   /**
-   * This sets the sizes of the sets
+   * This sets the sizes of the sets // TODO flush this to disk occasionally
    */
   map<std::pair<std::string, std::string>, size_t> setSizes;
 

@@ -43,7 +43,7 @@ std::vector<AtomicComputationPtr>& AtomicComputationList::getConsumingAtomicComp
 }
 
 // this effectively gets all of the leaves of the graph, since it returns all of the scans... every
-// AtomicComputationPtr in the returned list will point to a ScanSet object
+// AtomicComputationPtr in the returned list will point to a SetScanner object
 std::vector<AtomicComputationPtr>& AtomicComputationList::getAllScanSets() {
     return scans;
 }

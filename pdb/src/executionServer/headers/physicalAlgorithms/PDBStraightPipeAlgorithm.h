@@ -34,6 +34,10 @@ public:
    */
   PDBAbstractAlgorithmType getAlgorithmType() override;
 
+private:
+
+
+
 };
 
 }
