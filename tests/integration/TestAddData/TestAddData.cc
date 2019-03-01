@@ -132,7 +132,7 @@ int main(int argc, char* argv[]) {
   myComputations->push_back(myWriteSet);
 
   //TODO this is just a preliminary version of the execute computation before we add back the TCAP generation
-  pdbClient.executeComputations(myComputations, tcap);
+  //pdbClient.executeComputations(myComputations, tcap);
 
   /// 5. Get the set from the
 

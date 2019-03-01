@@ -25,6 +25,7 @@
 #include "UseTemporaryAllocationBlock.h"
 #include "PDBVector.h"
 #include "StoGetNextPageRequest.h"
+#include "DisAddData.h"
 #include "PDBDispatchPolicy.h"
 
 #include <string>
@@ -91,11 +92,44 @@ public:
     template <class Communicator, class Requests>
     std::pair<bool, std::string> handleGetNextPage(const pdb::Handle<pdb::StoGetNextPageRequest> &request, std::shared_ptr<Communicator> &sendUsingMe);
 
+    /**
+     * This handler adds data to the distributed storage. Basically it checks whether the size of the sent data can fit
+     * on a single page. If it can it finds a node the data should be stored on and forwards the data to it.
+     *
+     * @tparam Communicator - the communicator class PDBCommunicator is used to handle the request. This is basically here
+     * so we could write unit tests
+     *
+     * @tparam Requests - is the request factory for this
+     *
+     * @param request - the request that contains the data
+     * @param sendUsingMe - the communicator that is sending the data
+     * @return - the result of the handler (success, error)
+     */
+    template <class Communicator, class Requests>
+    std::pair<bool, std::string> handleAddData(const pdb::Handle<pdb::DisAddData> &request, std::shared_ptr<Communicator> &sendUsingMe);
+
 private:
 
+  /**
+   * The policy we want to use for dispatching.
+   * Maybe make this be per set..
+   */
   PDBDispatcherPolicyPtr policy;
 
+  /**
+   * The logger for the distributed storage
+   */
   PDBLoggerPtr logger;
+
+  /**
+   * This sets the sizes of the sets
+   */
+  map<std::pair<std::string, std::string>, size_t> setSizes;
+
+  /**
+   * This locks the set sizes
+   */
+  std::mutex setSizeMutex;
 };
 }
 

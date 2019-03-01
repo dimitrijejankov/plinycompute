@@ -13,6 +13,7 @@
 #include <StoGetPageResult.h>
 #include <PDBBufferManagerInterface.h>
 #include <PDBCatalogClient.h>
+#include <DisDispatchData.h>
 
 template <class Communicator, class Requests>
 std::pair<pdb::PDBPageHandle, size_t> pdb::PDBDistributedStorage::requestPage(const PDBCatalogNodePtr& node, const std::string &databaseName, const std::string &setName, uint64_t page) {
@@ -195,6 +196,150 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleGetNextPage(const
   bool success = sendUsingMe->sendObject(response, error);
 
   return make_pair(success, error);
+}
+
+template<class Communicator, class Requests>
+std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb::Handle<pdb::DisAddData> &request,
+                                                                  shared_ptr<Communicator> &sendUsingMe) {
+  /// 0. Check if the set exists
+
+  if(!getFunctionalityPtr<PDBCatalogClient>()->setExists(request->databaseName, request->setName)) {
+
+    // make the error string
+    std::string errMsg = "The set does not exist!";
+
+    // log the error
+    logger->error(errMsg);
+
+    // skip the data part
+    sendUsingMe->skipBytes(errMsg);
+
+    // create an allocation block to hold the response
+    const UseTemporaryAllocationBlock tempBlock{1024};
+    Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+
+    // sends result to requester
+    sendUsingMe->sendObject(response, errMsg);
+    return make_pair(false, errMsg);
+  }
+
+  /// 1. Receive the bytes onto an anonymous page
+
+  // grab the buffer manager
+  auto bufferManager = getFunctionalityPtr<PDBBufferManagerInterface>();
+
+  // figure out how large the compressed payload is
+  size_t numBytes = sendUsingMe->getSizeOfNextObject();
+
+  // check if it is larger than a page
+  if(bufferManager->getMaxPageSize() < numBytes) {
+
+    // make the error string
+    std::string errMsg = "The compressed size is larger than the maximum page size";
+
+    // log the error
+    logger->error(errMsg);
+
+    // skip the data part
+    sendUsingMe->skipBytes(errMsg);
+
+    // create an allocation block to hold the response
+    const UseTemporaryAllocationBlock tempBlock{1024};
+    Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+
+    // sends result to requester
+    sendUsingMe->sendObject(response, errMsg);
+    return make_pair(false, errMsg);
+  }
+
+  // grab a page to write this
+  auto page = bufferManager->getPage(numBytes);
+
+  // receive bytes
+  std::string error;
+  sendUsingMe->receiveBytes(page->getBytes(), error);
+
+  // check the uncompressed size
+  size_t uncompressedSize = 0;
+  snappy::GetUncompressedLength((char*) page->getBytes(), numBytes, &uncompressedSize);
+
+  // check the uncompressed size
+  if(bufferManager->getMaxPageSize() < uncompressedSize) {
+
+    // make the error string
+    std::string errMsg = "The uncompressed size is larger than the maximum page size";
+
+    // log the error
+    logger->error(errMsg);
+
+    // create an allocation block to hold the response
+    const UseTemporaryAllocationBlock tempBlock{1024};
+    Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+
+    // sends result to requester
+    sendUsingMe->sendObject(response, errMsg);
+    return make_pair(false, errMsg);
+  }
+
+  /// 2. Update the set size
+  {
+    std::unique_lock<std::mutex> lck(setSizeMutex);
+
+    // update the sets sizes
+    setSizes[std::make_pair<std::string, std::string>(request->databaseName, request->setName)] += uncompressedSize;
+  }
+
+  /// 3. Figure out on what node to forward the thing
+
+  // grab all active nodes
+  const auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
+
+  // if we have no nodes
+  if(nodes.empty()) {
+
+    // make the error string
+    std::string errMsg = "There are no nodes where we can dispatch the data to!";
+
+    // log the error
+    logger->error(errMsg);
+
+    // create an allocation block to hold the response
+    const UseTemporaryAllocationBlock tempBlock{1024};
+    Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+
+    // sends result to requester
+    sendUsingMe->sendObject(response, errMsg);
+    return make_pair(false, errMsg);
+  }
+
+  // get the next node
+  auto node = policy->getNextNode(request->databaseName, request->setName, nodes);
+
+  // time to send the stuff
+  auto ret = RequestFactory::bytesHeapRequest<DisDispatchData, SimpleRequestResult, bool>(
+      logger, node->port, node->address, false, 1024,
+      [&](Handle<SimpleRequestResult> result) {
+
+        if (result != nullptr && result->getRes().first) {
+          return true;
+        }
+
+        logger->error("Error sending data: " + result->getRes().second);
+        error = "Error sending data: " + result->getRes().second;
+
+        return false;
+      },
+      (char*) page->getBytes(), numBytes, request->databaseName, request->setName, request->typeName, numBytes);
+
+
+  // create an allocation block to hold the response
+  const UseTemporaryAllocationBlock tempBlock{1024};
+  Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(ret, error);
+
+  // sends result to requester
+  ret = sendUsingMe->sendObject(response, error) && ret;
+
+  return make_pair(ret, error);
 }
 
 #endif //PDB_PDBDISTRIBUTEDSTORAGETEMPLATE_H
