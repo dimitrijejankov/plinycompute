@@ -455,8 +455,8 @@ TEST(BufferManagerBackendTest, Test2) {
   EXPECT_CALL(*MockRequestFactory::_requestFactory, returnPage).Times(98);
 
   {
-    PDBSetPtr set1 = make_shared<PDBSet>("set1", "DB");
-    PDBSetPtr set2 = make_shared<PDBSet>("set2", "DB");
+    PDBSetPtr set1 = make_shared<PDBSet>("DB", "set1");
+    PDBSetPtr set2 = make_shared<PDBSet>("DB", "set2");
     PDBPageHandle page1 = myMgr.getPage(set1, 0);
     PDBPageHandle page2 = myMgr.getPage(set2, 0);
     char *bytes = (char *) page1->getBytes();

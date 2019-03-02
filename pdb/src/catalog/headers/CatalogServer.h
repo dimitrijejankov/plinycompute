@@ -19,13 +19,13 @@
 #define CATALOG_SERVER_H
 
 #include <mutex>
-#include <CatDeleteDatabaseRequest.h>
-
-#include "PDBCatalogClient.h"
-#include "PDBCatalog.h"
 #include "PDBDebug.h"
+
 #include "PDBServer.h"
+#include "PDBCatalog.h"
+#include "PDBCatalogClient.h"
 #include "CatCreateDatabaseRequest.h"
+#include <CatDeleteDatabaseRequest.h>
 #include "CatDeleteSetRequest.h"
 #include "CatRegisterType.h"
 #include "ServerFunctionality.h"

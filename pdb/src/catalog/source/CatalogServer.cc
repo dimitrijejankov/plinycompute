@@ -23,7 +23,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <vector>
-#include <CatalogServer.h>
+#include "CatalogServer.h"
 #include <CatGetWorkersRequest.h>
 
 #include "BuiltInObjectTypeIDs.h"
@@ -48,6 +48,7 @@
 #include "CatUserTypeMetadata.h"
 #include "CatPrintCatalogRequest.h"
 #include "CatPrintCatalogResult.h"
+#include "CatSetUpdateSizeRequest.h"
 #include "CatalogServer.h"
 #include "HeapRequestHandler.h"
 #include "VTableMap.h"
@@ -524,6 +525,55 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         return make_pair(res, errMsg);
       }));
 
+  forMe.registerHandler(
+      CatSetUpdateSizeRequest_TYPEID,
+      make_shared<HeapRequestHandler<CatSetUpdateSizeRequest>>(
+          [&](Handle<CatSetUpdateSizeRequest> request, PDBCommunicatorPtr sendUsingMe) {
+
+            // lock the catalog server
+            std::lock_guard<std::mutex> guard(serverMutex);
+
+            // invokes the increment
+            std::string errMsg;
+            bool res = pdbCatalog->incrementSetSize(request->databaseName, request->setName, request->sizeUpdate, errMsg);
+
+            // after we incremented the size of the set in the local catalog, if this is the
+            // manager catalog iterate over all nodes in the cluster and broadcast the
+            // request to the distributed copies of the catalog
+            if (getConfiguration()->isManager) {
+
+              // get the results of each broadcast
+              map<string, pair<bool, string>> updateResults;
+
+              // broadcast the update
+              broadcastRequest(request, 1024, updateResults, errMsg);
+
+              for (auto &item : updateResults) {
+
+                // if we failed res would be set to false
+                res = item.second.first && res;
+
+                // log what is happening
+                PDB_COUT << "Node IP: " << item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") << item.second.second << "\n";
+              }
+
+            } else {
+
+              // log what happened
+              PDB_COUT << "This is not Manager Catalog Node, thus metadata was only registered locally!\n";
+            }
+
+            // create an allocation block to hold the response
+            const UseTemporaryAllocationBlock tempBlock{1024};
+
+            // create the response
+            Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(res, errMsg);
+
+            // sends result to requester
+            res = sendUsingMe->sendObject(response, errMsg) && res;
+            return make_pair(res, errMsg);
+      }));
+
   // handles a request to retrieve the name of a Type, if it's not registered returns -1
   forMe.registerHandler(
       CatSetObjectTypeRequest_TYPEID,
@@ -645,7 +695,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         }
 
         // register the set with the catalog
-        res = pdbCatalog->registerSet(make_shared<PDBCatalogSet>(setName, dbName, internalTypeName), errMsg) && res;
+        res = pdbCatalog->registerSet(make_shared<PDBCatalogSet>(dbName, setName, internalTypeName), errMsg) && res;
 
         // after we added the set to the local catalog, if this is the
         // manager catalog iterate over all nodes in the cluster and broadcast the
@@ -908,7 +958,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
             if(res) {
 
               // create the response object
-              response = makeObject<CatGetSetResult>(set->database, set->name, *set->type, *set->type);
+              response = makeObject<CatGetSetResult>(set->database, set->name, *set->type, *set->type, set->setSize);
 
             } else {
 

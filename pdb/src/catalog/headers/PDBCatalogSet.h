@@ -23,7 +23,7 @@ typedef std::shared_ptr<PDBCatalogSet> PDBCatalogSetPtr;
  * A class to map the sets
  */
 class PDBCatalogSet {
- public:
+public:
 
   /**
    * The default constructor for the set required by the orm
@@ -36,10 +36,8 @@ class PDBCatalogSet {
    * @param database - the database the set belongs to
    * @param type - the id of the set type, something like 8xxx
    */
-  PDBCatalogSet(const std::string &name,
-                const std::string &database,
-                const std::string &type) : setIdentifier(database + ":" + name), name(name), database(database), type(std::make_shared<std::string>(type)) {}
-
+  PDBCatalogSet(const std::string &database, const std::string &name, const std::string &type) :
+                setIdentifier(database + ":" + name), name(name), database(database), type(std::make_shared<std::string>(type)) {}
 
   /**
    * The set is a string of the form "dbName:setName"
@@ -57,6 +55,11 @@ class PDBCatalogSet {
   std::string database;
 
   /**
+   * The size of the set
+   */
+  size_t setSize = 0;
+
+  /**
    * The type of the set
    */
   std::shared_ptr<std::string> type;
@@ -71,6 +74,7 @@ class PDBCatalogSet {
     return sqlite_orm::make_table("sets",  sqlite_orm::make_column("setIdentifier", &PDBCatalogSet::setIdentifier),
                                            sqlite_orm::make_column("setName", &PDBCatalogSet::name),
                                            sqlite_orm::make_column("setDatabase", &PDBCatalogSet::database),
+                                           sqlite_orm::make_column("setSize", &PDBCatalogSet::setSize),
                                            sqlite_orm::make_column("setType", &PDBCatalogSet::type),
                                            sqlite_orm::foreign_key(&PDBCatalogSet::database).references(&PDBCatalogDatabase::name),
                                            sqlite_orm::foreign_key(&PDBCatalogSet::type).references(&PDBCatalogType::name),

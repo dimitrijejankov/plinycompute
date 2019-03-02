@@ -283,10 +283,17 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
 
   /// 2. Update the set size
   {
-    std::unique_lock<std::mutex> lck(setSizeMutex);
+    std::string errMsg;
+    if(!getFunctionalityPtr<PDBCatalogClient>()->incrementSetSize(request->databaseName, request->setName, uncompressedSize, errMsg)) {
 
-    // update the sets sizes
-    setSizes[std::make_pair<std::string, std::string>(request->databaseName, request->setName)] += uncompressedSize;
+      // create an allocation block to hold the response
+      const UseTemporaryAllocationBlock tempBlock{1024};
+      Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+
+      // sends result to requester
+      sendUsingMe->sendObject(response, errMsg);
+      return make_pair(false, errMsg);
+    }
   }
 
   /// 3. Figure out on what node to forward the thing

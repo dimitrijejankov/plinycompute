@@ -258,6 +258,42 @@ pdb::PDBCatalogSetPtr pdb::PDBCatalog::getSet(const std::string &dbName, const s
   return storage.get_no_throw<PDBCatalogSet>(dbName + ":" + setName);
 }
 
+bool pdb::PDBCatalog::incrementSetSize(const std::string &dbName, const std::string &setName, size_t increment, std::string &error) {
+
+  try {
+
+    // grab the node we want to update
+    auto set = getSet(dbName, setName);
+
+    // if the node exists don't create it
+    if(set == nullptr) {
+
+      // set the error
+      error = "The set with the name (" + dbName + "," + setName + ") does not exist\n";
+
+      // we failed return false
+      return false;
+    }
+
+    // increment the set size
+    set->setSize += increment;
+
+    // insert the the set
+    storage.replace(*set);
+
+    // return true
+    return true;
+
+  } catch(std::system_error &e){
+
+    // set the error we failed
+    error = "Could not update the set with the name (" + dbName + "," + setName + ") ! The SQL error is : "  + std::string(e.what());
+
+    // we failed
+    return false;
+  }
+}
+
 pdb::PDBCatalogDatabasePtr pdb::PDBCatalog::getDatabase(const std::string &dbName) {
   return storage.get_no_throw<PDBCatalogDatabase>(dbName);
 }
@@ -353,7 +389,7 @@ std::vector<pdb::PDBCatalogSet> pdb::PDBCatalog::getSetsInDatabase(const std::st
 
   // create the objects
   for(auto &r : rows) {
-    ret.emplace_back(pdb::PDBCatalogSet(std::get<0>(r), std::get<1>(r), *std::get<2>(r)));
+    ret.emplace_back(pdb::PDBCatalogSet(std::get<1>(r), std::get<0>(r), *std::get<2>(r)));
   }
 
   return std::move(ret);

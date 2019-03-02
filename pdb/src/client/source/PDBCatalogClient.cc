@@ -26,6 +26,8 @@
 #include <unistd.h>
 #include <CatGetWorkersRequest.h>
 #include <CatUpdateNodeStatusRequest.h>
+#include <PDBCatalogClient.h>
+#include <CatSetUpdateSizeRequest.h>
 
 #include "CatCreateDatabaseRequest.h"
 #include "CatCreateSetRequest.h"
@@ -416,6 +418,30 @@ pdb::PDBCatalogSetPtr PDBCatalogClient::getSet(const std::string &dbName, const 
               dbName, setName);
 }
 
+bool PDBCatalogClient::incrementSetSize(const std::string &databaseName,
+                                        const std::string &setName,
+                                        size_t sizeToAdd,
+                                        std::string &errMsg) {
+
+  // make a request and return the value
+  return RequestFactory::heapRequest< CatSetUpdateSizeRequest, SimpleRequestResult, bool>(
+      myLogger, port, address, false, 1024,
+      [&](Handle<SimpleRequestResult> result) {
+
+        if (result != nullptr) {
+          if (!result->getRes().first) {
+            errMsg = "Error deleting set: " + result->getRes().second;
+            myLogger->error("Error deleting set: " + result->getRes().second);
+            return false;
+          }
+          return true;
+        }
+        errMsg = "Error getting type name: got nothing back from catalog";
+        return false;
+      },
+      databaseName, setName, sizeToAdd);
+}
+
 pdb::PDBCatalogDatabasePtr PDBCatalogClient::getDatabase(const std::string &dbName, std::string &errMsg) {
 
   // make a request and return the value
@@ -565,6 +591,8 @@ string PDBCatalogClient::listAllRegisteredMetadata(std::string &errMsg) {
   string category = "all";
   return printCatalogMetadata(category, errMsg);
 }
+
+
 
 }
 #endif

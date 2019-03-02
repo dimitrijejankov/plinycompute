@@ -25,7 +25,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <ClusterManager.h>
 #include <PDBDistributedStorage.h>
-#include <CatalogServer.h>
+#include "CatalogServer.h"
 #include <PDBBufferManagerFrontEnd.h>
 #include <PDBStorageManagerFrontend.h>
 #include <PDBComputationServerFrontend.h>

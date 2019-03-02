@@ -37,7 +37,7 @@ class PDBSet {
   }
 
   // create a set with the given name, database, physical storage location
-  PDBSet (string setNameIn, string dbNameIn) {
+  PDBSet (string dbNameIn, string setNameIn) {
 	  setName = std::move(setNameIn);
 	  dbName = std::move(dbNameIn);
   }

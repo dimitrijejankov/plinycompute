@@ -14,7 +14,7 @@
 #include <HeapRequest.h>
 #include <StoGetNextPageRequest.h>
 #include <StoGetNextPageResult.h>
-#include <CatalogServer.h>
+#include "CatalogServer.h"
 #include <StoGetPageRequest.h>
 #include <StoGetPageResult.h>
 
@@ -87,7 +87,7 @@ void pdb::PDBStorageManagerFrontend::init() {
       ifs.read(reinterpret_cast<char *>(&pageNum), sizeof(pageNum));
 
       // store the set info
-      auto set = std::make_shared<PDBSet>(setName, dbName);
+      auto set = std::make_shared<PDBSet>(dbName, setName);
       lastPages[set] = pageNum;
     }
 

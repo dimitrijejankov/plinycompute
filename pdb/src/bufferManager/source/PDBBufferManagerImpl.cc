@@ -200,7 +200,7 @@ void PDBBufferManagerImpl::initialize(std::string metaDataFile) {
 
   // and set up the end positions
   for (int i = 0; i < setNames.size(); i++) {
-    PDBSetPtr mySet = make_shared<PDBSet>(setNames[i], dbNames[i]);
+    PDBSetPtr mySet = make_shared<PDBSet>(dbNames[i], setNames[i]);
     size_t end = stoul(endPos[i]);
     endOfFiles[mySet] = end;
   }

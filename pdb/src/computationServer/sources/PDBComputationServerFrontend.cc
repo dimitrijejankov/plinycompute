@@ -27,10 +27,10 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
             auto compID = this->statsManager.startComputation();
 
             // distributed storage
-            auto distributedStorage = getFunctionalityPtr<pdb::PDBDistributedStorage>();
+            auto catalogClient = getFunctionalityPtr<pdb::PDBCatalogClient>();
 
             // init the optimizer
-            pdb::PDBPhysicalOptimizer optimizer(request->tcapString, distributedStorage, logger);
+            pdb::PDBPhysicalOptimizer optimizer(request->tcapString, catalogClient, logger);
 
             // while we still have jobs to execute
             while(optimizer.hasAlgorithmToRun()) {

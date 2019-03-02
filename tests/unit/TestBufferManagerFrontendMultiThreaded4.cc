@@ -143,7 +143,7 @@ TEST(BufferManagerFrontendTest, Test6) {
         pageRequestStart(requests, requests[i]);
 
         // create a get page request
-        pdb::Handle<pdb::BufGetPageRequest> pageRequest = pdb::makeObject<pdb::BufGetPageRequest>(std::make_shared<pdb::PDBSet>("set1", "db1"), requests[i]);
+        pdb::Handle<pdb::BufGetPageRequest> pageRequest = pdb::makeObject<pdb::BufGetPageRequest>(std::make_shared<pdb::PDBSet>("db1", "set1"), requests[i]);
 
         // make sure the mock function returns true
         ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::BufGetPageResult> &>(), testing::An<std::string &>())).WillByDefault(testing::Invoke(
@@ -246,7 +246,7 @@ TEST(BufferManagerFrontendTest, Test6) {
   for(uint64_t i = 0; i < numPages; ++i) {
 
     // get the page
-    auto page = frontEnd.getPage(make_shared<PDBSet>("set1", "db1"), i);
+    auto page = frontEnd.getPage(make_shared<PDBSet>("db1", "set1"), i);
 
     for(int j = 0; j < pageSizes[i % 3]; j += sizeof(int)) {
 

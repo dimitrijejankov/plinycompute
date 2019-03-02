@@ -69,7 +69,7 @@ TEST(BufferManagerFrontendTest, Test1) {
   for(uint64_t i = 0; i < numPages; ++i) {
 
     // get the page
-    auto page = frontEnd.getPage(make_shared<PDBSet>("set1", "db1"), i);
+    auto page = frontEnd.getPage(make_shared<PDBSet>("db1", "set1"), i);
 
     // init the first four bytes of the page to 1;
     for(int j = 0; j < pageSize; j += sizeof(int)) {
@@ -88,7 +88,7 @@ TEST(BufferManagerFrontendTest, Test1) {
   for(int i = 0; i < numRequests * numPages; ++i) {
 
     // create a get page request
-    pdb::Handle<pdb::BufGetPageRequest> pageRequest = pdb::makeObject<pdb::BufGetPageRequest>(std::make_shared<pdb::PDBSet>("set1", "db1"), requests[i]);
+    pdb::Handle<pdb::BufGetPageRequest> pageRequest = pdb::makeObject<pdb::BufGetPageRequest>(std::make_shared<pdb::PDBSet>("db1", "set1"), requests[i]);
 
     // make sure the mock function returns true
     ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::BufGetPageResult>&>(), testing::An<std::string&>())).WillByDefault(testing::Invoke(
@@ -139,7 +139,7 @@ TEST(BufferManagerFrontendTest, Test1) {
   for(uint64_t i = 0; i < numPages; ++i) {
 
     // get the page
-    auto page = frontEnd.getPage(make_shared<PDBSet>("set1", "db1"), i);
+    auto page = frontEnd.getPage(make_shared<PDBSet>("db1", "set1"), i);
 
     for(int j = 0; j < pageSize; j += sizeof(int)) {
 
@@ -174,7 +174,7 @@ TEST(BufferManagerFrontendTest, Test2) {
       std::string setName = "set" + std::to_string(j);
 
       // get the page
-      auto page = frontEnd.getPage(make_shared<PDBSet>(setName, "db1"), i);
+      auto page = frontEnd.getPage(make_shared<PDBSet>("db1", setName), i);
 
       // init the first four bytes of the page to 1;
       for(int k = 0; k < pageSize; k += sizeof(int)) {
@@ -199,7 +199,7 @@ TEST(BufferManagerFrontendTest, Test2) {
 
     // create a get page request
     std::string setName = "set" + std::to_string(i % numSets);
-    pdb::Handle<pdb::BufGetPageRequest> pageRequest = pdb::makeObject<pdb::BufGetPageRequest>(std::make_shared<PDBSet>(setName, "db1"), setIndices[i % numSets][i / numSets]);
+    pdb::Handle<pdb::BufGetPageRequest> pageRequest = pdb::makeObject<pdb::BufGetPageRequest>(std::make_shared<PDBSet>("db1", setName), setIndices[i % numSets][i / numSets]);
 
     // make sure the mock function returns true
     ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::BufGetPageResult>&>(), testing::An<std::string&>())).WillByDefault(testing::Invoke(
@@ -250,7 +250,7 @@ TEST(BufferManagerFrontendTest, Test2) {
   for(uint64_t i = 0; i < numPages; ++i) {
 
     // get the page
-    auto page = frontEnd.getPage(make_shared<PDBSet>("set1", "db1"), i);
+    auto page = frontEnd.getPage(make_shared<PDBSet>("db1", "set1"), i);
 
     for(int j = 0; j < numSets; ++j) {
 
@@ -310,7 +310,7 @@ TEST(BufferManagerFrontendTest, Test3) {
     EXPECT_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::BufGetPageResult>&>(), testing::An<std::string&>())).Times(1);
 
     // create a get page request
-    pdb::Handle<pdb::BufGetPageRequest> pageRequest = pdb::makeObject<pdb::BufGetPageRequest>(make_shared<PDBSet>("set1", "db1"), i);
+    pdb::Handle<pdb::BufGetPageRequest> pageRequest = pdb::makeObject<pdb::BufGetPageRequest>(make_shared<PDBSet>("db1", "set1"), i);
 
     // invoke the get page handler
     frontEnd.handleGetPageRequest(pageRequest, comm);
@@ -366,7 +366,7 @@ TEST(BufferManagerFrontendTest, Test3) {
   for(int i = 0; i < numRequests * numPages; ++i) {
 
     // create a get page request
-    pdb::Handle<pdb::BufGetPageRequest> pageRequest = pdb::makeObject<pdb::BufGetPageRequest>(make_shared<PDBSet>("set1", "db1"), requests[i]);
+    pdb::Handle<pdb::BufGetPageRequest> pageRequest = pdb::makeObject<pdb::BufGetPageRequest>(make_shared<PDBSet>("db1", "set1"), requests[i]);
 
     // make sure the mock function returns true
     ON_CALL(*comm, sendObject(testing::An<pdb::Handle<pdb::BufGetPageResult>&>(), testing::An<std::string&>())).WillByDefault(testing::Invoke(
@@ -417,7 +417,7 @@ TEST(BufferManagerFrontendTest, Test3) {
   for(uint64_t i = 0; i < numPages; ++i) {
 
     // get the page
-    auto page = frontEnd.getPage(make_shared<PDBSet>("set1", "db1"), i);
+    auto page = frontEnd.getPage(make_shared<PDBSet>("db1", "set1"), i);
 
     for(int j = 0; j < pageSizes[i % 3]; j += sizeof(int)) {
 

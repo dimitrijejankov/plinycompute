@@ -28,6 +28,9 @@
 
 namespace pdb {
 
+class PDBCatalogClient;
+using PDBCatalogClientPtr = std::shared_ptr<PDBCatalogClient>;
+
 class PDBCatalogClient : public ServerFunctionality {
 
 public:
@@ -109,6 +112,19 @@ public:
   /* same as above, but here we use the type code */
   bool createSet(const std::string &typeName, int16_t typeID, const std::string &databaseName,
                  const std::string &setName, std::string &errMsg);
+
+  /**
+   * Increments the size of a set for a particular set by size
+   * @param databaseName - the database the set belongs to
+   * @param setName - the name of the set
+   * @param sizeToAdd - the size we want to add to the current size
+   * @param errMsg - the error message if any
+   * @return - true if we succeed
+   */
+  bool incrementSetSize(const std::string &databaseName,
+                        const std::string &setName,
+                        size_t sizeToAdd,
+                        std::string &errMsg);
 
   /* Sends a request to the Catalog Server to delete a database; returns true on
    * success, false on

@@ -44,10 +44,12 @@ class CatGetSetResult : public Object {
   explicit CatGetSetResult(const std::string &database,
                            const std::string &set,
                            const std::string &internalType,
-                           const std::string &type) : databaseName(database),
-                                                      setName(set),
-                                                      internalType(internalType),
-                                                      type(type) {}
+                           const std::string &type,
+                           size_t setSize) : databaseName(database),
+                                             setName(set),
+                                             internalType(internalType),
+                                             type(type),
+                                             setSize(setSize) {}
 
   ENABLE_DEEP_COPY
 
@@ -71,6 +73,11 @@ class CatGetSetResult : public Object {
    * The real name of the type see above
    */
   String type;
+
+  /**
+   * The size of the set
+   */
+  size_t setSize;
 };
 }
 

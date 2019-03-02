@@ -16,32 +16,44 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef CATGETSETBASEREQUEST_H
-#define CATGETSETBASEREQUEST_H
+#pragma once
 
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %CatGetSetRequest%
+// PRELOAD %CatSetUpdateSizeRequest%
 
 namespace pdb {
 
 /**
- * Encapsulates a request to search for a type in the catalog
+ * Encapsulates a request to update the size of a set
  */
-class CatGetSetRequest : public Object {
+class CatSetUpdateSizeRequest : public Object {
 
  public:
 
-  CatGetSetRequest() = default;
-  ~CatGetSetRequest() = default;
+  CatSetUpdateSizeRequest() = default;
+  ~CatSetUpdateSizeRequest() = default;
 
   /**
    * Creates a request to get the database
    * @param database - the name of database
    */
-  explicit CatGetSetRequest(const std::string &database, const std::string &set) : databaseName(database), setName(set) {}
+  explicit CatSetUpdateSizeRequest(const std::string &database, const std::string &set, size_t sizeUpdate) :
+                                   databaseName(database), setName(set), sizeUpdate(sizeUpdate) {}
+
+  /**
+   * Copy the request this is needed by the broadcast
+   * @param pdbItemToCopy - the request to copy
+   */
+  explicit CatSetUpdateSizeRequest(const Handle<CatSetUpdateSizeRequest>& pdbItemToCopy) {
+
+    // copy the thing
+    databaseName = pdbItemToCopy->databaseName;
+    setName = pdbItemToCopy->setName;
+    sizeUpdate = pdbItemToCopy->sizeUpdate;
+  }
 
   ENABLE_DEEP_COPY
 
@@ -51,10 +63,13 @@ class CatGetSetRequest : public Object {
   String databaseName;
 
   /**
- * The name of the set
- */
+   * The name of the set
+   */
   String setName;
+
+  /**
+   * The size of the update in bytes
+   */
+  size_t sizeUpdate;
 };
 }
-
-#endif

@@ -257,7 +257,7 @@ TEST(BufferManagerBackendTest, Test4) {
     });
 
     // generate the pages
-    PDBSetPtr set = make_shared<PDBSet>("set1", "DB");
+    PDBSetPtr set = make_shared<PDBSet>("DB", "set1");
 
     for(int t = 0; t < numThreads; ++t) {
 

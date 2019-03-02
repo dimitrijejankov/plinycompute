@@ -151,6 +151,17 @@ class PDBCatalog {
   PDBCatalogSetPtr getSet(const std::string &dbName, const std::string &setName);
 
   /**
+   * Finds the set with the provided name and increments the number of bytes the set has.
+   * In the case that the set does not exists it returns false.
+   * @param dbName - the name of database
+   * @param setName - the name of the set
+   * @param increment - how much should we increment it
+   * @param error - error string if any
+   * @return true if the set exists false otherwise
+   */
+  bool incrementSetSize(const std::string &dbName, const std::string &setName, size_t increment, std::string &error);
+
+  /**
    * Get the database with the name provided
    * @param dbName - the name of the database
    * @return - null if we do not find it, a copy of the database if we find it

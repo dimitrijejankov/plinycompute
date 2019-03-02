@@ -112,8 +112,8 @@ TEST(BufferManagerTest, Test1) {
 TEST(BufferManagerTest, Test2) {
   PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 16, "metadata", ".");
-  PDBSetPtr set1 = make_shared<PDBSet>("set1", "DB");
-  PDBSetPtr set2 = make_shared<PDBSet>("set2", "DB");
+  PDBSetPtr set1 = make_shared<PDBSet>("DB", "set1");
+  PDBSetPtr set2 = make_shared<PDBSet>("DB", "set2");
   PDBPageHandle page1 = myMgr.getPage(set1, 0);
   PDBPageHandle page2 = myMgr.getPage(set2, 0);
   char *bytes = (char *) page1->getBytes();
@@ -151,8 +151,8 @@ TEST(BufferManagerTest, Test2) {
 TEST(BufferManagerTest, Test3) {
   PDBBufferManagerImpl myMgr;
   myMgr.initialize("metadata");
-  PDBSetPtr set1 = make_shared<PDBSet>("set1", "DB");
-  PDBSetPtr set2 = make_shared<PDBSet>("set2", "DB");
+  PDBSetPtr set1 = make_shared<PDBSet>("DB", "set1");
+  PDBSetPtr set2 = make_shared<PDBSet>("DB", "set2");
   PDBPageHandle page1 = myMgr.getPage(set1, 0);
   PDBPageHandle page2 = myMgr.getPage(set2, 0);
 
@@ -174,7 +174,7 @@ TEST(BufferManagerTest, Test4) {
   vector<unsigned> myEnds;
   vector<vector<size_t>> lens;
   for (int i = 0; i < 6; i++) {
-    PDBSetPtr set = make_shared<PDBSet>("set" + to_string(i), "DB");
+    PDBSetPtr set = make_shared<PDBSet>("DB" + to_string(i), "set");
     mySets.push_back(set);
     myEnds.push_back(0);
     lens.emplace_back(vector<size_t>());
@@ -216,7 +216,7 @@ TEST(BufferManagerTest, Test5) {
   vector<unsigned> myEnds;
   vector<vector<size_t>> lens;
   for (int i = 0; i < 6; i++) {
-    PDBSetPtr set = make_shared<PDBSet>("set" + to_string(i), "DB");
+    PDBSetPtr set = make_shared<PDBSet>("DB" + to_string(i), "set");
     mySets.push_back(set);
     myEnds.push_back(0);
     lens.emplace_back(vector<size_t>());
@@ -303,8 +303,8 @@ TEST(BufferManagerTest, Test6) {
   {
     PDBBufferManagerImpl myMgr;
     myMgr.initialize("tempDSFSD", 64, 16, "metadata", ".");
-    PDBSetPtr set1 = make_shared<PDBSet>("set1", "DB");
-    PDBSetPtr set2 = make_shared<PDBSet>("set2", "DB");
+    PDBSetPtr set1 = make_shared<PDBSet>("DB", "set1");
+    PDBSetPtr set2 = make_shared<PDBSet>("DB", "set2");
 
     char buffer[128];
 
@@ -352,8 +352,8 @@ TEST(BufferManagerTest, Test6) {
 
     for(int j = 0; j < 100; ++j) {
 
-      PDBSetPtr set1 = make_shared<PDBSet>("set1", "DB");
-      PDBSetPtr set2 = make_shared<PDBSet>("set2", "DB");
+      PDBSetPtr set1 = make_shared<PDBSet>("DB", "set1");
+      PDBSetPtr set2 = make_shared<PDBSet>("DB", "set2");
       PDBPageHandle page1 = myMgr.getPage(set1, j);
       PDBPageHandle page2 = myMgr.getPage(set2, j);
 
@@ -384,7 +384,7 @@ TEST(BufferManagerTest, Test7) {
   const int numThreads = 4;
 
   // generate the pages
-  PDBSetPtr set = make_shared<PDBSet>("set1", "DB");
+  PDBSetPtr set = make_shared<PDBSet>("DB", "set1");
   for(uint64_t i = 0; i < numPages; ++i) {
 
     // grab the page
@@ -842,7 +842,7 @@ TEST(BufferManagerTest, Test12) {
   const int numThreads = 4;
 
   // generate the pages
-  PDBSetPtr set = make_shared<PDBSet>("set1", "DB");
+  PDBSetPtr set = make_shared<PDBSet>("DB", "set1");
   for(uint64_t i = 0; i < numPages; ++i) {
 
     // grab the page

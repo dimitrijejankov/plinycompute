@@ -8,11 +8,12 @@
 #include <Parser.h>
 #include <SetScanner.h>
 #include <AtomicComputationClasses.h>
+#include <PDBCatalogClient.h>
 
 namespace pdb {
 
 PDBPhysicalOptimizer::PDBPhysicalOptimizer(String tcapString,
-                                           PDBDistributedStoragePtr &distributedStorage,
+                                           PDBCatalogClientPtr &clientPtr,
                                            PDBLoggerPtr &logger) : logger(logger), sources(([](const OptimizerSource& s1, const OptimizerSource& s2) {return s1.first > s2.first;})){
 
   // get the string to compile
@@ -52,8 +53,17 @@ PDBPhysicalOptimizer::PDBPhysicalOptimizer(String tcapString,
       throw runtime_error("There was a pipe at the beginning of the query plan without a scan set");
     }
 
+    // get the set
+    std::string error;
+    auto setIdentifier = source->getSourceSet();
+    auto set = clientPtr->getSet(setIdentifier.first, setIdentifier.second, error);
+
+    if(set == nullptr) {
+      throw runtime_error("Could not find the set I needed. " +  error);
+    }
+
     // add the source to the pq
-    sources.push(std::make_pair(distributedStorage->getSetSize(source->getSourceSet()), source));
+    sources.push(std::make_pair(set->setSize, source));
   }
 }
 

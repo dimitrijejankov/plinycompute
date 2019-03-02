@@ -16,7 +16,7 @@ template <class T>
 std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleGetPageRequest(pdb::Handle<pdb::BufGetPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
 
   // grab the page
-  auto page = this->getPage(make_shared<pdb::PDBSet>(request->setName, request->dbName), request->pageNumber);
+  auto page = this->getPage(make_shared<pdb::PDBSet>(request->dbName, request->setName), request->pageNumber);
 
   // send the page to the backend
   string error;
@@ -42,7 +42,7 @@ template <class T>
 std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleReturnPageRequest(pdb::Handle<pdb::BufReturnPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
 
   // create the page key
-  auto key = std::make_pair(std::make_shared<PDBSet>(request->setName, request->databaseName), request->pageNumber);
+  auto key = std::make_pair(std::make_shared<PDBSet>(request->databaseName, request->setName), request->pageNumber);
 
   // do the bookkeeping of the sent pages
   bool res = false;
@@ -138,7 +138,7 @@ std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleFreezeSizeRequ
 
   // if this is not an anonymous page create a set
   if(!request->isAnonymous) {
-    set = make_shared<PDBSet>(*request->setName, *request->databaseName);
+    set = make_shared<PDBSet>(*request->databaseName, *request->setName);
   }
 
   // create the page key
@@ -188,7 +188,7 @@ std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handlePinPageRequest
 
   // if this is not an anonymous page create a set
   if(!request->isAnonymous) {
-    set = make_shared<PDBSet>(*request->setName, *request->databaseName);
+    set = make_shared<PDBSet>(*request->databaseName, *request->setName);
   }
 
   bool res;
@@ -239,7 +239,7 @@ std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleUnpinPageReque
 
   // if this is not an anonymous page create a set
   if(!request->isAnonymous) {
-    set = make_shared<PDBSet>(*request->setName, *request->databaseName);
+    set = make_shared<PDBSet>(*request->databaseName, *request->setName);
   }
 
   bool res;

@@ -48,7 +48,7 @@ class PDBDistributedStorage : public ServerFunctionality {
 
  public:
 
-  ~PDBDistributedStorage();
+  ~PDBDistributedStorage() = default;
 
   /**
    * Initialize the dispatcher
@@ -115,12 +115,6 @@ class PDBDistributedStorage : public ServerFunctionality {
   std::pair<bool, std::string> handleAddData(const pdb::Handle<pdb::DisAddData> &request,
                                              std::shared_ptr<Communicator> &sendUsingMe);
 
-  /**
-   * Returns the size for a particular set
-   * @return the set size
-   */
-  size_t getSetSize(const std::pair<std::string, std::string> &set);
-
  private:
 
   /**
@@ -133,16 +127,6 @@ class PDBDistributedStorage : public ServerFunctionality {
    * The logger for the distributed storage
    */
   PDBLoggerPtr logger;
-
-  /**
-   * This sets the sizes of the sets // TODO flush this to disk occasionally
-   */
-  map<std::pair<std::string, std::string>, size_t> setSizes;
-
-  /**
-   * This locks the set sizes
-   */
-  std::mutex setSizeMutex;
 };
 }
 

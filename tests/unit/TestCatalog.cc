@@ -28,9 +28,15 @@ TEST(CatalogTest, FullTest) {
   EXPECT_EQ(catalog.numRegisteredTypes() - numBefore, 2);
 
   // create the set
-  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("set1", "db1", "Type1"), error));
-  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("set2", "db1", "Type1"), error));
-  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("set3", "db2", "Type2"), error));
+  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db1", "set1", "Type1"), error));
+  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db1", "set2", "Type1"), error));
+  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db2", "set3", "Type2"), error));
+
+  // update the set
+  EXPECT_TRUE(catalog.incrementSetSize("db1", "set1", 1024, error));
+  EXPECT_TRUE(catalog.incrementSetSize("db1", "set1", 2048, error));
+  EXPECT_TRUE(catalog.incrementSetSize("db1", "set2", 512, error));
+  EXPECT_TRUE(catalog.incrementSetSize("db1", "set2", 1024, error));
 
   // create the nodes
   EXPECT_TRUE(catalog.registerNode(std::make_shared<pdb::PDBCatalogNode>("localhost:8080", "localhost", 8080, "master", 8, 1024, true), error));
@@ -77,7 +83,7 @@ TEST(CatalogTest, FullTest) {
   EXPECT_EQ(set->setIdentifier, "db1:set1");
   EXPECT_EQ(set->database, "db1");
   EXPECT_EQ(*set->type, "Type1");
-
+  EXPECT_EQ(set->setSize, 1024 + 2048);
 
   set = catalog.getSet("db1", "set2");
 
@@ -85,6 +91,7 @@ TEST(CatalogTest, FullTest) {
   EXPECT_EQ(set->setIdentifier, "db1:set2");
   EXPECT_EQ(set->database, "db1");
   EXPECT_EQ(*set->type, "Type1");
+  EXPECT_EQ(set->setSize, 1024 + 512);
 
   set = catalog.getSet("db2", "set3");
 
@@ -92,6 +99,7 @@ TEST(CatalogTest, FullTest) {
   EXPECT_EQ(set->setIdentifier, "db2:set3");
   EXPECT_EQ(set->database, "db2");
   EXPECT_EQ(*set->type, "Type2");
+  EXPECT_EQ(set->setSize, 0);
 
   set = catalog.getSet("db1", "set3");
   EXPECT_TRUE(set == nullptr);

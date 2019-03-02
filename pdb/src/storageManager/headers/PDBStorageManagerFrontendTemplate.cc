@@ -17,7 +17,7 @@
 #include <HeapRequest.h>
 #include <StoGetNextPageRequest.h>
 #include <StoGetNextPageResult.h>
-#include <CatalogServer.h>
+#include "CatalogServer.h"
 #include <StoGetPageRequest.h>
 #include <StoGetPageResult.h>
 
@@ -29,7 +29,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageReques
   /// 1. Check if we have the page
 
   // create the set identifier
-  auto set = make_shared<pdb::PDBSet>(request->setName, request->databaseName);
+  auto set = make_shared<pdb::PDBSet>(request->databaseName, request->setName);
 
   bool hasPage = false;
   // check if the set exists
@@ -142,10 +142,10 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
   uint64_t pageNum;
   {
     // lock the stuff that keeps track of the last page
-    unique_lock<std::mutex> lck;
+    unique_lock<std::mutex> lck(m);
 
     // make the set
-    auto set = std::make_shared<PDBSet>(request->setName, request->databaseName);
+    auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
 
     // try to find the set
     auto it = lastPages.find(set);

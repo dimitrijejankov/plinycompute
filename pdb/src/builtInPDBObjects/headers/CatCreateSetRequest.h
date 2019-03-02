@@ -39,7 +39,7 @@ class CatCreateSetRequest : public Object {
                       const std::string &typeName,
                       int16_t typeID) : dbName(dbName), setName(setName), typeName(typeName), typeID(typeID) {}
 
-  CatCreateSetRequest(const Handle<CatCreateSetRequest> &requestToCopy) {
+  explicit CatCreateSetRequest(const Handle<CatCreateSetRequest> &requestToCopy) {
     dbName = requestToCopy->dbName;
     setName = requestToCopy->setName;
     typeName = requestToCopy->typeName;

@@ -118,7 +118,7 @@ pdb::PDBPageHandle pdb::PDBBufferManagerBackEnd<T>::getPage(pdb::PDBSetPtr which
             returnVal->pinned = true;
             returnVal->dirty = result->isDirty;
             returnVal->pageNum = result->pageNum;
-            returnVal->whichSet = std::make_shared<PDBSet>(result->setName, result->dbName);
+            returnVal->whichSet = std::make_shared<PDBSet>(result->dbName, result->setName);
             returnVal->location.startPos = result->startPos;
             returnVal->location.numBytes = result->numBytes;
             returnVal->bytes = (void *) (((uint64_t) this->sharedMemory.memory) + (uint64_t) result->offset);
@@ -191,7 +191,7 @@ pdb::PDBPageHandle pdb::PDBBufferManagerBackEnd<T>::getPage(size_t minBytes) {
 
           // this an anonymous page if it is not set the database and set name
           if (!result->isAnonymous) {
-            returnVal->whichSet = std::make_shared<PDBSet>(result->setName, result->dbName);
+            returnVal->whichSet = std::make_shared<PDBSet>(result->dbName, result->setName);
           }
 
           // put in the the all pages
@@ -265,7 +265,7 @@ PDBPageHandle PDBBufferManagerBackEnd<T>::expectPage(std::shared_ptr<PDBCommunic
     unique_lock<std::mutex> lock(m);
 
     // make the set
-    auto whichSet = make_shared<PDBSet>(result->setName, result->dbName);
+    auto whichSet = make_shared<PDBSet>(result->dbName, result->setName);
 
     // make the key
     pair<PDBSetPtr, long> key = std::make_pair(whichSet, result->pageNum);
@@ -285,7 +285,7 @@ PDBPageHandle PDBBufferManagerBackEnd<T>::expectPage(std::shared_ptr<PDBCommunic
         returnVal->pinned = true;
         returnVal->dirty = result->isDirty;
         returnVal->pageNum = result->pageNum;
-        returnVal->whichSet = std::make_shared<PDBSet>(result->setName, result->dbName);
+        returnVal->whichSet = std::make_shared<PDBSet>(result->dbName, result->setName);
         returnVal->location.startPos = result->startPos;
         returnVal->location.numBytes = result->numBytes;
         returnVal->bytes = (void *) (((uint64_t) this->sharedMemory.memory) + (uint64_t) result->offset);
@@ -324,7 +324,7 @@ PDBPageHandle PDBBufferManagerBackEnd<T>::expectPage(std::shared_ptr<PDBCommunic
       page->pinned = true;
       page->dirty = result->isDirty;
       page->pageNum = result->pageNum;
-      page->whichSet = std::make_shared<PDBSet>(result->setName, result->dbName);
+      page->whichSet = std::make_shared<PDBSet>(result->dbName, result->setName);
       page->location.startPos = result->startPos;
       page->location.numBytes = result->numBytes;
       page->bytes = (void *) (((uint64_t) this->sharedMemory.memory) + (uint64_t) result->offset);

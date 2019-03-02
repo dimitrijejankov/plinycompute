@@ -24,7 +24,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStoreOnPage(co
   snappy::GetUncompressedLength((char*) inPage->getBytes(), request->compressedSize, &uncompressedSize);
 
   // grab the page
-  auto outPage = bufferManager->getPage(make_shared<pdb::PDBSet>(request->setName, request->databaseName), request->page);
+  auto outPage = bufferManager->getPage(make_shared<pdb::PDBSet>(request->databaseName, request->setName), request->page);
 
   // uncompress and copy to page
   snappy::RawUncompress((char*) inPage->getBytes(), request->compressedSize, (char*) outPage->getBytes());
