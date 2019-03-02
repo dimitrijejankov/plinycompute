@@ -7,6 +7,8 @@
 
 #include <Object.h>
 #include <PDBString.h>
+#include <PDBSourcePageSetSpec.h>
+#include <PDBSinkPageSetSpec.h>
 
 namespace pdb {
 
@@ -16,61 +18,6 @@ enum PDBAbstractAlgorithmType {
   BroadcastForJoin,
   DistributedAggregation,
   StraightPipe
-};
-
-enum PDBSourceType {
-  MergeSource,
-  SetScanSource,
-  AggregationSource,
-  ShuffledAggregatesSource,
-  ShuffledJoinTuplesSource,
-  BroadcastJoinSource
-};
-
-enum PDBSinkType {
-  SetSink,
-  AggregationSink,
-  AggShuffleSink,
-  JoinShuffleSink,
-  BroadcastJoinSink
-};
-
-struct SourcePageSetSpec {
-
-  /**
-   * The computation that is consuming or producing this page set
-   */
-  pdb::String tupleSetIdentifier;
-
-  /**
-   *
-   */
-  PDBSourceType sourceType;
-
-  /**
-   * Each page set is identified by a integer and a string. Generally set to (computationID, tupleSetIdentifier)
-   * but relying on that is considered bad practice
-   */
-  std::pair<size_t, pdb::String> pageSetIdentifier;
-};
-
-struct SinkPageSetSpec {
-
-  /**
-   * The computation that is consuming or producing this page set
-   */
-  pdb::String tupleSetIdentifier;
-
-  /**
-   *
-   */
-  PDBSinkType sinkType;
-
-  /**
-   * Each page set is identified by a integer and a string. Generally set to (computationID, tupleSetIdentifier)
-   * but relying on that is considered bad practice
-   */
-  std::pair<size_t, pdb::String> pageSetIdentifier;
 };
 
 
@@ -97,12 +44,17 @@ private:
   /**
    * The source type the algorithm should setup
    */
-  PDBSourceType sourceType;
+  PDBSourcePageSetSpec source;
 
   /**
    * The sink type the algorithm should setup
    */
-  PDBSinkType sinkType;
+  PDBSinkPageSetSpec sink;
+
+  /**
+   * List of secondary sources like hash sets for join etc..
+   */
+  std::vector<PDBSourcePageSetSpec> secondarySources;
 
 };
 

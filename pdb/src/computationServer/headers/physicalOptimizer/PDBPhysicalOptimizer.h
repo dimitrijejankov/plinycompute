@@ -72,6 +72,11 @@ public:
 private:
 
   /**
+   * The identifier of the computation
+   */
+  size_t computationID;
+
+  /**
    * These are all the sources we currently have
    */
   priority_queue<OptimizerSource, vector<OptimizerSource>, function<bool(const OptimizerSource&, const OptimizerSource&)>> sources;

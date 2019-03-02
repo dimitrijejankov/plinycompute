@@ -35,6 +35,11 @@ public:
    * The id of the job
    */
   uint64_t jobID;
+
+  /**
+   * The id of the computation
+   */
+  uint64_t computationID;
 };
 
 }

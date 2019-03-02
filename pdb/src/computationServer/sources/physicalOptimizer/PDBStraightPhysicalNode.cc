@@ -10,5 +10,8 @@ PDBPipelineType pdb::PDBStraightPhysicalNode::getType() {
 
 pdb::Handle<pdb::PDBPhysicalAlgorithm> pdb::PDBStraightPhysicalNode::generateAlgorithm() {
 
+
+
+
   return nullptr;
 }
