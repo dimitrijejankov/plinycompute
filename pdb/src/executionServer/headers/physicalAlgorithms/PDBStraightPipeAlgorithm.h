@@ -10,13 +10,15 @@
 /**
  * This is important do not remove, it is used by the generator
  */
-// PRELOAD %PDBStraightPipeAlgorithm%
-
 
 namespace pdb {
 
+// PRELOAD %PDBStraightPipeAlgorithm%
+
 class PDBStraightPipeAlgorithm : public PDBPhysicalAlgorithm {
 public:
+
+  ENABLE_DEEP_COPY
 
   PDBStraightPipeAlgorithm() = default;
   ~PDBStraightPipeAlgorithm() = default;

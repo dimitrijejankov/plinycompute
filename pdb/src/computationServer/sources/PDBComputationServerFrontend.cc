@@ -115,7 +115,7 @@ bool pdb::PDBComputationServerFrontend::scheduleJob(pdb::PDBCommunicator &temp, 
   /// 1. Send the computation
 
   // send the object
-  if (!temp.sendObject<pdb::ExJob>(job, errMsg)) {
+  if (!temp.sendObject<pdb::ExJob>(job, errMsg, job->computationSize + 1024 * 1024)) {
 
     // yeah something happened
     logger->error(errMsg);
@@ -235,6 +235,8 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
       make_shared<pdb::HeapRequestHandler<pdb::CSExecuteComputation>>(
           [&](Handle<pdb::CSExecuteComputation> request, PDBCommunicatorPtr sendUsingMe) {
 
+            /// 1. Init the optimizer
+
             // indicators
             bool success = true;
             std::string error;
@@ -250,6 +252,8 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
 
             // we start from job 0
             uint64_t jobID = 0;
+
+            /// 2. Run job while the optimizer can spit out an algorithm
 
             // while we still have jobs to execute
             while(optimizer.hasAlgorithmToRun()) {
@@ -270,6 +274,9 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
               job->jobID = jobID++;
               job->physicalAlgorithm = algorithm;
 
+              // just set how much we need for the computation object in case somebody embed some data in it
+              job->computationSize = request->numBytes;
+
               // broadcast the job to each node and run it...
               if(!executeJob(job)) {
 
@@ -286,6 +293,17 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
 
             // end the computation
             this->statsManager.endComputation(compID);
+
+            /// 3. Send the result of the execution back to the client
+
+            // make an allocation block
+            const pdb::UseTemporaryAllocationBlock tempBlock{1024};
+
+            // create an allocation block to hold the response
+            pdb::Handle<pdb::SimpleRequestResult> response = pdb::makeObject<pdb::SimpleRequestResult>(success, error);
+
+            // sends result to requester
+            sendUsingMe->sendObject(response, error);
 
             return make_pair(success, error);
           }));

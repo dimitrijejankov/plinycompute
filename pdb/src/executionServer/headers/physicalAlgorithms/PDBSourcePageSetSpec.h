@@ -16,7 +16,13 @@ enum PDBSourceType {
   BroadcastJoinSource
 };
 
-struct PDBSourcePageSetSpec {
+// PRELOAD %PDBSourcePageSetSpec%
+
+struct PDBSourcePageSetSpec : public Object {
+
+public:
+
+  ENABLE_DEEP_COPY
 
   /**
    * The computation that is consuming this page set

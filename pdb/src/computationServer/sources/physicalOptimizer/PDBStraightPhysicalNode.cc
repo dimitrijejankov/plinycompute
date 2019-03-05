@@ -12,12 +12,12 @@ PDBPipelineType pdb::PDBStraightPhysicalNode::getType() {
 
 pdb::Handle<pdb::PDBPhysicalAlgorithm> pdb::PDBStraightPhysicalNode::generateAlgorithm() {
 
-  pdb::Handle<PDBSourcePageSetSpec> source;
+  pdb::Handle<PDBSourcePageSetSpec> source = pdb::makeObject<PDBSourcePageSetSpec>();
   source->tupleSetIdentifier = pipeline.front()->getOutputName();
   source->sourceType = PDBSourceType::SetScanSource;
   source->pageSetIdentifier = std::make_pair(computationID, (String) pipeline.front()->getOutputName());
 
-  pdb::Handle<PDBSinkPageSetSpec> sink;
+  pdb::Handle<PDBSinkPageSetSpec> sink = pdb::makeObject<PDBSinkPageSetSpec>();
   sink->tupleSetIdentifier = pipeline.back()->getOutputName();
   sink->sinkType = PDBSinkType::SetSink;
   sink->pageSetIdentifier = std::make_pair(computationID, (String) pipeline.back()->getOutputName());

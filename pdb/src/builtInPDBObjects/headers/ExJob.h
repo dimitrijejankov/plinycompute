@@ -18,6 +18,8 @@ namespace pdb {
 class ExJob : public Object  {
 public:
 
+  ENABLE_DEEP_COPY
+  
   /**
    * The physical algorithm we want to run.
    */
@@ -42,6 +44,11 @@ public:
    * The id of the computation
    */
   uint64_t computationID;
+
+  /**
+   * The size of the computation
+   */
+  uint64_t computationSize;
 };
 
 }

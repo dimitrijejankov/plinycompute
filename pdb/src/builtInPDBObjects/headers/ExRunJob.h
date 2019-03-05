@@ -15,7 +15,11 @@
 
 namespace pdb {
 
-class ExRunJob : public Object  {};
+class ExRunJob : public Object  {
+public:
+
+  ENABLE_DEEP_COPY
+};
 
 }
 

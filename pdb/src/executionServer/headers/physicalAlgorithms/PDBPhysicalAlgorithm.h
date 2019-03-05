@@ -23,9 +23,12 @@ enum PDBPhysicalAlgorithmType {
   StraightPipe
 };
 
+// PRELOAD %PDBPhysicalAlgorithm%
 
 class PDBPhysicalAlgorithm : public Object {
 public:
+
+  ENABLE_DEEP_COPY
 
   PDBPhysicalAlgorithm() = default;
 
@@ -39,17 +42,17 @@ public:
   /**
    * Sets up the whole algorithm
    */
-  virtual void setup() = 0;
+  virtual void setup() { throw std::runtime_error("Can not setup PDBPhysicalAlgorithm that is an abstract class"); };
 
   /**
    * Runs the algorithm
    */
-  virtual void run() = 0;
+  virtual void run() { throw std::runtime_error("Can not run PDBPhysicalAlgorithm that is an abstract class"); };
 
   /**
    * Returns the type of the algorithm we want to run
    */
-  virtual PDBPhysicalAlgorithmType getAlgorithmType() = 0;
+  virtual PDBPhysicalAlgorithmType getAlgorithmType() { throw std::runtime_error("Can not get the type of the base class"); };
 
 protected:
 
