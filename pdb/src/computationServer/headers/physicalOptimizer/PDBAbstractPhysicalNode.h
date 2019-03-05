@@ -1,3 +1,5 @@
+#include <utility>
+
 //
 // Created by dimitrije on 2/21/19.
 //
@@ -30,7 +32,7 @@ class PDBAbstractPhysicalNode {
 public:
 
   // TODO
-  PDBAbstractPhysicalNode(const std::vector<AtomicComputationPtr>& pipeline, size_t id) : pipeline(pipeline), id(id) {};
+  PDBAbstractPhysicalNode(std::vector<AtomicComputationPtr> pipeline, size_t computationID, size_t id) : pipeline(std::move(pipeline)), id(id), computationID(computationID) {};
 
   virtual ~PDBAbstractPhysicalNode() = default;
 
@@ -136,7 +138,7 @@ public:
    */
   virtual pdb::Handle<pdb::PDBPhysicalAlgorithm> generateAlgorithm() = 0;
 
-private:
+protected:
 
   /**
    * Returns a weak pointer handle to this node
@@ -170,6 +172,11 @@ private:
    * A shared pointer to an instance of this node
    */
   PDBAbstractPhysicalNodeWeakPtr handle;
+
+  /**
+   * The computation this node belongs to
+   */
+  size_t computationID;
 };
 
 }

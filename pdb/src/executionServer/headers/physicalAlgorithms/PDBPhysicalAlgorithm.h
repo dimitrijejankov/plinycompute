@@ -1,3 +1,5 @@
+#include <utility>
+
 //
 // Created by dimitrije on 2/25/19.
 //
@@ -9,10 +11,11 @@
 #include <PDBString.h>
 #include <PDBSourcePageSetSpec.h>
 #include <PDBSinkPageSetSpec.h>
+#include <PDBVector.h>
 
 namespace pdb {
 
-enum PDBAbstractAlgorithmType {
+enum PDBPhysicalAlgorithmType {
 
   ShuffleForJoin,
   BroadcastForJoin,
@@ -23,6 +26,15 @@ enum PDBAbstractAlgorithmType {
 
 class PDBPhysicalAlgorithm : public Object {
 public:
+
+  PDBPhysicalAlgorithm() = default;
+
+  ~PDBPhysicalAlgorithm() = default;
+
+  PDBPhysicalAlgorithm(const pdb::Handle<PDBSourcePageSetSpec> &source,
+                       const pdb::Handle<PDBSinkPageSetSpec> &sink,
+                       const pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &secondarySources)
+      : source(source), sink(sink), secondarySources(secondarySources) {}
 
   /**
    * Sets up the whole algorithm
@@ -37,24 +49,24 @@ public:
   /**
    * Returns the type of the algorithm we want to run
    */
-  virtual PDBAbstractAlgorithmType getAlgorithmType() = 0;
+  virtual PDBPhysicalAlgorithmType getAlgorithmType() = 0;
 
-private:
+protected:
 
   /**
    * The source type the algorithm should setup
    */
-  PDBSourcePageSetSpec source;
+  pdb::Handle<PDBSourcePageSetSpec> source;
 
   /**
    * The sink type the algorithm should setup
    */
-  PDBSinkPageSetSpec sink;
+  pdb::Handle<PDBSinkPageSetSpec> sink;
 
   /**
-   * List of secondary sources like hash sets for join etc..
+   * List of secondary sources like hash sets for join etc.. null if there are no secondary sources
    */
-  std::vector<PDBSourcePageSetSpec> secondarySources;
+  pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> secondarySources;
 
 };
 

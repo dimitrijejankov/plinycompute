@@ -11,9 +11,11 @@
 #include <Computation.h>
 #include "PDBPhysicalAlgorithm.h"
 
+// PRELOAD %ExJob%
+
 namespace pdb {
 
-class PDBJob {
+class ExJob : public Object  {
 public:
 
   /**

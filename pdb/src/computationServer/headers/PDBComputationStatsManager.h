@@ -55,24 +55,24 @@ public:
    * that is being executed
    * @return the id that is assigned
    */
-  int64_t startComputation();
+  uint64_t startComputation();
 
   /**
    * This is called to end the computation with a particular id
    */
-  void endComputation(int64_t compID);
+  void endComputation(uint64_t compID);
 
 private:
 
   /**
    * Computation id associated with the stats about that computation
    */
-  std::unordered_map<int64_t, PDBComputationStatsPtr> stats;
+  std::unordered_map<uint64_t, PDBComputationStatsPtr> stats;
 
   /**
    * The last job id we run
    */
-  int64_t lastComputationID = 0;
+  uint64_t lastComputationID = 0;
 
   /**
    * Used to lock the data structures that keep

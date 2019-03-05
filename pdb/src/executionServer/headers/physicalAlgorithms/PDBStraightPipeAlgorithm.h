@@ -18,6 +18,14 @@ namespace pdb {
 class PDBStraightPipeAlgorithm : public PDBPhysicalAlgorithm {
 public:
 
+  PDBStraightPipeAlgorithm() = default;
+  ~PDBStraightPipeAlgorithm() = default;
+
+
+  PDBStraightPipeAlgorithm(const pdb::Handle<PDBSourcePageSetSpec> &source,
+                           const pdb::Handle<PDBSinkPageSetSpec> &sink,
+                           const pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &secondarySources);
+
   /**
    * //TODO
    */
@@ -32,11 +40,7 @@ public:
    * Returns StraightPipe as the type
    * @return the type
    */
-  PDBAbstractAlgorithmType getAlgorithmType() override;
-
-private:
-
-
+  PDBPhysicalAlgorithmType getAlgorithmType() override;
 
 };
 

@@ -7,6 +7,7 @@
 
 #include "PDBComputationStatsManager.h"
 #include <ServerFunctionality.h>
+#include <ExJob.h>
 #include <mutex>
 
 namespace pdb {
@@ -20,6 +21,12 @@ public:
   void registerHandlers(PDBServer &forMe) override;
 
 private:
+
+  bool executeJob(pdb::Handle<ExJob> &job);
+
+  bool scheduleJob(PDBCommunicator &temp, pdb::Handle<ExJob> &job, std::string &errMsg);
+
+  bool runScheduledJob(PDBCommunicator &communicator, string &errMsg);
 
   /**
    * This manages the stats about each computation

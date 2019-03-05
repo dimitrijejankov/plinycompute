@@ -12,7 +12,7 @@ namespace pdb {
 class PDBStraightPhysicalNode : public PDBAbstractPhysicalNode {
 public:
 
-  PDBStraightPhysicalNode(const std::vector<AtomicComputationPtr>& pipeline, size_t currentNodeIndex) : PDBAbstractPhysicalNode(pipeline, currentNodeIndex) {};
+  PDBStraightPhysicalNode(const std::vector<AtomicComputationPtr>& pipeline, size_t computationID, size_t currentNodeIndex) : PDBAbstractPhysicalNode(pipeline, computationID, currentNodeIndex) {};
 
   PDBPipelineType getType() override;
 

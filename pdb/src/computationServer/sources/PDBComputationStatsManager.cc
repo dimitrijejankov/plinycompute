@@ -4,7 +4,7 @@
 
 #include <PDBComputationStatsManager.h>
 
-int64_t PDBComputationStatsManager::startComputation() {
+uint64_t PDBComputationStatsManager::startComputation() {
 
   // lock the stuff
   std::unique_lock<std::mutex> lock(computationIDLock);
@@ -24,7 +24,7 @@ int64_t PDBComputationStatsManager::startComputation() {
   return 0;
 }
 
-void PDBComputationStatsManager::endComputation(int64_t compID) {
+void PDBComputationStatsManager::endComputation(uint64_t compID) {
 
   // lock the stuff
   std::unique_lock<std::mutex> lock(computationIDLock);

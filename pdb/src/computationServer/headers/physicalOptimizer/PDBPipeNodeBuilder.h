@@ -30,7 +30,7 @@ class PDBPipeNodeBuilder {
 
 public:
 
-  PDBPipeNodeBuilder(const std::shared_ptr<AtomicComputationList> &computations);
+  PDBPipeNodeBuilder(size_t computationID, const std::shared_ptr<AtomicComputationList> &computations);
 
   /**
    *
@@ -69,7 +69,7 @@ public:
     assert(!currentPipe.empty());
 
     // create the node
-    auto node = new T(currentPipe, currentNodeIndex++);
+    auto node = new T(currentPipe, computationID, currentNodeIndex++);
 
     // create the node handle
     auto nodeHandle = node->getHandle();
@@ -136,6 +136,11 @@ public:
    * The atomic computations we are splitting up
    */
   std::shared_ptr<AtomicComputationList> atomicComps;
+
+  /**
+   * The id of the computation we are building the pipes for
+   */
+  size_t computationID;
 };
 
 }

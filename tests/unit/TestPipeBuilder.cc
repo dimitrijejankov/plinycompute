@@ -41,7 +41,7 @@ TEST(BufferManagerBackendTest, Test1) {
   // this is the logical plan to return
   auto atomicComputations = std::shared_ptr<AtomicComputationList>(myResult);
 
-  pdb::PDBPipeNodeBuilder factory(atomicComputations);
+  pdb::PDBPipeNodeBuilder factory(1, atomicComputations);
 
   auto out = factory.generateAnalyzerGraph();
 
@@ -139,7 +139,7 @@ TEST(BufferManagerBackendTest, Test2) {
   // this is the logical plan to return
   auto atomicComputations = std::shared_ptr<AtomicComputationList>(myResult);
 
-  pdb::PDBPipeNodeBuilder factory(atomicComputations);
+  pdb::PDBPipeNodeBuilder factory(2, atomicComputations);
 
   auto out = factory.generateAnalyzerGraph();
 
@@ -344,7 +344,7 @@ TEST(BufferManagerBackendTest, Test3) {
   // this is the logical plan to return
   auto atomicComputations = std::shared_ptr<AtomicComputationList>(myResult);
 
-  pdb::PDBPipeNodeBuilder factory(atomicComputations);
+  pdb::PDBPipeNodeBuilder factory(3, atomicComputations);
 
   auto out = factory.generateAnalyzerGraph();
   std::set<pdb::PDBAbstractPhysicalNodePtr> visitedNodes;

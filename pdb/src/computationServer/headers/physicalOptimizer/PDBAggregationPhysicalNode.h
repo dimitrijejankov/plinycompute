@@ -13,7 +13,7 @@ class PDBAggregationPhysicalNode : public PDBAbstractPhysicalNode  {
 
 public:
 
-  PDBAggregationPhysicalNode(const std::vector<AtomicComputationPtr>& pipeline, size_t currentNodeIndex) : PDBAbstractPhysicalNode(pipeline, currentNodeIndex) {};
+  PDBAggregationPhysicalNode(const std::vector<AtomicComputationPtr>& pipeline, size_t computationID, size_t currentNodeIndex) : PDBAbstractPhysicalNode(pipeline, computationID, currentNodeIndex) {};
 
   PDBPipelineType getType() override;
 

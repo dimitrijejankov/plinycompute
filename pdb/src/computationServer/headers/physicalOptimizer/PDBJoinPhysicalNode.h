@@ -13,8 +13,8 @@ class PDBJoinPhysicalNode : public pdb::PDBAbstractPhysicalNode {
 
  public:
 
-  PDBJoinPhysicalNode(const std::vector<AtomicComputationPtr> &pipeline, size_t currentNodeIndex)
-      : PDBAbstractPhysicalNode(pipeline, currentNodeIndex) {};
+  PDBJoinPhysicalNode(const std::vector<AtomicComputationPtr> &pipeline, size_t computationID, size_t currentNodeIndex)
+      : PDBAbstractPhysicalNode(pipeline, computationID, currentNodeIndex) {};
 
   PDBPipelineType getType() override;
 

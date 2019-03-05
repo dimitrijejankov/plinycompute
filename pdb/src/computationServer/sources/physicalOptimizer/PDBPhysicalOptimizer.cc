@@ -42,7 +42,7 @@ PDBPhysicalOptimizer::PDBPhysicalOptimizer(String tcapString,
   auto atomicComputations = std::shared_ptr<AtomicComputationList>(myResult);
 
   // split the computations into pipes
-  pdb::PDBPipeNodeBuilder factory(atomicComputations);
+  pdb::PDBPipeNodeBuilder factory(computationID, atomicComputations);
 
   // fill the sources up
   auto sourcesVector = factory.generateAnalyzerGraph();

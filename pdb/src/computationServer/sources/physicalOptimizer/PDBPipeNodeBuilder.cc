@@ -25,8 +25,8 @@
 
 namespace pdb {
 
-PDBPipeNodeBuilder::PDBPipeNodeBuilder(const std::shared_ptr<AtomicComputationList> &computations)
-    : atomicComps(computations), currentNodeIndex(0) {}
+PDBPipeNodeBuilder::PDBPipeNodeBuilder(size_t computationID, const std::shared_ptr<AtomicComputationList> &computations)
+    : atomicComps(computations), currentNodeIndex(0), computationID(computationID) {}
 }
 
 std::vector<pdb::PDBAbstractPhysicalNodePtr> pdb::PDBPipeNodeBuilder::generateAnalyzerGraph() {
