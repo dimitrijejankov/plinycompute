@@ -5,6 +5,8 @@
 #include <ExJob.h>
 #include <HeapRequestHandler.h>
 #include <ExRunJob.h>
+#include <PDBStorageManagerBackend.h>
+#include <SharedEmployee.h>
 #include "ExecutionServerFrontend.h"
 #include "SimpleRequestResult.h"
 
@@ -40,6 +42,20 @@ void pdb::ExecutionServerFrontend::registerHandlers(pdb::PDBServer &forMe) {
 
                 // we are done here does not work
                 return make_pair(false, error);
+              }
+            }
+
+            auto ps = this->getFunctionalityPtr<PDBStorageManagerBackend>()->getPageSet("chris_db", "chris_set");
+
+            PDBPageHandle page;
+            while((page = ps->getNextPage(0)) != nullptr) {
+
+              // grab the vector
+              Handle<Vector<Handle<SharedEmployee>>> pageVector = ((Record<Vector<Handle<SharedEmployee>>> *) (page->getBytes()))->getRootObject();
+
+              // print out
+              for (int i = 0; i < pageVector->size(); ++i) {
+                std::cout << *(*pageVector)[i]->getName() << std::endl;
               }
             }
 

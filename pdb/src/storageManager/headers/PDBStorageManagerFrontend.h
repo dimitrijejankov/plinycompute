@@ -65,6 +65,14 @@ public:
   template <class Communicator, class Requests>
   std::pair<bool, std::string> handleDispatchedData(pdb::Handle<pdb::StoDispatchData> request, std::shared_ptr<Communicator> sendUsingMe);
 
+  /**
+   *
+   * @tparam Communicator
+   * @tparam Requests
+   * @param request
+   * @param sendUsingMe
+   * @return
+   */
   template <class Communicator, class Requests>
   std::pair<bool, std::string> handleGetNumPages(pdb::Handle<pdb::StoSetStatsRequest> request, std::shared_ptr<Communicator> sendUsingMe);
 

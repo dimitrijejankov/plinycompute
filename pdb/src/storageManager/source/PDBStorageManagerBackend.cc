@@ -33,7 +33,7 @@ pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerBackend::getPageSet(const std::
   auto conf = getConfiguration();
 
   auto numPages = RequestFactory::heapRequest<StoSetStatsRequest, StoSetStatsResult, std::pair<bool, uint64_t>>(
-      logger, conf->managerPort, conf->managerAddress, std::make_pair<bool, uint64_t>(false, 0), 1024,
+      logger, conf->port, conf->address, std::make_pair<bool, uint64_t>(false, 0), 1024,
       [&](Handle<StoSetStatsResult> result) {
 
         // do we have a result if not return false
@@ -51,8 +51,8 @@ pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerBackend::getPageSet(const std::
         }
 
         // we succeeded
-        return std::make_pair(result->success, result->size);
-      });
+        return std::make_pair(result->success, result->numPages);
+      }, db, set);
 
   // if we failed return a null ptr
   if(!numPages.first) {

@@ -19,6 +19,14 @@ public:
 
   void init() override;
 
+  /**
+   * This method contacts the frontend to get a PageSet for a particular PDB set
+   * @param db - the database the set belongs to
+   * @param set - the set name
+   * @return the PDBPage set
+   */
+  PDBAbstractPageSetPtr getPageSet(const std::string &db, const std::string &set);
+
  private:
 
   /**
@@ -40,13 +48,6 @@ public:
   template <class Communicator>
   std::pair<bool, std::string> handleStoreOnPage(const pdb::Handle<pdb::StoStoreOnPageRequest> &request, std::shared_ptr<Communicator> &sendUsingMe);
 
-  /**
-   * This method contacts the frontend to get a PageSet for a particular PDB set
-   * @param db - the database the set belongs to
-   * @param set - the set name
-   * @return the PDBPage set
-   */
-  PDBAbstractPageSetPtr getPageSet(const std::string &db, const std::string &set);
 };
 
 }

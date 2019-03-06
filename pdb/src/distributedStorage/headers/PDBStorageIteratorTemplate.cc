@@ -93,8 +93,7 @@ bool PDBStorageIterator<T>::getNextPage(bool isFirst) {
 
       // log the error
       logger->error(errMsg);
-      logger->error(
-          "Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
+      logger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
 
       // throw an exception
       throw std::runtime_error(errMsg);

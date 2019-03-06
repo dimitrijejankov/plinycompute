@@ -18,7 +18,7 @@ pdb::PDBSetPageSet::PDBSetPageSet(const std::string &db,
   pages.reserve(numPages);
 
   // grab the page handles
-  for(size_t i = numPages-1; i >= 0; --i) {
+  for(uint64_t i = 0; i < numPages; ++i) {
 
     // grab a page
     auto page = bufferManager->getPage(pdbSet, i);
@@ -34,6 +34,11 @@ pdb::PDBPageHandle pdb::PDBSetPageSet::getNextPage(size_t workerID) {
 
   // figure out the current page
   uint64_t pageNum = curPage++;
+
+  // if we are out of pages return null
+  if(pageNum >= pages.size()) {
+    return nullptr;
+  }
 
   // grab the page and repin it...
   auto page = pages[pageNum];
