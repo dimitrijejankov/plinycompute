@@ -15,8 +15,17 @@ using PDBAbstractPageSetPtr = std::shared_ptr<PDBAbstractPageSet>;
 class PDBAbstractPageSet {
 public:
 
+  /**
+   * Gets the next page in the page set
+   * @param workerID - in the case that the next page is going to depend on the worker we need to specify an id for it
+   * @return - page handle if the next page exists, null otherwise
+   */
   virtual PDBPageHandle getNextPage(size_t workerID) = 0;
 
+  /**
+   * Creates a new page in this page set
+   * @return the page handle to that page set
+   */
   virtual PDBPageHandle getNewPage() = 0;
 
 };

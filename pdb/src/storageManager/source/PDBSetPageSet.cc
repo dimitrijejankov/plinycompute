@@ -9,7 +9,7 @@
 pdb::PDBSetPageSet::PDBSetPageSet(const std::string &db,
                                   const std::string &set,
                                   size_t numPages,
-                                  pdb::PDBBufferManagerInterfacePtr bufferManager) : db(db), set(set), curPage(0), lastPage(numPages) {
+                                  pdb::PDBBufferManagerInterfacePtr bufferManager) : db(db), set(set), curPage(0), lastPage(numPages), bufferManager(bufferManager) {
 
   // make the pdb set
   PDBSetPtr pdbSet = make_shared<PDBSet>(db, set);

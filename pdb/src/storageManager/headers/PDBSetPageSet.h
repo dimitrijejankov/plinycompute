@@ -16,10 +16,27 @@ class PDBStorageManagerBackend;
 class PDBSetPageSet : public PDBAbstractPageSet {
 public:
 
+  /**
+   * Initializes the page set with the set parameters and the buffer manager.
+   * The buffer manager is used to grab pages from the frontend.
+   * @param db - the name of the database the set belongs to
+   * @param set - the set name
+   * @param numPages - the number of pages
+   * @param bufferManager - the buffer manager
+   */
   PDBSetPageSet(const std::string &db, const std::string &set, size_t numPages, PDBBufferManagerInterfacePtr bufferManager);
 
+  /**
+   * Grabs the next page for this set.
+   * @param workerID - the worker id does nothing in this case
+   * @return the page handle if there is one, null otherwise
+   */
   PDBPageHandle getNextPage(size_t workerID) override;
 
+  /**
+   * Creates a new page in this page set by contacting the buffer manager // TODO this should probably contact the storage manager
+   * @return - the page handle of the newly created page
+   */
   PDBPageHandle getNewPage() override;
 
 private:
