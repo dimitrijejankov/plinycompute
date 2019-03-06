@@ -172,7 +172,6 @@ int main(int argc, char *argv[]) {
     frontEnd.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(config->port, config->address, logger));
     frontEnd.addFunctionality(std::make_shared<pdb::PDBStorageManagerFrontend>());
     frontEnd.addFunctionality(std::make_shared<pdb::PDBComputationServerFrontend>());
-    frontEnd.addFunctionality(std::make_shared<pdb::PDBStorageManagerBackend>());
 
     // on the worker put and execution server
     if(!config->isManager) {
