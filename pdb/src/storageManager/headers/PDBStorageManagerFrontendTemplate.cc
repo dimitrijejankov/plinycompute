@@ -40,7 +40,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageReques
 
     // check for the page
     auto it = this->lastPages.find(set);
-    if(it != this->lastPages.end() && it->second >= request->page) {
+    if(it != this->lastPages.end() && it->second.numPages >= request->page) {
       hasPage = true;
     }
   }
@@ -138,6 +138,11 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
     return std::make_pair(false, error);
   }
 
+  // figure out the size so we can increment it
+  // check the uncompressed size
+  size_t uncompressedSize = 0;
+  snappy::GetUncompressedLength((char*) page->getBytes(), numBytes, &uncompressedSize);
+
   /// 2. Figure out the page we want to put this thing onto
 
   uint64_t pageNum;
@@ -155,13 +160,19 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
     if(it == lastPages.end()) {
 
       // set the page to zero since this is the first page
-      lastPages[set] = 0;
+      lastPages[set].numPages = 0;
       pageNum = 0;
+
+      // set the size to the size of this request
+      lastPages[set].size = uncompressedSize;
     }
     else {
 
       // increment the last page
-      pageNum = ++it->second;
+      pageNum = ++it->second.numPages;
+
+      // increment the set size on this node
+      it->second.size += uncompressedSize;
     }
   }
 
@@ -219,7 +230,8 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
 }
 
 template<class Communicator, class Requests>
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetNumPages(pdb::Handle<pdb::StoSetStatsRequest> request, shared_ptr<Communicator> sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetSetStats(pdb::Handle<pdb::StoSetStatsRequest> request,
+                                                                               shared_ptr<Communicator> sendUsingMe) {
 
   // the error
   std::string error;
@@ -237,8 +249,8 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetNumPages(p
   pdb::Handle<pdb::StoSetStatsResult> setStatResult;
   if(it != lastPages.end()) {
 
-    // TODO I need to keep track of the set sizes
-    setStatResult = pdb::makeObject<pdb::StoSetStatsResult>(it->second, 0, true);
+    // set the stat results
+    setStatResult = pdb::makeObject<pdb::StoSetStatsResult>(it->second.numPages, it->second.size, true);
   }
   else {
 

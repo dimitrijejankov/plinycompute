@@ -19,6 +19,20 @@
 
 namespace pdb {
 
+struct PDBStorageSetStats {
+
+  /**
+   * The size of the set
+   */
+  size_t size;
+
+  /**
+   * The number of pages
+   */
+  size_t numPages;
+
+};
+
 class PDBStorageManagerFrontend : public ServerFunctionality {
 
 public:
@@ -66,15 +80,20 @@ public:
   std::pair<bool, std::string> handleDispatchedData(pdb::Handle<pdb::StoDispatchData> request, std::shared_ptr<Communicator> sendUsingMe);
 
   /**
+   * Handles the the request to get stats about a particular set.
    *
-   * @tparam Communicator
-   * @tparam Requests
-   * @param request
-   * @param sendUsingMe
-   * @return
+   * @tparam Communicator- the communicator class PDBCommunicator is used to handle the request. This is basically here
+   * so we could write unit tests
+   *
+   * @tparam Requests - the factory class to make request. RequestsFactory class is being used this is just here as a template so we
+   * can mock it in the unit tests
+   *
+   * @param request - request to get the stats of particular set within this nodes storage. Contains the database and set names
+   * @param sendUsingMe - the communicator to the node that made the request
+   * @return - the result of the handler (success, error)
    */
   template <class Communicator, class Requests>
-  std::pair<bool, std::string> handleGetNumPages(pdb::Handle<pdb::StoSetStatsRequest> request, std::shared_ptr<Communicator> sendUsingMe);
+  std::pair<bool, std::string> handleGetSetStats(pdb::Handle<pdb::StoSetStatsRequest> request, std::shared_ptr<Communicator> sendUsingMe);
 
   /**
    * The logger
@@ -84,7 +103,7 @@ public:
   /**
    * The last page for a particular set
    */
-  map <PDBSetPtr, size_t, PDBSetCompare> lastPages;
+  map <PDBSetPtr, PDBStorageSetStats, PDBSetCompare> lastPages;
 
   /**
    * Lock last pages

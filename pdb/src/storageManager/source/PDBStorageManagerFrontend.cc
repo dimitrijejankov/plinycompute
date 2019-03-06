@@ -43,7 +43,7 @@ pdb::PDBStorageManagerFrontend::~PDBStorageManagerFrontend() {
     ofs.write((char *) &size, sizeof(unsigned long));
     ofs.write(it.first->getSetName().c_str(), size);
 
-    // write the number of pages
+    // write the page stats
     ofs.write(reinterpret_cast<char *>(&it.second), sizeof(it.second));
   }
 
@@ -83,12 +83,12 @@ void pdb::PDBStorageManagerFrontend::init() {
       std::string setName(dbBuffer.get(), size);
 
       // read the number of pages
-      unsigned long pageNum;
-      ifs.read(reinterpret_cast<char *>(&pageNum), sizeof(pageNum));
+      PDBStorageSetStats pageStats{};
+      ifs.read(reinterpret_cast<char *>(&pageStats), sizeof(pageStats));
 
       // store the set info
       auto set = std::make_shared<PDBSet>(dbName, setName);
-      lastPages[set] = pageNum;
+      lastPages[set] = pageStats;
     }
 
     // close
@@ -117,7 +117,7 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
   forMe.registerHandler(
       StoSetStatsRequest_TYPEID,
       make_shared<pdb::HeapRequestHandler<pdb::StoSetStatsRequest>>([&](pdb::Handle<pdb::StoSetStatsRequest> request, PDBCommunicatorPtr sendUsingMe) {
-        return handleGetNumPages<PDBCommunicator, RequestFactory>(request, sendUsingMe);
+        return handleGetSetStats<PDBCommunicator, RequestFactory>(request, sendUsingMe);
       }));
 
 }
