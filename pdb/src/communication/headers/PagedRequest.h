@@ -44,7 +44,7 @@ namespace pdb {
  * @return whatever the return ends up being
  */
 template <class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
-ReturnType pagedRequest(const std::string &address, int port, const PDBStorageManagerInterfacePtr &storage, const PDBLoggerPtr &logger, ReturnType onErr,
+ReturnType pagedRequest(const std::string &address, int port, const PDBBufferManagerInterfacePtr &storage, const PDBLoggerPtr &logger, ReturnType onErr,
                         const uint32_t maxRetries, size_t bytesForRequest, function<ReturnType(Handle<ResponseType>)> processResponse,
                         RequestTypeParams&&... args) {
 
@@ -164,7 +164,7 @@ ReturnType pagedRequest(const std::string &address, int port, const PDBStorageMa
  * @return whatever the return ends up being
  */
 template <class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
-ReturnType pagedRequest(PDBCommunicatorPtr &communicator, const PDBStorageManagerInterfacePtr &storage, const PDBLoggerPtr &logger, ReturnType onErr,
+ReturnType pagedRequest(PDBCommunicatorPtr &communicator, const PDBBufferManagerInterfacePtr &storage, const PDBLoggerPtr &logger, ReturnType onErr,
                         const uint32_t maxRetries, size_t bytesForRequest, function<ReturnType(Handle<ResponseType>)> processResponse,
                         RequestTypeParams&&... args) {
 

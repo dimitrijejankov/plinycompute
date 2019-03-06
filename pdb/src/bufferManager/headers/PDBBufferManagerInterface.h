@@ -66,7 +66,7 @@
 namespace pdb {
 
 class PDBBufferManagerInterface;
-typedef shared_ptr<PDBBufferManagerInterface> PDBStorageManagerInterfacePtr;
+typedef shared_ptr<PDBBufferManagerInterface> PDBBufferManagerInterfacePtr;
 
 class PDBBufferManagerInterface : public ServerFunctionality {
 

@@ -14,7 +14,8 @@
 #include <PDBPageHandle.h>
 #include <StoGetPageRequest.h>
 #include <StoGetNextPageRequest.h>
-#include <DisDispatchData.h>
+#include <StoDispatchData.h>
+#include <StoSetStatsRequest.h>
 
 namespace pdb {
 
@@ -62,7 +63,10 @@ public:
    * @return - the result of the handler (success, error)
    */
   template <class Communicator, class Requests>
-  std::pair<bool, std::string> handleDispatchedData(pdb::Handle<pdb::DisDispatchData> request, std::shared_ptr<Communicator> sendUsingMe);
+  std::pair<bool, std::string> handleDispatchedData(pdb::Handle<pdb::StoDispatchData> request, std::shared_ptr<Communicator> sendUsingMe);
+
+  template <class Communicator, class Requests>
+  std::pair<bool, std::string> handleGetNumPages(pdb::Handle<pdb::StoSetStatsRequest> request, std::shared_ptr<Communicator> sendUsingMe);
 
   /**
    * The logger

@@ -16,30 +16,26 @@
  *                                                                           *
  *****************************************************************************/
 
-
-#ifndef OBJECTQUERYMODEL_DISPDISPATCHDATA_H
-#define OBJECTQUERYMODEL_DISPDISPATCHDATA_H
+#pragma once
 
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %DisDispatchData%
+// PRELOAD %StoSetStatsRequest%
 
 namespace pdb {
 
-/**
- * This one looks exactly like the add data but it is sent by the @see PDBDistributedStorage
- */
-class DisDispatchData : public Object {
+// encapsulates a request to add data to a set in storage
+class StoSetStatsRequest : public Object {
 
 public:
 
-  DisDispatchData() = default;
-  ~DisDispatchData() = default;
+  StoSetStatsRequest() = default;
+  ~StoSetStatsRequest() = default;
 
-  DisDispatchData(const std::string &databaseName, const std::string &setName, const std::string &typeName, uint64_t compressedSize)
-      : databaseName(databaseName), setName(setName), typeName(typeName), compressedSize(compressedSize) {
+  StoSetStatsRequest(const std::string &databaseName, const std::string &setName)
+      : databaseName(databaseName), setName(setName) {
   }
 
   ENABLE_DEEP_COPY
@@ -50,21 +46,10 @@ public:
   String databaseName;
 
   /**
-   * The name of the set we are adding the data to
+   * The name of the set we are storing the stuff
    */
   String setName;
 
-  /**
-   * The name of the type we are adding
-   */
-  String typeName;
-
-  /**
-   * The size of the compressed stuff
-   */
-  uint64_t compressedSize;
 };
 
 }
-
-#endif  // OBJECTQUERYMODEL_DISPATCHERADDDATA_H

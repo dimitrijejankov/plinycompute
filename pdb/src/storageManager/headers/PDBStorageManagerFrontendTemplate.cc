@@ -7,7 +7,7 @@
 
 #include <PDBStorageManagerFrontend.h>
 #include <HeapRequestHandler.h>
-#include <DisDispatchData.h>
+#include <StoDispatchData.h>
 #include <PDBBufferManagerInterface.h>
 #include <PDBBufferManagerFrontEnd.h>
 #include <StoStoreOnPageRequest.h>
@@ -20,6 +20,7 @@
 #include "CatalogServer.h"
 #include <StoGetPageRequest.h>
 #include <StoGetPageResult.h>
+#include <StoSetStatsResult.h>
 
 template <class T>
 std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageRequest(const pdb::Handle<pdb::StoGetPageRequest> &request,
@@ -105,7 +106,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageReques
 }
 
 template <class Communicator, class Requests>
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedData(pdb::Handle<pdb::DisDispatchData> request, std::shared_ptr<Communicator> sendUsingMe)  {
+std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedData(pdb::Handle<pdb::StoDispatchData> request, std::shared_ptr<Communicator> sendUsingMe)  {
 
   /// 1. Get the page from the distributed storage
 
@@ -214,6 +215,42 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
   sendUsingMe->sendObject(simpleResponse, error);
 
   // finish
+  return std::make_pair(success, error);
+}
+
+template<class Communicator, class Requests>
+std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetNumPages(pdb::Handle<pdb::StoSetStatsRequest> request, shared_ptr<Communicator> sendUsingMe) {
+
+  // the error
+  std::string error;
+  bool success = true;
+
+  // make the set identifier
+  auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
+
+  // try to find the set
+  auto it = lastPages.find(set);
+
+  const UseTemporaryAllocationBlock tempBlock{1024};
+
+  // figure out whether this was a success
+  pdb::Handle<pdb::StoSetStatsResult> setStatResult;
+  if(it != lastPages.end()) {
+
+    // TODO I need to keep track of the set sizes
+    setStatResult = pdb::makeObject<pdb::StoSetStatsResult>(it->second, 0, true);
+  }
+  else {
+
+    // we failed
+    setStatResult = pdb::makeObject<pdb::StoSetStatsResult>(0, 0, false);
+    success = false;
+  }
+
+  // sends result to requester
+  success = success && sendUsingMe->sendObject(setStatResult, error);
+
+  // return the result
   return std::make_pair(success, error);
 }
 

@@ -86,7 +86,7 @@ public:
   void registerHandlers(PDBServer &forMe) override;
 
   // returns the backend
-  PDBStorageManagerInterfacePtr getBackEnd();
+  PDBBufferManagerInterfacePtr getBackEnd();
 
 private:
 

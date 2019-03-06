@@ -15,46 +15,44 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
-#ifndef DISTRIBUTEDSTORAGERECLEARSET_H
-#define DISTRIBUTEDSTORAGERECLEARSET_H
+
+#pragma once
 
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %DistributedStorageClearSet%
+// PRELOAD %StoSetStatsResult%
 
 namespace pdb {
 
-// encapsulates a request to add a set in storage
-class DistributedStorageClearSet : public Object {
+// encapsulates a request to add data to a set in storage
+class StoSetStatsResult : public Object {
 
 public:
-    DistributedStorageClearSet() {}
-    ~DistributedStorageClearSet() {}
 
-    DistributedStorageClearSet(std::string dataBase, std::string setName, std::string typeName)
-        : dataBase(dataBase), setName(setName), typeName(typeName) {}
+  StoSetStatsResult() = default;
+  ~StoSetStatsResult() = default;
 
-    std::string getDatabase() {
-        return dataBase;
-    }
+  StoSetStatsResult(uint64_t numPages, uint64_t size, bool success) : numPages(numPages), size(size), success(success) {}
 
-    std::string getSetName() {
-        return setName;
-    }
+  ENABLE_DEEP_COPY
 
-    std::string getTypeName() {
-        return typeName;
-    }
+  /**
+   * the number of pages on this noode
+   */
+  uint64_t numPages = 0;
 
-    ENABLE_DEEP_COPY
+  /**
+   * the size of the part of the set stored on this node
+   */
+  uint64_t size = 0;
 
-private:
-    String dataBase;
-    String setName;
-    String typeName;
+  /**
+   * was the request a success
+   */
+  bool success = false;
+
 };
-}
 
-#endif  // DISTRIBUTEDSTORAGECLEARSET_H
+}

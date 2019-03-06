@@ -26,7 +26,7 @@
 #include <BufGetPageRequest.h>
 #include <PDBBufferManagerInterface.h>
 #include <PDBDispatchRandomPolicy.h>
-#include <DisDispatchData.h>
+#include <StoDispatchData.h>
 #include "PDBCatalogClient.h"
 #include <boost/filesystem/path.hpp>
 #include <PDBDistributedStorage.h>

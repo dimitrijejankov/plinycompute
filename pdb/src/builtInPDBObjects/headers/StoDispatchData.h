@@ -15,41 +15,56 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
-#ifndef DISTRIBUTEDSTORAGEREMOVESET_H
-#define DISTRIBUTEDSTORAGEREMOVESET_H
+
+
+#ifndef OBJECTQUERYMODEL_DISPDISPATCHDATA_H
+#define OBJECTQUERYMODEL_DISPDISPATCHDATA_H
 
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %DistributedStorageRemoveSet%
+// PRELOAD %StoDispatchData%
 
 namespace pdb {
 
-// encapsulates a request to remove a set in storage
-class DistributedStorageRemoveSet : public Object {
+/**
+ * This one looks exactly like the add data but it is sent by the @see PDBDistributedStorage
+ */
+class StoDispatchData : public Object {
 
 public:
-    DistributedStorageRemoveSet() {}
-    ~DistributedStorageRemoveSet() {}
 
-    DistributedStorageRemoveSet(std::string dataBase, std::string setName)
-        : dataBase(dataBase), setName(setName) {}
+  StoDispatchData() = default;
+  ~StoDispatchData() = default;
 
-    std::string getDatabase() {
-        return dataBase;
-    }
+  StoDispatchData(const std::string &databaseName, const std::string &setName, const std::string &typeName, uint64_t compressedSize)
+      : databaseName(databaseName), setName(setName), typeName(typeName), compressedSize(compressedSize) {
+  }
 
-    std::string getSetName() {
-        return setName;
-    }
+  ENABLE_DEEP_COPY
 
-    ENABLE_DEEP_COPY
+  /**
+   * The name of the database the set belongs to
+   */
+  String databaseName;
 
-private:
-    String dataBase;
-    String setName;
+  /**
+   * The name of the set we are adding the data to
+   */
+  String setName;
+
+  /**
+   * The name of the type we are adding
+   */
+  String typeName;
+
+  /**
+   * The size of the compressed stuff
+   */
+  uint64_t compressedSize;
 };
+
 }
 
-#endif  // DISTRIBUTEDSTORAGEREMOVESET_H
+#endif  // OBJECTQUERYMODEL_DISPATCHERADDDATA_H

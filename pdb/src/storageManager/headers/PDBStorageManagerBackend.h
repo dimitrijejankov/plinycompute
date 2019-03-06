@@ -7,6 +7,7 @@
 
 #include <ServerFunctionality.h>
 #include <StoStoreOnPageRequest.h>
+#include "PDBAbstractPageSet.h"
 
 namespace pdb {
 
@@ -16,7 +17,14 @@ public:
 
   void registerHandlers(PDBServer &forMe) override;
 
-private:
+  void init() override;
+
+ private:
+
+  /**
+   * The logger
+   */
+  PDBLoggerPtr logger;
 
   /**
    * This method simply stores the data that follows the request onto a page.
@@ -32,6 +40,13 @@ private:
   template <class Communicator>
   std::pair<bool, std::string> handleStoreOnPage(const pdb::Handle<pdb::StoStoreOnPageRequest> &request, std::shared_ptr<Communicator> &sendUsingMe);
 
+  /**
+   * This method contacts the frontend to get a PageSet for a particular PDB set
+   * @param db - the database the set belongs to
+   * @param set - the set name
+   * @return the PDBPage set
+   */
+  PDBAbstractPageSetPtr getPageSet(const std::string &db, const std::string &set);
 };
 
 }

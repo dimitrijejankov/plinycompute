@@ -45,4 +45,5 @@ std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStoreOnPage(co
   return make_pair(true, error);
 }
 
+
 #endif //PDB_PDBSTORAGEMANAGERBACKENDTEMPLATE_H

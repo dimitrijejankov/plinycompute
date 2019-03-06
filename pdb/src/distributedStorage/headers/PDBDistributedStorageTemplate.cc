@@ -13,7 +13,7 @@
 #include <StoGetPageResult.h>
 #include <PDBBufferManagerInterface.h>
 #include <PDBCatalogClient.h>
-#include <DisDispatchData.h>
+#include <StoDispatchData.h>
 
 template <class Communicator, class Requests>
 std::pair<pdb::PDBPageHandle, size_t> pdb::PDBDistributedStorage::requestPage(const PDBCatalogNodePtr& node, const std::string &databaseName, const std::string &setName, uint64_t page) {
@@ -323,7 +323,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
   auto node = policy->getNextNode(request->databaseName, request->setName, nodes);
 
   // time to send the stuff
-  auto ret = RequestFactory::bytesHeapRequest<DisDispatchData, SimpleRequestResult, bool>(
+  auto ret = RequestFactory::bytesHeapRequest<StoDispatchData, SimpleRequestResult, bool>(
       logger, node->port, node->address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
 
