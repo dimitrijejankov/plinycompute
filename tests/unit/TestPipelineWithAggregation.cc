@@ -222,7 +222,7 @@ int main() {
 
   // now we create the TCAP string
   String myTCAPString =
-      "inputData (in) <= SCAN ('mySet', 'myData', 'ScanSet_0', []) \n\
+      "inputData (in) <= SCAN ('mySet', 'myData', 'SetScanner_0', []) \n\
        inputWithAtt (in, att) <= APPLY (inputData (in), inputData (in), 'SelectionComp_1', 'methodCall_0', []) \n\
        inputWithAttAndMethod (in, att, method) <= APPLY (inputWithAtt (in), inputWithAtt (in, att), 'SelectionComp_1', 'attAccess_1', []) \n\
        inputWithBool (in, bool) <= APPLY (inputWithAttAndMethod (att, method), inputWithAttAndMethod (in), 'SelectionComp_1', '==_2', []) \n\

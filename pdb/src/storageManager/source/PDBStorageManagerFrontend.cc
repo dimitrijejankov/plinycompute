@@ -119,7 +119,6 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
       make_shared<pdb::HeapRequestHandler<pdb::StoSetStatsRequest>>([&](pdb::Handle<pdb::StoSetStatsRequest> request, PDBCommunicatorPtr sendUsingMe) {
         return handleGetSetStats<PDBCommunicator, RequestFactory>(request, sendUsingMe);
       }));
-
 }
 
 

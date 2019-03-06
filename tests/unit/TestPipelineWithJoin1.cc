@@ -260,9 +260,9 @@ int main () {
   // now we create the TCAP string
   String myTCAPString =
       "/* scan the three inputs */ \n\
-	  A (a) <= SCAN ('mySet', 'myData', 'ScanSet_0', []) \n\
-	  B (aAndC) <= SCAN ('mySet', 'myData', 'ScanSet_1', []) \n\
-	  C (c) <= SCAN ('mySet', 'myData', 'ScanSet_2', []) \n\
+	  A (a) <= SCAN ('mySet', 'myData', 'SetScanner_0', []) \n\
+	  B (aAndC) <= SCAN ('mySet', 'myData', 'SetScanner_1', []) \n\
+	  C (c) <= SCAN ('mySet', 'myData', 'SetScanner_2', []) \n\
 	  \n\
       /* extract and hash a from A */ \n\
       AWithAExtracted (a, aExtracted) <= APPLY (A (a), A(a), 'JoinComp_3', 'self_0', []) \n\

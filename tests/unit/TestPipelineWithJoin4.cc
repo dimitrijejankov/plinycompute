@@ -325,9 +325,9 @@ int main() {
   // now we create the TCAP string
   String myTCAPString =
       "/* scan the three inputs */ \n\
-	    A (a) <= SCAN ('mySet', 'myData', 'ScanSet_0', []) \n\
-	    B (aAndC) <= SCAN ('mySet', 'myData', 'ScanSet_1', []) \n\
-	    C (c) <= SCAN ('mySet', 'myData', 'ScanSet_2', []) \n\
+	    A (a) <= SCAN ('mySet', 'myData', 'SetScanner_0', []) \n\
+	    B (aAndC) <= SCAN ('mySet', 'myData', 'SetScanner_1', []) \n\
+	    C (c) <= SCAN ('mySet', 'myData', 'SetScanner_2', []) \n\
 		\n\
 		/* extract and hash a from A */ \n\
 		AWithAExtracted (a, aExtracted) <= APPLY (A (a), A(a), 'JoinComp_3', 'self_0', []) \n\
@@ -362,7 +362,7 @@ int main() {
 		last (a, aAndC, c) <= FILTER (BandCJoinedWithBool (bool), BandCJoinedWithBool (a, aAndC, c), 'JoinComp_3', []) \n\
         \n\
 		/* now, scan the last table */ \n\
-        D (d) <= SCAN ('mySet', 'myData', 'ScanSet_5', []) \n\
+        D (d) <= SCAN ('mySet', 'myData', 'SetScanner_5', []) \n\
         \n\
 		/* hash the left and the right */ \n\
 		DWithDExtracted (d, dExtracted) <= APPLY (D(d), D(d), 'JoinComp_3', 'self_7', []) \n\
