@@ -19,12 +19,16 @@
 #ifndef SCAN_SET_H
 #define SCAN_SET_H
 
+#include <PDBAbstractPageSet.h>
+#include <sources/VectorTupleSetIterator.h>
 #include "Computation.h"
 
 namespace pdb {
 
 template<class OutputClass>
 class SetScanner : public Computation {
+public:
+  SetScanner(const std::string &db, const std::string &set) : dbName(db), setName(set) {}
 
   std::string getComputationType() override {
     return std::string("SetScanner");
@@ -57,6 +61,22 @@ class SetScanner : public Computation {
                            std::string &addedOutputColumnName) override {
     return "";
   }
+
+  pdb::ComputeSourcePtr getComputeSource(PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID) {
+    return std::make_shared<pdb::VectorTupleSetIterator>(pageSet, chunkSize, workerID);
+  }
+
+private:
+
+  /**
+   * The name of the database the set we are scanning belongs to
+   */
+  pdb::String dbName;
+
+  /**
+   * The name of the set we are scanning
+   */
+  pdb::String setName;
 
 };
 

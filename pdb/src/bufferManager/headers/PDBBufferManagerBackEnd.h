@@ -74,6 +74,11 @@ public:
    */
   PDBPageHandle getPage(size_t minBytes) override;
 
+  /**
+   *
+   * @param communicator
+   * @return
+   */
   PDBPageHandle expectPage(std::shared_ptr<PDBCommunicator> &communicator);
 
   /**

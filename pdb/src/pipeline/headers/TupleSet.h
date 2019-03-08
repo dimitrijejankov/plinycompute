@@ -21,6 +21,7 @@
 
 #include "Handle.h"
 #include "PDBVector.h"
+#include "Ptr.h"
 #include <functional>
 
 namespace pdb {
