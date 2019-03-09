@@ -28,6 +28,9 @@ namespace pdb {
 template<class OutputClass>
 class SetScanner : public Computation {
 public:
+
+  SetScanner() = default;
+
   SetScanner(const std::string &db, const std::string &set) : dbName(db), setName(set) {}
 
   std::string getComputationType() override {
@@ -62,7 +65,7 @@ public:
     return "";
   }
 
-  pdb::ComputeSourcePtr getComputeSource(PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID) {
+  pdb::ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID) override {
     return std::make_shared<pdb::VectorTupleSetIterator>(pageSet, chunkSize, workerID);
   }
 

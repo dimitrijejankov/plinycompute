@@ -25,6 +25,7 @@
 #include "ComputeSink.h"
 #include "InputTupleSetSpecifier.h"
 #include "PDBString.h"
+#include "PDBAbstractPageSet.h"
 #include <map>
 
 namespace pdb {
@@ -47,7 +48,7 @@ class Computation : public Object {
   // as well as the actual TupleSpec that this guy is supposed to produce, and then returns
   // a pointer to a ComputeSource object that can actually produce TupleSet objects corresponding
   // to that particular TupleSpec
-  virtual ComputeSourcePtr getComputeSource(TupleSpec &produceMe, ComputePlan &plan) { return nullptr; }
+  virtual ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID) { return nullptr; }
 
   // likewise, if this particular computation can be used as a compute sink in a pipeline, this
   // method will return the compute sink object associated with the computation.  It requires the

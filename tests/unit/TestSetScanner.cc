@@ -99,9 +99,7 @@ TEST(SetScannerTest, Test1) {
       std::cout << *e->getName() << std::endl;
     }
 
-
   }
-
 }
 
 int main(int argc, char **argv) {

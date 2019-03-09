@@ -83,20 +83,14 @@ class ComputePlan : public Object {
   // called if the page can safely be destroyed because it has no useful data.  The latter is called if the
   // page stores a pdb :: Object that contains the result of the computation.
 
-  PipelinePtr buildPipeline(std::string sourceTupleSetName,
-                            std::string targetTupleSetName,
-                            std::string targetComputationName,
-                            std::function<std::pair<void *, size_t>()> getPage,
-                            std::function<void(void *)> discardTempPage,
-                            std::function<void(void *)> writeBackPage,
-                            std::map<std::string, ComputeInfoPtr> &params);
-
-  PipelinePtr buildPipeline(std::string sourceTupleSetName,
-                            std::string targetTupleSetName,
-                            std::string targetComputationName,
-                            std::function<std::pair<void *, size_t>()> getPage,
-                            std::function<void(void *)> discardTempPage,
-                            std::function<void(void *)> writeBackPage);
+  PipelinePtr buildPipeline(const std::string &sourceTupleSetName,
+                            const std::string &targetTupleSetName,
+                            const std::string &targetComputationName,
+                            const PDBAbstractPageSetPtr &inputPageSet,
+                            const PDBAnonymousPageSetPtr &outputPageSet,
+                            std::map<std::string, ComputeInfoPtr> &params,
+                            uint64_t chunkSize,
+                            uint64_t workerID);
 
 };
 

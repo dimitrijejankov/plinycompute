@@ -17,6 +17,9 @@
  *****************************************************************************/
 
 #include <utility>
+#include <gmock/gmock-generated-function-mockers.h>
+#include <PDBBufferManagerImpl.h>
+#include <gmock/gmock-more-actions.h>
 #include "Handle.h"
 #include "Lambda.h"
 #include "Supervisor.h"
@@ -42,10 +45,37 @@
 // then the system
 using namespace pdb;
 
-int main() {
+class MockPageSetReader : public pdb::PDBAbstractPageSet {
+ public:
+
+  MOCK_METHOD1(getNextPage, PDBPageHandle(size_t workerID));
+
+  MOCK_METHOD0(getNewPage, PDBPageHandle());
+
+};
+
+class MockPageSetWriter: public pdb::PDBAnonymousPageSet {
+ public:
+
+  MOCK_METHOD1(getNextPage, PDBPageHandle(size_t workerID));
+
+  MOCK_METHOD0(getNewPage, PDBPageHandle());
+
+  MOCK_METHOD1(removePage, void(PDBPageHandle pageHandle));
+};
+
+TEST(PipelineTest, TestSelection) {
+
+  /// 1. Create the buffer manager that is going to provide the pages to the pipeline
+
+  // create the buffer manager
+  pdb::PDBBufferManagerImpl myMgr;
+  myMgr.initialize("tempDSFSD", 64 * 1024, 16, "metadata", ".");
 
   // this is the object allocation block where all of this stuff will reside
   makeObjectAllocatorBlock(1024 * 1024, true);
+
+  /// 2. Create the computation and the corresponding TCAP
 
   // here is the list of computations
   Vector<Handle<Computation>> myComputations;
@@ -73,44 +103,115 @@ int main() {
   Handle<ComputePlan> myPlan = makeObject<ComputePlan>(myTCAPString, myComputations);
   LogicalPlanPtr logicalPlan = myPlan->getPlan();
   AtomicComputationList computationList = logicalPlan->getComputations();
-  std::cout << "to print logical plan:" << std::endl;
-  std::cout << computationList << std::endl;
+
+  /// 3. Setup the mock calls to the PageSets for the input and the output
+
+  // empty computations parameters
+  std::map<std::string, ComputeInfoPtr> params;
+
+  // the page set that is gonna provide stuff
+  std::shared_ptr<MockPageSetReader> pageReader = std::make_shared<MockPageSetReader>();
+
+  // make the function return pages with Employee objects
+  ON_CALL(*pageReader, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
+      [&](size_t workerID) {
+
+        // this implementation only serves six pages
+        static int numPages = 0;
+        if (numPages == 6)
+          return (PDBPageHandle) nullptr;
+
+        // create a page, loading it with random data
+        auto page = myMgr.getPage();
+        {
+          const pdb::UseTemporaryAllocationBlock tempBlock{page->getBytes(), 64 * 1024};
+
+          // write a bunch of supervisors to it
+          pdb::Handle<pdb::Vector<pdb::Handle<pdb::Employee>>> employees = pdb::makeObject<pdb::Vector<pdb::Handle<pdb::Employee>>>();
+
+          // this will build up the department
+          char first = 'A', second = 'B';
+          char myString[3];
+          myString[2] = 0;
+
+          try {
+            for (int i = 0; true; i++) {
+
+              myString[0] = first;
+              myString[1] = second;
+
+              // this will allow us to cycle through "AA", "AB", "AC", "BA", ...
+              first++;
+              if (first == 'D') {
+                first = 'A';
+                second++;
+                if (second == 'D')
+                  second = 'A';
+              }
+
+              if(i % 2 == 0) {
+
+                pdb::Handle<pdb::Employee> temp = pdb::makeObject<pdb::Employee>("Steve Stevens", 20 + ((i) % 29), std::string(myString), i * 3.54);
+                employees->push_back(temp);
+              }
+              else {
+                pdb::Handle<pdb::Employee> temp = pdb::makeObject<pdb::Employee>("Ninja Turtles", 20 + ((i) % 29), std::string(myString), i * 3.54);
+                employees->push_back(temp);
+              }
+            }
+          } catch (pdb::NotEnoughSpace &e) {
+
+            getRecord (employees);
+          }
+        }
+        numPages++;
+        return page;
+      }
+  ));
+
+  // it should call send object exactly six times
+  EXPECT_CALL(*pageReader, getNextPage(testing::An<size_t>())).Times(7);
+
+  // the page set that is gonna provide stuff
+  std::shared_ptr<MockPageSetWriter> pageWriter = std::make_shared<MockPageSetWriter>();
+
+  std::unordered_map<uint64_t, PDBPageHandle> writePages;
+  ON_CALL(*pageWriter, getNewPage).WillByDefault(testing::Invoke(
+      [&]() {
+
+        // store the page
+        auto page = myMgr.getPage();
+        writePages[page->whichPage()] = page;
+
+        return page;
+      }));
+
+  // it should call this method many times
+  EXPECT_CALL(*pageWriter, getNewPage).Times(testing::AtLeast(1));
+
+  ON_CALL(*pageWriter, removePage(testing::An<PDBPageHandle>())).WillByDefault(testing::Invoke(
+      [&](PDBPageHandle pageHandle) {
+        writePages.erase(pageHandle->whichPage());
+      }));
+
+  // it should call send object exactly six times
+  EXPECT_CALL(*pageWriter, removePage).Times(testing::Exactly(0));
+
+
+  /// 4. Build the pipeline
 
   // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
   // a pipeline into the aggregation operation
-  PipelinePtr myPipeline = myPlan->buildPipeline(
-      std::string("inputDataForScanSet_0"), /* this is the TupleSet the pipeline starts with */
-      std::string("nativ_1OutForSelectionComp1"),     /* this is the TupleSet the pipeline ends with */
-      std::string("SetWriter_2"), /* and since multiple Computation objects can consume the */
-      /* same tuple set, we apply the Computation as well */
-
-      // this lambda supplies new temporary pages to the pipeline
-      []() -> std::pair<void *, size_t> {
-        void *myPage = malloc(64 * 1024);
-        return std::make_pair(myPage, 64 * 1024);
-      },
-
-      // this lambda frees temporary pages that do not contain any important data
-      [](void *page) {
-        free(page);
-      },
-
-      // and this lambda remembers the page that *does* contain important data...
-      // in this simple aggregation, that one page will contain the hash table with
-      // all of the aggregated data.
-      [](void *page) {
-        std::cout << "\nAsked to save page at address " << (size_t) page << "!!!\n";
-        std::cout << "This should have a bunch of employees on it... let's see.\n";
-        Handle<Vector<Handle<Employee>>> myHashTable = ((Record<Vector<Handle<Employee>>> *) page)->getRootObject();
-        for (int i = 0; i < myHashTable->size(); i++) {
-          std::cout << "Got employee " << *(((*myHashTable)[i])->getName()) << "\n";
-        }
-        free(page);
-      }
-  );
+  PipelinePtr myPipeline = myPlan->buildPipeline(std::string("inputDataForScanSet_0"), /* this is the TupleSet the pipeline starts with */
+                                                 std::string("nativ_1OutForSelectionComp1"),     /* this is the TupleSet the pipeline ends with */
+                                                 std::string("SetWriter_2"), /* and since multiple Computation objects can consume the */
+                                                 pageReader,
+                                                 pageWriter,
+                                                 params,
+                                                 20,
+                                                 0);
 
   // and now, simply run the pipeline and then destroy it!!!
-  std::cout << "\nRUNNING PIPELINE\n";
   myPipeline->run();
   myPipeline = nullptr;
 
@@ -118,5 +219,15 @@ int main() {
   // before the object is written to disk or sent accross the network, so that we don't end up
   // moving around a C++ smart pointer, which would be bad
   myPlan->nullifyPlanPointer();
+
+  /// 5. Check the results
+
+  for(auto &page : writePages) {
+
+    Handle<Vector<Handle<Employee>>> myHashTable = ((Record<Vector<Handle<Employee>>> *) page.second->getBytes())->getRootObject();
+    for (int i = 0; i < myHashTable->size(); i++) {
+      EXPECT_TRUE(*(((*myHashTable)[i])->getName()) == "Steve Stevens" || *(((*myHashTable)[i])->getName()) == "Ninja Turtles");
+    }
+  }
 
 }

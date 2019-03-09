@@ -41,11 +41,14 @@ class VectorTupleSetIterator : public ComputeSource {
   // the page we are currently iterating over
   PDBPageHandle curPage;
 
+  // the page we were using before
+  PDBPageHandle lastPage;
+
   // this is the vector to process
   Handle<Vector<Handle < Object>>> iterateOverMe;
 
   // the pointer to the current page holding the vector
-  Record<Vector<Handle < Object>>> *myRec;
+  Record<Vector<Handle < Object>>> *curRec;
 
   // the pointer to holding the last page that we previously processed
   Record<Vector<Handle < Object>>> *lastRec;
@@ -77,11 +80,11 @@ class VectorTupleSetIterator : public ComputeSource {
     curPage = pageSet->getNextPage(workerID);
 
     // extract the vector from the first page if there is no page just set it to null
-    myRec = curPage == nullptr ? nullptr : (Record<Vector<Handle<Object>>> *) curPage->getBytes();
+    curRec = curPage == nullptr ? nullptr : (Record<Vector<Handle<Object>>> *) curPage->getBytes();
 
-    if (myRec != nullptr) {
+    if (curRec != nullptr) {
 
-      iterateOverMe = myRec->getRootObject();
+      iterateOverMe = curRec->getRootObject();
 
       // create the output vector and put it into the tuple set
       auto *inputColumn = new std::vector<Handle<Object>>;
@@ -116,7 +119,7 @@ class VectorTupleSetIterator : public ComputeSource {
     if (lastRec != nullptr) {
 
       // kill the page
-      curPage = nullptr;
+      lastPage = nullptr;
 
       // kill the record
       lastRec = nullptr;
@@ -126,7 +129,8 @@ class VectorTupleSetIterator : public ComputeSource {
     if (pos == iterateOverMe->size()) {
 
       // this means that we got to the end of the vector
-      lastRec = myRec;
+      lastRec = curRec;
+      lastPage = curPage;
 
       // try to get another vector
       curPage = pageSet->getNextPage(workerID);
@@ -137,10 +141,10 @@ class VectorTupleSetIterator : public ComputeSource {
       }
 
       // extract the vector from the first page if there is no page just set it to null
-      myRec = (Record<Vector<Handle<Object>>> *) curPage->getBytes();
+      curRec = (Record<Vector<Handle<Object>>> *) curPage->getBytes();
 
       // and reset everything
-      iterateOverMe = myRec->getRootObject();
+      iterateOverMe = curRec->getRootObject();
       pos = 0;
     }
 

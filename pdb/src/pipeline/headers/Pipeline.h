@@ -1,5 +1,7 @@
 #include <utility>
 
+#include <utility>
+
 /*****************************************************************************
  *                                                                           *
  *  Copyright 2018 Rice University                                           *
@@ -26,6 +28,8 @@
 #include "UseTemporaryAllocationBlock.h"
 #include "Handle.h"
 #include <queue>
+#include <PDBAbstractPageSet.h>
+#include <PDBAnonymousPageSet.h>
 
 namespace pdb {
 
@@ -35,22 +39,30 @@ struct MemoryHolder {
   // the output vector that this guy stores
   Handle<Object> outputSink;
 
-  // his memory
-  void *location;
+  // page handle
+  PDBPageHandle pageHandle;
 
   // the iteration where he was last written...
-  // we use this beause we canot delete
+  // we use this because we cannot delete
   int iteration;
 
   void setIteration(int iterationIn) {
-    if (outputSink != nullptr)
+
+
+    if (outputSink != nullptr) {
       getRecord(outputSink);
+    }
+
     iteration = iterationIn;
   }
 
-  explicit MemoryHolder(std::pair<void *, size_t> buildMe) {
-    location = buildMe.first;
-    makeObjectAllocatorBlock(location, buildMe.second, true);
+  explicit MemoryHolder(const PDBPageHandle &pageHandle) {
+
+    // set the page handle
+    this->pageHandle = pageHandle;
+
+    // make the allocation block
+    makeObjectAllocatorBlock(this->pageHandle->getBytes(), this->pageHandle->getSize(), true);
     outputSink = nullptr;
   }
 };
@@ -62,19 +74,11 @@ class Pipeline {
 
  private:
 
-  // this is a function that the pipeline calls to obtain a new page to
-  // write output to.  The function returns a pair.  The first item in
-  // the pair is the page, the second is the number of bytes in the page
-  std::function<std::pair<void *, size_t>()> getNewPage;
+  // the id of the worker this pipeline is running on
+  size_t workerID;
 
-  // this is a function that the pipeline calls to write back a page.
-  // The first arg is the page to write back (and free), and the second
-  // is the size of the page
-  std::function<void(void *)> writeBackPage;
-
-  // this is a function that the pipieline calls to free a page, without
-  // writing it back (because it has no useful data)
-  std::function<void(void *)> discardPage;
+  // this is the page set where we are going to be writing all the output
+  pdb::PDBAnonymousPageSetPtr outputPageSet;
 
   // this is the source of data in the pipeline
   ComputeSourcePtr dataSource;
@@ -91,14 +95,10 @@ class Pipeline {
  public:
 
   // the first argument is a function to call that gets a new output page...
-  // the second arguement is a function to call that deals with a full output page
+  // the second argument is a function to call that deals with a full output page
   // the third argument is the iterator that will create TupleSets to process
-  Pipeline(std::function<std::pair<void *, size_t>()> getNewPage,
-           std::function<void(void *)> discardPage,
-           std::function<void(void *)> writeBackPage,
-           ComputeSourcePtr dataSource, ComputeSinkPtr tupleSink) :
-      getNewPage(std::move(getNewPage)), writeBackPage(std::move(writeBackPage)), discardPage(std::move(discardPage)),
-      dataSource(std::move(dataSource)), dataSink(std::move(tupleSink)) {}
+  Pipeline(PDBAnonymousPageSetPtr outputPageSet, ComputeSourcePtr dataSource, ComputeSinkPtr tupleSink) :
+           outputPageSet(std::move(outputPageSet)), dataSource(std::move(dataSource)), dataSink(std::move(tupleSink)) {}
 
   ~Pipeline() {
 
@@ -141,37 +141,43 @@ class Pipeline {
     PDB_COUT << "unwrittenPages.size() =" << unwrittenPages.size() << std::endl;
 
     while (!unwrittenPages.empty() && iteration > unwrittenPages.front()->iteration + 1) {
+
       PDB_COUT << "unwrittenPages.front()->iteration=" << unwrittenPages.front()->iteration << std::endl;
+
       // in this case, the page did not have any output data written to it... it only had
       // intermediate results, and so we will just discard it
       if (unwrittenPages.front()->outputSink == nullptr) {
-        if (getNumObjectsInAllocatorBlock(unwrittenPages.front()->location) != 0) {
+
+        if (getNumObjectsInAllocatorBlock(unwrittenPages.front()->pageHandle->getBytes()) != 0) {
 
           // this is bad... there should not be any objects here because this memory
           // chunk does not store an output vector
-          emptyOutContainingBlock(unwrittenPages.front()->location);
+          emptyOutContainingBlock(unwrittenPages.front()->pageHandle->getBytes());
 
           std::cout << "This is Strange... how did I find a page with objects??\n";
         }
 
-        discardPage(unwrittenPages.front()->location);
+        // remove the page from the output set
+        outputPageSet->removePage(unwrittenPages.front()->pageHandle);
         unwrittenPages.pop();
 
         // in this case, the page DID have some data written to it
       } else {
+
         // and force the reference count for this guy to go to zero
         PDB_COUT << "to empty out containing block" << std::endl;
         unwrittenPages.front()->outputSink.emptyOutContainingBlock();
 
         // OK, because we will have invalidated the current object allocator block, we need to
         // create a new one, or this could cause a lot of problems!!
-        if (iteration == 999999999)
+        if (iteration == 999999999) {
           makeObjectAllocatorBlock(1024, true);
+        }
 
-        // make sure he is written
-        writeBackPage(unwrittenPages.front()->location);
+        // unpin the page so we don't have problems
+        unwrittenPages.front()->pageHandle->unpin();
 
-        // and get ridda him
+        // and get rid of him
         unwrittenPages.pop();
       }
     }
@@ -181,7 +187,7 @@ class Pipeline {
   void run() {
 
     // this is where we are outputting all of our results to
-    MemoryHolderPtr myRAM = std::make_shared<MemoryHolder>(getNewPage());
+    MemoryHolderPtr myRAM = std::make_shared<MemoryHolder>(outputPageSet->getNewPage());
 
     // and here is the chunk
     TupleSetPtr curChunk;
@@ -203,7 +209,7 @@ class Pipeline {
           // and get a new page
           myRAM->setIteration(iteration);
           unwrittenPages.push(myRAM);
-          myRAM = std::make_shared<MemoryHolder>(getNewPage());
+          myRAM = std::make_shared<MemoryHolder>(outputPageSet->getNewPage());
 
           // then try again
           curChunk = q->process(curChunk);
@@ -222,7 +228,7 @@ class Pipeline {
         // again, we ran out of RAM here, so write back the page and then create a new output page
         myRAM->setIteration(iteration);
         unwrittenPages.push(myRAM);
-        myRAM = std::make_shared<MemoryHolder>(getNewPage());
+        myRAM = std::make_shared<MemoryHolder>(outputPageSet->getNewPage());
 
         // and again, try to write back the output
         myRAM->outputSink = dataSink->createNewOutputContainer();

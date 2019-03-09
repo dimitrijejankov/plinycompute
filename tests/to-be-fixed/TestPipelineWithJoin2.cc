@@ -306,32 +306,35 @@ int main () {
 	// a pipeline into the first join
 	void *whereHashTableForASits;
 	void *whereHashTableForBSits;
-	PipelinePtr myPipeline = myPlan->buildPipeline (
-		std :: string ("A"), /* this is the TupleSet the pipeline starts with */
-		std :: string ("AHashed"),     /* this is the TupleSet the pipeline ends with */
-		std :: string ("JoinComp_3"), /* and since multiple Computation objects can consume the */
-						     /* same tuple set, we apply the Computation as well */
+	PipelinePtr myPipeline = myPlan->buildPipeline( /* and since multiple Computation objects can consume the */
+			/* same tuple set, we apply the Computation as well */
 
-		// this lambda supplies new temporary pages to the pipeline
-		[] () -> std :: pair <void *, size_t> {
-			void *myPage = malloc (64 * 1024 * 1024);
-			return std :: make_pair (myPage, 64 * 1024 *1024);
-		},
+			// this lambda supplies new temporary pages to the pipeline
+			[]() -> std::pair<void *, size_t> {
+			  void *myPage = malloc(64 * 1024 * 1024);
+			  return std::make_pair(myPage, 64 * 1024 * 1024);
+			},
 
-		// this lambda frees temporary pages that do not contain any important data
-		[] (void *page) {
-			free (page);
-		},
+			// this lambda frees temporary pages that do not contain any important data
+			[](void *page) {
+			  free(page);
+			},
 
-		// and this lambda remembers the page that *does* contain important data...
-		// in this simple aggregation, that one page will contain the hash table with
-		// all of the aggregated data.
-		[&] (void *page) {
-			whereHashTableForASits = page;
-			std :: cout << "Remembering where hash for A is located.\n";
-			std :: cout << "It is at " << (size_t) whereHashTableForASits << ".\n";
-		}	
-	);
+			// and this lambda remembers the page that *does* contain important data...
+			// in this simple aggregation, that one page will contain the hash table with
+			// all of the aggregated data.
+			[&](void *page) {
+			  whereHashTableForASits = page;
+			  std::cout << "Remembering where hash for A is located.\n";
+			  std::cout << "It is at " << (size_t) whereHashTableForASits << ".\n";
+			},
+			std::string("A"),
+			/* this is the TupleSet the pipeline starts with */
+			std::string("AHashed"),
+			/* this is the TupleSet the pipeline ends with */
+			std::string("JoinComp_3"),
+			0,
+			0);
 	
 	// and now, simply run the pipeline and then destroy it!!!
 	std :: cout << "\nRUNNING PIPELINE\n";
@@ -343,33 +346,35 @@ int main () {
 	// a pipeline into the first join
 	std :: map <std :: string, ComputeInfoPtr> info;
 	info [std :: string ("AandBJoined")] = std :: make_shared <JoinArg> (*myPlan, whereHashTableForASits);
-	myPipeline = myPlan->buildPipeline (
-		std :: string ("B"), /* this is the TupleSet the pipeline starts with */
-		std :: string ("BHashedOnC"),     /* this is the TupleSet the pipeline ends with */
-		std :: string ("JoinComp_3"), /* and since multiple Computation objects can consume the */
-						     /* same tuple set, we apply the Computation as well */
+	myPipeline = myPlan->buildPipeline( /* and since multiple Computation objects can consume the */
+			/* same tuple set, we apply the Computation as well */
 
-		// this lambda supplies new temporary pages to the pipeline
-		[] () -> std :: pair <void *, size_t> {
-			void *myPage = malloc (64 * 1024 * 1024);
-			return std :: make_pair (myPage, 64 * 1024 *1024);
-		},
+			// this lambda supplies new temporary pages to the pipeline
+			[]() -> std::pair<void *, size_t> {
+			  void *myPage = malloc(64 * 1024 * 1024);
+			  return std::make_pair(myPage, 64 * 1024 * 1024);
+			},
 
-		// this lambda frees temporary pages that do not contain any important data
-		[] (void *page) {
-			free (page);
-		},
+			// this lambda frees temporary pages that do not contain any important data
+			[](void *page) {
+			  free(page);
+			},
 
-		// and this lambda remembers the page that *does* contain important data...
-		// in this simple aggregation, that one page will contain the hash table with
-		// all of the aggregated data.
-		[&] (void *page) {
-			std :: cout << "Getting the hash table for B\n";
-			whereHashTableForBSits = page;
-		},
+			// and this lambda remembers the page that *does* contain important data...
+			// in this simple aggregation, that one page will contain the hash table with
+			// all of the aggregated data.
+			[&](void *page) {
+			  std::cout << "Getting the hash table for B\n";
+			  whereHashTableForBSits = page;
+			},
+			std::string("B"),
+			/* this is the TupleSet the pipeline starts with */
+			std::string("BHashedOnC"),
+			/* this is the TupleSet the pipeline ends with */
+			std::string("JoinComp_3"),
 
-                info	
-	);
+			info,
+			0);
 	
 	// and now, simply run the pipeline and then destroy it!!!
 	std :: cout << "\nRUNNING PIPELINE\n";
@@ -382,37 +387,39 @@ int main () {
 	
 	// now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build 
 	// a pipeline into the first join
-	myPipeline = myPlan->buildPipeline (
-		std :: string ("C"), /* this is the TupleSet the pipeline starts with */
-		std :: string ("almostFinal"),     /* this is the TupleSet the pipeline ends with */
-		std :: string ("SetWriter_4"), /* and since multiple Computation objects can consume the */
-						     /* same tuple set, we apply the Computation as well */
+	myPipeline = myPlan->buildPipeline( /* and since multiple Computation objects can consume the */
+			/* same tuple set, we apply the Computation as well */
 
-		// this lambda supplies new temporary pages to the pipeline
-		[] () -> std :: pair <void *, size_t> {
-			void *myPage = malloc (1024 * 1024);
-			return std :: make_pair (myPage, 1024 *1024);
-		},
+			// this lambda supplies new temporary pages to the pipeline
+			[]() -> std::pair<void *, size_t> {
+			  void *myPage = malloc(1024 * 1024);
+			  return std::make_pair(myPage, 1024 * 1024);
+			},
 
-		// this lambda frees temporary pages that do not contain any important data
-		[] (void *page) {
-			free (page);
-		},
+			// this lambda frees temporary pages that do not contain any important data
+			[](void *page) {
+			  free(page);
+			},
 
-		// and this lambda remembers the page that *does* contain important data...
-		// in this simple aggregation, that one page will contain the hash table with
-		// all of the aggregated data.
-		[] (void *page) {
-			std :: cout << "\nAsked to save page at address " << (size_t) page << "!!!\n";
-			Handle <Vector <Handle <String>>> myVec = ((Record <Vector <Handle <String>>> *) page)->getRootObject ();
-			std :: cout << "Found that this has " << myVec->size () << " strings in it.\n";
-			if (myVec->size () > 0)
-				std :: cout << "First one is '" << *((*myVec)[0]) << "'\n";
-			free (page);
-		},
+			// and this lambda remembers the page that *does* contain important data...
+			// in this simple aggregation, that one page will contain the hash table with
+			// all of the aggregated data.
+			[](void *page) {
+			  std::cout << "\nAsked to save page at address " << (size_t) page << "!!!\n";
+			  Handle<Vector<Handle<String>>> myVec = ((Record<Vector<Handle<String>>> *) page)->getRootObject();
+			  std::cout << "Found that this has " << myVec->size() << " strings in it.\n";
+			  if (myVec->size() > 0)
+				  std::cout << "First one is '" << *((*myVec)[0]) << "'\n";
+			  free(page);
+			},
+			std::string("C"),
+			/* this is the TupleSet the pipeline starts with */
+			std::string("almostFinal"),
+			/* this is the TupleSet the pipeline ends with */
+			std::string("SetWriter_4"),
 
-		info
-	);
+			info,
+			0);
 	
 	// and now, simply run the pipeline and then destroy it!!!
 	std :: cout << "\nRUNNING PIPELINE\n";

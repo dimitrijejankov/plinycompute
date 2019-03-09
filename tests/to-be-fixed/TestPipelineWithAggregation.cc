@@ -246,30 +246,33 @@ int main() {
   std::cout << computationList << std::endl;
   // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
   // a pipeline into the aggregation operation
-  PipelinePtr myPipeline = myPlan->buildPipeline(
-      std::string("inputData"), /* this is the TupleSet the pipeline starts with */
-      std::string("aggWithValue"),     /* this is the TupleSet the pipeline ends with */
-      std::string("AggregationComp_2"), /* and since multiple Computation objects can consume the */
+  PipelinePtr myPipeline = myPlan->buildPipeline( /* and since multiple Computation objects can consume the */
       /* same tuple set, we apply the Computation as well */
 
       // this lambda supplies new temporary pages to the pipeline
       []() -> std::pair<void *, size_t> {
-        void *myPage = malloc(64 * 1024);
-        return std::make_pair(myPage, 64 * 1024);
-      },
+          void *myPage = malloc(64 * 1024);
+          return std::make_pair(myPage, 64 * 1024);
+        },
 
       // this lambda frees temporary pages that do not contain any important data
       [](void *page) {
-        free(page);
-      },
+          free(page);
+        },
 
       // and this lambda remembers the page that *does* contain important data...
       // in this simple aggregation, that one page will contain the hash table with
       // all of the aggregated data.
       [](void *page) {
-        whereHashTableSits = page;
-      }
-  );
+          whereHashTableSits = page;
+        },
+      std::string("inputData"),
+      /* this is the TupleSet the pipeline starts with */
+      std::string("aggWithValue"),
+      /* this is the TupleSet the pipeline ends with */
+      std::string("AggregationComp_2"),
+      0,
+      0);
 
   // and now, simply run the pipeline and then destroy it!!!
   std::cout << "\nRUNNING PIPELINE\n";
@@ -280,35 +283,38 @@ int main() {
 
   // at this point, the hash table should be filled up...	so now we can build a second pipeline that covers
   // the second half of the aggregation
-  myPipeline = myPlan->buildPipeline(
-      std::string("agg"), /* this is the TupleSet the pipeline starts with */
-      std::string("final"), /* this is the TupleSet the pipeline ends with */
-      std::string("SetWriter_4"), /* and the Computation object that the pipeline ends with */
+  myPipeline = myPlan->buildPipeline( /* and the Computation object that the pipeline ends with */
 
       // this lambda supplies new temporary pages to the pipeline
       []() -> std::pair<void *, size_t> {
-        void *myPage = malloc(64 * 1024);
-        return std::make_pair(myPage, 64 * 1024);
-      },
+          void *myPage = malloc(64 * 1024);
+          return std::make_pair(myPage, 64 * 1024);
+        },
 
       // this lambda frees temporary pages that do not contain any important data
       [](void *page) {
-        free(page);
-      },
+          free(page);
+        },
 
       // and this lambda writes out the contents of a page that is one of the final outputs...
       // in this simple aggregation, that one page will contain the hash table with
       // all of the aggregated data.
       [](void *page) {
-        std::cout << "\nAsked to save page at address " << (size_t) page << "!!!\n";
-        std::cout << "This should have a bunch of doubles on it... let's see.\n";
-        Handle<Vector<Handle<double>>> myHashTable = ((Record<Vector<Handle<double>>> *) page)->getRootObject();
-        for (int i = 0; i < myHashTable->size(); i++) {
-          std::cout << "Got double " << *((*myHashTable)[i]) << "\n";
-        }
-        free(page);
-      }
-  );
+          std::cout << "\nAsked to save page at address " << (size_t) page << "!!!\n";
+          std::cout << "This should have a bunch of doubles on it... let's see.\n";
+          Handle<Vector<Handle<double>>> myHashTable = ((Record<Vector<Handle<double>>> *) page)->getRootObject();
+          for (int i = 0; i < myHashTable->size(); i++) {
+            std::cout << "Got double " << *((*myHashTable)[i]) << "\n";
+          }
+          free(page);
+        },
+      std::string("agg"),
+      /* this is the TupleSet the pipeline starts with */
+      std::string("final"),
+      /* this is the TupleSet the pipeline ends with */
+      std::string("SetWriter_4"),
+      0,
+      0);
 
   // run and then kill the pipeline
   std::cout << "\nRUNNING PIPELINE\n";

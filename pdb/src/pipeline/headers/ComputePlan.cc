@@ -76,7 +76,7 @@ inline void ComputePlan::nullifyPlanPointer() {
 // this does a DFS, trying to find a list of computations that lead to the specified computation
 inline bool recurse(LogicalPlanPtr myPlan,
                     std::vector<AtomicComputationPtr> &listSoFar,
-                    std::string &targetTupleSetName) {
+                    const std::string &targetTupleSetName) {
 
   // see if the guy at the end of the list is indeed the target
   if (listSoFar.back()->getOutputName() == targetTupleSetName) {
@@ -120,30 +120,14 @@ inline std::string ComputePlan::getProducingComputationName(std::string sourceTu
 
 }
 
-inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
-                                              std::string targetTupleSetName,
-                                              std::string targetComputationName,
-                                              std::function<std::pair<void *, size_t>()> getPage,
-                                              std::function<void(void *)> discardTempPage,
-                                              std::function<void(void *)> writeBackPage) {
-
-  std::map<std::string, ComputeInfoPtr> params;
-  return buildPipeline(sourceTupleSetName,
-                       targetTupleSetName,
-                       targetComputationName,
-                       getPage,
-                       discardTempPage,
-                       writeBackPage,
-                       params);
-}
-
-inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
-                                              std::string targetTupleSetName,
-                                              std::string targetComputationName,
-                                              std::function<std::pair<void *, size_t>()> getPage,
-                                              std::function<void(void *)> discardTempPage,
-                                              std::function<void(void *)> writeBackPage,
-                                              std::map<std::string, ComputeInfoPtr> &params) {
+inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetName,
+                                              const std::string &targetTupleSetName,
+                                              const std::string &targetComputationName,
+                                              const PDBAbstractPageSetPtr &inputPageSet,
+                                              const PDBAnonymousPageSetPtr &outputPageSet,
+                                              std::map<std::string, ComputeInfoPtr> &params,
+                                              uint64_t chunkSize,
+                                              uint64_t workerID) {
 
   // build the plan if it is not already done
   if (myPlan == nullptr)
@@ -164,7 +148,7 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
   TupleSpec &origSpec = allComps.getProducingAtomicComputation(sourceTupleSetName)->getOutput();
 
   // now we are going to ask that particular node for the compute source
-  ComputeSourcePtr computeSource = myPlan->getNode(producerName).getComputation().getComputeSource(origSpec, *this);
+  ComputeSourcePtr computeSource = myPlan->getNode(producerName).getComputation().getComputeSource(inputPageSet, chunkSize, workerID);
 
   std::cout << "\nBUILDING PIPELINE\n";
   std::cout << "Source: " << origSpec << "\n";
@@ -231,7 +215,7 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
       }
 
       // get the join and make sure it matches
-      ApplyJoin *myGuy = (ApplyJoin *) a.get();
+      auto *myGuy = (ApplyJoin *) a.get();
       if (!(myGuy->getRightInput() == targetSpec)) {
         std::cout << "This is bad... is the target computation name correct??";
         std::cout << "Find a JoinSets, target was " << targetSpec.getSetName() << "\n";
@@ -253,7 +237,7 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
                                                                                                       *this);
 
   // make the pipeline
-  PipelinePtr returnVal = std::make_shared<Pipeline>(getPage, discardTempPage, writeBackPage, computeSource, computeSink);
+  PipelinePtr returnVal = std::make_shared<Pipeline>(outputPageSet, computeSource, computeSink);
 
   // add the operations to the pipeline
   AtomicComputationPtr lastOne = myPlan->getComputations().getProducingAtomicComputation(sourceTupleSetName);
@@ -320,8 +304,8 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
                 << "\n";
 
       // join is weird, because there are two inputs...
-      JoinCompBase &myComp = (JoinCompBase &) myPlan->getNode(a->getComputationName()).getComputation();
-      ApplyJoin *myJoin = (ApplyJoin *) (a.get());
+      auto &myComp = (JoinCompBase &) myPlan->getNode(a->getComputationName()).getComputation();
+      auto *myJoin = (ApplyJoin *) (a.get());
 
       // check if we are pipelinining the right input
       if (lastOne->getOutput().getSetName() == myJoin->getRightInput().getSetName()) {
