@@ -17,6 +17,11 @@ public:
 
   void init() override;
 
+  /**
+   * The logger
+   */
+  PDBLoggerPtr logger;
+
 };
 
 }

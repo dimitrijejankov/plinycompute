@@ -18,6 +18,12 @@ namespace pdb {
 class ExRunJob : public Object  {
 public:
 
+  ExRunJob() = default;
+
+  ExRunJob(bool shouldRun) : shouldRun(shouldRun) {}
+
+  bool shouldRun = true;
+
   ENABLE_DEEP_COPY
 };
 

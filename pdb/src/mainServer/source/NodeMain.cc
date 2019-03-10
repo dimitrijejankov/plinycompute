@@ -31,6 +31,7 @@
 #include <PDBComputationServerFrontend.h>
 #include <ExecutionServerFrontend.h>
 #include <PDBStorageManagerBackend.h>
+#include <ExecutionServerBackend.h>
 #include <random>
 
 namespace po = boost::program_options;
@@ -143,6 +144,7 @@ int main(int argc, char *argv[]) {
     // add the functionaries
     backEnd.addFunctionality<pdb::PDBBufferManagerInterface>(storageManager->getBackEnd());
     backEnd.addFunctionality(std::make_shared<pdb::PDBStorageManagerBackend>());
+    backEnd.addFunctionality(std::make_shared<pdb::ExecutionServerBackend>());
 
     // start the backend
     backEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
