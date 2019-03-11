@@ -17,7 +17,6 @@ int main(int argc, char* argv[]) {
   /// 1. Register the classes
 
   // now, register a type for user data
-  pdbClient.registerType("libraries/libSharedEmployee.so");
   pdbClient.registerType("libraries/libEmployeeBuiltInIdentitySelection.so");
   pdbClient.registerType("libraries/libWriteBuiltinEmployeeSet.so");
   pdbClient.registerType("libraries/libScanEmployeeSet.so");
@@ -28,9 +27,9 @@ int main(int argc, char* argv[]) {
   // now, create a new database
   pdbClient.createDatabase("chris_db");
 
-  // now, create a new set in that database
-  pdbClient.createSet<SharedEmployee>("chris_db", "chris_set");
-
+  // now, create the input and output sets
+  pdbClient.createSet<Employee>("chris_db", "chris_set");
+  pdbClient.createSet<Employee>("chris_db", "output_set");
 
   /// 3. Fill in the data multi-threaded
 
@@ -63,28 +62,28 @@ int main(int argc, char* argv[]) {
       pdb::makeObjectAllocatorBlock(blockSize * 1024l * 1024, true);
 
       // allocate the vector
-      pdb::Handle<pdb::Vector<pdb::Handle<SharedEmployee>>> storeMe = pdb::makeObject<pdb::Vector<pdb::Handle<SharedEmployee>>>();
+      pdb::Handle<pdb::Vector<pdb::Handle<Employee>>> storeMe = pdb::makeObject<pdb::Vector<pdb::Handle<Employee>>>();
 
       try {
 
         for (int i = 0; true; i++) {
 
-          pdb::Handle<SharedEmployee> myData;
+          pdb::Handle<Employee> myData;
 
           if (i % 100 == 0) {
-            myData = pdb::makeObject<SharedEmployee>(names[thread] + " Frank", count);
+            myData = pdb::makeObject<Employee>(names[thread] + " Frank", count);
           } else {
-            myData = pdb::makeObject<SharedEmployee>(names[thread] + " " + to_string(count), count + 45);
+            myData = pdb::makeObject<Employee>(names[thread] + " " + to_string(count), count + 45);
           }
 
-          count++;
 
           storeMe->push_back(myData);
+          count++;
         }
 
       } catch (pdb::NotEnoughSpace &n) {
 
-        pdbClient.sendData<SharedEmployee>("chris_db", "chris_set", storeMe);
+        pdbClient.sendData<Employee>("chris_db", "chris_set", storeMe);
       }
 
       // excellent everything worked just as expected
@@ -105,20 +104,20 @@ int main(int argc, char* argv[]) {
   // for allocations
   const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
-  String tcap =
-      "inputDataForScanSet_0(in0) <= SCAN ('chris_db', 'chris_set', 'ScanSet_0') \n"\
-      "nativ_0OutForSelectionComp1(in0,nativ_0_1OutFor) <= APPLY (inputDataForScanSet_0(in0), inputDataForScanSet_0(in0), 'SelectionComp_1', 'native_lambda_0', [('lambdaType', 'native_lambda')]) \n"\
-      "filteredInputForSelectionComp1(in0) <= FILTER (nativ_0OutForSelectionComp1(nativ_0_1OutFor), nativ_0OutForSelectionComp1(in0), 'SelectionComp_1') \n"\
-      "nativ_1OutForSelectionComp1 (nativ_1_1OutFor) <= APPLY (filteredInputForSelectionComp1(in0), filteredInputForSelectionComp1(), 'SelectionComp_1', 'native_lambda_1', [('lambdaType', 'native_lambda')]) \n"\
-      "nativ_1OutForSelectionComp1_out( ) <= OUTPUT ( nativ_1OutForSelectionComp1 ( nativ_1_1OutFor ), 'output_set', 'chris_db', 'SetWriter_2') \n";
+  String tcap = "inputDataForScanSet_0(in0) <= SCAN ('chris_db', 'chris_set', 'SetScanner_0') \n"\
+                "nativ_0OutForSelectionComp1(in0,nativ_0_1OutFor) <= APPLY (inputDataForScanSet_0(in0), inputDataForScanSet_0(in0), 'SelectionComp_1', 'native_lambda_0', [('lambdaType', 'native_lambda')]) \n"\
+                "filteredInputForSelectionComp1(in0) <= FILTER (nativ_0OutForSelectionComp1(nativ_0_1OutFor), nativ_0OutForSelectionComp1(in0), 'SelectionComp_1') \n"\
+                "nativ_1OutForSelectionComp1 (nativ_1_1OutFor) <= APPLY (filteredInputForSelectionComp1(in0), filteredInputForSelectionComp1(), 'SelectionComp_1', 'native_lambda_1', [('lambdaType', 'native_lambda')]) \n"\
+                "nativ_1OutForSelectionComp1_out() <= OUTPUT ( nativ_1OutForSelectionComp1 ( nativ_1_1OutFor ), 'chris_db', 'output_set', 'SetWriter_2') \n";
 
   // here is the list of computations
   Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
 
+  // here is the list of computations
   Handle<Computation> myScanSet = makeObject<ScanEmployeeSet>();
   Handle<Computation> myQuery = makeObject<EmployeeBuiltInIdentitySelection>();
   myQuery->setInput(myScanSet);
-  Handle<Computation> myWriteSet = makeObject<WriteBuiltinEmployeeSet>("chris_db", "output_set");
+  Handle<Computation> myWriteSet = makeObject<WriteBuiltinEmployeeSet>("chris_db", "chris_set");
   myWriteSet->setInput(myQuery);
 
   // put them in the list of computations
@@ -132,7 +131,7 @@ int main(int argc, char* argv[]) {
   /// 5. Get the set from the
 
   // grab the iterator
-  auto it = pdbClient.getSetIterator<SharedEmployee>("chris_db", "chris_set");
+  auto it = pdbClient.getSetIterator<Employee>("chris_db", "output_set");
 
   int i = 0;
   while(it->hasNextRecord()) {
@@ -148,6 +147,8 @@ int main(int argc, char* argv[]) {
     // go to the next one
     i++;
   }
+
+  std::cout << "Got " << i << " : " << "Stored " << count << std::endl;
 
   // shutdown the server
   pdbClient.shutDownServer();

@@ -31,8 +31,6 @@ extern int yydebug;
 
 namespace pdb {
 
-inline ComputePlan::ComputePlan() {}
-
 inline LogicalPlanPtr ComputePlan::getPlan() {
 
   // if we already have the plan, then just return it
@@ -122,7 +120,6 @@ inline std::string ComputePlan::getProducingComputationName(std::string sourceTu
 
 inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetName,
                                               const std::string &targetTupleSetName,
-                                              const std::string &targetComputationName,
                                               const PDBAbstractPageSetPtr &inputPageSet,
                                               const PDBAnonymousPageSetPtr &outputPageSet,
                                               std::map<std::string, ComputeInfoPtr> &params,
@@ -179,8 +176,22 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
     exit(1);
   }
 
+  // find the target atomic computation
+  auto targetAtomicComp = allComps.getProducingAtomicComputation(targetTupleSetName);
+
+  // find the target real PDBcomputation
+  auto targetComputationName = targetAtomicComp->getComputationName();
+
+  // if the write set is in the pipeline remove it since it is basically a noop
+  if(targetAtomicComp->getAtomicComputationType() == "WriteSet") {
+
+    // pop it!
+    listSoFar.pop_back();
+    targetAtomicComp = listSoFar.back();
+  }
+
   // and get the schema for the output TupleSet objects that it is supposed to produce
-  TupleSpec &targetSpec = allComps.getProducingAtomicComputation(targetTupleSetName)->getOutput();
+  TupleSpec &targetSpec = targetAtomicComp->getOutput();
   std::cout << "The target is " << targetSpec << "\n";
 
   // and get the projection for this guy
@@ -343,7 +354,13 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
         }
       }
 
-    } else {
+    }
+    else if(a->getAtomicComputationType() == "WriteSet") {
+
+      // skip this one
+      std::cout << "We are skipping a write set this is essentially a NOOP\n";
+    }
+    else {
       std::cout << "This is bad... found an unexpected computation type (" << a->getComputationName()
                 << ") inside of a pipeline.\n";
     }

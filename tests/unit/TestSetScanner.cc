@@ -16,6 +16,8 @@ public:
 
   MOCK_METHOD0(getNewPage, PDBPageHandle());
 
+  MOCK_METHOD0(getNumPages, size_t ());
+
 };
 
 TEST(SetScannerTest, Test1) {

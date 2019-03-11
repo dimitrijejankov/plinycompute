@@ -16,6 +16,7 @@
 #include <StoGetNextPageRequest.h>
 #include <StoDispatchData.h>
 #include <StoSetStatsRequest.h>
+#include <StoStartWritingToSetRequest.h>
 
 namespace pdb {
 
@@ -29,7 +30,7 @@ struct PDBStorageSetStats {
   /**
    * The number of pages
    */
-  size_t numPages;
+  size_t lastPage;
 
 };
 
@@ -94,6 +95,17 @@ public:
    */
   template <class Communicator, class Requests>
   std::pair<bool, std::string> handleGetSetStats(pdb::Handle<pdb::StoSetStatsRequest> request, std::shared_ptr<Communicator> sendUsingMe);
+
+  /**
+   *
+   * @tparam Communicator
+   * @tparam Requests
+   * @param request
+   * @param sendUsingMe
+   * @return
+   */
+  template <class Communicator, class Requests>
+  std::pair<bool, std::string> handleStartWritingToSet(pdb::Handle<pdb::StoStartWritingToSetRequest> request, std::shared_ptr<Communicator> sendUsingMe);
 
   /**
    * The logger

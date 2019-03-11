@@ -510,7 +510,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         const UseTemporaryAllocationBlock tempBlock{1024};
 
         // set the error
-        std::string errMsg = "CatSharedLibraryByNameRequest Handler Could not find the type with the name" + type->name + "\n";
+        std::string errMsg = "CatSharedLibraryByNameRequest Handler Could not find the type with the id" + std::to_string(request->getTypeLibraryId()) + "\n";
 
         // log what is happening
         PDB_COUT << errMsg;

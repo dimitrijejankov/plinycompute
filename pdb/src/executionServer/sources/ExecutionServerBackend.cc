@@ -21,11 +21,17 @@ void pdb::ExecutionServerBackend::registerHandlers(pdb::PDBServer &forMe) {
 
             /// 1. Do the setup
 
-            // make an allocation block
-            const pdb::UseTemporaryAllocationBlock tempBlock{1024};
+            // setup an allocation block of the size of the compute plan + 1MB so we can do the setup and build the pipeline
+            const UseTemporaryAllocationBlock tempBlock{request->computationSize + 2 * 1024};
+
+            // grab the storage manager
+            auto storage = this->getFunctionalityPtr<PDBStorageManagerBackend>();
+
+            // setup the algorithm
+            bool success = request->physicalAlgorithm->setup(storage, request, error);
 
             // create an allocation block to hold the response
-            pdb::Handle<pdb::SimpleRequestResult> response = pdb::makeObject<pdb::SimpleRequestResult>(true, "");
+            pdb::Handle<pdb::SimpleRequestResult> response = pdb::makeObject<pdb::SimpleRequestResult>(success, error);
 
             // sends result to requester
             sendUsingMe->sendObject(response, error);
@@ -34,8 +40,6 @@ void pdb::ExecutionServerBackend::registerHandlers(pdb::PDBServer &forMe) {
 
             // make an allocation block
             {
-              bool success;
-
               // want this to be destroyed
               Handle<pdb::ExRunJob> result = sendUsingMe->getNextObject<pdb::ExRunJob> (success, error);
               if (!success) {
@@ -44,6 +48,9 @@ void pdb::ExecutionServerBackend::registerHandlers(pdb::PDBServer &forMe) {
                 return make_pair(true, error);
               }
             }
+
+            // run the algorithm
+            request->physicalAlgorithm->run(storage);
 
             // sends result to requester
             sendUsingMe->sendObject(response, error);

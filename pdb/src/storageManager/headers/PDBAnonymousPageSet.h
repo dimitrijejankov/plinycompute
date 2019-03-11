@@ -40,6 +40,12 @@ public:
   PDBPageHandle getNewPage() override;
 
   /**
+   * Return the number of pages in this page set
+   * @return - the number of pages
+   */
+  size_t getNumPages() override;
+
+  /**
    * Remove the page from this page. The page has to be in this page set, otherwise the behavior is not defined
    * @param pageHandle - the page handle we want to remove
    */
@@ -61,6 +67,11 @@ private:
    * Indicates whether we are done iterating
    */
   bool isDone;
+
+  /**
+   * Indicates whether we need to initialize the page set iterator
+   */
+  bool needsInitialization;
 
   /**
    * Mutex to sync the pages map

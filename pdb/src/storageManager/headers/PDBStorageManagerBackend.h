@@ -1,13 +1,10 @@
-//
-// Created by dimitrije on 2/11/19.
-//
-
-#ifndef PDB_STORAGEMANAGERBACKEND_H
-#define PDB_STORAGEMANAGERBACKEND_H
+#pragma once
 
 #include <ServerFunctionality.h>
 #include <StoStoreOnPageRequest.h>
 #include "PDBAbstractPageSet.h"
+#include "PDBSetPageSet.h"
+#include "PDBAnonymousPageSet.h"
 
 namespace pdb {
 
@@ -25,7 +22,31 @@ public:
    * @param set - the set name
    * @return the PDBPage set
    */
-  PDBAbstractPageSetPtr getPageSet(const std::string &db, const std::string &set);
+  PDBSetPageSetPtr createPageSetFromPDBSet(const std::string &db,
+                                           const std::string &set,
+                                           const std::pair<uint64_t, std::string> &pageSetID);
+
+  /**
+   *
+   * @param pageSetID
+   * @return
+   */
+  PDBAnonymousPageSetPtr createAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID);
+
+  /**
+   *
+   * @param pageSetID
+   * @return
+   */
+  PDBAbstractPageSetPtr getPageSet(const std::pair<uint64_t, std::string> &pageSetID);
+
+  /**
+   *
+   * @param pageSet
+   * @param set
+   * @return
+   */
+  bool materializePageSet(PDBAbstractPageSetPtr pageSet, const std::pair<std::string, std::string> &set);
 
  private:
 
@@ -48,10 +69,19 @@ public:
   template <class Communicator>
   std::pair<bool, std::string> handleStoreOnPage(const pdb::Handle<pdb::StoStoreOnPageRequest> &request, std::shared_ptr<Communicator> &sendUsingMe);
 
+  /**
+   * The page sets that are on the backend
+   */
+  map<std::pair<uint64_t, std::string>, PDBAbstractPageSetPtr> pageSets;
+
+  /**
+   * the mutex to lock the page sets
+   */
+  std::mutex pageSetMutex;
 };
+
+using PDBStorageManagerBackendPtr = std::shared_ptr<PDBStorageManagerBackend>;
 
 }
 
 #include <PDBStorageManagerBackendTemplate.cc>
-
-#endif //PDB_STORAGEMANAGERBACKEND_H

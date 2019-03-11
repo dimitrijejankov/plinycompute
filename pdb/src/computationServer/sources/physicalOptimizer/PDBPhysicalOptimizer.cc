@@ -12,7 +12,8 @@
 
 namespace pdb {
 
-PDBPhysicalOptimizer::PDBPhysicalOptimizer(String tcapString,
+PDBPhysicalOptimizer::PDBPhysicalOptimizer(uint64_t computationID,
+                                           String tcapString,
                                            PDBCatalogClientPtr &clientPtr,
                                            PDBLoggerPtr &logger) : logger(logger), sources(([](const OptimizerSource& s1, const OptimizerSource& s2) {return s1.first > s2.first;})){
 

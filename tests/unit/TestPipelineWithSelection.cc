@@ -52,6 +52,8 @@ class MockPageSetReader : public pdb::PDBAbstractPageSet {
 
   MOCK_METHOD0(getNewPage, PDBPageHandle());
 
+  MOCK_METHOD0(getNumPages, size_t ());
+
 };
 
 class MockPageSetWriter: public pdb::PDBAnonymousPageSet {
@@ -62,6 +64,8 @@ class MockPageSetWriter: public pdb::PDBAnonymousPageSet {
   MOCK_METHOD0(getNewPage, PDBPageHandle());
 
   MOCK_METHOD1(removePage, void(PDBPageHandle pageHandle));
+
+  MOCK_METHOD0(getNumPages, size_t ());
 };
 
 TEST(PipelineTest, TestSelection) {
@@ -97,11 +101,11 @@ TEST(PipelineTest, TestSelection) {
       "nativ_0OutForSelectionComp1(in0,nativ_0_1OutFor) <= APPLY (inputDataForScanSet_0(in0), inputDataForScanSet_0(in0), 'SelectionComp_1', 'native_lambda_0', [('lambdaType', 'native_lambda')]) \n"\
       "filteredInputForSelectionComp1(in0) <= FILTER (nativ_0OutForSelectionComp1(nativ_0_1OutFor), nativ_0OutForSelectionComp1(in0), 'SelectionComp_1') \n"\
       "nativ_1OutForSelectionComp1 (nativ_1_1OutFor) <= APPLY (filteredInputForSelectionComp1(in0), filteredInputForSelectionComp1(), 'SelectionComp_1', 'native_lambda_1', [('lambdaType', 'native_lambda')]) \n"\
-      "nativ_1OutForSelectionComp1_out( ) <= OUTPUT ( nativ_1OutForSelectionComp1 ( nativ_1_1OutFor ), 'output_set', 'by8_db', 'SetWriter_2') \n";
+      "nativ_1OutForSelectionComp1_out() <= OUTPUT ( nativ_1OutForSelectionComp1 ( nativ_1_1OutFor ), 'output_set', 'by8_db', 'SetWriter_2') \n";
 
   // and create a query object that contains all of this stuff
-  Handle<ComputePlan> myPlan = makeObject<ComputePlan>(myTCAPString, myComputations);
-  LogicalPlanPtr logicalPlan = myPlan->getPlan();
+  ComputePlan myPlan(myTCAPString, myComputations);
+  LogicalPlanPtr logicalPlan = myPlan.getPlan();
   AtomicComputationList computationList = logicalPlan->getComputations();
 
   /// 3. Setup the mock calls to the PageSets for the input and the output
@@ -202,14 +206,13 @@ TEST(PipelineTest, TestSelection) {
 
   // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
   // a pipeline into the aggregation operation
-  PipelinePtr myPipeline = myPlan->buildPipeline(std::string("inputDataForScanSet_0"), /* this is the TupleSet the pipeline starts with */
-                                                 std::string("nativ_1OutForSelectionComp1"),     /* this is the TupleSet the pipeline ends with */
-                                                 std::string("SetWriter_2"), /* and since multiple Computation objects can consume the */
-                                                 pageReader,
-                                                 pageWriter,
-                                                 params,
-                                                 20,
-                                                 0);
+  PipelinePtr myPipeline = myPlan.buildPipeline(std::string("inputDataForScanSet_0"), /* this is the TupleSet the pipeline starts with */
+                                                std::string("nativ_1OutForSelectionComp1_out"),     /* this is the TupleSet the pipeline ends with */
+                                                pageReader,
+                                                pageWriter,
+                                                params,
+                                                20,
+                                                0);
 
   // and now, simply run the pipeline and then destroy it!!!
   myPipeline->run();
@@ -218,7 +221,7 @@ TEST(PipelineTest, TestSelection) {
   // and be sure to delete the contents of the ComputePlan object... this always needs to be done
   // before the object is written to disk or sent accross the network, so that we don't end up
   // moving around a C++ smart pointer, which would be bad
-  myPlan->nullifyPlanPointer();
+  myPlan.nullifyPlanPointer();
 
   /// 5. Check the results
 

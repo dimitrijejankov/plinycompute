@@ -28,6 +28,11 @@ public:
    */
   virtual PDBPageHandle getNewPage() = 0;
 
+  /**
+   * Return the number of pages in this page set
+   * @return the number
+   */
+  virtual size_t getNumPages() = 0;
 };
 
 }

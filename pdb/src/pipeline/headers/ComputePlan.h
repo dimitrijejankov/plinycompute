@@ -16,8 +16,8 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef COMPUTE_PLAN_H
-#define COMPUTE_PLAN_H
+#ifndef ComputePlan_H
+#define ComputePlan_H
 
 #include "Computation.h"
 #include "PDBString.h"
@@ -27,14 +27,12 @@
 #include "Pipeline.h"
 #include "ComputeInfo.h"
 
-// PRELOAD %ComputePlan%
-
 namespace pdb {
 
 typedef std::shared_ptr<LogicalPlan> LogicalPlanPtr;
 
 // this is the basic type that is sent around a PDB cluster to store a computation that PDB is to execute
-class ComputePlan : public Object {
+class ComputePlan {
 
   // this is the compiled plan
   String TCAPComputation;
@@ -47,9 +45,7 @@ class ComputePlan : public Object {
 
  public:
 
-  ENABLE_DEEP_COPY
-
-  ComputePlan();
+  ComputePlan() = default;
 
   // constructor, takes as input the string to execute, as well as the vector of computations
   ComputePlan(String &TCAPComputation, Vector<Handle<Computation>> &allComputations);
@@ -85,7 +81,6 @@ class ComputePlan : public Object {
 
   PipelinePtr buildPipeline(const std::string &sourceTupleSetName,
                             const std::string &targetTupleSetName,
-                            const std::string &targetComputationName,
                             const PDBAbstractPageSetPtr &inputPageSet,
                             const PDBAnonymousPageSetPtr &outputPageSet,
                             std::map<std::string, ComputeInfoPtr> &params,
@@ -96,6 +91,7 @@ class ComputePlan : public Object {
 
 }
 
+#endif
+
 #include "ComputePlan.cc"
 
-#endif

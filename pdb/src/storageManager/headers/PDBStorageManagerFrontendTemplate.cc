@@ -21,6 +21,7 @@
 #include <StoGetPageRequest.h>
 #include <StoGetPageResult.h>
 #include <StoSetStatsResult.h>
+#include <StoStartWritingToSetResult.h>
 
 template <class T>
 std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageRequest(const pdb::Handle<pdb::StoGetPageRequest> &request,
@@ -40,7 +41,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageReques
 
     // check for the page
     auto it = this->lastPages.find(set);
-    if(it != this->lastPages.end() && it->second.numPages >= request->page) {
+    if(it != this->lastPages.end() && it->second.lastPage >= request->page) {
       hasPage = true;
     }
   }
@@ -72,7 +73,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageReques
   auto* pageRecord = (pdb::Record<pdb::Vector<pdb::Handle<pdb::Object>>> *) (page->getBytes());
 
   // grab an anonymous page to store the compressed stuff
-  auto maxCompressedSize = snappy::MaxCompressedLength(pageRecord->numBytes());
+  auto maxCompressedSize = std::min<size_t>(snappy::MaxCompressedLength(pageRecord->numBytes()), 128 * 1024 * 1024);
   auto compressedPage = getFunctionalityPtr<PDBBufferManagerInterface>()->getPage(maxCompressedSize);
 
   // compress the record
@@ -160,7 +161,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
     if(it == lastPages.end()) {
 
       // set the page to zero since this is the first page
-      lastPages[set].numPages = 0;
+      lastPages[set].lastPage = 0;
       pageNum = 0;
 
       // set the size to the size of this request
@@ -169,12 +170,14 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
     else {
 
       // increment the last page
-      pageNum = ++it->second.numPages;
+      pageNum = ++it->second.lastPage;
 
       // increment the set size on this node
       it->second.size += uncompressedSize;
     }
   }
+
+  std::cout << "Storing the page : " << pageNum << std::endl;
 
   /// 3. Initiate the storing on the backend
 
@@ -250,7 +253,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetSetStats(p
   if(it != lastPages.end()) {
 
     // set the stat results
-    setStatResult = pdb::makeObject<pdb::StoSetStatsResult>(it->second.numPages, it->second.size, true);
+    setStatResult = pdb::makeObject<pdb::StoSetStatsResult>(it->second.lastPage + 1, it->second.size, true);
   }
   else {
 
@@ -260,10 +263,68 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetSetStats(p
   }
 
   // sends result to requester
-  success = success && sendUsingMe->sendObject(setStatResult, error);
+  success = sendUsingMe->sendObject(setStatResult, error) && success;
 
   // return the result
   return std::make_pair(success, error);
+}
+
+template<class Communicator, class Requests>
+std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStartWritingToSet(pdb::Handle<pdb::StoStartWritingToSetRequest> request, shared_ptr<Communicator> sendUsingMe) {
+
+  /// TODO this has to be more robust, right now this is just here to do the job!
+
+  // make an allocation block
+  const UseTemporaryAllocationBlock tempBlock{1024};
+
+  bool success = false;
+  uint64_t firstPage = 0;
+
+  // check if the set exists
+  if(getFunctionalityPtr<pdb::PDBCatalogClient>()->setExists(request->databaseName, request->setName)) {
+
+    // if it exists do the bookkeeping, lock the stuff that keeps track of the last page
+    unique_lock<std::mutex> lck(m);
+
+    // make the set
+    auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
+
+    // try to find the set
+    auto it = lastPages.find(set);
+
+    // do we even have a record for this set
+    if (it != lastPages.end()) {
+
+      // figure out the page and increment them
+      firstPage = it->second.lastPage;
+      it->second.lastPage += request->numPages;
+    } else {
+
+      // set the page to the (requested number - 1) since the pages start from 0
+      lastPages[set].lastPage = request->numPages - 1;
+
+      // set the size to the size of this request
+      lastPages[set].size = 0;
+      firstPage = 0;
+    }
+
+    // ok we managed to find it and get some pages
+    success = true;
+  }
+
+  // create a response
+  Handle<StoStartWritingToSetResult> response = makeObject<StoStartWritingToSetResult>(firstPage, success);
+
+  // send the thing to the backend
+  std::string error;
+  if (!sendUsingMe->sendObject(response, error)) {
+
+    // finish this
+    return std::make_pair(false, std::string("Could not send the thing to the backend"));
+  }
+
+  // we succeeded
+  return std::make_pair(success, "");
 }
 
 #endif //PDB_PDBSTORAGEMANAGERFRONTENDTEMPLATE_H

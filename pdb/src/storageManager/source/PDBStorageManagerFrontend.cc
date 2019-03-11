@@ -17,6 +17,7 @@
 #include "CatalogServer.h"
 #include <StoGetPageRequest.h>
 #include <StoGetPageResult.h>
+#include <StoStartWritingToSetRequest.h>
 
 namespace fs = boost::filesystem;
 
@@ -119,6 +120,14 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
       make_shared<pdb::HeapRequestHandler<pdb::StoSetStatsRequest>>([&](pdb::Handle<pdb::StoSetStatsRequest> request, PDBCommunicatorPtr sendUsingMe) {
         return handleGetSetStats<PDBCommunicator, RequestFactory>(request, sendUsingMe);
       }));
+
+  forMe.registerHandler(
+      StoStartWritingToSetRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoStartWritingToSetRequest>>([&](pdb::Handle<pdb::StoStartWritingToSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
+        return handleStartWritingToSet<PDBCommunicator, RequestFactory>(request, sendUsingMe);
+      }));
 }
+
+
 
 

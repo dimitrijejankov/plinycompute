@@ -56,3 +56,7 @@ pdb::PDBPageHandle pdb::PDBSetPageSet::getNewPage() {
   // grab a page
   return bufferManager->getPage(make_shared<PDBSet>(db, set), pageNum);
 }
+
+size_t pdb::PDBSetPageSet::getNumPages() {
+  return pages.size();
+}

@@ -143,6 +143,7 @@ int main(int argc, char *argv[]) {
 
     // add the functionaries
     backEnd.addFunctionality<pdb::PDBBufferManagerInterface>(storageManager->getBackEnd());
+    backEnd.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(config->port, config->address, logger));
     backEnd.addFunctionality(std::make_shared<pdb::PDBStorageManagerBackend>());
     backEnd.addFunctionality(std::make_shared<pdb::ExecutionServerBackend>());
 

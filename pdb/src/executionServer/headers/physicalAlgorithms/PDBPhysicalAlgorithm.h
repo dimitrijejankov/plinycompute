@@ -15,6 +15,10 @@
 
 namespace pdb {
 
+// predefine this so avoid recursive definition
+class ExJob;
+class PDBStorageManagerBackend;
+
 enum PDBPhysicalAlgorithmType {
 
   ShuffleForJoin,
@@ -42,12 +46,12 @@ public:
   /**
    * Sets up the whole algorithm
    */
-  virtual void setup() { throw std::runtime_error("Can not setup PDBPhysicalAlgorithm that is an abstract class"); };
+  virtual bool setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) { throw std::runtime_error("Can not setup PDBPhysicalAlgorithm that is an abstract class"); };
 
   /**
    * Runs the algorithm
    */
-  virtual void run() { throw std::runtime_error("Can not run PDBPhysicalAlgorithm that is an abstract class"); };
+  virtual bool run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) { throw std::runtime_error("Can not run PDBPhysicalAlgorithm that is an abstract class"); };
 
   /**
    * Returns the type of the algorithm we want to run

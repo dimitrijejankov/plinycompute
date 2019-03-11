@@ -25,6 +25,7 @@
 
 #include "ComputeSource.h"
 #include "ComputeSink.h"
+#include "ComputeExecutor.h"
 #include "UseTemporaryAllocationBlock.h"
 #include "Handle.h"
 #include <queue>

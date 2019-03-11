@@ -13,6 +13,10 @@ namespace pdb {
 
 class PDBStorageManagerBackend;
 
+// make a ptr for this type of page set
+class PDBSetPageSet;
+using PDBSetPageSetPtr = std::shared_ptr<PDBSetPageSet>;
+
 class PDBSetPageSet : public PDBAbstractPageSet {
 public:
 
@@ -39,7 +43,13 @@ public:
    */
   PDBPageHandle getNewPage() override;
 
-private:
+  /**
+   * Return the number of pages in this page set
+   * @return - that number
+   */
+  size_t getNumPages() override;
+
+ private:
 
   // current page, it is thread safe to update it
   atomic_uint64_t curPage;

@@ -19,6 +19,8 @@
 #ifndef TUPLE_SET_MACHINE_H
 #define TUPLE_SET_MACHINE_H
 
+#include <TupleSpec.h>
+
 namespace pdb {
 
 class TupleSetSetupMachine {

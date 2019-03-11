@@ -40,11 +40,12 @@ public:
 
   /**
    * Takes in the TCAP string that we want to analyze and to the physical optimization on
+   * @param computationID - the id of the computation this optimizer is to optimize
    * @param tcapString - the TACP string
    * @param clientPtr - the catalog client
    * @param logger - the logger
    */
-  PDBPhysicalOptimizer(String tcapString, PDBCatalogClientPtr &clientPtr, PDBLoggerPtr &logger);
+  PDBPhysicalOptimizer(uint64_t computationID, String tcapString, PDBCatalogClientPtr &clientPtr, PDBLoggerPtr &logger);
 
   /**
    * Default destructor

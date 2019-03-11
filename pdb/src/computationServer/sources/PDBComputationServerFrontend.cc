@@ -248,7 +248,7 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
             auto catalogClient = getFunctionalityPtr<pdb::PDBCatalogClient>();
 
             // init the optimizer
-            pdb::PDBPhysicalOptimizer optimizer(request->tcapString, catalogClient, logger);
+            pdb::PDBPhysicalOptimizer optimizer(compID, request->tcapString, catalogClient, logger);
 
             // we start from job 0
             uint64_t jobID = 0;

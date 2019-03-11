@@ -107,7 +107,7 @@ bool PDBStorageIterator<T>::getNextPage(bool isFirst) {
   const UseTemporaryAllocationBlock tempBlock{1024};
 
   // make the request
-  Handle<StoGetNextPageRequest> request = makeObject<StoGetNextPageRequest>(db, set, ++currPage, currNode, isFirst);
+  Handle<StoGetNextPageRequest> request = makeObject<StoGetNextPageRequest>(db, set, currPage, currNode, isFirst);
 
   // send the object
   if (!comm->sendObject(request, errMsg)) {
@@ -138,7 +138,7 @@ bool PDBStorageIterator<T>::getNextPage(bool isFirst) {
 
   // set the node and the page
   currNode = result->nodeID;
-  currPage = result->page;
+  currPage = result->page + 1;
   compressedBufferSize = result->pageSize;
 
   // init the compressed buffer
