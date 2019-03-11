@@ -177,8 +177,6 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
     }
   }
 
-  std::cout << "Storing the page : " << pageNum << std::endl;
-
   /// 3. Initiate the storing on the backend
 
   PDBCommunicatorPtr communicatorToBackend = make_shared<PDBCommunicator>();
