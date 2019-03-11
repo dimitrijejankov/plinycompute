@@ -6,6 +6,7 @@
 #define PDB_STORAGEMANAGERFRONTEND_H
 
 #include <mutex>
+#include <unordered_set>
 
 #include <PDBSet.h>
 #include <PDBPageCompare.h>
@@ -108,19 +109,79 @@ public:
   std::pair<bool, std::string> handleStartWritingToSet(pdb::Handle<pdb::StoStartWritingToSetRequest> request, std::shared_ptr<Communicator> sendUsingMe);
 
   /**
+   * Checks whether we are writing to a particular page.
+   * This method is not thread-safe and should only be used when locking the page mutex
+   *
+   * @param set - the name of the set the page we are checking belongs to
+   * @param pageNum - the page number
+   * @return - true if we are writing to that page false otherwise
+   */
+  bool isPageBeingWrittenTo(const PDBSetPtr &set, uint64_t pageNum);
+
+  /**
+   * Check whether the page is free for some reason.
+   * This method is not thread-safe and should only be used when locking the page mutex
+   * @param set - the name of the set the page we are checking belongs to
+   * @param pageNum - the page number
+   * @return true if is free, false otherwise
+   */
+  bool isPageFree(const PDBSetPtr &set, uint64_t pageNum);
+
+
+  /**
+   * Checks whether the page exists, no mater what state it is in. For example one could be writing currently to it
+   * or it could be a free page.
+   * This method is not thread-safe and should only be used when locking the page mutex
+   *
+   * @param set - the name of the set the page we are checking belongs to
+   * @param pageNum - the page number
+   * @return true if does false otherwise
+   */
+  bool pageExists(const PDBSetPtr &set, uint64_t pageNum);
+
+
+  /**
+   * This method returns the next free page it can find.
+   * If there are free pages in the @see freeSkippedPages then we will use those otherwise we will get the next page
+   * after the last page
+   * This method is not thread-safe and should only be used when locking the page mutex
+   *
+   * @param set - the set we want to get the free page for
+   * @return the id of the next page.
+   */
+  uint64_t getNextFreePage(const PDBSetPtr &set);
+
+  /**
+   * This method increments the set size. It assumes the set exists, should not be called unless it exists!
+   * This method is not thread-safe and should only be used when locking the page mutex
+   * @param set
+   */
+  void incrementSetSize(const PDBSetPtr &set, uint64_t uncompressedSize);
+
+  /**
    * The logger
    */
   PDBLoggerPtr logger;
 
   /**
-   * The last page for a particular set
+   * This keeps track of the stats for a particular set. @see PDBStorageSetStats for the kind of information that is being stored
    */
-  map <PDBSetPtr, PDBStorageSetStats, PDBSetCompare> lastPages;
+  map <PDBSetPtr, PDBStorageSetStats, PDBSetCompare> pageStats;
+
+  /**
+   * Pages that are currently being written to for a particular set
+   */
+  map<PDBSetPtr, std::unordered_set<uint64_t>, PDBSetCompare> pagesBeingWrittenTo;
+
+  /**
+   * The pages that we skipped for some reason when writing to. This can happen when some requests fail or something of that sort.
+   */
+  map<PDBSetPtr, std::unordered_set<uint64_t>, PDBSetCompare> freeSkippedPages;
 
   /**
    * Lock last pages
    */
-  std::mutex m;
+  std::mutex pageMutex;
 };
 
 }

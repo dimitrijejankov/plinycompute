@@ -33,20 +33,17 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageReques
   // create the set identifier
   auto set = make_shared<pdb::PDBSet>(request->databaseName, request->setName);
 
-  bool hasPage = false;
-  // check if the set exists
+  bool hasPage;
+  // check if the page exists exists
   {
     // lock the stuff that keeps track of the last page
     unique_lock<mutex> lck;
 
-    // check for the page
-    auto it = this->lastPages.find(set);
-    if(it != this->lastPages.end() && it->second.lastPage >= request->page) {
-      hasPage = true;
-    }
+    // check for the page exists and it is in a valid state
+    hasPage = pageExists(set, request->page) && !isPageBeingWrittenTo(set, request->page) && !isPageFree(set, request->page);
   }
 
-  /// 2. If we don't have it send an error
+  /// 2. If we don't have it or it is not in a valid state it send back a NACK
 
   if(!hasPage) {
 
@@ -64,7 +61,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageReques
     return make_pair(false, error);
   }
 
-  /// 3. We grab the page and compress it.
+  /// 3. Ok we have it, grab the page and compress it.
 
   // grab the page
   auto page = this->getFunctionalityPtr<PDBBufferManagerInterface>()->getPage(set, request->page);
@@ -72,7 +69,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageReques
   // grab the vector
   auto* pageRecord = (pdb::Record<pdb::Vector<pdb::Handle<pdb::Object>>> *) (page->getBytes());
 
-  // grab an anonymous page to store the compressed stuff
+  // grab an anonymous page to store the compressed stuff //TODO this kind of sucks since the max compressed size can be larger than the actual size
   auto maxCompressedSize = std::min<size_t>(snappy::MaxCompressedLength(pageRecord->numBytes()), 128 * 1024 * 1024);
   auto compressedPage = getFunctionalityPtr<PDBBufferManagerInterface>()->getPage(maxCompressedSize);
 
@@ -149,32 +146,16 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
   uint64_t pageNum;
   {
     // lock the stuff that keeps track of the last page
-    unique_lock<std::mutex> lck(m);
+    unique_lock<std::mutex> lck(pageMutex);
 
     // make the set
     auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
 
-    // try to find the set
-    auto it = lastPages.find(set);
+    // get the next page
+    pageNum = getNextFreePage(set);
 
-    // do we even have a record for this set
-    if(it == lastPages.end()) {
-
-      // set the page to zero since this is the first page
-      lastPages[set].lastPage = 0;
-      pageNum = 0;
-
-      // set the size to the size of this request
-      lastPages[set].size = uncompressedSize;
-    }
-    else {
-
-      // increment the last page
-      pageNum = ++it->second.lastPage;
-
-      // increment the set size on this node
-      it->second.size += uncompressedSize;
-    }
+    // increment the set size
+    incrementSetSize(set, uncompressedSize);
   }
 
   /// 3. Initiate the storing on the backend
@@ -242,13 +223,13 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetSetStats(p
   auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
 
   // try to find the set
-  auto it = lastPages.find(set);
+  auto it = pageStats.find(set);
 
   const UseTemporaryAllocationBlock tempBlock{1024};
 
   // figure out whether this was a success
   pdb::Handle<pdb::StoSetStatsResult> setStatResult;
-  if(it != lastPages.end()) {
+  if(it != pageStats.end()) {
 
     // set the stat results
     setStatResult = pdb::makeObject<pdb::StoSetStatsResult>(it->second.lastPage + 1, it->second.size, true);
@@ -282,16 +263,16 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStartWritingT
   if(getFunctionalityPtr<pdb::PDBCatalogClient>()->setExists(request->databaseName, request->setName)) {
 
     // if it exists do the bookkeeping, lock the stuff that keeps track of the last page
-    unique_lock<std::mutex> lck(m);
+    unique_lock<std::mutex> lck(pageMutex);
 
     // make the set
     auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
 
     // try to find the set
-    auto it = lastPages.find(set);
+    auto it = pageStats.find(set);
 
     // do we even have a record for this set
-    if (it != lastPages.end()) {
+    if (it != pageStats.end()) {
 
       // figure out the page and increment them
       firstPage = it->second.lastPage;
@@ -299,10 +280,10 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStartWritingT
     } else {
 
       // set the page to the (requested number - 1) since the pages start from 0
-      lastPages[set].lastPage = request->numPages - 1;
+      pageStats[set].lastPage = request->numPages - 1;
 
       // set the size to the size of this request
-      lastPages[set].size = 0;
+      pageStats[set].size = 0;
       firstPage = 0;
     }
 

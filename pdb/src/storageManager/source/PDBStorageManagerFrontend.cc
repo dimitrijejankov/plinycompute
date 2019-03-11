@@ -28,11 +28,11 @@ pdb::PDBStorageManagerFrontend::~PDBStorageManagerFrontend() {
   ofs.open((boost::filesystem::path(getConfiguration()->rootDirectory) / "storage.pdb").string(),
            ios::binary | std::ofstream::out | std::ofstream::trunc);
 
-  unsigned long numSets = lastPages.size();
+  unsigned long numSets = pageStats.size();
   ofs.write((char *) &numSets, sizeof(unsigned long));
 
   // serialize the stuff
-  for (auto &it : lastPages) {
+  for (auto &it : pageStats) {
 
     // write the database name
     unsigned long size = it.first->getDBName().size();
@@ -84,12 +84,12 @@ void pdb::PDBStorageManagerFrontend::init() {
       std::string setName(dbBuffer.get(), size);
 
       // read the number of pages
-      PDBStorageSetStats pageStats{};
-      ifs.read(reinterpret_cast<char *>(&pageStats), sizeof(pageStats));
+      PDBStorageSetStats pageStat{};
+      ifs.read(reinterpret_cast<char *>(&pageStat), sizeof(pageStat));
 
       // store the set info
       auto set = std::make_shared<PDBSet>(dbName, setName);
-      lastPages[set] = pageStats;
+      this->pageStats[set] = pageStat;
     }
 
     // close
@@ -126,6 +126,90 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
       make_shared<pdb::HeapRequestHandler<pdb::StoStartWritingToSetRequest>>([&](pdb::Handle<pdb::StoStartWritingToSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
         return handleStartWritingToSet<PDBCommunicator, RequestFactory>(request, sendUsingMe);
       }));
+}
+
+bool pdb::PDBStorageManagerFrontend::isPageBeingWrittenTo(const pdb::PDBSetPtr &set, uint64_t pageNum) {
+
+  // try to find it
+  auto it = pagesBeingWrittenTo.find(set);
+
+  // do we even have it here
+  if(it == pagesBeingWrittenTo.end()) {
+    return false;
+  }
+
+  // check if is in the set of free pages
+  return it->second.find(pageNum) != it->second.end();}
+
+bool pdb::PDBStorageManagerFrontend::isPageFree(const pdb::PDBSetPtr &set, uint64_t pageNum) {
+
+  // try to find it
+  auto it = freeSkippedPages.find(set);
+
+  // do we even have it here
+  if(it == freeSkippedPages.end()) {
+    return false;
+  }
+
+  // check if is in the set of free pages
+  return it->second.find(pageNum) != it->second.end();
+}
+
+bool pdb::PDBStorageManagerFrontend::pageExists(const pdb::PDBSetPtr &set, uint64_t pageNum) {
+
+  // try to find the page
+  auto it = this->pageStats.find(set);
+
+  // if it exists and is smaller or equal to the last page then it exists
+  return it != this->pageStats.end() && pageNum <= it->second.lastPage;
+}
+
+uint64_t pdb::PDBStorageManagerFrontend::getNextFreePage(const pdb::PDBSetPtr &set) {
+
+  // see if we have a free page already
+  auto pages = freeSkippedPages.find(set);
+  if(!pages->second.empty()) {
+
+    // get the page number
+    auto page = *pages->second.begin();
+
+    // remove the thing
+    pages->second.erase(pages->second.begin());
+
+    // return the page
+    return page;
+  }
+
+  // try to find the set
+  auto it = pageStats.find(set);
+
+  // do we even have a record for this set
+  uint64_t pageNum;
+  if(it == pageStats.end()) {
+
+    // set the page to zero since this is the first page
+    pageStats[set].lastPage = 0;
+    pageNum = 0;
+
+    // set the page size
+    pageStats[set].size = 0;
+  }
+  else {
+
+    // increment the last page
+    pageNum = ++it->second.lastPage;
+  }
+
+  return pageNum;
+}
+
+void pdb::PDBStorageManagerFrontend::incrementSetSize(const pdb::PDBSetPtr &set, uint64_t uncompressedSize) {
+
+  // try to find the set
+  auto it = pageStats.find(set);
+
+  // increment the set size on this node
+  it->second.size += uncompressedSize;
 }
 
 
