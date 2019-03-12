@@ -108,6 +108,8 @@ public:
   template <class Communicator, class Requests>
   std::pair<bool, std::string> handleStartWritingToSet(pdb::Handle<pdb::StoStartWritingToSetRequest> request, std::shared_ptr<Communicator> sendUsingMe);
 
+  bool handleDispatchFailure(const PDBSetPtr &set, uint64_t pageNum, PDBCommunicatorPtr communicator);
+
   /**
    * Checks whether we are writing to a particular page.
    * This method is not thread-safe and should only be used when locking the page mutex
@@ -127,7 +129,6 @@ public:
    */
   bool isPageFree(const PDBSetPtr &set, uint64_t pageNum);
 
-
   /**
    * Checks whether the page exists, no mater what state it is in. For example one could be writing currently to it
    * or it could be a free page.
@@ -139,7 +140,6 @@ public:
    */
   bool pageExists(const PDBSetPtr &set, uint64_t pageNum);
 
-
   /**
    * This method returns the next free page it can find.
    * If there are free pages in the @see freeSkippedPages then we will use those otherwise we will get the next page
@@ -150,6 +150,33 @@ public:
    * @return the id of the next page.
    */
   uint64_t getNextFreePage(const PDBSetPtr &set);
+
+  /**
+   * this method marks a page as free, meaning, that it can be assigned by get @see getNextFreePage
+   * This method is not thread-safe and should only be used when locking the page mutex
+   *
+   * @param set - the set the page belongs to
+   * @param pageNum - the number of that page
+   */
+  void freeSetPage(const PDBSetPtr &set, uint64_t pageNum);
+
+  /**
+   * Mark the page as being written to so that it can not be sent
+   * This method is not thread-safe and should only be used when locking the page mutex
+   *
+   * @param set - the set the page belongs to
+   * @param pageNum - the number of that page
+   */
+  void startWritingToPage(const PDBSetPtr &set, uint64_t pageNum);
+
+  /**
+   * Unmark the page as being written to so that the storage can send it for reading and stuff
+   * This method is not thread-safe and should only be used when locking the page mutex
+   *
+   * @param set - the set the page belongs to
+   * @param pageNum - the number of that page
+   */
+  void endWritingToPage(const PDBSetPtr &set, uint64_t pageNum);
 
   /**
    * This method increments the set size. It assumes the set exists, should not be called unless it exists!

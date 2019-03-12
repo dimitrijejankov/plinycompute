@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PDB_PDBStorageManagerBackend_H
+#define PDB_PDBStorageManagerBackend_H
 
 #include <ServerFunctionality.h>
 #include <StoStoreOnPageRequest.h>
@@ -83,5 +84,7 @@ public:
 using PDBStorageManagerBackendPtr = std::shared_ptr<PDBStorageManagerBackend>;
 
 }
+
+#endif
 
 #include <PDBStorageManagerBackendTemplate.cc>

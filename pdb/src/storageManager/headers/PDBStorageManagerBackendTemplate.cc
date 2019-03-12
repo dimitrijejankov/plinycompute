@@ -29,9 +29,6 @@ std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStoreOnPage(co
   // uncompress and copy to page
   snappy::RawUncompress((char*) inPage->getBytes(), request->compressedSize, (char*) outPage->getBytes());
 
-  // freeze the size
-  outPage->freezeSize(uncompressedSize);
-
   /// 2. Send the response that we are done
 
   // create an allocation block to hold the response
