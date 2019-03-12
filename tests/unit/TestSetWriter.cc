@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <SetScanner.h>
+#include <SetWriter.h>
 #include <Employee.h>
 #include <PDBBufferManagerImpl.h>
 #include <PDBAbstractPageSet.h>
@@ -10,7 +10,7 @@
 namespace pdb {
 
 class MockPageSet : public pdb::PDBAbstractPageSet {
-public:
+ public:
 
   MOCK_METHOD1(getNextPage, PDBPageHandle(size_t workerID));
 
@@ -57,7 +57,7 @@ TEST(SetScannerTest, Test1) {
   }
 
   // init the scanner
-  pdb::SetScanner<pdb::Employee> scanner("db", "set");
+  pdb::SetWriter<pdb::Employee> setWriter("db", "set");
 
   // the page set that is gonna provide stuff
   std::shared_ptr<MockPageSet> pageSet = std::make_shared<MockPageSet>();
@@ -83,7 +83,7 @@ TEST(SetScannerTest, Test1) {
   auto ptr = std::dynamic_pointer_cast<pdb::PDBAbstractPageSet>(pageSet);
 
   // get the compute source
-  auto dataSource = scanner.getComputeSource(ptr, 15, 0);
+  auto dataSource = setWriter.getComputeSink(ptr, 15, 0);
 
   // and here is the chunk
   TupleSetPtr curChunk;

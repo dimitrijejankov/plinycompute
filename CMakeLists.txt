@@ -227,6 +227,8 @@ add_dependencies(object-model object-type-ids)
 add_dependencies(client object-type-ids)
 add_dependencies(logical-plan object-type-ids)
 add_dependencies(server object-type-ids)
+add_dependencies(work object-type-ids)
+add_dependencies(execution-server object-type-ids)
 
 # used to build the pdb-manager and pdb-worker
 add_library(pdb-server-common $<TARGET_OBJECTS:catalog>

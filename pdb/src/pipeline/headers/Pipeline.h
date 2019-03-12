@@ -221,6 +221,7 @@ class Pipeline {
         if (myRAM->outputSink == nullptr) {
           myRAM->outputSink = dataSink->createNewOutputContainer();
         }
+
         dataSink->writeOut(curChunk, myRAM->outputSink);
 
       } catch (NotEnoughSpace &n) {

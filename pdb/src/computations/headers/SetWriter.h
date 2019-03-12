@@ -19,6 +19,7 @@
 #ifndef SET_WRITER_H
 #define SET_WRITER_H
 
+#include "VectorSink.h"
 #include "Computation.h"
 #include "TypeName.h"
 
@@ -26,6 +27,12 @@ namespace pdb {
 
 template<class OutputClass>
 class SetWriter : public Computation {
+
+public:
+
+  SetWriter() = default;
+
+  SetWriter(const String &dbName, const String &setName) : dbName(dbName), setName(setName) {}
 
   std::string getComputationType() override {
     return std::string("SetWriter");
@@ -66,26 +73,24 @@ class SetWriter : public Computation {
     }
 
     InputTupleSetSpecifier inputTupleSet = inputTupleSets[0];
-    return toTCAPString(inputTupleSet.getTupleSetName(),
-                        inputTupleSet.getColumnNamesToKeep(),
-                        inputTupleSet.getColumnNamesToApply(),
-                        computationLabel,
-                        outputTupleSetName,
-                        outputColumnNames,
-                        addedOutputColumnName);
-  }
-
-  // below function returns a TCAP string for this Computation
-  std::string toTCAPString(std::string inputTupleSetName,
-                           std::vector<std::string> inputColumnNames,
-                           std::vector<std::string> inputColumnsToApply,
-                           int computationLabel,
-                           std::string &outputTupleSetName,
-                           std::vector<std::string> &outputColumnNames,
-                           std::string &addedOutputColumnName) {
     return "";
   }
 
+  pdb::ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection) {
+    return std::make_shared<pdb::VectorSink<OutputClass>>(consumeMe, projection);
+  }
+
+private:
+
+  /**
+   * The name of the database the set we are scanning belongs to
+   */
+  pdb::String dbName;
+
+  /**
+   * The name of the set we are scanning
+   */
+  pdb::String setName;
 };
 
 }
