@@ -154,6 +154,9 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
     // get the next page
     pageNum = getNextFreePage(set);
 
+    // indicate that we are writing to this page
+    startWritingToPage(set, pageNum);
+
     // increment the set size
     incrementSetSize(set, uncompressedSize);
   }
@@ -173,23 +176,52 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
   // send the thing to the backend
   if (!communicatorToBackend->sendObject(response, error)) {
 
+    // make the set
+    auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
+
+    // set the indicators and send a NACK to the client since we failed
+    handleDispatchFailure(set, pageNum, sendUsingMe);
+
     // finish
-    return std::make_pair(false, std::string("Could not send the thing to the backend"));
+    return std::make_pair(false, error);
   }
 
   /// 4. Forward the page to the backend
 
   // forward the page
-  success = bufferManager->forwardPage(page, communicatorToBackend, error);
+  if(!bufferManager->forwardPage(page, communicatorToBackend, error)) {
+
+    // we could not forward the page
+    auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
+
+    // set the indicators and send a NACK to the client since we failed
+    handleDispatchFailure(set, pageNum, sendUsingMe);
+
+    // finish
+    return std::make_pair(false, error);
+  }
 
   /// 5. Wait for the backend to finish the stuff
 
-  Requests::template waitHeapRequest<SimpleRequestResult, bool>(logger, communicatorToBackend, false,
+  success = Requests::template waitHeapRequest<SimpleRequestResult, bool>(logger, communicatorToBackend, false,
   [&](Handle<SimpleRequestResult> result) {
 
    // check the result
    if (result != nullptr && result->getRes().first) {
      return true;
+   }
+
+   // just invalidate the set
+   auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
+   {
+    // lock the stuff
+    unique_lock<std::mutex> lck(pageMutex);
+
+    // finish writing to the set
+    endWritingToPage(set, pageNum);
+
+    // return the page to the free list
+    freeSetPage(set, pageNum);
    }
 
    // log the error
@@ -199,13 +231,17 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
    return false;
   });
 
-  /// 6. Send the response that we are done
+  /// 6. Freeze the page since it is safe to do now
+
+  page->freezeSize(uncompressedSize);
+
+  /// 7. Send the response that we are done
 
   // create an allocation block to hold the response
-  Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(true, error);
+  Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(success, error);
 
   // sends result to requester
-  sendUsingMe->sendObject(simpleResponse, error);
+  success = sendUsingMe->sendObject(simpleResponse, error) && success;
 
   // finish
   return std::make_pair(success, error);

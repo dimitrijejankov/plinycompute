@@ -212,6 +212,45 @@ void pdb::PDBStorageManagerFrontend::incrementSetSize(const pdb::PDBSetPtr &set,
   it->second.size += uncompressedSize;
 }
 
+void pdb::PDBStorageManagerFrontend::freeSetPage(const pdb::PDBSetPtr &set, uint64_t pageNum) {
+
+  // insert the page into the free list
+  freeSkippedPages[set].insert(pageNum);
+}
+
+void pdb::PDBStorageManagerFrontend::startWritingToPage(const pdb::PDBSetPtr &set, uint64_t pageNum) {
+  // mark the page as being written to
+  pagesBeingWrittenTo[set].insert(pageNum);
+}
+
+void pdb::PDBStorageManagerFrontend::endWritingToPage(const pdb::PDBSetPtr &set, uint64_t pageNum) {
+  // unmark the page as being written to
+  pagesBeingWrittenTo[set].erase(pageNum);
+}
+
+bool pdb::PDBStorageManagerFrontend::handleDispatchFailure(const PDBSetPtr &set, uint64_t pageNum, PDBCommunicatorPtr communicator) {
+
+  // where we put the error
+  std::string error;
+
+  {
+    // lock the stuff
+    unique_lock<std::mutex> lck(pageMutex);
+
+    // finish writing to the set
+    endWritingToPage(set, pageNum);
+
+    // return the page to the free list
+    freeSetPage(set, pageNum);
+  }
+
+  // create an allocation block to hold the response
+  Handle<SimpleRequestResult> failResponse = makeObject<SimpleRequestResult>(false, error);
+
+  // sends result to requester
+  return communicator->sendObject(failResponse, error);
+}
+
 
 
 
