@@ -128,7 +128,6 @@ bool pdb::PDBStraightPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManagerBa
 
     // make the work
     PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&counter, i, this](PDBBuzzerPtr callerBuzzer) {
-      const UseTemporaryAllocationBlock tempBlock{1024 * 1024};
       (*myPipelines)[i]->run();
       // signal that the run was successful
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
