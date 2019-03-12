@@ -4,6 +4,7 @@
 
 #include <PDBVector.h>
 #include <ComputePlan.h>
+#include <GenericWork.h>
 #include "physicalAlgorithms/PDBStraightPipeAlgorithm.h"
 #include "ExJob.h"
 
@@ -75,28 +76,71 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
     return false;
   }
 
-  /// 3. Init the pipeline
+  /// 3. Init the pipelines
+
+  // get the number of worker threads from this server's config
+  int32_t numWorkers = storage->getConfiguration()->numThreads;
+
 
   // empty computations parameters
   std::map<std::string, ComputeInfoPtr> params;
 
-  // init the pipeline
-  myPipeline = plan.buildPipeline(source->tupleSetIdentifier, /* this is the TupleSet the pipeline starts with */
-                                  sink->tupleSetIdentifier,     /* this is the TupleSet the pipeline ends with */
-                                  sourcePageSet,
-                                  sinkPageSet,
-                                  params,
-                                  20,
-                                  0);
+  // build a pipeline for each worker thread
+  myPipelines = std::make_shared<std::vector<PipelinePtr>>();
+  for (uint64_t i = 0; i < numWorkers; ++i) {
+    auto pipeline = plan.buildPipeline(source->tupleSetIdentifier, /* this is the TupleSet the pipeline starts with */
+                                       sink->tupleSetIdentifier,     /* this is the TupleSet the pipeline ends with */
+                                       sourcePageSet,
+                                       sinkPageSet,
+                                       params,
+                                       20,
+                                       i);
+    myPipelines->push_back(pipeline);
+  }
 
   return true;
 }
 
 bool pdb::PDBStraightPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
 
-  // run the pipeline
-  myPipeline->run();
+  atomic_bool success;
+  success = true;
 
+  // create the buzzer
+  atomic_int counter;
+  counter = 0;
+  PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
+
+    // did we fail?
+    if(myAlarm == PDBAlarm::GenericError) {
+      success = false;
+    }
+
+    // increment the count
+    cnt++;
+  });
+
+  // here we get a worker per pipeline and run all the pipelines.
+
+  for (int i = 0; i < myPipelines->size(); ++i) {
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&counter, i, this](PDBBuzzerPtr callerBuzzer) {
+      const UseTemporaryAllocationBlock tempBlock{1024 * 1024};
+      (*myPipelines)[i]->run();
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+    });
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
+  // wait until all the pipelines have completed
+  while (counter < myPipelines->size()) {
+    tempBuzzer->wait();
+  }
 
   // should we materialize this to a set?
   if(shouldMaterialize) {

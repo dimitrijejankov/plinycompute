@@ -8,6 +8,7 @@
 #include "PDBStorageManagerBackend.h"
 #include "PDBPhysicalAlgorithm.h"
 #include "Pipeline.h"
+#include <vector>
 
 /**
  * This is important do not remove, it is used by the generator
@@ -49,9 +50,10 @@ public:
 private:
 
   /**
-   * The pipeline this thing is going to run, it is initialized when you call setup on this object
+   * Vector of pipelines that will run this algorithm. The pipelines will be built when you call setup on this object.
+   * This must be null when sending this object.
    */
-  PipelinePtr myPipeline;
+  std::shared_ptr<std::vector<PipelinePtr>> myPipelines = nullptr;
 
   /**
    * The name of the database <databaseName, setName> initialized when you call setup on this object, this has to be null when sending

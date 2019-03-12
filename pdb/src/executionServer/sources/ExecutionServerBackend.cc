@@ -42,10 +42,9 @@ void pdb::ExecutionServerBackend::registerHandlers(pdb::PDBServer &forMe) {
             {
               // want this to be destroyed
               Handle<pdb::ExRunJob> result = sendUsingMe->getNextObject<pdb::ExRunJob> (success, error);
-              if (!success) {
-
+              if (!success || !(result->shouldRun)) {
                 // we are done here does not work
-                return make_pair(true, error);
+                return make_pair(true, error); // TODO different error message if result->shouldRun is false?
               }
             }
 
