@@ -132,7 +132,7 @@ void PDBServer::listen() {
       // at this point we can say that we started accepting requests
       this->startedAcceptingRequests = true;
 
-      if (myCommunicator->pointToInternet(logger, sockFD, errMsg)) {
+      if (!myCommunicator->pointToInternet(logger, sockFD, errMsg)) {
         logger->error("PDBServer: could not point to an internet socket: " + errMsg);
         continue;
       }
@@ -199,7 +199,7 @@ void PDBServer::listen() {
 
       PDBCommunicatorPtr myCommunicator;
       myCommunicator = make_shared<PDBCommunicator>();
-      if (myCommunicator->pointToFile(logger, sockFD, errMsg)) {
+      if (!myCommunicator->pointToFile(logger, sockFD, errMsg)) {
         logger->error("PDBServer: could not point to an local UNIX socket: " + errMsg);
         continue;
       }
@@ -389,7 +389,7 @@ bool PDBServer::shutdownCluster() {
   bool failure = communicator->connectToInternetServer(logger, config->managerPort, config->managerAddress, errMsg);
 
   // did we fail to connect to the server
-  if(failure) {
+  if(!failure) {
     return false;
   }
 

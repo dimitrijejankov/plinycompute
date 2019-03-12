@@ -61,7 +61,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
       // connect to the server
       PDBCommunicator comm;
       size_t numRetries = 0;
-      while (comm.connectToInternetServer(logger, node->port, node->address, errMsg)) {
+      while (!comm.connectToInternetServer(logger, node->port, node->address, errMsg)) {
 
         // log the error
         logger->error(errMsg);

@@ -74,11 +74,11 @@ bool PDBCommunicator::pointToInternet(PDBLoggerPtr logToMeIn, int socketFDIn, st
         errMsg += strerror(errno);
         close(socketFD);
         socketFD = -1;
-        return true;
+        return false;
     }
     socketClosed = false;
     logToMe->info("PDBCommunicator: got request from Internet");
-    return false;
+    return true;
 }
 
 bool PDBCommunicator::connectToInternetServer(PDBLoggerPtr logToMeIn,
@@ -109,7 +109,7 @@ bool PDBCommunicator::connectToInternetServer(PDBLoggerPtr logToMeIn,
         errMsg += strerror(errno);
         std::cout << errMsg << std::endl;
         socketClosed = true;
-        return true;
+        return false;
     }
 
     bool connected = false;
@@ -144,7 +144,7 @@ bool PDBCommunicator::connectToInternetServer(PDBLoggerPtr logToMeIn,
         errMsg += strerror(errno);
         std::cout << errMsg << std::endl;
         socketClosed = true;
-        return true;
+        return false;
     }
 
     freeaddrinfo(result);
@@ -159,7 +159,7 @@ bool PDBCommunicator::connectToInternetServer(PDBLoggerPtr logToMeIn,
     logToMe->trace("PDBCommunicator: Successfully connected to the remote host");
     logToMe->trace("PDBCommunicator: Socket FD is " + std::to_string(socketFD));
 
-    return false;
+    return true;
 }
 
 void PDBCommunicator::setNeedsToDisconnect(bool option) {
@@ -183,10 +183,9 @@ bool PDBCommunicator::connectToLocalServer(PDBLoggerPtr logToMeIn,
         close(socketFD);
         socketFD = -1;
         socketClosed = true;
-        return true;
+        return false;
     }
 
-    // std :: cout << "In here!!\n";
 
     server.sun_family = AF_UNIX;
     strcpy(server.sun_path, fName.c_str());
@@ -198,7 +197,7 @@ bool PDBCommunicator::connectToLocalServer(PDBLoggerPtr logToMeIn,
         close(socketFD);
         socketFD = -1;
         socketClosed = true;
-        return true;
+        return false;
     }
 
     // Jia: moved automatic tear-down logic from Chris' message-based communication to here
@@ -208,7 +207,7 @@ bool PDBCommunicator::connectToLocalServer(PDBLoggerPtr logToMeIn,
     fileName = fName;
     // std :: cout << "Connected!!\n";
     socketClosed = false;
-    return false;
+    return true;
 }
 
 bool PDBCommunicator::pointToFile(PDBLoggerPtr logToMeIn, int socketFDIn, std::string& errMsg) {
@@ -226,12 +225,12 @@ bool PDBCommunicator::pointToFile(PDBLoggerPtr logToMeIn, int socketFDIn, std::s
         close(socketFD);
         socketFD = -1;
         socketClosed = true;
-        return true;
+        return false;
     }
 
     logToMe->trace("PDBCommunicator: got request from same machine");
     socketClosed = false;
-    return false;
+    return true;
 }
 
 PDBCommunicator::~PDBCommunicator() {
@@ -438,7 +437,7 @@ bool PDBCommunicator::doTheWrite(char* start, char* end) {
                 close(socketFD);
                 socketFD = -1;
                 socketClosed = true;
-                return true;
+                return false;
             }
         } else {
             logToMe->trace("PDBCommunicator: wrote " + std::to_string(numBytes) + " and are " +
@@ -446,7 +445,7 @@ bool PDBCommunicator::doTheWrite(char* start, char* end) {
             start += numBytes;
         }
     }
-    return false;
+    return true;
 }
 
 bool PDBCommunicator::doTheRead(char* dataIn) {
@@ -473,7 +472,7 @@ bool PDBCommunicator::doTheRead(char* dataIn) {
             close(socketFD);
             socketFD = -1;
             socketClosed = true;
-            return true;
+            return false;
         } else if (numBytes == 0) {
             logToMe->info("PDBCommunicator: the other side closed the socket when we do the read");
             PDB_COUT << "PDBCommunicator: the other side closed the socket when we doTheRead"
@@ -489,7 +488,7 @@ bool PDBCommunicator::doTheRead(char* dataIn) {
                 close(socketFD);
                 socketFD = -1;
                 socketClosed = true;
-                return true;
+                return false;
             }
         } else {
             cur += numBytes;
@@ -497,7 +496,7 @@ bool PDBCommunicator::doTheRead(char* dataIn) {
         this->logToMe->trace("PDBCommunicator: " + std::to_string(msgSize - (cur - start)) +
                              " bytes to go!");
     }
-    return false;
+    return true;
 }
 
 bool PDBCommunicator::skipBytes(std::string &errMsg) {
@@ -508,7 +507,7 @@ bool PDBCommunicator::skipBytes(std::string &errMsg) {
     }
 
 
-    if (skipTheRead()) {
+    if (!skipTheRead()) {
         errMsg = "Could not read the next object coming over the wire";
         readCurMsgSize = false;
         return false;
@@ -548,7 +547,7 @@ bool PDBCommunicator::skipTheRead() {
             socketClosed = true;
 
             // finish
-            return true;
+            return false;
 
         } else if (numBytes == 0) {
 
@@ -571,7 +570,7 @@ bool PDBCommunicator::skipTheRead() {
                 socketClosed = true;
 
                 // finish
-                return true;
+                return false;
             }
         } else {
 
@@ -580,7 +579,7 @@ bool PDBCommunicator::skipTheRead() {
         }
         this->logToMe->trace("PDBCommunicator: " + std::to_string(msgSize - cur) +" bytes to go!");
     }
-    return false;
+    return true;
 }
 
 // JiaNote: add following functions to enable a stable long connection:
@@ -613,7 +612,7 @@ bool PDBCommunicator::reconnect(std::string& errMsg) {
     } else {
         errMsg = "Can't reconnect because I'm a server";
         logToMe->error(errMsg);
-        return true;
+        return false;
     }
 }
 }

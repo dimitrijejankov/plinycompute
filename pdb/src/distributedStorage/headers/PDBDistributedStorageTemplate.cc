@@ -27,7 +27,7 @@ std::pair<pdb::PDBPageHandle, size_t> pdb::PDBDistributedStorage::requestPage(co
   while (numRetries <= getConfiguration()->maxRetries) {
 
     // connect to the server
-    if (comm->connectToInternetServer(logger, node->port, node->address, errMsg)) {
+    if (!comm->connectToInternetServer(logger, node->port, node->address, errMsg)) {
 
       // log the error
       logger->error(errMsg);

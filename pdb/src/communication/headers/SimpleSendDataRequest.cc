@@ -53,7 +53,7 @@ ReturnType simpleSendDataRequest(PDBLoggerPtr myLogger,
         string errMsg;
         bool success;
 
-        if (temp.connectToInternetServer(myLogger, port, address, errMsg)) {
+        if (!temp.connectToInternetServer(myLogger, port, address, errMsg)) {
             myLogger->error(errMsg);
             myLogger->error("simpleSendDataRequest: not able to connect to server.\n");
             std::cout << "ERROR: can't connect to remote server with port =" << port

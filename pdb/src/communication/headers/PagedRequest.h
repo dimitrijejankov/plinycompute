@@ -59,7 +59,7 @@ ReturnType pagedRequest(const std::string &address, int port, const PDBBufferMan
     bool success = false;
 
     // connect to the internet server
-    if (temp.connectToInternetServer(logger, port, address, errMsg)) {
+    if (!temp.connectToInternetServer(logger, port, address, errMsg)) {
 
       // log the error
       logger->error(errMsg);

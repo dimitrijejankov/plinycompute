@@ -27,7 +27,7 @@ void pdb::ExecutionServerFrontend::registerHandlers(pdb::PDBServer &forMe) {
             /// 1. Connect to the backend and forward the request
 
             PDBCommunicatorPtr communicatorToBackend = make_shared<PDBCommunicator>();
-            if (communicatorToBackend->connectToLocalServer(logger, getConfiguration()->ipcFile, error)) {
+            if (!communicatorToBackend->connectToLocalServer(logger, getConfiguration()->ipcFile, error)) {
 
               // log the error
               logger->error(error);

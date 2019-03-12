@@ -53,7 +53,7 @@ bool PDBCommunicator::sendObject(Handle<ObjType>& sendMe, std::string& errMsg) {
     }
 
     // write out the record type
-    if (doTheWrite(((char*)&recType), ((char*)&recType) + sizeof(int16_t))) {
+    if (!doTheWrite(((char*)&recType), ((char*)&recType) + sizeof(int16_t))) {
         logToMe->error(errMsg);
         logToMe->error(strerror(errno));
         return false;
@@ -69,7 +69,7 @@ bool PDBCommunicator::sendObject(Handle<ObjType>& sendMe, std::string& errMsg) {
     }
 
     // write it out
-    if (doTheWrite((char*)record, ((char*)record) + record->numBytes())) {
+    if (!doTheWrite((char*)record, ((char*)record) + record->numBytes())) {
 
         // set the error
         errMsg = "PDBCommunicator: not able to send the object size";
@@ -99,7 +99,7 @@ bool PDBCommunicator::sendObject(Handle<ObjType>& sendMe, std::string& errMsg, s
     }
 
     // write out the record type
-    if (doTheWrite(((char*)&recType), ((char*)&recType) + sizeof(int16_t))) {
+    if (!doTheWrite(((char*)&recType), ((char*)&recType) + sizeof(int16_t))) {
         logToMe->error(errMsg);
         logToMe->error(strerror(errno));
         return false;
@@ -118,7 +118,7 @@ bool PDBCommunicator::sendObject(Handle<ObjType>& sendMe, std::string& errMsg, s
     }
 
     // do the write
-    if (doTheWrite((char*)record, ((char*)record) + record->numBytes())) {
+    if (!doTheWrite((char*)record, ((char*)record) + record->numBytes())) {
 
         // set the error
         errMsg = "PDBCommunicator: not able to send the object size";
@@ -148,7 +148,7 @@ inline bool PDBCommunicator::receiveBytes(void* data, std::string& errMsg) {
     // the first few bytes of a record always record the size
     char* mem = (char*)data;
 
-    if (doTheRead(mem)) {
+    if (!doTheRead(mem)) {
         errMsg = "Could not read the next object coming over the wire";
         readCurMsgSize = false;
         return false;
@@ -160,7 +160,7 @@ inline bool PDBCommunicator::receiveBytes(void* data, std::string& errMsg) {
 inline bool PDBCommunicator::sendBytes(void* data, size_t sizeOfBytes, std::string& errMsg) {
 
     int16_t recType = NoMsg_TYPEID;
-    if (doTheWrite(((char*)&recType), ((char*)&recType) + sizeof(int16_t))) {
+    if (!doTheWrite(((char*)&recType), ((char*)&recType) + sizeof(int16_t))) {
         errMsg = "PDBCommunicator: not able to send the object type";
         logToMe->error(errMsg);
         logToMe->error(strerror(errno));
@@ -168,7 +168,7 @@ inline bool PDBCommunicator::sendBytes(void* data, size_t sizeOfBytes, std::stri
     }
 
     // now write the size
-    if (doTheWrite(((char*)&sizeOfBytes), ((char*)&sizeOfBytes) + sizeof(size_t))) {
+    if (!doTheWrite(((char*)&sizeOfBytes), ((char*)&sizeOfBytes) + sizeof(size_t))) {
         errMsg = "PDBCommunicator: not able to send the object size";
         logToMe->error(errMsg);
         logToMe->error(strerror(errno));
@@ -176,7 +176,7 @@ inline bool PDBCommunicator::sendBytes(void* data, size_t sizeOfBytes, std::stri
     }
 
     // now we put the actual bytes
-    if (doTheWrite(((char*)data), ((char*)data) + sizeOfBytes)) {
+    if (!doTheWrite(((char*)data), ((char*)data) + sizeOfBytes)) {
         errMsg = "PDBCommunicator: not able to send the bytes";
         logToMe->error(errMsg);
         logToMe->error(strerror(errno));
@@ -224,7 +224,7 @@ Handle<ObjType> PDBCommunicator::getNextObject(void* readToHere,
     mem += sizeof(size_t);
     msgSize -= sizeof(size_t);
 
-    if (doTheRead(mem)) {
+    if (!doTheRead(mem)) {
         errMsg = "Could not read the next object coming over the wire";
         success = false;
         readCurMsgSize = false;

@@ -164,7 +164,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
   /// 3. Initiate the storing on the backend
 
   PDBCommunicatorPtr communicatorToBackend = make_shared<PDBCommunicator>();
-  if (communicatorToBackend->connectToLocalServer(logger, getConfiguration()->ipcFile, error)) {
+  if (!communicatorToBackend->connectToLocalServer(logger, getConfiguration()->ipcFile, error)) {
 
     return std::make_pair(false, error);
   }

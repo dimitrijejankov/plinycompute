@@ -89,7 +89,7 @@ bool PDBStorageIterator<T>::getNextPage(bool isFirst) {
   while (numRetries <= maxRetries) {
 
     // connect to the server
-    if (comm->connectToInternetServer(logger, port, address, errMsg)) {
+    if (!comm->connectToInternetServer(logger, port, address, errMsg)) {
 
       // log the error
       logger->error(errMsg);

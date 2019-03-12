@@ -55,7 +55,7 @@ ReturnType RequestFactory::heapRequest(PDBLoggerPtr myLogger,
 
         // connect to the server
         PDBCommunicator temp;
-        if (temp.connectToInternetServer(myLogger, port, address, errMsg)) {
+        if (!temp.connectToInternetServer(myLogger, port, address, errMsg)) {
 
             // log the error
             myLogger->error(errMsg);
@@ -162,7 +162,7 @@ ReturnType RequestFactory::doubleHeapRequest(PDBLoggerPtr logger,
 
         // connect to the server
         PDBCommunicator temp;
-        if (temp.connectToInternetServer(logger, port, address, errMsg)) {
+        if (!temp.connectToInternetServer(logger, port, address, errMsg)) {
 
             // log the error
             logger->error(errMsg);
@@ -253,7 +253,7 @@ ReturnType RequestFactory::dataHeapRequest(PDBLoggerPtr logger, int port, const 
 
         // connect to the server
         PDBCommunicator temp;
-        if (temp.connectToInternetServer(logger, port, address, errMsg)) {
+        if (!temp.connectToInternetServer(logger, port, address, errMsg)) {
 
             // log the error
             logger->error(errMsg);
@@ -353,7 +353,7 @@ ReturnType RequestFactory::bytesHeapRequest(PDBLoggerPtr logger, int port, std::
 
         // connect to the server
         PDBCommunicator temp;
-        if (temp.connectToInternetServer(logger, port, address, errMsg)) {
+        if (!temp.connectToInternetServer(logger, port, address, errMsg)) {
 
             // log the error
             logger->error(errMsg);
