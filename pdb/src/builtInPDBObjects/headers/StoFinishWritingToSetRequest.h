@@ -22,35 +22,42 @@
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %StoStartWritingToSetResult%
+// PRELOAD %StoFinishWritingToSetRequest%
 
 namespace pdb {
 
 // encapsulates a request to add data to a set in storage
-class StoStartWritingToSetResult : public Object {
+class StoFinishWritingToSetRequest : public Object {
 
 public:
 
-  StoStartWritingToSetResult() = default;
-  ~StoStartWritingToSetResult() = default;
+  StoFinishWritingToSetRequest() = default;
+  ~StoFinishWritingToSetRequest() = default;
 
-  /**
-   * Constructor to preallocate the vector of pages
-   * @param numPages
-   */
-  explicit StoStartWritingToSetResult(size_t numPages) : pages(numPages, 0) {}
+  StoFinishWritingToSetRequest(const std::string &db, const std::string &set, std::vector<uint64_t> &sizes) : pages(sizes.size(), 0), databaseName(db), setName(set) {
+
+    // copy the sizes
+    for(const auto &it : sizes) {
+      pages.push_back(it);
+    }
+  }
 
   ENABLE_DEEP_COPY
 
   /**
-   * The pages we got to put stuff in
+   * The name of the database the set belongs to
    */
-  pdb::Vector<uint64_t> pages;
+  String databaseName;
 
   /**
-   * was the request a success?
+   * The name of the set we are storing the stuff
    */
-  bool success = false;
+  String setName;
+
+  /**
+   * The pairs of <page number, size> that we were writing to
+   */
+  pdb::Vector<uint64_t> pages;
 
 };
 

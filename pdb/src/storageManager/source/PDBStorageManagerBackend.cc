@@ -13,6 +13,7 @@
 #include <PDBStorageManagerBackend.h>
 #include <StoStartWritingToSetRequest.h>
 #include <StoStartWritingToSetResult.h>
+#include <StoFinishWritingToSetRequest.h>
 
 void pdb::PDBStorageManagerBackend::init() {
 
@@ -126,17 +127,26 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(pdb::PDBAbstractPageSetPt
   auto numPages = pageSet->getNumPages();
 
   // request from the frontend to start writing the pages
-  auto response = RequestFactory::heapRequest<StoStartWritingToSetRequest, StoStartWritingToSetResult, std::pair<bool, uint64_t>>(
-      this->logger, getConfiguration()->port, getConfiguration()->address, std::make_pair(false, 0), 1024,
+  auto response = RequestFactory::heapRequest<StoStartWritingToSetRequest, StoStartWritingToSetResult, std::pair<bool, std::vector<uint64_t>>>(
+      this->logger, getConfiguration()->port, getConfiguration()->address, std::make_pair(false, std::vector<uint64_t>()), 1024,
       [&](Handle<StoStartWritingToSetResult> result) {
 
         // if the result is something else null we got a response
         if (result == nullptr) {
-          return std::make_pair<bool, uint64_t>(false, 0);
+          return std::make_pair<bool, std::vector<uint64_t>>(false, std::vector<uint64_t>());
         }
 
-        //
-        return std::make_pair(result->success, result->startPage);
+        // preallocate the vector
+        std::vector<uint64_t> pages;
+        pages.reserve(result->pages.size());
+
+        // copy the given page numbers
+        for(int i = 0; i < result->pages.size(); ++i) {
+          pages.emplace_back(result->pages[i]);
+        }
+
+        // return the value
+        return std::make_pair(result->success, std::move(pages));
       },
       numPages, set.first, set.second);
 
@@ -151,16 +161,20 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(pdb::PDBAbstractPageSetPt
 
   // control variables
   PDBPageHandle page;
-  uint64_t currPage = response.second;
 
   // ok we did not let's copy the stuff
+  int i = 0;
+
+  // copy the pages
   while ((page = pageSet->getNextPage(0)) != nullptr) {
 
     // repin the page
     page->repin();
 
     // get the set page
-    auto setPage = bufferManager->getPage(setIdentifier, currPage++);
+    uint64_t pageNum = response.second[i];
+
+    auto setPage = bufferManager->getPage(setIdentifier, pageNum);
 
     // get the size of the page
     auto pageSize = page->getSize();
@@ -168,9 +182,18 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(pdb::PDBAbstractPageSetPt
     // copy the stuff
     memcpy(setPage->getBytes(), page->getBytes(), pageSize);
 
-    // freeze the size
+    // freeze the thing // TODO this might not be the best option, since freezing it on the frontend would be a bit nicer.
     setPage->freezeSize(pageSize);
+
+    // go to the next page
+    i++;
   }
 
-  return true;
+  return pdb::RequestFactory::heapRequest<pdb::StoFinishWritingToSetRequest, pdb::SimpleRequestResult, bool>(
+      logger, getConfiguration()->port, getConfiguration()->address, false, 2 * sizeof(uint64_t) * numPages + 1024,
+      [&](pdb::Handle<pdb::SimpleRequestResult> result) {
+
+        // did we get something back or not
+        return result != nullptr && result->getRes().first;
+      }, set.first, set.second, response.second);
 }

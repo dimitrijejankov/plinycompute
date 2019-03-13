@@ -22,6 +22,7 @@
 #include <StoGetPageResult.h>
 #include <StoSetStatsResult.h>
 #include <StoStartWritingToSetResult.h>
+#include <StoFinishWritingToSetRequest.h>
 
 template <class T>
 std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageRequest(const pdb::Handle<pdb::StoGetPageRequest> &request,
@@ -292,11 +293,15 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStartWritingT
 
   /// TODO this has to be more robust, right now this is just here to do the job!
 
-  // make an allocation block
-  const UseTemporaryAllocationBlock tempBlock{1024};
+  // make an allocation block // TODO this needs to be hardened since they could just request a ton of pages
+  const UseTemporaryAllocationBlock tempBlock{sizeof(uint64_t) * request->numPages + 1024};
 
+  // create a response
+  Handle<StoStartWritingToSetResult> response = makeObject<StoStartWritingToSetResult>(request->numPages);
+
+  // success indicators
   bool success = false;
-  uint64_t firstPage = 0;
+  std::string error;
 
   // check if the set exists
   if(getFunctionalityPtr<pdb::PDBCatalogClient>()->setExists(request->databaseName, request->setName)) {
@@ -307,34 +312,27 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStartWritingT
     // make the set
     auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
 
-    // try to find the set
-    auto it = pageStats.find(set);
+    // store the pages
+    for(int i = 0; i < request->numPages; ++i) {
 
-    // do we even have a record for this set
-    if (it != pageStats.end()) {
+      // get the next page
+      auto pageNum = getNextFreePage(set);
 
-      // figure out the page and increment them
-      firstPage = it->second.lastPage;
-      it->second.lastPage += request->numPages;
-    } else {
+      // indicate that we are writing to this page
+      startWritingToPage(set, pageNum);
 
-      // set the page to the (requested number - 1) since the pages start from 0
-      pageStats[set].lastPage = request->numPages - 1;
-
-      // set the size to the size of this request
-      pageStats[set].size = 0;
-      firstPage = 0;
+      // add the page to the response
+      response->pages.push_back(pageNum);
     }
 
-    // ok we managed to find it and get some pages
+    // set the success to true
     success = true;
   }
 
-  // create a response
-  Handle<StoStartWritingToSetResult> response = makeObject<StoStartWritingToSetResult>(firstPage, success);
+  // set the success indicator
+  response->success = success;
 
   // send the thing to the backend
-  std::string error;
   if (!sendUsingMe->sendObject(response, error)) {
 
     // finish this
@@ -342,7 +340,74 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStartWritingT
   }
 
   // we succeeded
-  return std::make_pair(success, "");
+  return std::make_pair(success, error);
 }
+
+template<class Communicator, class Requests>
+std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStopWritingToSet(pdb::Handle<pdb::StoFinishWritingToSetRequest> request, shared_ptr<Communicator> sendUsingMe) {
+
+
+  /// 1. Check the pages
+
+  // make the set
+  auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
+
+  bool success = true;
+  {
+    // lock the stuff
+    unique_lock<std::mutex> lck(pageMutex);
+
+    // check all the pages
+    for(uint64_t i = 0; i < request->pages.size(); ++i) {
+
+      // if the page marked as free or we are not writing to the page something went horribly wrong
+      if(isPageFree(set, request->pages[i]) || !isPageBeingWrittenTo(set, request->pages[i])) {
+
+        // indicate that we failed
+        success = false;
+        break;
+      }
+
+      // indicate that we are done writing to it
+      endWritingToPage(set, request->pages[i]);
+    }
+  }
+
+  /// 2. If we failed send a NACK
+
+  std::string error;
+  if(!success) {
+
+    // make an allocation block
+    const UseTemporaryAllocationBlock tempBlock{1024};
+
+    // set the error
+    error = "The pages are either not free or not marked for writing. Therefore the request was invalid.";
+
+    // create an allocation block to hold the response
+    Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(success, error);
+
+    // sends result to requester
+    sendUsingMe->sendObject(simpleResponse, error);
+
+    // finish this
+    return std::make_pair(false, error);
+  }
+
+  /// 3. send an ACK to the backend
+
+  // make an allocation block
+  const UseTemporaryAllocationBlock tempBlock{1024};
+
+  // create an allocation block to hold the response
+  Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(true, "");
+
+  // sends result to requester
+  sendUsingMe->sendObject(simpleResponse, error);
+
+  // finish this
+  return std::make_pair(true, error);
+}
+
 
 #endif //PDB_PDBSTORAGEMANAGERFRONTENDTEMPLATE_H

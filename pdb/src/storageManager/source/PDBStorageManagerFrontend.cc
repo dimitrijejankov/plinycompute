@@ -126,6 +126,12 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
       make_shared<pdb::HeapRequestHandler<pdb::StoStartWritingToSetRequest>>([&](pdb::Handle<pdb::StoStartWritingToSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
         return handleStartWritingToSet<PDBCommunicator, RequestFactory>(request, sendUsingMe);
       }));
+
+  forMe.registerHandler(
+      StoFinishWritingToSetRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoFinishWritingToSetRequest>>([&](pdb::Handle<pdb::StoFinishWritingToSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
+        return handleStopWritingToSet<PDBCommunicator, RequestFactory>(request, sendUsingMe);
+      }));
 }
 
 bool pdb::PDBStorageManagerFrontend::isPageBeingWrittenTo(const pdb::PDBSetPtr &set, uint64_t pageNum) {

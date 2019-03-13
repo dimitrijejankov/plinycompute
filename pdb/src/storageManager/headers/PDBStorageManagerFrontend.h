@@ -18,6 +18,7 @@
 #include <StoDispatchData.h>
 #include <StoSetStatsRequest.h>
 #include <StoStartWritingToSetRequest.h>
+#include <StoFinishWritingToSetRequest.h>
 
 namespace pdb {
 
@@ -107,6 +108,17 @@ public:
    */
   template <class Communicator, class Requests>
   std::pair<bool, std::string> handleStartWritingToSet(pdb::Handle<pdb::StoStartWritingToSetRequest> request, std::shared_ptr<Communicator> sendUsingMe);
+
+  /**
+   *
+   * @tparam Communicator
+   * @tparam Requests
+   * @param request
+   * @param sendUsingMe
+   * @return
+   */
+  template <class Communicator, class Requests>
+  std::pair<bool, std::string> handleStopWritingToSet(pdb::Handle<pdb::StoFinishWritingToSetRequest> request, std::shared_ptr<Communicator> sendUsingMe);
 
   /**
    *
