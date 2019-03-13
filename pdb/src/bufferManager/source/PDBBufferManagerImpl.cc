@@ -235,7 +235,8 @@ void PDBBufferManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn,
   tempFile = tempFileIn;
   sharedMemory.numPages = numPagesIn;
   metaDataFile = std::move(metaFile);
-  tempFileFD = open((storageLoc + "/" + tempFileIn).c_str(), O_CREAT | O_RDWR, 0666);
+
+  tempFileFD = open(tempFileIn.c_str(), O_CREAT | O_RDWR, 0666);
 
   // there are no currently available positions
   logOfPageSize = -1;

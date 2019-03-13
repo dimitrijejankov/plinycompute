@@ -119,6 +119,7 @@ class VectorTupleSetIterator : public ComputeSource {
     if (lastRec != nullptr) {
 
       // kill the page
+      lastPage->unpin();
       lastPage = nullptr;
 
       // kill the record
