@@ -108,7 +108,15 @@ public:
   template <class Communicator, class Requests>
   std::pair<bool, std::string> handleStartWritingToSet(pdb::Handle<pdb::StoStartWritingToSetRequest> request, std::shared_ptr<Communicator> sendUsingMe);
 
-  bool handleDispatchFailure(const PDBSetPtr &set, uint64_t pageNum, PDBCommunicatorPtr communicator);
+  /**
+   *
+   * @param set
+   * @param pageNum
+   * @param size
+   * @param communicator
+   * @return
+   */
+  bool handleDispatchFailure(const PDBSetPtr &set, uint64_t pageNum, uint64_t size, PDBCommunicatorPtr communicator);
 
   /**
    * Checks whether we are writing to a particular page.
@@ -184,6 +192,20 @@ public:
    * @param set
    */
   void incrementSetSize(const PDBSetPtr &set, uint64_t uncompressedSize);
+
+  /**
+   * This method decrements the set size. It assumes the set exists, should not be called unless it exists!
+   * This method is not thread-safe and should only be used when locking the page mutex
+   * @param set
+   */
+  void decrementSetSize(const PDBSetPtr &set, uint64_t uncompressedSize);
+
+  /**
+   * Retu
+   * @param set
+   * @return
+   */
+  std::shared_ptr<PDBStorageSetStats> getSetStats(const PDBSetPtr &set);
 
   /**
    * The logger

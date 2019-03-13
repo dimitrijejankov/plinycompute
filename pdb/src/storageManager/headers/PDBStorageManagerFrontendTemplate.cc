@@ -180,7 +180,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
     auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
 
     // set the indicators and send a NACK to the client since we failed
-    handleDispatchFailure(set, pageNum, sendUsingMe);
+    handleDispatchFailure(set, pageNum, uncompressedSize, sendUsingMe);
 
     // finish
     return std::make_pair(false, error);
@@ -195,7 +195,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
     auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
 
     // set the indicators and send a NACK to the client since we failed
-    handleDispatchFailure(set, pageNum, sendUsingMe);
+    handleDispatchFailure(set, pageNum, uncompressedSize, sendUsingMe);
 
     // finish
     return std::make_pair(false, error);
@@ -211,7 +211,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
      return true;
    }
 
-   // just invalidate the set
+   // since we failed just invalidate the set
    auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
    {
     // lock the stuff
@@ -222,6 +222,9 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
 
     // return the page to the free list
     freeSetPage(set, pageNum);
+
+    // decrement the size of the set
+    decrementSetSize(set, uncompressedSize);
    }
 
    // log the error
@@ -258,17 +261,17 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetSetStats(p
   // make the set identifier
   auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
 
-  // try to find the set
-  auto it = pageStats.find(set);
+  // figure out whether this was a success
+  auto stats = getSetStats(set);
 
+  // make an allocation block
   const UseTemporaryAllocationBlock tempBlock{1024};
 
-  // figure out whether this was a success
   pdb::Handle<pdb::StoSetStatsResult> setStatResult;
-  if(it != pageStats.end()) {
+  if(stats != nullptr) {
 
     // set the stat results
-    setStatResult = pdb::makeObject<pdb::StoSetStatsResult>(it->second.lastPage + 1, it->second.size, true);
+    setStatResult = pdb::makeObject<pdb::StoSetStatsResult>(stats->lastPage + 1, stats->size, true);
   }
   else {
 

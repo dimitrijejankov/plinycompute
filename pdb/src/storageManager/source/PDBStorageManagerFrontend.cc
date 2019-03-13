@@ -228,7 +228,7 @@ void pdb::PDBStorageManagerFrontend::endWritingToPage(const pdb::PDBSetPtr &set,
   pagesBeingWrittenTo[set].erase(pageNum);
 }
 
-bool pdb::PDBStorageManagerFrontend::handleDispatchFailure(const PDBSetPtr &set, uint64_t pageNum, PDBCommunicatorPtr communicator) {
+bool pdb::PDBStorageManagerFrontend::handleDispatchFailure(const PDBSetPtr &set, uint64_t pageNum, uint64_t size, PDBCommunicatorPtr communicator) {
 
   // where we put the error
   std::string error;
@@ -242,6 +242,9 @@ bool pdb::PDBStorageManagerFrontend::handleDispatchFailure(const PDBSetPtr &set,
 
     // return the page to the free list
     freeSetPage(set, pageNum);
+
+    // decrement back the set size
+    decrementSetSize(set, size);
   }
 
   // create an allocation block to hold the response
@@ -251,6 +254,25 @@ bool pdb::PDBStorageManagerFrontend::handleDispatchFailure(const PDBSetPtr &set,
   return communicator->sendObject(failResponse, error);
 }
 
+void pdb::PDBStorageManagerFrontend::decrementSetSize(const pdb::PDBSetPtr &set, uint64_t uncompressedSize) {
 
+  // try to find the set
+  auto it = pageStats.find(set);
 
+  // increment the set size on this node
+  it->second.size -= uncompressedSize;
+}
 
+std::shared_ptr<pdb::PDBStorageSetStats> pdb::PDBStorageManagerFrontend::getSetStats(const PDBSetPtr &set) {
+
+  // try to find the set
+  auto it = pageStats.find(set);
+
+  // if we have it return it
+  if(it != pageStats.end()){
+    return std::make_shared<pdb::PDBStorageSetStats>(it->second);
+  }
+
+  // return null
+  return nullptr;
+}
