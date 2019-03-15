@@ -2,8 +2,8 @@
 // Created by dimitrije on 2/11/19.
 //
 
-#include <PDBBufferManagerBackEnd.h>
 #include <SharedEmployee.h>
+#include <memory>
 #include "HeapRequestHandler.h"
 #include "StoStoreOnPageRequest.h"
 #include "StoSetStatsRequest.h"
@@ -11,9 +11,10 @@
 #include <boost/filesystem/path.hpp>
 #include <PDBSetPageSet.h>
 #include <PDBStorageManagerBackend.h>
-#include <StoStartWritingToSetRequest.h>
+#include <StoMaterializePageSetRequest.h>
 #include <StoStartWritingToSetResult.h>
-#include <StoFinishWritingToSetRequest.h>
+#include <StoMaterializePageResult.h>
+#include <PDBBufferManagerBackEnd.h>
 
 void pdb::PDBStorageManagerBackend::init() {
 
@@ -123,77 +124,154 @@ pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerBackend::getPageSet(const std::
 
 bool pdb::PDBStorageManagerBackend::materializePageSet(pdb::PDBAbstractPageSetPtr pageSet, const std::pair<std::string, std::string> &set) {
 
+  // result indicators
+  std::string error;
+  bool success = true;
+
   // number of pages that we need to write
   auto numPages = pageSet->getNumPages();
 
-  // request from the frontend to start writing the pages
-  auto response = RequestFactory::heapRequest<StoStartWritingToSetRequest, StoStartWritingToSetResult, std::pair<bool, std::vector<uint64_t>>>(
-      this->logger, getConfiguration()->port, getConfiguration()->address, std::make_pair(false, std::vector<uint64_t>()), 1024,
-      [&](Handle<StoStartWritingToSetResult> result) {
+  /// 1. Connect to the frontend
 
-        // if the result is something else null we got a response
-        if (result == nullptr) {
-          return std::make_pair<bool, std::vector<uint64_t>>(false, std::vector<uint64_t>());
-        }
+  // the communicator
+  std::shared_ptr<PDBCommunicator> comm = std::make_shared<PDBCommunicator>();
 
-        // preallocate the vector
-        std::vector<uint64_t> pages;
-        pages.reserve(result->pages.size());
+  // try to connect
+  int numRetries = 0;
+  while (!comm->connectToInternetServer(logger, getConfiguration()->port, getConfiguration()->address, error)) {
 
-        // copy the given page numbers
-        for(int i = 0; i < result->pages.size(); ++i) {
-          pages.emplace_back(result->pages[i]);
-        }
+    // are we out of retires
+    if(numRetries > getConfiguration()->maxRetries) {
 
-        // return the value
-        return std::make_pair(result->success, std::move(pages));
-      },
-      numPages, set.first, set.second);
+      // log the error
+      logger->error(error);
+      logger->error("Can not connect to remote server with port=" + std::to_string(getConfiguration()->port) + " and address="+ getConfiguration()->address + ");");
 
-  // did we fail?
-  if(!response.first) {
+      // set the success
+      success = false;
+      break;
+    }
+
+    // increment the number of retries
+    numRetries++;
+  }
+
+  // if we failed
+  if(!success) {
+
+    // log the error
+    logger->error("We failed to to connect to the frontend in order to materialize the page set.");
+
+    // ok this sucks return false
     return false;
   }
 
+  /// 2. Make a request to materialize page set
+
+  // make an allocation block
+  const pdb::UseTemporaryAllocationBlock tempBlock{1024};
+
+  // set the stat results
+  pdb::Handle<StoMaterializePageSetRequest> materializeRequest = pdb::makeObject<StoMaterializePageSetRequest>(numPages, set.first, set.second);
+
+  // sends result to requester
+  success = comm->sendObject(materializeRequest, error);
+
+  // check if we failed
+  if(!success) {
+
+    // log the error
+    logger->error(error);
+
+    // ok this sucks we are out of here
+    return false;
+  }
+
+  /// 3. Wait for an ACK
+
+  // wait for the storage finish result
+  success = RequestFactory::waitHeapRequest<SimpleRequestResult, bool>(logger, comm, false,
+    [&](Handle<SimpleRequestResult> result) {
+
+      // check the result
+      if (result != nullptr && result->getRes().first) {
+
+        // finish
+        return true;
+      }
+
+      // set the error
+      error = result->getRes().second;
+
+      // we failed return so
+      return false;
+  });
+
+  // check if we failed
+  if(!success) {
+
+    // log the error
+    logger->error(error);
+
+    // ok this sucks we are out of here
+    return false;
+  }
+
+  /// 4. Grab the pages from the frontend
+
   // buffer manager
-  auto bufferManager = getFunctionalityPtr<PDBBufferManagerInterface>();
+  pdb::PDBBufferManagerBackEndPtr bufferManager = std::dynamic_pointer_cast<PDBBufferManagerBackEndImpl>(getFunctionalityPtr<pdb::PDBBufferManagerInterface>());
   auto setIdentifier = std::make_shared<PDBSet>(set.first, set.second);
 
-  // control variables
+  // go through each page and materialize
   PDBPageHandle page;
-
-  // ok we did not let's copy the stuff
-  int i = 0;
-
-  // copy the pages
   while ((page = pageSet->getNextPage(0)) != nullptr) {
 
     // repin the page
     page->repin();
 
-    // get the set page
-    uint64_t pageNum = response.second[i];
+    // grab a page
+    auto setPage = bufferManager->expectPage(comm);
 
-    auto setPage = bufferManager->getPage(setIdentifier, pageNum);
+    // check if we got a page
+    if(setPage == nullptr) {
+
+      // log it
+      logger->error("Failed to get the page from the frontend when materializing a set!");
+
+      // finish
+      return false;
+    }
 
     // get the size of the page
     auto pageSize = page->getSize();
 
-    // copy the stuff
+    // copy the memory to the set page
     memcpy(setPage->getBytes(), page->getBytes(), pageSize);
 
-    // freeze the thing // TODO this might not be the best option, since freezing it on the frontend would be a bit nicer.
-    setPage->freezeSize(pageSize);
+    // unpin the page
+    page->unpin();
 
-    // go to the next page
-    i++;
+    // make an allocation block to send the response
+    const pdb::UseTemporaryAllocationBlock blk{1024};
+
+    // make a request to mark that we succeeded
+    pdb::Handle<StoMaterializePageResult> materializeResult = pdb::makeObject<StoMaterializePageResult>(set.first, set.second, pageSize, true);
+
+    // sends result to requester
+    success = comm->sendObject(materializeResult, error);
+
+    // did the request succeed if so we are done
+    if(!success) {
+
+      // log it
+      logger->error(error);
+
+      // finish here
+      return false;
+    }
   }
 
-  return pdb::RequestFactory::heapRequest<pdb::StoFinishWritingToSetRequest, pdb::SimpleRequestResult, bool>(
-      logger, getConfiguration()->port, getConfiguration()->address, false, 2 * sizeof(uint64_t) * numPages + 1024,
-      [&](pdb::Handle<pdb::SimpleRequestResult> result) {
-
-        // did we get something back or not
-        return result != nullptr && result->getRes().first;
-      }, set.first, set.second, response.second);
+  // we succeeded
+  return true;
 }

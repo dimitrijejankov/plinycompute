@@ -22,7 +22,7 @@
 #include <StoGetPageResult.h>
 #include <StoSetStatsResult.h>
 #include <StoStartWritingToSetResult.h>
-#include <StoFinishWritingToSetRequest.h>
+#include <StoMaterializePageResult.h>
 
 template <class T>
 std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageRequest(const pdb::Handle<pdb::StoGetPageRequest> &request,
@@ -289,124 +289,178 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetSetStats(p
 }
 
 template<class Communicator, class Requests>
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStartWritingToSet(pdb::Handle<pdb::StoStartWritingToSetRequest> request, shared_ptr<Communicator> sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleMaterializeSet(pdb::Handle<pdb::StoMaterializePageSetRequest> request,
+                                                                                  shared_ptr<Communicator> sendUsingMe) {
 
   /// TODO this has to be more robust, right now this is just here to do the job!
-
-  // make an allocation block // TODO this needs to be hardened since they could just request a ton of pages
-  const UseTemporaryAllocationBlock tempBlock{sizeof(uint64_t) * request->numPages + 1024};
-
-  // create a response
-  Handle<StoStartWritingToSetResult> response = makeObject<StoStartWritingToSetResult>(request->numPages);
-
   // success indicators
-  bool success = false;
+  bool success = true;
   std::string error;
 
+  /// 1. Check if the set exists
+
   // check if the set exists
-  if(getFunctionalityPtr<pdb::PDBCatalogClient>()->setExists(request->databaseName, request->setName)) {
+  if(!getFunctionalityPtr<pdb::PDBCatalogClient>()->setExists(request->databaseName, request->setName)) {
 
-    // if it exists do the bookkeeping, lock the stuff that keeps track of the last page
-    unique_lock<std::mutex> lck(pageMutex);
-
-    // make the set
-    auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
-
-    // store the pages
-    for(int i = 0; i < request->numPages; ++i) {
-
-      // get the next page
-      auto pageNum = getNextFreePage(set);
-
-      // indicate that we are writing to this page
-      startWritingToPage(set, pageNum);
-
-      // add the page to the response
-      response->pages.push_back(pageNum);
-    }
-
-    // set the success to true
+    // set the error
+    error = "The set requested to materialize results does not exist!";
     success = true;
   }
 
-  // set the success indicator
-  response->success = success;
-
-  // send the thing to the backend
-  if (!sendUsingMe->sendObject(response, error)) {
-
-    // finish this
-    return std::make_pair(false, std::string("Could not send the thing to the backend"));
-  }
-
-  // we succeeded
-  return std::make_pair(success, error);
-}
-
-template<class Communicator, class Requests>
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStopWritingToSet(pdb::Handle<pdb::StoFinishWritingToSetRequest> request, shared_ptr<Communicator> sendUsingMe) {
-
-
-  /// 1. Check the pages
-
-  // make the set
-  auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
-
-  bool success = true;
-  {
-    // lock the stuff
-    unique_lock<std::mutex> lck(pageMutex);
-
-    // check all the pages
-    for(uint64_t i = 0; i < request->pages.size(); ++i) {
-
-      // if the page marked as free or we are not writing to the page something went horribly wrong
-      if(isPageFree(set, request->pages[i]) || !isPageBeingWrittenTo(set, request->pages[i])) {
-
-        // indicate that we failed
-        success = false;
-        break;
-      }
-
-      // indicate that we are done writing to it
-      endWritingToPage(set, request->pages[i]);
-    }
-  }
-
-  /// 2. If we failed send a NACK
-
-  std::string error;
-  if(!success) {
-
-    // make an allocation block
-    const UseTemporaryAllocationBlock tempBlock{1024};
-
-    // set the error
-    error = "The pages are either not free or not marked for writing. Therefore the request was invalid.";
-
-    // create an allocation block to hold the response
-    Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(success, error);
-
-    // sends result to requester
-    sendUsingMe->sendObject(simpleResponse, error);
-
-    // finish this
-    return std::make_pair(false, error);
-  }
-
-  /// 3. send an ACK to the backend
+  /// 2. send an ACK or NACK depending on whether the set exists
 
   // make an allocation block
   const UseTemporaryAllocationBlock tempBlock{1024};
 
   // create an allocation block to hold the response
-  Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(true, "");
+  Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(success, error);
 
   // sends result to requester
   sendUsingMe->sendObject(simpleResponse, error);
 
-  // finish this
-  return std::make_pair(true, error);
+  // if we failed end here
+  if(!success) {
+
+    // return the result
+    return std::make_pair(success, error);
+  }
+
+  /// 3. Send pages over the wire to the backend
+
+  // grab the buffer manager
+  auto bufferManager = std::dynamic_pointer_cast<pdb::PDBBufferManagerFrontEnd>(getFunctionalityPtr<pdb::PDBBufferManagerInterface>());
+
+  // make the set
+  auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
+
+  // this is going to count the total size of the pages
+  uint64_t totalSize = 0;
+
+  // start forwarding the pages
+  for(int i = 0; i < request->numPages; ++i) {
+
+    uint64_t pageNum;
+    {
+      // lock to do the bookkeeping
+      unique_lock<std::mutex> lck(pageMutex);
+
+      // get the next page
+      pageNum = getNextFreePage(set);
+
+      // indicate that we are writing to this page
+      startWritingToPage(set, pageNum);
+    }
+
+    // get the page
+    auto page = bufferManager->getPage(set, pageNum);
+
+    // forward the page to the backend
+    success = bufferManager->forwardPage(page, sendUsingMe, error);
+
+    // did we fail?
+    if(!success) {
+
+      // lock to do the bookkeeping
+      unique_lock<std::mutex> lck(pageMutex);
+
+      // finish writing to the set
+      endWritingToPage(set, pageNum);
+
+      // return the page to the free list
+      freeSetPage(set, pageNum);
+
+      // free the lock
+      lck.unlock();
+
+      // do we need to update the set size
+      if(totalSize != 0) {
+
+        // broadcast the set size change so far
+        this->getFunctionalityPtr<PDBCatalogClient>()->incrementSetSize(set->getDBName(), set->getSetName(), totalSize, error);
+      }
+
+      // finish here since this is not recoverable on the backend
+      return std::make_pair(success, "Error occurred while forwarding the page to the backend.\n" + error);
+    }
+
+    // the size we want to freeze this thing to
+    size_t freezeSize = 0;
+
+    // wait for the storage finish result
+    success = RequestFactory::waitHeapRequest<StoMaterializePageResult, bool>(logger, sendUsingMe, false,
+      [&](Handle<StoMaterializePageResult> result) {
+
+        // check the result
+        if (result != nullptr && result->success) {
+
+          // set the freeze size
+          freezeSize = result->materializeSize;
+
+          // finish
+          return result->success;
+        }
+
+        // set the error
+        error = "Backend materializing the page failed!";
+
+        // we failed return so
+        return false;
+      });
+
+    // did we fail?
+    if(!success) {
+
+      // lock to do the bookkeeping
+      unique_lock<std::mutex> lck(pageMutex);
+
+      // finish writing to the set
+      endWritingToPage(set, pageNum);
+
+      // return the page to the free list
+      freeSetPage(set, pageNum);
+
+      // free the lock
+      lck.unlock();
+
+      // do we need to update the set size
+      if(totalSize != 0) {
+
+        // broadcast the set size change so far
+        this->getFunctionalityPtr<PDBCatalogClient>()->incrementSetSize(set->getDBName(), set->getSetName(), totalSize, error);
+      }
+
+      // finish
+      return std::make_pair(success, error);
+    }
+
+    // ok we did not freeze the page
+    page->freezeSize(freezeSize);
+
+    // end writing to a page
+    {
+      // lock to do the bookkeeping
+      unique_lock<std::mutex> lck(pageMutex);
+
+      // finish writing to the set
+      endWritingToPage(set, pageNum);
+
+      // decrement the size of the set
+      incrementSetSize(set, freezeSize);
+    }
+
+    // increment the set size
+    totalSize += freezeSize;
+  }
+
+  /// 4. Update the set size
+
+  // broadcast the set size change so far
+  success = this->getFunctionalityPtr<PDBCatalogClient>()->incrementSetSize(set->getDBName(), set->getSetName(), totalSize, error);
+
+  /// 5. Finish this
+
+  // we succeeded
+  return std::make_pair(success, error);
 }
 
 

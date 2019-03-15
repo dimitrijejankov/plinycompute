@@ -22,19 +22,19 @@
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %StoStartWritingToSetRequest%
+// PRELOAD %StoMaterializePageSetRequest%
 
 namespace pdb {
 
 // encapsulates a request to add data to a set in storage
-class StoStartWritingToSetRequest : public Object {
+class StoMaterializePageSetRequest : public Object {
 
 public:
 
-  StoStartWritingToSetRequest() = default;
-  ~StoStartWritingToSetRequest() = default;
+  StoMaterializePageSetRequest() = default;
+  ~StoMaterializePageSetRequest() = default;
 
-  StoStartWritingToSetRequest(uint64_t numPages, const std::string &db, const std::string &set) : numPages(numPages), databaseName(db), setName(set) {}
+  StoMaterializePageSetRequest(uint64_t numPages, const std::string &db, const std::string &set) : numPages(numPages), databaseName(db), setName(set) {}
 
   ENABLE_DEEP_COPY
 

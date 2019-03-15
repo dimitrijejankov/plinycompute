@@ -17,7 +17,7 @@
 #include "CatalogServer.h"
 #include <StoGetPageRequest.h>
 #include <StoGetPageResult.h>
-#include <StoStartWritingToSetRequest.h>
+#include <StoMaterializePageSetRequest.h>
 
 namespace fs = boost::filesystem;
 
@@ -122,16 +122,11 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
       }));
 
   forMe.registerHandler(
-      StoStartWritingToSetRequest_TYPEID,
-      make_shared<pdb::HeapRequestHandler<pdb::StoStartWritingToSetRequest>>([&](pdb::Handle<pdb::StoStartWritingToSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
-        return handleStartWritingToSet<PDBCommunicator, RequestFactory>(request, sendUsingMe);
+      StoMaterializePageSetRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoMaterializePageSetRequest>>([&](pdb::Handle<pdb::StoMaterializePageSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
+        return handleMaterializeSet<PDBCommunicator, RequestFactory>(request, sendUsingMe);
       }));
 
-  forMe.registerHandler(
-      StoFinishWritingToSetRequest_TYPEID,
-      make_shared<pdb::HeapRequestHandler<pdb::StoFinishWritingToSetRequest>>([&](pdb::Handle<pdb::StoFinishWritingToSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
-        return handleStopWritingToSet<PDBCommunicator, RequestFactory>(request, sendUsingMe);
-      }));
 }
 
 bool pdb::PDBStorageManagerFrontend::isPageBeingWrittenTo(const pdb::PDBSetPtr &set, uint64_t pageNum) {
