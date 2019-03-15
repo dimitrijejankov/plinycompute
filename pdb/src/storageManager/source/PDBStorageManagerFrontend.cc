@@ -165,6 +165,30 @@ bool pdb::PDBStorageManagerFrontend::pageExists(const pdb::PDBSetPtr &set, uint6
   return it != this->pageStats.end() && pageNum <= it->second.lastPage;
 }
 
+std::pair<bool, uint64_t> pdb::PDBStorageManagerFrontend::getValidPage(const pdb::PDBSetPtr &set, uint64_t pageNum) {
+
+  // lock the stuff
+  unique_lock<std::mutex> lck(pageMutex);
+
+  // try to find the page
+  auto it = this->pageStats.find(set);
+
+  // do we even have this page
+  while(pageNum <= it->second.lastPage) {
+
+    // check if the page is valid
+    if(pageExists(set, pageNum) && !isPageBeingWrittenTo(set, pageNum) && !isPageFree(set, pageNum)) {
+      return make_pair(true, pageNum);
+    }
+
+    // if not try to go to the next one
+    pageNum++;
+  }
+
+  // finish
+  return make_pair(false, 0);
+}
+
 uint64_t pdb::PDBStorageManagerFrontend::getNextFreePage(const pdb::PDBSetPtr &set) {
 
   // see if we have a free page already

@@ -28,21 +28,17 @@ template <class T>
 std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageRequest(const pdb::Handle<pdb::StoGetPageRequest> &request,
                                                                                   std::shared_ptr<T>  &sendUsingMe) {
 
-
-  /// 1. Check if we have the page
+  /// 1. Check if we have a page
 
   // create the set identifier
   auto set = make_shared<pdb::PDBSet>(request->databaseName, request->setName);
 
-  bool hasPage;
-  // check if the page exists exists
-  {
-    // lock the stuff that keeps track of the last page
-    unique_lock<mutex> lck;
+  // find the if this page is valid if not try to find another one...
+  auto res = getValidPage(set, request->page);
 
-    // check for the page exists and it is in a valid state
-    hasPage = pageExists(set, request->page) && !isPageBeingWrittenTo(set, request->page) && !isPageFree(set, request->page);
-  }
+  // set the result
+  bool hasPage = res.first;
+  uint64_t pageNum = res.second;
 
   /// 2. If we don't have it or it is not in a valid state it send back a NACK
 
@@ -52,7 +48,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageReques
     const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
     // create an allocation block to hold the response
-    pdb::Handle<pdb::StoGetPageResult> response = pdb::makeObject<pdb::StoGetPageResult>(0, false);
+    pdb::Handle<pdb::StoGetPageResult> response = pdb::makeObject<pdb::StoGetPageResult>(0, 0, false);
 
     // sends result to requester
     string error;
@@ -65,7 +61,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageReques
   /// 3. Ok we have it, grab the page and compress it.
 
   // grab the page
-  auto page = this->getFunctionalityPtr<PDBBufferManagerInterface>()->getPage(set, request->page);
+  auto page = this->getFunctionalityPtr<PDBBufferManagerInterface>()->getPage(set, pageNum);
 
   // grab the vector
   auto* pageRecord = (pdb::Record<pdb::Vector<pdb::Handle<pdb::Object>>> *) (page->getBytes());
@@ -84,7 +80,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageReques
   const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
   // create an allocation block to hold the response
-  pdb::Handle<pdb::StoGetPageResult> response = pdb::makeObject<pdb::StoGetPageResult>(compressedSize, true);
+  pdb::Handle<pdb::StoGetPageResult> response = pdb::makeObject<pdb::StoGetPageResult>(compressedSize, pageNum, true);
 
   // sends result to requester
   string error;

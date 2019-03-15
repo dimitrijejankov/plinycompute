@@ -73,14 +73,16 @@ class PDBDistributedStorage : public ServerFunctionality {
    * @param node - the node we want to request a page from.
    * @param databaseName - the database the page belongs to
    * @param setName - the set the page belongs to
-   * @param page - the number of page
+   * @param page - this is the page we are requesting, if the page is not available but another is, this will be set to
+   * the number of that page
+   *
    * @return - the page handle of the anonymous page
    */
   template<class Communicator, class Requests>
   std::pair<PDBPageHandle, size_t> requestPage(const PDBCatalogNodePtr &node,
                                                const std::string &databaseName,
                                                const std::string &setName,
-                                               uint64_t page);
+                                               uint64_t &page);
 
   /**
   * This handler is used by the iterator to grab it's next page. It will try to find the next page that is just an

@@ -35,17 +35,18 @@ public:
   PDBAnonymousPageSetPtr createAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID);
 
   /**
-   *
-   * @param pageSetID
-   * @return
+   * Returns a pages set that already exists
+   * @param pageSetID - the id of the page set. The usual is (computationID, tupleSetID)
+   * @return the tuples set if it exists, null otherwise
    */
   PDBAbstractPageSetPtr getPageSet(const std::pair<uint64_t, std::string> &pageSetID);
 
   /**
-   *
-   * @param pageSet
-   * @param set
-   * @return
+   * This method materializes a particular page set to a particular set. It contacts the frontend and grabs a bunch of pages
+   * it assumes that the set we are materializing to exists.
+   * @param pageSet - the page set we want to materialize
+   * @param set - the set we want to materialize to
+   * @return true if it succeeds false otherwise
    */
   bool materializePageSet(PDBAbstractPageSetPtr pageSet, const std::pair<std::string, std::string> &set);
 

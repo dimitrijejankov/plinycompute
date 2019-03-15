@@ -16,7 +16,10 @@
 #include <StoDispatchData.h>
 
 template <class Communicator, class Requests>
-std::pair<pdb::PDBPageHandle, size_t> pdb::PDBDistributedStorage::requestPage(const PDBCatalogNodePtr& node, const std::string &databaseName, const std::string &setName, uint64_t page) {
+std::pair<pdb::PDBPageHandle, size_t> pdb::PDBDistributedStorage::requestPage(const PDBCatalogNodePtr &node,
+                                                                              const std::string &databaseName,
+                                                                              const std::string &setName,
+                                                                              uint64_t &page) {
 
   // the communicator
   PDBCommunicatorPtr comm = make_shared<PDBCommunicator>();
@@ -84,6 +87,9 @@ std::pair<pdb::PDBPageHandle, size_t> pdb::PDBDistributedStorage::requestPage(co
   if(readSize == -1) {
     return std::make_pair(nullptr, result->size);
   }
+
+  // set the page number
+  page = result->pageNumber;
 
   // return it
   return std::make_pair(pageHandle, result->size);

@@ -147,8 +147,6 @@ bool pdb::PDBStraightPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManagerBa
     // get the page set
     auto sinkPageSet = storage->getPageSet(std::make_pair(sink->pageSetIdentifier.first, sink->pageSetIdentifier.second));
 
-    std::cout << sink->pageSetIdentifier.first << " : " << sink->pageSetIdentifier.second;
-
     // if the thing does not exist finish!
     if(sinkPageSet == nullptr) {
       return false;

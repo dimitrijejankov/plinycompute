@@ -99,23 +99,28 @@ public:
   std::pair<bool, std::string> handleGetSetStats(pdb::Handle<pdb::StoSetStatsRequest> request, std::shared_ptr<Communicator> sendUsingMe);
 
   /**
+   * Handles the materialization request of the backend. Basically it forwards a bunch of pages to the backend and check whether the
+   * materialization is successful
    *
-   * @tparam Communicator
-   * @tparam Requests
-   * @param request
-   * @param sendUsingMe
-   * @return
+   * @tparam Communicator - the communicator class
+   * @tparam Requests - the request factor class
+   * @param request - the materialization request has stuff like the number of pages required for materialization etc..
+   * @param sendUsingMe - the communicator to the backend
+   * @return - the result of the handler (success, error)
    */
   template <class Communicator, class Requests>
   std::pair<bool, std::string> handleMaterializeSet(pdb::Handle<pdb::StoMaterializePageSetRequest> request, std::shared_ptr<Communicator> sendUsingMe);
 
   /**
+   * This method handles the situation where we want to reclaim a page of a set that was allocated for the backend to
+   * put the dispatched data to. We want to call this in case some unpredicted error happens
+   * This method is thread safe so no locking required!
    *
-   * @param set
-   * @param pageNum
-   * @param size
-   * @param communicator
-   * @return
+   * @param set - the set of the page
+   * @param pageNum - the page number
+   * @param size - the size of the page
+   * @param communicator - the communicator to send a NACK to the disptacher
+   * @return true if it succeeds false if it fails
    */
   bool handleDispatchFailure(const PDBSetPtr &set, uint64_t pageNum, uint64_t size, PDBCommunicatorPtr communicator);
 
@@ -148,6 +153,15 @@ public:
    * @return true if does false otherwise
    */
   bool pageExists(const PDBSetPtr &set, uint64_t pageNum);
+
+  /**
+   * Returns this page or the next page that has data on it and is not being written to, if such page exists
+   * This is thread safe to call
+   * @param set - the set
+   * @param pageNum - the page number
+   * @return the pair <hasPage, pageNumber>
+   */
+  std::pair<bool, uint64_t> getValidPage(const PDBSetPtr &set, uint64_t pageNum);
 
   /**
    * This method returns the next free page it can find.
@@ -203,6 +217,7 @@ public:
 
   /**
    * Retu
+   *
    * @param set
    * @return
    */

@@ -36,9 +36,14 @@ public:
   StoGetPageResult() = default;
   ~StoGetPageResult() = default;
 
-  StoGetPageResult(size_t size, bool hasPage) : size(size), hasPage(hasPage) {}
+  StoGetPageResult(size_t size, uint64_t pageNumber, bool hasPage) : size(size), hasPage(hasPage), pageNumber(pageNumber) {}
 
   ENABLE_DEEP_COPY
+
+  /**
+   * The number of the page
+   */
+  uint64_t pageNumber = 0;
 
   /**
    * page of the set where we are storing the stuff
