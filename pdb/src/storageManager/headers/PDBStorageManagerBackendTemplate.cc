@@ -42,5 +42,34 @@ std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStoreOnPage(co
   return make_pair(true, error);
 }
 
+template<class Communicator>
+std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleRemoveTupleSet(const pdb::Handle<pdb::StoRemoveTupleSetRequest> &request,
+                                                                                 shared_ptr<Communicator> &sendUsingMe) {
+
+  /// 1. Remove the page set
+
+  // remove the page set
+  bool success = removePageSet(std::make_pair(request->pageSetID.first, request->pageSetID.second));
+
+  // did we succeed in removing it?
+  std::string error;
+  if(!success) {
+    error = "Could not find the tuple set";
+  }
+
+  /// 2. Send a response
+
+  // create an allocation block to hold the response
+  const UseTemporaryAllocationBlock tempBlock{1024};
+
+  // create the response
+  pdb::Handle<pdb::SimpleRequestResult> simpleResponse = pdb::makeObject<pdb::SimpleRequestResult>(success, error);
+
+  // sends result to requester
+  sendUsingMe->sendObject(simpleResponse, error);
+
+  // return success
+  return make_pair(success, error);
+}
 
 #endif //PDB_PDBSTORAGEMANAGERBACKENDTEMPLATE_H

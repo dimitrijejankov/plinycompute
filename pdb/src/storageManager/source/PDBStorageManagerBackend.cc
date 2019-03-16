@@ -12,7 +12,7 @@
 #include <PDBSetPageSet.h>
 #include <PDBStorageManagerBackend.h>
 #include <StoMaterializePageSetRequest.h>
-#include <StoStartWritingToSetResult.h>
+#include <StoRemoveTupleSetRequest.h>
 #include <StoMaterializePageResult.h>
 #include <PDBBufferManagerBackEnd.h>
 
@@ -30,6 +30,13 @@ void pdb::PDBStorageManagerBackend::registerHandlers(PDBServer &forMe) {
           [&](Handle<pdb::StoStoreOnPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
             return handleStoreOnPage(request, sendUsingMe);
       }));
+
+  forMe.registerHandler(
+      StoRemoveTupleSetRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoRemoveTupleSetRequest>>(
+          [&](Handle<pdb::StoRemoveTupleSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
+            return handleRemoveTupleSet(request, sendUsingMe);
+          }));
 }
 
 pdb::PDBSetPageSetPtr pdb::PDBStorageManagerBackend::createPageSetFromPDBSet(const std::string &db, const std::string &set,
@@ -125,6 +132,12 @@ pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerBackend::getPageSet(const std::
 
   // return null since we don't have it
   return nullptr;
+}
+
+bool pdb::PDBStorageManagerBackend::removePageSet(const std::pair<uint64_t, std::string> &pageSetID) {
+
+  // erase it if it exists
+  return pageSets.erase(pageSetID) == 1;
 }
 
 bool pdb::PDBStorageManagerBackend::materializePageSet(pdb::PDBAbstractPageSetPtr pageSet, const std::pair<std::string, std::string> &set) {
@@ -280,3 +293,5 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(pdb::PDBAbstractPageSetPt
   // we succeeded
   return true;
 }
+
+

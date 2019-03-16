@@ -21,7 +21,7 @@
 #include <StoGetPageRequest.h>
 #include <StoGetPageResult.h>
 #include <StoGetSetPagesResult.h>
-#include <StoStartWritingToSetResult.h>
+#include <StoRemoveTupleSetRequest.h>
 #include <StoMaterializePageResult.h>
 
 template <class T>

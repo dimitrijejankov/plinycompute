@@ -22,35 +22,35 @@
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %StoStartWritingToSetResult%
+// PRELOAD %StoRemoveTupleSetRequest%
 
 namespace pdb {
 
 // encapsulates a request to add data to a set in storage
-class StoStartWritingToSetResult : public Object {
+class StoRemoveTupleSetRequest : public Object {
 
 public:
 
-  StoStartWritingToSetResult() = default;
-  ~StoStartWritingToSetResult() = default;
+  StoRemoveTupleSetRequest() = default;
+  ~StoRemoveTupleSetRequest() = default;
 
   /**
    * Constructor to preallocate the vector of pages
    * @param numPages
    */
-  explicit StoStartWritingToSetResult(size_t numPages) : pages(numPages, 0) {}
+  explicit StoRemoveTupleSetRequest(const std::pair<uint64_t, std::string> &pageSetID) {
+
+    this->pageSetID.first = pageSetID.first;
+    this->pageSetID.second = pageSetID.second;
+  }
 
   ENABLE_DEEP_COPY
 
   /**
-   * The pages we got to put stuff in
+   * The identifier of the page set we want to remove
    */
-  pdb::Vector<uint64_t> pages;
+  std::pair<uint64_t, pdb::String> pageSetID;
 
-  /**
-   * was the request a success?
-   */
-  bool success = false;
 
 };
 
