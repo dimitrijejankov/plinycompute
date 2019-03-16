@@ -121,7 +121,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleGetNextPage(const
   /// 2. Figure out if the node we last accessed is still there
 
   // sort the nodes
-  auto nodes = this->getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
+  auto nodes = this->getFunctionality<PDBCatalogClient>().getWorkerNodes();
   sort(nodes.begin(), nodes.end(), [](const pdb::PDBCatalogNodePtr & a, const pdb::PDBCatalogNodePtr & b) { return a->nodeID > b->nodeID; });
 
   // if this is the first time we are requesting a node the next node is
@@ -156,6 +156,11 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleGetNextPage(const
 
   uint64_t currPage = request->page;
   for(auto it = node; it != nodes.end(); ++it) {
+
+    // skip this node
+    if(!(*it)->active) {
+      continue;
+    }
 
     // grab a page
     auto pageInfo = this->requestPage<Communicator, Requests>(*it, request->databaseName, request->setName, currPage);

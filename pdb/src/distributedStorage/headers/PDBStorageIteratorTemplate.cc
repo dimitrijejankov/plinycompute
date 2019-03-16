@@ -23,10 +23,8 @@ template<class T>
 bool PDBStorageIterator<T>::hasNextRecord() {
 
   // are we starting out
-  if (buffer == nullptr) {
-
-    // get the next page
-    getNextPage(true);
+  if (buffer == nullptr && !getNextPage(true)) {
+    return false;
   }
 
   do {
@@ -50,10 +48,8 @@ template<class T>
 Handle<T> PDBStorageIterator<T>::getNextRecord() {
 
   // are we starting out
-  if (buffer == nullptr) {
-
-    // get the next page
-    getNextPage(true);
+  if (buffer == nullptr && !getNextPage(true)) {
+    return nullptr;
   }
 
   do {
