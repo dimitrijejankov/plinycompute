@@ -98,6 +98,9 @@ file(GLOB SERVER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/server/source/*.cc")
 file(GLOB OBJECT_MODEL_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/objectModel/source/*.cc")
 file(GLOB WORK_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/work/source/*.cc")
 file(GLOB STORAGE_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/storageManager/source/*.cc")
+
+file(GLOB PIPELINE_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/pipeline/source/*.cc")
+
 file(GLOB DISTRIBUTION_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/distributionManager/source/*.cc")
 file(GLOB LOGICAL_PLAN_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/logicalPlan/source/*.cc")
 file(GLOB CLIENT_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/client/source/*.cc")
@@ -213,6 +216,8 @@ add_library(distributed-storage OBJECT ${DISTRIBUTED_STORAGE_SOURCE})
 add_library(server OBJECT ${SERVER_SOURCE})
 add_library(work OBJECT ${WORK_SOURCE})
 add_library(storageManager OBJECT ${STORAGE_MANAGER_SOURCE})
+add_library(pipeline OBJECT ${PIPELINE_SOURCE})
+
 add_library(logical-plan OBJECT ${LOGICAL_PLAN_SOURCE})
 add_library(client OBJECT ${CLIENT_SOURCE})
 add_library(object-model OBJECT ${OBJECT_MODEL_SOURCE})
@@ -241,6 +246,7 @@ add_library(pdb-server-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:sql-lite>
         $<TARGET_OBJECTS:server-functionalities>
         $<TARGET_OBJECTS:storageManager>
+        $<TARGET_OBJECTS:pipeline>
         $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:computation-server>
         $<TARGET_OBJECTS:execution-server>
@@ -257,6 +263,7 @@ add_library(pdb-shared-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:sql-lite>
         $<TARGET_OBJECTS:server-functionalities>
         $<TARGET_OBJECTS:storageManager>
+        $<TARGET_OBJECTS:pipeline>
         $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:computation-server>
         $<TARGET_OBJECTS:execution-server>
@@ -273,6 +280,7 @@ add_library(pdb-tests-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:sql-lite>
         $<TARGET_OBJECTS:server-functionalities>
         $<TARGET_OBJECTS:storageManager>
+        $<TARGET_OBJECTS:pipeline>
         $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:computation-server>
         $<TARGET_OBJECTS:execution-server>
