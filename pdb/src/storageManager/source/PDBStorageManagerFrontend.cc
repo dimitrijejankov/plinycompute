@@ -116,9 +116,9 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
           }));
 
   forMe.registerHandler(
-      StoSetStatsRequest_TYPEID,
-      make_shared<pdb::HeapRequestHandler<pdb::StoSetStatsRequest>>([&](pdb::Handle<pdb::StoSetStatsRequest> request, PDBCommunicatorPtr sendUsingMe) {
-        return handleGetSetStats<PDBCommunicator, RequestFactory>(request, sendUsingMe);
+      StoGetSetPagesRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoGetSetPagesRequest>>([&](pdb::Handle<pdb::StoGetSetPagesRequest> request, PDBCommunicatorPtr sendUsingMe) {
+        return handleGetSetPages<PDBCommunicator, RequestFactory>(request, sendUsingMe);
       }));
 
   forMe.registerHandler(

@@ -20,7 +20,7 @@
 #include "CatalogServer.h"
 #include <StoGetPageRequest.h>
 #include <StoGetPageResult.h>
-#include <StoSetStatsResult.h>
+#include <StoGetSetPagesResult.h>
 #include <StoStartWritingToSetResult.h>
 #include <StoMaterializePageResult.h>
 
@@ -231,9 +231,13 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
    return false;
   });
 
-  /// 6. Freeze the page since it is safe to do now
+  /// 6. Freeze the page since it is safe to do now and mark that we are done writing to it
 
+  // freeze the page
   page->freezeSize(uncompressedSize);
+
+  // finish writing to the set
+  endWritingToPage(std::make_shared<PDBSet>(request->databaseName, request->setName), pageNum);
 
   /// 7. Send the response that we are done
 
@@ -248,37 +252,68 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
 }
 
 template<class Communicator, class Requests>
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetSetStats(pdb::Handle<pdb::StoSetStatsRequest> request,
-                                                                               shared_ptr<Communicator> sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetSetPages(pdb::Handle<pdb::StoGetSetPagesRequest> request, shared_ptr<Communicator> sendUsingMe) {
 
   // the error
   std::string error;
-  bool success = true;
+  bool success;
+
+  // check if the set exists
+  if(!getFunctionalityPtr<pdb::PDBCatalogClient>()->setExists(request->databaseName, request->setName)) {
+
+    // set the error
+    error = "The set the pages were requested does not exist!";
+    success = false;
+
+    // make an allocation block
+    const UseTemporaryAllocationBlock tempBlock{1024};
+
+    // make a NACK response
+    pdb::Handle<pdb::StoGetSetPagesResult> result = pdb::makeObject<pdb::StoGetSetPagesResult>();
+
+    // sends result to requester
+    sendUsingMe->sendObject(result, error);
+
+    // return the result
+    return std::make_pair(success, error);
+  }
 
   // make the set identifier
   auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
 
-  // figure out whether this was a success
-  auto stats = getSetStats(set);
+  std::vector<uint64_t> pages;
+  {
+    // lock the stuff
+    unique_lock<std::mutex> lck(pageMutex);
+
+    // try to find the page
+    auto it = this->pageStats.find(set);
+
+    // reserve the pages
+    pages.reserve(it->second.lastPage);
+
+    // do we even have this page
+    uint64_t currPage = 0;
+    while(currPage <= it->second.lastPage) {
+
+      // check if the page is valid
+      if(pageExists(set, currPage) && !isPageBeingWrittenTo(set, currPage) && !isPageFree(set, currPage)) {
+        pages.emplace_back(currPage);
+      }
+
+      // if not try to go to the next one
+      currPage++;
+    }
+  }
 
   // make an allocation block
-  const UseTemporaryAllocationBlock tempBlock{1024};
+  const UseTemporaryAllocationBlock tempBlock{pages.size() * sizeof(uint64_t) + 1024};
 
-  pdb::Handle<pdb::StoSetStatsResult> setStatResult;
-  if(stats != nullptr) {
-
-    // set the stat results
-    setStatResult = pdb::makeObject<pdb::StoSetStatsResult>(stats->lastPage + 1, stats->size, true);
-  }
-  else {
-
-    // we failed
-    setStatResult = pdb::makeObject<pdb::StoSetStatsResult>(0, 0, false);
-    success = false;
-  }
+  // make the result
+  pdb::Handle<pdb::StoGetSetPagesResult> result = pdb::makeObject<pdb::StoGetSetPagesResult>(pages, true);
 
   // sends result to requester
-  success = sendUsingMe->sendObject(setStatResult, error) && success;
+  success = sendUsingMe->sendObject(result, error);
 
   // return the result
   return std::make_pair(success, error);

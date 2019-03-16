@@ -1,3 +1,5 @@
+#include <utility>
+
 //
 // Created by dimitrije on 3/5/19.
 //
@@ -8,26 +10,11 @@
 
 pdb::PDBSetPageSet::PDBSetPageSet(const std::string &db,
                                   const std::string &set,
-                                  size_t numPages,
-                                  pdb::PDBBufferManagerInterfacePtr bufferManager) : db(db), set(set), curPage(0), lastPage(numPages), bufferManager(bufferManager) {
+                                  vector<uint64_t> &pages,
+                                  pdb::PDBBufferManagerInterfacePtr bufferManager) : curPage(0), pages(pages), bufferManager(std::move(bufferManager)) {
 
   // make the pdb set
-  PDBSetPtr pdbSet = make_shared<PDBSet>(db, set);
-
-  // allocate the pages
-  pages.reserve(numPages);
-
-  // grab the page handles
-  for(uint64_t i = 0; i < numPages; ++i) {
-
-    // grab a page
-    auto page = bufferManager->getPage(pdbSet, i);
-
-    // unpin it
-    page->unpin();
-
-    pages.emplace_back(page);
-  }
+  this->set = make_shared<PDBSet>(db, set);
 }
 
 pdb::PDBPageHandle pdb::PDBSetPageSet::getNextPage(size_t workerID) {
@@ -40,21 +27,14 @@ pdb::PDBPageHandle pdb::PDBSetPageSet::getNextPage(size_t workerID) {
     return nullptr;
   }
 
-  // grab the page and repin it...
-  auto page = pages[pageNum];
-  page->repin();
-
   // return the page
-  return page;
+  return bufferManager->getPage(set, pages[pageNum]);
 }
 
 pdb::PDBPageHandle pdb::PDBSetPageSet::getNewPage() {
 
-  // figure out the next page
-  uint64_t pageNum = lastPage++;
-
-  // grab a page
-  return bufferManager->getPage(make_shared<PDBSet>(db, set), pageNum);
+  // just throw since we won't need this for some time
+  throw runtime_error("Adding a new page to a page set not implemented.");
 }
 
 size_t pdb::PDBSetPageSet::getNumPages() {

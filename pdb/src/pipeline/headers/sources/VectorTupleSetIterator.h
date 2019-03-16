@@ -126,6 +126,11 @@ class VectorTupleSetIterator : public ComputeSource {
       lastRec = nullptr;
     }
 
+    // if we did not get a page we don't have any records..
+    if(curPage == nullptr) {
+      return nullptr;
+    }
+
     // see if there are no more items in the vector to iterate over
     if (pos == iterateOverMe->size()) {
 

@@ -32,8 +32,6 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
     // cast it to a scan
     auto scanNode = std::dynamic_pointer_cast<ScanSet>(srcNode);
 
-    std::cout << source->pageSetIdentifier.first << " : " << source->pageSetIdentifier.second;
-
     // get the page set
     sourcePageSet = storage->createPageSetFromPDBSet(scanNode->getDBName(),
                                                      scanNode->getSetName(),

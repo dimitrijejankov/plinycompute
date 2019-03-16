@@ -22,36 +22,33 @@
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %StoSetStatsResult%
+// PRELOAD %StoGetSetPagesRequest%
 
 namespace pdb {
 
 // encapsulates a request to add data to a set in storage
-class StoSetStatsResult : public Object {
+class StoGetSetPagesRequest : public Object {
 
 public:
 
-  StoSetStatsResult() = default;
-  ~StoSetStatsResult() = default;
+  StoGetSetPagesRequest() = default;
+  ~StoGetSetPagesRequest() = default;
 
-  StoSetStatsResult(uint64_t numPages, uint64_t size, bool success) : numPages(numPages), size(size), success(success) {}
+  StoGetSetPagesRequest(const std::string &databaseName, const std::string &setName)
+      : databaseName(databaseName), setName(setName) {
+  }
 
   ENABLE_DEEP_COPY
 
   /**
-   * the number of pages on this noode
+   * The name of the database the set belongs to
    */
-  uint64_t numPages = 0;
+  String databaseName;
 
   /**
-   * the size of the part of the set stored on this node
+   * The name of the set we are storing the stuff
    */
-  uint64_t size = 0;
-
-  /**
-   * was the request a success
-   */
-  bool success = false;
+  String setName;
 
 };
 

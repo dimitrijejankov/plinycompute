@@ -6,8 +6,8 @@
 #include <memory>
 #include "HeapRequestHandler.h"
 #include "StoStoreOnPageRequest.h"
-#include "StoSetStatsRequest.h"
-#include "StoSetStatsResult.h"
+#include "StoGetSetPagesRequest.h"
+#include "StoGetSetPagesResult.h"
 #include <boost/filesystem/path.hpp>
 #include <PDBSetPageSet.h>
 #include <PDBStorageManagerBackend.h>
@@ -41,30 +41,35 @@ pdb::PDBSetPageSetPtr pdb::PDBStorageManagerBackend::createPageSetFromPDBSet(con
 
   /// 1. Contact the frontend and to get the number of pages
 
-  auto numPages = RequestFactory::heapRequest<StoSetStatsRequest, StoSetStatsResult, std::pair<bool, uint64_t>>(
-      logger, conf->port, conf->address, std::make_pair<bool, uint64_t>(false, 0), 1024,
-      [&](Handle<StoSetStatsResult> result) {
+  auto pageInfo = RequestFactory::heapRequest<StoGetSetPagesRequest, StoGetSetPagesResult, std::pair<bool, std::vector<uint64_t>>>(
+      logger, conf->port, conf->address, std::make_pair<bool, std::vector<uint64_t>>(false, std::vector<uint64_t>()), 1024,
+      [&](Handle<StoGetSetPagesResult> result) {
 
         // do we have a result if not return false
         if (result == nullptr) {
 
           logger->error("Failed to get the number of pages for a page set created for the following PDBSet : (" + db + "," + set + ")");
-          return std::make_pair<bool, uint64_t>(false, 0);
+          return std::make_pair<bool, std::vector<uint64_t>>(false, std::vector<uint64_t>());
         }
 
         // did we succeed
         if (!result->success) {
 
           logger->error("Failed to get the number of pages for a page set created for the following PDBSet : (" + db + "," + set + ")");
-          return std::make_pair<bool, uint64_t>(false, 0);
+          return std::make_pair<bool, std::vector<uint64_t>>(false, std::vector<uint64_t>());
         }
 
+        // copy the stuff
+        std::vector<uint64_t> pages;
+        pages.reserve(result->pages.size());
+        for(int i = 0; i < result->pages.size(); ++i) { pages.emplace_back(result->pages[i]); }
+
         // we succeeded
-        return std::make_pair(result->success, result->numPages);
+        return std::make_pair(result->success, std::move(pages));
       }, db, set);
 
   // if we failed return a null ptr
-  if(!numPages.first) {
+  if(!pageInfo.first) {
     return nullptr;
   }
 
@@ -81,7 +86,7 @@ pdb::PDBSetPageSetPtr pdb::PDBStorageManagerBackend::createPageSetFromPDBSet(con
   /// 3. We don't have it so create it
 
   // store the page set
-  auto pageSet = std::make_shared<pdb::PDBSetPageSet>(db, set, numPages.second, getFunctionalityPtr<PDBBufferManagerInterface>());
+  auto pageSet = std::make_shared<pdb::PDBSetPageSet>(db, set, pageInfo.second, getFunctionalityPtr<PDBBufferManagerInterface>());
   pageSets[pageSetID] = pageSet;
 
   // return it

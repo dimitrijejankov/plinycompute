@@ -206,7 +206,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleGetNextPage(const
 
 template<class Communicator, class Requests>
 std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb::Handle<pdb::DisAddData> &request,
-                                                                  shared_ptr<Communicator> &sendUsingMe) {
+                                                                       shared_ptr<Communicator> &sendUsingMe) {
   /// 0. Check if the set exists
 
   if(!getFunctionalityPtr<PDBCatalogClient>()->setExists(request->databaseName, request->setName)) {

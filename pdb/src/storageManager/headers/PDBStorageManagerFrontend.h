@@ -16,7 +16,7 @@
 #include <StoGetPageRequest.h>
 #include <StoGetNextPageRequest.h>
 #include <StoDispatchData.h>
-#include <StoSetStatsRequest.h>
+#include <StoGetSetPagesRequest.h>
 #include <StoMaterializePageSetRequest.h>
 #include <StoMaterializePageResult.h>
 
@@ -96,7 +96,8 @@ public:
    * @return - the result of the handler (success, error)
    */
   template <class Communicator, class Requests>
-  std::pair<bool, std::string> handleGetSetStats(pdb::Handle<pdb::StoSetStatsRequest> request, std::shared_ptr<Communicator> sendUsingMe);
+  std::pair<bool, std::string> handleGetSetPages(pdb::Handle<pdb::StoGetSetPagesRequest> request,
+                                                 std::shared_ptr<Communicator> sendUsingMe);
 
   /**
    * Handles the materialization request of the backend. Basically it forwards a bunch of pages to the backend and check whether the

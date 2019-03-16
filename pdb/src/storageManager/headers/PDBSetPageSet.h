@@ -25,10 +25,10 @@ public:
    * The buffer manager is used to grab pages from the frontend.
    * @param db - the name of the database the set belongs to
    * @param set - the set name
-   * @param numPages - the number of pages
+   * @param pages - the page numbers that are valid for the set
    * @param bufferManager - the buffer manager
    */
-  PDBSetPageSet(const std::string &db, const std::string &set, size_t numPages, PDBBufferManagerInterfacePtr bufferManager);
+  PDBSetPageSet(const std::string &db, const std::string &set, vector<uint64_t> &pages, PDBBufferManagerInterfacePtr bufferManager);
 
   /**
    * Grabs the next page for this set.
@@ -54,17 +54,11 @@ public:
   // current page, it is thread safe to update it
   atomic_uint64_t curPage;
 
-  // last page, it is thread safe
-  atomic_uint64_t lastPage;
+  // the set identifier
+  PDBSetPtr set;
 
-  // the database the set this page set corresponds to belongs
-  std::string db;
-
-  // the name of the set this page set corresponds to
-  std::string set;
-
-  // the page handles
-  std::vector<PDBPageHandle> pages;
+  // the numbers of pages
+  vector<uint64_t> pages;
 
   // the buffer manager to get the pages
   PDBBufferManagerInterfacePtr bufferManager;
