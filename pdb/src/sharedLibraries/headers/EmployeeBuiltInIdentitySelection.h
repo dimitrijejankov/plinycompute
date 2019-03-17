@@ -21,6 +21,7 @@ class EmployeeBuiltInIdentitySelection : public pdb::SelectionComp<pdb::Employee
     return makeLambda(checkMe, [](pdb::Handle<pdb::Employee>& checkMe) { return true; });
   }
 
+  // The Lambda defined here will return a new Employee with the same name as the old one, and age 100.
   pdb::Lambda<pdb::Handle<pdb::Employee>> getProjection(pdb::Handle<pdb::Employee> &checkMe) override {
     return makeLambda(checkMe, [](pdb::Handle<pdb::Employee>& checkMe) {
       pdb::Handle<pdb::Employee> newEmployee = pdb::makeObject<pdb::Employee>(*(checkMe->getName()), 100);  // cannot get age!

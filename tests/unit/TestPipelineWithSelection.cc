@@ -76,7 +76,7 @@ TEST(PipelineTest, TestSelection) {
   pdb::PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64 * 1024, 16, "metadata", ".");
 
-  // this is the object allocation block where all of this stuff will reside
+  // this is the object allocation block where the Computations will reside
   makeObjectAllocatorBlock(1024 * 1024, true);
 
   /// 2. Create the computation and the corresponding TCAP
@@ -154,7 +154,7 @@ TEST(PipelineTest, TestSelection) {
               }
 
               if(i % 2 == 0) {
-
+                // Note: this constructor for std::string copies the bytes from myString
                 pdb::Handle<pdb::Employee> temp = pdb::makeObject<pdb::Employee>("Steve Stevens", 20 + ((i) % 29), std::string(myString), i * 3.54);
                 employees->push_back(temp);
               }
@@ -219,7 +219,7 @@ TEST(PipelineTest, TestSelection) {
   myPipeline = nullptr;
 
   // and be sure to delete the contents of the ComputePlan object... this always needs to be done
-  // before the object is written to disk or sent accross the network, so that we don't end up
+  // before the object is written to disk or sent across the network, so that we don't end up
   // moving around a C++ smart pointer, which would be bad
   myPlan.nullifyPlanPointer();
 
@@ -229,7 +229,9 @@ TEST(PipelineTest, TestSelection) {
 
     Handle<Vector<Handle<Employee>>> myHashTable = ((Record<Vector<Handle<Employee>>> *) page.second->getBytes())->getRootObject();
     for (int i = 0; i < myHashTable->size(); i++) {
-      EXPECT_TRUE(*(((*myHashTable)[i])->getName()) == "Steve Stevens" || *(((*myHashTable)[i])->getName()) == "Ninja Turtles");
+      Handle<Employee> employee = (*myHashTable)[i];
+      EXPECT_TRUE(*(employee->getName()) == "Steve Stevens" || *(employee->getName()) == "Ninja Turtles");
+      EXPECT_TRUE(employee->getAge() == 100);
     }
   }
 
