@@ -33,6 +33,7 @@
 #include "MapTupleSetIterator.h"
 #include "VectorTupleSetIterator.h"
 #include "ComputePlan.h"
+#include "SteveSelection.h"
 
 // to run the aggregate, the system first passes each through the hash operation...
 // then the system 
@@ -61,7 +62,7 @@ class FinalQuery : public SelectionComp<double, DepartmentTotal> {
  public:
 
   Lambda<bool> getSelection(Handle<DepartmentTotal> &checkMe) override {
-    return makeLambdaFromMethod (checkMe, checkSales);
+    return makeLambdaFromMethod (checkMe, checkSales);// what even is checkSales checking for??
   }
 
   Lambda<Handle<double>> getProjection(Handle<DepartmentTotal> &checkMe) override {
@@ -104,21 +105,7 @@ class SillyAgg : public AggregateComp<DepartmentTotal, Employee, String, double>
   }
 };
 
-class SillyQuery : public SelectionComp<Employee, Supervisor> {
 
- public:
-
-  ENABLE_DEEP_COPY
-
-  Lambda<bool> getSelection(Handle<Supervisor> &checkMe) override {
-    return makeLambdaFromMethod (checkMe, getSteve) == makeLambdaFromMember (checkMe, me);
-  }
-
-  Lambda<Handle<Employee>> getProjection(Handle<Supervisor> &checkMe) override {
-    return makeLambdaFromMethod (checkMe, getMe);
-  }
-
-};
 
 class SillyRead : public SetScanner<Supervisor> {
 
@@ -208,7 +195,7 @@ int main() {
 
   // create all of the computation objects
   Handle<Computation> myScanSet = makeObject<SillyRead>();
-  Handle<Computation> myFilter = makeObject<SillyQuery>();
+  Handle<Computation> myFilter = makeObject<SteveSelection>();
   Handle<Computation> myAgg = makeObject<SillyAgg>();
   Handle<Computation> myFinalFilter = makeObject<FinalQuery>();
   Handle<Computation> myWrite = makeObject<SillyWrite>();
