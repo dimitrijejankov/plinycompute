@@ -12,7 +12,7 @@
 #include <PDBSetPageSet.h>
 #include <PDBStorageManagerBackend.h>
 #include <StoMaterializePageSetRequest.h>
-#include <StoRemoveTupleSetRequest.h>
+#include <StoRemovePageSetRequest.h>
 #include <StoMaterializePageResult.h>
 #include <PDBBufferManagerBackEnd.h>
 
@@ -32,10 +32,10 @@ void pdb::PDBStorageManagerBackend::registerHandlers(PDBServer &forMe) {
       }));
 
   forMe.registerHandler(
-      StoRemoveTupleSetRequest_TYPEID,
-      make_shared<pdb::HeapRequestHandler<pdb::StoRemoveTupleSetRequest>>(
-          [&](Handle<pdb::StoRemoveTupleSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
-            return handleRemoveTupleSet(request, sendUsingMe);
+      StoRemovePageSetRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoRemovePageSetRequest>>(
+          [&](Handle<pdb::StoRemovePageSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
+            return handlePageSet(request, sendUsingMe);
           }));
 }
 

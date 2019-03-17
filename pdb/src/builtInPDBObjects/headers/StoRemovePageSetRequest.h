@@ -22,23 +22,23 @@
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %StoRemoveTupleSetRequest%
+// PRELOAD %StoRemovePageSetRequest%
 
 namespace pdb {
 
 // encapsulates a request to add data to a set in storage
-class StoRemoveTupleSetRequest : public Object {
+class StoRemovePageSetRequest : public Object {
 
 public:
 
-  StoRemoveTupleSetRequest() = default;
-  ~StoRemoveTupleSetRequest() = default;
+  StoRemovePageSetRequest() = default;
+  ~StoRemovePageSetRequest() = default;
 
   /**
    * Constructor to preallocate the vector of pages
    * @param numPages
    */
-  explicit StoRemoveTupleSetRequest(const std::pair<uint64_t, std::string> &pageSetID) {
+  explicit StoRemovePageSetRequest(const std::pair<uint64_t, std::string> &pageSetID) {
 
     this->pageSetID.first = pageSetID.first;
     this->pageSetID.second = pageSetID.second;

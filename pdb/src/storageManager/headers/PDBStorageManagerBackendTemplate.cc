@@ -43,8 +43,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStoreOnPage(co
 }
 
 template<class Communicator>
-std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleRemoveTupleSet(const pdb::Handle<pdb::StoRemoveTupleSetRequest> &request,
-                                                                                 shared_ptr<Communicator> &sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handlePageSet(const pdb::Handle<pdb::StoRemovePageSetRequest> &request, shared_ptr<Communicator> &sendUsingMe) {
 
   /// 1. Remove the page set
 

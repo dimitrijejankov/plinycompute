@@ -19,6 +19,7 @@
 #include <StoGetSetPagesRequest.h>
 #include <StoMaterializePageSetRequest.h>
 #include <StoMaterializePageResult.h>
+#include <StoRemovePageSetRequest.h>
 
 namespace pdb {
 
@@ -111,6 +112,17 @@ public:
    */
   template <class Communicator, class Requests>
   std::pair<bool, std::string> handleMaterializeSet(pdb::Handle<pdb::StoMaterializePageSetRequest> request, std::shared_ptr<Communicator> sendUsingMe);
+
+  /**
+   * Handles the request to remove a page set. It basically forwards that request to the backend.
+   * @tparam Communicator - the communicator class
+   *
+   * @param request - the request, contains the info about the page set we want to remove
+   * @param sendUsingMe - the communicator
+   * @return - the result of the handler (success, error)
+   */
+  template <class Communicator>
+  std::pair<bool, std::string> handleRemovePageSet(pdb::Handle<pdb::StoRemovePageSetRequest> &request, std::shared_ptr<Communicator> &sendUsingMe);
 
   /**
    * This method handles the situation where we want to reclaim a page of a set that was allocated for the backend to

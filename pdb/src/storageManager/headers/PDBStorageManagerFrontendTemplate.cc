@@ -21,7 +21,7 @@
 #include <StoGetPageRequest.h>
 #include <StoGetPageResult.h>
 #include <StoGetSetPagesResult.h>
-#include <StoRemoveTupleSetRequest.h>
+#include <StoRemovePageSetRequest.h>
 #include <StoMaterializePageResult.h>
 
 template <class T>
@@ -491,6 +491,48 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleMaterializeSe
   /// 5. Finish this
 
   // we succeeded
+  return std::make_pair(success, error);
+}
+
+template <class Communicator>
+std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleRemovePageSet(pdb::Handle<pdb::StoRemovePageSetRequest> &request, std::shared_ptr<Communicator> &sendUsingMe) {
+
+  // the error
+  std::string error;
+
+  // connect to the backend
+  std::shared_ptr<Communicator> communicatorToBackend = make_shared<Communicator>();
+  if (!communicatorToBackend->connectToLocalServer(logger, getConfiguration()->ipcFile, error)) {
+    return std::make_pair(false, error);
+  }
+
+  // sends result to requester
+  bool success = communicatorToBackend->sendObject(request, error, 1024);
+
+  // did we succeed in send the stuff
+  if(!success) {
+    return std::make_pair(false, error);
+  }
+
+  // wait for the storage finish result
+  success = RequestFactory::waitHeapRequest<SimpleRequestResult, bool>(logger, communicatorToBackend, false,
+   [&](Handle<SimpleRequestResult> result) {
+
+     // check the result
+     if (result != nullptr && result->getRes().first) {
+
+       // finish
+       return true;
+     }
+
+     // set the error
+     error = result->getRes().second;
+
+     // we failed return so
+     return false;
+   });
+
+  // return
   return std::make_pair(success, error);
 }
 

@@ -127,6 +127,11 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
         return handleMaterializeSet<PDBCommunicator, RequestFactory>(request, sendUsingMe);
       }));
 
+  forMe.registerHandler(
+      StoRemovePageSetRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoRemovePageSetRequest>>([&](Handle<pdb::StoRemovePageSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
+        return handleRemovePageSet(request, sendUsingMe);
+      }));
 }
 
 bool pdb::PDBStorageManagerFrontend::isPageBeingWrittenTo(const pdb::PDBSetPtr &set, uint64_t pageNum) {

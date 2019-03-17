@@ -6,7 +6,7 @@
 #include "PDBAbstractPageSet.h"
 #include "PDBSetPageSet.h"
 #include "PDBAnonymousPageSet.h"
-#include "StoRemoveTupleSetRequest.h"
+#include "StoRemovePageSetRequest.h"
 
 namespace pdb {
 
@@ -87,7 +87,7 @@ public:
    * @return
    */
   template <class Communicator>
-  std::pair<bool, std::string> handleRemoveTupleSet(const pdb::Handle<pdb::StoRemoveTupleSetRequest> &request, std::shared_ptr<Communicator> &sendUsingMe);
+  std::pair<bool, std::string> handlePageSet(const pdb::Handle<pdb::StoRemovePageSetRequest> &request, std::shared_ptr<Communicator> &sendUsingMe);
 
   /**
    * The page sets that are on the backend
