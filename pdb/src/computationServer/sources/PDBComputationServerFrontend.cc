@@ -6,6 +6,7 @@
 #include <ExJob.h>
 #include <PDBComputationServerFrontend.h>
 #include <GenericWork.h>
+#include <StoRemovePageSetRequest.h>
 
 #include "PDBComputationServerFrontend.h"
 #include "HeapRequestHandler.h"
@@ -13,6 +14,7 @@
 #include "PDBPhysicalOptimizer.h"
 #include "PDBDistributedStorage.h"
 #include "ExRunJob.h"
+#include "SimpleRequestResult.h"
 
 void pdb::PDBComputationServerFrontend::init() {
 
@@ -289,6 +291,11 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
 
               // update stats
               optimizer.updateStats();
+
+              // remove the page sets
+              if(removeUnusedPageSets(optimizer.getPageSetsToRemove())) {
+                logger->error("Failed to remove some page sets.");
+              }
             }
 
             // end the computation
@@ -308,5 +315,78 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
             return make_pair(success, error);
           }));
 
+}
+
+bool pdb::PDBComputationServerFrontend::removeUnusedPageSets(const std::vector<pair<uint64_t, std::string>> &pageSets) {
+
+  atomic_bool success;
+  success = true;
+
+  // grab the nodes we want to forward the request to
+  auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
+
+  // create the buzzer
+  atomic_int counter;
+  counter = 0;
+  PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
+
+    // did we fail?
+    if(myAlarm == PDBAlarm::GenericError) {
+      success = false;
+    }
+
+    // increment the count
+    cnt++;
+  });
+
+  // for each node start a worker
+  for(const auto &node : nodes) {
+
+    /// 0. Start a worker for each node
+
+    // grab a worker
+    auto worker = parent->getWorkerQueue()->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = make_shared<pdb::GenericWork>([=, &counter, &pageSets](PDBBuzzerPtr callerBuzzer) {
+
+      std::string errMsg;
+      pdb::Handle<pdb::StoRemovePageSetRequest> request = makeObject<pdb::StoRemovePageSetRequest> ();
+
+      // go through each page set and try to remove it..
+      bool removalSuccess = true;
+      for(const auto &pageSet : pageSets) {
+
+        // make a request and return the value
+        removalSuccess = RequestFactory::heapRequest<pdb::StoRemovePageSetRequest, SimpleRequestResult, bool>(
+            logger, node->port, node->address, false, 1024,
+            [&](Handle<SimpleRequestResult> result) {
+              return true;
+            },
+            pageSet) && removalSuccess;
+      }
+
+      // did we fail?
+      if(!removalSuccess) {
+
+        // we failed to run the job
+        callerBuzzer->buzz(PDBAlarm::GenericError, counter);
+        return;
+      }
+
+      // excellent everything worked just as expected
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+    });
+
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
+  // wait until all the nodes are finished
+  while (counter < nodes.size()) {
+    tempBuzzer->wait();
+  }
+
+  return success;
 }
 

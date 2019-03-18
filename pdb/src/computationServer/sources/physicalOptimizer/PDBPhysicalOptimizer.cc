@@ -86,5 +86,19 @@ void PDBPhysicalOptimizer::updateStats() {
 
 }
 
+std::vector<pair<uint64_t, std::string>> PDBPhysicalOptimizer::getPageSetsToRemove() {
+
+  /// TODO this is just here to test the
+  vector<pair<uint64_t, string>> ret;
+  ret.reserve(2);
+
+  // just add some page set identifiers for the selection
+  ret.emplace_back(std::make_pair(computationID, "inputDataForScanSet_0"));
+  ret.emplace_back(std::make_pair(computationID, "nativ_1OutForSelectionComp1_out"));
+
+  return std::move(ret);
+}
+
+
 }
 

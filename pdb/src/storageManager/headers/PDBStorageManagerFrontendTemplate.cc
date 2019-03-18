@@ -500,11 +500,15 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleRemovePageSet
   // the error
   std::string error;
 
+  /// 1. Connect to the backend
+
   // connect to the backend
   std::shared_ptr<Communicator> communicatorToBackend = make_shared<Communicator>();
   if (!communicatorToBackend->connectToLocalServer(logger, getConfiguration()->ipcFile, error)) {
     return std::make_pair(false, error);
   }
+
+  /// 2. Forward the request
 
   // sends result to requester
   bool success = communicatorToBackend->sendObject(request, error, 1024);
@@ -513,6 +517,8 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleRemovePageSet
   if(!success) {
     return std::make_pair(false, error);
   }
+
+  /// 4. Wait for response
 
   // wait for the storage finish result
   success = RequestFactory::waitHeapRequest<SimpleRequestResult, bool>(logger, communicatorToBackend, false,
@@ -531,6 +537,17 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleRemovePageSet
      // we failed return so
      return false;
    });
+
+  /// 5. Send a response
+
+  // create an allocation block to hold the response
+  const UseTemporaryAllocationBlock tempBlock{1024};
+
+  // create the response
+  pdb::Handle<pdb::SimpleRequestResult> simpleResponse = pdb::makeObject<pdb::SimpleRequestResult>(success, error);
+
+  // sends result to requester
+  sendUsingMe->sendObject(simpleResponse, error);
 
   // return
   return std::make_pair(success, error);

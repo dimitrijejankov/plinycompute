@@ -28,6 +28,8 @@ private:
 
   bool runScheduledJob(PDBCommunicator &communicator, string &errMsg);
 
+  bool removeUnusedPageSets(const std::vector<pair<uint64_t, std::string>>& pageSets);
+
   /**
    * This manages the stats about each computation
    */

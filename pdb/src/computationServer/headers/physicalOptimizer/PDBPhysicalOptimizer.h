@@ -70,6 +70,12 @@ public:
    */
   void updateStats();
 
+  /**
+   * Returns the list of all the page sets that are scheduled to remove
+   * @return the identifier of the page sets we need to remove, usually pairs of (computationID, tupleSetName)
+   */
+  std::vector<pair<uint64_t, std::string>> getPageSetsToRemove();
+
 private:
 
   /**

@@ -129,7 +129,7 @@ int main(int argc, char *argv[]) {
   config->maxConnections = 100;
 
   // init the storage manager, this has to be done before the fork!
-  auto storageManager = std::make_shared<pdb::PDBBufferManagerFrontEnd>(config);
+  auto bufferManager = std::make_shared<pdb::PDBBufferManagerFrontEnd>(config);
 
   // fork this to split into a frontend and backend
   pid_t pid = fork();
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
     pdb::PDBServer backEnd(pdb::PDBServer::NodeType::BACKEND, config, logger);
 
     // add the functionaries
-    backEnd.addFunctionality<pdb::PDBBufferManagerInterface>(storageManager->getBackEnd());
+    backEnd.addFunctionality<pdb::PDBBufferManagerInterface>(bufferManager->getBackEnd());
     backEnd.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(config->port, config->address, logger));
     backEnd.addFunctionality(std::make_shared<pdb::PDBStorageManagerBackend>());
     backEnd.addFunctionality(std::make_shared<pdb::ExecutionServerBackend>());
@@ -167,19 +167,20 @@ int main(int argc, char *argv[]) {
     pdb::PDBServer frontEnd(pdb::PDBServer::NodeType::FRONTEND, config, logger);
 
     // add the functionaries
-    frontEnd.addFunctionality<pdb::PDBBufferManagerInterface>(storageManager);
+    frontEnd.addFunctionality<pdb::PDBBufferManagerInterface>(bufferManager);
 
     frontEnd.addFunctionality(std::make_shared<pdb::ClusterManager>());
     frontEnd.addFunctionality(std::make_shared<pdb::CatalogServer>());
     frontEnd.addFunctionality(std::make_shared<pdb::PDBDistributedStorage>());
     frontEnd.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(config->port, config->address, logger));
     frontEnd.addFunctionality(std::make_shared<pdb::PDBStorageManagerFrontend>());
-    frontEnd.addFunctionality(std::make_shared<pdb::PDBComputationServerFrontend>());
-    frontEnd.addFunctionality(std::make_shared<pdb::PDBStorageManagerBackend>());
 
     // on the worker put and execution server
     if(!config->isManager) {
       frontEnd.addFunctionality(std::make_shared<pdb::ExecutionServerFrontend>());
+    }
+    else {
+      frontEnd.addFunctionality(std::make_shared<pdb::PDBComputationServerFrontend>());
     }
 
     frontEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
