@@ -45,7 +45,8 @@ public:
    * @param clientPtr - the catalog client
    * @param logger - the logger
    */
-  PDBPhysicalOptimizer(uint64_t computationID, String tcapString, PDBCatalogClientPtr &clientPtr, PDBLoggerPtr &logger);
+  template <class CatalogClient>
+  PDBPhysicalOptimizer(uint64_t computationID, String tcapString, const std::shared_ptr<CatalogClient> &clientPtr, PDBLoggerPtr &logger);
 
   /**
    * Default destructor
@@ -97,5 +98,6 @@ private:
 
 }
 
+#include <PDBPhysicalOptimizerTemplate.cc>
 
 #endif //PDB_PHYSICAL_OPTIMIZER_H
