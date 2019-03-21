@@ -24,13 +24,6 @@ class WriteBuiltinEmployeeSet : public pdb::SetWriter<pdb::Employee> {
   WriteBuiltinEmployeeSet(std::string dbName, std::string setName) {
     this->setOutput(std::move(dbName), std::move(setName));
   }
-
-  // eventually, this method should be moved into a class that works with the system to
-  // iterate through pages that are pulled from disk/RAM by the system... a programmer
-  // should not provide this particular method
-  pdb::ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection, pdb::ComputePlan &plan) override {
-    return std::make_shared<pdb::VectorSink<pdb::Employee>>(consumeMe, projection);
-  }
 };
 
 #endif //PDB_WRITEBUILTINEMPLOYEESET_H

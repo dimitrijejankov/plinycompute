@@ -29,7 +29,6 @@
 
 namespace pdb {
 
-typedef std::shared_ptr<LogicalPlan> LogicalPlanPtr;
 
 // this is the basic type that is sent around a PDB cluster to store a computation that PDB is to execute
 class ComputePlan {

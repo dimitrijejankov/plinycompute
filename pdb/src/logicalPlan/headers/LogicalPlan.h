@@ -31,8 +31,12 @@
 #include "ComputationNode.h"
 #include "PDBVector.h"
 
+namespace pdb {
+
 // NOTE: this struct is not part of the pdb namspace because it needs to work with extern "C"...
 // probably it can be made to work, but this is for the future :-)
+struct LogicalPlan;
+using LogicalPlanPtr = std::shared_ptr<LogicalPlan>;
 
 // this is an actual logical plan
 struct LogicalPlan {
@@ -51,8 +55,7 @@ public:
     }
 
     // constructor
-    LogicalPlan(AtomicComputationList& computationsIn,
-                pdb::Vector<pdb::Handle<pdb::Computation>>& allComputations) {
+    LogicalPlan(AtomicComputationList& computationsIn, pdb::Vector<pdb::Handle<pdb::Computation>>& allComputations) {
         computations = computationsIn;
         // std :: cout << "\nEXTRACTING LAMBDAS:\n";
         for (int i = 0; i < allComputations.size(); i++) {
@@ -90,6 +93,8 @@ public:
 inline std::ostream& operator<<(std::ostream& os, const LogicalPlan& printMe) {
     os << printMe.computations;
     return os;
+}
+
 }
 
 #endif

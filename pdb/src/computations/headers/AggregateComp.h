@@ -20,6 +20,9 @@
 #define AGG_COMP
 
 #include "Computation.h"
+#include "HashSink.h"
+#include "MapTupleSetIterator.h"
+#include "DepartmentTotal.h"
 
 namespace pdb {
 
@@ -106,6 +109,21 @@ class AggregateComp : public Computation {
                            std::vector<std::string> &outputColumnNames,
                            std::string &addedOutputColumnName) {
     return "";
+  }
+
+  /**
+   * Return the hash sink for the aggregation
+   * @param consumeMe -
+   * @param projection
+   * @param plan
+   * @return
+   */
+  ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection) override {
+    return std::make_shared<pdb::HashSink<KeyClass, ValueClass>>(consumeMe, projection);
+  }
+
+  ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID) override {
+    return std::make_shared<MapTupleSetIterator<KeyClass, ValueClass, OutputClass>> (pageSet, workerID, chunkSize);
   }
 
   bool needsMaterializeOutput() override {

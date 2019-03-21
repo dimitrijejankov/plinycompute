@@ -18,6 +18,7 @@
 #include "Pipeline.h"
 
 void pdb::MemoryHolder::setIteration(int iterationIn) {
+
     if (outputSink != nullptr) {
         getRecord(outputSink);
     }

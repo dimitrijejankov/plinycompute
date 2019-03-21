@@ -76,7 +76,7 @@ public:
     return "";
   }
 
-  pdb::ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection) {
+  pdb::ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection) override {
     return std::make_shared<pdb::VectorSink<OutputClass>>(consumeMe, projection);
   }
 

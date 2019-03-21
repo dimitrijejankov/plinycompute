@@ -25,6 +25,7 @@
 #include "ComputePlan.h"
 #include "JoinTuple.h"
 #include "JoinCompBase.h"
+#include "LogicalPlan.h"
 
 namespace pdb {
 
@@ -105,15 +106,11 @@ class JoinComp : public JoinCompBase {
   }
 
   // this gets a compute sink
-  ComputeSinkPtr getComputeSink(TupleSpec &consumeMe,
-                                TupleSpec &attsToOpOn,
-                                TupleSpec &projection,
-                                ComputePlan &plan) override {
+  ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &attsToOpOn, TupleSpec &projection, pdb::LogicalPlanPtr &plan) override {
 
     // loop through each of the attributes that we are supposed to accept, and for each of them, find the type
     std::vector<std::string> typeList;
-    AtomicComputationPtr
-        producer = plan.getPlan()->getComputations().getProducingAtomicComputation(consumeMe.getSetName());
+    AtomicComputationPtr producer = plan->getComputations().getProducingAtomicComputation(consumeMe.getSetName());
     std::cout << "consumeMe was: " << consumeMe << "\n";
     std::cout << "attsToOpOn was: " << attsToOpOn << "\n";
     std::cout << "projection was: " << projection << "\n";
@@ -121,15 +118,15 @@ class JoinComp : public JoinCompBase {
 
       // find the identity of the producing computation
       std::cout << "finding the source of " << projection.getSetName() << "." << a << "\n";
-      std::pair<std::string, std::string> res = producer->findSource(a, plan.getPlan()->getComputations());
+      std::pair<std::string, std::string> res = producer->findSource(a, plan->getComputations());
       std::cout << "got " << res.first << " " << res.second << "\n";
 
       // and find its type... in the first case, there is not a particular lambda that we need to ask for
       if (res.second == "") {
-        typeList.push_back("pdb::Handle<" + plan.getPlan()->getNode(res.first).getComputation().getOutputType() + ">");
+        typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getComputation().getOutputType() + ">");
       } else {
         typeList.push_back(
-            "pdb::Handle<" + plan.getPlan()->getNode(res.first).getLambda(res.second)->getOutputType() + ">");
+            "pdb::Handle<" + plan->getNode(res.first).getLambda(res.second)->getOutputType() + ">");
       }
     }
 

@@ -22,75 +22,92 @@
 namespace pdb {
 
 // this class iterates over a pdb :: Map, returning a set of TupleSet objects
-template <typename KeyType, typename ValueType, typename OutputType>
+template<typename KeyType, typename ValueType, typename OutputType>
 class MapTupleSetIterator : public ComputeSource {
 
-private:
+ private:
 
-	// the map we are iterating over
-	Handle <Map <KeyType, ValueType>> iterateOverMe;
+  // the map we are iterating over
+  Handle<Map<KeyType, ValueType>> iterateOverMe;
 
-	// the number of items to put in each chunk that we produce
-	size_t chunkSize;
+  // the number of items to put in each chunk that we produce
+  size_t chunkSize;
 
-	// the tuple set we return
-	TupleSetPtr output;
+  // the tuple set we return
+  TupleSetPtr output;
 
-	// the iterator for the map
-	PDBMapIterator <KeyType, ValueType> begin;
-	PDBMapIterator <KeyType, ValueType> end;
+  // the iterator for the map
+  PDBMapIterator<KeyType, ValueType> begin;
+  PDBMapIterator<KeyType, ValueType> end;
 
-public:
+ public:
 
-	// the first param is a callback function that the iterator will call in order to obtain another vector
-	// to iterate over.  The second param tells us how many objects to put into a tuple set
-	MapTupleSetIterator (Handle <Object> iterateOverMeIn, size_t chunkSize) : 
-		iterateOverMe (unsafeCast <Map <KeyType, ValueType>> (iterateOverMeIn)), 
-		chunkSize (chunkSize), begin (iterateOverMe->begin ()), end (iterateOverMe->end ()) {
+  // the first param is a callback function that the iterator will call in order to obtain another vector
+  // to iterate over.  The second param tells us how many objects to put into a tuple set
+  MapTupleSetIterator(const PDBAbstractPageSetPtr &pageSet, uint64_t workerID, size_t chunkSize) : chunkSize(chunkSize) {
 
-		output = std :: make_shared <TupleSet> ();
-		auto *inputColumn = new std :: vector <Handle <OutputType>>;
-		output->addColumn (0, inputColumn, true); 
-	}
+    // get the page if we have one if we don't set the hash map to null
+    auto page = pageSet->getNextPage(workerID);
+    if(page == nullptr) {
+      iterateOverMe = nullptr;
+      return;
+    }
 
-	// returns the next tuple set to process, or nullptr if there is not one to process
-	TupleSetPtr getNextTupleSet () override {
+    // get the hash table
+    Handle<Object> myHashTable = ((Record<Object> *) page->getBytes())->getRootObject();
+    iterateOverMe = unsafeCast<Map<KeyType, ValueType>>(myHashTable);
 
-		// see if there are no more items in the vector to iterate over
-		if (!(begin != end)) {
-	 		return nullptr;			
-		}
+    // get the iterators
+    begin = iterateOverMe->begin();
+    end = iterateOverMe->end();
 
-		std :: vector <Handle <OutputType>> &inputColumn = output->getColumn <Handle <OutputType>> (0);
-		int limit = (int) inputColumn.size ();
-		for (int i = 0; i < chunkSize; i++) {
-			
-			if (i >= limit) {
-				Handle <OutputType> temp = (makeObject <OutputType> ());
-				inputColumn.push_back (temp);
-			}
+    // make the output set
+    output = std::make_shared<TupleSet>();
+    output->addColumn(0, new std::vector<Handle<OutputType>>, true);
+  }
 
-			// key the key/value pair
-			inputColumn[i]->getKey () = (*begin).key;
-			inputColumn[i]->getValue () = (*begin).value;
+  // returns the next tuple set to process, or nullptr if there is not one to process
+  TupleSetPtr getNextTupleSet() override {
 
-			// move on to the next item
-			++begin;
+    // do we even have a map
+    if(iterateOverMe == nullptr) {
+      return nullptr;
+    }
 
-			// and exit if we are done
-			if (!(begin != end)) {
-				if (i + 1 < limit) {
-					inputColumn.resize (i);	
-				}
-				return output;
-			}
-		}
+    // see if there are no more items in the vector to iterate over
+    if (!(begin != end)) {
+      return nullptr;
+    }
 
-		return output;
+    std::vector<Handle<OutputType>> &inputColumn = output->getColumn<Handle<OutputType>>(0);
+    int limit = (int) inputColumn.size();
+    for (int i = 0; i < chunkSize; i++) {
 
-	}	
+      if (i >= limit) {
+        Handle<OutputType> temp = (makeObject<OutputType>());
+        inputColumn.push_back(temp);
+      }
 
-	~MapTupleSetIterator () override = default;
+      // key the key/value pair
+      inputColumn[i]->getKey() = (*begin).key;
+      inputColumn[i]->getValue() = (*begin).value;
+
+      // move on to the next item
+      ++begin;
+
+      // and exit if we are done
+      if (!(begin != end)) {
+        if (i + 1 < limit) {
+          inputColumn.resize(i);
+        }
+        return output;
+      }
+    }
+
+    return output;
+  }
+
+  ~MapTupleSetIterator() override = default;
 };
 
 }
