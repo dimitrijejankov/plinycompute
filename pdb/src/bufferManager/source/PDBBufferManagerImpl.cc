@@ -11,7 +11,6 @@
 #ifndef STORAGE_MGR_C
 #define STORAGE_MGR_C
 
-
 #include "PDBPage.h"
 #include "PDBBufferManagerFileWriter.h"
 #include "PDBBufferManagerImpl.h"
@@ -113,8 +112,16 @@ PDBBufferManagerImpl::~PDBBufferManagerImpl() {
       pageLocations[myIndex] = me->getLocation();
       endOfFiles[me->getSet()] += (MIN_PAGE_SIZE << me->getLocation().numBytes);
     }
-
-    pwrite(fds[me->getSet()], me->getBytes(), MIN_PAGE_SIZE << me->getLocation().numBytes, me->getLocation().startPos);
+    ssize_t write_bytes;
+    write_bytes = pwrite(fds[me->getSet()],
+                         me->getBytes(),
+                         MIN_PAGE_SIZE << me->getLocation().numBytes,
+                         me->getLocation().startPos);
+    if (write_bytes == -1) {
+      std::cerr << "error in PDBBufferManager destructor when writing data to disk with errno: " << strerror(errno)
+                << std::endl;
+      exit(1);
+    }
   }
 
   // and unmap the RAM
@@ -228,7 +235,7 @@ void PDBBufferManagerImpl::initialize(std::string metaDataFile) {
 }
 
 void PDBBufferManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn, size_t numPagesIn,
-                                       std::string metaFile, std::string storageLocIn) {
+                                      std::string metaFile, std::string storageLocIn) {
   initialized = true;
   storageLoc = std::move(storageLocIn);
   sharedMemory.pageSize = pageSizeIn;
@@ -237,6 +244,10 @@ void PDBBufferManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn,
   metaDataFile = std::move(metaFile);
 
   tempFileFD = open(tempFileIn.c_str(), O_CREAT | O_RDWR, 0666);
+  if (tempFileFD == -1) {
+    std::cerr << "Fail to open the temp file at " << tempFile << std::endl;
+    exit(1);
+  }
 
   // there are no currently available positions
   logOfPageSize = -1;
@@ -295,7 +306,9 @@ void PDBBufferManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn,
 void PDBBufferManagerImpl::registerMiniPage(PDBPagePtr registerMe) {
 
   // first, compute the page this guy is on
-  void *whichPage = (char *) sharedMemory.memory + ((((char *) registerMe->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+  void *whichPage = (char *) sharedMemory.memory
+      + ((((char *) registerMe->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize)
+          * sharedMemory.pageSize);
 
   // now, add him to the list of constituent pages
   constituentPages[whichPage].push_back(registerMe);
@@ -310,7 +323,7 @@ void PDBBufferManagerImpl::freeAnonymousPage(PDBPagePtr me) {
   std::unique_lock<std::mutex> lock(m);
 
   // is this removal still valid if it is not we do nothing
-  if(!isRemovalStillValid(me)) {
+  if (!isRemovalStillValid(me)) {
     return;
   }
 
@@ -331,7 +344,8 @@ void PDBBufferManagerImpl::freeAnonymousPage(PDBPagePtr me) {
     return;
 
   // now, remove him from the set of constituent pages
-  void *whichPage = (char *) sharedMemory.memory + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+  void *whichPage = (char *) sharedMemory.memory
+      + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
   for (int i = 0; i < constituentPages[whichPage].size(); i++) {
     if (me == constituentPages[whichPage][i]) {
       constituentPages[whichPage].erase(constituentPages[whichPage].begin() + i);
@@ -356,7 +370,7 @@ void PDBBufferManagerImpl::downToZeroReferences(PDBPagePtr me) {
   std::unique_lock<std::mutex> lock(m);
 
   // is this removal still valid if it is not we do nothing
-  if(!isRemovalStillValid(me)) {
+  if (!isRemovalStillValid(me)) {
     return;
   }
 
@@ -379,17 +393,17 @@ bool PDBBufferManagerImpl::isRemovalStillValid(PDBPagePtr me) {
 
   // ok if by some chance we made another reference while we were waiting for the lock
   // do not free it!
-  if(me->refCount != 0) {
+  if (me->refCount != 0) {
     return false;
   }
 
   // did we in the mean time started doing something with the page
-  if(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_UNLOADING) {
+  if (me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_UNLOADING) {
     return false;
   }
 
   // if the page is anonymous we are done here
-  if(me->isAnonymous()) {
+  if (me->isAnonymous()) {
     return true;
   }
 
@@ -397,7 +411,7 @@ bool PDBBufferManagerImpl::isRemovalStillValid(PDBPagePtr me) {
   auto it = allPages.find(whichPage);
 
   // was the page removed while we were waiting
-  if(it == allPages.end()) {
+  if (it == allPages.end()) {
     return false;
   }
 
@@ -413,7 +427,7 @@ void PDBBufferManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_l
   spaceCV.wait(lock, [&] { return !isCreatingSpace[whichSize]; });
 
   // did somebody create them while we were waiting
-  if(!emptyMiniPages[whichSize].empty()) {
+  if (!emptyMiniPages[whichSize].empty()) {
     return;
   }
 
@@ -440,7 +454,9 @@ void PDBBufferManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_l
     lastUsed.erase(pageIt);
 
     // mark all pages as unloading
-    std::for_each(constituentPages[page.first].begin(), constituentPages[page.first].end(), [](auto &a){ a->status = PDB_PAGE_UNLOADING; });
+    std::for_each(constituentPages[page.first].begin(),
+                  constituentPages[page.first].end(),
+                  [](auto &a) { a->status = PDB_PAGE_UNLOADING; });
 
     // now let all of the constituent pages know the RAM is no longer usable
     // this loop is safe since nobody can access it since we removed the page from lastUsed
@@ -462,8 +478,14 @@ void PDBBufferManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_l
         // the page is not unloading unlock the buffer manager so we don't stall
         lock.unlock();
 
+        ssize_t write_bytes;
         pwrite(tempFileFD, a->getBytes(), MIN_PAGE_SIZE << a->getLocation().numBytes, a->getLocation().startPos);
-
+        if (write_bytes == -1) {
+          std::cerr << "error in createAdditionalMiniPages when writing anonymous page to disk with errno: "
+                    << strerror(errno)
+                    << std::endl;
+          exit(1);
+        }
         // lock it again
         lock.lock();
 
@@ -475,8 +497,14 @@ void PDBBufferManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_l
           lock.unlock();
 
           PDBPageInfo myInfo = a->getLocation();
-          pwrite(fds[a->getSet()], a->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
 
+          ssize_t write_bytes;
+          pwrite(fds[a->getSet()], a->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
+          if (write_bytes == -1) {
+            std::cerr << "error in createAdditionalMiniPages when writing page to disk with errno: " << strerror(errno)
+                      << std::endl;
+            exit(1);
+          }
           // lock the thing again
           lock.lock();
         }
@@ -500,7 +528,9 @@ void PDBBufferManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_l
     }
 
     // mark all pages as not loaded
-    std::for_each(constituentPages[page.first].begin(), constituentPages[page.first].end(), [](auto &a){ a->status = PDB_PAGE_NOT_LOADED; });
+    std::for_each(constituentPages[page.first].begin(),
+                  constituentPages[page.first].end(),
+                  [](auto &a) { a->status = PDB_PAGE_NOT_LOADED; });
 
     // notify all the threads that are paused because of a status
     pagesCV.notify_all();
@@ -583,7 +613,8 @@ void PDBBufferManagerImpl::unpin(PDBPagePtr me, unique_lock<mutex> &lock) {
   }
 
   // first, we find the parent of this guy
-  void *memLoc = (char *) sharedMemory.memory + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+  void *memLoc = (char *) sharedMemory.memory
+      + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
 
   // and decrement the number of pinned minipages
   if (numPinned[memLoc] > 0) {
@@ -598,7 +629,7 @@ void PDBBufferManagerImpl::unpin(PDBPagePtr me, unique_lock<mutex> &lock) {
     auto &miniPages = emptyMiniPages[unused.second];
 
     // go through each unused minipage and remove it!
-    for(auto const &it : unused.first) {
+    for (auto const &it : unused.first) {
       auto const jt = std::find(miniPages.begin(), miniPages.end(), it);
       miniPages.erase(jt);
     }
@@ -629,7 +660,8 @@ void PDBBufferManagerImpl::unpin(PDBPagePtr me, unique_lock<mutex> &lock) {
 void PDBBufferManagerImpl::pinParent(PDBPagePtr me) {
 
   // first, we determine the parent of this guy
-  void *whichPage = (char *) sharedMemory.memory + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+  void *whichPage = (char *) sharedMemory.memory
+      + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
 
   // and increment the number of pinned minipages
   if (numPinned[whichPage] < 0) {
@@ -684,7 +716,12 @@ void PDBBufferManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
     lock.unlock();
 
     // read the page from disk
-    pread(tempFileFD, me->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
+    ssize_t read_bytes;
+    read_bytes = pread(tempFileFD, me->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
+    if (read_bytes == -1) {
+      std::cerr << "repin error when reading anonymous page from disk with errno: " << strerror(errno) << std::endl;
+      exit(1);
+    }
 
   } else {
 
@@ -692,7 +729,12 @@ void PDBBufferManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
     lock.unlock();
 
     // read the page from disk
-    pread(fds[me->getSet()], me->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
+    ssize_t read_bytes;
+    read_bytes = pread(fds[me->getSet()], me->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
+    if (read_bytes == -1) {
+      std::cerr << "repin error when reading the page from disk with errno: " << strerror(errno) << std::endl;
+      exit(1);
+    }
   }
 
   // unlock the mutex
@@ -731,16 +773,17 @@ PDBPageHandle PDBBufferManagerImpl::getPage(size_t maxBytes) {
   void *space = getEmptyMemory(bytesRequired, lock);
 
   // figure out a free page number
-  if(freeAnonPageNumbers.empty()) {
+  if (freeAnonPageNumbers.empty()) {
 
     // figure out a new page
     lastFreeAnonPageNumber++;
 
     // did we hit an overflow
-    if(lastFreeAnonPageNumber == std::numeric_limits<uint64_t>::max()) {
+    if (lastFreeAnonPageNumber == std::numeric_limits<uint64_t>::max()) {
 
       // log what happened
-      getLogger()->fatal("Too many anonymous pages " + std::to_string(lastFreeAnonPageNumber) + " were requested at the same time .");
+      getLogger()->fatal(
+          "Too many anonymous pages " + std::to_string(lastFreeAnonPageNumber) + " were requested at the same time .");
 
       // kill the server.. we might consider a more graceful shutdown
       exit(-1);
@@ -877,7 +920,14 @@ PDBPageHandle PDBBufferManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
 
       // read the data from disk
       auto fd = getFileDescriptor(whichSet);
-      pread(fd, space, MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
+
+      ssize_t read_bytes;
+      read_bytes = pread(fd, space, MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
+      if (read_bytes == -1) {
+        std::cerr << "getPage Error when read data from disk with errno: " << strerror(errno) << std::endl;
+        exit(1);
+      }
+
 
       // finished working on the thing lock it
       lock.lock();
@@ -922,7 +972,8 @@ void *PDBBufferManagerImpl::getEmptyMemory(int64_t pageSize, unique_lock<mutex> 
   emptyMiniPages[pageSize].pop_back();
 
   // determine the parent of this guy
-  void *whichPage = (char *) sharedMemory.memory + ((((char *) space - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+  void *whichPage = (char *) sharedMemory.memory
+      + ((((char *) space - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
 
   // remove the page we just grabbed from the pool of the unused pages for the parent page...
   auto &parentPage = unusedMiniPages[whichPage].first;
@@ -949,16 +1000,21 @@ void PDBBufferManagerImpl::checkIfOpen(PDBSetPtr &whichSet) {
   if (fds.find(whichSet) == fds.end()) {
 
     // open the file
-    int fd =open((storageLoc + "/" + whichSet->getSetName() + "." + whichSet->getDBName()).c_str(), O_CREAT | O_RDWR, 0666);
-    fds[whichSet] = fd;
-
+    string fileLoc = storageLoc + "/" + whichSet->getSetName() + "." + whichSet->getDBName();
+    int fd = open(fileLoc.c_str(), O_CREAT | O_RDWR, 0666);
+    if (fd != -1) {
+      fds[whichSet] = fd;
+    } else {
+      std::cerr << "Fail to open the file at " << fileLoc << std::endl;
+      exit(1);
+    }
     // init the end of the file if we just created a new file
     if (endOfFiles.find(whichSet) == endOfFiles.end()) {
       endOfFiles[whichSet] = 0;
     }
   }
 }
-size_t PDBBufferManagerImpl::getLogPageSize(size_t numBytes)  {
+size_t PDBBufferManagerImpl::getLogPageSize(size_t numBytes) {
 
   size_t bytesRequired = 0;
   size_t curSize = MIN_PAGE_SIZE;
@@ -972,5 +1028,4 @@ size_t PDBBufferManagerImpl::getLogPageSize(size_t numBytes)  {
 }
 
 #endif
-
 
