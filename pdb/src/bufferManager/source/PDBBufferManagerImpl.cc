@@ -479,7 +479,8 @@ void PDBBufferManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_l
         lock.unlock();
 
         ssize_t write_bytes;
-        pwrite(tempFileFD, a->getBytes(), MIN_PAGE_SIZE << a->getLocation().numBytes, a->getLocation().startPos);
+        write_bytes =
+            pwrite(tempFileFD, a->getBytes(), MIN_PAGE_SIZE << a->getLocation().numBytes, a->getLocation().startPos);
         if (write_bytes == -1) {
           std::cerr << "error in createAdditionalMiniPages when writing anonymous page to disk with errno: "
                     << strerror(errno)
@@ -499,7 +500,7 @@ void PDBBufferManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_l
           PDBPageInfo myInfo = a->getLocation();
 
           ssize_t write_bytes;
-          pwrite(fds[a->getSet()], a->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
+          write_bytes = pwrite(fds[a->getSet()], a->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
           if (write_bytes == -1) {
             std::cerr << "error in createAdditionalMiniPages when writing page to disk with errno: " << strerror(errno)
                       << std::endl;
@@ -1028,4 +1029,3 @@ size_t PDBBufferManagerImpl::getLogPageSize(size_t numBytes) {
 }
 
 #endif
-
