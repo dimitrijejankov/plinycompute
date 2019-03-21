@@ -52,7 +52,7 @@ public:
  private:
 
   // current page, it is thread safe to update it
-  atomic_uint64_t curPage;
+  std::atomic<std::uint64_t > curPage;
 
   // the set identifier
   PDBSetPtr set;
