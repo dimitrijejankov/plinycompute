@@ -8,6 +8,7 @@
 namespace pdb {
 
 enum PDBSinkType {
+  None,
   SetSink,
   AggregationSink,
   AggShuffleSink,
@@ -23,12 +24,7 @@ public:
   ENABLE_DEEP_COPY
 
   /**
-   * The computation that is consuming or producing this page set
-   */
-  pdb::String tupleSetIdentifier;
-
-  /**
-   *
+   * The type of the sink
    */
   PDBSinkType sinkType;
 

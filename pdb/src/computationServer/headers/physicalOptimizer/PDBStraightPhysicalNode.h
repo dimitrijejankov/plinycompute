@@ -16,8 +16,11 @@ public:
 
   PDBPipelineType getType() override;
 
-  Handle<PDBPhysicalAlgorithm> generateAlgorithm() override;
+  PDBPlanningResult generateAlgorithm() override;
 
+  PDBPlanningResult generatePipelinedAlgorithm(const std::string &startTupleSet,
+                                                 const pdb::Handle<PDBSourcePageSetSpec> &source,
+                                                 pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &additionalSources) override;
 };
 
 }

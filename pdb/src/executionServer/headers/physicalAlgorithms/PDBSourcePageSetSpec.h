@@ -25,11 +25,6 @@ public:
   ENABLE_DEEP_COPY
 
   /**
-   * The computation that is consuming this page set
-   */
-  pdb::String tupleSetIdentifier;
-
-  /**
    * The type of the source
    */
   PDBSourceType sourceType;

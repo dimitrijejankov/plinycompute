@@ -7,6 +7,7 @@
 
 // PRELOAD %PDBAggregationPipeAlgorithm%
 
+#include <gtest/gtest_prod.h>
 #include "PDBPhysicalAlgorithm.h"
 
 namespace pdb {
@@ -16,13 +17,32 @@ public:
 
   PDBAggregationPipeAlgorithm() = default;
 
-  PDBAggregationPipeAlgorithm(const Handle<PDBSourcePageSetSpec> &source,
+  ~PDBAggregationPipeAlgorithm() override = default;
+
+  PDBAggregationPipeAlgorithm(const std::string &firstTupleSet,
+                              const std::string &finalTupleSet,
+                              const Handle<PDBSourcePageSetSpec> &source,
+                              const Handle<PDBSinkPageSetSpec> &hashedToSend,
+                              const Handle<PDBSourcePageSetSpec> &hashedToRecv,
                               const Handle<PDBSinkPageSetSpec> &sink,
                               const Handle<Vector<PDBSourcePageSetSpec>> &secondarySources);
 
+private:
+
+  /**
+   * The sink tuple set where we are putting stuff
+   */
+  pdb::Handle<PDBSinkPageSetSpec> hashedToSend;
+
+  /**
+   * The sink type the algorithm should setup
+   */
+  pdb::Handle<PDBSourcePageSetSpec> hashedToRecv;
+
+  // mark the tests that are testing this algorithm
+  FRIEND_TEST(TestPhysicalOptimizer, TestAggregation);
 };
 
 }
-
 
 #endif //PDB_PDBAGGREGATIONPIPEALGORITHM_H

@@ -24,10 +24,12 @@ public:
   ENABLE_DEEP_COPY
 
   PDBStraightPipeAlgorithm() = default;
-  ~PDBStraightPipeAlgorithm() = default;
 
+  ~PDBStraightPipeAlgorithm() override = default;
 
-  PDBStraightPipeAlgorithm(const pdb::Handle<PDBSourcePageSetSpec> &source,
+  PDBStraightPipeAlgorithm(const std::string &firstTupleSet,
+                           const std::string &finalTupleSet,
+                           const pdb::Handle<PDBSourcePageSetSpec> &source,
                            const pdb::Handle<PDBSinkPageSetSpec> &sink,
                            const pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &secondarySources);
 
@@ -60,7 +62,6 @@ private:
    * meaning once you run the algorithm the algorithm can not go over the wire!
    */
   std::shared_ptr<std::pair<std::string, std::string>> outputSet = nullptr;
-
 
   /**
    * Should we materialize this or not?

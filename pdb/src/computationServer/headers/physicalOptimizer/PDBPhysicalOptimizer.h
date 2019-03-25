@@ -90,6 +90,11 @@ private:
   priority_queue<OptimizerSource, vector<OptimizerSource>, function<bool(const OptimizerSource&, const OptimizerSource&)>> sources;
 
   /**
+   * List of all the processed nodes so far
+   */
+  std::vector<OptimizerSource> processedSources;
+
+  /**
    * The logger associated with the physical optimizer
    */
   PDBLoggerPtr logger;

@@ -1,4 +1,5 @@
 #include <utility>
+#include <cassert>
 
 //
 // Created by dimitrije on 2/21/19.
@@ -26,6 +27,8 @@ namespace pdb {
 class PDBAbstractPhysicalNode;
 using PDBAbstractPhysicalNodePtr = std::shared_ptr<PDBAbstractPhysicalNode>;
 using PDBAbstractPhysicalNodeWeakPtr = std::weak_ptr<PDBAbstractPhysicalNode>;
+
+using PDBPlanningResult = std::pair<Handle<PDBPhysicalAlgorithm>, std::list<pdb::PDBAbstractPhysicalNodePtr>>;
 
 class PDBAbstractPhysicalNode {
 
@@ -133,10 +136,111 @@ public:
   }
 
   /**
-   * Returns the algorithm we chose to run this pipeline
-   * @return the algorithm
+   * Returns the source page set
+   * @return returns a new instance of PDBSourcePageSetSpec, that describes the page set that is the source for this node
    */
-  virtual pdb::Handle<pdb::PDBPhysicalAlgorithm> generateAlgorithm() = 0;
+  virtual pdb::Handle<PDBSourcePageSetSpec> getSourcePageSet() {
+
+    pdb::Handle<PDBSourcePageSetSpec> source = pdb::makeObject<PDBSourcePageSetSpec>();
+
+    // do we have a scan set here
+    if(hasScanSet()) {
+
+      source->sourceType = PDBSourceType::SetScanSource;
+      source->pageSetIdentifier = std::make_pair(computationID, (String) pipeline.front()->getOutputName());
+
+      return source;
+    }
+
+    // ok so this does not have and scan sets so this means it's source page set is produced by some other pipeline
+    // since there can only be one producer, we just have to check him
+    assert(producers.size() == 1);
+
+    // grab the producer
+    auto producer = producers.front().lock();
+
+    // grab the sink from the producer
+    auto sink = producer->getSinkPageSet();
+
+    // this should never be null
+    assert(sink != nullptr);
+
+    // fill up the stuff
+    source->sourceType = getSourceTypeForSinkType(sink->sinkType);
+    source->pageSetIdentifier = sink->pageSetIdentifier;
+
+    // return the source
+    return source;
+  }
+
+  /**
+   * Returns the sink page set for this node if any
+   * @return the sinks set, null ptr otherwise
+   */
+  virtual pdb::Handle<PDBSinkPageSetSpec> getSinkPageSet() {
+
+    // did actually produce the page set if we haven't return null
+    if(!sinkPageSet.produced){
+      return nullptr;
+    }
+
+    // create the sink object
+    pdb::Handle<PDBSinkPageSetSpec> sink = pdb::makeObject<PDBSinkPageSetSpec>();
+
+    // fill up the stuff
+    sink->sinkType = sinkPageSet.sinkType;
+    sink->pageSetIdentifier = sinkPageSet.pageSetIdentifier;
+
+    return sink;
+  }
+
+  /**
+   * Sets the sink page set so we know what this node produces
+   * @param pageSink - the sink page set
+   */
+  virtual void setSinkPageSet(pdb::Handle<PDBSinkPageSetSpec> &pageSink) {
+
+    // fill up the stuff
+    sinkPageSet.sinkType = pageSink->sinkType;
+    sinkPageSet.pageSetIdentifier = pageSink->pageSetIdentifier;
+    sinkPageSet.produced = true;
+  }
+
+  /**
+   * Returns the source type for a particular sink type. Basically it tells us which source we need
+   * in order to use the result of a particular sink
+   * @param sinkType - the type of the sink
+   * @return - the type of the source
+   */
+  PDBSourceType getSourceTypeForSinkType(PDBSinkType sinkType) {
+
+    switch (sinkType) {
+
+      case SetSink: return SetScanSource;
+      case AggregationSink: return AggregationSource;
+      case AggShuffleSink: return ShuffledAggregatesSource;
+      case JoinShuffleSink: return ShuffledJoinTuplesSource;
+      case BroadcastJoinSink: return BroadcastJoinSource;
+      default:break;
+    }
+
+    // this is not supposed to happen
+    assert(false);
+  }
+
+  /**
+   * Returns the algorithm we chose to run this pipeline
+   * @return the planning result, a pair of the algorithm and the consumers of the result
+   */
+  virtual PDBPlanningResult generateAlgorithm() = 0;
+
+  /**
+   * Returns the algorithm we chose to run this pipeline, but assumes that we are pipelining stuff into it...
+   * @return the planning result, a pair of the algorithm and the consumers of the result
+   */
+  virtual PDBPlanningResult generatePipelinedAlgorithm(const std::string &startTupleSet,
+                                                       const pdb::Handle<PDBSourcePageSetSpec> &source,
+                                                       pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &additionalSources) = 0;
 
 protected:
 
@@ -177,6 +281,29 @@ protected:
    * The computation this node belongs to
    */
   size_t computationID;
+
+  /**
+   * This contains the info about the page set produced by the algorithm
+   */
+  struct {
+
+    /**
+     * Has this dataset been produced
+     */
+    bool produced = false;
+
+    /**
+     * The type of the sink
+     */
+    PDBSinkType sinkType = None;
+
+    /**
+     * Each page set is identified by a integer and a string. Generally set to (computationID, tupleSetIdentifier)
+     * but relying on that is considered bad practice
+     */
+    std::pair<size_t, std::string> pageSetIdentifier;
+
+  } sinkPageSet;
 };
 
 }

@@ -14,12 +14,23 @@ namespace pdb {
 
 pdb::Handle<pdb::PDBPhysicalAlgorithm> PDBPhysicalOptimizer::getNextAlgorithm() {
 
-  // select a source
+  // select a source and pop it
   auto source = sources.top();
   sources.pop();
 
   // runs the algorithm generation part
-  return source.second->generateAlgorithm();
+  auto result = source.second->generateAlgorithm();
+
+  // go through each consumer of the output of this algorithm and add it to the sources
+  for(const auto &sourceNode : result.second) {
+    this->sources.push(std::make_pair(0, sourceNode));
+  }
+
+  // mark the source as processed, we keep track of the so they don't get deallocated
+  processedSources.push_back(source);
+
+  // return the algorithm
+  return result.first;
 }
 
 bool PDBPhysicalOptimizer::hasAlgorithmToRun() {

@@ -12,6 +12,12 @@ PDBPipelineType pdb::PDBJoinPhysicalNode::getType() {
   return PDB_JOIN_SIDE_PIPELINE;
 }
 
-pdb::Handle<pdb::PDBPhysicalAlgorithm> pdb::PDBJoinPhysicalNode::generateAlgorithm() {
-  return nullptr;
+pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm() {
+  return pdb::PDBPlanningResult();
+}
+
+pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generatePipelinedAlgorithm(const std::string &startTupleSet,
+                                                                       const pdb::Handle<PDBSourcePageSetSpec> &source,
+                                                                       pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &additionalSources) {
+  return pdb::PDBPlanningResult();
 }

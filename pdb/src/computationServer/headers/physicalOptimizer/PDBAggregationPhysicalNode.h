@@ -12,12 +12,18 @@ namespace pdb {
 class PDBAggregationPhysicalNode : public PDBAbstractPhysicalNode  {
 
 public:
-
+  
   PDBAggregationPhysicalNode(const std::vector<AtomicComputationPtr>& pipeline, size_t computationID, size_t currentNodeIndex) : PDBAbstractPhysicalNode(pipeline, computationID, currentNodeIndex) {};
+
+  ~PDBAggregationPhysicalNode() override = default;
 
   PDBPipelineType getType() override;
 
-  Handle<PDBPhysicalAlgorithm> generateAlgorithm() override;
+  PDBPlanningResult generateAlgorithm() override;
+
+  PDBPlanningResult generatePipelinedAlgorithm(const std::string &firstTupleSet,
+                                                 const pdb::Handle<PDBSourcePageSetSpec> &source,
+                                                 pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &additionalSources) override;
 
 };
 

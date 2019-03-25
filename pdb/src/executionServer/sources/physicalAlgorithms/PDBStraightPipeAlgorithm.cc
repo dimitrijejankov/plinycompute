@@ -8,10 +8,12 @@
 #include "physicalAlgorithms/PDBStraightPipeAlgorithm.h"
 #include "ExJob.h"
 
-pdb::PDBStraightPipeAlgorithm::PDBStraightPipeAlgorithm(const pdb::Handle<PDBSourcePageSetSpec> &source,
+pdb::PDBStraightPipeAlgorithm::PDBStraightPipeAlgorithm(const std::string &firstTupleSet,
+                                                        const std::string &finalTupleSet,
+                                                        const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                         const pdb::Handle<PDBSinkPageSetSpec> &sink,
                                                         const pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &secondarySources)
-                                                        : PDBPhysicalAlgorithm(source, sink, secondarySources) {}
+                                                        : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources) {}
 
 
 bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
@@ -23,7 +25,7 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
   /// 1. Figure out the source page set
 
   // get the source computation
-  auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(source->tupleSetIdentifier);
+  auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
 
   // if this is a scan set get the page set from a real set
   PDBAbstractPageSetPtr sourcePageSet;
@@ -40,7 +42,7 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
   else {
 
     // we are reading from an existing page set get it
-    sourcePageSet = storage->getPageSet(std::make_pair(job->computationID, source->tupleSetIdentifier));
+    sourcePageSet = storage->getPageSet(std::make_pair(job->computationID, firstTupleSet));
   }
 
   // did we manage to get a source page set? if not the setup failed
@@ -51,7 +53,7 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
   /// 2. Figure out the sink tuple set
 
   // figure out the sink node
-  auto sinkNode = logicalPlan->getComputations().getProducingAtomicComputation(sink->tupleSetIdentifier);
+  auto sinkNode = logicalPlan->getComputations().getProducingAtomicComputation(finalTupleSet);
 
   // ok so are we writing to an output set if so store the name of the output set
   if(sinkNode->getAtomicComputationTypeID()  == WriteSetTypeID) {
@@ -86,8 +88,8 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
   // build a pipeline for each worker thread
   myPipelines = std::make_shared<std::vector<PipelinePtr>>();
   for (uint64_t i = 0; i < numWorkers; ++i) {
-    auto pipeline = plan.buildPipeline(source->tupleSetIdentifier, /* this is the TupleSet the pipeline starts with */
-                                       sink->tupleSetIdentifier,     /* this is the TupleSet the pipeline ends with */
+    auto pipeline = plan.buildPipeline(firstTupleSet, /* this is the TupleSet the pipeline starts with */
+                                       finalTupleSet,     /* this is the TupleSet the pipeline ends with */
                                        sourcePageSet,
                                        sinkPageSet,
                                        params,

@@ -1,4 +1,6 @@
 #include <PDBPhysicalOptimizer.h>
+#include <PDBAggregationPipeAlgorithm.h>
+#include <PDBStraightPipeAlgorithm.h>
 
 #include <iostream>
 #include <boost/filesystem/operations.hpp>
@@ -20,7 +22,7 @@ TEST(TestPhysicalOptimizer, TestAggregation) {
   const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
 
   // setup the input parameters
-  uint64_t compID = 0;
+  uint64_t compID = 99;
   pdb::String tcapString =
   "inputData (in) <= SCAN ('input_set', 'by8_db', 'SetScanner_0', []) \n"
   "inputWithAtt (in, att) <= APPLY (inputData (in), inputData (in), 'SelectionComp_1', 'methodCall_0', []) \n"
@@ -54,10 +56,60 @@ TEST(TestPhysicalOptimizer, TestAggregation) {
   // init the optimizer
   pdb::PDBPhysicalOptimizer optimizer(compID, tcapString, catalogClient, logger);
 
-  // we should have two algorithms
+  // we should have one source so we should be able to generate an algorithm
   EXPECT_TRUE(optimizer.hasAlgorithmToRun());
 
-  auto algorithm = optimizer.getNextAlgorithm();
+  // the first algorithm should be a PDBAggregationPipeAlgorithm
+  auto algorithm1 = optimizer.getNextAlgorithm();
+
+  // cast the algorithm
+  Handle<pdb::PDBAggregationPipeAlgorithm> aggAlgorithm = unsafeCast<pdb::PDBAggregationPipeAlgorithm>(algorithm1);
+
+  // check the source
+  EXPECT_EQ(aggAlgorithm->source->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) aggAlgorithm->firstTupleSet, std::string("inputData"));
+  EXPECT_EQ((std::string) aggAlgorithm->source->pageSetIdentifier.second, std::string("inputData"));
+  EXPECT_EQ(aggAlgorithm->source->pageSetIdentifier.first, compID);
+
+  // check the sink that we are
+  EXPECT_EQ(aggAlgorithm->hashedToSend->sinkType, AggShuffleSink);
+  EXPECT_EQ((std::string) aggAlgorithm->hashedToSend->pageSetIdentifier.second, "aggWithValue_hashed_to_send");
+  EXPECT_EQ(aggAlgorithm->hashedToSend->pageSetIdentifier.first, compID);
+
+  // check the source
+  EXPECT_EQ(aggAlgorithm->hashedToRecv->sourceType, ShuffledAggregatesSource);
+  EXPECT_EQ((std::string) aggAlgorithm->hashedToRecv->pageSetIdentifier.second, std::string("aggWithValue_hashed_to_recv"));
+  EXPECT_EQ(aggAlgorithm->hashedToRecv->pageSetIdentifier.first, compID);
+
+  // check the sink
+  EXPECT_EQ(aggAlgorithm->sink->sinkType, AggregationSink);
+  EXPECT_EQ((std::string) aggAlgorithm->finalTupleSet, "aggWithValue");
+  EXPECT_EQ((std::string) aggAlgorithm->sink->pageSetIdentifier.second, "aggWithValue");
+  EXPECT_EQ(aggAlgorithm->sink->pageSetIdentifier.first, compID);
+
+  // we should have another source that reads the aggregation so we can generate another algorithm
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+
+  // the second algorithm should be a PDBStraightPipeAlgorithm
+  auto algorithm2 = optimizer.getNextAlgorithm();
+
+  // cast the algorithm
+  Handle<pdb::PDBStraightPipeAlgorithm> strAlgorithm = unsafeCast<pdb::PDBStraightPipeAlgorithm>(algorithm2);
+
+  // check the source
+  EXPECT_EQ(strAlgorithm->source->sourceType, AggregationSource);
+  EXPECT_EQ((std::string) strAlgorithm->firstTupleSet, std::string("agg"));
+  EXPECT_EQ((std::string) strAlgorithm->source->pageSetIdentifier.second, std::string("aggWithValue"));
+  EXPECT_EQ(strAlgorithm->source->pageSetIdentifier.first, compID);
+
+  // check the sink
+  EXPECT_EQ(strAlgorithm->sink->sinkType, SetSink);
+  EXPECT_EQ((std::string) strAlgorithm->finalTupleSet, "nothing");
+  EXPECT_EQ((std::string) strAlgorithm->sink->pageSetIdentifier.second, "nothing");
+  EXPECT_EQ(strAlgorithm->sink->pageSetIdentifier.first, compID);
+
+  // we should be done
+  EXPECT_FALSE(optimizer.hasAlgorithmToRun());
 }
 
 }
