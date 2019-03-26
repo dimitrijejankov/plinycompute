@@ -15,6 +15,60 @@ public:
   MOCK_METHOD3(getSet, pdb::PDBCatalogSetPtr(const std::string &, const std::string &, std::string &));
 };
 
+TEST(TestPhysicalOptimizer, TestSelection) {
+
+  // 1MB for algorithm and stuff
+  const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
+
+  // setup the input parameters
+  uint64_t compID = 98;
+  String myTCAPString =
+      "inputDataForScanSet_0(in0) <= SCAN ('input_set', 'by8_db', 'SetScanner_0') \n"\
+      "nativ_0OutForSelectionComp1(in0,nativ_0_1OutFor) <= APPLY (inputDataForScanSet_0(in0), inputDataForScanSet_0(in0), 'SelectionComp_1', 'native_lambda_0', [('lambdaType', 'native_lambda')]) \n"\
+      "filteredInputForSelectionComp1(in0) <= FILTER (nativ_0OutForSelectionComp1(nativ_0_1OutFor), nativ_0OutForSelectionComp1(in0), 'SelectionComp_1') \n"\
+      "nativ_1OutForSelectionComp1 (nativ_1_1OutFor) <= APPLY (filteredInputForSelectionComp1(in0), filteredInputForSelectionComp1(), 'SelectionComp_1', 'native_lambda_1', [('lambdaType', 'native_lambda')]) \n"\
+      "nativ_1OutForSelectionComp1_out() <= OUTPUT ( nativ_1OutForSelectionComp1 ( nativ_1_1OutFor ), 'output_set', 'by8_db', 'SetWriter_2') \n";
+
+  // make a logger
+  auto logger = make_shared<pdb::PDBLogger>("log.out");
+
+  // make the mock client
+  auto catalogClient = std::make_shared<MockCatalog>();
+  ON_CALL(*catalogClient, getSet(testing::An<const std::string &>(), testing::An<const std::string &>(), testing::An<std::string &>())).WillByDefault(testing::Invoke(
+      [&](const std::string &, const std::string &, std::string &errMsg) {
+        return std::make_shared<pdb::PDBCatalogSet>("input_set", "by8_db", "Nothing");
+      }));
+
+  EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(1));
+
+  // init the optimizer
+  pdb::PDBPhysicalOptimizer optimizer(compID, myTCAPString, catalogClient, logger);
+
+  // we should have one source so we should be able to generate an algorithm
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+
+  // the algorithm should be a PDBAggregationPipeAlgorithm
+  auto algorithm = optimizer.getNextAlgorithm();
+
+  // cast the algorithm
+  Handle<pdb::PDBStraightPipeAlgorithm> strAlgorithm = unsafeCast<pdb::PDBStraightPipeAlgorithm>(algorithm);
+
+  // check the source
+  EXPECT_EQ(strAlgorithm->source->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) strAlgorithm->firstTupleSet, std::string("inputDataForScanSet_0"));
+  EXPECT_EQ((std::string) strAlgorithm->source->pageSetIdentifier.second, std::string("inputDataForScanSet_0"));
+  EXPECT_EQ(strAlgorithm->source->pageSetIdentifier.first, compID);
+
+  // check the sink
+  EXPECT_EQ(strAlgorithm->sink->sinkType, SetSink);
+  EXPECT_EQ((std::string) strAlgorithm->finalTupleSet, "nativ_1OutForSelectionComp1_out");
+  EXPECT_EQ((std::string) strAlgorithm->sink->pageSetIdentifier.second, "nativ_1OutForSelectionComp1_out");
+  EXPECT_EQ(strAlgorithm->sink->pageSetIdentifier.first, compID);
+
+  // we should be done here
+  EXPECT_FALSE(optimizer.hasAlgorithmToRun());
+}
+
 
 TEST(TestPhysicalOptimizer, TestAggregation) {
 

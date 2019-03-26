@@ -22,8 +22,8 @@ public:
   PDBPlanningResult generateAlgorithm() override;
 
   PDBPlanningResult generatePipelinedAlgorithm(const std::string &firstTupleSet,
-                                                 const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                 pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &additionalSources) override;
+                                               const pdb::Handle<PDBSourcePageSetSpec> &source,
+                                               pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &additionalSources) override;
 
 };
 
