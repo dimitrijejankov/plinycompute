@@ -581,6 +581,14 @@ bool PDBMapIterator<KeyType, ValueType>::operator!=(
         return true;
     return false;
 }
+
+template <class KeyType, class ValueType>
+bool PDBMapIterator<KeyType, ValueType>::operator==(
+    const PDBMapIterator<KeyType, ValueType>& me) const {
+    if (!done || !me.done)
+        return false;
+    return true;
+}
 }
 
 #endif

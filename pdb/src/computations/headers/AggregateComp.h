@@ -19,10 +19,11 @@
 #ifndef AGG_COMP
 #define AGG_COMP
 
-#include "Computation.h"
-#include "HashSink.h"
+#include "AggregateCompBase.h"
 #include "MapTupleSetIterator.h"
 #include "DepartmentTotal.h"
+#include "PreAggregationSink.h"
+#include "AggregationCombinerSink.h"
 
 namespace pdb {
 
@@ -38,7 +39,7 @@ namespace pdb {
 // and the result of getValue () is set to the desired value.
 //
 template<class OutputClass, class InputClass, class KeyClass, class ValueClass>
-class AggregateComp : public Computation {
+class AggregateComp : public AggregateCompBase {
 
   // gets the operation tht extracts a key from an input object
   virtual Lambda<KeyClass> getKeyProjection(Handle<InputClass> aggMe) = 0;
@@ -111,23 +112,16 @@ class AggregateComp : public Computation {
     return "";
   }
 
-  /**
-   * Return the hash sink for the aggregation
-   * @param consumeMe -
-   * @param projection
-   * @param plan
-   * @return
-   */
   ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection) override {
-    return std::make_shared<pdb::HashSink<KeyClass, ValueClass>>(consumeMe, projection);
+    return std::make_shared<pdb::PreAggregationSink<KeyClass, ValueClass>>(consumeMe, projection, 2);
   }
 
   ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID) override {
-    return std::make_shared<MapTupleSetIterator<KeyClass, ValueClass, OutputClass>> (pageSet, workerID, chunkSize);
+    return std::make_shared<pdb::MapTupleSetIterator<KeyClass, ValueClass, OutputClass>> (pageSet, workerID, chunkSize);
   }
 
-  bool needsMaterializeOutput() override {
-    return false;
+  ComputeSinkPtr getAggregationHashMapCombiner(uint64_t workerID) override {
+    return std::make_shared<pdb::AggregationCombinerSink<KeyClass, ValueClass>>(workerID);
   }
 
 };

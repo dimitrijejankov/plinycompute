@@ -31,26 +31,13 @@
 #include <queue>
 #include <PDBAbstractPageSet.h>
 #include <PDBAnonymousPageSet.h>
+#include <PipelineInterface.h>
+#include <MemoryHolder.h>
 
 namespace pdb {
 
-// this is used to buffer unwritten pages
-struct MemoryHolder {
-  // the output vector that this guy stores
-  Handle<Object> outputSink;
-  // page handle
-  PDBPageHandle pageHandle;
-  // the iteration where he was last written...
-  // we use this because we cannot delete
-  int iteration;
-  void setIteration(int iterationIn);
-  explicit MemoryHolder(const PDBPageHandle &pageHandle);
-};
-
-typedef std::shared_ptr<MemoryHolder> MemoryHolderPtr;
-
 // this is a prototype for the pipeline
-class Pipeline {
+class Pipeline : public PipelineInterface {
 
  private:
 
@@ -72,6 +59,9 @@ class Pipeline {
   // and here is all of the pages we've not yet written back
   std::queue<MemoryHolderPtr> unwrittenPages;
 
+  // writes back any unwritten pages
+  void cleanPages(int iteration);
+
  public:
 
   // the first argument is a function to call that gets a new output page...
@@ -79,20 +69,15 @@ class Pipeline {
   // the third argument is the iterator that will create TupleSets to process
   Pipeline(PDBAnonymousPageSetPtr outputPageSet, ComputeSourcePtr dataSource, ComputeSinkPtr tupleSink);
 
-  ~Pipeline();
+  ~Pipeline() override;
 
   // adds a stage to the pipeline
   void addStage(ComputeExecutorPtr addMe);
 
-  // writes back any unwritten pages
-  void cleanPages(int iteration);
-
   // runs the pipeline
-  void run();
+  void run() override;
 
 };
-
-typedef std::shared_ptr<Pipeline> PipelinePtr;
 
 }
 

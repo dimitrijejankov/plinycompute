@@ -7,7 +7,7 @@
 
 #include "PDBStorageManagerBackend.h"
 #include "PDBPhysicalAlgorithm.h"
-#include "Pipeline.h"
+#include "pipeline/Pipeline.h"
 #include <vector>
 
 /**

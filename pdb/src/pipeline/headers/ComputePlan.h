@@ -24,7 +24,7 @@
 #include "Object.h"
 #include "LogicalPlan.h"
 #include "PDBVector.h"
-#include "Pipeline.h"
+#include "pipeline/Pipeline.h"
 #include "ComputeInfo.h"
 
 namespace pdb {
@@ -85,6 +85,12 @@ class ComputePlan {
                             std::map<std::string, ComputeInfoPtr> &params,
                             uint64_t chunkSize,
                             uint64_t workerID);
+
+
+  PipelinePtr buildAggregationPipeline(const std::string &targetTupleSetName,
+                                       const PDBAbstractPageSetPtr &inputPageSet,
+                                       const PDBAnonymousPageSetPtr &outputPageSet,
+                                       uint64_t workerID);
 
 };
 

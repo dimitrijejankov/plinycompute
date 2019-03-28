@@ -47,6 +47,7 @@ public:
         iterateMe = nullptr;
     };
     bool operator!=(const PDBMapIterator& me) const;
+    bool operator==(const PDBMapIterator& me) const;
     MapRecordClass<KeyType, ValueType>& operator*();
     void operator++();
     PDBMapIterator(Handle<PairArray<KeyType, ValueType>> iterateMeIn, bool);

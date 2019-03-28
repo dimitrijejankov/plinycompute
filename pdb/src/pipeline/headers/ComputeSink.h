@@ -19,6 +19,7 @@
 #ifndef COMPUTE_SINK_H
 #define COMPUTE_SINK_H
 
+#include <PDBPageHandle.h>
 #include "Object.h"
 #include "TupleSet.h"
 
@@ -40,7 +41,10 @@ public:
 	// this writes the tuple set into the output container
 	virtual void writeOut (TupleSetPtr writeMe, Handle <Object> &writeToMe) = 0;
 
-	virtual ~ComputeSink () {}
+	// this writes out the whole page to this sink
+  	virtual void writeOutPage(pdb::PDBPageHandle &page, Handle<Object> &writeToMe) = 0;
+
+	virtual ~ComputeSink () = default;
 
 };
 

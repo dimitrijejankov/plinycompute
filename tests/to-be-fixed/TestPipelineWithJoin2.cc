@@ -22,7 +22,7 @@
 #include "Employee.h"
 #include "LambdaCreationFunctions.h"
 #include "UseTemporaryAllocationBlock.h"
-#include "Pipeline.h"
+#include "pipeline/Pipeline.h"
 #include "SetWriter.h"
 #include "JoinComp.h"
 #include "SetScanner.h"

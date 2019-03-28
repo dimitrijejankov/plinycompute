@@ -261,7 +261,7 @@ int16_t getTypeID();
 // it is not possible to verify the correctness of the cast at runtime, either.
 // So use this operation CAREFULLY!!
 template <class OutObjType, class InObjType>
-Handle<OutObjType> unsafeCast(Handle<InObjType>& castMe);
+Handle<OutObjType> unsafeCast(const Handle<InObjType>& castMe);
 /*
 template <class TargetType>
 class Holder : public Object{

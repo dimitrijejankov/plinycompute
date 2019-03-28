@@ -261,7 +261,7 @@ Record<ObjType>* getRecord(Handle<ObjType>& forMe) {
 }
 
 template <class OutObjType, class InObjType>
-Handle<OutObjType> unsafeCast(Handle<InObjType>& castMe) {
+Handle<OutObjType> unsafeCast(const Handle<InObjType>& castMe) {
 
     Handle<OutObjType> result;
     result.offset = castMe.offset + (CHAR_PTR(&castMe) - CHAR_PTR(&result));

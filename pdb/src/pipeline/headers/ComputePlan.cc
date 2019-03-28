@@ -24,6 +24,8 @@
 #include "AtomicComputationClasses.h"
 #include "lambdas/EqualsLambda.h"
 #include "JoinCompBase.h"
+#include "AggregateCompBase.h"
+#include "AggregationPipeline.h"
 #include "Lexer.h"
 #include "Parser.h"
 
@@ -136,13 +138,16 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
   std::cout << "print computations:" << std::endl;
   std::cout << allComps << std::endl;
 
+  // get the atomic computation of the source
+  auto sourceAtomicComputation = allComps.getProducingAtomicComputation(sourceTupleSetName);
+
   // now we get the name of the actual computation object that corresponds to the producer of this tuple set
-  std::string producerName = allComps.getProducingAtomicComputation(sourceTupleSetName)->getComputationName();
+  std::string producerName = sourceAtomicComputation->getComputationName();
 
   std::cout << "producerName = " << producerName << std::endl;
 
   // and get the schema for the output TupleSet objects that it is supposed to produce
-  TupleSpec &origSpec = allComps.getProducingAtomicComputation(sourceTupleSetName)->getOutput();
+  TupleSpec &origSpec = sourceAtomicComputation->getOutput();
 
   // now we are going to ask that particular node for the compute source
   ComputeSourcePtr computeSource = myPlan->getNode(producerName).getComputation().getComputeSource(inputPageSet, chunkSize, workerID);
@@ -245,7 +250,7 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
   ComputeSinkPtr computeSink = myPlan->getNode(targetComputationName).getComputation().getComputeSink(targetSpec, targetProjection);
 
   // make the pipeline
-  PipelinePtr returnVal = std::make_shared<Pipeline>(outputPageSet, computeSource, computeSink);
+  std::shared_ptr<Pipeline> returnVal = std::make_shared<Pipeline>(outputPageSet, computeSource, computeSink);
 
   // add the operations to the pipeline
   AtomicComputationPtr lastOne = myPlan->getComputations().getProducingAtomicComputation(sourceTupleSetName);
@@ -369,8 +374,33 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
   return returnVal;
 }
 
-inline ComputePlan::ComputePlan(String &TCAPComputation, Vector<Handle<Computation>> &allComputations) :
-    TCAPComputation(TCAPComputation), allComputations(allComputations) {}
+inline PipelinePtr ComputePlan::buildAggregationPipeline(const std::string &targetTupleSetName,
+                                                         const PDBAbstractPageSetPtr &inputPageSet,
+                                                         const PDBAnonymousPageSetPtr &outputPageSet,
+                                                         uint64_t workerID) {
+
+  // build the plan if it is not already done
+  if (myPlan == nullptr)
+    getPlan();
+
+  // get all of the computations
+  AtomicComputationList &allComps = myPlan->getComputations();
+
+  // find the target atomic computation
+  auto targetAtomicComp = allComps.getProducingAtomicComputation(targetTupleSetName);
+
+  // find the target real PDBcomputation
+  auto targetComputationName = targetAtomicComp->getComputationName();
+
+  // grab the aggregation combiner
+  Handle<AggregateCompBase> agg = unsafeCast<AggregateCompBase>(myPlan->getNode(targetComputationName).getComputationHandle());
+  auto combiner = agg->getAggregationHashMapCombiner(workerID);
+
+  return std::make_shared<pdb::AggregationPipeline>(workerID, outputPageSet, inputPageSet, combiner);
+}
+
+inline ComputePlan::ComputePlan(String &TCAPComputation, Vector<Handle<Computation>> &allComputations) : TCAPComputation(TCAPComputation),
+                                                                                                         allComputations(allComputations) {}
 
 }
 

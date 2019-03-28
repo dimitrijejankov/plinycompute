@@ -79,9 +79,9 @@ class VectorSink : public ComputeSink {
         throw n;
       }
     }
-
   }
 
+  void writeOutPage(pdb::PDBPageHandle &page, Handle<Object> &writeToMe) override { throw runtime_error("VectorSink can not write out a page."); }
 };
 
 }

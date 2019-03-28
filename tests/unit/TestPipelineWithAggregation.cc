@@ -22,14 +22,13 @@
 #include "Employee.h"
 #include "LambdaCreationFunctions.h"
 #include "UseTemporaryAllocationBlock.h"
-#include "Pipeline.h"
+#include "pipeline/Pipeline.h"
 #include "SetWriter.h"
 #include "SelectionComp.h"
 #include "AggregateComp.h"
 #include "SetScanner.h"
 #include "DepartmentTotal.h"
 #include "VectorSink.h"
-#include "HashSink.h"
 #include "MapTupleSetIterator.h"
 #include "VectorTupleSetIterator.h"
 #include "ComputePlan.h"
@@ -130,8 +129,13 @@ int main() {
   // empty computations parameters
   std::map<std::string, ComputeInfoPtr> params;
 
+  
+  /// 4. Define a page reader for the scan set
+  
   // the page set that is gonna provide stuff
   std::shared_ptr<MockPageSetReader> pageReader = std::make_shared<MockPageSetReader>();
+
+  size_t numRecords = 0;
 
   // make the function return pages with Employee objects
   ON_CALL(*pageReader, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
@@ -139,8 +143,16 @@ int main() {
 
         // this implementation only serves six pages
         static int numPages = 0;
-        if (numPages == 6)
+        if (numPages == 60)
           return (PDBPageHandle) nullptr;
+
+        // reset on 20 and 38
+        if(numPages == 20) {
+          numRecords = 0;
+        }
+        if(numPages == 38) {
+          numRecords = 0;
+        }
 
         // create a page, loading it with random data
         auto page = myMgr.getPage();
@@ -170,18 +182,21 @@ int main() {
                   second = 'A';
               }
 
-              Handle<Supervisor>
-                  super = makeObject<Supervisor>("Steve Stevens", 20 + (i % 29), std::string(myString), i * 34.4);
+              Handle<Supervisor> super = makeObject<Supervisor>("Steve Stevens", numRecords, std::string(myString) + std::to_string(numRecords), i * 34.4);
+              numRecords++;
+
               supers->push_back(super);
               for (int j = 0; j < 10; j++) {
 
                 Handle<Employee> temp;
                 if (i % 2 == 0)
-                  temp = makeObject<Employee>("Steve Stevens", 20 + ((i + j) % 29), std::string(myString), j * 3.54);
+                  temp = makeObject<Employee>("Steve Stevens", numRecords, std::string(myString) + std::to_string(numRecords), j * 3.54);
                 else
                   temp =
-                      makeObject<Employee>("Albert Albertson", 20 + ((i + j) % 29), std::string(myString), j * 3.54);
+                      makeObject<Employee>("Albert Albertson", numRecords, std::string(myString) + std::to_string(numRecords), j * 3.54);
                 (*supers)[i]->addEmp(temp);
+
+                numRecords++;
               }
             }
 
@@ -197,13 +212,61 @@ int main() {
   ));
 
   // it should call send object exactly six times
-  EXPECT_CALL(*pageReader, getNextPage(testing::An<size_t>())).Times(7);
+  EXPECT_CALL(*pageReader, getNextPage(testing::An<size_t>())).Times(61);
+
+  
+  /// 4. Define a page set for the pre-aggregation
+  
+  // the page set that is gonna provide stuff
+  std::shared_ptr<MockPageSetWriter> partitionedHashTable = std::make_shared<MockPageSetWriter>();
+
+  std::vector<PDBPageHandle> hashTables;
+  ON_CALL(*partitionedHashTable, getNewPage).WillByDefault(testing::Invoke(
+      [&]() {
+
+        // store the page
+        auto page = myMgr.getPage();
+        hashTables.push_back(page);
+
+        return page;
+      }));
+
+  // it should call this method many times
+  EXPECT_CALL(*partitionedHashTable, getNewPage).Times(testing::AtLeast(1));
+
+  ON_CALL(*partitionedHashTable, removePage(testing::An<PDBPageHandle>())).WillByDefault(testing::Invoke(
+      [&](PDBPageHandle pageHandle) {}));
+
+  // it should call send object exactly six times
+  EXPECT_CALL(*partitionedHashTable, removePage).Times(testing::Exactly(0));
+
+  // make the function return pages with the Vector<Map<Object>>
+  size_t currentPage = 0;
+  ON_CALL(*partitionedHashTable, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
+      [&](size_t workerID) {
+
+        if(currentPage >= hashTables.size()) {
+          return (PDBPageHandle) nullptr;
+        }
+
+        // repin the page
+        auto page = hashTables[currentPage++];
+        page->repin();
+
+        // return it
+        return page;
+      }));
+
+  // it should call send object exactly six times
+  EXPECT_CALL(*partitionedHashTable, getNextPage).Times(testing::AtLeast(1));
+
+  /// 5. Init the page that is going to contain the aggregated hashTable
 
   // the page set that is gonna provide stuff
-  std::shared_ptr<MockPageSetWriter> hashTableRW = std::make_shared<MockPageSetWriter>();
+  std::shared_ptr<MockPageSetWriter> hashTablePageSet = std::make_shared<MockPageSetWriter>();
 
   PDBPageHandle hashTable;
-  ON_CALL(*hashTableRW, getNewPage).WillByDefault(testing::Invoke(
+  ON_CALL(*hashTablePageSet, getNewPage).WillByDefault(testing::Invoke(
       [&]() {
 
         // the hash table should not exist
@@ -217,23 +280,25 @@ int main() {
       }));
 
   // it should call this method many times
-  EXPECT_CALL(*hashTableRW, getNewPage).Times(testing::AtLeast(1));
+  EXPECT_CALL(*hashTablePageSet, getNewPage).Times(testing::Exactly(1));
 
-  ON_CALL(*hashTableRW, removePage(testing::An<PDBPageHandle>())).WillByDefault(testing::Invoke(
+  ON_CALL(*hashTablePageSet, removePage(testing::An<PDBPageHandle>())).WillByDefault(testing::Invoke(
       [&](PDBPageHandle pageHandle) {}));
 
   // it should call send object exactly six times
-  EXPECT_CALL(*hashTableRW, removePage).Times(testing::Exactly(0));
+  EXPECT_CALL(*hashTablePageSet, removePage).Times(testing::Exactly(0));
 
   // make the function return pages with Employee objects
-  ON_CALL(*hashTableRW, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
+  ON_CALL(*hashTablePageSet, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
       [&](size_t workerID) {
         hashTable->repin();
         return hashTable;
-  }));
+      }));
 
   // it should call send object exactly six times
-  EXPECT_CALL(*hashTableRW, getNextPage).Times(testing::Exactly(1));
+  EXPECT_CALL(*hashTablePageSet, getNextPage).Times(testing::Exactly(1));
+
+  /// 5. Create the final page set
 
   // the page set that is gonna provide stuff
   std::shared_ptr<MockPageSetWriter> pageWriter = std::make_shared<MockPageSetWriter>();
@@ -260,16 +325,28 @@ int main() {
   // it should call send object exactly six times
   EXPECT_CALL(*pageWriter, removePage).Times(testing::Exactly(0));
 
+  /// Create the pre-aggregation and run it.
 
   // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
   // a pipeline into the aggregation operation
   PipelinePtr myPipeline = myPlan->buildPipeline(std::string("inputData"), /* this is the TupleSet the pipeline starts with */
                                                  std::string("aggWithValue"),     /* this is the TupleSet the pipeline ends with */
                                                  pageReader,
-                                                 hashTableRW,
+                                                 partitionedHashTable,
                                                  params,
                                                  20,
                                                  0);
+
+  // and now, simply run the pipeline and then destroy it!!!
+  std::cout << "\nRUNNING PIPELINE\n";
+  myPipeline->run();
+  myPipeline = nullptr;
+
+
+  myPipeline = myPlan->buildAggregationPipeline(std::string("aggWithValue"),
+                                                partitionedHashTable,
+                                                hashTablePageSet,
+                                                1);
 
   // and now, simply run the pipeline and then destroy it!!!
   std::cout << "\nRUNNING PIPELINE\n";
@@ -282,7 +359,7 @@ int main() {
   // the second half of the aggregation
   myPipeline = myPlan->buildPipeline(std::string("agg"), /* this is the TupleSet the pipeline starts with */
                                      std::string("write"),     /* this is the TupleSet the pipeline ends with */
-                                     hashTableRW,
+                                     hashTablePageSet,
                                      pageWriter,
                                      params,
                                      20,

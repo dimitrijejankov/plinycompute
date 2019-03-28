@@ -185,8 +185,6 @@ class Computation : public Object {
 
   virtual std::string getSetName() { return ""; }
 
-  virtual bool needsMaterializeOutput() { return false; }
-
   virtual void setBatchSize(int batchSize) {}
 
  private:

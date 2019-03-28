@@ -137,6 +137,9 @@ public:
       }
     }
   }
+
+  void writeOutPage(pdb::PDBPageHandle &page, Handle<Object> &writeToMe) override { throw runtime_error("Join sink can not write out a page."); }
+
 };
 
 }

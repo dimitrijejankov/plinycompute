@@ -15,25 +15,8 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
-#include "Pipeline.h"
+#include "pipeline/Pipeline.h"
 
-void pdb::MemoryHolder::setIteration(int iterationIn) {
-
-    if (outputSink != nullptr) {
-        getRecord(outputSink);
-    }
-
-    iteration = iterationIn;
-}
-
-pdb::MemoryHolder::MemoryHolder(const pdb::PDBPageHandle &pageHandle) {
-    // set the page handle
-    this->pageHandle = pageHandle;
-
-    // make the allocation block
-    makeObjectAllocatorBlock(this->pageHandle->getBytes(), this->pageHandle->getSize(), true);
-    outputSink = nullptr;
-}
 
 pdb::Pipeline::Pipeline(PDBAnonymousPageSetPtr outputPageSet, ComputeSourcePtr dataSource, ComputeSinkPtr tupleSink) :
         outputPageSet(std::move(outputPageSet)), dataSource(std::move(dataSource)), dataSink(std::move(tupleSink)) {}

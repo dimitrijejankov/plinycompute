@@ -57,10 +57,6 @@ public:
     return getTypeName<OutputClass>();
   }
 
-  bool needsMaterializeOutput() override {
-    return true;
-  }
-
   // below function implements the interface for parsing computation into a TCAP string
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
                            int computationLabel,
