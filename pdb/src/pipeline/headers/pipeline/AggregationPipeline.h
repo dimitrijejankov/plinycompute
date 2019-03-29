@@ -33,6 +33,7 @@ public:
                       const PDBAnonymousPageSetPtr &outputPageSet,
                       const PDBAbstractPageSetPtr &inputPageSet,
                       const ComputeSinkPtr &merger);
+
   void run() override;
 
 };

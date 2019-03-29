@@ -26,6 +26,7 @@
 #include "ComputeSource.h"
 #include "ComputeSink.h"
 #include "ComputeExecutor.h"
+#include "PageProcessor.h"
 #include "UseTemporaryAllocationBlock.h"
 #include "Handle.h"
 #include <queue>
@@ -53,6 +54,9 @@ class Pipeline : public PipelineInterface {
   // this is where the pipeline goes to write the data
   ComputeSinkPtr dataSink;
 
+  // the page processor, we call this when we are have filled up a page, regardless of whether it contains stuff
+  PageProcessorPtr pageProcessor;
+
   // here is our pipeline
   std::vector<ComputeExecutorPtr> pipeline;
 
@@ -73,6 +77,9 @@ class Pipeline : public PipelineInterface {
 
   // adds a stage to the pipeline
   void addStage(ComputeExecutorPtr addMe);
+
+  // store page
+  void keepPage(pdb::MemoryHolderPtr ram, int iteration);
 
   // runs the pipeline
   void run() override;

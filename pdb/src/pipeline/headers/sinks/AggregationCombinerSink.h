@@ -52,8 +52,8 @@ public:
           // if we get an exception, then we could not fit a new key/value pair
         } catch (NotEnoughSpace &n) {
 
-          // TODO this is fatal for now since we assume that we can aggregate everything into a single hash map
-          exit(-1);
+          // we do not deal with this, it must fit into a single hash table
+          throw n;
         }
 
         // we were able to fit a new key/value pair, so copy over the value
@@ -63,8 +63,8 @@ public:
           // if we could not fit the value...
         } catch (NotEnoughSpace &n) {
 
-          // TODO this is fatal for now since we assume that we can aggregate everything into a single hash map
-          exit(-1);
+          // we do not deal with this, it must fit into a single hash table
+          throw n;
         }
 
         // the key is there
@@ -82,8 +82,8 @@ public:
           // to put the new value into the hash table
         } catch (NotEnoughSpace &n) {
 
-          // TODO this is fatal for now since we assume that we can aggregate everything into a single hash map
-          exit(-1);
+          // we do not deal with this, it must fit into a single hash table
+          throw n;
         }
       }
     }
