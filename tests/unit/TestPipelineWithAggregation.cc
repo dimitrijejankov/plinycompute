@@ -129,7 +129,6 @@ int main() {
   // empty computations parameters
   std::map<std::string, ComputeInfoPtr> params;
 
-  
   /// 4. Define a page reader for the scan set
   
   // the page set that is gonna provide stuff
@@ -326,6 +325,9 @@ int main() {
   EXPECT_CALL(*pageWriter, removePage).Times(testing::Exactly(0));
 
   /// Create the pre-aggregation and run it.
+
+  // set he parameters
+  params = {};
 
   // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
   // a pipeline into the aggregation operation

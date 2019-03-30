@@ -23,6 +23,13 @@
 
 namespace pdb {
 
+enum ComputeInfoType {
+
+  PAGE_PROCESSOR,
+
+};
+
+
 // this is the base class for parameters that are sent into a pipeline when it is built
 class ComputeInfo {
 

@@ -260,63 +260,37 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
 
     // if we have a filter, then just go ahead and create it
     if (a->getAtomicComputationType() == "Filter") {
-      std::cout << "Adding: " << a->getProjection() << " + filter [" << a->getInput() << "] => " << a->getOutput()
-                << "\n";
-      if (params.count(a->getOutput().getSetName()) == 0) {
-        returnVal->addStage(std::make_shared<FilterExecutor>(lastOne->getOutput(), a->getInput(), a->getProjection()));
-      } else {
 
-        returnVal->addStage(std::make_shared<FilterExecutor>(lastOne->getOutput(), a->getInput(),
-                                                             a->getProjection(), params[a->getOutput().getSetName()]));
+      // create a filter executor
+      std::cout << "Adding: " << a->getProjection() << " + filter [" << a->getInput() << "] => " << a->getOutput() << "\n";
+      returnVal->addStage(std::make_shared<FilterExecutor>(lastOne->getOutput(), a->getInput(), a->getProjection()));
 
-      }
       // if we had an apply, go ahead and find it and add it to the pipeline
     } else if (a->getAtomicComputationType() == "Apply") {
-      std::cout << "Adding: " << a->getProjection() << " + apply [" << a->getInput() << "] => " << a->getOutput()
-                << "\n";
 
-      // if we have an available parameter, send it
-      if (params.count(a->getOutput().getSetName()) == 0) {
-        returnVal->addStage(myPlan->getNode(a->getComputationName()).getLambda(
-            ((ApplyLambda *) a.get())->getLambdaToApply())->getExecutor(
-            lastOne->getOutput(), a->getInput(), a->getProjection()));
-      } else {
-        returnVal->addStage(myPlan->getNode(a->getComputationName()).getLambda(
-            ((ApplyLambda *) a.get())->getLambdaToApply())->getExecutor(
-            lastOne->getOutput(), a->getInput(), a->getProjection(), params[a->getOutput().getSetName()]));
-      }
+      // create an executor for the apply lambda
+      std::cout << "Adding: " << a->getProjection() << " + apply [" << a->getInput() << "] => " << a->getOutput() << "\n";
+      returnVal->addStage(myPlan->getNode(a->getComputationName()).
+                          getLambda(((ApplyLambda *) a.get())->getLambdaToApply())->getExecutor(lastOne->getOutput(), a->getInput(), a->getProjection()));
 
     } else if (a->getAtomicComputationType() == "HashLeft") {
-      std::cout << "Adding: " << a->getProjection() << " + hashleft [" << a->getInput() << "] => " << a->getOutput()
-                << "\n";
 
-      // if we have an available parameter, send it
-      if (params.count(a->getOutput().getSetName()) == 0)
-        returnVal->addStage(myPlan->getNode(a->getComputationName()).getLambda(
-            ((HashLeft *) a.get())->getLambdaToApply())->getLeftHasher(
-            lastOne->getOutput(), a->getInput(), a->getProjection()));
-      else
-        returnVal->addStage(myPlan->getNode(a->getComputationName()).getLambda(
-            ((HashLeft *) a.get())->getLambdaToApply())->getLeftHasher(
-            lastOne->getOutput(), a->getInput(), a->getProjection(), params[a->getOutput().getSetName()]));
+      // create an executor for left hasher
+      std::cout << "Adding: " << a->getProjection() << " + hashleft [" << a->getInput() << "] => " << a->getOutput() << "\n";
+      returnVal->addStage(myPlan->getNode(a->getComputationName()).
+                          getLambda(((HashLeft *) a.get())->getLambdaToApply())->getLeftHasher(lastOne->getOutput(), a->getInput(), a->getProjection()));
 
     } else if (a->getAtomicComputationType() == "HashRight") {
-      std::cout << "Adding: " << a->getProjection() << " + hashright [" << a->getInput() << "] => " << a->getOutput()
-                << "\n";
 
-      // if we have an available parameter, send it
-      if (params.count(a->getOutput().getSetName()) == 0)
-        returnVal->addStage(myPlan->getNode(a->getComputationName()).getLambda(
-            ((HashLeft *) a.get())->getLambdaToApply())->getRightHasher(
-            lastOne->getOutput(), a->getInput(), a->getProjection()));
-      else
-        returnVal->addStage(myPlan->getNode(a->getComputationName()).getLambda(
-            ((HashLeft *) a.get())->getLambdaToApply())->getRightHasher(
-            lastOne->getOutput(), a->getInput(), a->getProjection(), params[a->getOutput().getSetName()]));
+      // create an executor for the right hasher
+      std::cout << "Adding: " << a->getProjection() << " + hashright [" << a->getInput() << "] => " << a->getOutput() << "\n";
+      returnVal->addStage(myPlan->getNode(a->getComputationName()).
+                          getLambda(((HashLeft *) a.get())->getLambdaToApply())->getRightHasher(lastOne->getOutput(), a->getInput(), a->getProjection()));
+
 
     } else if (a->getAtomicComputationType() == "JoinSets") {
-      std::cout << "Adding: " << a->getProjection() << " + join [" << a->getInput() << "] => " << a->getOutput()
-                << "\n";
+
+      std::cout << "Adding: " << a->getProjection() << " + join [" << a->getInput() << "] => " << a->getOutput() << "\n";
 
       // join is weird, because there are two inputs...
       auto &myComp = (JoinCompBase &) myPlan->getNode(a->getComputationName()).getComputation();
