@@ -60,9 +60,6 @@ class ComputePlan {
   //
   LogicalPlanPtr getPlan();
 
-  //JiaNote: get producing computation name
-  std::string getProducingComputationName(std::string sourceTupleSetName);
-
   // Note that once getPlan () has been called, ComputePlan object contains a C++ smart pointer inside of it.
   // IT IS VERY DANGEROUS TO SEND SUCH A POINTER ACCROSS THE NETWORK.  Hence, after calling getPlan () but before
   // this object is sent accross the network or written to disk, the following method MUST be called to avoid
@@ -82,7 +79,7 @@ class ComputePlan {
                             const std::string &targetTupleSetName,
                             const PDBAbstractPageSetPtr &inputPageSet,
                             const PDBAnonymousPageSetPtr &outputPageSet,
-                            std::map<std::string, ComputeInfoPtr> &params,
+                            std::map<ComputeInfoType, ComputeInfoPtr> &params,
                             size_t numNodes,
                             size_t numProcessingThreads,
                             uint64_t chunkSize,

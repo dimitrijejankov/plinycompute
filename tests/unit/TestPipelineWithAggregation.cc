@@ -127,7 +127,7 @@ int main() {
   /// 3. Setup the mock calls to the PageSets for the input and the output
 
   // empty computations parameters
-  std::map<std::string, ComputeInfoPtr> params;
+  std::map<ComputeInfoType, ComputeInfoPtr> params;
 
   /// 4. Define a page reader for the scan set
   

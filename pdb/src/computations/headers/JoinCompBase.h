@@ -19,6 +19,7 @@
 #define JOINCOMPBASE_H
 
 #include "Computation.h"
+#include <JoinArguments.h>
 
 namespace pdb {
 
@@ -31,7 +32,8 @@ class JoinCompBase : public Computation {
                                          TupleSpec &pipelinedInputSchema,
                                          TupleSpec &pipelinedAttsToOperateOn,
                                          TupleSpec &pipelinedAttsToIncludeInOutput,
-                                         ComputeInfoPtr arg) = 0;
+                                         JoinArgPtr &joinArg,
+                                         ComputePlan &computePlan) = 0;
 
   virtual ComputeExecutorPtr getExecutor(bool needToSwapAtts,
                                          TupleSpec &hashedInputSchema,

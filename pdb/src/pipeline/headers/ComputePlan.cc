@@ -108,23 +108,11 @@ inline bool recurse(LogicalPlanPtr myPlan,
   return false;
 }
 
-inline std::string ComputePlan::getProducingComputationName(std::string sourceTupleSetName) {
-
-  if (myPlan == nullptr) {
-    getPlan();
-  }
-
-  AtomicComputationList &allComps = myPlan->getComputations();
-
-  return allComps.getProducingAtomicComputation(sourceTupleSetName)->getComputationName();
-
-}
-
 inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetName,
                                               const std::string &targetTupleSetName,
                                               const PDBAbstractPageSetPtr &inputPageSet,
                                               const PDBAnonymousPageSetPtr &outputPageSet,
-                                              std::map<std::string, ComputeInfoPtr> &params,
+                                              std::map<ComputeInfoType, ComputeInfoPtr> &params,
                                               size_t numNodes,
                                               size_t numProcessingThreads,
                                               uint64_t chunkSize,
@@ -296,40 +284,30 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
       auto &myComp = (JoinCompBase &) myPlan->getNode(a->getComputationName()).getComputation();
       auto *myJoin = (ApplyJoin *) (a.get());
 
-      // check if we are pipelinining the right input
+      // grab the join arguments
+      JoinArgumentsPtr joinArgs = std::dynamic_pointer_cast<JoinArguments>(params[ComputeInfoType::JOIN_ARGS]);
+      if(joinArgs == nullptr) {
+        throw runtime_error("Join pipeline run without hash tables!");
+      }
+
+      // do we have the appropriate join arguments? if not throw an exception
+      auto it = joinArgs->hashTables.find(a->getOutput().getSetName());
+      if(it != joinArgs->hashTables.end()) {
+        throw runtime_error("Hash table for the output set," + a->getOutput().getSetName() +  "not found!");
+      }
+
+      // check if we are pipelining the right input
       if (lastOne->getOutput().getSetName() == myJoin->getRightInput().getSetName()) {
 
-        std::cout << "We are pipelining the right input...\n";
-
         // if we are pipelining the right input, then we don't need to switch left and right inputs
-        if (params.count(a->getOutput().getSetName()) == 0) {
-          returnVal->addStage(myComp.getExecutor(true,
-                                                 myJoin->getProjection(),
-                                                 lastOne->getOutput(),
-                                                 myJoin->getRightInput(),
-                                                 myJoin->getRightProjection()));
-        } else {
-          returnVal->addStage(myComp.getExecutor(true,
-                                                 myJoin->getProjection(),
-                                                 lastOne->getOutput(),
-                                                 myJoin->getRightInput(),
-                                                 myJoin->getRightProjection(),
-                                                 params[a->getOutput().getSetName()]));
-        }
+        std::cout << "We are pipelining the right input...\n";
+        returnVal->addStage(myComp.getExecutor(true, myJoin->getProjection(), lastOne->getOutput(), myJoin->getRightInput(), myJoin->getRightProjection(), it->second, *this));
 
       } else {
 
-        std::cout << "We are pipelining the left input...\n";
-
         // if we are pipelining the right input, then we don't need to switch left and right inputs
-        if (params.count(a->getOutput().getSetName()) == 0) {
-          returnVal->addStage(myComp.getExecutor(false, myJoin->getRightProjection(),
-                                                 lastOne->getOutput(), myJoin->getInput(), myJoin->getProjection()));
-        } else {
-          returnVal->addStage(myComp.getExecutor(false, myJoin->getRightProjection(),
-                                                 lastOne->getOutput(), myJoin->getInput(), myJoin->getProjection(),
-                                                 params[a->getOutput().getSetName()]));
-        }
+        std::cout << "We are pipelining the left input...\n";
+        returnVal->addStage(myComp.getExecutor(false, myJoin->getRightProjection(), lastOne->getOutput(), myJoin->getInput(), myJoin->getProjection(), it->second, *this));
       }
 
     }

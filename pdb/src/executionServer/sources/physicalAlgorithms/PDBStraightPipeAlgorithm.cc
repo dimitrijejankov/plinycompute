@@ -83,7 +83,7 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
 
 
   // empty computations parameters
-  std::map<std::string, ComputeInfoPtr> params;
+  std::map<ComputeInfoType, ComputeInfoPtr> params;
 
   // build a pipeline for each worker thread
   myPipelines = std::make_shared<std::vector<PipelinePtr>>();

@@ -26,6 +26,7 @@ namespace pdb {
 enum ComputeInfoType {
 
   PAGE_PROCESSOR,
+  JOIN_ARGS
 
 };
 

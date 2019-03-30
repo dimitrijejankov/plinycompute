@@ -110,7 +110,7 @@ TEST(PipelineTest, TestSelection) {
   /// 3. Setup the mock calls to the PageSets for the input and the output
 
   // empty computations parameters
-  std::map<std::string, ComputeInfoPtr> params;
+  std::map<ComputeInfoType, ComputeInfoPtr> params;
 
   // the page set that is gonna provide stuff
   std::shared_ptr<MockPageSetReader> pageReader = std::make_shared<MockPageSetReader>();

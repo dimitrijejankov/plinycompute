@@ -29,22 +29,6 @@
 
 namespace pdb {
 
-// used to parameterize joins that are run as part of a pipeline
-class JoinArg : public ComputeInfo {
-
- public:
-
-  // this is the compute plan that we are part of
-  ComputePlan &plan;
-
-  // the location of the hash table
-  void *pageWhereHashTableIs;
-
-  JoinArg(ComputePlan &plan, void *pageWhereHashTableIs) : plan(plan), pageWhereHashTableIs(pageWhereHashTableIs) {}
-
-  ~JoinArg() = default;
-};
-
 template<typename Out, typename In1, typename In2, typename ...Rest>
 class JoinComp : public JoinCompBase {
 
@@ -189,33 +173,31 @@ class JoinComp : public JoinCompBase {
                                  TupleSpec &pipelinedInputSchema,
                                  TupleSpec &pipelinedAttsToOperateOn,
                                  TupleSpec &pipelinedAttsToIncludeInOutput,
-                                 ComputeInfoPtr arg) override {
+                                 JoinArgPtr &joinArg,
+                                 ComputePlan &computePlan) override {
 
-    // get the argument to the join
-    JoinArg &joinArg = *((JoinArg *) arg.get());
 
     std::cout << "pipelinedInputSchema is " << pipelinedInputSchema << "\n";
     std::cout << "pipelinedAttsToOperateOn is " << pipelinedAttsToOperateOn << "\n";
     std::cout << "pipelinedAttsToIncludeInOutput is " << pipelinedAttsToIncludeInOutput << "\n";
-    std::cout << "From the join arg, got " << (size_t) joinArg.pageWhereHashTableIs << "\n";
+    std::cout << "From the join arg, got " << (size_t) joinArg->pageWhereHashTableIs << "\n";
 
     // loop through each of the attributes that we are supposed to accept, and for each of them, find the type
     std::vector<std::string> typeList;
-    AtomicComputationPtr producer =
-        joinArg.plan.getPlan()->getComputations().getProducingAtomicComputation(hashedInputSchema.getSetName());
+    AtomicComputationPtr producer = computePlan.getPlan()->getComputations().getProducingAtomicComputation(hashedInputSchema.getSetName());
     for (auto &a : (hashedInputSchema.getAtts())) {
 
       // find the identity of the producing computation
       std::cout << "finding the source of " << hashedInputSchema.getSetName() << "." << a << "\n";
-      std::pair<std::string, std::string> res = producer->findSource(a, joinArg.plan.getPlan()->getComputations());
+      std::pair<std::string, std::string> res = producer->findSource(a, computePlan.getPlan()->getComputations());
 
       // and find its type... in the first case, there is not a particular lambda that we need to ask for
       if (res.second.empty()) {
         typeList.push_back(
-            "pdb::Handle<" + joinArg.plan.getPlan()->getNode(res.first).getComputation().getOutputType() + ">");
+            "pdb::Handle<" + computePlan.getPlan()->getNode(res.first).getComputation().getOutputType() + ">");
       } else {
         typeList.push_back(
-            "pdb::Handle<" + joinArg.plan.getPlan()->getNode(res.first).getLambda(res.second)->getOutputType() + ">");
+            "pdb::Handle<" + computePlan.getPlan()->getNode(res.first).getLambda(res.second)->getOutputType() + ">");
       }
     }
 
@@ -234,7 +216,7 @@ class JoinComp : public JoinCompBase {
     std::cout << "\n";
 
     // and return the correct probing code
-    return correctJoinTuple->getProber(joinArg.pageWhereHashTableIs,
+    return correctJoinTuple->getProber(joinArg->pageWhereHashTableIs,
                                        whereEveryoneGoes,
                                        pipelinedInputSchema,
                                        pipelinedAttsToOperateOn,
