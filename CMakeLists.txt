@@ -89,6 +89,7 @@ include_directories("${PROJECT_SOURCE_DIR}/pdb/src/work/headers")
 include_directories("${PROJECT_SOURCE_DIR}/third-party/mustache/headers")
 include_directories("${PROJECT_SOURCE_DIR}/third-party/qunit/headers")
 include_directories("${PROJECT_SOURCE_DIR}/third-party/sqlite/headers")
+include_directories("${PROJECT_SOURCE_DIR}/third-party/concurent_queue/headers")
 
 
 # specify the source files
