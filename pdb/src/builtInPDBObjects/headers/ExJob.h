@@ -49,6 +49,16 @@ public:
    * The size of the computation
    */
   uint64_t computationSize;
+
+  /**
+   * The number of that are going to do the processing
+   */
+  uint64_t numberOfProcessingThreads;
+
+  /**
+   * The number of nodes
+   */
+  uint64_t numberOfNodes;
 };
 
 }

@@ -93,6 +93,8 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
                                        sourcePageSet,
                                        sinkPageSet,
                                        params,
+                                       job->numberOfNodes,
+                                       job->numberOfProcessingThreads,
                                        20,
                                        i);
     myPipelines->push_back(pipeline);

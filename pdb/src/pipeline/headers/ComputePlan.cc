@@ -125,6 +125,8 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
                                               const PDBAbstractPageSetPtr &inputPageSet,
                                               const PDBAnonymousPageSetPtr &outputPageSet,
                                               std::map<std::string, ComputeInfoPtr> &params,
+                                              size_t numNodes,
+                                              size_t numProcessingThreads,
                                               uint64_t chunkSize,
                                               uint64_t workerID) {
 
@@ -184,7 +186,7 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
   // find the target atomic computation
   auto targetAtomicComp = allComps.getProducingAtomicComputation(targetTupleSetName);
 
-  // find the target real PDBcomputation
+  // find the target real PDBComputation
   auto targetComputationName = targetAtomicComp->getComputationName();
 
   // if the write set is in the pipeline remove it since it is basically a noop
@@ -247,7 +249,7 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
   }
 
   // now we have the list of computations, and so it is time to build the pipeline... start by building a compute sink
-  ComputeSinkPtr computeSink = myPlan->getNode(targetComputationName).getComputation().getComputeSink(targetSpec, targetProjection);
+  ComputeSinkPtr computeSink = myPlan->getNode(targetComputationName).getComputation().getComputeSink(targetSpec, targetProjection, numProcessingThreads * numNodes);
 
   // make the pipeline
   std::shared_ptr<Pipeline> returnVal = std::make_shared<Pipeline>(outputPageSet, computeSource, computeSink);

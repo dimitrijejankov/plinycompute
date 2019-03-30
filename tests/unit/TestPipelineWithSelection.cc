@@ -211,6 +211,8 @@ TEST(PipelineTest, TestSelection) {
                                                 pageWriter,
                                                 params,
                                                 20,
+                                                1,
+                                                1,
                                                 0);
 
   // and now, simply run the pipeline and then destroy it!!!

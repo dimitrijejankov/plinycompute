@@ -22,7 +22,7 @@
 #include "AggregateCompBase.h"
 #include "MapTupleSetIterator.h"
 #include "DepartmentTotal.h"
-#include "PreAggregationSink.h"
+#include "PreaggregationSink.h"
 #include "AggregationCombinerSink.h"
 
 namespace pdb {
@@ -112,8 +112,8 @@ class AggregateComp : public AggregateCompBase {
     return "";
   }
 
-  ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection) override {
-    return std::make_shared<pdb::PreAggregationSink<KeyClass, ValueClass>>(consumeMe, projection, 2);
+  ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection, uint64_t numberOfPartitions) override {
+    return std::make_shared<pdb::PreaggregationSink<KeyClass, ValueClass>>(consumeMe, projection, numberOfPartitions);
   }
 
   ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID) override {

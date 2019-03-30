@@ -28,7 +28,7 @@ class ComputeInfo {
 
 public:
 
-	virtual ~ComputeInfo () {}
+	virtual ~ComputeInfo () = default;
 };
 
 typedef std :: shared_ptr <ComputeInfo> ComputeInfoPtr;

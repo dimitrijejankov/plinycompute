@@ -335,6 +335,8 @@ int main() {
                                                  partitionedHashTable,
                                                  params,
                                                  20,
+                                                 1, // TODO
+                                                 2, // TODO
                                                  0);
 
   // and now, simply run the pipeline and then destroy it!!!
@@ -362,6 +364,8 @@ int main() {
                                      hashTablePageSet,
                                      pageWriter,
                                      params,
+                                     1, // TODO
+                                     1, // TODO
                                      20,
                                      0);
 
@@ -385,5 +389,7 @@ int main() {
     for (int i = 0; i < myHashTable->size(); i++) {
       std::cout << "Got double " << *((*myHashTable)[i]) << "\n";
     }
+
+    page.second->unpin();
   }
 }

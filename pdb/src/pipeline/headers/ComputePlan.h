@@ -83,6 +83,8 @@ class ComputePlan {
                             const PDBAbstractPageSetPtr &inputPageSet,
                             const PDBAnonymousPageSetPtr &outputPageSet,
                             std::map<std::string, ComputeInfoPtr> &params,
+                            size_t numNodes,
+                            size_t numProcessingThreads,
                             uint64_t chunkSize,
                             uint64_t workerID);
 

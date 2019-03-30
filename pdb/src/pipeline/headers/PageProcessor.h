@@ -6,6 +6,7 @@
 #define PDB_PAGEPROCESSOR_H
 
 #include "MemoryHolder.h"
+#include "ComputeInfo.h"
 
 namespace pdb {
 
@@ -17,8 +18,10 @@ using PageProcessorPtr = std::shared_ptr<PageProcessor>;
  * does not modify the page or the sink. There is not guarantee that the outputSink is created. it could be that the page
  * only contains intermediate data.
  */
-class PageProcessor {
+class PageProcessor : public ComputeInfo {
 public:
+
+  ~PageProcessor() override = default;
 
   /**
    * This method does the processing of the page

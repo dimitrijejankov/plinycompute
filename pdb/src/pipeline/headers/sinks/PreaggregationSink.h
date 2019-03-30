@@ -13,7 +13,7 @@ namespace pdb {
 
 // runs hashes all of the tuples
 template<class KeyType, class ValueType>
-class PreAggregationSink : public ComputeSink {
+class PreaggregationSink : public ComputeSink {
 
  private:
 
@@ -26,7 +26,7 @@ class PreAggregationSink : public ComputeSink {
 
  public:
 
-  PreAggregationSink(TupleSpec &inputSchema, TupleSpec &attsToOperateOn, size_t numPartitions) : numPartitions(numPartitions) {
+  PreaggregationSink(TupleSpec &inputSchema, TupleSpec &attsToOperateOn, size_t numPartitions) : numPartitions(numPartitions) {
 
     // to setup the output tuple set
     TupleSpec empty{};
@@ -38,7 +38,7 @@ class PreAggregationSink : public ComputeSink {
     whichAttToAggregate = matches[1];
   }
 
-  ~PreAggregationSink() override = default;
+  ~PreaggregationSink() override = default;
 
   Handle<Object> createNewOutputContainer() override {
 
@@ -139,7 +139,7 @@ class PreAggregationSink : public ComputeSink {
     }
   }
 
-  void writeOutPage(pdb::PDBPageHandle &page, Handle<Object> &writeToMe) override { throw runtime_error("PreAggregationSink can not write out a page."); }
+  void writeOutPage(pdb::PDBPageHandle &page, Handle<Object> &writeToMe) override { throw runtime_error("PreaggregationSink can not write out a page."); }
 
 };
 
