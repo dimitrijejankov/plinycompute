@@ -29,6 +29,8 @@ template<class OutputClass>
 class SetScanner : public Computation {
 public:
 
+  ENABLE_DEEP_COPY
+
   SetScanner() = default;
 
   SetScanner(const std::string &db, const std::string &set) : dbName(db), setName(set) {}

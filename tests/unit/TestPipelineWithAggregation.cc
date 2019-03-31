@@ -142,7 +142,7 @@ PDBPageHandle getPageWithData(size_t &numRecords, std::shared_ptr<PDBBufferManag
 
 
 
-int main() {
+TEST(PipelineTest, TestAggregation) {
 
   // So basically we first get the data from the "pageReader" page set, this data is a vector of pdb::Supervisor objects
   // you can check out the getPageWithData to get more details. Next we take that page and do the preaggregation,
@@ -216,8 +216,8 @@ int main() {
 
 
   // and create a query object that contains all of this stuff
-  Handle<ComputePlan> myPlan = makeObject<ComputePlan>(myTCAPString, myComputations);
-  LogicalPlanPtr logicalPlan = myPlan->getPlan();
+  ComputePlan myPlan(myTCAPString, myComputations);
+  LogicalPlanPtr logicalPlan = myPlan.getPlan();
   AtomicComputationList computationList = logicalPlan->getComputations();
   std::cout << "to print logical plan:" << std::endl;
   std::cout << computationList << std::endl;
@@ -343,7 +343,7 @@ int main() {
 
   // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
   // a pipeline into the aggregation operation
-  PipelinePtr myPipeline = myPlan->buildPipeline(std::string("inputData"), /* this is the TupleSet the pipeline starts with */
+  PipelinePtr myPipeline = myPlan.buildPipeline(std::string("inputData"), /* this is the TupleSet the pipeline starts with */
                                                  std::string("aggWithValue"),     /* this is the TupleSet the pipeline ends with */
                                                  pageReader,
                                                  partitionedHashTable,
@@ -363,7 +363,7 @@ int main() {
 
   /// 5. Create the aggregation and run it
 
-  myPipeline = myPlan->buildAggregationPipeline(std::string("aggWithValue"),
+  myPipeline = myPlan.buildAggregationPipeline(std::string("aggWithValue"),
                                                 partitionedHashTable,
                                                 hashTablePageSet,
                                                 curThread);
@@ -382,15 +382,15 @@ int main() {
 
   // at this point, the hash table should be filled up...	so now we can build a second pipeline that covers
   // the second half of the aggregation
-  myPipeline = myPlan->buildPipeline(std::string("agg"), /* this is the TupleSet the pipeline starts with */
-                                     std::string("write"),     /* this is the TupleSet the pipeline ends with */
-                                     hashTablePageSet,
-                                     pageWriter,
-                                     params,
-                                     numNodes,
-                                     curNode,
-                                     20,
-                                     0);
+  myPipeline = myPlan.buildPipeline(std::string("agg"), /* this is the TupleSet the pipeline starts with */
+                                    std::string("write"),     /* this is the TupleSet the pipeline ends with */
+                                    hashTablePageSet,
+                                    pageWriter,
+                                    params,
+                                    numNodes,
+                                    curNode,
+                                    20,
+                                    0);
 
   // run and then kill the pipeline
   std::cout << "\nRUNNING PIPELINE\n";
@@ -414,5 +414,5 @@ int main() {
   // and be sure to delete the contents of the ComputePlan object... this always needs to be done
   // before the object is written to disk or sent accross the network, so that we don't end up
   // moving around a C++ smart pointer, which would be bad
-  myPlan->nullifyPlanPointer();
+  myPlan.nullifyPlanPointer();
 }

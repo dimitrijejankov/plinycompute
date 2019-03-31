@@ -30,6 +30,8 @@ class SetWriter : public Computation {
 
 public:
 
+  ENABLE_DEEP_COPY
+
   SetWriter() = default;
 
   SetWriter(const String &dbName, const String &setName) : dbName(dbName), setName(setName) {}
