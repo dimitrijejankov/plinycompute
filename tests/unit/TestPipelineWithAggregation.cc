@@ -69,8 +69,104 @@ class MockPageSetWriter: public pdb::PDBAnonymousPageSet {
   MOCK_METHOD0(getNumPages, size_t ());
 };
 
+PDBPageHandle getPageWithData(size_t &numRecords, std::shared_ptr<PDBBufferManagerImpl> &myMgr) {
+
+    // this implementation only serves six pages
+    static int numPages = 0;
+    if (numPages == 60)
+      return (PDBPageHandle) nullptr;
+
+    // reset on 20 and 38
+    if(numPages == 20) {
+      numRecords = 0;
+    }
+    if(numPages == 38) {
+      numRecords = 0;
+    }
+
+    // create a page, loading it with random data
+    auto page = myMgr->getPage();
+    {
+      const pdb::UseTemporaryAllocationBlock tempBlock{page->getBytes(), 64 * 1024};
+
+      // write a bunch of supervisors to it
+      pdb::Handle<pdb::Vector<pdb::Handle<pdb::Supervisor>>> supers = pdb::makeObject<pdb::Vector<pdb::Handle<pdb::Supervisor>>>();
+
+      // this will build up the department
+      char first = 'A', second = 'B';
+      char myString[3];
+      myString[2] = 0;
+
+      try {
+        for (int i = 0; true; i++) {
+
+          myString[0] = first;
+          myString[1] = second;
+
+          // this will allow us to cycle through "AA", "AB", "AC", "BA", ...
+          first++;
+          if (first == 'D') {
+            first = 'A';
+            second++;
+            if (second == 'D')
+              second = 'A';
+          }
+
+          Handle<Supervisor> super = makeObject<Supervisor>("Steve Stevens", numRecords, std::string(myString) + std::to_string(numRecords), i * 34.4);
+          numRecords++;
+
+          supers->push_back(super);
+          for (int j = 0; j < 10; j++) {
+
+            Handle<Employee> temp;
+            if (i % 2 == 0)
+              temp = makeObject<Employee>("Steve Stevens", numRecords, std::string(myString) + std::to_string(numRecords), j * 3.54);
+            else
+              temp =
+                  makeObject<Employee>("Albert Albertson", numRecords, std::string(myString) + std::to_string(numRecords), j * 3.54);
+            (*supers)[i]->addEmp(temp);
+
+            numRecords++;
+          }
+        }
+
+      } catch (pdb::NotEnoughSpace &e) {
+
+        getRecord (supers);
+      }
+    }
+
+    numPages++;
+    return page;
+}
+
+
 
 int main() {
+
+  // So basically we first get the data from the "pageReader" page set, this data is a vector of pdb::Supervisor objects
+  // you can check out the getPageWithData to get more details. Next we take that page and do the preaggregation,
+  // so that we are grouping by the department and summing up the salary. Now the preaggregation will only aggregate
+  // as much as it can fit of the input page, and because of that they need to be combined in the next step.
+  // In order to combine them in parallel in the next step we split the preaggregated results into numNodes * threadsPerNode
+  // partitions. Because of that the output of the preaggregation is a vector of maps each map corresponds to a particular thread
+  // and each page has only one node it belongs to (has to be sent). The pages are sent into appropriate blocking queues
+  // in the real system there are going to be a bunch of threads that are grabbing pages from these queues and sending them to
+  // appropriate nodes. The page set that is used as a sink for these pages is the "partitionedHashTable" page set, it will only give
+  // the pages for a particular node determined by curNode
+  // next step is the final aggregation where we combine the partitions of the preaggreation pages into a
+  // single hash map, basically each thread on a node grabs the same page and only takes in the map that corresponds
+  // to that thread and combines it. The output of this is basically a page for each thread on a node, so numNodes * threadsPerNode
+  // pages. Each page is going to contain a map the key is the department and the value is the aggregated DepartmentTotal object.
+  // These pages are stored in the "hashTablePageSet" page set.
+  // Next we scan these maps get the double value from the department total and put that on a page that has a vector of doubles.
+  // These pages are stored in the pageWriter hash set.
+
+  // this is our configuration we are testing
+  const uint64_t numNodes = 2;
+  const uint64_t threadsPerNode = 2;
+  const uint64_t curNode = 1;
+  const uint64_t curThread = 1;
 
   /// 1. Create the buffer manager that is going to provide the pages to the pipeline
 
@@ -126,109 +222,24 @@ int main() {
   std::cout << "to print logical plan:" << std::endl;
   std::cout << computationList << std::endl;
 
-  /// 3. Setup the mock calls to the PageSets for the input and the output
+  /// 3. Define a bunch of page sets so we can do the aggregation
 
-  // empty computations parameters
-  std::map<ComputeInfoType, ComputeInfoPtr> params;
-
-  /// 4. Define a page reader for the scan set
-  
   // the page set that is gonna provide stuff
   std::shared_ptr<MockPageSetReader> pageReader = std::make_shared<MockPageSetReader>();
 
-  size_t numRecords = 0;
-
   // make the function return pages with Employee objects
+  size_t numRecords = 0;
   ON_CALL(*pageReader, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
-      [&](size_t workerID) {
+      [&](size_t workerID) { return getPageWithData(numRecords, myMgr); }));
 
-        // this implementation only serves six pages
-        static int numPages = 0;
-        if (numPages == 60)
-          return (PDBPageHandle) nullptr;
-
-        // reset on 20 and 38
-        if(numPages == 20) {
-          numRecords = 0;
-        }
-        if(numPages == 38) {
-          numRecords = 0;
-        }
-
-        // create a page, loading it with random data
-        auto page = myMgr->getPage();
-        {
-          const pdb::UseTemporaryAllocationBlock tempBlock{page->getBytes(), 64 * 1024};
-
-          // write a bunch of supervisors to it
-          pdb::Handle<pdb::Vector<pdb::Handle<pdb::Supervisor>>> supers = pdb::makeObject<pdb::Vector<pdb::Handle<pdb::Supervisor>>>();
-
-          // this will build up the department
-          char first = 'A', second = 'B';
-          char myString[3];
-          myString[2] = 0;
-
-          try {
-            for (int i = 0; true; i++) {
-
-              myString[0] = first;
-              myString[1] = second;
-
-              // this will allow us to cycle through "AA", "AB", "AC", "BA", ...
-              first++;
-              if (first == 'D') {
-                first = 'A';
-                second++;
-                if (second == 'D')
-                  second = 'A';
-              }
-
-              Handle<Supervisor> super = makeObject<Supervisor>("Steve Stevens", numRecords, std::string(myString) + std::to_string(numRecords), i * 34.4);
-              numRecords++;
-
-              supers->push_back(super);
-              for (int j = 0; j < 10; j++) {
-
-                Handle<Employee> temp;
-                if (i % 2 == 0)
-                  temp = makeObject<Employee>("Steve Stevens", numRecords, std::string(myString) + std::to_string(numRecords), j * 3.54);
-                else
-                  temp =
-                      makeObject<Employee>("Albert Albertson", numRecords, std::string(myString) + std::to_string(numRecords), j * 3.54);
-                (*supers)[i]->addEmp(temp);
-
-                numRecords++;
-              }
-            }
-
-          } catch (pdb::NotEnoughSpace &e) {
-
-            getRecord (supers);
-          }
-        }
-
-        numPages++;
-        return page;
-      }
-  ));
-
-  // it should call send object exactly six times
+  // it should call send object exactly 61 times providing 60 pages
   EXPECT_CALL(*pageReader, getNextPage(testing::An<size_t>())).Times(61);
 
-  
-  /// 4. Define a page set for the pre-aggregation
-  
-  // the page set that is gonna provide stuff
+  // the page set that is going to contain the partitioned preaggregation results
   std::shared_ptr<MockPageSetWriter> partitionedHashTable = std::make_shared<MockPageSetWriter>();
 
   ON_CALL(*partitionedHashTable, getNewPage).WillByDefault(testing::Invoke(
-      [&]() {
-
-        // store the page
-        auto page = myMgr->getPage();
-
-        return page;
-      }));
+      [&]() { return myMgr->getPage(); }));
 
   // it should call this method many times
   EXPECT_CALL(*partitionedHashTable, getNewPage).Times(testing::AtLeast(1));
@@ -236,19 +247,19 @@ int main() {
   ON_CALL(*partitionedHashTable, removePage(testing::An<PDBPageHandle>())).WillByDefault(testing::Invoke(
       [&](PDBPageHandle pageHandle) {}));
 
-  // it should call send object exactly six times
+  // it should call send object exactly 0 times
   EXPECT_CALL(*partitionedHashTable, removePage).Times(testing::Exactly(0));
 
-  // make the function return pages with the Vector<Map<Object>>
-  preaggPageQueuePtr pageQueueNode1 = std::make_shared<preaggPageQueue>();
-  preaggPageQueuePtr pageQueueNode2 = std::make_shared<preaggPageQueue>();
-  std::vector<preaggPageQueuePtr> pageQueues = {pageQueueNode1, pageQueueNode2};
+  // make the function return pages with the Vector<Map<String, double>>
+  std::vector<preaggPageQueuePtr> pageQueues;
+  for(int i = 0; i < numNodes; ++i) { pageQueues.emplace_back(std::make_shared<preaggPageQueue>()); }
+
   ON_CALL(*partitionedHashTable, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
       [&](size_t workerID) {
 
         // wait to get the page
         PDBPageHandle page;
-        pageQueueNode1->wait_dequeue(page);
+        pageQueues[curNode]->wait_dequeue(page);
 
         if(page == nullptr) {
           return (PDBPageHandle) nullptr;
@@ -264,9 +275,7 @@ int main() {
   // it should call send object exactly six times
   EXPECT_CALL(*partitionedHashTable, getNextPage).Times(testing::AtLeast(1));
 
-  /// 5. Init the page that is going to contain the aggregated hashTable
-
-  // the page set that is gonna provide stuff
+  // the page set that is going to contain the aggregated results of a single thread on a particular node
   std::shared_ptr<MockPageSetWriter> hashTablePageSet = std::make_shared<MockPageSetWriter>();
 
   PDBPageHandle hashTable;
@@ -283,13 +292,13 @@ int main() {
         return page;
       }));
 
-  // it should call this method many times
+  // this method is going to be called exactly once
   EXPECT_CALL(*hashTablePageSet, getNewPage).Times(testing::Exactly(1));
 
   ON_CALL(*hashTablePageSet, removePage(testing::An<PDBPageHandle>())).WillByDefault(testing::Invoke(
       [&](PDBPageHandle pageHandle) {}));
 
-  // it should call send object exactly six times
+  // it should call send object exactly zero times
   EXPECT_CALL(*hashTablePageSet, removePage).Times(testing::Exactly(0));
 
   // make the function return pages with Employee objects
@@ -299,12 +308,10 @@ int main() {
         return hashTable;
       }));
 
-  // it should call send object exactly six times
+  // it should call send object exactly once
   EXPECT_CALL(*hashTablePageSet, getNextPage).Times(testing::Exactly(1));
 
-  /// 5. Create the final page set
-
-  // the page set that is gonna provide stuff
+  // this page set is going to contain the final results
   std::shared_ptr<MockPageSetWriter> pageWriter = std::make_shared<MockPageSetWriter>();
 
   std::unordered_map<uint64_t, PDBPageHandle> writePages;
@@ -326,13 +333,13 @@ int main() {
         writePages.erase(pageHandle->whichPage());
       }));
 
-  // it should call send object exactly six times
+  // it should call send object exactly 0 times
   EXPECT_CALL(*pageWriter, removePage).Times(testing::Exactly(0));
 
-  /// Create the pre-aggregation and run it.
+  /// 4. Create the pre-aggregation and run it.
 
-  // set he parameters
-  params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<PreaggregationPageProcessor>(2, 2, pageQueues, myMgr) } };
+  // set the parameters
+  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<PreaggregationPageProcessor>(2, 2, pageQueues, myMgr) } };
 
   // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
   // a pipeline into the aggregation operation
@@ -341,9 +348,9 @@ int main() {
                                                  pageReader,
                                                  partitionedHashTable,
                                                  params,
-                                                 2,
-                                                 2, // TODO
-                                                 20, // TODO
+                                                 numNodes,
+                                                 threadsPerNode,
+                                                 20,
                                                  0);
 
   // and now, simply run the pipeline and then destroy it!!!
@@ -351,13 +358,15 @@ int main() {
   myPipeline->run();
   myPipeline = nullptr;
 
-  pageQueueNode1->enqueue(nullptr);
-  pageQueueNode2->enqueue(nullptr);
+  // add the null to the priority queue so they can end supplying pages
+  for(int i = 0; i < numNodes; ++i) { pageQueues[i]->enqueue(nullptr); }
+
+  /// 5. Create the aggregation and run it
 
   myPipeline = myPlan->buildAggregationPipeline(std::string("aggWithValue"),
                                                 partitionedHashTable,
                                                 hashTablePageSet,
-                                                0);
+                                                curThread);
 
   // and now, simply run the pipeline and then destroy it!!!
   std::cout << "\nRUNNING PIPELINE\n";
@@ -367,7 +376,9 @@ int main() {
   // after the destruction of the pointer, the current allocation block is messed up!
 
   // set he parameters
-  params = { };
+  params = {};
+
+  /// 6. Create the selection pipeline and run it!
 
   // at this point, the hash table should be filled up...	so now we can build a second pipeline that covers
   // the second half of the aggregation
@@ -376,8 +387,8 @@ int main() {
                                      hashTablePageSet,
                                      pageWriter,
                                      params,
-                                     1, // TODO
-                                     1, // TODO
+                                     numNodes,
+                                     curNode,
                                      20,
                                      0);
 
@@ -385,11 +396,6 @@ int main() {
   std::cout << "\nRUNNING PIPELINE\n";
   myPipeline->run();
   myPipeline = nullptr;
-
-  // and be sure to delete the contents of the ComputePlan object... this always needs to be done
-  // before the object is written to disk or sent accross the network, so that we don't end up
-  // moving around a C++ smart pointer, which would be bad
-  myPlan->nullifyPlanPointer();
 
   /// 5. Check the results
 
@@ -404,4 +410,9 @@ int main() {
 
     page.second->unpin();
   }
+
+  // and be sure to delete the contents of the ComputePlan object... this always needs to be done
+  // before the object is written to disk or sent accross the network, so that we don't end up
+  // moving around a C++ smart pointer, which would be bad
+  myPlan->nullifyPlanPointer();
 }
