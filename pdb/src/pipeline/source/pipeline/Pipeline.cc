@@ -1,3 +1,5 @@
+#include <utility>
+
 /*****************************************************************************
  *                                                                           *
  *  Copyright 2018 Rice University                                           *
@@ -19,8 +21,8 @@
 #include "Pipeline.h"
 #include "NullProcessor.h"
 
-pdb::Pipeline::Pipeline(PDBAnonymousPageSetPtr outputPageSet, ComputeSourcePtr dataSource, ComputeSinkPtr tupleSink) :
-    outputPageSet(std::move(outputPageSet)), dataSource(std::move(dataSource)), dataSink(std::move(tupleSink)), pageProcessor(std::make_shared<NullProcessor>()) {}
+pdb::Pipeline::Pipeline(PDBAnonymousPageSetPtr outputPageSet, ComputeSourcePtr dataSource, ComputeSinkPtr tupleSink, PageProcessorPtr pageProcessor) :
+    outputPageSet(std::move(outputPageSet)), dataSource(std::move(dataSource)), dataSink(std::move(tupleSink)), pageProcessor(std::move(pageProcessor)) {}
 
 pdb::Pipeline::~Pipeline() {
 

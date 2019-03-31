@@ -23,6 +23,7 @@ using preaggPageQueue = shared_ptr<blocking_concurent_queue<PDBPageHandle>>;
 class PreaggregationPageProcessor : public PageProcessor  {
 public:
 
+  PreaggregationPageProcessor() = default;
 
   ~PreaggregationPageProcessor() override = default;
 

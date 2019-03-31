@@ -41,6 +41,7 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <processors/NullProcessor.h>
 
 using namespace pdb;
 
@@ -327,7 +328,7 @@ int main() {
   /// Create the pre-aggregation and run it.
 
   // set he parameters
-  params = {};
+  params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<NullProcessor>() } };
 
   // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
   // a pipeline into the aggregation operation
@@ -336,9 +337,9 @@ int main() {
                                                  pageReader,
                                                  partitionedHashTable,
                                                  params,
-                                                 20,
-                                                 1, // TODO
+                                                 2,
                                                  2, // TODO
+                                                 20, // TODO
                                                  0);
 
   // and now, simply run the pipeline and then destroy it!!!

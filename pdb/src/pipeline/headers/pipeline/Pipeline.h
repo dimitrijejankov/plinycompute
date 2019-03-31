@@ -71,7 +71,7 @@ class Pipeline : public PipelineInterface {
   // the first argument is a function to call that gets a new output page...
   // the second argument is a function to call that deals with a full output page
   // the third argument is the iterator that will create TupleSets to process
-  Pipeline(PDBAnonymousPageSetPtr outputPageSet, ComputeSourcePtr dataSource, ComputeSinkPtr tupleSink);
+  Pipeline(PDBAnonymousPageSetPtr outputPageSet, ComputeSourcePtr dataSource, ComputeSinkPtr tupleSink, PageProcessorPtr pageProcessor);
 
   ~Pipeline() override;
 

@@ -26,6 +26,7 @@
 #include "JoinCompBase.h"
 #include "AggregateCompBase.h"
 #include "AggregationPipeline.h"
+#include "NullProcessor.h"
 #include "Lexer.h"
 #include "Parser.h"
 
@@ -239,8 +240,12 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
   // now we have the list of computations, and so it is time to build the pipeline... start by building a compute sink
   ComputeSinkPtr computeSink = myPlan->getNode(targetComputationName).getComputation().getComputeSink(targetSpec, targetProjection, numProcessingThreads * numNodes);
 
+  // do we have a processor provided
+  auto it = params.find(ComputeInfoType::PAGE_PROCESSOR);
+  PageProcessorPtr processor = it != params.end() ? dynamic_pointer_cast<PageProcessor>(it->second) : make_shared<NullProcessor>();
+
   // make the pipeline
-  std::shared_ptr<Pipeline> returnVal = std::make_shared<Pipeline>(outputPageSet, computeSource, computeSink);
+  std::shared_ptr<Pipeline> returnVal = std::make_shared<Pipeline>(outputPageSet, computeSource, computeSink, processor);
 
   // add the operations to the pipeline
   AtomicComputationPtr lastOne = myPlan->getComputations().getProducingAtomicComputation(sourceTupleSetName);
