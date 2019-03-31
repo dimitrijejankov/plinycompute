@@ -42,6 +42,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <processors/NullProcessor.h>
+#include <processors/PreaggregationPageProcessor.h>
 
 using namespace pdb;
 
@@ -74,8 +75,8 @@ int main() {
   /// 1. Create the buffer manager that is going to provide the pages to the pipeline
 
   // create the buffer manager
-  pdb::PDBBufferManagerImpl myMgr;
-  myMgr.initialize("tempDSFSD", 64 * 1024, 16, "metadata", ".");
+  std::shared_ptr<PDBBufferManagerImpl> myMgr = std::make_shared<PDBBufferManagerImpl>();
+  myMgr->initialize("tempDSFSD", 64 * 1024, 16, "metadata", ".");
 
   // this is the object allocation block where all of this stuff will reside
   const UseTemporaryAllocationBlock tmp{1024 * 1024};
@@ -155,7 +156,7 @@ int main() {
         }
 
         // create a page, loading it with random data
-        auto page = myMgr.getPage();
+        auto page = myMgr->getPage();
         {
           const pdb::UseTemporaryAllocationBlock tempBlock{page->getBytes(), 64 * 1024};
 
@@ -220,13 +221,11 @@ int main() {
   // the page set that is gonna provide stuff
   std::shared_ptr<MockPageSetWriter> partitionedHashTable = std::make_shared<MockPageSetWriter>();
 
-  std::vector<PDBPageHandle> hashTables;
   ON_CALL(*partitionedHashTable, getNewPage).WillByDefault(testing::Invoke(
       [&]() {
 
         // store the page
-        auto page = myMgr.getPage();
-        hashTables.push_back(page);
+        auto page = myMgr->getPage();
 
         return page;
       }));
@@ -241,16 +240,21 @@ int main() {
   EXPECT_CALL(*partitionedHashTable, removePage).Times(testing::Exactly(0));
 
   // make the function return pages with the Vector<Map<Object>>
-  size_t currentPage = 0;
+  preaggPageQueuePtr pageQueueNode1 = std::make_shared<preaggPageQueue>();
+  preaggPageQueuePtr pageQueueNode2 = std::make_shared<preaggPageQueue>();
+  std::vector<preaggPageQueuePtr> pageQueues = {pageQueueNode1, pageQueueNode2};
   ON_CALL(*partitionedHashTable, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
       [&](size_t workerID) {
 
-        if(currentPage >= hashTables.size()) {
+        // wait to get the page
+        PDBPageHandle page;
+        pageQueueNode1->wait_dequeue(page);
+
+        if(page == nullptr) {
           return (PDBPageHandle) nullptr;
         }
 
         // repin the page
-        auto page = hashTables[currentPage++];
         page->repin();
 
         // return it
@@ -273,7 +277,7 @@ int main() {
         EXPECT_TRUE(hashTable == nullptr);
 
         // store the page
-        auto page = myMgr.getPage();
+        auto page = myMgr->getPage();
         hashTable = page;
 
         return page;
@@ -308,7 +312,7 @@ int main() {
       [&]() {
 
         // store the page
-        auto page = myMgr.getPage();
+        auto page = myMgr->getPage();
         writePages[page->whichPage()] = page;
 
         return page;
@@ -328,7 +332,7 @@ int main() {
   /// Create the pre-aggregation and run it.
 
   // set he parameters
-  params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<NullProcessor>() } };
+  params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<PreaggregationPageProcessor>(2, 2, pageQueues, myMgr) } };
 
   // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
   // a pipeline into the aggregation operation
@@ -347,11 +351,13 @@ int main() {
   myPipeline->run();
   myPipeline = nullptr;
 
+  pageQueueNode1->enqueue(nullptr);
+  pageQueueNode2->enqueue(nullptr);
 
   myPipeline = myPlan->buildAggregationPipeline(std::string("aggWithValue"),
                                                 partitionedHashTable,
                                                 hashTablePageSet,
-                                                1);
+                                                0);
 
   // and now, simply run the pipeline and then destroy it!!!
   std::cout << "\nRUNNING PIPELINE\n";
@@ -359,6 +365,9 @@ int main() {
   myPipeline = nullptr;
 
   // after the destruction of the pointer, the current allocation block is messed up!
+
+  // set he parameters
+  params = { };
 
   // at this point, the hash table should be filled up...	so now we can build a second pipeline that covers
   // the second half of the aggregation
