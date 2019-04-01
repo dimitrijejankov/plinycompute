@@ -5,7 +5,8 @@ add_pdb_integration_test(TestAggregation)
 add_dependencies(build-integration-tests TestAggregation)
 
 # add build dependencies to shared libraries it uses
-add_dependencies(TestAggregation SharedEmployee)
-add_dependencies(TestAggregation EmployeeBuiltInIdentitySelection)
-add_dependencies(TestAggregation WriteBuiltinEmployeeSet)
-add_dependencies(TestAggregation ScanEmployeeSet)
+add_dependencies(TestAggregation ScanSupervisorSet)
+add_dependencies(TestAggregation SillyQuery)
+add_dependencies(TestAggregation SillyAgg)
+add_dependencies(TestAggregation FinalQuery)
+add_dependencies(TestAggregation WriteSalaries)

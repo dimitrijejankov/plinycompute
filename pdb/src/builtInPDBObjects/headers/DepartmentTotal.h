@@ -35,10 +35,7 @@ public:
     ENABLE_DEEP_COPY
 
     bool checkSales() {
-        if ((((int)(totSales * 10)) + 5) / 10 == ((int)(totSales * 10)) / 10) {
-            return true;
-        }
-        return false;
+      return true;
     }
 
     Handle<double> getTotSales() {

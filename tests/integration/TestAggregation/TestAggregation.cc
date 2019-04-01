@@ -34,32 +34,50 @@ int main(int argc, char* argv[]) {
   pdbClient.createDatabase("chris_db");
 
   // now, create the input and output sets
-  pdbClient.createSet<Employee>("chris_db", "chris_set");
-  pdbClient.createSet<Employee>("chris_db", "output_set");
+  pdbClient.createSet<Supervisor>("chris_db", "chris_set");
+  pdbClient.createSet<double>("chris_db", "output_set");
 
-  /// 3. Fill in the data multi-threaded
+  /// 3. Fill in the data
 
-  // init the worker threads of this server
-  auto workers = make_shared<pdb::PDBWorkerQueue>(make_shared<pdb::PDBLogger>("worker.log"),  10);
-
-  // create the buzzer
-  atomic_int counter;
-  counter = 0;
-  PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
-    cnt++;
-  });
-
-  atomic_int count;
-  count = 0;
-
-  std::vector<std::string> names = {"Frank", "Joe", "Mark", "David", "Zoe"};
+  // the department
+  std::string departmentPrefix(4, 'a');
+  int numRecords = 0;
   for(int j = 0; j < 5; j++) {
-    /// TODO need to finish data generation
-  }
 
-  // wait until all the nodes are finished
-  while (counter < 5) {
-    tempBuzzer->wait();
+    // make the allocation block
+    const pdb::UseTemporaryAllocationBlock tempBlock{64 * 1024 * 1024};
+
+    // write a bunch of supervisors to it
+    pdb::Handle<pdb::Vector<pdb::Handle<pdb::Supervisor>>> supers = pdb::makeObject<pdb::Vector<pdb::Handle<pdb::Supervisor>>>();
+
+    try {
+
+      for (int i = 0; true; i++) {
+
+        Handle<Supervisor> super = makeObject<Supervisor>("Steve Stevens", numRecords, std::string(departmentPrefix) + std::to_string(numRecords), i * 34.4);
+        numRecords++;
+
+        supers->push_back(super);
+        for (int k = 0; k < 10; k++) {
+
+          Handle<Employee> temp;
+          if (i % 2 == 0) {
+            temp = makeObject<Employee>("Steve Stevens", numRecords, std::string(departmentPrefix) + std::to_string(numRecords), j * 3.54);
+          }
+          else {
+            temp = makeObject<Employee>("Albert Albertson", numRecords, std::string(departmentPrefix) + std::to_string(numRecords), j * 3.54);
+          }
+
+          (*supers)[i]->addEmp(temp);
+
+          numRecords++;
+        }
+      }
+
+    } catch (pdb::NotEnoughSpace &e) {
+
+      pdbClient.sendData<Supervisor>("chris_db", "chris_set", supers);
+    }
   }
 
   /// 4. Make query graph an run query
@@ -121,7 +139,7 @@ int main(int argc, char* argv[]) {
   /// 5. Get the set from the
 
   // grab the iterator
-  auto it = pdbClient.getSetIterator<double>("chris_db", "output_set");
+  auto it = pdbClient.getSetIterator<pdb::Supervisor>("chris_db", "chris_set");
 
   int i = 0;
   while(it->hasNextRecord()) {
@@ -131,14 +149,12 @@ int main(int argc, char* argv[]) {
 
     // print every 100th
     if(i % 100 == 0) {
-      std::cout << *r << std::endl;
+      std::cout << *r->getName() << std::endl;
     }
 
     // go to the next one
     i++;
   }
-
-  std::cout << "Got " << i << " : " << "Stored " << count << std::endl;
 
   // shutdown the server
   pdbClient.shutDownServer();

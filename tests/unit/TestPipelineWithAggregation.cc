@@ -73,73 +73,58 @@ class MockPageSetWriter: public pdb::PDBAnonymousPageSet {
 
 PDBPageHandle getPageWithData(size_t &numRecords, std::shared_ptr<PDBBufferManagerImpl> &myMgr) {
 
-    // this implementation only serves six pages
-    static int numPages = 0;
-    if (numPages == 60)
-      return (PDBPageHandle) nullptr;
+  // did we serve enough records
+  if(numRecords >= 720 * 3) {
+    return nullptr;
+  }
 
-    // reset on 20 and 38
-    if(numPages == 20) {
-      numRecords = 0;
-    }
-    if(numPages == 38) {
-      numRecords = 0;
-    }
+  // create a page, loading it with random data
+  auto page = myMgr->getPage();
+  {
+    const pdb::UseTemporaryAllocationBlock tempBlock{page->getBytes(), 64 * 1024};
 
-    // create a page, loading it with random data
-    auto page = myMgr->getPage();
-    {
-      const pdb::UseTemporaryAllocationBlock tempBlock{page->getBytes(), 64 * 1024};
+    // write a bunch of supervisors to it
+    pdb::Handle<pdb::Vector<pdb::Handle<pdb::Supervisor>>> supers = pdb::makeObject<pdb::Vector<pdb::Handle<pdb::Supervisor>>>();
 
-      // write a bunch of supervisors to it
-      pdb::Handle<pdb::Vector<pdb::Handle<pdb::Supervisor>>> supers = pdb::makeObject<pdb::Vector<pdb::Handle<pdb::Supervisor>>>();
+    // this will build up the department
+    std::string myString = "aa";
 
-      // this will build up the department
-      char first = 'A', second = 'B';
-      char myString[3];
-      myString[2] = 0;
+    try {
+      for (int i = 0; true; i++) {
 
-      try {
-        for (int i = 0; true; i++) {
+        // create the supervisor
+        Handle<Supervisor> super = makeObject<Supervisor>("Steve Stevens", numRecords, myString + std::to_string(numRecords % 720), 1);
+        supers->push_back(super);
 
-          myString[0] = first;
-          myString[1] = second;
+        for (int j = 0; j < 10; j++) {
 
-          // this will allow us to cycle through "AA", "AB", "AC", "BA", ...
-          first++;
-          if (first == 'D') {
-            first = 'A';
-            second++;
-            if (second == 'D')
-              second = 'A';
-          }
-
-          Handle<Supervisor> super = makeObject<Supervisor>("Steve Stevens", numRecords, std::string(myString) + std::to_string(numRecords), i * 34.4);
-          numRecords++;
-
-          supers->push_back(super);
-          for (int j = 0; j < 10; j++) {
-
-            Handle<Employee> temp;
-            if (i % 2 == 0)
-              temp = makeObject<Employee>("Steve Stevens", numRecords, std::string(myString) + std::to_string(numRecords), j * 3.54);
-            else
-              temp =
-                  makeObject<Employee>("Albert Albertson", numRecords, std::string(myString) + std::to_string(numRecords), j * 3.54);
-            (*supers)[i]->addEmp(temp);
-
-            numRecords++;
-          }
+          Handle<Employee> temp;
+          if (i % 2 == 0)
+            temp = makeObject<Employee>("Steve Stevens", numRecords, myString + std::to_string(numRecords % 720), j * 3.54);
+          else
+            temp =
+                makeObject<Employee>("Albert Albertson", numRecords, myString + std::to_string(numRecords % 720), j * 3.54);
+          (*supers)[i]->addEmp(temp);
         }
 
-      } catch (pdb::NotEnoughSpace &e) {
+        numRecords++;
 
-        getRecord (supers);
+        // if we served 720 * 3 records time to end this
+        if(numRecords == 720 * 3) {
+          getRecord (supers);
+          break;
+        }
       }
-    }
 
-    numPages++;
-    return page;
+    } catch (pdb::NotEnoughSpace &e) {
+
+      supers->pop_back();
+
+      getRecord (supers);
+    }
+  }
+
+  return page;
 }
 
 
@@ -406,8 +391,10 @@ TEST(PipelineTest, TestAggregation) {
     page.second->repin();
 
     Handle<Vector<Handle<double>>> myHashTable = ((Record<Vector<Handle<double>>> *) page.second->getBytes())->getRootObject();
+
+    // expect all 3.0 doubles
     for (int i = 0; i < myHashTable->size(); i++) {
-      std::cout << "Got double " << *((*myHashTable)[i]) << "\n";
+      EXPECT_EQ((int) *((*myHashTable)[i]) , 3);
     }
 
     page.second->unpin();

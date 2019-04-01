@@ -1,5 +1,5 @@
-#ifndef PDB_WRITESALARIES
-#define PDB_WRITESALARIES
+#ifndef PDB_WRITESALARIES_H
+#define PDB_WRITESALARIES_H
 
 #include <Employee.h>
 #include <SetWriter.h>
