@@ -35,14 +35,16 @@
 #include "PDBAnonymousPageSet.h"
 #include "PDBBufferManagerImpl.h"
 
-#include "objects/FinalQuery.h"
-#include "objects/SillyAgg.h"
-#include "objects/SillyQuery.h"
+#include "FinalQuery.h"
+#include "SillyAgg.h"
+#include "SillyQuery.h"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <processors/NullProcessor.h>
 #include <processors/PreaggregationPageProcessor.h>
+#include <WriteSalaries.h>
+#include <ScanSupervisorSet.h>
 
 using namespace pdb;
 
@@ -183,11 +185,11 @@ TEST(PipelineTest, TestAggregation) {
   /// 2. Create the computation and the corresponding TCAP
 
   // create all of the computation objects
-  Handle<Computation> myScanSet = makeObject<SetScanner<Supervisor>>();
+  Handle<Computation> myScanSet = makeObject<ScanSupervisorSet>();
   Handle<Computation> myFilter = makeObject<SillyQuery>();
   Handle<Computation> myAgg = makeObject<SillyAgg>();
   Handle<Computation> myFinalFilter = makeObject<FinalQuery>();
-  Handle<Computation> myWrite = makeObject<SetWriter<double>>();
+  Handle<Computation> myWrite = makeObject<WriteSalaries>();
 
   // put them in the list of computations
   myComputations.push_back(myScanSet);
@@ -344,14 +346,14 @@ TEST(PipelineTest, TestAggregation) {
   // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
   // a pipeline into the aggregation operation
   PipelinePtr myPipeline = myPlan.buildPipeline(std::string("inputData"), /* this is the TupleSet the pipeline starts with */
-                                                 std::string("aggWithValue"),     /* this is the TupleSet the pipeline ends with */
-                                                 pageReader,
-                                                 partitionedHashTable,
-                                                 params,
-                                                 numNodes,
-                                                 threadsPerNode,
-                                                 20,
-                                                 0);
+                                                std::string("aggWithValue"),     /* this is the TupleSet the pipeline ends with */
+                                                pageReader,
+                                                partitionedHashTable,
+                                                params,
+                                                numNodes,
+                                                threadsPerNode,
+                                                20,
+                                                0);
 
   // and now, simply run the pipeline and then destroy it!!!
   std::cout << "\nRUNNING PIPELINE\n";

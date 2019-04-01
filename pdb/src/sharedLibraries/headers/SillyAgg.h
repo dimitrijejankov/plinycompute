@@ -5,6 +5,11 @@
 #ifndef PDB_SILLYAGG_H
 #define PDB_SILLYAGG_H
 
+#include <DepartmentTotal.h>
+#include <Employee.h>
+#include <AggregateComp.h>
+#include "LambdaCreationFunctions.h"
+
 namespace pdb {
 
 // this points to the location of the hash table that stores the result of the aggregation

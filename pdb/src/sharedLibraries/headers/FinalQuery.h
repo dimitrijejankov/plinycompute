@@ -7,12 +7,13 @@
 
 #include <SelectionComp.h>
 #include <DepartmentTotal.h>
+#include "LambdaCreationFunctions.h"
 
 namespace pdb {
 
 class FinalQuery : public SelectionComp<double, DepartmentTotal> {
 
- public:
+public:
 
   ENABLE_DEEP_COPY
 

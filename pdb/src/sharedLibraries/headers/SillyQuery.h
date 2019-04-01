@@ -5,6 +5,11 @@
 #ifndef PDB_SILLYQUERY_H
 #define PDB_SILLYQUERY_H
 
+#include <Employee.h>
+#include <Supervisor.h>
+#include <SelectionComp.h>
+#include "LambdaCreationFunctions.h"
+
 namespace pdb {
 
 class SillyQuery : public SelectionComp<Employee, Supervisor> {
