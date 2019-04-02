@@ -8,12 +8,16 @@
 // PRELOAD %PDBAggregationPipeAlgorithm%
 
 #include <gtest/gtest_prod.h>
+#include <PipelineInterface.h>
+#include <processors/PreaggregationPageProcessor.h>
 #include "PDBPhysicalAlgorithm.h"
 
 namespace pdb {
 
 class PDBAggregationPipeAlgorithm : public PDBPhysicalAlgorithm {
 public:
+
+  ENABLE_DEEP_COPY
 
   PDBAggregationPipeAlgorithm() = default;
 
@@ -31,7 +35,7 @@ public:
 
   bool run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) override;
 
- private:
+private:
 
   /**
    * The sink tuple set where we are putting stuff
@@ -42,6 +46,14 @@ public:
    * The sink type the algorithm should setup
    */
   pdb::Handle<PDBSourcePageSetSpec> hashedToRecv;
+
+  /**
+   * Vector of pipelines that will run this algorithm. The pipelines will be built when you call setup on this object.
+   * This must be null when sending this object.
+   */
+  std::shared_ptr<std::vector<PipelinePtr>> pipelines = nullptr;
+
+  std::shared_ptr<std::vector<preaggPageQueuePtr>> pageQueues = nullptr;
 
   // mark the tests that are testing this algorithm
   FRIEND_TEST(TestPhysicalOptimizer, TestAggregation);

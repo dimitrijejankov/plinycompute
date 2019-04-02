@@ -81,7 +81,6 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
   // get the number of worker threads from this server's config
   int32_t numWorkers = storage->getConfiguration()->numThreads;
 
-
   // empty computations parameters
   std::map<ComputeInfoType, ComputeInfoPtr> params;
 
