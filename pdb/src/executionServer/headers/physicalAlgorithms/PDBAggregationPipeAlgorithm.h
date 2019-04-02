@@ -27,7 +27,11 @@ public:
                               const Handle<PDBSinkPageSetSpec> &sink,
                               const Handle<Vector<PDBSourcePageSetSpec>> &secondarySources);
 
-private:
+  bool setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) override;
+
+  bool run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) override;
+
+ private:
 
   /**
    * The sink tuple set where we are putting stuff

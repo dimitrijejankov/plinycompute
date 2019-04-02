@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) {
   /// 5. Get the set from the
 
   // grab the iterator
-  auto it = pdbClient.getSetIterator<pdb::Supervisor>("chris_db", "chris_set");
+  auto it = pdbClient.getSetIterator<double>("chris_db", "output_set");
 
   int i = 0;
   while(it->hasNextRecord()) {
@@ -149,7 +149,7 @@ int main(int argc, char* argv[]) {
 
     // print every 100th
     if(i % 100 == 0) {
-      std::cout << *r->getName() << std::endl;
+      std::cout << *r << std::endl;
     }
 
     // go to the next one

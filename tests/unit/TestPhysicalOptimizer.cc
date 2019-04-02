@@ -112,4 +112,5 @@ TEST(TestPhysicalOptimizer, TestAggregation) {
   EXPECT_FALSE(optimizer.hasAlgorithmToRun());
 }
 
+
 }

@@ -178,6 +178,11 @@ std::pair<bool, uint64_t> pdb::PDBStorageManagerFrontend::getValidPage(const pdb
   // try to find the page
   auto it = this->pageStats.find(set);
 
+  // do we even have stats about this, if not finish
+  if(it == this->pageStats.end()) {
+    return make_pair(false, 0);
+  }
+
   // do we even have this page
   while(pageNum <= it->second.lastPage) {
 
