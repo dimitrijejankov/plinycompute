@@ -185,22 +185,21 @@ TEST(PipelineTest, TestAggregation) {
 
   // now we create the TCAP string
   String myTCAPString =
-      "inputData (in) <= SCAN ('mySet', 'myData', 'SetScanner_0', []) \n\
-       inputWithAtt (in, att) <= APPLY (inputData (in), inputData (in), 'SelectionComp_1', 'methodCall_0', []) \n\
-       inputWithAttAndMethod (in, att, method) <= APPLY (inputWithAtt (in), inputWithAtt (in, att), 'SelectionComp_1', 'attAccess_1', []) \n\
-       inputWithBool (in, bool) <= APPLY (inputWithAttAndMethod (att, method), inputWithAttAndMethod (in), 'SelectionComp_1', '==_2', []) \n\
-       filteredInput (in) <= FILTER (inputWithBool (bool), inputWithBool (in), 'SelectionComp_1', []) \n\
-       projectedInputWithPtr (out) <= APPLY (filteredInput (in), filteredInput (), 'SelectionComp_1', 'methodCall_3', []) \n\
-       projectedInput (out) <= APPLY (projectedInputWithPtr (out), projectedInputWithPtr (), 'SelectionComp_1', 'deref_4', []) \n\
-       aggWithKeyWithPtr (out, key) <= APPLY (projectedInput (out), projectedInput (out), 'AggregationComp_2', 'attAccess_0', []) \n\
-       aggWithKey (out, key) <= APPLY (aggWithKeyWithPtr (key), aggWithKeyWithPtr (out), 'AggregationComp_2', 'deref_1', []) \n\
-       aggWithValue (key, value) <= APPLY (aggWithKey (out), aggWithKey (key), 'AggregationComp_2', 'methodCall_2', []) \n\
-       agg (aggOut) <=	AGGREGATE (aggWithValue (key, value), 'AggregationComp_2', []) \n\
-       checkSales (aggOut, isSales) <= APPLY (agg (aggOut), agg (aggOut), 'SelectionComp_3', 'methodCall_0', []) \n\
-       justSales (aggOut, isSales) <= FILTER (checkSales (isSales), checkSales (aggOut), 'SelectionComp_3', []) \n\
-       final (result) <= APPLY (justSales (aggOut), justSales (), 'SelectionComp_3', 'methodCall_1', []) \n\
-	   write () <= OUTPUT (final (result), 'outSet', 'myDB', 'SetWriter_4', [])";
-
+      "inputData (in) <= SCAN ('mySet', 'myData', 'SetScanner_0', []) \n"
+      "inputWithAtt (in, att) <= APPLY (inputData (in), inputData (in), 'SelectionComp_1', 'methodCall_0', []) \n"
+      "inputWithAttAndMethod (in, att, method) <= APPLY (inputWithAtt (in), inputWithAtt (in, att), 'SelectionComp_1', 'attAccess_1', []) \n"
+      "inputWithBool (in, bool) <= APPLY (inputWithAttAndMethod (att, method), inputWithAttAndMethod (in), 'SelectionComp_1', '==_2', []) \n"
+      "filteredInput (in) <= FILTER (inputWithBool (bool), inputWithBool (in), 'SelectionComp_1', []) \n"
+      "projectedInputWithPtr (out) <= APPLY (filteredInput (in), filteredInput (), 'SelectionComp_1', 'methodCall_3', []) \n"
+      "projectedInput (out) <= APPLY (projectedInputWithPtr (out), projectedInputWithPtr (), 'SelectionComp_1', 'deref_4', []) \n"
+      "aggWithKeyWithPtr (out, key) <= APPLY (projectedInput (out), projectedInput (out), 'AggregationComp_2', 'attAccess_0', []) \n"
+      "aggWithKey (out, key) <= APPLY (aggWithKeyWithPtr (key), aggWithKeyWithPtr (out), 'AggregationComp_2', 'deref_1', []) \n"
+      "aggWithValue (key, value) <= APPLY (aggWithKey (out), aggWithKey (key), 'AggregationComp_2', 'methodCall_2', []) \n"
+      "agg (aggOut) <=	AGGREGATE (aggWithValue (key, value), 'AggregationComp_2', []) \n"
+      "checkSales (aggOut, isSales) <= APPLY (agg (aggOut), agg (aggOut), 'SelectionComp_3', 'methodCall_0', []) \n"
+      "justSales (aggOut, isSales) <= FILTER (checkSales (isSales), checkSales (aggOut), 'SelectionComp_3', []) \n"
+      "final (result) <= APPLY (justSales (aggOut), justSales (), 'SelectionComp_3', 'methodCall_1', []) \n"
+      "write () <= OUTPUT (final (result), 'outSet', 'myDB', 'SetWriter_4', [])";
 
   // and create a query object that contains all of this stuff
   ComputePlan myPlan(myTCAPString, myComputations);
@@ -238,8 +237,8 @@ TEST(PipelineTest, TestAggregation) {
   EXPECT_CALL(*partitionedHashTable, removePage).Times(testing::Exactly(0));
 
   // make the function return pages with the Vector<Map<String, double>>
-  std::vector<preaggPageQueuePtr> pageQueues;
-  for(int i = 0; i < numNodes; ++i) { pageQueues.emplace_back(std::make_shared<preaggPageQueue>()); }
+  std::vector<PDBPageQueuePtr> pageQueues;
+  for(int i = 0; i < numNodes; ++i) { pageQueues.emplace_back(std::make_shared<PDBPageQueue>()); }
 
   ON_CALL(*partitionedHashTable, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
       [&](size_t workerID) {
@@ -350,10 +349,7 @@ TEST(PipelineTest, TestAggregation) {
 
   /// 5. Create the aggregation and run it
 
-  myPipeline = myPlan.buildAggregationPipeline(std::string("aggWithValue"),
-                                                partitionedHashTable,
-                                                hashTablePageSet,
-                                                curThread);
+  myPipeline = myPlan.buildAggregationPipeline(std::string("aggWithValue"), partitionedHashTable, hashTablePageSet, curThread);
 
   // and now, simply run the pipeline and then destroy it!!!
   std::cout << "\nRUNNING PIPELINE\n";

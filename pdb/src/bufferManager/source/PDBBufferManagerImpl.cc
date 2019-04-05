@@ -267,7 +267,7 @@ void PDBBufferManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn,
   lastTempPos = 0;
 
   // as is the last time tick
-  lastTimeTick = 0;
+  lastTimeTick = 1;
 
   if (curSize != sharedMemory.pageSize * 2) {
     std::cerr << "Error: the page size must be a power of two.\n";
@@ -677,6 +677,9 @@ void PDBBufferManagerImpl::repin(PDBPagePtr me) {
 
   // lock the buffer manager
   unique_lock<mutex> lock(m);
+
+  // wait while the page is loading
+  pagesCV.wait(lock, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_UNLOADING); });
 
   // call the actual repin function
   repin(me, lock);

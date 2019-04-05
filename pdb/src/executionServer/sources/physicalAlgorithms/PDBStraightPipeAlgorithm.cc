@@ -42,7 +42,7 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
   else {
 
     // we are reading from an existing page set get it
-    sourcePageSet = storage->getPageSet(std::make_pair(job->computationID, firstTupleSet));
+    sourcePageSet = storage->getPageSet(std::make_pair(source->pageSetIdentifier.first, source->pageSetIdentifier.second));
   }
 
   // did we manage to get a source page set? if not the setup failed
@@ -121,7 +121,7 @@ bool pdb::PDBStraightPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManagerBa
     cnt++;
   });
 
-  // here we get a worker per pipeline and run all the pipelines.
+  // here we get a worker per pipeline and run all the preaggregationPipelines.
 
   for (int i = 0; i < myPipelines->size(); ++i) {
     // get a worker from the server
@@ -137,7 +137,7 @@ bool pdb::PDBStraightPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManagerBa
     worker->execute(myWork, tempBuzzer);
   }
 
-  // wait until all the pipelines have completed
+  // wait until all the preaggregationPipelines have completed
   while (counter < myPipelines->size()) {
     tempBuzzer->wait();
   }

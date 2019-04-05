@@ -8,14 +8,10 @@
 #define PDB_PRAGGREGATIONPAGEPROCESSOR_H
 
 #include <PageProcessor.h>
-#include <concurrent_queue.h>
 #include <PDBPageHandle.h>
 #include <PDBBufferManagerInterface.h>
 
 namespace pdb {
-
-using preaggPageQueuePtr = shared_ptr<blocking_concurent_queue<PDBPageHandle>>;
-using preaggPageQueue = blocking_concurent_queue<PDBPageHandle>;
 
 /**
  * This is the processor for the pages that contain the result of the preaggregation
@@ -30,7 +26,7 @@ public:
 
   PreaggregationPageProcessor(size_t numNodes,
                               size_t numProcessingThreads,
-                              vector<preaggPageQueuePtr> pageQueues,
+                              vector<PDBPageQueuePtr> pageQueues,
                               PDBBufferManagerInterfacePtr bufferManager) : numNodes(numNodes),
                                                                             numProcessingThreads(numProcessingThreads),
                                                                             pageQueues(std::move(pageQueues)),
@@ -95,7 +91,7 @@ private:
   /**
    * Where we put the pages
    */
-  std::vector<preaggPageQueuePtr> pageQueues;
+  std::vector<PDBPageQueuePtr> pageQueues;
 
   /**
    * The buffer manager

@@ -40,6 +40,9 @@ class MapTupleSetIterator : public ComputeSource {
   PDBMapIterator<KeyType, ValueType> begin;
   PDBMapIterator<KeyType, ValueType> end;
 
+  // the page that contains the map
+  PDBPageHandle page;
+
  public:
 
   // the first param is a callback function that the iterator will call in order to obtain another vector
@@ -47,7 +50,11 @@ class MapTupleSetIterator : public ComputeSource {
   MapTupleSetIterator(const PDBAbstractPageSetPtr &pageSet, uint64_t workerID, size_t chunkSize) : chunkSize(chunkSize) {
 
     // get the page if we have one if we don't set the hash map to null
-    auto page = pageSet->getNextPage(workerID);
+    page = pageSet->getNextPage(workerID);
+
+    // repin the page
+    page->repin();
+
     if(page == nullptr) {
       iterateOverMe = nullptr;
       return;
@@ -76,6 +83,11 @@ class MapTupleSetIterator : public ComputeSource {
 
     // see if there are no more items in the vector to iterate over
     if (!(begin != end)) {
+
+      // unpin the page
+      page->unpin();
+
+      // finish
       return nullptr;
     }
 

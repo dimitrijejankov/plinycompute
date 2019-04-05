@@ -352,7 +352,7 @@ TEST(BufferManagerBackendTest, Test3) {
   // check size
   EXPECT_EQ(out.size(), 3);
 
-  // chec pipelines
+  // chec preaggregationPipelines
   while(!out.empty()) {
 
     auto firstComp = out.back()->getPipeComputations().front();

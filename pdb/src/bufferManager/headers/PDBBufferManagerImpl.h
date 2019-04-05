@@ -370,7 +370,7 @@ class PDBBufferManagerImpl : public PDBBufferManagerInterface {
   /**
    * the time tick associated with the MRU page
    */
-  long lastTimeTick = -1;
+  long lastTimeTick = 1;
 
   /**
    * the last position in the temporary file

@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
   for(int j = 0; j < 5; j++) {
 
     // make the allocation block
-    const pdb::UseTemporaryAllocationBlock tempBlock{64 * 1024 * 1024};
+    const pdb::UseTemporaryAllocationBlock tempBlock{blockSize * 1024 * 1024};
 
     // write a bunch of supervisors to it
     pdb::Handle<pdb::Vector<pdb::Handle<pdb::Supervisor>>> supers = pdb::makeObject<pdb::Vector<pdb::Handle<pdb::Supervisor>>>();
@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
 
       for (int i = 0; true; i++) {
 
-        Handle<Supervisor> super = makeObject<Supervisor>("Steve Stevens", numRecords, std::string(departmentPrefix) + std::to_string(numRecords), i * 34.4);
+        Handle<Supervisor> super = makeObject<Supervisor>("Steve Stevens", numRecords, std::string(departmentPrefix) + std::to_string(numRecords), 1);
         numRecords++;
 
         supers->push_back(super);
@@ -62,10 +62,10 @@ int main(int argc, char* argv[]) {
 
           Handle<Employee> temp;
           if (i % 2 == 0) {
-            temp = makeObject<Employee>("Steve Stevens", numRecords, std::string(departmentPrefix) + std::to_string(numRecords), j * 3.54);
+            temp = makeObject<Employee>("Steve Stevens", numRecords, std::string(departmentPrefix) + std::to_string(numRecords), 1);
           }
           else {
-            temp = makeObject<Employee>("Albert Albertson", numRecords, std::string(departmentPrefix) + std::to_string(numRecords), j * 3.54);
+            temp = makeObject<Employee>("Albert Albertson", numRecords, std::string(departmentPrefix) + std::to_string(numRecords), 1);
           }
 
           (*supers)[i]->addEmp(temp);

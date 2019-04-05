@@ -7,6 +7,7 @@
 #include "PDBSetPageSet.h"
 #include "PDBAnonymousPageSet.h"
 #include "StoRemovePageSetRequest.h"
+#include "PDBFeedingPageSet.h"
 
 namespace pdb {
 
@@ -34,6 +35,13 @@ public:
    * @return
    */
   PDBAnonymousPageSetPtr createAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID);
+
+  /**
+   *
+   * @param pageSetID
+   * @return
+   */
+  PDBFeedingPageSetPtr createFeedingAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID, uint64_t numReaders, uint64_t numFeeders);
 
   /**
    * Returns a pages set that already exists
