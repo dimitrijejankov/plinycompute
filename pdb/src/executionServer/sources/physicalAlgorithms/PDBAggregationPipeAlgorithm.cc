@@ -110,21 +110,26 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
   // get the receive page set
   auto recvPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(hashedToRecv->pageSetIdentifier.first, hashedToRecv->pageSetIdentifier.second),
                                                             job->numberOfProcessingThreads,
-                                                            1//job->numberOfProcessingThreads
-                                                            );
+                                                            1);
+                                                            //job->numberOfNodes);
 
   // did we manage to get a page set where we receive this? if not the setup failed
   if(recvPageSet == nullptr) {
     return false;
   }
 
-  /// 7. Create the self receiver to forward pages that are created on this node
+  /// 7. Create the self receiver to forward pages that are created on this node and the network senders to forward pages for the other nodes
 
-  selfReceiver = std::make_shared<pdb::PDBPageSelfReceiver>(pageQueues->at(0), recvPageSet); // TODO the queue 0 not always mapped to this node
+  for(int i = 0; i < job->nodes.size(); ++i) {
 
-  /// 9. Create the network senders for the other nodes
-
-  // TODO needs to be implemented
+    // for the pages
+    if(job->nodes[i]->port == job->thisNode->port && job->nodes[i]->address == job->thisNode->address) {
+      selfReceiver = std::make_shared<pdb::PDBPageSelfReceiver>(pageQueues->at(i), recvPageSet);
+    }
+    else {
+      // TODO create the reciever
+    }
+  }
 
   /// 8. Create the aggregation pipeline
 

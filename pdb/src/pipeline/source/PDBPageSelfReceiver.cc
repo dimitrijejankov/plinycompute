@@ -1,3 +1,7 @@
+#include <utility>
+
+#include <utility>
+
 //
 // Created by dimitrije on 4/5/19.
 //
@@ -6,8 +10,8 @@
 
 #include "PDBPageSelfReceiver.h"
 
-pdb::PDBPageSelfReceiver::PDBPageSelfReceiver(const pdb::PDBPageQueuePtr &queue,
-                                              const pdb::PDBFeedingPageSetPtr &pageSet) : queue(queue), pageSet(pageSet) {}
+pdb::PDBPageSelfReceiver::PDBPageSelfReceiver(pdb::PDBPageQueuePtr queue,
+                                              pdb::PDBFeedingPageSetPtr pageSet) : queue(std::move(queue)), pageSet(std::move(pageSet)) {}
 
 bool pdb::PDBPageSelfReceiver::run() {
 

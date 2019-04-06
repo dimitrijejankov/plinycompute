@@ -553,5 +553,23 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleRemovePageSet
   return std::make_pair(success, error);
 }
 
+template <class Communicator>
+std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStartFeedingPageSetRequest(pdb::Handle<pdb::StoStartFeedingPageSetRequest> &request,
+                                                                                              std::shared_ptr<Communicator> &sendUsingMe) {
+  bool success = true;
+  std::string error;
+
+  // create an allocation block to hold the response
+  const UseTemporaryAllocationBlock tempBlock{1024};
+
+  // create the response
+  pdb::Handle<pdb::SimpleRequestResult> simpleResponse = pdb::makeObject<pdb::SimpleRequestResult>(success, error);
+
+  // sends result to requester
+  success = sendUsingMe->sendObject(simpleResponse, error);
+
+  // return
+  return std::make_pair(success, error);
+}
 
 #endif //PDB_PDBSTORAGEMANAGERFRONTENDTEMPLATE_H

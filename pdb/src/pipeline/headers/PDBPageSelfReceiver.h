@@ -20,7 +20,7 @@ using PDBPageSelfReceiverPtr = std::shared_ptr<PDBPageSelfReceiver>;
 class PDBPageSelfReceiver {
 public:
 
-  PDBPageSelfReceiver(const PDBPageQueuePtr &queue, const PDBFeedingPageSetPtr &pageSet);
+  PDBPageSelfReceiver(PDBPageQueuePtr queue, PDBFeedingPageSetPtr pageSet);
 
   /**
    * Basically starts the feeding of the page set. If something goes wrong returns false.

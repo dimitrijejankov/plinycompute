@@ -10,6 +10,7 @@
 #include <PDBVector.h>
 #include <Computation.h>
 #include "PDBPhysicalAlgorithm.h"
+#include <ExJobNode.h>
 
 // PRELOAD %ExJob%
 
@@ -17,6 +18,7 @@ namespace pdb {
 
 class ExJob : public Object  {
 public:
+
 
   ENABLE_DEEP_COPY
   
@@ -59,6 +61,16 @@ public:
    * The number of nodes
    */
   uint64_t numberOfNodes;
+
+  /**
+   * Nodes that are used for this job, just a bunch of IP
+   */
+  pdb::Vector<pdb::Handle<ExJobNode>> nodes;
+
+  /**
+   * the IP and port of the
+   */
+  pdb::Handle<ExJobNode> thisNode;
 };
 
 }

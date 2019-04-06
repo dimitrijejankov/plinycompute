@@ -7,6 +7,7 @@
 #include <PDBComputationServerFrontend.h>
 #include <GenericWork.h>
 #include <StoRemovePageSetRequest.h>
+#include <ExJobNode.h>
 
 #include "PDBComputationServerFrontend.h"
 #include "HeapRequestHandler.h"
@@ -28,9 +29,6 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
   atomic_bool success;
   success = true;
 
-  // grab the nodes we want to forward the request to
-  auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
-
   // create the buzzer
   atomic_int counter;
   counter = 0;
@@ -46,7 +44,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
   });
 
   // for each node start a worker
-  for(const auto &node : nodes) {
+  for(int i = 0; i < job->nodes.size(); ++i) {
 
     /// 0. Start a worker for each node
 
@@ -63,11 +61,11 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
       // connect to the server
       PDBCommunicator comm;
       size_t numRetries = 0;
-      while (!comm.connectToInternetServer(logger, node->port, node->address, errMsg)) {
+      while (!comm.connectToInternetServer(logger, job->nodes[i]->port, job->nodes[i]->address, errMsg)) {
 
         // log the error
         logger->error(errMsg);
-        logger->error("Can not connect to remote server with port=" + std::to_string(node->port) + " and address=" + node->address + ");");
+        logger->error("Can not connect to remote server with port=" + std::to_string(job->nodes[i]->port) + " and address=" + (std::string) job->nodes[i]->address + ");");
 
         // retry
         numRetries++;
@@ -81,7 +79,17 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
       }
 
       /// 2. schedule the computation
-      if(!scheduleJob(comm, job, errMsg)) {
+
+      // make an allocation block
+      const pdb::UseTemporaryAllocationBlock tempBlock{job->computationSize + 1024 * 1024};
+
+      // copy the job
+      auto jobForMe = deepCopyToCurrentAllocationBlock<pdb::ExJob>(job);
+
+      // set my node
+      jobForMe->thisNode = job->nodes[i];
+
+      if(!scheduleJob(comm, jobForMe, errMsg)) {
 
         // we failed to schedule the job
         callerBuzzer->buzz(PDBAlarm::GenericError, counter);
@@ -105,7 +113,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
   }
 
   // wait until all the nodes are finished
-  while (counter < nodes.size()) {
+  while (counter < job->nodes.size()) {
     tempBuzzer->wait();
   }
 
@@ -117,7 +125,7 @@ bool pdb::PDBComputationServerFrontend::scheduleJob(pdb::PDBCommunicator &temp, 
   /// 1. Send the computation
 
   // send the object
-  if (!temp.sendObject<pdb::ExJob>(job, errMsg, job->computationSize + 1024 * 1024)) {
+  if (!temp.sendObject<pdb::ExJob>(job, errMsg)) {
 
     // yeah something happened
     logger->error(errMsg);
@@ -280,6 +288,14 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
 
               // just set how much we need for the computation object in case somebody embed some data in it
               job->computationSize = request->numBytes;
+
+              // grab the nodes we want to forward the request to
+              auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
+
+              // copy the nodes
+              for(const auto &node : nodes) {
+                job->nodes.push_back(pdb::makeObject<ExJobNode>(node->port, node->address));
+              }
 
               // broadcast the job to each node and run it...
               if(!executeJob(job)) {

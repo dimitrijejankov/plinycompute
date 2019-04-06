@@ -19,7 +19,7 @@ using PDBPageNetworkSenderPtr = std::shared_ptr<PDBPageNetworkSender>;
 class PDBPageNetworkSender {
 public:
 
-  PDBPageNetworkSender(const string &address, int32_t port, const PDBPageQueuePtr &queue);
+  PDBPageNetworkSender(string address, int32_t port, const std::pair<uint64_t, std::string> &pageSetID, PDBPageQueuePtr queue);
 
   /**
    * Connects to the node with the parameters provided in the constructor and gets the ACK that the other side has set everything up.

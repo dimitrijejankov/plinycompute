@@ -18,6 +18,7 @@
 #include <StoGetPageRequest.h>
 #include <StoGetPageResult.h>
 #include <StoMaterializePageSetRequest.h>
+#include <StoStartFeedingPageSetRequest.h>
 
 namespace fs = boost::filesystem;
 
@@ -131,6 +132,12 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
       StoRemovePageSetRequest_TYPEID,
       make_shared<pdb::HeapRequestHandler<pdb::StoRemovePageSetRequest>>([&](Handle<pdb::StoRemovePageSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
         return handleRemovePageSet(request, sendUsingMe);
+      }));
+
+  forMe.registerHandler(
+      StoStartFeedingPageSetRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoStartFeedingPageSetRequest>>([&](Handle<pdb::StoStartFeedingPageSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
+        return handleStartFeedingPageSetRequest(request, sendUsingMe);
       }));
 }
 
