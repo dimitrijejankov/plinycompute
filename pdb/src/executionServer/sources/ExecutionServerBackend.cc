@@ -43,6 +43,10 @@ void pdb::ExecutionServerBackend::registerHandlers(pdb::PDBServer &forMe) {
               // want this to be destroyed
               Handle<pdb::ExRunJob> result = sendUsingMe->getNextObject<pdb::ExRunJob> (success, error);
               if (!success || !(result->shouldRun)) {
+
+                // cleanup the algorithm
+                request->physicalAlgorithm->cleanup();
+
                 // we are done here does not work
                 return make_pair(true, error); // TODO different error message if result->shouldRun is false?
               }
@@ -53,6 +57,9 @@ void pdb::ExecutionServerBackend::registerHandlers(pdb::PDBServer &forMe) {
 
             // sends result to requester
             sendUsingMe->sendObject(response, error);
+
+            // cleanup the algorithm
+            request->physicalAlgorithm->cleanup();
 
             // just finish
             return make_pair(true, error);

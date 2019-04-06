@@ -12,6 +12,7 @@
 #include <processors/PreaggregationPageProcessor.h>
 #include "PDBPhysicalAlgorithm.h"
 #include "PDBPageSelfReceiver.h"
+#include "PDBPageNetworkSender.h"
 
 namespace pdb {
 
@@ -36,6 +37,8 @@ public:
 
   bool run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) override;
 
+  void cleanup() override;
+
 private:
 
   /**
@@ -52,6 +55,16 @@ private:
    * This forwards the preaggregated pages to this node
    */
   pdb::PDBPageSelfReceiverPtr selfReceiver;
+
+  /**
+   * These senders forward pages that are for other nodes
+   */
+  std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> senders;
+
+  /**
+   *
+   */
+  PDBLoggerPtr logger;
 
   /**
    * Vector of pipelines that will run this algorithm. The pipelines will be built when you call setup on this object.

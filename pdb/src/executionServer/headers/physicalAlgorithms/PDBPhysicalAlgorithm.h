@@ -57,6 +57,11 @@ public:
   virtual bool run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) { throw std::runtime_error("Can not run PDBPhysicalAlgorithm that is an abstract class"); };
 
   /**
+   * Cleans the algorithm after setup and/or run. This has to be called after the usage!
+   */
+  virtual void cleanup()  { throw std::runtime_error("Can not clean PDBPhysicalAlgorithm that is an abstract class"); };
+
+  /**
    * Returns the type of the algorithm we want to run
    */
   virtual PDBPhysicalAlgorithmType getAlgorithmType() { throw std::runtime_error("Can not get the type of the base class"); };

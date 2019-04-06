@@ -19,9 +19,10 @@ namespace pdb {
 class ExJob : public Object  {
 public:
 
+  ~ExJob() = default;
 
   ENABLE_DEEP_COPY
-  
+
   /**
    * The physical algorithm we want to run.
    */

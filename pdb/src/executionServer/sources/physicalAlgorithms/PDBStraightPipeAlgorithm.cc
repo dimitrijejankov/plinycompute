@@ -163,3 +163,10 @@ bool pdb::PDBStraightPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManagerBa
 pdb::PDBPhysicalAlgorithmType pdb::PDBStraightPipeAlgorithm::getAlgorithmType() {
   return StraightPipe;
 }
+
+void pdb::PDBStraightPipeAlgorithm::cleanup() {
+
+  // invalidate everything
+  myPipelines = nullptr;
+  outputSet = nullptr;
+}

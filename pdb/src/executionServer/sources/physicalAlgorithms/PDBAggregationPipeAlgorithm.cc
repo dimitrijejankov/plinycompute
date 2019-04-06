@@ -2,7 +2,6 @@
 // Created by dimitrije on 3/20/19.
 //
 
-#include "physicalAlgorithms/PDBAggregationPipeAlgorithm.h"
 #include "ComputePlan.h"
 #include "ExJob.h"
 #include "PDBAggregationPipeAlgorithm.h"
@@ -16,17 +15,16 @@ pdb::PDBAggregationPipeAlgorithm::PDBAggregationPipeAlgorithm(const std::string 
                                                               const pdb::Handle<pdb::PDBSourcePageSetSpec> &hashedToRecv,
                                                               const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
                                                               const pdb::Handle<pdb::Vector<pdb::PDBSourcePageSetSpec>> &secondarySources)
-    : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources),
-      hashedToSend(hashedToSend),
-      hashedToRecv(hashedToRecv) {}
+    : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {}
 
-bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
-                                             Handle<pdb::ExJob> &job,
-                                             const std::string &error) {
+bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
 
   // init the plan
   ComputePlan plan(job->tcap, *job->computations);
   LogicalPlanPtr logicalPlan = plan.getPlan();
+
+  // init the logger
+  logger = make_shared<PDBLogger>("aggregationPipeAlgorithm" + std::to_string(job->computationID));
 
   /// 1. Figure out the source page set
 
@@ -120,14 +118,32 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
 
   /// 7. Create the self receiver to forward pages that are created on this node and the network senders to forward pages for the other nodes
 
+  senders = std::make_shared<std::vector<PDBPageNetworkSenderPtr>>();
   for(int i = 0; i < job->nodes.size(); ++i) {
 
-    // for the pages
+    // check if it is this node or another node
     if(job->nodes[i]->port == job->thisNode->port && job->nodes[i]->address == job->thisNode->address) {
+
+      // make the self receiver
       selfReceiver = std::make_shared<pdb::PDBPageSelfReceiver>(pageQueues->at(i), recvPageSet);
     }
     else {
-      // TODO create the reciever
+
+      // make the sender
+      auto sender = std::make_shared<PDBPageNetworkSender>(job->nodes[i]->address,
+                                                           job->nodes[i]->port,
+                                                           storage->getConfiguration()->maxRetries,
+                                                           logger,
+                                                           std::make_pair(hashedToRecv->pageSetIdentifier.first, hashedToRecv->pageSetIdentifier.second),
+                                                           pageQueues->at(i));
+
+      // setup the sender, if we fail return false
+      if(!sender->setup()) {
+        return false;
+      }
+
+      // make the sender
+      senders->emplace_back(sender);
     }
   }
 
@@ -188,11 +204,7 @@ bool pdb::PDBAggregationPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManage
     worker->execute(myWork, aggBuzzer);
   }
 
-  /// 4. Run the senders
-
-  // TODO needs to be implemented
-
-  /// 5. Run the self receiver so it can server pages to the aggregation pipeline
+  /// 2. Run the self receiver so it can server pages to the aggregation pipeline
 
   // create the buzzer
   atomic_int selfRecDone;
@@ -231,7 +243,46 @@ bool pdb::PDBAggregationPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManage
     storage->getWorker()->execute(myWork, selfRefBuzzer);
   }
 
-  /// 6. Run the preaggregation, this step comes before the aggregation step
+  /// 3. Run the senders
+
+  // create the buzzer
+  atomic_int sendersDone;
+  selfRecDone = senders->size();
+  PDBBuzzerPtr sendersBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
+
+    // did we fail?
+    if (myAlarm == PDBAlarm::GenericError) {
+      success = false;
+    }
+
+    // we are done here
+    cnt++;
+  });
+
+  // go through each sender and run them
+  for(auto &sender : *senders) {
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sendersDone, sender, this](PDBBuzzerPtr callerBuzzer) {
+
+      // run the sender
+      if(sender->run()) {
+
+        // signal that the run was successful
+        callerBuzzer->buzz(PDBAlarm::WorkAllDone, sendersDone);
+      }
+      else {
+
+        // signal that the run was unsuccessful
+        callerBuzzer->buzz(PDBAlarm::GenericError, sendersDone);
+      }
+    });
+
+    // run the work
+    storage->getWorker()->execute(myWork, sendersBuzzer);
+  }
+
+  /// 4. Run the preaggregation, this step comes before the aggregation step
 
   // create the buzzer
   atomic_int preaggCounter;
@@ -267,7 +318,7 @@ bool pdb::PDBAggregationPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManage
     worker->execute(myWork, preaggBuzzer);
   }
 
-  /// 7. Do the waiting
+  /// 5. Do the waiting
 
   // wait until all the preaggregationPipelines have completed
   while (preaggCounter < preaggregationPipelines->size()) {
@@ -282,10 +333,29 @@ bool pdb::PDBAggregationPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManage
     selfRefBuzzer->wait();
   }
 
+  // wait while we are running the senders
+  while(selfRecDone < senders->size()) {
+    sendersBuzzer->wait();
+  }
+
   // wait until all the aggregation pipelines have completed
   while (aggCounter < aggregationPipelines->size()) {
     aggBuzzer->wait();
   }
 
   return true;
+}
+
+
+void pdb::PDBAggregationPipeAlgorithm::cleanup() {
+
+  // invalidate all the ptrs this should destroy everything
+  hashedToSend = nullptr;
+  hashedToRecv = nullptr;
+  selfReceiver = nullptr;
+  senders = nullptr;
+  logger = nullptr;
+  preaggregationPipelines = nullptr;
+  aggregationPipelines = nullptr;
+  pageQueues = nullptr;
 }

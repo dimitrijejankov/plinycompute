@@ -44,6 +44,11 @@ public:
   bool run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) override;
 
   /**
+   *
+   */
+  void cleanup() override;
+
+  /**
    * Returns StraightPipe as the type
    * @return the type
    */
