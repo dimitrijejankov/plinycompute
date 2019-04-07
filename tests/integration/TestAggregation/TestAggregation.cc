@@ -42,6 +42,7 @@ int main(int argc, char* argv[]) {
   // the department
   std::string departmentPrefix(4, 'a');
   int numRecords = 0;
+  int numSteve = 0;
   for(int j = 0; j < 5; j++) {
 
     // make the allocation block
@@ -50,9 +51,15 @@ int main(int argc, char* argv[]) {
     // write a bunch of supervisors to it
     pdb::Handle<pdb::Vector<pdb::Handle<pdb::Supervisor>>> supers = pdb::makeObject<pdb::Vector<pdb::Handle<pdb::Supervisor>>>();
 
+    int i = 0;
     try {
 
-      for (int i = 0; true; i++) {
+      for (; true; i++) {
+
+        // inc steve
+        if(i % 2 == 0) {
+          numSteve++;
+        }
 
         Handle<Supervisor> super = makeObject<Supervisor>("Steve Stevens", numRecords, std::string(departmentPrefix) + std::to_string(numRecords), 1);
         numRecords++;
@@ -69,12 +76,18 @@ int main(int argc, char* argv[]) {
           }
 
           (*supers)[i]->addEmp(temp);
-
-          numRecords++;
         }
       }
 
     } catch (pdb::NotEnoughSpace &e) {
+
+      // dec steve
+      if(i % 2 == 0) {
+        numSteve--;
+      }
+
+      // remove the last supervisor
+      supers->pop_back();
 
       pdbClient.sendData<Supervisor>("chris_db", "chris_set", supers);
     }
@@ -155,6 +168,8 @@ int main(int argc, char* argv[]) {
     // go to the next one
     i++;
   }
+
+  std::cout << i << " " << numSteve << std::endl;
 
   // shutdown the server
   pdbClient.shutDownServer();

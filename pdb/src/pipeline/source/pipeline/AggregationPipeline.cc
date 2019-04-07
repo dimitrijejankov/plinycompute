@@ -14,8 +14,6 @@ void pdb::AggregationPipeline::run() {
   PDBPageHandle inputPage;
   while ((inputPage = inputPageSet->getNextPage(workerID)) != nullptr) {
 
-    std::cout << "got one page " << workerID << std::endl;
-
     // if we haven't created an output container create it.
     if (myRAM->outputSink == nullptr) {
       myRAM->outputSink = merger->createNewOutputContainer();

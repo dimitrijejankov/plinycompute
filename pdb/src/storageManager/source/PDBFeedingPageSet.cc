@@ -84,8 +84,6 @@ void pdb::PDBFeedingPageSet::feedPage(const PDBPageHandle &page) {
     throw runtime_error("Trying to feed pages, when all feeders have done feeding.");
   }
 
-  std::cout << "Feed page number : " << ++bla << std::endl;
-
   // insert the page
   pages.insert(std::make_pair(nextPage++, PDBFeedingPageInfo(page, 0, 0)));
 
