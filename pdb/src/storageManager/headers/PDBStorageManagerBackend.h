@@ -7,6 +7,7 @@
 #include "PDBSetPageSet.h"
 #include "PDBAnonymousPageSet.h"
 #include "StoRemovePageSetRequest.h"
+#include "StoStartFeedingPageSetRequest.h"
 #include "PDBFeedingPageSet.h"
 
 namespace pdb {
@@ -96,6 +97,16 @@ public:
    */
   template <class Communicator>
   std::pair<bool, std::string> handlePageSet(const pdb::Handle<pdb::StoRemovePageSetRequest> &request, std::shared_ptr<Communicator> &sendUsingMe);
+
+  /**
+   *
+   * @tparam Communicator
+   * @param request
+   * @param sendUsingMe
+   * @return
+   */
+  template <class Communicator>
+  std::pair<bool, std::string> handleStartFeedingPageSetRequest(pdb::Handle<pdb::StoStartFeedingPageSetRequest> &request, std::shared_ptr<Communicator> &sendUsingMe);
 
   /**
    * The page sets that are on the backend

@@ -71,4 +71,23 @@ std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handlePageSet(const 
   return make_pair(success, error);
 }
 
+template<class Communicator>
+std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStartFeedingPageSetRequest(pdb::Handle<pdb::StoStartFeedingPageSetRequest> &request,
+                                                                                             shared_ptr<Communicator> &sendUsingMe) {
+  std::string error;
+
+  // create an allocation block to hold the response
+  const UseTemporaryAllocationBlock tempBlock{1024};
+
+  // create the response for the other node
+  pdb::Handle<pdb::SimpleRequestResult> simpleResponse = pdb::makeObject<pdb::SimpleRequestResult>(true, error);
+
+  // sends result to requester
+  bool success = sendUsingMe->sendObject(simpleResponse, error);
+
+  // return
+  return std::make_pair(success, error);
+}
+
+
 #endif //PDB_PDBSTORAGEMANAGERBACKENDTEMPLATE_H

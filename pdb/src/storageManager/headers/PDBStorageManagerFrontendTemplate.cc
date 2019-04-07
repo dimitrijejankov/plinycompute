@@ -560,10 +560,43 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStartFeedingP
   bool success = true;
   std::string error;
 
+  /// 1. Connect to the backend
+
+  // try to connect to the backend
+  int32_t retries = 0;
+  PDBCommunicatorPtr communicatorToBackend = make_shared<PDBCommunicator>();
+  while (!communicatorToBackend->connectToLocalServer(logger, getConfiguration()->ipcFile, error)) {
+
+    // if we are out of retries finish
+    if(retries >= getConfiguration()->maxRetries) {
+      break;
+    }
+
+    // we used up a retry
+    retries++;
+  }
+
+  /// 2. Forward the request to the backend
+
+  success = communicatorToBackend->sendObject(request, error, 1024);
+
+  // if we succeeded in sending the object, we expect an ack
+  if(success) {
+
+    // create an allocation block to hold the response
+    const UseTemporaryAllocationBlock localBlock{1024};
+
+    // get the next object
+    auto result = communicatorToBackend->template getNextObject<pdb::SimpleRequestResult>(success, error);
+
+    // set the success indicator...
+    success = result != nullptr && result->res;
+  }
+
   // create an allocation block to hold the response
   const UseTemporaryAllocationBlock tempBlock{1024};
 
-  // create the response
+  // create the response for the other node
   pdb::Handle<pdb::SimpleRequestResult> simpleResponse = pdb::makeObject<pdb::SimpleRequestResult>(success, error);
 
   // sends result to requester

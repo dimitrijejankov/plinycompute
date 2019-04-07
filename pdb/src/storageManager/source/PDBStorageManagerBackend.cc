@@ -15,6 +15,7 @@
 #include <StoRemovePageSetRequest.h>
 #include <StoMaterializePageResult.h>
 #include <PDBBufferManagerBackEnd.h>
+#include <StoStartFeedingPageSetRequest.h>
 
 void pdb::PDBStorageManagerBackend::init() {
 
@@ -37,6 +38,13 @@ void pdb::PDBStorageManagerBackend::registerHandlers(PDBServer &forMe) {
           [&](Handle<pdb::StoRemovePageSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
             return handlePageSet(request, sendUsingMe);
           }));
+
+  forMe.registerHandler(
+      StoStartFeedingPageSetRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoStartFeedingPageSetRequest>>(
+          [&](Handle<pdb::StoStartFeedingPageSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
+        return handleStartFeedingPageSetRequest(request, sendUsingMe);
+      }));
 }
 
 pdb::PDBSetPageSetPtr pdb::PDBStorageManagerBackend::createPageSetFromPDBSet(const std::string &db, const std::string &set,

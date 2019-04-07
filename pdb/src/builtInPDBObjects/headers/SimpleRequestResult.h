@@ -32,8 +32,10 @@ namespace pdb {
 class SimpleRequestResult : public Object {
 
 public:
-    SimpleRequestResult() {}
-    ~SimpleRequestResult() {}
+
+    SimpleRequestResult() = default;
+
+    ~SimpleRequestResult() = default;
 
     // generally res should be true on success
     SimpleRequestResult(bool res, const std::string &errMsg) : res(res), errMsg(errMsg) {}
@@ -44,8 +46,8 @@ public:
         return std::make_pair(res, errMsg);
     }
 
-private:
-    bool res;
+    bool res = false;
+
     String errMsg;
 };
 }
