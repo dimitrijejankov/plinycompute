@@ -285,7 +285,7 @@ PDBPageHandle PDBBufferManagerBackEnd<T>::expectPage(std::shared_ptr<PDBCommunic
         returnVal->pinned = true;
         returnVal->dirty = result->isDirty;
         returnVal->pageNum = result->pageNum;
-        returnVal->whichSet = std::make_shared<PDBSet>(result->dbName, result->setName);
+        returnVal->whichSet = result->isAnonymous ? nullptr : std::make_shared<PDBSet>(result->dbName, result->setName);
         returnVal->location.startPos = result->startPos;
         returnVal->location.numBytes = result->numBytes;
         returnVal->bytes = (void *) (((uint64_t) this->sharedMemory.memory) + (uint64_t) result->offset);
@@ -324,7 +324,7 @@ PDBPageHandle PDBBufferManagerBackEnd<T>::expectPage(std::shared_ptr<PDBCommunic
       page->pinned = true;
       page->dirty = result->isDirty;
       page->pageNum = result->pageNum;
-      page->whichSet = std::make_shared<PDBSet>(result->dbName, result->setName);
+      page->whichSet = result->isAnonymous ? nullptr : std::make_shared<PDBSet>(result->dbName, result->setName);
       page->location.startPos = result->startPos;
       page->location.numBytes = result->numBytes;
       page->bytes = (void *) (((uint64_t) this->sharedMemory.memory) + (uint64_t) result->offset);
@@ -711,13 +711,6 @@ void pdb::PDBBufferManagerBackEnd<T>::repin(pdb::PDBPagePtr me) {
     // ok something is wrong kill the backend...
     exit(-1);
   }
-}
-
-template<class T>
-template<class Communicator>
-PDBPageHandle PDBBufferManagerBackEnd<T>::handleExpectPage(shared_ptr<Communicator> &communicator) {
-
-  return nullptr;
 }
 
 template <class T>

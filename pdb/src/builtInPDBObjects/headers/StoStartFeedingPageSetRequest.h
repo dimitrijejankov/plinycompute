@@ -34,15 +34,38 @@ public:
   StoStartFeedingPageSetRequest() = default;
   ~StoStartFeedingPageSetRequest() = default;
 
-  explicit StoStartFeedingPageSetRequest(const std::pair<uint64_t, std::string> &pageSetID) : pageSetID(pageSetID) {}
+  StoStartFeedingPageSetRequest(const std::pair<uint64_t, std::string> &pageSetID, uint64_t numberOfProcessingThreads, uint64_t numberOfNodes) :
+                                computationID(pageSetID.first), tupleSetID(pageSetID.second), numberOfProcessingThreads(numberOfProcessingThreads), numberOfNodes(numberOfNodes) {}
 
   ENABLE_DEEP_COPY
 
   /**
-   * The id of the page set we want to feed, the page set has to be a
+   * Returns the page set id
+   * @return
    */
-  std::pair<uint64_t, String> pageSetID;
+  std::pair<uint64_t, std::string> getPageSetID() {
+    return std::make_pair(computationID, tupleSetID);
+  }
 
+  /**
+   * The computation id of the page set
+   */
+  uint64_t computationID;
+
+  /**
+   * The tuple set id of the page set
+   */
+  String tupleSetID;
+
+  /**
+   *
+   */
+  uint64_t numberOfProcessingThreads;
+
+  /**
+   *
+   */
+  uint64_t numberOfNodes;
 
 };
 

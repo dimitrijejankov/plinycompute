@@ -108,8 +108,7 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
   // get the receive page set
   auto recvPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(hashedToRecv->pageSetIdentifier.first, hashedToRecv->pageSetIdentifier.second),
                                                             job->numberOfProcessingThreads,
-                                                            1);
-                                                            //job->numberOfNodes);
+                                                            job->numberOfNodes);
 
   // did we manage to get a page set where we receive this? if not the setup failed
   if(recvPageSet == nullptr) {
@@ -132,6 +131,8 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
       // make the sender
       auto sender = std::make_shared<PDBPageNetworkSender>(job->nodes[i]->address,
                                                            job->nodes[i]->port,
+                                                           job->numberOfProcessingThreads,
+                                                           job->numberOfNodes,
                                                            storage->getConfiguration()->maxRetries,
                                                            logger,
                                                            std::make_pair(hashedToRecv->pageSetIdentifier.first, hashedToRecv->pageSetIdentifier.second),

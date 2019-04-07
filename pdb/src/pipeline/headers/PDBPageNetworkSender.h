@@ -20,7 +20,8 @@ using PDBPageNetworkSenderPtr = std::shared_ptr<PDBPageNetworkSender>;
 class PDBPageNetworkSender {
 public:
 
-  PDBPageNetworkSender(string address, int32_t port, uint64_t maxRetries, PDBLoggerPtr logger, std::pair<uint64_t, std::string> pageSetID, pdb::PDBPageQueuePtr queue);
+  PDBPageNetworkSender(string address, int32_t port, uint64_t numberOfProcessingThreads, uint64_t numberOfNodes,
+                       uint64_t maxRetries, PDBLoggerPtr logger, std::pair<uint64_t, std::string> pageSetID, pdb::PDBPageQueuePtr queue);
 
   /**
    * Connects to the node with the parameters provided in the constructor and gets the ACK that the other side has set everything up.
@@ -50,6 +51,16 @@ private:
    * The port of the node we are sending the pages to
    */
   int32_t port;
+
+  /**
+   *
+   */
+  uint64_t numberOfProcessingThreads;
+
+  /**
+   *
+   */
+  uint64_t numberOfNodes;
 
   /**
    *

@@ -91,14 +91,6 @@ public:
 
 private:
 
-  /**
-   * Expect the page from the frontend
-   * @param whichSet
-   * @param pageNum
-   * @return
-   */
-  template <class Communicator>
-  PDBPageHandle handleExpectPage(std::shared_ptr<Communicator> &communicator);
 
   /**
    * This method is called by the @see pdb::PDBPage when the reference count falls to zero and the page is anonymous.

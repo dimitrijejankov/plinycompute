@@ -15,9 +15,10 @@
 
 #include "PDBPageNetworkSender.h"
 
-pdb::PDBPageNetworkSender::PDBPageNetworkSender(string address, int32_t port, uint64_t maxRetries, PDBLoggerPtr logger,
-                                                std::pair<uint64_t, std::string> pageSetID, pdb::PDBPageQueuePtr queue)
-    : address(std::move(address)), port(port), queue(std::move(queue)), logger(std::move(logger)), pageSetID(std::move(pageSetID)), maxRetries(maxRetries) {}
+pdb::PDBPageNetworkSender::PDBPageNetworkSender(string address, int32_t port, uint64_t numberOfProcessingThreads, uint64_t numberOfNodes,
+                                                uint64_t maxRetries, PDBLoggerPtr logger, std::pair<uint64_t, std::string> pageSetID, pdb::PDBPageQueuePtr queue)
+    : address(std::move(address)), port(port), queue(std::move(queue)), numberOfProcessingThreads(numberOfProcessingThreads),
+      numberOfNodes(numberOfNodes), logger(std::move(logger)), pageSetID(std::move(pageSetID)), maxRetries(maxRetries) {}
 
 bool pdb::PDBPageNetworkSender::setup() {
 
@@ -45,7 +46,7 @@ bool pdb::PDBPageNetworkSender::setup() {
     const UseTemporaryAllocationBlock tempBlock{1024};
 
     // make the request
-    Handle<StoStartFeedingPageSetRequest> request = makeObject<StoStartFeedingPageSetRequest>(pageSetID);
+    Handle<StoStartFeedingPageSetRequest> request = makeObject<StoStartFeedingPageSetRequest>(pageSetID, numberOfProcessingThreads, numberOfNodes);
 
     // send the object
     if (!comm->sendObject(request, errMsg)) {

@@ -6,6 +6,7 @@
 #include <StoStoreOnPageRequest.h>
 #include <PDBStorageManagerBackend.h>
 #include <PDBBufferManagerBackEnd.h>
+#include <StoFeedPageRequest.h>
 
 template <class Communicator>
 std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStoreOnPage(const pdb::Handle<pdb::StoStoreOnPageRequest> &request,
@@ -75,15 +76,82 @@ template<class Communicator>
 std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStartFeedingPageSetRequest(pdb::Handle<pdb::StoStartFeedingPageSetRequest> &request,
                                                                                              shared_ptr<Communicator> &sendUsingMe) {
   std::string error;
+  bool success;
+
+  /// 1. First grab the page set we are going to feed if it does not exist it will be created
+
+  // create or grab the page set
+  auto pageSet = createFeedingAnonymousPageSet(request->getPageSetID(), request->numberOfProcessingThreads, request->numberOfNodes);
+
+  // if we got the page success is true
+  success = pageSet != nullptr;
+
+  /// 2. Next we send a signal that we have acknowledged the request
 
   // create an allocation block to hold the response
   const UseTemporaryAllocationBlock tempBlock{1024};
 
   // create the response for the other node
-  pdb::Handle<pdb::SimpleRequestResult> simpleResponse = pdb::makeObject<pdb::SimpleRequestResult>(true, error);
+  pdb::Handle<pdb::SimpleRequestResult> simpleResponse = pdb::makeObject<pdb::SimpleRequestResult>(success, error);
 
   // sends result to requester
-  bool success = sendUsingMe->sendObject(simpleResponse, error);
+  success = sendUsingMe->sendObject(simpleResponse, error);
+
+  /// 3. Start receiving the pages
+
+  // get the buffer manager
+  auto bufferManager = std::dynamic_pointer_cast<pdb::PDBBufferManagerBackEndImpl>(getFunctionalityPtr<pdb::PDBBufferManagerInterface>());
+
+  while(success) {
+
+    /// 3.1 Get the info about the next page if any
+
+    // create an allocation block to hold the response
+    const UseTemporaryAllocationBlock localBlock{1024};
+
+    // get the next object
+    auto hasPage = sendUsingMe->template getNextObject<pdb::StoFeedPageRequest>(success, error);
+
+    // if we failed break
+    if(!success) {
+      break;
+    }
+
+    // if we don't have a page
+    if(!hasPage->hasNextPage) {
+
+      // this is a regular exit
+      success = true;
+      break;
+    }
+
+    /// 3.2 Grab the forwarded page
+
+    // get the page from the frontend
+    auto page = bufferManager->expectPage(sendUsingMe);
+
+    // if we did not get a page break something is wrong
+    if(page == nullptr) {
+      success = false;
+      break;
+    }
+
+    // unpin the page
+    page->unpin();
+
+    // feed the page to the page set
+    pageSet->feedPage(page);
+
+    // we were successful in feeding the page set
+    success = true;
+  }
+
+  // if we got a page set mark that we are finished feeding
+  if(pageSet != nullptr) {
+
+    // finish feeding
+    pageSet->finishFeeding();
+  }
 
   // return
   return std::make_pair(success, error);

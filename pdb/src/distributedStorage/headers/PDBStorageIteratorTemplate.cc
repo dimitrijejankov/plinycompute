@@ -175,6 +175,8 @@ bool PDBStorageIterator<T>::getNextPage(bool isFirst) {
   // uncompress and copy to buffer
   snappy::RawUncompress((char *) compressedBuffer.get(), compressedBufferSize, (char *) buffer.get());
 
+  std::cout << "Got page!" << std::endl;
+
   // we succeeded
   return true;
 }

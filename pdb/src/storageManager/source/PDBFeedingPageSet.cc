@@ -52,9 +52,9 @@ pdb::PDBPageHandle pdb::PDBFeedingPageSet::getNextPage(size_t workerID) {
       lastPage->second.page->unpin();
 
       // have we served this page to all readers? if so remove it
-      //if(lastPage->second.timesServed == numReaders) {
-      //  pages.erase(lastPage);
-      //}
+      if(lastPage->second.timesServed == numReaders) {
+        pages.erase(lastPage);
+      }
     }
   }
 
@@ -75,12 +75,16 @@ pdb::PDBPageHandle pdb::PDBFeedingPageSet::getNextPage(size_t workerID) {
 
 void pdb::PDBFeedingPageSet::feedPage(const PDBPageHandle &page) {
 
+  static int bla = 0;
+
   // lock pages structure
   unique_lock<std::mutex> lck(m);
 
   if(numFinishedFeeders == numFeeders) {
     throw runtime_error("Trying to feed pages, when all feeders have done feeding.");
   }
+
+  std::cout << "Feed page number : " << ++bla << std::endl;
 
   // insert the page
   pages.insert(std::make_pair(nextPage++, PDBFeedingPageInfo(page, 0, 0)));

@@ -569,11 +569,19 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStartFeedingP
 
     // if we are out of retries finish
     if(retries >= getConfiguration()->maxRetries) {
+      success = false;
       break;
     }
 
     // we used up a retry
     retries++;
+  }
+
+  // if we could not connect to the backend we failed
+  if(!success) {
+
+    // return
+    return std::make_pair(success, error);
   }
 
   /// 2. Forward the request to the backend
@@ -593,6 +601,8 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStartFeedingP
     success = result != nullptr && result->res;
   }
 
+  /// 3. Send a response to the other node about the status
+
   // create an allocation block to hold the response
   const UseTemporaryAllocationBlock tempBlock{1024};
 
@@ -602,11 +612,15 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStartFeedingP
   // sends result to requester
   success = sendUsingMe->sendObject(simpleResponse, error);
 
+  /// 4. If everything went well, start getting the pages from the other node
+
   // get the buffer manager
-  auto bufferManager = this->getFunctionalityPtr<PDBBufferManagerInterface>();
+  auto bufferManager = std::dynamic_pointer_cast<pdb::PDBBufferManagerFrontEnd>(getFunctionalityPtr<pdb::PDBBufferManagerInterface>());
 
   // if everything went well start receiving the pages
   while(success) {
+
+    /// 4.1 Get the signal that there are more pages
 
     // create an allocation block to hold the response
     const UseTemporaryAllocationBlock localBlock{1024};
@@ -619,16 +633,38 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStartFeedingP
       break;
     }
 
+    /// 4.2 Forward that signal so that the backend knows that there are more pages
+
+    // forward the feed page request
+    success = communicatorToBackend->sendObject<pdb::StoFeedPageRequest>(hasPage, error, 1024);
+
+    // if we failed break
+    if(!success) {
+      break;
+    }
+
     // do we have a page, if we don't finish
     if(!hasPage->hasNextPage){
       break;
     }
+
+    /// 4.3 Get the page from the other node
 
     // get the page of the size we need
     auto page = bufferManager->getPage(hasPage->pageSize);
 
     // grab the bytes
     success = sendUsingMe->receiveBytes(page->getBytes(), error);
+
+    // if we failed finish
+    if(!success) {
+      break;
+    }
+
+    /// 4.4 Forward the page to the backend
+
+    // forward the page to the backend
+    success = bufferManager->forwardPage(page, communicatorToBackend, error);
   }
 
   // return
