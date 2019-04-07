@@ -37,6 +37,11 @@ public:
 private:
 
   /**
+   * The error if any
+   */
+  std::string errMsg;
+
+  /**
    * The address of the node where we are sending the pages to
    */
   std::string address;

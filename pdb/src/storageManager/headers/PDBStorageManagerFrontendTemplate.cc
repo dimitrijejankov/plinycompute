@@ -23,6 +23,7 @@
 #include <StoGetSetPagesResult.h>
 #include <StoRemovePageSetRequest.h>
 #include <StoMaterializePageResult.h>
+#include <StoFeedPageRequest.h>
 
 template <class T>
 std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageRequest(const pdb::Handle<pdb::StoGetPageRequest> &request,
@@ -567,6 +568,35 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStartFeedingP
 
   // sends result to requester
   success = sendUsingMe->sendObject(simpleResponse, error);
+
+  // get the buffer manager
+  auto bufferManager = this->getFunctionalityPtr<PDBBufferManagerInterface>();
+
+  // if everything went well start receiving the pages
+  while(success) {
+
+    // create an allocation block to hold the response
+    const UseTemporaryAllocationBlock localBlock{1024};
+
+    // get the next object
+    auto hasPage = sendUsingMe->template getNextObject<pdb::StoFeedPageRequest>(success, error);
+
+    // if we failed break
+    if(!success) {
+      break;
+    }
+
+    // do we have a page, if we don't finish
+    if(!hasPage->hasNextPage){
+      break;
+    }
+
+    // get the page of the size we need
+    auto page = bufferManager->getPage(hasPage->pageSize);
+
+    // grab the bytes
+    success = sendUsingMe->receiveBytes(page->getBytes(), error);
+  }
 
   // return
   return std::make_pair(success, error);
