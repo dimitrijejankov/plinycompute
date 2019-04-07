@@ -6,6 +6,7 @@
 #include <SillyAgg.h>
 #include <FinalQuery.h>
 #include <WriteSalaries.h>
+#include <gtest/gtest.h>
 #include "ScanEmployeeSet.h"
 #include "EmployeeBuiltInIdentitySelection.h"
 #include "WriteBuiltinEmployeeSet.h"
@@ -56,11 +57,6 @@ int main(int argc, char* argv[]) {
 
       for (; true; i++) {
 
-        // inc steve
-        if(i % 2 == 0) {
-          numSteve++;
-        }
-
         Handle<Supervisor> super = makeObject<Supervisor>("Steve Stevens", numRecords, std::string(departmentPrefix) + std::to_string(numRecords), 1);
         numRecords++;
 
@@ -68,12 +64,7 @@ int main(int argc, char* argv[]) {
         for (int k = 0; k < 10; k++) {
 
           Handle<Employee> temp;
-          if (i % 2 == 0) {
-            temp = makeObject<Employee>("Steve Stevens", numRecords, std::string(departmentPrefix) + std::to_string(numRecords), 1);
-          }
-          else {
-            temp = makeObject<Employee>("Albert Albertson", numRecords, std::string(departmentPrefix) + std::to_string(numRecords), 1);
-          }
+          temp = makeObject<Employee>("Steve Stevens", numRecords, std::string(departmentPrefix) + std::to_string(numRecords), 1);
 
           (*supers)[i]->addEmp(temp);
         }
@@ -81,14 +72,15 @@ int main(int argc, char* argv[]) {
 
     } catch (pdb::NotEnoughSpace &e) {
 
-      // dec steve
-      if(i % 2 == 0) {
-        numSteve--;
-      }
 
       // remove the last supervisor
       supers->pop_back();
 
+      // increment steave
+      numSteve += supers->size();
+
+      // send the data twice so we aggregate two times each department
+      pdbClient.sendData<Supervisor>("chris_db", "chris_set", supers);
       pdbClient.sendData<Supervisor>("chris_db", "chris_set", supers);
     }
   }
@@ -160,16 +152,17 @@ int main(int argc, char* argv[]) {
     // grab the record
     auto r = it->getNextRecord();
 
-    // print every 100th
-    if(i % 100 == 0) {
-      std::cout << *r << std::endl;
+    // should be 2 since we sent the same data twice
+    if(*r != 2) {
+      std::cout << "Record is not aggregated twice" << std::endl;
+      break;
     }
 
     // go to the next one
     i++;
   }
 
-  std::cout << i << " " << numSteve << std::endl;
+  std::cout << "Got " << i << " records expected " << numSteve << std::endl;
 
   // shutdown the server
   pdbClient.shutDownServer();

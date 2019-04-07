@@ -73,6 +73,8 @@ class MapTupleSetIterator : public ComputeSource {
     output->addColumn(0, new std::vector<Handle<OutputType>>, true);
   }
 
+  size_t x = 0;
+
   // returns the next tuple set to process, or nullptr if there is not one to process
   TupleSetPtr getNextTupleSet() override {
 
@@ -109,13 +111,16 @@ class MapTupleSetIterator : public ComputeSource {
 
       // and exit if we are done
       if (!(begin != end)) {
+
         if (i + 1 < limit) {
-          inputColumn.resize(i);
+          inputColumn.resize(i + 1);
         }
+        x += inputColumn.size();
         return output;
       }
     }
 
+    x += inputColumn.size();
     return output;
   }
 
