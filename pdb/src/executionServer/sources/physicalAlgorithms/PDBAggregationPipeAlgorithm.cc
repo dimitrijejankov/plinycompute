@@ -335,7 +335,7 @@ bool pdb::PDBAggregationPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManage
   }
 
   // wait while we are running the senders
-  while(selfRecDone < senders->size()) {
+  while(sendersDone < senders->size()) {
     sendersBuzzer->wait();
   }
 
