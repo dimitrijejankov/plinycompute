@@ -75,8 +75,6 @@ pdb::PDBPageHandle pdb::PDBFeedingPageSet::getNextPage(size_t workerID) {
 
 void pdb::PDBFeedingPageSet::feedPage(const PDBPageHandle &page) {
 
-  static int bla = 0;
-
   // lock pages structure
   unique_lock<std::mutex> lck(m);
 
