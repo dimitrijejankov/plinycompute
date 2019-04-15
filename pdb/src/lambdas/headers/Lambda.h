@@ -57,6 +57,188 @@ class Lambda {
     fillMe[myName] = root;
   }
 
+  //TODO: add comment here and refractor the code
+  static void getTCAPString(std::vector<std::string> &tcapStrings,
+                            std::vector<std::string> &inputTupleSetNames,
+                            std::vector<std::string> &inputColumnNames,
+                            std::vector<std::string> &inputColumnsToApply,
+                            std::vector<std::string> &childrenLambdaNames,
+                            LambdaObjectPtr root,
+                            int &lambdaLabel,
+                            std::string computationName,
+                            int computationLabel,
+                            std::string &addedOutputColumnName,
+                            std::string &myLambdaName,
+                            std::string &outputTupleSetName,
+                            MultiInputsBase *multiInputsComp = nullptr,
+                            bool amIPartOfJoinPredicate = false,
+                            bool amILeftChildOfEqualLambda = false,
+                            bool amIRightChildOfEqualLambda = false,
+                            std::string parentLambdaName = "",
+                            bool isSelfJoin = false) {
+
+    std::vector<std::string> columnsToApply;
+    std::vector<std::string> childrenLambdas;
+    std::vector<std::string> inputNames;
+    std::vector<std::string> inputColumns;
+
+    if (root->getNumChildren() > 0) {
+
+      for (const auto &i : inputColumnsToApply) {
+        columnsToApply.push_back(i);
+      }
+
+      inputColumnsToApply.clear();
+
+      for (const auto &childrenLambdaName : childrenLambdaNames) {
+        childrenLambdas.push_back(childrenLambdaName);
+      }
+
+      childrenLambdaNames.clear();
+
+      for (const auto &inputTupleSetName : inputTupleSetNames) {
+        auto iter = std::find(inputNames.begin(), inputNames.end(), inputTupleSetName);
+        if (iter == inputNames.end()) {
+          inputNames.push_back(inputTupleSetName);
+        }
+      }
+
+      inputTupleSetNames.clear();
+
+      for (const auto &inputColumnName : inputColumnNames) {
+        inputColumns.push_back(inputColumnName);
+      }
+
+      inputColumnNames.clear();
+    }
+
+    std::string myTypeName = root->getTypeOfLambda();
+    PDB_COUT << "\tExtracted lambda named: " << myTypeName << "\n";
+    std::string myName = myTypeName + "_" + std::to_string(lambdaLabel + root->getNumChildren());
+
+    bool isLeftChildOfEqualLambda = false;
+    bool isRightChildOfEqualLambda = false;
+    bool isChildSelfJoin = false;
+
+    LambdaObjectPtr nextChild = nullptr;
+    for (int i = 0; i < root->getNumChildren(); i++) {
+      LambdaObjectPtr child = root->getChild(i);
+
+      if ((i + 1) < root->getNumChildren()) {
+        nextChild = root->getChild(i + 1);
+      }
+
+      if (myTypeName == "==") {
+
+        if (i == 0) {
+          isLeftChildOfEqualLambda = true;
+        }
+
+        if (i == 1) {
+          isRightChildOfEqualLambda = true;
+        }
+
+      }
+
+      if ((isLeftChildOfEqualLambda || isRightChildOfEqualLambda) && (multiInputsComp != nullptr)) {
+
+        std::string nextInputName;
+
+        if (nextChild != nullptr) {
+          nextInputName = multiInputsComp->getNameForIthInput(nextChild->getInputIndex(0));
+        }
+
+        std::string myInputName = multiInputsComp->getNameForIthInput(child->getInputIndex(0));
+
+        if (nextInputName == myInputName) {
+          isChildSelfJoin = true;
+        }
+      }
+
+      getTCAPString(tcapStrings,
+                    inputNames,
+                    inputColumns,
+                    columnsToApply,
+                    childrenLambdas,
+                    child,
+                    lambdaLabel,
+                    computationName,
+                    computationLabel,
+                    addedOutputColumnName,
+                    myLambdaName,
+                    outputTupleSetName,
+                    multiInputsComp,
+                    amIPartOfJoinPredicate,
+                    isLeftChildOfEqualLambda,
+                    isRightChildOfEqualLambda,
+                    myName,
+                    isChildSelfJoin);
+
+      inputColumnsToApply.push_back(addedOutputColumnName);
+      childrenLambdaNames.push_back(myLambdaName);
+
+      if (multiInputsComp != nullptr) {
+        auto iter = std::find(inputTupleSetNames.begin(), inputTupleSetNames.end(), outputTupleSetName);
+
+        if (iter == inputTupleSetNames.end()) {
+          inputTupleSetNames.push_back(outputTupleSetName);
+        }
+
+      } else {
+
+        inputTupleSetNames.clear();
+        inputTupleSetNames.push_back(outputTupleSetName);
+        inputColumnNames.clear();
+      }
+
+      for (const auto &inputColumn : inputColumns) {
+        auto iter =
+            std::find(inputColumnNames.begin(), inputColumnNames.end(), inputColumn);
+        if (iter == inputColumnNames.end()) {
+          inputColumnNames.push_back(inputColumn);
+        }
+      }
+
+      isLeftChildOfEqualLambda = false;
+      isRightChildOfEqualLambda = false;
+      isChildSelfJoin = false;
+      nextChild = nullptr;
+    }
+
+    std::vector<std::string> outputColumns;
+    std::string tcapString = root->toTCAPString(inputTupleSetNames,
+                                                inputColumnNames,
+                                                inputColumnsToApply,
+                                                childrenLambdaNames,
+                                                lambdaLabel,
+                                                computationName,
+                                                computationLabel,
+                                                outputTupleSetName,
+                                                outputColumns,
+                                                addedOutputColumnName,
+                                                myLambdaName,
+                                                multiInputsComp,
+                                                amIPartOfJoinPredicate,
+                                                amILeftChildOfEqualLambda,
+                                                amIRightChildOfEqualLambda,
+                                                parentLambdaName,
+                                                isSelfJoin);
+
+    tcapStrings.push_back(tcapString);
+    lambdaLabel++;
+
+    if (multiInputsComp == nullptr) {
+      inputTupleSetNames.clear();
+      inputTupleSetNames.push_back(outputTupleSetName);
+    }
+
+    inputColumnNames.clear();
+    for (const auto &outputColumn : outputColumns) {
+      inputColumnNames.push_back(outputColumn);
+    }
+
+  }
+
  public:
 
   // create a lambda tree that returns a pointer
@@ -72,9 +254,122 @@ class Lambda {
   // create a lambda tree that returns a non-pointer
   Lambda(LambdaTree<ReturnType> tree) : tree(tree.getPtr()) {}
 
+  std::vector<std::string> getAllInputs(MultiInputsBase *multiInputsBase) {
+    std::vector<std::string> ret;
+    this->getInputs(ret, tree, multiInputsBase);
+    return ret;
+  }
+
   // convert one of these guys to a map
   void toMap(std::map<std::string, LambdaObjectPtr> &returnVal, int &suffix) {
     traverse(returnVal, tree, suffix);
+  }
+
+  //This is to get the TCAPString for this lambda tree
+  std::string toTCAPString(std::string inputTupleSetName,
+                           std::vector<std::string> &inputColumnNames,
+                           std::vector<std::string> &inputColumnsToApply,
+                           std::vector<std::string> &childrenLambdaNames,
+                           int &lambdaLabel,
+                           std::string computationName,
+                           int computationLabel,
+                           std::string &outputTupleSetName,
+                           std::vector<std::string> &outputColumnNames,
+                           std::string &addedOutputColumnName,
+                           std::string &myLambdaName,
+                           bool whetherToRemoveUnusedOutputColumns,
+                           MultiInputsBase *multiInputsComp = nullptr,
+                           bool amIPartOfJoinPredicate = false) {
+    std::vector<std::string> tcapStrings;
+    std::string outputTCAPString;
+    std::vector<std::string> inputTupleSetNames;
+    inputTupleSetNames.push_back(inputTupleSetName);
+    std::vector<std::string> columnNames;
+
+    for (const auto &inputColumnName : inputColumnNames) {
+      columnNames.push_back(inputColumnName);
+    }
+
+    std::vector<std::string> columnsToApply;
+    for (const auto &i : inputColumnsToApply) {
+      columnsToApply.push_back(i);
+    }
+
+    std::vector<std::string> childrenLambdas;
+    for (const auto &childrenLambdaName : childrenLambdaNames) {
+      childrenLambdas.push_back(childrenLambdaName);
+    }
+
+    getTCAPString(tcapStrings,
+                  inputTupleSetNames,
+                  columnNames,
+                  columnsToApply,
+                  childrenLambdas,
+                  tree,
+                  lambdaLabel,
+                  computationName,
+                  computationLabel,
+                  addedOutputColumnName,
+                  myLambdaName,
+                  outputTupleSetName,
+                  multiInputsComp,
+                  amIPartOfJoinPredicate);
+    PDB_COUT << "Lambda: lambdaLabel=" << lambdaLabel << std::endl;
+    bool isOutputInInput = false;
+    outputColumnNames.clear();
+
+    if (!whetherToRemoveUnusedOutputColumns) {
+
+      for (const auto &columnName : columnNames) {
+        outputColumnNames.push_back(columnName);
+        if (addedOutputColumnName == columnName) {
+          isOutputInInput = true;
+        }
+      }
+
+      if (!isOutputInInput) {
+        outputColumnNames.push_back(addedOutputColumnName);
+      }
+
+    } else {
+      outputColumnNames.push_back(addedOutputColumnName);
+    }
+
+    // TODO this is very dirty and should not be done like that! For now I'm going to patch it!
+    if (whetherToRemoveUnusedOutputColumns) {
+
+      // get the last tcap string
+      unsigned long last = tcapStrings.size() - 1;
+
+      PDB_COUT << "tcapStrings[" << last << "]=" << tcapStrings[last] << std::endl;
+      std::string right = tcapStrings[last].substr(tcapStrings[last].find("<="));
+
+      // by default the end is an empty string
+      std::string end;
+
+      // check if we have an info dictionary if we have chop off the end and store it in the end variable
+      if (right.find('[') != std::string::npos) {
+        end = right.substr(right.find('['));
+        right = right.substr(0, right.find('['));
+      }
+
+      // find the positions of the last brackets ()
+      unsigned long pos1 = right.find_last_of('(');
+      unsigned long pos2 = right.rfind("),");
+
+      // empty out anything between the brackets
+      right.replace(pos1 + 1, pos2 - 1 - (pos1 + 1) + 1, "");
+
+      // combine the string and replace it
+      tcapStrings[last] = outputTupleSetName + " (" + addedOutputColumnName + ") " + right + end;
+    }
+
+    // combine all the tcap strings
+    for (const auto &tcapString : tcapStrings) {
+      outputTCAPString.append(tcapString);
+    }
+
+    return outputTCAPString;
   }
 
 };

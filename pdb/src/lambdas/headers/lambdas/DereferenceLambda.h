@@ -27,6 +27,8 @@
 #include "TupleSetMachine.h"
 #include "TupleSet.h"
 #include "Ptr.h"
+#include "mustache.h"
+#include "MultiInputsBase.h"
 
 namespace pdb {
 
@@ -88,6 +90,9 @@ public:
     return std::string("deref");
   }
 
+  unsigned int getNumInputs() override {
+    return 1;
+  }
 
   int getNumChildren() override {
     return 1;
@@ -101,7 +106,206 @@ public:
     return nullptr;
   }
 
-private:
+  //TODO: add comment here and refractor the code
+  std::string toTCAPString(std::vector<std::string> &inputTupleSetNames,
+                           std::vector<std::string> &inputColumnNames,
+                           std::vector<std::string> &inputColumnsToApply,
+                           std::vector<std::string> &childrenLambdaNames,
+                           int lambdaLabel,
+                           std::string computationName,
+                           int computationLabel,
+                           std::string &outputTupleSetName,
+                           std::vector<std::string> &outputColumns,
+                           std::string &outputColumnName,
+                           std::string &lambdaName,
+                           MultiInputsBase *multiInputsComp = nullptr,
+                           bool amIPartOfJoinPredicate = false,
+                           bool amILeftChildOfEqualLambda = false,
+                           bool amIRightChildOfEqualLambda = false,
+                           std::string parentLambdaName = "",
+                           bool isSelfJoin = false) override {
+
+    // create the data for the lambda
+    mustache::data lambdaData;
+    lambdaData.set("typeOfLambda", getTypeOfLambda());
+    lambdaData.set("lambdaLabel", std::to_string(lambdaLabel));
+    lambdaData.set("computationName", computationName);
+    lambdaData.set("computationLabel", std::to_string(computationLabel));
+
+    // create the lambda name
+    mustache::mustache lambdaNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}"};
+    lambdaName = lambdaNameTemplate.render(lambdaData);
+
+    std::string inputTupleSetName;
+    std::string tupleSetMidTag;
+    int index;
+
+    if (multiInputsComp == nullptr) {
+      tupleSetMidTag = "OutFor";
+      inputTupleSetName = inputTupleSetNames[0];
+    } else {
+      tupleSetMidTag = "ExtractedFor";
+      index = this->getInputIndex(0);
+      inputTupleSetName = multiInputsComp->getTupleSetNameForIthInput(index);
+      inputColumnNames = multiInputsComp->getInputColumnsForIthInput(index);
+      inputColumnsToApply = multiInputsComp->getInputColumnsToApplyForIthInput(index);
+    }
+
+    // create the data for the lambda
+    lambdaData.set("tupleSetMidTag", tupleSetMidTag);
+
+    // create the output tuple set name
+    mustache::mustache
+        outputTupleSetNameTemplate{"deref_{{lambdaLabel}}{{tupleSetMidTag}}{{computationName}}{{computationLabel}}"};
+    outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
+
+    // set the output column name
+    outputColumnName = inputColumnsToApply[0];
+    PDB_COUT << "OuputColumnName: " << outputColumnName << "\n";
+
+    // fill up the output columns and setup the data
+    mustache::data outputColumnsData = mustache::data::type::list;
+    outputColumns.clear();
+    for (const auto &inputColumnName : inputColumnNames) {
+      if (inputColumnName != outputColumnName) {
+        outputColumns.push_back(inputColumnName);
+
+        // set the data
+        mustache::data columnData;
+        columnData.set("columnName", inputColumnName);
+        columnData.set("isLast", false);
+
+        // add the data entry
+        outputColumnsData.push_back(columnData);
+      }
+    }
+
+    // add the output column
+    outputColumns.push_back(outputColumnName);
+
+    // add the last output column data entry
+    mustache::data lastColumnData;
+    lastColumnData.set("columnName", outputColumnName);
+    lastColumnData.set("isLast", true);
+    outputColumnsData.push_back(lastColumnData);
+
+    // create the data for the column names
+    mustache::data inputColumnsToApplyData = mustache::data::type::list;
+    for (int i = 0; i < inputColumnsToApply.size(); i++) {
+
+      // fill in the column data
+      mustache::data columnData;
+      columnData.set("columnName", inputColumnsToApply[i]);
+      columnData.set("isLast", i == inputColumnsToApply.size() - 1);
+
+      // add the data entry
+      inputColumnsToApplyData.push_back(columnData);
+    }
+
+    // form the input columns to keep
+    std::vector<std::string> inputColumnsToKeep;
+    for (const auto &inputColumnName : inputColumnNames) {
+      if (std::find(inputColumnsToApply.begin(), inputColumnsToApply.end(), inputColumnName)
+          == inputColumnsToApply.end()) {
+        // add the data
+        inputColumnsToKeep.push_back(inputColumnName);
+      }
+    }
+
+    // fill in the data
+    mustache::data inputColumnsToKeepData = mustache::data::type::list;
+    for (int i = 0; i < inputColumnsToKeep.size(); i++) {
+
+      // fill in the column data
+      mustache::data columnData;
+      columnData.set("columnName", inputColumnsToKeep[i]);
+      columnData.set("isLast", i == inputColumnsToKeep.size() - 1);
+
+      inputColumnsToKeepData.push_back(columnData);
+    }
+
+    // fill in the data
+    lambdaData.set("outputTupleSetName", outputTupleSetName);
+    lambdaData.set("outputColumns", outputColumnsData);
+    lambdaData.set("inputTupleSetName", inputTupleSetName);
+    lambdaData.set("inputColumnsToApply", inputColumnsToApplyData);
+    lambdaData.set("inputColumnsToKeep", inputColumnsToKeepData);
+    lambdaData.set("lambdaName", lambdaName);
+
+    // apply template
+    mustache::mustache ApplyTemplate{"{{outputTupleSetName}}"
+                                     "({{#outputColumns}}{{columnName}}{{^isLast}}, {{/isLast}}{{/outputColumns}})"
+                                     " <= APPLY ({{inputTupleSetName}}({{#inputColumnsToApply}}{{columnName}}{{^isLast}}, {{/isLast}}{{/inputColumnsToApply}}), "
+                                     "{{inputTupleSetName}}({{#inputColumnsToKeep}}{{columnName}}{{^isLast}}, {{/isLast}}{{/inputColumnsToKeep}}), "
+                                     "'{{computationName}}_{{computationLabel}}', '{{lambdaName}}')\n"};
+
+    // the tcap string
+    std::string tcapString = ApplyTemplate.render(lambdaData);
+
+    if (multiInputsComp != nullptr) {
+      if (amILeftChildOfEqualLambda || amIRightChildOfEqualLambda) {
+        inputTupleSetName = outputTupleSetName;
+        inputColumnNames.clear();
+        for (const auto &outputColumn : outputColumns) {
+          // we want to remove the extracted value column from here
+          if (outputColumn != outputColumnName) {
+            inputColumnNames.push_back(outputColumn);
+          }
+        }
+        inputColumnsToApply.clear();
+        inputColumnsToApply.push_back(outputColumnName);
+
+        std::string hashOperator = amILeftChildOfEqualLambda ? "HASHLEFT" : "HASHRIGHT";
+        outputTupleSetName = outputTupleSetName.append("_hashed");
+        outputColumnName = outputColumnName.append("_hash");
+        outputColumns.clear();
+
+        for (const auto &inputColumnName : inputColumnNames) {
+          outputColumns.push_back(inputColumnName);
+        }
+        outputColumns.push_back(outputColumnName);
+        std::string computationNameWithLabel = computationName + std::to_string(computationLabel);
+
+        tcapString += this->getTCAPString(inputTupleSetName,
+                                          inputColumnNames,
+                                          inputColumnsToApply,
+                                          outputTupleSetName,
+                                          outputColumns,
+                                          outputColumnName,
+                                          hashOperator,
+                                          computationNameWithLabel,
+                                          parentLambdaName,
+                                          std::map<std::string, std::string>());
+      }
+      if (!isSelfJoin) {
+        for (unsigned int i = 0; i < multiInputsComp->getNumInputs(); i++) {
+          std::string curInput = multiInputsComp->getNameForIthInput(i);
+          auto iter = std::find(outputColumns.begin(), outputColumns.end(), curInput);
+          if (iter != outputColumns.end()) {
+            multiInputsComp->setTupleSetNameForIthInput(i, outputTupleSetName);
+            multiInputsComp->setInputColumnsForIthInput(i, outputColumns);
+            multiInputsComp->setInputColumnsToApplyForIthInput(i, outputColumnName);
+          }
+        }
+      } else {
+        // only update myIndex
+        multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
+        multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
+        multiInputsComp->setInputColumnsToApplyForIthInput(index, outputColumnName);
+      }
+    }
+
+    return tcapString;
+  }
+  std::map<std::string, std::string> getInfo() override {
+
+    // fill in the info
+    return std::map<std::string, std::string>{
+        std::make_pair("lambdaType", getTypeOfLambda()),
+    };
+  };
+
+ private:
 
   LambdaTree<Ptr<OutType>> input;
 };

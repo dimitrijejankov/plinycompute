@@ -234,6 +234,241 @@ public:
       return rhs.getPtr();
     return nullptr;
   }
+//TODO: add comment here and refractor the code
+  std::string toTCAPString(std::vector<std::string> &inputTupleSetNames,
+                           std::vector<std::string> &inputColumnNames,
+                           std::vector<std::string> &inputColumnsToApply,
+                           std::vector<std::string> &childrenLambdaNames,
+                           int lambdaLabel,
+                           std::string computationName,
+                           int computationLabel,
+                           std::string &outputTupleSetName,
+                           std::vector<std::string> &outputColumns,
+                           std::string &outputColumnName,
+                           std::string &myLambdaName,
+                           MultiInputsBase *multiInputsComp = nullptr,
+                           bool amIPartOfJoinPredicate = false,
+                           bool amILeftChildOfEqualLambda = false,
+                           bool amIRightChildOfEqualLambda = false,
+                           std::string parentLambdaName = "",
+                           bool isSelfJoin = false) override {
+    std::string tcapString;
+    myLambdaName = getTypeOfLambda() + "_" + std::to_string(lambdaLabel);
+    std::string computationNameWithLabel = computationName + "_" + std::to_string(computationLabel);
+    std::string inputTupleSetName;
+    if (multiInputsComp == nullptr) {
+      inputTupleSetName = inputTupleSetNames[0];
+      outputTupleSetName =
+          "equals_" + std::to_string(lambdaLabel) + "OutFor" + computationName + std::to_string(computationLabel);
+      outputColumnName = "bool_" + std::to_string(lambdaLabel) + "_" + std::to_string(computationLabel);
+      outputColumns.clear();
+      for (const auto &inputColumnName : inputColumnNames) {
+        outputColumns.push_back(inputColumnName);
+      }
+      outputColumns.push_back(outputColumnName);
+
+      tcapString +=
+          "\n/* Apply selection predicate on " + inputColumnsToApply[0] + " and " + inputColumnsToApply[1] + "*/\n";
+      tcapString += this->getTCAPString(inputTupleSetName,
+                                        inputColumnNames,
+                                        inputColumnsToApply,
+                                        outputTupleSetName,
+                                        outputColumns,
+                                        outputColumnName,
+                                        "APPLY",
+                                        computationNameWithLabel,
+                                        myLambdaName,
+                                        getInfo());
+
+    } else {
+
+      if (inputColumnNames[inputColumnNames.size() - 2] == inputColumnsToApply[0]) {
+        if (inputColumnNames.size() == 4) {
+          inputColumnNames[2] = inputColumnNames[1];
+          inputColumnNames[1] = inputColumnsToApply[0];
+        } else if (inputColumnNames.size() == 3) {
+          inputColumnNames.push_back(inputColumnNames[2]);
+          inputColumnNames[2] = inputColumnNames[0];
+        } else {
+          std::cout << "Error: right now we can't support such complex join selection "
+                       "conditions"
+                    << std::endl;
+          exit(1);
+        }
+      }
+      tcapString += "\n/* Join ( " + inputColumnNames[0];
+      for (unsigned int i = 1; i < inputColumnNames.size() - 1; i++) {
+        if (inputColumnNames[i] == inputColumnsToApply[0]) {
+          tcapString += " ) and (";
+        } else {
+          tcapString += " " + inputColumnNames[i];
+        }
+      }
+
+      tcapString += " ) */\n";
+      outputTupleSetName = "JoinedFor_equals" + std::to_string(lambdaLabel) +
+          computationName + std::to_string(computationLabel);
+      std::string tupleSetNamePrefix = outputTupleSetName;
+      outputColumns.clear();
+
+      // TODO: push down projection here
+      for (const auto &inputColumnName : inputColumnNames) {
+        auto iter = std::find(
+            inputColumnsToApply.begin(), inputColumnsToApply.end(), inputColumnName);
+        if (iter == inputColumnsToApply.end()) {
+          outputColumns.push_back(inputColumnName);
+        }
+      }
+      outputColumnName = "";
+
+      tcapString += outputTupleSetName + "(" + outputColumns[0];
+      for (int i = 1; i < outputColumns.size(); i++) {
+        tcapString += ", " + outputColumns[i];
+      }
+      tcapString += ") <= JOIN (" + inputTupleSetNames[0] + "(" + inputColumnsToApply[0] + "), ";
+      tcapString += inputTupleSetNames[0] + "(" + inputColumnNames[0];
+      int end1 = -1;
+      for (int i = 1; i < inputColumnNames.size(); i++) {
+        auto iter = std::find(
+            inputColumnsToApply.begin(), inputColumnsToApply.end(), inputColumnNames[i]);
+        if (iter != inputColumnsToApply.end()) {
+          end1 = i;
+          break;
+        }
+        tcapString += ", " + inputColumnNames[i];
+      }
+      if (end1 + 1 >= inputColumnNames.size()) {
+        std::cout << "Can't generate TCAP for this query graph" << std::endl;
+        exit(1);
+      }
+      tcapString += "), " + inputTupleSetNames[1] + "(" + inputColumnsToApply[1] + "), " +
+          inputTupleSetNames[1] + "(" + inputColumnNames[end1 + 1];
+      for (int i = end1 + 2; i < inputColumnNames.size(); i++) {
+        auto iter = std::find(
+            inputColumnsToApply.begin(), inputColumnsToApply.end(), inputColumnNames[i]);
+        if (iter != inputColumnsToApply.end()) {
+          break;
+        }
+        tcapString += ", " + inputColumnNames[i];
+      }
+
+      tcapString += "), '" + computationNameWithLabel + "')\n";
+
+      inputTupleSetName = outputTupleSetName;
+      inputColumnNames.clear();
+      for (const auto &outputColumn : outputColumns) {
+        inputColumnNames.push_back(outputColumn);
+      }
+      inputColumnsToApply.clear();
+      inputColumnsToApply.push_back(multiInputsComp->getNameForIthInput(lhs.getInputIndex(0)));
+      outputColumnName = "LHSExtractedFor_" + std::to_string(lambdaLabel) + "_" + std::to_string(computationLabel);
+      outputColumns.push_back(outputColumnName);
+      outputTupleSetName = tupleSetNamePrefix + "_WithLHSExtracted";
+
+      // the additional info about this attribute access lambda
+      std::map<std::string, std::string> info;
+
+      tcapString += this->getTCAPString(inputTupleSetName,
+                                        inputColumnNames,
+                                        inputColumnsToApply,
+                                        outputTupleSetName,
+                                        outputColumns,
+                                        outputColumnName,
+                                        "APPLY",
+                                        computationNameWithLabel,
+                                        childrenLambdaNames[0],
+                                        getChild(0)->getInfo());
+
+      inputTupleSetName = outputTupleSetName;
+      inputColumnNames.push_back(outputColumnName);
+      inputColumnsToApply.clear();
+      inputColumnsToApply.push_back(multiInputsComp->getNameForIthInput(rhs.getInputIndex(0)));
+      outputTupleSetName = tupleSetNamePrefix + "_WithBOTHExtracted";
+      outputColumnName = "RHSExtractedFor_" + std::to_string(lambdaLabel) + "_" + std::to_string(computationLabel);
+      outputColumns.push_back(outputColumnName);
+
+      // add the tcap string
+      tcapString += this->getTCAPString(inputTupleSetName,
+                                        inputColumnNames,
+                                        inputColumnsToApply,
+                                        outputTupleSetName,
+                                        outputColumns,
+                                        outputColumnName,
+                                        "APPLY",
+                                        computationNameWithLabel,
+                                        childrenLambdaNames[1],
+                                        getChild(1)->getInfo());
+
+      inputTupleSetName = outputTupleSetName;
+      inputColumnsToApply.clear();
+      inputColumnsToApply.push_back("LHSExtractedFor_" + std::to_string(lambdaLabel) + "_" +
+          std::to_string(computationLabel));
+      inputColumnsToApply.push_back("RHSExtractedFor_" + std::to_string(lambdaLabel) + "_" +
+          std::to_string(computationLabel));
+      inputColumnNames.pop_back();
+      outputColumnName =
+          "bool_" + std::to_string(lambdaLabel) + "_" + std::to_string(computationLabel);
+      outputColumns.pop_back();
+      outputColumns.pop_back();
+      outputColumns.push_back(outputColumnName);
+      outputTupleSetName = tupleSetNamePrefix + "_BOOL";
+
+      tcapString += this->getTCAPString(inputTupleSetName,
+                                        inputColumnNames,
+                                        inputColumnsToApply,
+                                        outputTupleSetName,
+                                        outputColumns,
+                                        outputColumnName,
+                                        "APPLY",
+                                        computationNameWithLabel,
+                                        myLambdaName,
+                                        getInfo());
+
+      inputTupleSetName = outputTupleSetName;
+      outputColumnName = "";
+      outputColumns.pop_back();
+      outputTupleSetName = tupleSetNamePrefix + "_FILTERED";
+      tcapString += outputTupleSetName + "(" + outputColumns[0];
+      for (int i = 1; i < outputColumns.size(); i++) {
+        tcapString += ", " + outputColumns[i];
+      }
+      tcapString += ") <= FILTER (" + inputTupleSetName + "(bool_" +
+          std::to_string(lambdaLabel) + "_" + std::to_string(computationLabel) + "), " +
+          inputTupleSetName + "(" + outputColumns[0];
+      for (int i = 1; i < outputColumns.size(); i++) {
+        tcapString += ", " + outputColumns[i];
+      }
+      tcapString += "), '" + computationNameWithLabel + "')\n";
+
+      if (!isSelfJoin) {
+        for (unsigned int index = 0; index < multiInputsComp->getNumInputs(); index++) {
+          std::string curInput = multiInputsComp->getNameForIthInput(index);
+          auto iter = std::find(outputColumns.begin(), outputColumns.end(), curInput);
+          if (iter != outputColumns.end()) {
+            multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
+            multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
+            multiInputsComp->setInputColumnsToApplyForIthInput(index, outputColumnName);
+          }
+        }
+      }
+    }
+    return tcapString;
+  }
+  unsigned int getNumInputs() override {
+    return 2;
+  }
+ private:
+
+  /**
+* Returns the additional information about this lambda currently just the lambda type
+* @return the map
+*/
+  std::map<std::string, std::string> getInfo() override {
+    // fill in the info
+    return std::map<std::string, std::string>{
+        std::make_pair("lambdaType", getTypeOfLambda())
+    };
+  };
 
 private:
 

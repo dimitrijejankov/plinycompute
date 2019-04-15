@@ -59,6 +59,10 @@ class Computation : public Object {
     return nullptr;
   }
 
+  virtual ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection) {
+    return nullptr;
+  }
+
   virtual ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &whichAttsToOpOn, TupleSpec &projection, pdb::LogicalPlanPtr &plan) {
     return getComputeSink(consumeMe, projection, 0);
   }
@@ -184,6 +188,8 @@ class Computation : public Object {
   virtual std::string getDatabaseName() { return ""; }
 
   virtual std::string getSetName() { return ""; }
+
+  virtual bool needsMaterializeOutput() { return false; }
 
   virtual void setBatchSize(int batchSize) {}
 
