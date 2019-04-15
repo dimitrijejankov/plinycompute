@@ -120,7 +120,7 @@ class SetWriter : public Computation {
     return writeSetTemplate.render(writeSetData);
   }
 
-  pdb::ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection) override {
+  pdb::ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection, uint64_t numberOfPartitions) override {
     return std::make_shared<pdb::VectorSink<OutputClass>>(consumeMe, projection);
   }
 
