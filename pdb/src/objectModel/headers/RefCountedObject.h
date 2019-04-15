@@ -28,7 +28,7 @@
 
 namespace pdb {
 
-// When an Object is stored in an allocator, we have to have a bit of meta-data
+// When an Object is stored in an allocator, we have to have a bit of meta-dataRui Hachimura
 // associated with it.  It is the job of the RefCountedObject class to manage
 // this meta-data, along with the Object.  Specifically, we need:
 //

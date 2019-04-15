@@ -1,19 +1,18 @@
 //
-// Created by dimitrije on 3/27/19.
+// Created by dimitrije on 4/11/19.
 //
 
-#ifndef PDB_AGGREGATIONPIPELINE_H
-#define PDB_AGGREGATIONPIPELINE_H
+#ifndef PDB_JOINSHUFFLEPIPELINE_H
+#define PDB_JOINSHUFFLEPIPELINE_H
 
 #include <PipelineInterface.h>
-#include <cstdio>
 #include <PDBAnonymousPageSet.h>
 #include <ComputeSink.h>
 
 namespace pdb {
 
-class AggregationPipeline : public PipelineInterface {
-private:
+class JoinShufflePipeline : public PipelineInterface {
+ private:
 
   // the id of the worker this pipeline is running on
   size_t workerID;
@@ -27,9 +26,9 @@ private:
   // the merger sink
   pdb::ComputeSinkPtr merger;
 
-public:
+ public:
 
-  AggregationPipeline(size_t workerID,
+  JoinShufflePipeline(size_t workerID,
                       PDBAnonymousPageSetPtr outputPageSet,
                       PDBAbstractPageSetPtr inputPageSet,
                       ComputeSinkPtr merger);
@@ -40,5 +39,4 @@ public:
 
 }
 
-
-#endif //PDB_AGGREGATIONPIPELINE_H
+#endif //PDB_JOINSHUFFLEPIPELINE_H

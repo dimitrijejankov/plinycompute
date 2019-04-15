@@ -26,6 +26,7 @@
 #include "JoinTuple.h"
 #include "JoinCompBase.h"
 #include "LogicalPlan.h"
+#include "ShuffleJoinSide.h"
 
 namespace pdb {
 
@@ -90,7 +91,12 @@ class JoinComp : public JoinCompBase {
   }
 
   // this gets a compute sink
-  ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &attsToOpOn, TupleSpec &projection, pdb::LogicalPlanPtr &plan) override {
+  ComputeSinkPtr getComputeSink(TupleSpec &consumeMe,
+                                TupleSpec &attsToOpOn,
+                                TupleSpec &projection,
+                                uint64_t numPartitions,
+                                std::map<ComputeInfoType, ComputeInfoPtr> &params,
+                                pdb::LogicalPlanPtr &plan) override {
 
     // loop through each of the attributes that we are supposed to accept, and for each of them, find the type
     std::vector<std::string> typeList;
@@ -106,11 +112,10 @@ class JoinComp : public JoinCompBase {
       std::cout << "got " << res.first << " " << res.second << "\n";
 
       // and find its type... in the first case, there is not a particular lambda that we need to ask for
-      if (res.second == "") {
+      if (res.second.empty()) {
         typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getComputation().getOutputType() + ">");
       } else {
-        typeList.push_back(
-            "pdb::Handle<" + plan->getNode(res.first).getLambda(res.second)->getOutputType() + ">");
+        typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getLambda(res.second)->getOutputType() + ">");
       }
     }
 
@@ -127,7 +132,59 @@ class JoinComp : public JoinCompBase {
     }
     std::cout << "\n";
 
-    return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes);
+    // check
+    auto it = params.find(ComputeInfoType::JOIN_SIDE);
+    ShuffleJoinSidePtr joinSide = dynamic_pointer_cast<ShuffleJoinSide>(it->second);
+
+    if(joinSide->value == ShuffleJoinSideEnum::PROBE_SIDE){
+
+      return correctJoinTuple->getProbeSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+    }
+    else {
+      return correctJoinTuple->getBuildSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+    }
+  }
+
+  // this gets a merger sink
+  ComputeSinkPtr getComputeMerger(TupleSpec &consumeMe, TupleSpec &attsToOpOn, TupleSpec &projection,
+                                  uint64_t workerID, uint64_t numPartitions, pdb::LogicalPlanPtr &plan) override {
+
+    // loop through each of the attributes that we are supposed to accept, and for each of them, find the type
+    std::vector<std::string> typeList;
+    AtomicComputationPtr producer = plan->getComputations().getProducingAtomicComputation(consumeMe.getSetName());
+    std::cout << "consumeMe was: " << consumeMe << "\n";
+    std::cout << "attsToOpOn was: " << attsToOpOn << "\n";
+    std::cout << "projection was: " << projection << "\n";
+    for (auto &a : projection.getAtts()) {
+
+      // find the identity of the producing computation
+      std::cout << "finding the source of " << projection.getSetName() << "." << a << "\n";
+      std::pair<std::string, std::string> res = producer->findSource(a, plan->getComputations());
+      std::cout << "got " << res.first << " " << res.second << "\n";
+
+      // and find its type... in the first case, there is not a particular lambda that we need to ask for
+      if (res.second.empty()) {
+        typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getComputation().getOutputType() + ">");
+      } else {
+        typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getLambda(res.second)->getOutputType() + ">");
+      }
+    }
+
+    for (auto &aa : typeList) {
+      std::cout << "Got type " << aa << "\n";
+    }
+
+    // now we get the correct join tuple, that will allow us to pack tuples from the join in a hash table
+    std::vector<int> whereEveryoneGoes;
+    JoinTuplePtr correctJoinTuple = findCorrectJoinTuple<In1, In2, Rest...>(typeList, whereEveryoneGoes);
+
+    for (auto &aa : whereEveryoneGoes) {
+      std::cout << aa << " ";
+    }
+    std::cout << "\n";
+
+    // return the merger
+    return correctJoinTuple->getMerger(workerID, numPartitions);
   }
 
   // this is a join computation

@@ -9,7 +9,9 @@
 #include <ComputeExecutor.h>
 #include <ComputeSink.h>
 #include <JoinProbeExecutor.h>
-#include <JoinSink.h>
+#include <JoinProbeSink.h>
+#include <JoinBuildSink.h>
+#include <JoinMergerSink.h>
 
 namespace pdb {
 
@@ -25,10 +27,19 @@ class JoinTupleSingleton {
                                        TupleSpec &attsToIncludeInOutput,
                                        bool needToSwapLHSAndRhs) = 0;
 
-  virtual ComputeSinkPtr getSink(TupleSpec &consumeMe,
-                                 TupleSpec &attsToOpOn,
-                                 TupleSpec &projection,
-                                 std::vector<int> whereEveryoneGoes) = 0;
+  virtual ComputeSinkPtr getProbeSink(TupleSpec &consumeMe,
+                                      TupleSpec &attsToOpOn,
+                                      TupleSpec &projection,
+                                      std::vector<int> whereEveryoneGoes,
+                                      uint64_t numPartitions) = 0;
+
+  virtual ComputeSinkPtr getBuildSink(TupleSpec &consumeMe,
+                                      TupleSpec &attsToOpOn,
+                                      TupleSpec &projection,
+                                      std::vector<int> whereEveryoneGoes,
+                                      uint64_t numPartitions) = 0;
+
+  virtual ComputeSinkPtr getMerger(uint64_t workerID, uint64_t numPartitions) = 0;
 };
 
 // this is an actual class
@@ -51,11 +62,25 @@ class JoinSingleton : public JoinTupleSingleton {
   }
 
   // creates a compute sink for this particular type
-  ComputeSinkPtr getSink(TupleSpec &consumeMe,
-                         TupleSpec &attsToOpOn,
-                         TupleSpec &projection,
-                         std::vector<int> whereEveryoneGoes) override {
-    return std::make_shared<JoinSink<HoldMe>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes);
+  ComputeSinkPtr getProbeSink(TupleSpec &consumeMe,
+                              TupleSpec &attsToOpOn,
+                              TupleSpec &projection,
+                              std::vector<int> whereEveryoneGoes,
+                              uint64_t numPartitions) override {
+
+    return std::make_shared<JoinProbeSink<HoldMe>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+  }
+
+  ComputeSinkPtr getBuildSink(TupleSpec &consumeMe,
+                              TupleSpec &attsToOpOn,
+                              TupleSpec &projection,
+                              std::vector<int> whereEveryoneGoes,
+                              uint64_t numPartitions) override {
+    return std::make_shared<JoinBuildSink<HoldMe>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+  }
+
+  ComputeSinkPtr getMerger(uint64_t workerID, uint64_t numPartitions) override {
+    return std::make_shared<JoinMergerSink<HoldMe>>(workerID, numPartitions);
   }
 };
 

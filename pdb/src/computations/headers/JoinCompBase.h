@@ -40,6 +40,9 @@ class JoinCompBase : public Computation {
                                          TupleSpec &pipelinedInputSchema,
                                          TupleSpec &pipelinedAttsToOperateOn,
                                          TupleSpec &pipelinedAttsToIncludeInOutput) = 0;
+
+  virtual ComputeSinkPtr getComputeMerger(TupleSpec &consumeMe, TupleSpec &attsToOpOn, TupleSpec &projection,
+                                          uint64_t workerID, uint64_t numPartitions, pdb::LogicalPlanPtr &plan) = 0;
 };
 
 }

@@ -239,6 +239,8 @@ ValueType& JoinPairArray<ValueType>::push(const size_t& me) {
     // figure out which slot he goes in
     size_t slot = hashVal % (numSlots - 1);
 
+    size_t objSize = this->objSize;
+
     // in the worst case, we can loop through the entire hash table looking.  :-(
     for (size_t slotsChecked = 0; slotsChecked < numSlots; slotsChecked++) {
 
@@ -500,7 +502,7 @@ void JoinMapIterator<ValueType>::operator++() {
 template <class ValueType>
 JoinRecordList<ValueType>* JoinMapIterator<ValueType>::operator*() {
 
-    JoinRecordList<ValueType>* returnVal = new JoinRecordList<ValueType>(slot, *iterateMe);
+    auto* returnVal = new JoinRecordList<ValueType>(slot, *iterateMe);
     return returnVal;
 }
 

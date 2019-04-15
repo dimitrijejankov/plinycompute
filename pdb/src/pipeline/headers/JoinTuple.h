@@ -83,7 +83,6 @@ class JoinTuple : public JoinTupleBase {
   }
 
   void copyFrom(void *input, int whichPos) {
-    // std :: cout << "Packing column for type " << getTypeName <decltype (IsAbstract <HoldMe> :: val)> () << " at position " << whichPos << "\n";
     std::vector<Handle<HoldMe>> &me = *((std::vector<Handle<HoldMe>> *) input);
     pdb::copyFrom(myData, me[whichPos]);
   }
@@ -216,6 +215,25 @@ typename std::enable_if<sizeof(TypeToTruncate::myOtherData) != 0, void>::type tr
   TypeToTruncate::truncate(us[whichVec], i);
   truncate<decltype(TypeToTruncate::myOtherData)>(i, whichVec + 1, us);
 }
+
+/***** CODE TO HAVE THE HASH TUPLE PAIRS *****/
+
+template<typename JoinRecord>
+class HashedJoinTuple : public Object {
+public:
+
+  ENABLE_DEEP_COPY
+
+  /**
+   * The join tuple
+   */
+  JoinRecord tuple;
+
+  /**
+   * The hash of the join tuple
+   */
+  size_t hash = 0;
+};
 
 }
 

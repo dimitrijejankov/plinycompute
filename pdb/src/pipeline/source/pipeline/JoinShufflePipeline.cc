@@ -3,13 +3,20 @@
 #include <utility>
 
 //
-// Created by dimitrije on 3/27/19.
+// Created by dimitrije on 4/11/19.
 //
 
-#include <AggregationPipeline.h>
+#include <JoinShufflePipeline.h>
+#include <pipeline/JoinShufflePipeline.h>
 #include <MemoryHolder.h>
 
-void pdb::AggregationPipeline::run() {
+pdb::JoinShufflePipeline::JoinShufflePipeline(size_t workerID,
+                                              pdb::PDBAnonymousPageSetPtr outputPageSet,
+                                              pdb::PDBAbstractPageSetPtr inputPageSet,
+                                              pdb::ComputeSinkPtr merger) : workerID(workerID), outputPageSet(std::move(outputPageSet)), inputPageSet(std::move(inputPageSet)), merger(std::move(merger)) {}
+
+
+void pdb::JoinShufflePipeline::run() {
 
   // this is where we are outputting all of our results to
   MemoryHolderPtr myRAM = std::make_shared<MemoryHolder>(outputPageSet->getNewPage());
@@ -36,8 +43,3 @@ void pdb::AggregationPipeline::run() {
   // unpin the page so we don't have problems
   myRAM->pageHandle->unpin();
 }
-
-pdb::AggregationPipeline::AggregationPipeline(size_t workerID,
-                                              pdb::PDBAnonymousPageSetPtr outputPageSet,
-                                              pdb::PDBAbstractPageSetPtr inputPageSet,
-                                              pdb::ComputeSinkPtr merger) : workerID(workerID), outputPageSet(std::move(outputPageSet)), inputPageSet(std::move(inputPageSet)), merger(std::move(merger)) {}
