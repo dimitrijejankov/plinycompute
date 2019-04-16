@@ -303,8 +303,8 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
       }
 
       // do we have the appropriate join arguments? if not throw an exception
-      auto it = joinArgs->hashTables.find(a->getOutput().getSetName());
-      if(it != joinArgs->hashTables.end()) {
+      auto ht = joinArgs->hashTables.find(a->getOutput().getSetName());
+      if(ht != joinArgs->hashTables.end()) {
         throw runtime_error("Hash table for the output set," + a->getOutput().getSetName() +  "not found!");
       }
 
@@ -313,13 +313,13 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
 
         // if we are pipelining the right input, then we don't need to switch left and right inputs
         std::cout << "We are pipelining the right input...\n";
-        returnVal->addStage(myComp.getExecutor(true, myJoin->getProjection(), lastOne->getOutput(), myJoin->getRightInput(), myJoin->getRightProjection(), it->second, *this));
+        returnVal->addStage(myComp.getExecutor(true, myJoin->getProjection(), lastOne->getOutput(), myJoin->getRightInput(), myJoin->getRightProjection(), ht->second, numProcessingThreads, workerID, *this));
 
       } else {
 
         // if we are pipelining the right input, then we don't need to switch left and right inputs
         std::cout << "We are pipelining the left input...\n";
-        returnVal->addStage(myComp.getExecutor(false, myJoin->getRightProjection(), lastOne->getOutput(), myJoin->getInput(), myJoin->getProjection(), it->second, *this));
+        returnVal->addStage(myComp.getExecutor(false, myJoin->getRightProjection(), lastOne->getOutput(), myJoin->getInput(), myJoin->getProjection(), ht->second, numProcessingThreads, workerID, *this));
       }
 
     }

@@ -33,6 +33,8 @@ class JoinCompBase : public Computation {
                                          TupleSpec &pipelinedAttsToOperateOn,
                                          TupleSpec &pipelinedAttsToIncludeInOutput,
                                          JoinArgPtr &joinArg,
+                                         uint64_t numProcessingThreads,
+                                         uint64_t workerID,
                                          ComputePlan &computePlan) = 0;
 
   virtual ComputeExecutorPtr getExecutor(bool needToSwapAtts,

@@ -232,6 +232,15 @@ TEST(PipelineTest, TestShuffleJoin) {
 
   EXPECT_CALL(*partitionedBPageSet, getNewPage).Times(testing::AtLeast(1));
 
+  // the page set that is going to contain the partitioned preaggregation results
+  std::shared_ptr<MockPageSetWriter> andAndBJoinedPageSet = std::make_shared<MockPageSetWriter>();
+
+  ON_CALL(*andAndBJoinedPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
+    return myMgr->getPage();
+  }));
+
+  EXPECT_CALL(*andAndBJoinedPageSet, getNewPage).Times(testing::AtLeast(1));
+
   /// 3. Create the computations and the TCAP
 
   // this is the object allocation block where all of this stuff will reside
@@ -297,6 +306,8 @@ TEST(PipelineTest, TestShuffleJoin) {
       "almostFinal (result) <= APPLY (last (a, aAndC, c), last (), 'JoinComp_3', 'native_lambda_7', []) \n"
       "nothing () <= OUTPUT (almostFinal (result), 'outSet', 'myDB', 'SetWriter_4', [])";
 
+  std::cout << myTCAPString << std::endl;
+
   // and create a query object that contains all of this stuff
   ComputePlan myPlan(myTCAPString, myComputations);
 
@@ -358,7 +369,25 @@ TEST(PipelineTest, TestShuffleJoin) {
   std :: cout << "\nDONE RUNNING PIPELINE\n";
   myPipeline = nullptr;
 
-  /// 7. This pipeline will
+  /// 7. This pipeline will build the probe side for the other join
+
+  unordered_map<string, JoinArgPtr> hashTables = { {"", std::make_shared<JoinArg>(shuffledAPageSet) } };
+
+  // set the parameters
+  params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<ShuffleJoinProcessor>(numNodes, threadsPerNode, pageQueues, myMgr) },
+             { ComputeInfoType::JOIN_SIDE,       std::make_shared<pdb::ShuffleJoinSide>(ShuffleJoinSideEnum::PROBE_SIDE) },
+             { ComputeInfoType::JOIN_ARGS,       std::make_shared<JoinArguments>(hashTables) } };
+  myPipeline = myPlan.buildPipeline(std::string("AandBJoined"), /* this is the TupleSet the pipeline starts with */
+                                    std::string("BHashedOnC"),     /* this is the TupleSet the pipeline ends with */
+                                    partitionedBPageSet,
+                                    andAndBJoinedPageSet,
+                                    params,
+                                    numNodes,
+                                    threadsPerNode,
+                                    20,
+                                    curThread);
+
+
 
 //  // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
 //  // a pipeline into the first join

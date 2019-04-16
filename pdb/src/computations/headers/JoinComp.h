@@ -231,13 +231,15 @@ class JoinComp : public JoinCompBase {
                                  TupleSpec &pipelinedAttsToOperateOn,
                                  TupleSpec &pipelinedAttsToIncludeInOutput,
                                  JoinArgPtr &joinArg,
+                                 uint64_t numProcessingThreads,
+                                 uint64_t workerID,
                                  ComputePlan &computePlan) override {
 
 
     std::cout << "pipelinedInputSchema is " << pipelinedInputSchema << "\n";
     std::cout << "pipelinedAttsToOperateOn is " << pipelinedAttsToOperateOn << "\n";
     std::cout << "pipelinedAttsToIncludeInOutput is " << pipelinedAttsToIncludeInOutput << "\n";
-    std::cout << "From the join arg, got " << (size_t) joinArg->pageWhereHashTableIs << "\n";
+    std::cout << "From the join arg, got " << joinArg->hashTablePageSet->getNumPages() << "\n";
 
     // loop through each of the attributes that we are supposed to accept, and for each of them, find the type
     std::vector<std::string> typeList;
@@ -273,11 +275,13 @@ class JoinComp : public JoinCompBase {
     std::cout << "\n";
 
     // and return the correct probing code
-    return correctJoinTuple->getProber(joinArg->pageWhereHashTableIs,
+    return correctJoinTuple->getProber(joinArg->hashTablePageSet,
                                        whereEveryoneGoes,
                                        pipelinedInputSchema,
                                        pipelinedAttsToOperateOn,
                                        pipelinedAttsToIncludeInOutput,
+                                       numProcessingThreads,
+                                       workerID,
                                        needToSwapAtts);
   }
 
