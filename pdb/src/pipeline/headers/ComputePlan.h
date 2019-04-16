@@ -29,7 +29,6 @@
 
 namespace pdb {
 
-
 // this is the basic type that is sent around a PDB cluster to store a computation that PDB is to execute
 class ComputePlan {
 
@@ -85,10 +84,21 @@ class ComputePlan {
                             uint64_t chunkSize,
                             uint64_t workerID);
 
-
   PipelinePtr buildAggregationPipeline(const std::string &targetTupleSetName,
                                        const PDBAbstractPageSetPtr &inputPageSet,
                                        const PDBAnonymousPageSetPtr &outputPageSet,
+                                       uint64_t workerID);
+
+  PipelinePtr buildShuffleJoinPipeline(const std::string &leftSourceTupleSetName,
+                                       const std::string &rightSourceTupleSetName,
+                                       const std::string &targetTupleSetName,
+                                       const PDBAbstractPageSetPtr &leftInputPageSet,
+                                       const PDBAbstractPageSetPtr &rightInputPageSet,
+                                       const PDBAnonymousPageSetPtr &outputPageSet,
+                                       std::map<ComputeInfoType, ComputeInfoPtr> &params,
+                                       size_t numNodes,
+                                       size_t numProcessingThreads,
+                                       uint64_t chunkSize,
                                        uint64_t workerID);
 
 };

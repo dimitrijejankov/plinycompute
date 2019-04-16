@@ -58,8 +58,7 @@ class JoinProbeExecution : public ComputeExecutor {
                      TupleSpec &inputSchema,
                      TupleSpec &attsToOperateOn,
                      TupleSpec &attsToIncludeInOutput,
-                     bool needToSwapLHSAndRhs) :
-      myMachine(inputSchema, attsToIncludeInOutput) {
+                     bool needToSwapLHSAndRhs) : myMachine(inputSchema, attsToIncludeInOutput) {
 
     // extract the hash table we've been given
     auto *input = (Record<JoinMap<RHSType>> *) hashTable;
@@ -81,7 +80,6 @@ class JoinProbeExecution : public ComputeExecutor {
     // this is the input attribute that we will hash in order to try to find matches
     std::vector<int> matches = myMachine.match(attsToOperateOn);
     whichAtt = matches[0];
-
   }
 
   TupleSetPtr process(TupleSetPtr input) override {
@@ -114,7 +112,7 @@ class JoinProbeExecution : public ComputeExecutor {
     // truncate if we have extra
     eraseEnd<RHSType>(overallCounter, 0, columns);
 
-    // and finally, we need to relpicate the input data
+    // and finally, we need to replicate the input data
     myMachine.replicate(input, output, counts, offset);
 
     // outta here!

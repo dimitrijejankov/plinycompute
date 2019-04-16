@@ -211,6 +211,9 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
         }
 
         targetAttsToOpOn = a->getInput();
+
+        std::cout << "Building sink for: " << targetSpec << " " << targetAttsToOpOn << " " << targetProjection << "\n";
+
         break;
       }
 
@@ -361,6 +364,20 @@ inline PipelinePtr ComputePlan::buildAggregationPipeline(const std::string &targ
   auto combiner = agg->getAggregationHashMapCombiner(workerID);
 
   return std::make_shared<pdb::AggregationPipeline>(workerID, outputPageSet, inputPageSet, combiner);
+}
+
+inline PipelinePtr ComputePlan::buildShuffleJoinPipeline(const std::string &leftSourceTupleSetName,
+                                                         const std::string &rightSourceTupleSetName,
+                                                         const std::string &targetTupleSetName,
+                                                         const PDBAbstractPageSetPtr &leftInputPageSet,
+                                                         const PDBAbstractPageSetPtr &rightInputPageSet,
+                                                         const PDBAnonymousPageSetPtr &outputPageSet,
+                                                         std::map<ComputeInfoType, ComputeInfoPtr> &params,
+                                                         size_t numNodes,
+                                                         size_t numProcessingThreads,
+                                                         uint64_t chunkSize,
+                                                         uint64_t workerID) {
+  return pdb::PipelinePtr();
 }
 
 inline ComputePlan::ComputePlan(String &TCAPComputation, Vector<Handle<Computation>> &allComputations) : TCAPComputation(TCAPComputation),

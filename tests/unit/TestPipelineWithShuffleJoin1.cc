@@ -339,6 +339,7 @@ TEST(PipelineTest, TestShuffleJoin) {
   std :: cout << "\nDONE RUNNING PIPELINE\n";
   myPipeline = nullptr;
 
+  /// 6. Build the join pipeline
 
 //  // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
 //  // a pipeline into the first join
