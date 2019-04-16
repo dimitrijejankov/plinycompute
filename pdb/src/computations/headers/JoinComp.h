@@ -90,7 +90,12 @@ class JoinComp : public JoinCompBase {
   }
 
   // this gets a compute sink
-  ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &attsToOpOn, TupleSpec &projection, pdb::LogicalPlanPtr &plan) override {
+  ComputeSinkPtr getComputeSink(TupleSpec &consumeMe,
+                                TupleSpec &attsToOpOn,
+                                TupleSpec &projection,
+                                uint64_t numPartitions,
+                                std::map<ComputeInfoType, ComputeInfoPtr> &params,
+                                pdb::LogicalPlanPtr &plan) override {
 
     // loop through each of the attributes that we are supposed to accept, and for each of them, find the type
     std::vector<std::string> typeList;
@@ -127,7 +132,7 @@ class JoinComp : public JoinCompBase {
     }
     std::cout << "\n";
 
-    return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes);
+    return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
   }
 
   // this is a join computation

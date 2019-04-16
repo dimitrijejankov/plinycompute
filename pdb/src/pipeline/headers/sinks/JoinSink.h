@@ -1,9 +1,4 @@
-//
-// Created by dimitrije on 2/19/19.
-//
-
-#ifndef PDB_JOINSINK_H
-#define PDB_JOINSINK_H
+#pragma once
 
 #include <ComputeSink.h>
 #include <TupleSpec.h>
@@ -17,7 +12,7 @@ namespace pdb {
 template<typename RHSType>
 class JoinSink : public ComputeSink {
 
-private:
+ private:
 
   // tells us which attribute is the key
   int keyAtt;
@@ -31,18 +26,12 @@ private:
   // this is the list of columns that we are processing
   void **columns = nullptr;
 
-public:
+  // the number of partitions
+  size_t numPartitions;
 
-  ~JoinSink() override {
-    if (columns != nullptr)
-      delete columns;
-  }
+ public:
 
-  JoinSink(TupleSpec &inputSchema,
-           TupleSpec &attsToOperateOn,
-           TupleSpec &additionalAtts,
-           std::vector<int> &whereEveryoneGoes) :
-      whereEveryoneGoes(whereEveryoneGoes) {
+  JoinSink(TupleSpec &inputSchema, TupleSpec &attsToOperateOn, TupleSpec &additionalAtts, std::vector<int> &whereEveryoneGoes, size_t numPartitions) : numPartitions(numPartitions), whereEveryoneGoes(whereEveryoneGoes) {
 
     // used to manage attributes and set up the output
     TupleSetSetupMachine myMachine(inputSchema);
@@ -55,41 +44,55 @@ public:
     useTheseAtts = myMachine.match(additionalAtts);
   }
 
+  ~JoinSink() override {
+    if (columns != nullptr)
+      delete columns;
+  }
+
   Handle<Object> createNewOutputContainer() override {
 
-    // we simply create a new map to store the output
-    Handle<JoinMap<RHSType>> returnVal = makeObject<JoinMap<RHSType>>();
+    // we simply create a new vector of join maps to store the output
+    Handle<Vector<Handle<JoinMap<RHSType>>>> returnVal = makeObject<Vector<Handle<JoinMap<RHSType>>>>();
+
+    // create the maps
+    for(auto i = 0; i < numPartitions; ++i) {
+
+      // add the map
+      returnVal->push_back(makeObject<JoinMap<RHSType>>());
+    }
+
     return returnVal;
   }
 
   void writeOut(TupleSetPtr input, Handle<Object> &writeToMe) override {
 
     // get the map we are adding to
-    Handle<JoinMap<RHSType>> writeMe = unsafeCast<JoinMap<RHSType>>(writeToMe);
-    JoinMap<RHSType> &myMap = *writeMe;
+    Handle<Vector<Handle<JoinMap<RHSType>>>> writeMe = unsafeCast<Vector<Handle<JoinMap<RHSType>>>>(writeToMe);
 
     // get all of the columns
     if (columns == nullptr)
       columns = new void *[whereEveryoneGoes.size()];
 
     int counter = 0;
-    // before: for (auto &a: whereEveryoneGoes) {
     for (counter = 0; counter < whereEveryoneGoes.size(); counter++) {
-      // before: columns[a] = (void *) &(input->getColumn <int> (useTheseAtts[counter]));
       columns[counter] = (void *) &(input->getColumn<int>(useTheseAtts[whereEveryoneGoes[counter]]));
-      // before: counter++;
     }
 
     // this is where the hash attribute is located
     std::vector<size_t> &keyColumn = input->getColumn<size_t>(keyAtt);
 
     size_t length = keyColumn.size();
-    for (size_t i = 0; i < length; i++) {
+    for (int i = 0; i < length; i++) {
+
+      // the map
+      auto whichMap = keyColumn[i] % numPartitions;
+      JoinMap<RHSType> &myMap = *(*writeMe)[whichMap];
 
       // try to add the key... this will cause an allocation for a new key/val pair
       if (myMap.count(keyColumn[i]) == 0) {
 
         try {
+
           RHSType &temp = myMap.push(keyColumn[i]);
           pack(temp, i, 0, columns);
 
@@ -143,5 +146,3 @@ public:
 };
 
 }
-
-#endif //PDB_JOINSINK_H

@@ -28,7 +28,8 @@ class JoinTupleSingleton {
   virtual ComputeSinkPtr getSink(TupleSpec &consumeMe,
                                  TupleSpec &attsToOpOn,
                                  TupleSpec &projection,
-                                 std::vector<int> whereEveryoneGoes) = 0;
+                                 std::vector<int> whereEveryoneGoes,
+                                 uint64_t numPartitions) = 0;
 };
 
 // this is an actual class
@@ -54,8 +55,9 @@ class JoinSingleton : public JoinTupleSingleton {
   ComputeSinkPtr getSink(TupleSpec &consumeMe,
                          TupleSpec &attsToOpOn,
                          TupleSpec &projection,
-                         std::vector<int> whereEveryoneGoes) override {
-    return std::make_shared<JoinSink<HoldMe>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes);
+                         std::vector<int> whereEveryoneGoes,
+                         uint64_t numPartitions) override {
+    return std::make_shared<JoinSink<HoldMe>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
   }
 };
 

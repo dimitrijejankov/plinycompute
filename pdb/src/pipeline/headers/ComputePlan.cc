@@ -238,7 +238,12 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
   }
 
   // now we have the list of computations, and so it is time to build the pipeline... start by building a compute sink
-  ComputeSinkPtr computeSink = myPlan->getNode(targetComputationName).getComputation().getComputeSink(targetSpec, targetProjection, numProcessingThreads * numNodes);
+  ComputeSinkPtr computeSink = myPlan->getNode(targetComputationName).getComputation().getComputeSink(targetSpec,
+                                                                                                      targetAttsToOpOn,
+                                                                                                      targetProjection,
+                                                                                                      numProcessingThreads * numNodes,
+                                                                                                      params,
+                                                                                                      myPlan);
 
   // do we have a processor provided
   auto it = params.find(ComputeInfoType::PAGE_PROCESSOR);
