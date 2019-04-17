@@ -10,7 +10,7 @@ namespace pdb {
 // used to parameterize joins that are run as part of a pipeline
 class JoinArg {
  public:
-
+  ComputePlan& plan;
   // the location of the hash table // TODO this needs to be a page set or something
   void *pageWhereHashTableIs;
 };

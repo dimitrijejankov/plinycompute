@@ -75,7 +75,134 @@ class SelectionComp : public Computation {
                            std::vector<std::string> &outputColumnNames,
                            std::string &addedOutputColumnName) override {
 
-    return "";
+    if (inputTupleSets.empty()) {
+      return "";
+    }
+    InputTupleSetSpecifier inputTupleSet = inputTupleSets[0];
+    std::vector<std::string> childrenLambdaNames;
+    std::string myLambdaName;
+    return toTCAPString(inputTupleSet.getTupleSetName(),
+                        inputTupleSet.getColumnNamesToKeep(),
+                        inputTupleSet.getColumnNamesToApply(),
+                        childrenLambdaNames,
+                        computationLabel,
+                        outputTupleSetName,
+                        outputColumnNames,
+                        addedOutputColumnName,
+                        myLambdaName);
+  }
+
+  /**
+   * to return Selection tcap string
+   * @param inputTupleSetName
+   * @param inputColumnNames
+   * @param inputColumnsToApply
+   * @param childrenLambdaNames
+   * @param computationLabel
+   * @param outputTupleSetName
+   * @param outputColumnNames
+   * @param addedOutputColumnName
+   * @param myLambdaName
+   * @return
+   */
+  std::string toTCAPString(std::string inputTupleSetName,
+                           std::vector<std::string> &inputColumnNames,
+                           std::vector<std::string> &inputColumnsToApply,
+                           std::vector<std::string> &childrenLambdaNames,
+                           int computationLabel,
+                           std::string &outputTupleSetName,
+                           std::vector<std::string> &outputColumnNames,
+                           std::string &addedOutputColumnName,
+                           std::string &myLambdaName) {
+
+    PDB_COUT << "ABOUT TO GET TCAP STRING FOR SELECTION" << std::endl;
+    Handle<InputClass> checkMe = nullptr;
+    std::string tupleSetName;
+    std::vector<std::string> columnNames;
+    std::string addedColumnName;
+    int lambdaLabel = 0;
+
+    PDB_COUT << "ABOUT TO GET TCAP STRING FOR SELECTION LAMBDA" << std::endl;
+    Lambda<bool> selectionLambda = getSelection(checkMe);
+
+    std::string tcapString;
+    tcapString += "\n/* Apply selection filtering */\n";
+    tcapString += selectionLambda.toTCAPString(inputTupleSetName,
+                                               inputColumnNames,
+                                               inputColumnsToApply,
+                                               childrenLambdaNames,
+                                               lambdaLabel,
+                                               getComputationType(),
+                                               computationLabel,
+                                               tupleSetName,
+                                               columnNames,
+                                               addedColumnName,
+                                               myLambdaName,
+                                               false);
+
+    PDB_COUT << "The tcapString after parsing selection lambda: " << tcapString << "\n";
+    PDB_COUT << "lambdaLabel=" << lambdaLabel << "\n";
+
+    // create the data for the column names
+    mustache::data inputColumnData = mustache::data::type::list;
+    for (int i = 0; i < inputColumnNames.size(); i++) {
+
+      mustache::data columnData;
+
+      // fill in the column data
+      columnData.set("columnName", inputColumnNames[i]);
+      columnData.set("isLast", i == inputColumnNames.size() - 1);
+
+      inputColumnData.push_back(columnData);
+    }
+
+    // create the data for the filter
+    mustache::data selectionCompData;
+    selectionCompData.set("computationType", getComputationType());
+    selectionCompData.set("computationLabel", std::to_string(computationLabel));
+    selectionCompData.set("inputColumns", inputColumnData);
+    selectionCompData.set("tupleSetName", tupleSetName);
+    selectionCompData.set("addedColumnName", addedColumnName);
+
+    // tupleSetName1(att1, att2, ...) <= FILTER (tupleSetName(methodCall_0OutFor_isFrank), methodCall_0OutFor_SelectionComp1(in0), 'SelectionComp_1')
+    mustache::mustache scanSetTemplate
+        {"filteredInputFor{{computationType}}{{computationLabel}}({{#inputColumns}}{{columnName}}{{^isLast}}, {{/isLast}}{{/inputColumns}}) "
+         "<= FILTER ({{tupleSetName}}({{addedColumnName}}), {{tupleSetName}}({{#inputColumns}}{{columnName}}{{^isLast}}, {{/isLast}}{{/inputColumns}}), '{{computationType}}_{{computationLabel}}')\n"};
+
+    // generate the TCAP string for the FILTER
+    tcapString += scanSetTemplate.render(selectionCompData);
+
+    // template for the new tuple set name
+    mustache::mustache newTupleSetNameTemplate{"filteredInputFor{{computationType}}{{computationLabel}}"};
+
+    // generate the new tuple set name
+    std::string newTupleSetName = newTupleSetNameTemplate.render(selectionCompData);
+
+    PDB_COUT << "TO GET TCAP STRING FOR PROJECTION LAMBDA\n";
+    Lambda<Handle<OutputClass>> projectionLambda = getProjection(checkMe);
+
+    // generate the TCAP string for the FILTER
+    tcapString += "\n/* Apply selection projection */\n";
+    tcapString += projectionLambda.toTCAPString(newTupleSetName,
+                                                inputColumnNames,
+                                                inputColumnsToApply,
+                                                childrenLambdaNames,
+                                                lambdaLabel,
+                                                getComputationType(),
+                                                computationLabel,
+                                                outputTupleSetName,
+                                                outputColumnNames,
+                                                addedOutputColumnName,
+                                                myLambdaName,
+                                                true);
+
+    // update the state of the computation
+    this->setTraversed(true);
+    this->setOutputTupleSetName(outputTupleSetName);
+    this->setOutputColumnToApply(addedOutputColumnName);
+
+    // return the TCAP string
+    return tcapString;
   }
 
 

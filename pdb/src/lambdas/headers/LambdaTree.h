@@ -92,6 +92,11 @@ class LambdaTree {
     me = toMe;
     return *this;
   }
+
+  unsigned int getInputIndex(int i) {
+    return me->getInputIndex(i);
+  }
+
 };
 
 }

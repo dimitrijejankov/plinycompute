@@ -32,7 +32,7 @@ namespace pdb {
 // value from an input.  Then, all values having the same key are aggregated using the += operation over values.
 // Note that keys must have operation == as well has hash () defined.  Also, note that values must have the
 // + operation defined.
-// 
+//
 // Once aggregation is completed, the key-value pairs are converted into OutputClass objects.  An object
 // of type OutputClass must have two methods defined: KeyClass &getKey (), as well as ValueClass &getValue ().
 // To convert a key-value pair into an OutputClass object, the result of getKey () is set to the desired key,
@@ -92,24 +92,116 @@ class AggregateComp : public AggregateCompBase {
     }
 
     InputTupleSetSpecifier inputTupleSet = inputTupleSets[0];
+    std::vector<std::string> childrenLambdaNames;
+    std::string myLambdaName;
     return toTCAPString(inputTupleSet.getTupleSetName(),
                         inputTupleSet.getColumnNamesToKeep(),
                         inputTupleSet.getColumnNamesToApply(),
+                        childrenLambdaNames,
                         computationLabel,
                         outputTupleSetName,
                         outputColumnNames,
-                        addedOutputColumnName);
+                        addedOutputColumnName,
+                        myLambdaName);
+
   }
 
   // to return Aggregate tcap string
   std::string toTCAPString(std::string inputTupleSetName,
                            std::vector<std::string> inputColumnNames,
                            std::vector<std::string> inputColumnsToApply,
+                           std::vector<std::string> &childrenLambdaNames,
                            int computationLabel,
                            std::string &outputTupleSetName,
                            std::vector<std::string> &outputColumnNames,
-                           std::string &addedOutputColumnName) {
-    return "";
+                           std::string &addedOutputColumnName,
+                           std::string &myLambdaName) {
+    PDB_COUT << "To GET TCAP STRING FOR CLUSTER AGGREGATE COMP" << std::endl;
+
+    PDB_COUT << "To GET TCAP STRING FOR AGGREGATE KEY" << std::endl;
+    Handle<InputClass> checkMe = nullptr;
+    Lambda<KeyClass> keyLambda = getKeyProjection(checkMe);
+    std::string tupleSetName;
+    std::vector<std::string> columnNames;
+    std::string addedColumnName;
+    int lambdaLabel = 0;
+
+    std::vector<std::string> columnsToApply;
+    for (const auto &i : inputColumnsToApply) {
+      columnsToApply.push_back(i);
+    }
+
+    std::string tcapString;
+    tcapString += "\n/* Extract key for aggregation */\n";
+    tcapString += keyLambda.toTCAPString(inputTupleSetName,
+                                         inputColumnNames,
+                                         inputColumnsToApply,
+                                         childrenLambdaNames,
+                                         lambdaLabel,
+                                         getComputationType(),
+                                         computationLabel,
+                                         tupleSetName,
+                                         columnNames,
+                                         addedColumnName,
+                                         myLambdaName,
+                                         false);
+
+    PDB_COUT << "To GET TCAP STRING FOR AGGREGATE VALUE" << std::endl;
+
+    Lambda<ValueClass> valueLambda = getValueProjection(checkMe);
+    std::vector<std::string> columnsToKeep;
+    columnsToKeep.push_back(addedColumnName);
+
+    tcapString += "\n/* Extract value for aggregation */\n";
+    tcapString += valueLambda.toTCAPString(tupleSetName,
+                                           columnsToKeep,
+                                           columnsToApply,
+                                           childrenLambdaNames,
+                                           lambdaLabel,
+                                           getComputationType(),
+                                           computationLabel,
+                                           outputTupleSetName,
+                                           outputColumnNames,
+                                           addedOutputColumnName,
+                                           myLambdaName,
+                                           false);
+
+    // create the data for the filter
+    mustache::data clusterAggCompData;
+    clusterAggCompData.set("computationType", getComputationType());
+    clusterAggCompData.set("computationLabel", std::to_string(computationLabel));
+    clusterAggCompData.set("outputTupleSetName", outputTupleSetName);
+    clusterAggCompData.set("addedColumnName", addedColumnName);
+    clusterAggCompData.set("addedOutputColumnName", addedOutputColumnName);
+
+    // set the new tuple set name
+    mustache::mustache newTupleSetNameTemplate{"aggOutFor{{computationType}}{{computationLabel}}"};
+    std::string newTupleSetName = newTupleSetNameTemplate.render(clusterAggCompData);
+
+    // set new added output columnName 1
+    mustache::mustache newAddedOutputColumnName1Template{"aggOutFor{{computationLabel}}"};
+    std::string addedOutputColumnName1 = newAddedOutputColumnName1Template.render(clusterAggCompData);
+
+    clusterAggCompData.set("addedOutputColumnName1", addedOutputColumnName1);
+
+    tcapString += "\n/* Apply aggregation */\n";
+
+    mustache::mustache aggregateTemplate{"aggOutFor{{computationType}}{{computationLabel}} ({{addedOutputColumnName1}})"
+                                         "<= AGGREGATE ({{outputTupleSetName}}({{addedColumnName}}, {{addedOutputColumnName}}),"
+                                         "'{{computationType}}_{{computationLabel}}')\n"};
+
+    tcapString += aggregateTemplate.render(clusterAggCompData);
+
+    // update the state of the computation
+    outputTupleSetName = newTupleSetName;
+    outputColumnNames.clear();
+    outputColumnNames.push_back(addedOutputColumnName1);
+
+    this->setTraversed(true);
+    this->setOutputTupleSetName(outputTupleSetName);
+    this->setOutputColumnToApply(addedOutputColumnName1);
+    addedOutputColumnName = addedOutputColumnName1;
+    return tcapString;
   }
 
   ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection, uint64_t numberOfPartitions) override {

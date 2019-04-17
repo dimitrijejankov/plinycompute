@@ -26,6 +26,8 @@
 #include "JoinTuple.h"
 #include "JoinCompBase.h"
 #include "LogicalPlan.h"
+#include "MultiInputsBase.h"
+#include "Lambda.h"
 
 namespace pdb {
 
@@ -35,8 +37,15 @@ class JoinComp : public JoinCompBase {
  private:
 
   std::vector<std::string> tupleSetNamesForInputs;
+  MultiInputsBase *multiInputsBase = nullptr;
 
  public:
+
+  virtual ~JoinComp() {
+    if (multiInputsBase == nullptr) {
+      delete (multiInputsBase);
+    }
+  }
 
   // the computation returned by this method is called to see if a data item should be returned in the output set
   virtual Lambda<bool> getSelection(Handle<In1> in1, Handle<In2> in2, Handle<Rest> ...otherArgs) = 0;
@@ -141,7 +150,86 @@ class JoinComp : public JoinCompBase {
                                    std::string &outputTupleSetName,
                                    std::vector<std::string> &outputColumnNames,
                                    std::string &addedOutputColumnName) override {
-    return "";
+    if (inputTupleSets.size() == getNumInputs()) {
+      std::string tcapString;
+      if (multiInputsBase == nullptr) {
+        multiInputsBase = new MultiInputsBase();
+      }
+      multiInputsBase->setNumInputs(this->getNumInputs());
+      std::vector<std::string> inputNames;
+
+      // update tupleset name for input sets
+      for (unsigned int i = 0; i < inputTupleSets.size(); i++) {
+        this->multiInputsBase->setTupleSetNameForIthInput(i, inputTupleSets[i].getTupleSetName());
+        this->multiInputsBase->setInputColumnsForIthInput(i, inputTupleSets[i].getColumnNamesToKeep());
+        this->multiInputsBase->setInputColumnsToApplyForIthInput(i, inputTupleSets[i].getColumnNamesToApply());
+        inputNames.push_back(inputTupleSets[i].getColumnNamesToApply()[0]);
+      }
+
+      analyzeInputSets(inputNames);
+      Lambda<bool> selectionLambda = callGetSelection(*this);
+      std::string inputTupleSetName;
+      std::vector<std::string> inputColumnNames;
+      std::vector<std::string> inputColumnsToApply;
+      std::vector<std::string> childrenLambdaNames;
+      int lambdaLabel = 0;
+      std::string myLambdaName;
+      MultiInputsBase *multiInputsComp = this->getMultiInputsBase();
+      tcapString += selectionLambda.toTCAPString(inputTupleSetName,
+                                                 inputColumnNames,
+                                                 inputColumnsToApply,
+                                                 childrenLambdaNames,
+                                                 lambdaLabel,
+                                                 "JoinComp",
+                                                 computationLabel,
+                                                 outputTupleSetName,
+                                                 outputColumnNames,
+                                                 addedOutputColumnName,
+                                                 myLambdaName,
+                                                 false,
+                                                 multiInputsComp,
+                                                 true);
+
+      std::vector<std::string> inputsInProjection = multiInputsComp->getInputsInProjection();
+      tcapString += "\n/* run Join projection on ( " + inputsInProjection[0];
+      for (unsigned int i = 1; i < inputsInProjection.size(); i++) {
+        tcapString += " " + inputsInProjection[i];
+      }
+      tcapString += " )*/\n";
+      Lambda<Handle<Out>> projectionLambda = callGetProjection(*this);
+      inputTupleSetName = outputTupleSetName;
+      inputColumnNames.clear();
+      inputColumnsToApply.clear();
+      childrenLambdaNames.clear();
+      for (unsigned int index = 0; index < multiInputsComp->getNumInputs(); index++) {
+        multiInputsComp->setInputColumnsForIthInput(index, inputColumnNames);
+      }
+
+      tcapString += projectionLambda.toTCAPString(inputTupleSetName,
+                                                  inputColumnNames,
+                                                  inputColumnsToApply,
+                                                  childrenLambdaNames,
+                                                  lambdaLabel,
+                                                  "JoinComp",
+                                                  computationLabel,
+                                                  outputTupleSetName,
+                                                  outputColumnNames,
+                                                  addedOutputColumnName,
+                                                  myLambdaName,
+                                                  true,
+                                                  multiInputsComp,
+                                                  false);
+
+      this->setOutputTupleSetName(outputTupleSetName);
+      this->setOutputColumnToApply(addedOutputColumnName);
+      setMultiInputsBaseToNull();
+      return tcapString;
+
+    } else {
+      std::cout << "ERROR: inputTupleSet size is " << inputTupleSets.size()
+                << " and not equivalent with Join's inputs " << getNumInputs() << std::endl;
+      return "";
+    }
   }
 
   // JiaNote: returns the latest tuple set name that contains the i-th input
@@ -231,6 +319,38 @@ class JoinComp : public JoinCompBase {
                                  TupleSpec &pipelinedAttsToIncludeInOutput) override {
     std::cout << "Currently, no pipelined version of the join doesn't take an arg.\n";
     exit(1);
+  }
+
+  void analyzeInputSets(std::vector<std::string> &inputNames) {
+    if (multiInputsBase == nullptr) {
+      multiInputsBase = new MultiInputsBase();
+    }
+    // Step 1. setup all input names (the column name corresponding to input in tuple set)
+    for (int i = 0; i < inputNames.size(); i++) {
+      this->multiInputsBase->setNameForIthInput(i, inputNames[i]);
+    }
+
+    // Step 2. analyze selectionLambda to find all inputs in predicates
+    Lambda<bool> selectionLambda = callGetSelection(*this);
+    std::vector<std::string> inputsInPredicates =
+        selectionLambda.getAllInputs(this->multiInputsBase);
+    for (auto &inputsInPredicate : inputsInPredicates) {
+      this->multiInputsBase->addInputNameToPredicates(inputsInPredicate);
+    }
+    // Step 3. analyze projectionLambda to find all inputs in projection
+    Lambda<Handle<Out>> projectionLambda = callGetProjection(*this);
+    std::vector<std::string> inputsInProjection =
+        projectionLambda.getAllInputs(this->multiInputsBase);
+    for (auto &i : inputsInProjection) {
+      this->multiInputsBase->addInputNameToProjection(i);
+    }
+  }
+
+  void setMultiInputsBaseToNull() {
+    if (multiInputsBase == nullptr) {
+      delete (multiInputsBase);
+    }
+    multiInputsBase = nullptr;
   }
 
 };
