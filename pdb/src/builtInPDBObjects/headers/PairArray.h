@@ -106,7 +106,6 @@ private:
     // the array of data
     Nothing data[0];
 
-
     // delete flag to avoid to run destructor if the flag is set to true
     bool disableDestructor;
 

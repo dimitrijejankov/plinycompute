@@ -53,12 +53,12 @@ private:
   int32_t port;
 
   /**
-   *
+   * How many threads are doing the processing, in the computation // TODO this is needed for creating the feeding page set if it is not created already
    */
   uint64_t numberOfProcessingThreads;
 
   /**
-   *
+   * How many nodes are used in the computation // TODO this is needed for
    */
   uint64_t numberOfNodes;
 

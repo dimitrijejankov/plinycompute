@@ -16,8 +16,8 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef JOIN_MAP_H
-#define JOIN_MAP_H
+#ifndef JoinMap_H
+#define JoinMap_H
 
 // PRELOAD %JoinMap <Nothing>%
 
@@ -40,28 +40,19 @@ private:
     Handle<JoinPairArray<ValueType>> myArray;
 
     // size of ValueType
-    size_t objectSize;
-
-    // my partition id
-    size_t partitionId;
-
-    // number of partitions (per node)
-    int numPartitions;
+    size_t objectSize = 0;
 
 public:
     ENABLE_DEEP_COPY
 
-    // this constructor creates a map with specified slots, partitionId and numPartitions
-    JoinMap(uint32_t initSize, size_t partitionId, int numPartitions);
-
     // this constructor pre-allocates initSize slots... initSize must be a power of two
-    JoinMap(uint32_t initSize);
+    explicit JoinMap(uint32_t initSize);
 
     // this constructor creates a map with a single slot
     JoinMap();
 
     // destructor
-    ~JoinMap();
+    ~JoinMap() = default;
 
     // allows us to access all of the records with a particular hash value
     JoinRecordList<ValueType> lookup(const size_t& which);
@@ -84,18 +75,8 @@ public:
     // these are used for iteration
     JoinMapIterator<ValueType> begin();
     JoinMapIterator<ValueType> end();
-
-
-    // JiaNote: add partition id to enable hash partitioned join
-    size_t getPartitionId();
-    void setPartitionId(size_t partitionId);
-    int getNumPartitions();
-    void setNumPartitions(int numPartitions);
-
-    // JiaNote: add this to enable combination of two JoinMaps
-    size_t getObjectSize();
-    void setObjectSize();
 };
+
 }
 
 #include "JoinMap.cc"

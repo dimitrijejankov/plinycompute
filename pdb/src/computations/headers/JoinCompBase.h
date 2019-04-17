@@ -33,6 +33,8 @@ class JoinCompBase : public Computation {
                                          TupleSpec &pipelinedAttsToOperateOn,
                                          TupleSpec &pipelinedAttsToIncludeInOutput,
                                          JoinArgPtr &joinArg,
+                                         uint64_t numProcessingThreads,
+                                         uint64_t workerID,
                                          ComputePlan &computePlan) = 0;
 
   virtual ComputeExecutorPtr getExecutor(bool needToSwapAtts,
@@ -40,6 +42,9 @@ class JoinCompBase : public Computation {
                                          TupleSpec &pipelinedInputSchema,
                                          TupleSpec &pipelinedAttsToOperateOn,
                                          TupleSpec &pipelinedAttsToIncludeInOutput) = 0;
+
+  virtual ComputeSinkPtr getComputeMerger(TupleSpec &consumeMe, TupleSpec &attsToOpOn, TupleSpec &projection,
+                                          uint64_t workerID, uint64_t numPartitions, pdb::LogicalPlanPtr &plan) = 0;
 };
 
 }

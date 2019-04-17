@@ -238,6 +238,7 @@ TEST(PipelineTest, TestAggregation) {
 
   // make the function return pages with the Vector<Map<String, double>>
   std::vector<PDBPageQueuePtr> pageQueues;
+  pageQueues.reserve(numNodes);
   for(int i = 0; i < numNodes; ++i) { pageQueues.emplace_back(std::make_shared<PDBPageQueue>()); }
 
   ON_CALL(*partitionedHashTable, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(

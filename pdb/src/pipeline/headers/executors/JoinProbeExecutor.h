@@ -29,10 +29,19 @@ class JoinProbeExecution : public ComputeExecutor {
   TupleSetSetupMachine myMachine;
 
   // the hash talbe we are processing
-  Handle<JoinMap<RHSType>> inputTable;
+  std::vector<Handle<JoinMap<RHSType>>> inputTables;
+
+  // the pages that contain the hash tables
+  std::vector<PDBPageHandle> pages;
 
   // the list of counts for matches of each of the input tuples
   std::vector<uint32_t> counts;
+
+  // how many processing threads are there
+  uint64_t numProcessingThreads;
+
+  // the worker id
+  uint64_t workerID;
 
   // this is the list of all of the output columns in the output TupleSetPtr
   void **columns;
@@ -53,18 +62,33 @@ class JoinProbeExecution : public ComputeExecutor {
   // are standard for executors: they tell us the details of the input that are streaming in, as well as the identity of the has att, and
   // the atts that will be streamed to the output, from the input.  needToSwapLHSAndRhs is true if it's the case that theatts stored in the
   // hash table need to come AFTER the atts being streamed through the join
-  JoinProbeExecution(void *hashTable,
+  JoinProbeExecution(PDBAbstractPageSetPtr &hashTable,
                      std::vector<int> &positions,
                      TupleSpec &inputSchema,
                      TupleSpec &attsToOperateOn,
                      TupleSpec &attsToIncludeInOutput,
-                     bool needToSwapLHSAndRhs) :
-      myMachine(inputSchema, attsToIncludeInOutput) {
+                     uint64_t numProcessingThreads,
+                     uint64_t workerID,
+                     bool needToSwapLHSAndRhs) : myMachine(inputSchema, attsToIncludeInOutput), numProcessingThreads(numProcessingThreads), workerID(workerID) {
 
-    // extract the hash table we've been given
-    auto *input = (Record<JoinMap<RHSType>> *) hashTable;
-    std::cout << "In join probe\n";
-    inputTable = input->getRootObject();
+
+    // grab each page and store the hash table
+    PDBPageHandle page;
+    while((page = hashTable->getNextPage(workerID)) != nullptr) {
+
+      // store the page
+      pages.emplace_back(page);
+
+      // repin the page
+      page->repin();
+
+      // extract the hash table we've been given
+      auto *input = (Record<JoinMap<RHSType>> *) page->getBytes();
+      auto inputTable = input->getRootObject();
+
+      // store the hash table
+      inputTables.emplace_back(inputTable);
+    }
 
     // set up the output tuple
     output = std::make_shared<TupleSet>();
@@ -87,7 +111,6 @@ class JoinProbeExecution : public ComputeExecutor {
   TupleSetPtr process(TupleSetPtr input) override {
 
     std::vector<size_t> inputHash = input->getColumn<size_t>(whichAtt);
-    JoinMap<RHSType> &inputTableRef = *inputTable;
 
     // redo the vector of hash counts if it's not the correct size
     if (counts.size() != inputHash.size()) {
@@ -97,6 +120,9 @@ class JoinProbeExecution : public ComputeExecutor {
     // now, run through and attempt to hash
     int overallCounter = 0;
     for (int i = 0; i < inputHash.size(); i++) {
+
+      // grab the approprate hash table
+      JoinMap<RHSType> &inputTableRef = *inputTables[inputHash[i] % numProcessingThreads];
 
       // deal with all of the matches
       auto a = inputTableRef.lookup(inputHash[i]);

@@ -59,8 +59,13 @@ class Computation : public Object {
     return nullptr;
   }
 
-  virtual ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &whichAttsToOpOn, TupleSpec &projection, pdb::LogicalPlanPtr &plan) {
-    return getComputeSink(consumeMe, projection, 0);
+  virtual ComputeSinkPtr getComputeSink(TupleSpec &consumeMe,
+                                        TupleSpec &whichAttsToOpOn,
+                                        TupleSpec &projection,
+                                        uint64_t numberOfPartitions,
+                                        std::map<ComputeInfoType, ComputeInfoPtr> &params,
+                                        pdb::LogicalPlanPtr &plan) {
+    return getComputeSink(consumeMe, projection, numberOfPartitions);
   }
 
   // returns the type of this Computation
