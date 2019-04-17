@@ -10,6 +10,7 @@
 #include <ComputeSink.h>
 #include <JoinProbeExecutor.h>
 #include <JoinSink.h>
+#include <LHSShuffleJoinSource.h>
 
 namespace pdb {
 
@@ -30,6 +31,12 @@ class JoinTupleSingleton {
                                  TupleSpec &projection,
                                  std::vector<int> whereEveryoneGoes,
                                  uint64_t numPartitions) = 0;
+
+  virtual ComputeSourcePtr getLHSShuffleJoinSource(TupleSpec &inputSchema,
+                                                   TupleSpec &hashSchema,
+                                                   TupleSpec &recordSchema,
+                                                   const PDBAbstractPageSetPtr &leftInputPageSet,
+                                                   std::vector<int> &recordOrder) = 0;
 };
 
 // this is an actual class
@@ -58,6 +65,15 @@ class JoinSingleton : public JoinTupleSingleton {
                          std::vector<int> whereEveryoneGoes,
                          uint64_t numPartitions) override {
     return std::make_shared<JoinSink<HoldMe>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+  }
+
+  ComputeSourcePtr getLHSShuffleJoinSource(TupleSpec &inputSchema,
+                                           TupleSpec &hashSchema,
+                                           TupleSpec &recordSchema,
+                                           const PDBAbstractPageSetPtr &leftInputPageSet,
+                                           std::vector<int> &recordOrder) override {
+
+    return std::make_shared<LHSShuffleJoinSource<HoldMe>>(inputSchema, hashSchema, recordSchema, recordOrder, leftInputPageSet);
   }
 };
 

@@ -81,6 +81,7 @@ class JoinMapIterator {
 
 public:
     bool operator!=(const JoinMapIterator& me) const;
+    bool operator==(const JoinMapIterator& me) const;
     JoinRecordList<ValueType>* operator*();
     void operator++();
     JoinMapIterator(Handle<JoinPairArray<ValueType>> iterateMeIn, bool);

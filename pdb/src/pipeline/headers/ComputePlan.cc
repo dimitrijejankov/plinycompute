@@ -29,6 +29,7 @@
 #include "NullProcessor.h"
 #include "Lexer.h"
 #include "Parser.h"
+#include "StringIntPair.h"
 
 extern int yydebug;
 
@@ -366,8 +367,7 @@ inline PipelinePtr ComputePlan::buildAggregationPipeline(const std::string &targ
   return std::make_shared<pdb::AggregationPipeline>(workerID, outputPageSet, inputPageSet, combiner);
 }
 
-inline PipelinePtr ComputePlan::buildShuffleJoinPipeline(const std::string &leftSourceTupleSetName,
-                                                         const std::string &rightSourceTupleSetName,
+inline PipelinePtr ComputePlan::buildShuffleJoinPipeline(const std::string &joinTupleSetName,
                                                          const std::string &targetTupleSetName,
                                                          const PDBAbstractPageSetPtr &leftInputPageSet,
                                                          const PDBAbstractPageSetPtr &rightInputPageSet,
@@ -377,7 +377,52 @@ inline PipelinePtr ComputePlan::buildShuffleJoinPipeline(const std::string &left
                                                          size_t numProcessingThreads,
                                                          uint64_t chunkSize,
                                                          uint64_t workerID) {
-  return pdb::PipelinePtr();
+  // build the plan if it is not already done
+  if (myPlan == nullptr)
+    getPlan();
+
+  // get all of the computations
+  AtomicComputationList &allComps = myPlan->getComputations();
+
+  // find the target atomic computation
+  auto joinAtomicComp = allComps.getProducingAtomicComputation(joinTupleSetName);
+  auto *joinComputation = (ApplyJoin *) joinAtomicComp.get();
+
+  std::cout << joinComputation->getOutput() << " " << joinComputation->getInput() << " " << joinComputation->getProjection() << std::endl;
+  std::cout << joinComputation->getOutput() << " " << joinComputation->getRightInput() << " " << joinComputation->getRightProjection() << std::endl;
+
+  auto leftAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getInput().getSetName());
+  auto rightAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getRightInput().getSetName());
+
+  std::cout << leftAtomicComp->getOutput() << " " << rightAtomicComp->getOutput() << std::endl;
+
+  ComputeSourcePtr computeSource = ((JoinCompBase*) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getLHSShuffleJoinSource(rightAtomicComp->getOutput(),
+                                                                                                                                                       joinComputation->getRightInput(),
+                                                                                                                                                       joinComputation->getRightProjection(),
+                                                                                                                                                       rightInputPageSet,
+                                                                                                                                                       myPlan);
+
+  int x = 0;
+  while(auto tuple = computeSource->getNextTupleSet()) {
+
+    if(tuple == nullptr) {
+      return nullptr;
+    }
+
+    if(x % 10 == 0) {
+
+      auto records = tuple->getColumn<Handle<StringIntPair>>(0);
+      auto hashes = tuple->getColumn<size_t>(1);
+
+      for(int i = 0; i < records.size(); ++i) {
+        std::cout << *records[i]->myString << " " << records[i]->myInt << " " << hashes[i] << std::endl;
+      }
+      std::cout << "whatever" << std::endl;
+    }
+  }
+
+
+  return nullptr;
 }
 
 inline ComputePlan::ComputePlan(String &TCAPComputation, Vector<Handle<Computation>> &allComputations) : TCAPComputation(TCAPComputation),

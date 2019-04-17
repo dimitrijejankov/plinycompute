@@ -89,8 +89,7 @@ class ComputePlan {
                                        const PDBAnonymousPageSetPtr &outputPageSet,
                                        uint64_t workerID);
 
-  PipelinePtr buildShuffleJoinPipeline(const std::string &leftSourceTupleSetName,
-                                       const std::string &rightSourceTupleSetName,
+  PipelinePtr buildShuffleJoinPipeline(const std::string &joinTupleSetName,
                                        const std::string &targetTupleSetName,
                                        const PDBAbstractPageSetPtr &leftInputPageSet,
                                        const PDBAbstractPageSetPtr &rightInputPageSet,

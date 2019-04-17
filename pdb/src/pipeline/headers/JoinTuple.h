@@ -20,6 +20,7 @@
 #define JOIN_TUPLE_H
 
 #include "JoinMap.h"
+#include "StringIntPair.h"
 
 namespace pdb {
 
@@ -27,6 +28,13 @@ template<typename T>
 void copyFrom(T &out, Handle<T> &in) {
   out = *in;
 }
+
+//inline void copyFrom(StringIntPair &out, Handle<StringIntPair> &in) {
+//  //std::cout << in->myInt << " " << *in->myString << std::endl;
+//  out = *in;
+//  //std::cout << out.myInt << " " << *out.myString << std::endl;
+//  //std::cout << " " << std::endl;
+//}
 
 template<typename T>
 void copyFrom(Handle<T> &out, Handle<T> &in) {
@@ -39,6 +47,16 @@ void copyTo(T &out, Handle<T> &in) {
   location -= REF_COUNT_PREAMBLE_SIZE;
   in = (RefCountedObject<T> *) location;
 }
+
+//inline void copyTo(StringIntPair &out, Handle<StringIntPair> &in) {
+//  char *location = (char *) &out;
+//  location -= REF_COUNT_PREAMBLE_SIZE;
+//  in = (RefCountedObject<StringIntPair> *) location;
+//
+//  std::cout << *in->myString << " " << in->myInt << std::endl;
+//  std::cout << " ";
+//}
+//
 
 template<typename T>
 void copyTo(Handle<T> &out, Handle<T> &in) {

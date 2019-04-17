@@ -29,20 +29,20 @@ namespace pdb {
 
 class StringIntPair : public Object {
 
-public:
+ public:
 
-        Handle <String> myString;
-        int myInt;
+  Handle<String> myString;
+  int myInt;
 
-	ENABLE_DEEP_COPY
+  ENABLE_DEEP_COPY
 
-        ~StringIntPair () {}
-        StringIntPair () {}
+  ~StringIntPair() {}
+  StringIntPair() {}
 
-	StringIntPair (std :: string fromMe, int meTo) {
-		myString = makeObject <String> (fromMe);
-		myInt = meTo;
-	}
+  StringIntPair(std::string fromMe, int meTo) {
+    myString = makeObject<String>(fromMe);
+    myInt = meTo;
+  }
 
 };
 

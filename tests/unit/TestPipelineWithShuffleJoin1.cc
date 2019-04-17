@@ -226,6 +226,43 @@ TEST(PipelineTest, TestShuffleJoin) {
 
   EXPECT_CALL(*partitionedBPageSet, getNewPage).Times(testing::AtLeast(1));
 
+  // the page set that is going to contain the partitioned preaggregation results
+  ON_CALL(*partitionedBPageSet, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
+      [&](size_t workerID) {
+
+        // wait to get the page
+        PDBPageHandle page;
+        setBPageQueues[workerID]->wait_dequeue(page);
+
+        if(page == nullptr) {
+          return (PDBPageHandle) nullptr;
+        }
+
+        // repin the page
+        page->repin();
+
+        // return it
+        return page;
+      }));
+
+  // it should call send object exactly six times
+  EXPECT_CALL(*partitionedBPageSet, getNextPage).Times(testing::AtLeast(0));
+
+  // make the function
+  std::vector<PDBPageQueuePtr> setAndBPageQueues;
+  setAndBPageQueues.reserve(numNodes);
+  for(int i = 0; i < numNodes; ++i) { setAndBPageQueues.emplace_back(std::make_shared<PDBPageQueue>()); }
+
+  // the page set that is going to contain the partitioned preaggregation results
+  std::shared_ptr<MockPageSetWriter> AndBJoinedPageSet = std::make_shared<MockPageSetWriter>();
+
+  ON_CALL(*AndBJoinedPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
+    return myMgr->getPage();
+  }));
+
+  EXPECT_CALL(*AndBJoinedPageSet, getNewPage).Times(testing::AtLeast(1));
+
+
   /// 3. Create the computations and the TCAP
 
   // this is the object allocation block where all of this stuff will reside
@@ -301,29 +338,29 @@ TEST(PipelineTest, TestShuffleJoin) {
   // set the parameters
   std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<ShuffleJoinProcessor>(numNodes, threadsPerNode, setAPageQueues, myMgr) } };
 
-  PipelinePtr myPipeline = myPlan.buildPipeline(std::string("A"), /* this is the TupleSet the pipeline starts with */
-                                                std::string("AHashed"),     /* this is the TupleSet the pipeline ends with */
-                                                setAReader,
-                                                partitionedAPageSet,
-                                                params,
-                                                numNodes,
-                                                threadsPerNode,
-                                                20,
-                                                curThread);
-
-  // and now, simply run the pipeline and then destroy it!!!
-  std :: cout << "\nRUNNING PIPELINE\n";
-  myPipeline->run ();
-  std :: cout << "\nDONE RUNNING PIPELINE\n";
-  myPipeline = nullptr;
+//  PipelinePtr myPipeline = myPlan.buildPipeline(std::string("A"), /* this is the TupleSet the pipeline starts with */
+//                                                std::string("AHashed"),     /* this is the TupleSet the pipeline ends with */
+//                                                setAReader,
+//                                                partitionedAPageSet,
+//                                                params,
+//                                                numNodes,
+//                                                threadsPerNode,
+//                                                20,
+//                                                curThread);
+//
+//  // and now, simply run the pipeline and then destroy it!!!
+//  std :: cout << "\nRUNNING PIPELINE\n";
+//  myPipeline->run ();
+//  std :: cout << "\nDONE RUNNING PIPELINE\n";
+//  myPipeline = nullptr;
 
   // put nulls in the queues
   for(int i = 0; i < numNodes; ++i) { setAPageQueues[i]->enqueue(nullptr); }
 
   /// 5. Process the right side of the join
 
-  params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<ShuffleJoinProcessor>(numNodes, threadsPerNode, setAPageQueues, myMgr) } };
-  myPipeline = myPlan.buildPipeline(std::string("B"), /* this is the TupleSet the pipeline starts with */
+  params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<ShuffleJoinProcessor>(numNodes, threadsPerNode, setBPageQueues, myMgr) } };
+  PipelinePtr myPipeline = myPlan.buildPipeline(std::string("B"), /* this is the TupleSet the pipeline starts with */
                                     std::string("BHashedOnA"),     /* this is the TupleSet the pipeline ends with */
                                     setBReader,
                                     partitionedBPageSet,
@@ -339,7 +376,22 @@ TEST(PipelineTest, TestShuffleJoin) {
   std :: cout << "\nDONE RUNNING PIPELINE\n";
   myPipeline = nullptr;
 
+  // put nulls in the queues
+  for(int i = 0; i < numNodes; ++i) { setBPageQueues[i]->enqueue(nullptr); }
+
   /// 6. Build the join pipeline
+
+  params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<ShuffleJoinProcessor>(numNodes, threadsPerNode, setAndBPageQueues, myMgr) } };
+  myPipeline = myPlan.buildShuffleJoinPipeline(std::string("AandBJoined"),
+                                               std::string("BHashedOnC"),
+                                               partitionedAPageSet,
+                                               partitionedBPageSet,
+                                               AndBJoinedPageSet,
+                                               params,
+                                               numNodes,
+                                               threadsPerNode,
+                                               20,
+                                               curThread);
 
 //  // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
 //  // a pipeline into the first join

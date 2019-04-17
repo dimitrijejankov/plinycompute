@@ -40,6 +40,12 @@ class JoinCompBase : public Computation {
                                          TupleSpec &pipelinedInputSchema,
                                          TupleSpec &pipelinedAttsToOperateOn,
                                          TupleSpec &pipelinedAttsToIncludeInOutput) = 0;
+
+  virtual ComputeSourcePtr getLHSShuffleJoinSource(TupleSpec &inputSchema,
+                                                   TupleSpec &hashSchema,
+                                                   TupleSpec &recordSchema,
+                                                   const PDBAbstractPageSetPtr &leftInputPageSet,
+                                                   pdb::LogicalPlanPtr &plan) = 0;
 };
 
 }

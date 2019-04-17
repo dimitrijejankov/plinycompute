@@ -510,6 +510,14 @@ bool JoinMapIterator<ValueType>::operator!=(const JoinMapIterator<ValueType>& me
         return true;
     return false;
 }
+
+template <class ValueType>
+bool JoinMapIterator<ValueType>::operator==(const JoinMapIterator<ValueType>& me) const {
+    if (!done || !me.done)
+        return false;
+    return true;
+}
+
 }
 
 #endif
