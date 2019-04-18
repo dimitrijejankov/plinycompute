@@ -16,7 +16,6 @@ using ShuffleJoinSidePtr = std::shared_ptr<ShuffleJoinSide>;
  * Specifies which side of the join we would do
  */
 enum ShuffleJoinSideEnum {
-
   BUILD_SIDE,
   PROBE_SIDE
 };

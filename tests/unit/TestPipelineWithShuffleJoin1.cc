@@ -37,7 +37,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <PDBBufferManagerImpl.h>
-#include <processors/ShuffleJoinProcessor.h>
+#include <processors/ShuffleBroadcastProcessor.h>
 
 #include "objects/SillyJoin.h"
 #include "objects/SillyReadOfA.h"
@@ -170,6 +170,7 @@ TEST(PipelineTest, TestShuffleJoin) {
   // make the function return pages with the Vector<JoinMap<JoinRecord>>
   std::vector<PDBPageQueuePtr> pageQueues;
   pageQueues.reserve(numNodes);
+
   for(int i = 0; i < numNodes; ++i) { pageQueues.emplace_back(std::make_shared<PDBPageQueue>()); }
 
   // the page set that is going to contain the partitioned preaggregation results
@@ -199,7 +200,6 @@ TEST(PipelineTest, TestShuffleJoin) {
         // return it
         return page;
       }));
-
   // it should call send object exactly six times
   EXPECT_CALL(*partitionedAPageSet, getNextPage).Times(testing::AtLeast(1));
 
@@ -312,12 +312,12 @@ TEST(PipelineTest, TestShuffleJoin) {
   ComputePlan myPlan(myTCAPString, myComputations);
 
   /// 4. Run the pipeline to process the A<int> set. Basically this splits set A into a numNodes * threadsPerNode JoinMaps.
-  /// Each page that gets put into the pageQueue will have threadsPerNode number of JoinMaps. Each join map has records
+  /// Each page being put into the pageQueue will have threadsPerNode number of JoinMaps. Each join map has records
   /// with the same hash % (numNodes * threadsPerNode). The join map records will be of type JoinTuple<int, char[0]>
 
   // set the parameters
-  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<ShuffleJoinProcessor>(numNodes, threadsPerNode, pageQueues, myMgr) },
-                                                       { ComputeInfoType::JOIN_SIDE,  std::make_shared<pdb::ShuffleJoinSide>(ShuffleJoinSideEnum::PROBE_SIDE) } };
+  //std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<ShuffleBroadcastProcessor>(numNodes, threadsPerNode, pageQueues, myMgr) } };
+  std::map<ComputeInfoType, ComputeInfoPtr> params = {};
 
   PipelinePtr myPipeline = myPlan.buildPipeline(std::string("A"), /* this is the TupleSet the pipeline starts with */
                                                 std::string("AHashed"),     /* this is the TupleSet the pipeline ends with */
@@ -374,7 +374,7 @@ TEST(PipelineTest, TestShuffleJoin) {
   unordered_map<string, JoinArgPtr> hashTables = { {"", std::make_shared<JoinArg>(shuffledAPageSet) } };
 
   // set the parameters
-  params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<ShuffleJoinProcessor>(numNodes, threadsPerNode, pageQueues, myMgr) },
+  params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<ShuffleBroadcastProcessor>(numNodes, threadsPerNode, pageQueues, myMgr) },
              { ComputeInfoType::JOIN_SIDE,       std::make_shared<pdb::ShuffleJoinSide>(ShuffleJoinSideEnum::PROBE_SIDE) },
              { ComputeInfoType::JOIN_ARGS,       std::make_shared<JoinArguments>(hashTables) } };
   myPipeline = myPlan.buildPipeline(std::string("AandBJoined"), /* this is the TupleSet the pipeline starts with */

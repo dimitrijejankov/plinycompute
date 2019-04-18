@@ -390,6 +390,12 @@ inline PipelinePtr ComputePlan::buildMergeJoinShufflePipeline(const string &targ
   // and get the projection for this guy
   std::vector<AtomicComputationPtr> &consumers = allComps.getConsumingAtomicComputations(targetSpec.getSetName());
 
+  for (auto i =0; i<consumers.size();i++){
+    std::cout<<"consumers output: "<< consumers[i]->getOutput()<<std::endl;
+    std::cout << "consumers input: " << consumers[i]->getInput() << std::endl;
+    std::cout << "consumers output: " << consumers[i]->getProjection() << std::endl;
+  }
+
   TupleSpec targetProjection;
   TupleSpec targetAttsToOpOn;
   for (auto &a : consumers) {

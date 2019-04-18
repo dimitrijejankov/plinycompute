@@ -1,11 +1,11 @@
 #include <utility>
 
 //
-// Created by dimitrije on 3/29/19.
+// Created by yuxin on 3/29/19.
 //
 
-#ifndef PDB_SHUFFLE_JOIN_PAGEPROCESSOR_H
-#define PDB_SHUFFLE_JOIN_PAGEPROCESSOR_H
+#ifndef PDB_BROADCAST_JOIN_PAGEPROCESSOR_H
+#define PDB_BROADCAST_JOIN_PAGEPROCESSOR_H
 
 #include <PageProcessor.h>
 #include <PDBPageHandle.h>
@@ -18,14 +18,14 @@ namespace pdb {
  * This is the processor for the pages that contain the result of the preaggregation
  * 
  */
-class ShuffleJoinProcessor : public PageProcessor  {
+class ShuffleBroadcastProcessor : public PageProcessor  {
 public:
 
-  ShuffleJoinProcessor() = default;
+  ShuffleBroadcastProcessor() = default;
 
-  ~ShuffleJoinProcessor() override = default;
+  ~ShuffleBroadcastProcessor() override = default;
 
-  ShuffleJoinProcessor(size_t numNodes,
+  ShuffleBroadcastProcessor(size_t numNodes,
                        size_t numProcessingThreads,
                        vector<PDBPageQueuePtr> pageQueues,
                        PDBBufferManagerInterfacePtr bufferManager) : numNodes(numNodes),
@@ -34,46 +34,18 @@ public:
                                                                      bufferManager(std::move(bufferManager)) {}
 
   bool process(const MemoryHolderPtr &memory) override {
-
     // if we do not have a sink just finish
     if(memory->outputSink == nullptr) {
       return true;
     }
-
-    // cast the thing to the maps of maps
+    // put all the objects into Vector<JoinMap>
     pdb::Handle<pdb::Vector<pdb::Handle<pdb::JoinMap<pdb::Object>>>> allMaps = unsafeCast<pdb::Vector<pdb::Handle<pdb::JoinMap<pdb::Object>>>>(memory->outputSink);
-
+    auto record = getRecord(allMaps);
+    memory->pageHandle->freezeSize(record->numBytes());
+    memory->pageHandle->unpin();
     for(auto node = 0; node < numNodes; ++node) {
-
-      // get the page
-      auto page = bufferManager->getPage();
-
-      // set it as the current allocation block
-      const pdb::UseTemporaryAllocationBlock tempBlock{page->getBytes(), page->getSize()};
-
-      // make an object to hold
-      pdb::Handle<pdb::Vector<pdb::Handle<pdb::JoinMap<pdb::Object>>>> maps = pdb::makeObject<pdb::Vector<pdb::Handle<pdb::JoinMap<pdb::Object>>>>();
-
-      // copy all the maps  that we need to
-      for(int t = 0; t < numProcessingThreads; ++t) {
-
-        // copy the map
-        maps->push_back((*allMaps)[node * numProcessingThreads + t]);
-      }
-
-      // get the record (this is important since it makes it the root object of the block)
-      auto record = getRecord(maps);
-
-      // freeze the page
-      page->freezeSize(record->numBytes());
-
-      // unpin the page
-      page->unpin();
-
-      // add the page to the page queue
-      pageQueues[node]->enqueue(page);
+      pageQueues[node]->enqueue(memory->pageHandle);
     }
-
     return false;
   }
 
