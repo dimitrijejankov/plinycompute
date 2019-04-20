@@ -24,6 +24,7 @@
 #include "Object.h"
 #include "Handle.h"
 #include "JoinPairArray.h"
+#include "JoinTuple.h"
 
 template <typename StoredType>
 class JoinRecordLst;
@@ -101,6 +102,9 @@ public:
 
 template <class JoinMapType>
 Handle<JoinMap<JoinMapType>> deepCopyJoinMap(Handle<JoinMap<JoinMapType>>& copyMe) {
+
+    // try to prevent the misuse of the method
+    static_assert(std::is_base_of<JoinTupleBase, JoinMapType>::value, "JoinMapType must inherit from JoinTupleBase in order for to use the deep copy.");
 
     // create an empty join map
     JoinMapRecordClass<JoinMapType> temp;

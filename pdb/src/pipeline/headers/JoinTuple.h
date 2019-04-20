@@ -19,7 +19,6 @@
 #ifndef JOIN_TUPLE_H
 #define JOIN_TUPLE_H
 
-#include "JoinMap.h"
 #include "StringIntPair.h"
 #include "TupleSet.h"
 
