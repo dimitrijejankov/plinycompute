@@ -110,6 +110,55 @@ inline bool recurse(LogicalPlanPtr myPlan,
   return false;
 }
 
+inline PageProcessorPtr ComputePlan::getProcessorForJoin(const std::string &tupleSetName,
+                                                  size_t numNodes,
+                                                  size_t numProcessingThreads,
+                                                  vector<PDBPageQueuePtr> pageQueues,
+                                                  PDBBufferManagerInterfacePtr bufferManager) {
+  // build the plan if it is not already done
+  if (myPlan == nullptr)
+    getPlan();
+
+  // get all of the computations
+  AtomicComputationList &allComps = myPlan->getComputations();
+
+  //
+  auto joinComputation = allComps.getProducingAtomicComputation(tupleSetName);
+  TupleSpec &targetSpec = joinComputation->getOutput();
+
+  // find the target atomic computation
+  std::vector<AtomicComputationPtr> &consumers = allComps.getConsumingAtomicComputations(targetSpec.getSetName());
+
+  //
+  TupleSpec targetProjection;
+  for (auto &a : consumers) {
+
+    //
+    if (targetSpec == a->getInput()) {
+
+      // get the projection
+      targetProjection = a->getProjection();
+      break;
+    }
+
+    // get the join and make sure it matches
+    auto *myGuy = (ApplyJoin *) a.get();
+    if (!(myGuy->getRightInput() == targetSpec)) {
+      throw runtime_error("");
+    }
+
+    targetProjection = myGuy->getRightProjection();
+  }
+
+  // return the processor
+  return  ((JoinCompBase*) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getShuffleJoinProcessor(numNodes,
+                                                                                                                              numProcessingThreads,
+                                                                                                                              pageQueues,
+                                                                                                                              bufferManager,
+                                                                                                                              targetProjection,
+                                                                                                                              myPlan);
+}
+
 inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetName,
                                               const std::string &targetTupleSetName,
                                               const PDBAbstractPageSetPtr &inputPageSet,
@@ -401,7 +450,6 @@ inline PipelinePtr ComputePlan::buildShuffleJoinPipeline(const std::string &join
                                                                                                                                                        joinComputation->getRightProjection(),
                                                                                                                                                        rightInputPageSet,
                                                                                                                                                        myPlan);
-
   int x = 0;
   while(auto tuple = computeSource->getNextTupleSet()) {
 
@@ -415,7 +463,7 @@ inline PipelinePtr ComputePlan::buildShuffleJoinPipeline(const std::string &join
       auto hashes = tuple->getColumn<size_t>(1);
 
       for(int i = 0; i < records.size(); ++i) {
-        std::cout << *records[i]->myString << " " << records[i]->myInt << " " << hashes[i] << std::endl;
+        std::cout << records[i]->myInt << " " << hashes[i] << std::endl;
       }
       std::cout << "whatever" << std::endl;
     }
@@ -427,6 +475,7 @@ inline PipelinePtr ComputePlan::buildShuffleJoinPipeline(const std::string &join
 
 inline ComputePlan::ComputePlan(String &TCAPComputation, Vector<Handle<Computation>> &allComputations) : TCAPComputation(TCAPComputation),
                                                                                                          allComputations(allComputations) {}
+
 
 }
 

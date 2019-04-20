@@ -11,6 +11,7 @@
 #include <JoinProbeExecutor.h>
 #include <JoinSink.h>
 #include <LHSShuffleJoinSource.h>
+#include <processors/ShuffleJoinProcessor.h>
 
 namespace pdb {
 
@@ -37,6 +38,11 @@ class JoinTupleSingleton {
                                                    TupleSpec &recordSchema,
                                                    const PDBAbstractPageSetPtr &leftInputPageSet,
                                                    std::vector<int> &recordOrder) = 0;
+
+  virtual PageProcessorPtr getPageProcessor(size_t numNodes,
+                                            size_t numProcessingThreads,
+                                            vector<PDBPageQueuePtr> &pageQueues,
+                                            PDBBufferManagerInterfacePtr &bufferManager) = 0;
 };
 
 // this is an actual class
@@ -74,6 +80,13 @@ class JoinSingleton : public JoinTupleSingleton {
                                            std::vector<int> &recordOrder) override {
 
     return std::make_shared<LHSShuffleJoinSource<HoldMe>>(inputSchema, hashSchema, recordSchema, recordOrder, leftInputPageSet);
+  }
+
+  PageProcessorPtr getPageProcessor(size_t numNodes,
+                                    size_t numProcessingThreads,
+                                    vector<PDBPageQueuePtr> &pageQueues,
+                                    PDBBufferManagerInterfacePtr &bufferManager) override {
+    return std::make_shared<ShuffleJoinProcessor<HoldMe>>(numNodes, numProcessingThreads, pageQueues, bufferManager);
   }
 };
 

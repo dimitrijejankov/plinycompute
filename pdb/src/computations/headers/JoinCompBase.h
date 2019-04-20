@@ -46,6 +46,13 @@ class JoinCompBase : public Computation {
                                                    TupleSpec &recordSchema,
                                                    const PDBAbstractPageSetPtr &leftInputPageSet,
                                                    pdb::LogicalPlanPtr &plan) = 0;
+
+  virtual PageProcessorPtr getShuffleJoinProcessor(size_t numNodes,
+                                                   size_t numProcessingThreads,
+                                                   vector<PDBPageQueuePtr> &pageQueues,
+                                                   PDBBufferManagerInterfacePtr &bufferManager,
+                                                   TupleSpec &recordSchema,
+                                                   pdb::LogicalPlanPtr &plan) = 0;
 };
 
 }

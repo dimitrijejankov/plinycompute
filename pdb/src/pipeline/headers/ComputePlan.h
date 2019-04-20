@@ -65,6 +65,21 @@ class ComputePlan {
   // sending the smart pointer.
   void nullifyPlanPointer();
 
+  /**
+   * Returns a processor for a join
+   * @param joinTupleSetName
+   * @param numNodes
+   * @param numProcessingThreads
+   * @param pageQueues
+   * @param bufferManager
+   * @return
+   */
+  PageProcessorPtr getProcessorForJoin(const std::string &joinTupleSetName,
+                                       size_t numNodes,
+                                       size_t numProcessingThreads,
+                                       vector<PDBPageQueuePtr> pageQueues,
+                                       PDBBufferManagerInterfacePtr bufferManager);
+
   // this builds a pipeline between the Computation that produces sourceTupleSetName and the Computation
   // targetComputationName.  Since targetComputationName can have more than one input (in the case of a join,
   // for example) the pipeline to targetComputationName is built on the link producig targetTupleSetName.
@@ -99,6 +114,8 @@ class ComputePlan {
                                        size_t numProcessingThreads,
                                        uint64_t chunkSize,
                                        uint64_t workerID);
+
+
 
 };
 

@@ -18,6 +18,7 @@ namespace pdb {
  * This is the processor for the pages that contain the result of the preaggregation
  * 
  */
+template<typename RecordType>
 class ShuffleJoinProcessor : public PageProcessor  {
 public:
 
@@ -41,7 +42,7 @@ public:
     }
 
     // cast the thing to the maps of maps
-    pdb::Handle<pdb::Vector<pdb::Handle<pdb::JoinMap<pdb::Object>>>> allMaps = unsafeCast<pdb::Vector<pdb::Handle<pdb::JoinMap<pdb::Object>>>>(memory->outputSink);
+    pdb::Handle<pdb::Vector<pdb::Handle<pdb::JoinMap<RecordType>>>> allMaps = unsafeCast<pdb::Vector<pdb::Handle<pdb::JoinMap<RecordType>>>>(memory->outputSink);
 
     for(auto node = 0; node < numNodes; ++node) {
 
@@ -52,13 +53,16 @@ public:
       const pdb::UseTemporaryAllocationBlock tempBlock{page->getBytes(), page->getSize()};
 
       // make an object to hold
-      pdb::Handle<pdb::Vector<pdb::Handle<pdb::JoinMap<pdb::Object>>>> maps = pdb::makeObject<pdb::Vector<pdb::Handle<pdb::JoinMap<pdb::Object>>>>();
+      pdb::Handle<pdb::Vector<pdb::Handle<pdb::JoinMap<RecordType>>>> maps = pdb::makeObject<pdb::Vector<pdb::Handle<pdb::JoinMap<RecordType>>>>();
 
       // copy all the maps  that we need to
       for(int t = 0; t < numProcessingThreads; ++t) {
 
+        // deep copy the map
+        pdb::Handle<pdb::JoinMap<RecordType>> copy = pdb::deepCopyJoinMap((*allMaps)[node * numProcessingThreads + t]);
+
         // copy the map
-        maps->push_back((*allMaps)[node * numProcessingThreads + t]);
+        maps->push_back(copy);
       }
 
       // get the record (this is important since it makes it the root object of the block)

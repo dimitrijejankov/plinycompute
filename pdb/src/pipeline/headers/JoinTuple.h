@@ -48,6 +48,15 @@ void copyTo(T &out, Handle<T> &in) {
   in = (RefCountedObject<T> *) location;
 }
 
+inline void copyTo(pdb::StringIntPair &out, Handle<pdb::StringIntPair> &in) {
+  char *location = (char *) &out;
+  location -= REF_COUNT_PREAMBLE_SIZE;
+  in = (RefCountedObject<pdb::StringIntPair> *) location;
+
+  std::cout << std::endl;
+  std::cout << std::endl;
+}
+
 //inline void copyTo(StringIntPair &out, Handle<StringIntPair> &in) {
 //  char *location = (char *) &out;
 //  location -= REF_COUNT_PREAMBLE_SIZE;

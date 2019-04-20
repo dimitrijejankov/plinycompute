@@ -44,6 +44,13 @@ class StringIntPair : public Object {
     myInt = meTo;
   }
 
+  StringIntPair& operator = (const StringIntPair &t)
+  {
+    this->myString = t.myString;
+    this->myInt = t.myInt;
+
+    return *this;
+  }
 };
 
 }

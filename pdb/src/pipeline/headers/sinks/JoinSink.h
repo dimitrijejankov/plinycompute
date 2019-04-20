@@ -46,7 +46,7 @@ class JoinSink : public ComputeSink {
 
   ~JoinSink() override {
     if (columns != nullptr)
-      delete columns;
+      delete[] columns;
   }
 
   Handle<Object> createNewOutputContainer() override {

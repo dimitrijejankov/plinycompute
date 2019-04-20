@@ -134,6 +134,41 @@ class JoinComp : public JoinCompBase {
     return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
   }
 
+  PageProcessorPtr getShuffleJoinProcessor(size_t numNodes,
+                                           size_t numProcessingThreads,
+                                           vector<PDBPageQueuePtr> &pageQueues,
+                                           PDBBufferManagerInterfacePtr &bufferManager,
+                                           TupleSpec &recordSchema,
+                                           pdb::LogicalPlanPtr &plan) override {
+
+    // get the producing atomic computation
+    AtomicComputationPtr producer = plan->getComputations().getProducingAtomicComputation(recordSchema.getSetName());
+
+    // figure out the types
+    std::vector<std::string> typeList;
+    for (auto &a : recordSchema.getAtts()) {
+
+      // find the identity of the producing computation
+      std::cout << "finding the source of " << recordSchema.getSetName() << "." << a << "\n";
+      std::pair<std::string, std::string> res = producer->findSource(a, plan->getComputations());
+      std::cout << "got " << res.first << " " << res.second << "\n";
+
+      // and find its type... in the first case, there is not a particular lambda that we need to ask for
+      if (res.second.empty()) {
+        typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getComputation().getOutputType() + ">");
+      } else {
+        typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getLambda(res.second)->getOutputType() + ">");
+      }
+    }
+
+    //
+    std::vector<int> whereEveryoneGoes;
+    JoinTuplePtr correctJoinTuple = findCorrectJoinTuple<In1, In2, Rest...>(typeList, whereEveryoneGoes);
+
+    // return the page processor
+    return correctJoinTuple->getPageProcessor(numNodes, numProcessingThreads, pageQueues, bufferManager);
+  }
+
   ComputeSourcePtr getLHSShuffleJoinSource(TupleSpec &inputSchema,
                                            TupleSpec &hashSchema,
                                            TupleSpec &recordSchema,
