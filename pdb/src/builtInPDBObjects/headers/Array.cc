@@ -171,8 +171,7 @@ template <class TypeContained>
 Handle<Array<TypeContained>> Array<TypeContained>::resize(uint32_t howMany) {
 
     // allocate the new Array
-    Handle<Array<TypeContained>> tempArray =
-        makeObjectWithExtraStorage<Array<TypeContained>>(sizeof(TypeContained) * howMany, howMany);
+    Handle<Array<TypeContained>> tempArray = makeObjectWithExtraStorage<Array<TypeContained>>(sizeof(TypeContained) * howMany, howMany);
 
     // copy everything over
     TypeContained* newLoc = (TypeContained*)(tempArray->data);

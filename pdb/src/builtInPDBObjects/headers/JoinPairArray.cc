@@ -271,8 +271,7 @@ ValueType& JoinPairArray<ValueType>::push(const size_t& me) {
 
             // and add our new guy
             overflows[JM_GET_NEXT(data, slot)].push_back();
-            return overflows[JM_GET_NEXT(data, slot)]
-                            [overflows[JM_GET_NEXT(data, slot)].size() - 1];
+            return overflows[JM_GET_NEXT(data, slot)][overflows[JM_GET_NEXT(data, slot)].size() - 1];
         }
 
         // if we made it here, then it means that we found a non-empty slot, but no
@@ -412,8 +411,8 @@ void JoinPairArray<ValueType>::deleteObject(void* deleteMe) {
 
 template <class ValueType>
 size_t JoinPairArray<ValueType>::getSize(void* forMe) {
-    JoinPairArray<ValueType>& target = *((JoinPairArray<ValueType>*)forMe);
-    return sizeof(JoinPairArray<Nothing>) + target.objSize * target.numSlots;
+  JoinPairArray<ValueType>& target = *((JoinPairArray<ValueType>*)forMe);
+  return sizeof(JoinPairArray<Nothing>) + target.objSize * target.numSlots;
 }
 
 template <class ValueType>
@@ -498,24 +497,18 @@ void JoinMapIterator<ValueType>::operator++() {
 }
 
 template <class ValueType>
-JoinRecordList<ValueType>* JoinMapIterator<ValueType>::operator*() {
-
-    JoinRecordList<ValueType>* returnVal = new JoinRecordList<ValueType>(slot, *iterateMe);
-    return returnVal;
+std::shared_ptr<JoinRecordList<ValueType>> JoinMapIterator<ValueType>::operator*() {
+    return std::make_shared<JoinRecordList<ValueType>> (slot, *iterateMe);
 }
 
 template <class ValueType>
 bool JoinMapIterator<ValueType>::operator!=(const JoinMapIterator<ValueType>& me) const {
-    if (!done || !me.done)
-        return true;
-    return false;
+    return !done || !me.done;
 }
 
 template <class ValueType>
 bool JoinMapIterator<ValueType>::operator==(const JoinMapIterator<ValueType>& me) const {
-    if (!done || !me.done)
-        return false;
-    return true;
+    return !(!done || !me.done);
 }
 
 }

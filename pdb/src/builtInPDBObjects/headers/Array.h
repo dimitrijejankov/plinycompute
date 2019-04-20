@@ -32,6 +32,8 @@
 
 namespace pdb {
 
+template <class ValueType>
+class JoinMap;
 
 // The Array type is the one type that we allow to be variable length.  This is accomplished
 // the the data[] array at the end of the class.  When an Array object is alllocated, it is
@@ -110,6 +112,8 @@ public:
 
     // beause the communicator needs to see inside to do efficient sends
     friend class PDBCommunicator;
+
+    template <class T> friend Handle<JoinMap<T>> deepCopyJoinMap(Handle<JoinMap<T>>& copyMe);
 };
 }
 

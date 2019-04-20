@@ -86,7 +86,7 @@ private:
 
       // just to make the code look nicer
       auto tmp = *currentIt;
-      auto currentRecords = *tmp;
+      auto &currentRecords = *tmp;
 
       // get the hash of the iterator
       size_t hash = currentRecords.getHash();

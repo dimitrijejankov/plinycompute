@@ -21,6 +21,7 @@
 
 #include "JoinMap.h"
 #include "StringIntPair.h"
+#include "TupleSet.h"
 
 namespace pdb {
 
