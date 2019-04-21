@@ -336,39 +336,39 @@ TEST(PipelineTest, TestShuffleJoin) {
   /// 4. Process the left side of the join
 
   // set the parameters
-  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<ShuffleJoinProcessor>(numNodes, threadsPerNode, setAPageQueues, myMgr) } };
+  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  myPlan.getProcessorForJoin("AHashed", numNodes, threadsPerNode, setAPageQueues, myMgr) } };
 
-//  PipelinePtr myPipeline = myPlan.buildPipeline(std::string("A"), /* this is the TupleSet the pipeline starts with */
-//                                                std::string("AHashed"),     /* this is the TupleSet the pipeline ends with */
-//                                                setAReader,
-//                                                partitionedAPageSet,
-//                                                params,
-//                                                numNodes,
-//                                                threadsPerNode,
-//                                                20,
-//                                                curThread);
-//
-//  // and now, simply run the pipeline and then destroy it!!!
-//  std :: cout << "\nRUNNING PIPELINE\n";
-//  myPipeline->run ();
-//  std :: cout << "\nDONE RUNNING PIPELINE\n";
-//  myPipeline = nullptr;
+  PipelinePtr myPipeline = myPlan.buildPipeline(std::string("A"), /* this is the TupleSet the pipeline starts with */
+                                                std::string("AHashed"),     /* this is the TupleSet the pipeline ends with */
+                                                setAReader,
+                                                partitionedAPageSet,
+                                                params,
+                                                numNodes,
+                                                threadsPerNode,
+                                                20,
+                                                curThread);
+
+  // and now, simply run the pipeline and then destroy it!!!
+  std :: cout << "\nRUNNING PIPELINE\n";
+  myPipeline->run ();
+  std :: cout << "\nDONE RUNNING PIPELINE\n";
+  myPipeline = nullptr;
 
   // put nulls in the queues
   for(int i = 0; i < numNodes; ++i) { setAPageQueues[i]->enqueue(nullptr); }
 
   /// 5. Process the right side of the join
 
-  params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<ShuffleJoinProcessor>(numNodes, threadsPerNode, setBPageQueues, myMgr) } };
-  PipelinePtr myPipeline = myPlan.buildPipeline(std::string("B"), /* this is the TupleSet the pipeline starts with */
-                                    std::string("BHashedOnA"),     /* this is the TupleSet the pipeline ends with */
-                                    setBReader,
-                                    partitionedBPageSet,
-                                    params,
-                                    numNodes,
-                                    threadsPerNode,
-                                    20,
-                                    curThread);
+  params = { { ComputeInfoType::PAGE_PROCESSOR,  myPlan.getProcessorForJoin("BHashedOnA", numNodes, threadsPerNode, setBPageQueues, myMgr) } };
+  myPipeline = myPlan.buildPipeline(std::string("B"), /* this is the TupleSet the pipeline starts with */
+                                                std::string("BHashedOnA"),     /* this is the TupleSet the pipeline ends with */
+                                                setBReader,
+                                                partitionedBPageSet,
+                                                params,
+                                                numNodes,
+                                                threadsPerNode,
+                                                20,
+                                                curThread);
 
   // and now, simply run the pipeline and then destroy it!!!
   std :: cout << "\nRUNNING PIPELINE\n";
@@ -381,7 +381,7 @@ TEST(PipelineTest, TestShuffleJoin) {
 
   /// 6. Build the join pipeline
 
-  params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<ShuffleJoinProcessor>(numNodes, threadsPerNode, setAndBPageQueues, myMgr) } };
+  params = { { ComputeInfoType::PAGE_PROCESSOR,  myPlan.getProcessorForJoin("BHashedOnC", numNodes, threadsPerNode, setBPageQueues, myMgr) } };
   myPipeline = myPlan.buildShuffleJoinPipeline(std::string("AandBJoined"),
                                                std::string("BHashedOnC"),
                                                partitionedAPageSet,

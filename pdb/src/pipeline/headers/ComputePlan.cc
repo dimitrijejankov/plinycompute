@@ -463,7 +463,7 @@ inline PipelinePtr ComputePlan::buildShuffleJoinPipeline(const std::string &join
       auto hashes = tuple->getColumn<size_t>(1);
 
       for(int i = 0; i < records.size(); ++i) {
-        std::cout << records[i]->myInt << " " << hashes[i] << std::endl;
+        std::cout << *records[i]->myString << " " << records[i]->myInt << " " << hashes[i] << std::endl;
       }
       std::cout << "whatever" << std::endl;
     }

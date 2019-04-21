@@ -112,11 +112,11 @@ PDBBufferManagerImpl::~PDBBufferManagerImpl() {
       pageLocations[myIndex] = me->getLocation();
       endOfFiles[me->getSet()] += (MIN_PAGE_SIZE << me->getLocation().numBytes);
     }
-    ssize_t write_bytes;
-    write_bytes = pwrite(fds[me->getSet()],
-                         me->getBytes(),
-                         MIN_PAGE_SIZE << me->getLocation().numBytes,
-                         me->getLocation().startPos);
+
+    ssize_t write_bytes = pwrite(fds[me->getSet()],
+                                 me->getBytes(),
+                                 MIN_PAGE_SIZE << me->getLocation().numBytes,
+                                 me->getLocation().startPos);
     if (write_bytes == -1) {
       std::cerr << "error in PDBBufferManager destructor when writing data to disk with errno: " << strerror(errno)
                 << std::endl;
@@ -478,8 +478,7 @@ void PDBBufferManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_l
         // the page is not unloading unlock the buffer manager so we don't stall
         lock.unlock();
 
-        ssize_t write_bytes;
-        pwrite(tempFileFD, a->getBytes(), MIN_PAGE_SIZE << a->getLocation().numBytes, a->getLocation().startPos);
+        ssize_t write_bytes = pwrite(tempFileFD, a->getBytes(), MIN_PAGE_SIZE << a->getLocation().numBytes, a->getLocation().startPos);
         if (write_bytes == -1) {
           std::cerr << "error in createAdditionalMiniPages when writing anonymous page to disk with errno: "
                     << strerror(errno)
@@ -498,8 +497,7 @@ void PDBBufferManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_l
 
           PDBPageInfo myInfo = a->getLocation();
 
-          ssize_t write_bytes;
-          pwrite(fds[a->getSet()], a->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
+          ssize_t write_bytes = pwrite(fds[a->getSet()], a->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
           if (write_bytes == -1) {
             std::cerr << "error in createAdditionalMiniPages when writing page to disk with errno: " << strerror(errno)
                       << std::endl;

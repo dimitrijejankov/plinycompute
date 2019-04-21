@@ -73,6 +73,10 @@ private:
     getNextMap();
   }
 
+  ~LHSShuffleJoinSource() override {
+    delete[] columns;
+  }
+
   TupleSetPtr getNextTupleSet() override {
 
     // if we dom't have any pages finish
