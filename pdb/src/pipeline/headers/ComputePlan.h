@@ -112,7 +112,7 @@ class ComputePlan {
                                        std::map<ComputeInfoType, ComputeInfoPtr> &params,
                                        size_t numNodes,
                                        size_t numProcessingThreads,
-                                       uint64_t chunkSize,
+                                       int32_t chunkSize,
                                        uint64_t workerID);
 
 

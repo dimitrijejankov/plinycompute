@@ -97,40 +97,11 @@ class JoinComp : public JoinCompBase {
                                 std::map<ComputeInfoType, ComputeInfoPtr> &params,
                                 pdb::LogicalPlanPtr &plan) override {
 
-    // loop through each of the attributes that we are supposed to accept, and for each of them, find the type
-    std::vector<std::string> typeList;
-    AtomicComputationPtr producer = plan->getComputations().getProducingAtomicComputation(consumeMe.getSetName());
-    std::cout << "consumeMe was: " << consumeMe << "\n";
-    std::cout << "attsToOpOn was: " << attsToOpOn << "\n";
-    std::cout << "projection was: " << projection << "\n";
-    for (auto &a : projection.getAtts()) {
-
-      // find the identity of the producing computation
-      std::cout << "finding the source of " << projection.getSetName() << "." << a << "\n";
-      std::pair<std::string, std::string> res = producer->findSource(a, plan->getComputations());
-      std::cout << "got " << res.first << " " << res.second << "\n";
-
-      // and find its type... in the first case, there is not a particular lambda that we need to ask for
-      if (res.second.empty()) {
-        typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getComputation().getOutputType() + ">");
-      } else {
-        typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getLambda(res.second)->getOutputType() + ">");
-      }
-    }
-
-    for (auto &aa : typeList) {
-      std::cout << "Got type " << aa << "\n";
-    }
-
-    // now we get the correct join tuple, that will allow us to pack tuples from the join in a hash table
+    // figure out the right join tuple
     std::vector<int> whereEveryoneGoes;
-    JoinTuplePtr correctJoinTuple = findCorrectJoinTuple<In1, In2, Rest...>(typeList, whereEveryoneGoes);
+    JoinTuplePtr correctJoinTuple = findJoinTuple(projection, plan, whereEveryoneGoes);
 
-    for (auto &aa : whereEveryoneGoes) {
-      std::cout << aa << " ";
-    }
-    std::cout << "\n";
-
+    // return the sink
     return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
   }
 
@@ -141,17 +112,69 @@ class JoinComp : public JoinCompBase {
                                            TupleSpec &recordSchema,
                                            pdb::LogicalPlanPtr &plan) override {
 
-    // get the producing atomic computation
+    // figure out the right join tuple
+    std::vector<int> whereEveryoneGoes;
+    JoinTuplePtr correctJoinTuple = findJoinTuple(recordSchema, plan, whereEveryoneGoes);
+
+    // return the page processor
+    return correctJoinTuple->getPageProcessor(numNodes, numProcessingThreads, pageQueues, bufferManager);
+  }
+
+  ComputeSourcePtr getLHSShuffleJoinSource(TupleSpec &inputSchema,
+                                           TupleSpec &hashSchema,
+                                           TupleSpec &recordSchema,
+                                           const PDBAbstractPageSetPtr &leftInputPageSet,
+                                           pdb::LogicalPlanPtr &plan,
+                                           int32_t chunkSize,
+                                           uint64_t workerID) override {
+
+    // figure out the right join tuple
+    std::vector<int> whereEveryoneGoes;
+    JoinTuplePtr correctJoinTuple = findJoinTuple(recordSchema, plan, whereEveryoneGoes);
+
+    // for debug
+    for (auto &aa : whereEveryoneGoes) {
+      std::cout << aa << " ";
+    }
+    std::cout << "\n";
+
+    // return the lhs join source
+    return correctJoinTuple->getLHSShuffleJoinSource(inputSchema, hashSchema, recordSchema, leftInputPageSet, whereEveryoneGoes, chunkSize, workerID);
+  }
+
+  ComputeSourcePtr getJoinedSource(TupleSpec &inputSchema,
+                                   TupleSpec &hashSchema,
+                                   TupleSpec &recordSchema,
+                                   ComputeSourcePtr leftSource,
+                                   const PDBAbstractPageSetPtr &rightInputPageSet,
+                                   pdb::LogicalPlanPtr &plan,
+                                   int32_t chunkSize,
+                                   uint64_t workerID) override {
+    // figure out the right join tuple
+    std::vector<int> whereEveryoneGoes;
+    JoinTuplePtr correctJoinTuple = findJoinTuple(recordSchema, plan, whereEveryoneGoes);
+
+    // for debug
+    for (auto &aa : whereEveryoneGoes) {
+      std::cout << aa << " ";
+    }
+    std::cout << "\n";
+
+    // return the lhs join source
+    return correctJoinTuple->getJoinedSource(inputSchema, hashSchema, recordSchema, leftSource, rightInputPageSet, whereEveryoneGoes, chunkSize, workerID);
+  }
+
+  JoinTuplePtr findJoinTuple(TupleSpec &recordSchema, LogicalPlanPtr &plan, vector<int> &whereEveryoneGoes) const {// get the producing atomic computation
     AtomicComputationPtr producer = plan->getComputations().getProducingAtomicComputation(recordSchema.getSetName());
 
     // figure out the types
-    std::vector<std::string> typeList;
+    vector<string> typeList;
     for (auto &a : recordSchema.getAtts()) {
 
       // find the identity of the producing computation
-      std::cout << "finding the source of " << recordSchema.getSetName() << "." << a << "\n";
-      std::pair<std::string, std::string> res = producer->findSource(a, plan->getComputations());
-      std::cout << "got " << res.first << " " << res.second << "\n";
+      cout << "finding the source of " << recordSchema.getSetName() << "." << a << "\n";
+      pair<string, string> res = producer->findSource(a, plan->getComputations());
+      cout << "got " << res.first << " " << res.second << "\n";
 
       // and find its type... in the first case, there is not a particular lambda that we need to ask for
       if (res.second.empty()) {
@@ -162,54 +185,8 @@ class JoinComp : public JoinCompBase {
     }
 
     //
-    std::vector<int> whereEveryoneGoes;
     JoinTuplePtr correctJoinTuple = findCorrectJoinTuple<In1, In2, Rest...>(typeList, whereEveryoneGoes);
-
-    // return the page processor
-    return correctJoinTuple->getPageProcessor(numNodes, numProcessingThreads, pageQueues, bufferManager);
-  }
-
-  ComputeSourcePtr getLHSShuffleJoinSource(TupleSpec &inputSchema,
-                                           TupleSpec &hashSchema,
-                                           TupleSpec &recordSchema,
-                                           const PDBAbstractPageSetPtr &leftInputPageSet,
-                                           pdb::LogicalPlanPtr &plan) override {
-
-    // loop through each of the attributes that we are supposed to accept, and for each of them, find the type
-    std::vector<std::string> typeList;
-    AtomicComputationPtr producer = plan->getComputations().getProducingAtomicComputation(inputSchema.getSetName());
-    std::cout << "consumeMe was: " << inputSchema << "\n";
-    std::cout << "attsToOpOn was: " << hashSchema << "\n";
-    std::cout << "projection was: " << recordSchema << "\n";
-    for (auto &a : recordSchema.getAtts()) {
-
-      // find the identity of the producing computation
-      std::cout << "finding the source of " << recordSchema.getSetName() << "." << a << "\n";
-      std::pair<std::string, std::string> res = producer->findSource(a, plan->getComputations());
-      std::cout << "got " << res.first << " " << res.second << "\n";
-
-      // and find its type... in the first case, there is not a particular lambda that we need to ask for
-      if (res.second.empty()) {
-        typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getComputation().getOutputType() + ">");
-      } else {
-        typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getLambda(res.second)->getOutputType() + ">");
-      }
-    }
-
-    for (auto &aa : typeList) {
-      std::cout << "Got type " << aa << "\n";
-    }
-
-    // now we get the correct join tuple, that will allow us to pack tuples from the join in a hash table
-    std::vector<int> whereEveryoneGoes;
-    JoinTuplePtr correctJoinTuple = findCorrectJoinTuple<In1, In2, Rest...>(typeList, whereEveryoneGoes);
-
-    for (auto &aa : whereEveryoneGoes) {
-      std::cout << aa << " ";
-    }
-    std::cout << "\n";
-
-    return correctJoinTuple->getLHSShuffleJoinSource(inputSchema, hashSchema, recordSchema, leftInputPageSet, whereEveryoneGoes);
+    return correctJoinTuple;
   }
 
   // this is a join computation

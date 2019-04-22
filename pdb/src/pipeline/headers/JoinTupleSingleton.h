@@ -37,7 +37,18 @@ class JoinTupleSingleton {
                                                    TupleSpec &hashSchema,
                                                    TupleSpec &recordSchema,
                                                    const PDBAbstractPageSetPtr &leftInputPageSet,
-                                                   std::vector<int> &recordOrder) = 0;
+                                                   std::vector<int> &recordOrder,
+                                                   int32_t chunkSize,
+                                                   uint64_t workerID) = 0;
+
+  virtual ComputeSourcePtr getJoinedSource(TupleSpec &inputSchema,
+                                           TupleSpec &hashSchema,
+                                           TupleSpec &recordSchema,
+                                           ComputeSourcePtr leftSource,
+                                           const PDBAbstractPageSetPtr &rightInputPageSet,
+                                           std::vector<int> &whereEveryoneGoes,
+                                           int32_t chunkSize,
+                                           uint64_t workerID) = 0;
 
   virtual PageProcessorPtr getPageProcessor(size_t numNodes,
                                             size_t numProcessingThreads,
@@ -77,9 +88,24 @@ class JoinSingleton : public JoinTupleSingleton {
                                            TupleSpec &hashSchema,
                                            TupleSpec &recordSchema,
                                            const PDBAbstractPageSetPtr &leftInputPageSet,
-                                           std::vector<int> &recordOrder) override {
+                                           std::vector<int> &recordOrder,
+                                           int32_t chunkSize,
+                                           uint64_t workerID) override {
 
-    return std::make_shared<LHSShuffleJoinSource<HoldMe>>(inputSchema, hashSchema, recordSchema, recordOrder, leftInputPageSet);
+    return std::make_shared<LHSShuffleJoinSource<HoldMe>>(inputSchema, hashSchema, recordSchema, recordOrder, leftInputPageSet, chunkSize, workerID);
+  }
+
+  ComputeSourcePtr getJoinedSource(TupleSpec &inputSchema,
+                                   TupleSpec &hashSchema,
+                                   TupleSpec &recordSchema,
+                                   ComputeSourcePtr leftSource,
+                                   const PDBAbstractPageSetPtr &rightInputPageSet,
+                                   std::vector<int> &recordOrder,
+                                   int32_t chunkSize,
+                                   uint64_t workerID) override {
+
+    /// remove this
+    return std::make_shared<LHSShuffleJoinSource<HoldMe>>(inputSchema, hashSchema, recordSchema, recordOrder, rightInputPageSet, chunkSize, workerID);
   }
 
   PageProcessorPtr getPageProcessor(size_t numNodes,

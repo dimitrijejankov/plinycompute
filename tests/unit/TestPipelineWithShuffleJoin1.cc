@@ -262,7 +262,6 @@ TEST(PipelineTest, TestShuffleJoin) {
 
   EXPECT_CALL(*AndBJoinedPageSet, getNewPage).Times(testing::AtLeast(1));
 
-
   /// 3. Create the computations and the TCAP
 
   // this is the object allocation block where all of this stuff will reside

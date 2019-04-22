@@ -424,7 +424,7 @@ inline PipelinePtr ComputePlan::buildShuffleJoinPipeline(const std::string &join
                                                          std::map<ComputeInfoType, ComputeInfoPtr> &params,
                                                          size_t numNodes,
                                                          size_t numProcessingThreads,
-                                                         uint64_t chunkSize,
+                                                         int32_t chunkSize,
                                                          uint64_t workerID) {
   // build the plan if it is not already done
   if (myPlan == nullptr)
@@ -449,7 +449,20 @@ inline PipelinePtr ComputePlan::buildShuffleJoinPipeline(const std::string &join
                                                                                                                                                        joinComputation->getRightInput(),
                                                                                                                                                        joinComputation->getRightProjection(),
                                                                                                                                                        rightInputPageSet,
-                                                                                                                                                       myPlan);
+                                                                                                                                                       myPlan,
+                                                                                                                                                       chunkSize,
+                                                                                                                                                       workerID);
+
+  ComputeSourcePtr joinedSource = ((JoinCompBase*) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getJoinedSource(leftAtomicComp->getOutput(),
+                                                                                                                                              joinComputation->getInput(),
+                                                                                                                                              joinComputation->getProjection(),
+                                                                                                                                              computeSource,
+                                                                                                                                              leftInputPageSet,
+                                                                                                                                              myPlan,
+                                                                                                                                              chunkSize,
+                                                                                                                                              workerID);
+
+
   int x = 0;
   while(auto tuple = computeSource->getNextTupleSet()) {
 

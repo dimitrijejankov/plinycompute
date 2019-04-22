@@ -45,7 +45,18 @@ class JoinCompBase : public Computation {
                                                    TupleSpec &hashSchema,
                                                    TupleSpec &recordSchema,
                                                    const PDBAbstractPageSetPtr &leftInputPageSet,
-                                                   pdb::LogicalPlanPtr &plan) = 0;
+                                                   pdb::LogicalPlanPtr &plan,
+                                                   int32_t chunkSize,
+                                                   uint64_t workerID) = 0;
+
+  virtual ComputeSourcePtr getJoinedSource(TupleSpec &inputSchema,
+                                           TupleSpec &hashSchema,
+                                           TupleSpec &recordSchema,
+                                           ComputeSourcePtr leftSource,
+                                           const PDBAbstractPageSetPtr &rightInputPageSet,
+                                           pdb::LogicalPlanPtr &plan,
+                                           int32_t chunkSize,
+                                           uint64_t workerID) = 0;
 
   virtual PageProcessorPtr getShuffleJoinProcessor(size_t numNodes,
                                                    size_t numProcessingThreads,
