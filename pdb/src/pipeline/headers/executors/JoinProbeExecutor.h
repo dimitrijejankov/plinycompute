@@ -28,7 +28,7 @@ class JoinProbeExecution : public ComputeExecutor {
   // to setup the output tuple set
   TupleSetSetupMachine myMachine;
 
-  // the hash talbe we are processing
+  // the hash table we are processing
   std::vector<Handle<JoinMap<RHSType>>> inputTables;
 
   // the pages that contain the hash tables
@@ -60,7 +60,7 @@ class JoinProbeExecution : public ComputeExecutor {
   // when we probe a hash table, a subset of the atts that we need to put into the output stream are stored in the hash table... the positions
   // of these packed atts are stored in typesStoredInHash, so that they can be extracted.  inputSchema, attsToOperateOn, and attsToIncludeInOutput
   // are standard for executors: they tell us the details of the input that are streaming in, as well as the identity of the has att, and
-  // the atts that will be streamed to the output, from the input.  needToSwapLHSAndRhs is true if it's the case that theatts stored in the
+  // the atts that will be streamed to the output, from the input.  needToSwapLHSAndRhs is true if it's the case that the atts stored in the
   // hash table need to come AFTER the atts being streamed through the join
   JoinProbeExecution(PDBAbstractPageSetPtr &hashTable,
                      std::vector<int> &positions,
@@ -105,7 +105,6 @@ class JoinProbeExecution : public ComputeExecutor {
     // this is the input attribute that we will hash in order to try to find matches
     std::vector<int> matches = myMachine.match(attsToOperateOn);
     whichAtt = matches[0];
-
   }
 
   TupleSetPtr process(TupleSetPtr input) override {

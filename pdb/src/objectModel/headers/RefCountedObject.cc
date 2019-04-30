@@ -62,7 +62,6 @@ void RefCountedObject<ObjType>::incRefCount() {
     if (!getAllocator().isManaged(this)) {
         return;
     }
-
     NUM_COPIES++;
 }
 

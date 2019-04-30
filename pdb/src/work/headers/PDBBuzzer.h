@@ -39,7 +39,7 @@ typedef shared_ptr<PDBBuzzer> PDBBuzzerPtr;
 // Typically, someone who wants work done will create a buzzer, and then give it to a bunch
 // of workers, then will call wait () to sleep until work is completed.
 //
-// When a piece of work is completed, the woker then calls buzz (), which invokes the
+// When a piece of work is completed, the worker then calls buzz (), which invokes the
 // function stored inside of the buzzer.
 //
 // One is guarnateed that each call to buzz () will result in a separate invocation of

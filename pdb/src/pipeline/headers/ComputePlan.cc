@@ -26,7 +26,7 @@
 #include "JoinCompBase.h"
 #include "AggregateCompBase.h"
 #include "AggregationPipeline.h"
-#include "JoinShufflePipeline.h"
+#include "JoinBroadcastPipeline.h"
 #include "NullProcessor.h"
 #include "Lexer.h"
 #include "Parser.h"
@@ -365,7 +365,7 @@ inline PipelinePtr ComputePlan::buildAggregationPipeline(const std::string &targ
   return std::make_shared<pdb::AggregationPipeline>(workerID, outputPageSet, inputPageSet, combiner);
 }
 
-inline PipelinePtr ComputePlan::buildMergeJoinShufflePipeline(const string &targetTupleSetName,
+inline PipelinePtr ComputePlan::buildMergeJoinBroadcastPipeline(const string &targetTupleSetName,
                                                               const PDBAbstractPageSetPtr &inputPageSet,
                                                               const PDBAnonymousPageSetPtr &outputPageSet,
                                                               uint64_t numThreads,
@@ -442,8 +442,9 @@ inline PipelinePtr ComputePlan::buildMergeJoinShufflePipeline(const string &targ
   Handle<JoinCompBase> joinComp = unsafeCast<JoinCompBase>(myPlan->getNode(targetComputationName).getComputationHandle());
   auto merger = joinComp->getComputeMerger(targetSpec, targetAttsToOpOn, targetProjection, workerID, numThreads, myPlan);
 
-  return std::make_shared<pdb::JoinShufflePipeline>(workerID, outputPageSet, inputPageSet, merger);
+  return std::make_shared<pdb::JoinBroadcastPipeline>(workerID, outputPageSet, inputPageSet, merger);
 }
+
 
 inline ComputePlan::ComputePlan(String &TCAPComputation, Vector<Handle<Computation>> &allComputations) : TCAPComputation(TCAPComputation),
                                                                                                          allComputations(allComputations) {}

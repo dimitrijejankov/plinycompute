@@ -18,14 +18,14 @@ namespace pdb {
  * This is the processor for the pages that contain the result of the preaggregation
  * 
  */
-class ShuffleBroadcastProcessor : public PageProcessor  {
+class BroadcastJoinProcessor : public PageProcessor  {
 public:
 
-  ShuffleBroadcastProcessor() = default;
+  BroadcastJoinProcessor() = default;
 
-  ~ShuffleBroadcastProcessor() override = default;
+  ~BroadcastJoinProcessor() override = default;
 
-  ShuffleBroadcastProcessor(size_t numNodes,
+  BroadcastJoinProcessor(size_t numNodes,
                        size_t numProcessingThreads,
                        vector<PDBPageQueuePtr> pageQueues,
                        PDBBufferManagerInterfacePtr bufferManager) : numNodes(numNodes),
@@ -40,9 +40,13 @@ public:
     }
     // put all the objects into Vector<JoinMap>
     pdb::Handle<pdb::Vector<pdb::Handle<pdb::JoinMap<pdb::Object>>>> allMaps = unsafeCast<pdb::Vector<pdb::Handle<pdb::JoinMap<pdb::Object>>>>(memory->outputSink);
+
     auto record = getRecord(allMaps);
+
     memory->pageHandle->freezeSize(record->numBytes());
+
     memory->pageHandle->unpin();
+
     for(auto node = 0; node < numNodes; ++node) {
       pageQueues[node]->enqueue(memory->pageHandle);
     }
@@ -75,5 +79,4 @@ private:
 
 }
 
-
-#endif //PDB_PRAGGREGATIONPAGEPROCESSOR_H
+#endif //PDB_BROADCAST_JOIN_PAGEPROCESSOR_H

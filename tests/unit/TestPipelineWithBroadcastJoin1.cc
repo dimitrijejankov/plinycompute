@@ -97,15 +97,15 @@ PDBPageHandle getSetBPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr) 
       const UseTemporaryAllocationBlock tempBlock{page->getBytes(), 1024 * 1024};
 
       // write a bunch of supervisors to it
-      Handle <Vector <Handle <StringIntPair>>> data = makeObject <Vector <Handle <StringIntPair>>> ();
+      Handle<Vector<Handle<StringIntPair>>> data = makeObject<Vector<Handle<StringIntPair>>>();
       int i = 0;
       try {
         for (; true; i++) {
           std::ostringstream oss;
           oss << "My string is " << i;
           oss.str();
-          Handle <StringIntPair> myPair = makeObject <StringIntPair> (oss.str (), i);
-          data->push_back (myPair);
+          Handle<StringIntPair> myPair = makeObject<StringIntPair>(oss.str(), i);
+          data->push_back(myPair);
         }
       } catch (NotEnoughSpace &e) {
         std::cout << "got to " << i << " when proucing data for SillyReadOfB.\n";
@@ -121,26 +121,28 @@ PDBPageHandle getSetBPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr) 
 class MockPageSetReader : public pdb::PDBAbstractPageSet {
  public:
 
-  MOCK_METHOD1(getNextPage, PDBPageHandle(size_t workerID));
+  MOCK_METHOD1(getNextPage, PDBPageHandle(size_t
+      workerID));
 
   MOCK_METHOD0(getNewPage, PDBPageHandle());
 
-  MOCK_METHOD0(getNumPages, size_t ());
+  MOCK_METHOD0(getNumPages, size_t());
 
 };
 
-class MockPageSetWriter: public pdb::PDBAnonymousPageSet {
+class MockPageSetWriter : public pdb::PDBAnonymousPageSet {
  public:
 
-  MOCK_METHOD1(getNextPage, PDBPageHandle(size_t workerID));
+  MOCK_METHOD1(getNextPage, PDBPageHandle(size_t
+      workerID));
 
   MOCK_METHOD0(getNewPage, PDBPageHandle());
 
-  MOCK_METHOD1(removePage, void(PDBPageHandle pageHandle));
+  MOCK_METHOD1(removePage, void(PDBPageHandle
+      pageHandle));
 
-  MOCK_METHOD0(getNumPages, size_t ());
+  MOCK_METHOD0(getNumPages, size_t());
 };
-
 TEST(PipelineTest, TestShuffleJoin) {
 
   // this is our configuration we are testing
@@ -151,12 +153,17 @@ TEST(PipelineTest, TestShuffleJoin) {
 
   /// 1. Create the buffer manager that is going to provide the pages to the pipeline
 
+
+
+
   // create the buffer manager
   std::shared_ptr<PDBBufferManagerImpl> myMgr = std::make_shared<PDBBufferManagerImpl>();
   myMgr->initialize("tempDSFSD", 2 * 1024 * 1024, 16, "metadata", ".");
 
-  /// 2. Init the page sets
 
+
+
+  /// 2. Init the page sets
   // the page set that is gonna provide stuff
   std::shared_ptr<MockPageSetReader> setAReader = std::make_shared<MockPageSetReader>();
 
@@ -168,49 +175,8 @@ TEST(PipelineTest, TestShuffleJoin) {
   EXPECT_CALL(*setAReader, getNextPage(testing::An<size_t>())).Times(7);
 
   // make the function return pages with the Vector<JoinMap<JoinRecord>>
-  std::vector<PDBPageQueuePtr> pageQueues;
-  pageQueues.reserve(numNodes);
-
-  for(int i = 0; i < numNodes; ++i) { pageQueues.emplace_back(std::make_shared<PDBPageQueue>()); }
-
-  // the page set that is going to contain the partitioned preaggregation results
-  std::shared_ptr<MockPageSetWriter> partitionedAPageSet = std::make_shared<MockPageSetWriter>();
-
-  ON_CALL(*partitionedAPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
-    return myMgr->getPage();
-  }));
-
-  EXPECT_CALL(*partitionedAPageSet, getNewPage).Times(testing::AtLeast(1));
-
-  // the page set that is going to contain the partitioned preaggregation results
-  ON_CALL(*partitionedAPageSet, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
-      [&](size_t workerID) {
-
-        // wait to get the page
-        PDBPageHandle page;
-        pageQueues[workerID]->wait_dequeue(page);
-
-        if(page == nullptr) {
-          return (PDBPageHandle) nullptr;
-        }
-
-        // repin the page
-        page->repin();
-
-        // return it
-        return page;
-      }));
-  // it should call send object exactly six times
-  EXPECT_CALL(*partitionedAPageSet, getNextPage).Times(testing::AtLeast(1));
 
 
-  std::shared_ptr<MockPageSetWriter> shuffledAPageSet = std::make_shared<MockPageSetWriter>();
-
-  ON_CALL(*shuffledAPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
-    return myMgr->getPage();
-  }));
-
-  EXPECT_CALL(*shuffledAPageSet, getNewPage).Times(testing::AtLeast(1));
 
 
   // the page set that is gonna provide stuff
@@ -221,16 +187,121 @@ TEST(PipelineTest, TestShuffleJoin) {
     return getSetBPageWithData(myMgr);
   }));
 
+  // TODO:
   EXPECT_CALL(*setBReader, getNextPage(testing::An<size_t>())).Times(7);
 
-  // the page set that is going to contain the partitioned preaggregation results
+
+
+
+  std::vector<PDBPageQueuePtr> pageQueuesForA;
+  pageQueuesForA.reserve(numNodes);
+  for (int i = 0; i < numNodes; ++i) { pageQueuesForA.emplace_back(std::make_shared<PDBPageQueue>()); }
+
+
+
+
+  std::vector<PDBPageQueuePtr> pageQueuesForB;
+  pageQueuesForB.reserve(numNodes);
+  for (int i = 0; i < numNodes; ++i){pageQueuesForB.emplace_back(std::make_shared<PDBPageQueue>()); }
+
+
+
+
+
+
+  // TODO: the page set that is going to contain the partitioned preaggregation results
+  std::shared_ptr<MockPageSetWriter> partitionedAPageSet = std::make_shared<MockPageSetWriter>();
+
+  ON_CALL(*partitionedAPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
+    return myMgr->getPage();
+  }));
+
+  EXPECT_CALL(*partitionedAPageSet, getNewPage).Times(testing::AtLeast(1));
+
+  // TODO: the page set that is going to contain the partitioned preaggregation results
+  ON_CALL(*partitionedAPageSet, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
+      [&](size_t workerID) {
+
+        // wait to get the page
+        PDBPageHandle page;
+        pageQueuesForA[workerID]->wait_dequeue(page);
+
+        if (page == nullptr) {
+          return (PDBPageHandle) nullptr;
+        }
+
+        // repin the page
+        page->repin();
+
+        // return it
+        return page;
+      }));
+
+  // TODO: it should call send object exactly six times
+  EXPECT_CALL(*partitionedAPageSet, getNextPage).Times(testing::AtLeast(1));
+
+
+
+
+
+
   std::shared_ptr<MockPageSetWriter> partitionedBPageSet = std::make_shared<MockPageSetWriter>();
 
+  // TODO:
   ON_CALL(*partitionedBPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
     return myMgr->getPage();
   }));
 
+  // TODO:
   EXPECT_CALL(*partitionedBPageSet, getNewPage).Times(testing::AtLeast(1));
+
+  // TODO: the page set that is going to contain the partitioned results
+  ON_CALL(*partitionedBPageSet, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
+      [&](size_t workerID) {
+
+        // wait to get the page
+        PDBPageHandle page;
+        pageQueuesForB[workerID]->wait_dequeue(page);
+
+        if (page == nullptr) {
+          return (PDBPageHandle) nullptr;
+        }
+
+        // repin the page
+        page->repin();
+
+        // return it
+        return page;
+      }));
+
+  // TODO: it should call send object exactly six times
+  EXPECT_CALL(*partitionedBPageSet, getNextPage).Times(testing::AtLeast(1));
+
+
+
+
+
+
+  std::shared_ptr<MockPageSetWriter> BroadcastedAPageSet = std::make_shared<MockPageSetWriter>();
+// TODO:
+  ON_CALL(*BroadcastedAPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
+    return myMgr->getPage();
+  }));
+// TODO:
+  EXPECT_CALL(*BroadcastedAPageSet, getNewPage).Times(testing::AtLeast(1));
+
+
+
+  // the page set that is going to contain the partitioned preaggregation results
+  std::shared_ptr<MockPageSetWriter> BroadcastedBPageSet = std::make_shared<MockPageSetWriter>();
+
+  ON_CALL(*BroadcastedBPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
+    return myMgr->getPage();
+  }));
+
+  EXPECT_CALL(*BroadcastedBPageSet, getNewPage).Times(testing::AtLeast(1));
+
+
 
   // the page set that is going to contain the partitioned preaggregation results
   std::shared_ptr<MockPageSetWriter> andAndBJoinedPageSet = std::make_shared<MockPageSetWriter>();
@@ -241,27 +312,29 @@ TEST(PipelineTest, TestShuffleJoin) {
 
   EXPECT_CALL(*andAndBJoinedPageSet, getNewPage).Times(testing::AtLeast(1));
 
+
+
   /// 3. Create the computations and the TCAP
 
   // this is the object allocation block where all of this stuff will reside
-  makeObjectAllocatorBlock (1024 * 1024, true);
+  makeObjectAllocatorBlock(1024 * 1024, true);
 
   // here is the list of computations
-  Vector <Handle <Computation>> myComputations;
+  Vector<Handle<Computation>> myComputations;
 
   // create all of the computation objects
-  Handle <Computation> readA = makeObject <SillyReadOfA> ();
-  Handle <Computation> readB = makeObject <SillyReadOfB> ();
-  Handle <Computation> readC = makeObject <SillyReadOfC> ();
-  Handle <Computation> myJoin = makeObject <SillyJoin> ();
-  Handle <Computation> myWriter = makeObject <SillyWrite> ();
+  Handle<Computation> readA = makeObject<SillyReadOfA>();
+  Handle<Computation> readB = makeObject<SillyReadOfB>();
+  Handle<Computation> readC = makeObject<SillyReadOfC>();
+  Handle<Computation> myJoin = makeObject<SillyJoin>();
+  Handle<Computation> myWriter = makeObject<SillyWrite>();
 
   // put them in the list of computations
-  myComputations.push_back (readA);
-  myComputations.push_back (readB);
-  myComputations.push_back (readC);
-  myComputations.push_back (myJoin);
-  myComputations.push_back (myWriter);
+  myComputations.push_back(readA);
+  myComputations.push_back(readB);
+  myComputations.push_back(readC);
+  myComputations.push_back(myJoin);
+  myComputations.push_back(myWriter);
 
   // now we create the TCAP string
   String myTCAPString =
@@ -316,9 +389,10 @@ TEST(PipelineTest, TestShuffleJoin) {
   /// with the same hash % (numNodes * threadsPerNode). The join map records will be of type JoinTuple<int, char[0]>
 
   // set the parameters
-  //std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<ShuffleBroadcastProcessor>(numNodes, threadsPerNode, pageQueues, myMgr) } };
-  std::map<ComputeInfoType, ComputeInfoPtr> params = {};
 
+
+  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR, std::make_shared<BroadcastJoinProcessor>(numNodes, threadsPerNode, pageQueuesForA, myMgr)},
+                                                       { ComputeInfoType::JOIN_SIDE, std::make_shared<pdb::BroadcastJoinSide>(BroadcastJoinSideEnum ::PROBE_SIDE)}};
   PipelinePtr myPipeline = myPlan.buildPipeline(std::string("A"), /* this is the TupleSet the pipeline starts with */
                                                 std::string("AHashed"),     /* this is the TupleSet the pipeline ends with */
                                                 setAReader,
@@ -330,29 +404,24 @@ TEST(PipelineTest, TestShuffleJoin) {
                                                 curThread);
 
   // and now, simply run the pipeline and then destroy it!!!
-  std :: cout << "\nRUNNING PIPELINE\n";
-  myPipeline->run ();
-  std :: cout << "\nDONE RUNNING PIPELINE\n";
+  std::cout << "\nRUNNING PIPELINE\n";
+  myPipeline->run();
+  std::cout << "\nDONE RUNNING PIPELINE\n";
   myPipeline = nullptr;
 
 
-  /// 5. This pipeline will combine the join maps with the same hash % (numNodes * threadsPerNode) onto a single page with
-  /// only one hash join map
 
-  // put nullsthe queues
-  for(int i = 0; i < numNodes; ++i) { pageQueues[i]->enqueue(nullptr); }
-
-  myPipeline = myPlan.buildMergeJoinShufflePipeline(std::string("AHashed"), partitionedAPageSet, shuffledAPageSet, threadsPerNode, curThread);
-
-  // and now, simply run the pipeline and then destroy it!!!
-  std :: cout << "\nRUNNING PIPELINE\n";
-  myPipeline->run ();
-  std :: cout << "\nDONE RUNNING PIPELINE\n";
+  params = {{}};
+  myPipeline = myPlan.buildMergeJoinBroadcastPipeline("AHashed", partitionedAPageSet, );
+  std::cout << "\nRUNNING PIPELINE\n";
+  myPipeline->run();
+  std::cout << "\nDONE RUNNING PIPELINE\n";
   myPipeline = nullptr;
 
-  /// 6. This pipeline will process the set B and will store the result in a bunch of vectors of type Vector<JoinTuple<size_t, StringIntPair>>
 
-  params = { { ComputeInfoType::JOIN_SIDE,  std::make_shared<pdb::ShuffleJoinSide>(ShuffleJoinSideEnum::BUILD_SIDE) } };
+
+  params = {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<BroadcastJoinProcessor>(numNodes,threadsPerNode,pageQueuesForB,myMgr)},
+            {ComputeInfoType::JOIN_SIDE, std::make_shared<pdb::BroadcastJoinSide>(BroadcastJoinSideEnum ::PROBE_SIDE)}};
   myPipeline = myPlan.buildPipeline(std::string("B"), /* this is the TupleSet the pipeline starts with */
                                     std::string("BHashedOnA"),     /* this is the TupleSet the pipeline ends with */
                                     setBReader,
@@ -364,122 +433,9 @@ TEST(PipelineTest, TestShuffleJoin) {
                                     curThread);
 
   // and now, simply run the pipeline and then destroy it!!!
-  std :: cout << "\nRUNNING PIPELINE\n";
-  myPipeline->run ();
-  std :: cout << "\nDONE RUNNING PIPELINE\n";
+  std::cout << "\nRUNNING PIPELINE\n";
+  myPipeline->run();
+  std::cout << "\nDONE RUNNING PIPELINE\n";
   myPipeline = nullptr;
-
-  /// 7. This pipeline will build the probe side for the other join
-
-  unordered_map<string, JoinArgPtr> hashTables = { {"", std::make_shared<JoinArg>(shuffledAPageSet) } };
-
-  // set the parameters
-  params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<ShuffleBroadcastProcessor>(numNodes, threadsPerNode, pageQueues, myMgr) },
-             { ComputeInfoType::JOIN_SIDE,       std::make_shared<pdb::ShuffleJoinSide>(ShuffleJoinSideEnum::PROBE_SIDE) },
-             { ComputeInfoType::JOIN_ARGS,       std::make_shared<JoinArguments>(hashTables) } };
-  myPipeline = myPlan.buildPipeline(std::string("AandBJoined"), /* this is the TupleSet the pipeline starts with */
-                                    std::string("BHashedOnC"),     /* this is the TupleSet the pipeline ends with */
-                                    partitionedBPageSet,
-                                    andAndBJoinedPageSet,
-                                    params,
-                                    numNodes,
-                                    threadsPerNode,
-                                    20,
-                                    curThread);
-
-
-
-//  // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
-//  // a pipeline into the first join
-//  std :: map <std :: string, ComputeInfoPtr> info;
-//  info [std :: string ("AandBJoined")] = std :: make_shared <JoinArg> (*myPlan, whereHashTableForASits);
-//  myPipeline = myPlan->buildPipeline( /* and since multiple Computation objects can consume the */
-//      /* same tuple set, we apply the Computation as well */
-//
-//      // this lambda supplies new temporary pages to the pipeline
-//      []() -> std::pair<void *, size_t> {
-//          void *myPage = malloc(64 * 1024 * 1024);
-//          return std::make_pair(myPage, 64 * 1024 * 1024);
-//        },
-//
-//      // this lambda frees temporary pages that do not contain any important data
-//      [](void *page) {
-//          free(page);
-//        },
-//
-//      // and this lambda remembers the page that *does* contain important data...
-//      // in this simple aggregation, that one page will contain the hash table with
-//      // all of the aggregated data.
-//      [&](void *page) {
-//          std::cout << "Getting the hash table for B\n";
-//          whereHashTableForBSits = page;
-//        },
-//      std::string("B"),
-//      /* this is the TupleSet the pipeline starts with */
-//      std::string("BHashedOnC"),
-//      /* this is the TupleSet the pipeline ends with */
-//      std::string("JoinComp_3"),
-//
-//      info,
-//      0);
-//
-//  // and now, simply run the pipeline and then destroy it!!!
-//  std :: cout << "\nRUNNING PIPELINE\n";
-//  myPipeline->run ();
-//  std :: cout << "\nDONE RUNNING PIPELINE\n";
-//  myPipeline = nullptr;
-//
-//  // used to store info about the joins
-//  info [std :: string ("BandCJoined")] = std :: make_shared <JoinArg> (*myPlan, whereHashTableForBSits);
-//
-//  // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
-//  // a pipeline into the first join
-//  myPipeline = myPlan->buildPipeline( /* and since multiple Computation objects can consume the */
-//      /* same tuple set, we apply the Computation as well */
-//
-//      // this lambda supplies new temporary pages to the pipeline
-//      []() -> std::pair<void *, size_t> {
-//          void *myPage = malloc(1024 * 1024);
-//          return std::make_pair(myPage, 1024 * 1024);
-//        },
-//
-//      // this lambda frees temporary pages that do not contain any important data
-//      [](void *page) {
-//          free(page);
-//        },
-//
-//      // and this lambda remembers the page that *does* contain important data...
-//      // in this simple aggregation, that one page will contain the hash table with
-//      // all of the aggregated data.
-//      [](void *page) {
-//          std::cout << "\nAsked to save page at address " << (size_t) page << "!!!\n";
-//          Handle<Vector<Handle<String>>> myVec = ((Record<Vector<Handle<String>>> *) page)->getRootObject();
-//          std::cout << "Found that this has " << myVec->size() << " strings in it.\n";
-//          if (myVec->size() > 0)
-//            std::cout << "First one is '" << *((*myVec)[0]) << "'\n";
-//          free(page);
-//        },
-//      std::string("C"),
-//      /* this is the TupleSet the pipeline starts with */
-//      std::string("almostFinal"),
-//      /* this is the TupleSet the pipeline ends with */
-//      std::string("SetWriter_4"),
-//
-//      info,
-//      0);
-//
-//  // and now, simply run the pipeline and then destroy it!!!
-//  std :: cout << "\nRUNNING PIPELINE\n";
-//  myPipeline->run ();
-//  std :: cout << "\nDONE RUNNING PIPELINE\n";
-//  myPipeline = nullptr;
-//
-//  // and be sure to delete the contents of the ComputePlan object... this always needs to be done
-//  // before the object is written to disk or sent accross the network, so that we don't end up
-//  // moving around a C++ smart pointer, which would be bad
-//  myPlan->nullifyPlanPointer ();
-//
-//  free (whereHashTableForASits);
-//  free (whereHashTableForBSits);
 
 }

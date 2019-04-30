@@ -6,8 +6,8 @@
 // Created by dimitrije on 4/11/19.
 //
 
-#include <JoinShufflePipeline.h>
-#include <pipeline/JoinShufflePipeline.h>
+#include <JoinBroadcastPipeline.h>
+#include <pipeline/JoinBroadcastPipeline.h>
 #include <MemoryHolder.h>
 
 pdb::JoinShufflePipeline::JoinShufflePipeline(size_t workerID,

@@ -15,20 +15,20 @@ using ShuffleJoinSidePtr = std::shared_ptr<ShuffleJoinSide>;
 /**
  * Specifies which side of the join we would do
  */
-enum ShuffleJoinSideEnum {
+enum BroadcastJoinSideEnum {
   BUILD_SIDE,
   PROBE_SIDE
 };
 
-class ShuffleJoinSide : public ComputeInfo {
+class BroadcastJoinSide : public ComputeInfo {
 public:
 
-  explicit ShuffleJoinSide(ShuffleJoinSideEnum value) : value(value) {}
+  explicit BroadcastJoinSide(BroadcastJoinSideEnum value) : value(value) {}
 
   /**
    * The value of the enum
    */
-  ShuffleJoinSideEnum value;
+  BroadcastJoinSideEnum value;
 
 };
 

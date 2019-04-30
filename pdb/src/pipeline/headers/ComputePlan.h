@@ -91,7 +91,7 @@ class ComputePlan {
                                        const PDBAnonymousPageSetPtr &outputPageSet,
                                        uint64_t workerID);
 
-  PipelinePtr buildMergeJoinShufflePipeline(const std::string &targetTupleSetName,
+  PipelinePtr buildMergeJoinBroadcastPipeline(const std::string &targetTupleSetName,
                                             const PDBAbstractPageSetPtr &inputPageSet,
                                             const PDBAnonymousPageSetPtr &outputPageSet,
                                             uint64_t numThreads,
