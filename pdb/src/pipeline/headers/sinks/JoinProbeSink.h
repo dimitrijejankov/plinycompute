@@ -34,11 +34,15 @@ private:
   // the number of partitions
   size_t numPartitions;
 
+  // the number of JoinMaps
+  size_t numJoinMaps;
+
 public:
 
   JoinProbeSink(TupleSpec &inputSchema, TupleSpec &attsToOperateOn, TupleSpec &additionalAtts,
            std::vector<int> &whereEveryoneGoes, size_t numPartitions) : numPartitions(numPartitions), whereEveryoneGoes(whereEveryoneGoes) {
 
+    numJoinMaps= numPartitions * 2;
     // used to manage attributes and set up the output
     TupleSetSetupMachine myMachine(inputSchema);
 
@@ -61,7 +65,7 @@ public:
     Handle<Vector<Handle<JoinMap<RHSType>>>> returnVal = makeObject<Vector<Handle<JoinMap<RHSType>>>>();
 
     // create the maps
-    for(auto i = 0; i < numPartitions; ++i) {
+    for(auto i = 0; i < numJoinMaps; ++i) {
 
       // add the map
       returnVal->push_back(makeObject<JoinMap<RHSType>>());
@@ -91,20 +95,18 @@ public:
     for (int i = 0; i < length; i++) {
 
       // the map
-      auto whichMap = keyColumn[i] % numPartitions;
+      auto whichMap = keyColumn[i] % numJoinMaps;
+
       JoinMap<RHSType> &myMap = *(*writeMe)[whichMap];
 
       // try to add the key... this will cause an allocation for a new key/val pair
       if (myMap.count(keyColumn[i]) == 0) {
 
         try {
-
           RHSType &temp = myMap.push(keyColumn[i]);
           pack(temp, i, 0, columns);
-
           // if we get an exception, then we could not fit a new key/value pair
         } catch (NotEnoughSpace &n) {
-
           // if we got here, then we ran out of space, and so we need to delete the already-processed
           // data so that we can try again...
           myMap.setUnused(keyColumn[i]);
@@ -112,7 +114,6 @@ public:
           keyColumn.erase(keyColumn.begin(), keyColumn.begin() + i);
           throw n;
         }
-
         // the key is there
       } else {
 

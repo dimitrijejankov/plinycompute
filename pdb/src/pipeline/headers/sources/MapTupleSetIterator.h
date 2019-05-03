@@ -47,7 +47,7 @@ class MapTupleSetIterator : public ComputeSource {
 
   // the first param is a callback function that the iterator will call in order to obtain another vector
   // to iterate over.  The second param tells us how many objects to put into a tuple set
-  MapTupleSetIterator(const PDBAbstractPageSetPtr &pageSet, uint64_t workerID, size_t chunkSize) : chunkSize(chunkSize) {
+  MapTupleSetIterator(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID) : chunkSize(chunkSize) {
 
     // get the page if we have one if we don't set the hash map to null
     page = pageSet->getNextPage(workerID);
@@ -77,41 +77,31 @@ class MapTupleSetIterator : public ComputeSource {
 
   // returns the next tuple set to process, or nullptr if there is not one to process
   TupleSetPtr getNextTupleSet() override {
-
     // do we even have a map
     if(iterateOverMe == nullptr) {
       return nullptr;
     }
-
     // see if there are no more items in the vector to iterate over
     if (!(begin != end)) {
-
       // unpin the page
       page->unpin();
-
       // finish
       return nullptr;
     }
-
     std::vector<Handle<OutputType>> &inputColumn = output->getColumn<Handle<OutputType>>(0);
     int limit = (int) inputColumn.size();
     for (int i = 0; i < chunkSize; i++) {
-
       if (i >= limit) {
         Handle<OutputType> temp = (makeObject<OutputType>());
         inputColumn.push_back(temp);
       }
-
       // key the key/value pair
       inputColumn[i]->getKey() = (*begin).key;
       inputColumn[i]->getValue() = (*begin).value;
-
       // move on to the next item
       ++begin;
-
       // and exit if we are done
       if (!(begin != end)) {
-
         if (i + 1 < limit) {
           inputColumn.resize(i + 1);
         }
@@ -119,11 +109,9 @@ class MapTupleSetIterator : public ComputeSource {
         return output;
       }
     }
-
     x += inputColumn.size();
     return output;
   }
-
   ~MapTupleSetIterator() override = default;
 };
 

@@ -26,7 +26,8 @@
 #include "JoinTuple.h"
 #include "JoinCompBase.h"
 #include "LogicalPlan.h"
-#include "ShuffleJoinSide.h"
+#include "BroadcastJoinSide.h"
+#include "VectorTupleSetIterator.h"
 
 namespace pdb {
 
@@ -90,6 +91,12 @@ class JoinComp : public JoinCompBase {
     return getIthInputType<In1, In2, Rest...>(i);
   }
 
+  ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet,
+                                    size_t chunkSize,
+                                    uint64_t workerID) override {
+    return std::make_shared<pdb::VectorTupleSetIterator>(pageSet, chunkSize, workerID);
+  }
+
   // this gets a compute sink
   ComputeSinkPtr getComputeSink(TupleSpec &consumeMe,
                                 TupleSpec &attsToOpOn,
@@ -134,9 +141,9 @@ class JoinComp : public JoinCompBase {
 
     // check
     auto it = params.find(ComputeInfoType::JOIN_SIDE);
-    ShuffleJoinSidePtr joinSide = dynamic_pointer_cast<ShuffleJoinSide>(it->second);
+    BroadcastJoinSidePtr joinSide = dynamic_pointer_cast<BroadcastJoinSide>(it->second);
 
-    if(joinSide->value == ShuffleJoinSideEnum::PROBE_SIDE){
+    if(joinSide->value == BroadcastJoinSideEnum::PROBE_SIDE){
 
       return correctJoinTuple->getProbeSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
     }

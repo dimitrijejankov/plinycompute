@@ -10,13 +10,13 @@
 #include <pipeline/JoinBroadcastPipeline.h>
 #include <MemoryHolder.h>
 
-pdb::JoinShufflePipeline::JoinShufflePipeline(size_t workerID,
+pdb::JoinBroadcastPipeline::JoinBroadcastPipeline(size_t workerID,
                                               pdb::PDBAnonymousPageSetPtr outputPageSet,
                                               pdb::PDBAbstractPageSetPtr inputPageSet,
                                               pdb::ComputeSinkPtr merger) : workerID(workerID), outputPageSet(std::move(outputPageSet)), inputPageSet(std::move(inputPageSet)), merger(std::move(merger)) {}
 
 
-void pdb::JoinShufflePipeline::run() {
+void pdb::JoinBroadcastPipeline::run() {
 
   // this is where we are outputting all of our results to
   MemoryHolderPtr myRAM = std::make_shared<MemoryHolder>(outputPageSet->getNewPage());
@@ -29,9 +29,9 @@ void pdb::JoinShufflePipeline::run() {
     if (myRAM->outputSink == nullptr) {
       myRAM->outputSink = merger->createNewOutputContainer();
     }
-
     // write out the page
     merger->writeOutPage(inputPage, myRAM->outputSink);
+
   }
 
   // we only have one iteration

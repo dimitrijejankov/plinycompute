@@ -129,7 +129,7 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
   AtomicComputationList &allComps = myPlan->getComputations();
 
   std::cout << "print computations:" << std::endl;
-  std::cout << allComps << std::endl;
+  //std::cout << allComps << std::endl;
 
   // get the atomic computation of the source
   auto sourceAtomicComputation = allComps.getProducingAtomicComputation(sourceTupleSetName);

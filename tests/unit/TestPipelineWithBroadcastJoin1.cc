@@ -32,7 +32,7 @@
 #include "VectorTupleSetIterator.h"
 #include "ComputePlan.h"
 #include "StringIntPair.h"
-#include "ShuffleJoinSide.h"
+#include "BroadcastJoinSide.h"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -118,31 +118,58 @@ PDBPageHandle getSetBPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr) 
   return page;
 }
 
+PDBPageHandle getSetCPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr){
+
+  // create a page, loading it with random data
+  auto page = myMgr->getPage();
+  {
+    // this implementation only serves six pages
+    static int numPages = 0;
+    if (numPages == 6)
+      return nullptr;
+
+    // create a page, loading it with random data
+    {
+      const UseTemporaryAllocationBlock tempBlock{page->getBytes(), 1024 * 1024};
+
+      // write a bunch of supervisors to it
+      Handle<Vector<Handle<String>>> data = makeObject<Vector<Handle<String>>>();
+      int i = 0;
+      try {
+        for (; true; i++) {
+          std::ostringstream oss;
+          oss << "My string is " << i;
+          oss.str();
+          Handle<String> myString = makeObject<String>(oss.str());
+          data->push_back(myString);
+        }
+      } catch (NotEnoughSpace &e) {
+        std::cout << "got to " << i << " when proucing data for SillyReadOfC.\n";
+        getRecord(data);
+      }
+    }
+    numPages++;
+  }
+  return page;
+}
 class MockPageSetReader : public pdb::PDBAbstractPageSet {
  public:
-
   MOCK_METHOD1(getNextPage, PDBPageHandle(size_t
       workerID));
-
   MOCK_METHOD0(getNewPage, PDBPageHandle());
-
   MOCK_METHOD0(getNumPages, size_t());
-
 };
 
 class MockPageSetWriter : public pdb::PDBAnonymousPageSet {
  public:
-
   MOCK_METHOD1(getNextPage, PDBPageHandle(size_t
       workerID));
-
   MOCK_METHOD0(getNewPage, PDBPageHandle());
-
   MOCK_METHOD1(removePage, void(PDBPageHandle
       pageHandle));
-
   MOCK_METHOD0(getNumPages, size_t());
 };
+
 TEST(PipelineTest, TestShuffleJoin) {
 
   // this is our configuration we are testing
@@ -152,16 +179,9 @@ TEST(PipelineTest, TestShuffleJoin) {
   const uint64_t curThread = 1;
 
   /// 1. Create the buffer manager that is going to provide the pages to the pipeline
-
-
-
-
   // create the buffer manager
   std::shared_ptr<PDBBufferManagerImpl> myMgr = std::make_shared<PDBBufferManagerImpl>();
   myMgr->initialize("tempDSFSD", 2 * 1024 * 1024, 16, "metadata", ".");
-
-
-
 
   /// 2. Init the page sets
   // the page set that is gonna provide stuff
@@ -176,9 +196,6 @@ TEST(PipelineTest, TestShuffleJoin) {
 
   // make the function return pages with the Vector<JoinMap<JoinRecord>>
 
-
-
-
   // the page set that is gonna provide stuff
   std::shared_ptr<MockPageSetReader> setBReader = std::make_shared<MockPageSetReader>();
 
@@ -190,6 +207,20 @@ TEST(PipelineTest, TestShuffleJoin) {
   // TODO:
   EXPECT_CALL(*setBReader, getNextPage(testing::An<size_t>())).Times(7);
 
+  
+
+  // the page set that is gonna provide stuff
+  std::shared_ptr<MockPageSetReader> setCReader = std::make_shared<MockPageSetReader>();
+
+  // make the function return pages with Employee objects
+  ON_CALL(*setCReader, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke([&](size_t workerID) {
+    return getSetCPageWithData(myMgr);
+  }));
+
+  // TODO:
+  EXPECT_CALL(*setCReader, getNextPage(testing::An<size_t>())).Times(7);
+
+
 
 
 
@@ -197,13 +228,9 @@ TEST(PipelineTest, TestShuffleJoin) {
   pageQueuesForA.reserve(numNodes);
   for (int i = 0; i < numNodes; ++i) { pageQueuesForA.emplace_back(std::make_shared<PDBPageQueue>()); }
 
-
-
-
-  std::vector<PDBPageQueuePtr> pageQueuesForB;
-  pageQueuesForB.reserve(numNodes);
-  for (int i = 0; i < numNodes; ++i){pageQueuesForB.emplace_back(std::make_shared<PDBPageQueue>()); }
-
+  std::vector<PDBPageQueuePtr> pageQueuesForC;
+  pageQueuesForC.reserve(numNodes);
+  for (int i = 0; i < numNodes; ++i){pageQueuesForC.emplace_back(std::make_shared<PDBPageQueue>()); }
 
 
 
@@ -215,53 +242,45 @@ TEST(PipelineTest, TestShuffleJoin) {
   ON_CALL(*partitionedAPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
     return myMgr->getPage();
   }));
-
   EXPECT_CALL(*partitionedAPageSet, getNewPage).Times(testing::AtLeast(1));
-
   // TODO: the page set that is going to contain the partitioned preaggregation results
   ON_CALL(*partitionedAPageSet, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
       [&](size_t workerID) {
-
         // wait to get the page
         PDBPageHandle page;
         pageQueuesForA[workerID]->wait_dequeue(page);
-
         if (page == nullptr) {
           return (PDBPageHandle) nullptr;
         }
-
         // repin the page
         page->repin();
-
         // return it
         return page;
       }));
-
   // TODO: it should call send object exactly six times
   EXPECT_CALL(*partitionedAPageSet, getNextPage).Times(testing::AtLeast(1));
 
 
-
-
-
-
-  std::shared_ptr<MockPageSetWriter> partitionedBPageSet = std::make_shared<MockPageSetWriter>();
+  
+  
+  
+  std::shared_ptr<MockPageSetWriter> partitionedCPageSet = std::make_shared<MockPageSetWriter>();
 
   // TODO:
-  ON_CALL(*partitionedBPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
+  ON_CALL(*partitionedCPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
     return myMgr->getPage();
   }));
 
   // TODO:
-  EXPECT_CALL(*partitionedBPageSet, getNewPage).Times(testing::AtLeast(1));
+  EXPECT_CALL(*partitionedCPageSet, getNewPage).Times(testing::AtLeast(1));
 
   // TODO: the page set that is going to contain the partitioned results
-  ON_CALL(*partitionedBPageSet, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
+  ON_CALL(*partitionedCPageSet, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
       [&](size_t workerID) {
 
         // wait to get the page
         PDBPageHandle page;
-        pageQueuesForB[workerID]->wait_dequeue(page);
+        pageQueuesForC[workerID]->wait_dequeue(page);
 
         if (page == nullptr) {
           return (PDBPageHandle) nullptr;
@@ -275,13 +294,10 @@ TEST(PipelineTest, TestShuffleJoin) {
       }));
 
   // TODO: it should call send object exactly six times
-  EXPECT_CALL(*partitionedBPageSet, getNextPage).Times(testing::AtLeast(1));
+  EXPECT_CALL(*partitionedCPageSet, getNextPage).Times(testing::AtLeast(1));
 
 
-
-
-
-
+  
   std::shared_ptr<MockPageSetWriter> BroadcastedAPageSet = std::make_shared<MockPageSetWriter>();
 // TODO:
   ON_CALL(*BroadcastedAPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
@@ -291,19 +307,19 @@ TEST(PipelineTest, TestShuffleJoin) {
   EXPECT_CALL(*BroadcastedAPageSet, getNewPage).Times(testing::AtLeast(1));
 
 
-
   // the page set that is going to contain the partitioned preaggregation results
-  std::shared_ptr<MockPageSetWriter> BroadcastedBPageSet = std::make_shared<MockPageSetWriter>();
+  std::shared_ptr<MockPageSetWriter> BroadcastedCPageSet = std::make_shared<MockPageSetWriter>();
 
-  ON_CALL(*BroadcastedBPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
+  ON_CALL(*BroadcastedCPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
     return myMgr->getPage();
   }));
 
-  EXPECT_CALL(*BroadcastedBPageSet, getNewPage).Times(testing::AtLeast(1));
-
-
+  EXPECT_CALL(*BroadcastedCPageSet, getNewPage).Times(testing::AtLeast(1));
 
   // the page set that is going to contain the partitioned preaggregation results
+
+
+
   std::shared_ptr<MockPageSetWriter> andAndBJoinedPageSet = std::make_shared<MockPageSetWriter>();
 
   ON_CALL(*andAndBJoinedPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
@@ -409,10 +425,10 @@ TEST(PipelineTest, TestShuffleJoin) {
   std::cout << "\nDONE RUNNING PIPELINE\n";
   myPipeline = nullptr;
 
+  for (int i = 0; i < numNodes; ++i) { pageQueuesForA[i]->enqueue(nullptr); }
 
+  myPipeline = myPlan.buildMergeJoinBroadcastPipeline("AHashed", partitionedAPageSet,BroadcastedAPageSet,threadsPerNode, curThread);
 
-  params = {{}};
-  myPipeline = myPlan.buildMergeJoinBroadcastPipeline("AHashed", partitionedAPageSet, );
   std::cout << "\nRUNNING PIPELINE\n";
   myPipeline->run();
   std::cout << "\nDONE RUNNING PIPELINE\n";
@@ -420,11 +436,24 @@ TEST(PipelineTest, TestShuffleJoin) {
 
 
 
-  params = {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<BroadcastJoinProcessor>(numNodes,threadsPerNode,pageQueuesForB,myMgr)},
-            {ComputeInfoType::JOIN_SIDE, std::make_shared<pdb::BroadcastJoinSide>(BroadcastJoinSideEnum ::PROBE_SIDE)}};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  params = {{ComputeInfoType::JOIN_SIDE, std::make_shared<pdb::BroadcastJoinSide>(BroadcastJoinSideEnum::BUILD_SIDE)}};
   myPipeline = myPlan.buildPipeline(std::string("B"), /* this is the TupleSet the pipeline starts with */
-                                    std::string("BHashedOnA"),     /* this is the TupleSet the pipeline ends with */
-                                    setBReader,
+                                    std::string(""),     /* this is the TupleSet the pipeline ends with */
+                                    partitionedAPageSet,
                                     partitionedBPageSet,
                                     params,
                                     numNodes,
@@ -437,5 +466,39 @@ TEST(PipelineTest, TestShuffleJoin) {
   myPipeline->run();
   std::cout << "\nDONE RUNNING PIPELINE\n";
   myPipeline = nullptr;
+
+
+  /// 7. This pipeline will build the probe side for the other join
+
+  unordered_map<string, JoinArgPtr> hashTables = {{"", std::make_shared<JoinArg>(BroadcastedAPageSet)}};
+  // set the parameters
+  params = {{ComputeInfoType::PAGE_PROCESSOR,
+             std::make_shared<BroadcastJoinProcessor>(numNodes, threadsPerNode, pageQueuesForA, myMgr)},
+            {ComputeInfoType::JOIN_SIDE, std::make_shared<pdb::BroadcastJoinSide>(BroadcastJoinSideEnum::PROBE_SIDE)},
+            {ComputeInfoType::JOIN_ARGS, std::make_shared<JoinArguments>(hashTables)}};
+  myPipeline = myPlan.buildPipeline(std::string("AandBJoined"), /* this is the TupleSet the pipeline starts with */
+                                    std::string("BHashedOnC"),     /* this is the TupleSet the pipeline ends with */
+                                    partitionedBPageSet,
+                                    andAndBJoinedPageSet,
+                                    params,
+                                    numNodes,
+                                    threadsPerNode,
+                                    20,
+                                    curThread);
+
+  // and now, simply run the pipeline and then destroy it!!!
+  std::cout << "\nRUNNING PIPELINE\n";
+  myPipeline->run();
+  std::cout << "\nDONE RUNNING PIPELINE\n";
+  myPipeline = nullptr;
+
+  /*
+  for (int i = 0; i < numNodes; ++i) { pageQueuesForB[i]->enqueue(nullptr); }
+  myPipeline = myPlan.buildMergeJoinBroadcastPipeline("BHashedOnA", partitionedBPageSet, BroadcastedBPageSet, threadsPerNode, curThread);
+  std::cout << "\nRUNNING PIPELINE\n";
+  myPipeline->run();
+  std::cout << "\nDONE RUNNING PIPELINE\n";
+  myPipeline = nullptr;
+  */
 
 }

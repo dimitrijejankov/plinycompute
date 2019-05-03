@@ -9,8 +9,8 @@
 
 namespace pdb {
 
-class ShuffleJoinSide;
-using ShuffleJoinSidePtr = std::shared_ptr<ShuffleJoinSide>;
+class BroadcastJoinSide;
+using BroadcastJoinSidePtr = std::shared_ptr<BroadcastJoinSide>;
 
 /**
  * Specifies which side of the join we would do

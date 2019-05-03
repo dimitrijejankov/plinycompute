@@ -2,8 +2,8 @@
 // Created by dimitrije on 4/11/19.
 //
 
-#ifndef PDB_JOINSHUFFLEPIPELINE_H
-#define PDB_JOINSHUFFLEPIPELINE_H
+#ifndef PDB_JOINBROADCASTPIPELINE_H
+#define PDB_JOINBROADCASTPIPELINE_H
 
 #include <PipelineInterface.h>
 #include <PDBAnonymousPageSet.h>
@@ -11,7 +11,7 @@
 
 namespace pdb {
 
-class JoinShufflePipeline : public PipelineInterface {
+class JoinBroadcastPipeline : public PipelineInterface {
  private:
 
   // the id of the worker this pipeline is running on
@@ -28,7 +28,7 @@ class JoinShufflePipeline : public PipelineInterface {
 
  public:
 
-  JoinShufflePipeline(size_t workerID,
+  JoinBroadcastPipeline(size_t workerID,
                       PDBAnonymousPageSetPtr outputPageSet,
                       PDBAbstractPageSetPtr inputPageSet,
                       ComputeSinkPtr merger);

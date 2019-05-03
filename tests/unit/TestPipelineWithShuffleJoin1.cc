@@ -32,7 +32,7 @@
 #include "VectorTupleSetIterator.h"
 #include "ComputePlan.h"
 #include "StringIntPair.h"
-#include "ShuffleJoinSide.h"
+#include "BroadcastJoinSide.h"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>

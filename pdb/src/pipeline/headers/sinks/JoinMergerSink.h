@@ -44,37 +44,34 @@ public:
   }
 
   void writeOutPage(pdb::PDBPageHandle &page, Handle<Object> &writeToMe) override {
-
     // cast the hash table we are merging to
     Handle<JoinMap<RHSType>> mergeToMe = unsafeCast<JoinMap<RHSType>>(writeToMe);
-    JoinMap<RHSType> &myMap = *mergeToMe;
 
+    JoinMap<RHSType> &myMap = *mergeToMe;
     // grab the hash table
     Handle<Object> hashTable = ((Record<Object> *) page->getBytes())->getRootObject();
-    auto &mergeMe = *(*unsafeCast<Vector<Handle<JoinMap<RHSType>>>>(hashTable))[workerID];
+    auto &joinMapVector = (*unsafeCast<Vector<Handle<JoinMap<RHSType>>>>(hashTable));
 
-    for (auto it = mergeMe.begin(); it != mergeMe.end(); ++it) {
+    for (auto mapIndex = 2 * workerID; mapIndex <= 2*workerID+1; mapIndex++) {
 
-      // get the records
-      JoinRecordList<RHSType> &records = *(*it);
+      auto &mergeMe = *(joinMapVector[mapIndex]);
 
-      // get the hash
-      auto hash = records.getHash();
-
-      // copy the records
-      for (size_t i = 0; i < records.size(); ++i) {
-
-        // copy a single record
-        try {
-
-          RHSType &temp = myMap.push(hash);
-          temp = records[i];
-
-          // if we get an exception, then we could not fit a new key/value pair
-        } catch (NotEnoughSpace &n) {
-
-          // this must not happen. The combined records of the partition // TODO maybe handle this gracefully
-          throw n;
+      for (auto it = mergeMe.begin(); it != mergeMe.end(); ++it) {
+        // get the records
+        JoinRecordList<RHSType> &records = *(*it);
+        // get the hash
+        auto hash = records.getHash();
+        // copy the records
+        for (size_t i = 0; i < records.size(); ++i) {
+          // copy a single record
+          try {
+            RHSType &temp = myMap.push(hash);
+            temp = records[i];
+            // if we get an exception, then we could not fit a new key/value pair
+          } catch (NotEnoughSpace &n) {
+            // this must not happen. The combined records of the partition // TODO maybe handle this gracefully
+            throw n;
+          }
         }
       }
     }

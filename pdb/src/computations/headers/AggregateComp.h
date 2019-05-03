@@ -117,7 +117,7 @@ class AggregateComp : public AggregateCompBase {
   }
 
   ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID) override {
-    return std::make_shared<pdb::MapTupleSetIterator<KeyClass, ValueClass, OutputClass>> (pageSet, workerID, chunkSize);
+    return std::make_shared<pdb::MapTupleSetIterator<KeyClass, ValueClass, OutputClass>> (pageSet, chunkSize, workerID);
   }
 
   ComputeSinkPtr getAggregationHashMapCombiner(uint64_t workerID) override {
