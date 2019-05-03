@@ -159,7 +159,7 @@ inline PageProcessorPtr ComputePlan::getProcessorForJoin(const std::string &tupl
                                                                                                                               myPlan);
 }
 
-inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetName,
+inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
                                               const std::string &targetTupleSetName,
                                               const PDBAbstractPageSetPtr &inputPageSet,
                                               const PDBAnonymousPageSetPtr &outputPageSet,
@@ -190,8 +190,72 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
   // and get the schema for the output TupleSet objects that it is supposed to produce
   TupleSpec &origSpec = sourceAtomicComputation->getOutput();
 
-  // now we are going to ask that particular node for the compute source
-  ComputeSourcePtr computeSource = myPlan->getNode(producerName).getComputation().getComputeSource(inputPageSet, chunkSize, workerID);
+  // figure out the source
+  ComputeSourcePtr computeSource;
+
+  if(sourceAtomicComputation->getAtomicComputationTypeID() == ApplyJoinTypeID) {
+
+    // cast the join computation
+    auto *joinComputation = (ApplyJoin *) sourceAtomicComputation.get();
+
+    // some stuff we need to figure out
+    bool needsToSwapSides;
+    AtomicComputationPtr leftAtomicComp;
+    AtomicComputationPtr rightAtomicComp;
+
+    // figure out if the source is the left or right side
+    auto shuffleJoinArgs = std::dynamic_pointer_cast<ShuffleJoinArg>(params[ComputeInfoType::SHUFFLE_JOIN_ARG]);
+    if(!shuffleJoinArgs->swapLeftAndRightSide) {
+
+      leftAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getInput().getSetName());
+      rightAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getRightInput().getSetName());
+      needsToSwapSides = false;
+    }
+    else {
+
+      rightAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getInput().getSetName());
+      leftAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getRightInput().getSetName());
+      needsToSwapSides = true;
+    }
+
+    // grab the join arguments
+    JoinArgumentsPtr joinArgs = std::dynamic_pointer_cast<JoinArguments>(params[ComputeInfoType::JOIN_ARGS]);
+    if(joinArgs == nullptr) {
+      throw runtime_error("Join pipeline run without hash tables!");
+    }
+
+    // do we have the appropriate join arguments? if not throw an exception
+    auto it = joinArgs->hashTables.find(rightAtomicComp->getOutput().getSetName());
+    if(it == joinArgs->hashTables.end()) {
+      throw runtime_error("Hash table for the output set," + rightAtomicComp->getOutput().getSetName() +  "not found!");
+    }
+
+    // init the RHS source
+    auto rhsSource = ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getRHSShuffleJoinSource(rightAtomicComp->getOutput(),
+                                                                                                                                          joinComputation->getRightInput(),
+                                                                                                                                          joinComputation->getRightProjection(),
+                                                                                                                                          it->second->pageSet,
+                                                                                                                                          myPlan,
+                                                                                                                                          chunkSize,
+                                                                                                                                          workerID);
+
+    // init the compute source for the join
+    computeSource = ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getJoinedSource(joinComputation->getProjection(), // this tells me how the join tuple of the LHS is layed out
+                                                                                                                                 rightAtomicComp->getOutput(), // this gives the specification of the RHS tuple
+                                                                                                                                 joinComputation->getRightInput(), // this gives the location of the RHS hash
+                                                                                                                                 joinComputation->getRightProjection(), // this gives the projection of the RHS tuple
+                                                                                                                                 rhsSource, // the RHS source that gives us the tuples
+                                                                                                                                 inputPageSet, // the LHS page set
+                                                                                                                                 myPlan,
+                                                                                                                                 needsToSwapSides,
+                                                                                                                                 chunkSize,
+                                                                                                                                 workerID);
+  }
+  else {
+
+    // our source is a normal source and not a join source, so we just grab it from the computation
+    computeSource = myPlan->getNode(producerName).getComputation().getComputeSource(inputPageSet, chunkSize, workerID);
+  }
 
   std::cout << "\nBUILDING PIPELINE\n";
   std::cout << "Source: " << origSpec << "\n";
@@ -241,9 +305,8 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
   std::cout << "The target is " << targetSpec << "\n";
 
   // and get the projection for this guy
-  std::vector<AtomicComputationPtr> &consumers = allComps.getConsumingAtomicComputations(targetSpec.getSetName());
-  //JiaNote: change the reference into a new variable based on Chris' Join code
-  //TupleSpec &targetProjection = targetSpec;
+  const auto &consumers = allComps.getConsumingAtomicComputations(targetSpec.getSetName());
+
   TupleSpec targetProjection;
   TupleSpec targetAttsToOpOn;
   for (auto &a : consumers) {
@@ -322,21 +385,21 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
       // create an executor for the apply lambda
       std::cout << "Adding: " << a->getProjection() << " + apply [" << a->getInput() << "] => " << a->getOutput() << "\n";
       returnVal->addStage(myPlan->getNode(a->getComputationName()).
-                          getLambda(((ApplyLambda *) a.get())->getLambdaToApply())->getExecutor(lastOne->getOutput(), a->getInput(), a->getProjection()));
+          getLambda(((ApplyLambda *) a.get())->getLambdaToApply())->getExecutor(lastOne->getOutput(), a->getInput(), a->getProjection()));
 
     } else if (a->getAtomicComputationType() == "HashLeft") {
 
       // create an executor for left hasher
       std::cout << "Adding: " << a->getProjection() << " + hashleft [" << a->getInput() << "] => " << a->getOutput() << "\n";
       returnVal->addStage(myPlan->getNode(a->getComputationName()).
-                          getLambda(((HashLeft *) a.get())->getLambdaToApply())->getLeftHasher(lastOne->getOutput(), a->getInput(), a->getProjection()));
+          getLambda(((HashLeft *) a.get())->getLambdaToApply())->getLeftHasher(lastOne->getOutput(), a->getInput(), a->getProjection()));
 
     } else if (a->getAtomicComputationType() == "HashRight") {
 
       // create an executor for the right hasher
       std::cout << "Adding: " << a->getProjection() << " + hashright [" << a->getInput() << "] => " << a->getOutput() << "\n";
       returnVal->addStage(myPlan->getNode(a->getComputationName()).
-                          getLambda(((HashLeft *) a.get())->getLambdaToApply())->getRightHasher(lastOne->getOutput(), a->getInput(), a->getProjection()));
+          getLambda(((HashLeft *) a.get())->getLambdaToApply())->getRightHasher(lastOne->getOutput(), a->getInput(), a->getProjection()));
 
 
     } else if (a->getAtomicComputationType() == "JoinSets") {
@@ -445,42 +508,54 @@ inline PipelinePtr ComputePlan::buildShuffleJoinPipeline(const std::string &join
 
   std::cout << leftAtomicComp->getOutput() << " " << rightAtomicComp->getOutput() << std::endl;
 
-  ComputeSourcePtr computeSource = ((JoinCompBase*) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getLHSShuffleJoinSource(rightAtomicComp->getOutput(),
-                                                                                                                                                       joinComputation->getRightInput(),
-                                                                                                                                                       joinComputation->getRightProjection(),
-                                                                                                                                                       rightInputPageSet,
-                                                                                                                                                       myPlan,
-                                                                                                                                                       chunkSize,
-                                                                                                                                                       workerID);
+  auto rhsSource = ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getRHSShuffleJoinSource(rightAtomicComp->getOutput(),
+                                                                                                                                        joinComputation->getRightInput(),
+                                                                                                                                        joinComputation->getRightProjection(),
+                                                                                                                                        rightInputPageSet,
+                                                                                                                                        myPlan,
+                                                                                                                                        chunkSize,
+                                                                                                                                        workerID);
 
-  ComputeSourcePtr joinedSource = ((JoinCompBase*) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getJoinedSource(leftAtomicComp->getOutput(),
-                                                                                                                                              joinComputation->getInput(),
-                                                                                                                                              joinComputation->getProjection(),
-                                                                                                                                              computeSource,
-                                                                                                                                              leftInputPageSet,
-                                                                                                                                              myPlan,
-                                                                                                                                              chunkSize,
-                                                                                                                                              workerID);
+  auto computeSource = ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getJoinedSource(joinComputation->getProjection(), // this tells me how the join tuple of the LHS is layed out
+                                                                                                                                    rightAtomicComp->getOutput(), // this gives the specification of the RHS tuple
+                                                                                                                                    joinComputation->getRightInput(), // this gives the location of the RHS hash
+                                                                                                                                    joinComputation->getRightProjection(), // this gives the projection of the RHS tuple
+                                                                                                                                    rhsSource, // the RHS source that gives us the tuples
+                                                                                                                                    leftInputPageSet, // the LHS page set
+                                                                                                                                    myPlan,
+                                                                                                                                    false,
+                                                                                                                                    chunkSize,
+                                                                                                                                    workerID);
 
+  TupleSetPtr it;
+  while ((it = computeSource->getNextTupleSet()) != nullptr) {
+    auto &a = it->getColumn<Handle <int>>(0);
+    auto &b = it->getColumn<Handle <StringIntPair>>(1);
 
-  int x = 0;
-  while(auto tuple = computeSource->getNextTupleSet()) {
+    for(int i = 0; i < a.size(); ++i) {
 
-    if(tuple == nullptr) {
-      return nullptr;
-    }
-
-    if(x % 10 == 0) {
-
-      auto records = tuple->getColumn<Handle<StringIntPair>>(0);
-      auto hashes = tuple->getColumn<size_t>(1);
-
-      for(int i = 0; i < records.size(); ++i) {
-        std::cout << *records[i]->myString << " " << records[i]->myInt << " " << hashes[i] << std::endl;
-      }
-      std::cout << "whatever" << std::endl;
+      std::cout << "Int " << *a[i] << " StringIntPair(" << b[i]->myInt << ", " << *b[i]->myString << ")" << std::endl;
     }
   }
+
+//  int x = 0;
+//  for(auto tuple = rhsSource->getNextTupleSet(); tuple.first != nullptr; tuple = rhsSource->getNextTupleSet()) {
+//
+//    if(tuple.first == nullptr) {
+//      return nullptr;
+//    }
+//
+//    if(x % 10 == 0) {
+//
+//      auto records = tuple.first->getColumn<Handle<StringIntPair>>(0);
+//      auto hashes = tuple.first->getColumn<size_t>(1);
+//
+//      for(int i = 0; i < records.size(); ++i) {
+//        std::cout << *records[i]->myString << " " << records[i]->myInt << " " << hashes[i] << std::endl;
+//      }
+//      std::cout << "whatever" << std::endl;
+//    }
+//  }
 
 
   return nullptr;

@@ -120,13 +120,13 @@ class JoinComp : public JoinCompBase {
     return correctJoinTuple->getPageProcessor(numNodes, numProcessingThreads, pageQueues, bufferManager);
   }
 
-  ComputeSourcePtr getLHSShuffleJoinSource(TupleSpec &inputSchema,
-                                           TupleSpec &hashSchema,
-                                           TupleSpec &recordSchema,
-                                           const PDBAbstractPageSetPtr &leftInputPageSet,
-                                           pdb::LogicalPlanPtr &plan,
-                                           int32_t chunkSize,
-                                           uint64_t workerID) override {
+  RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
+                                                      TupleSpec &hashSchema,
+                                                      TupleSpec &recordSchema,
+                                                      const PDBAbstractPageSetPtr &leftInputPageSet,
+                                                      pdb::LogicalPlanPtr &plan,
+                                                      uint64_t chunkSize,
+                                                      uint64_t workerID) override {
 
     // figure out the right join tuple
     std::vector<int> whereEveryoneGoes;
@@ -139,20 +139,29 @@ class JoinComp : public JoinCompBase {
     std::cout << "\n";
 
     // return the lhs join source
-    return correctJoinTuple->getLHSShuffleJoinSource(inputSchema, hashSchema, recordSchema, leftInputPageSet, whereEveryoneGoes, chunkSize, workerID);
+    return correctJoinTuple->getRHSShuffleJoinSource(inputSchema,
+                                                     hashSchema,
+                                                     recordSchema,
+                                                     leftInputPageSet,
+                                                     whereEveryoneGoes,
+                                                     chunkSize,
+                                                     workerID);
   }
 
-  ComputeSourcePtr getJoinedSource(TupleSpec &inputSchema,
-                                   TupleSpec &hashSchema,
-                                   TupleSpec &recordSchema,
-                                   ComputeSourcePtr leftSource,
+  ComputeSourcePtr getJoinedSource(TupleSpec &recordSchemaLHS,
+                                   TupleSpec &inputSchemaRHS,
+                                   TupleSpec &hashSchemaRHS,
+                                   TupleSpec &recordSchemaRHS,
+                                   RHSShuffleJoinSourceBasePtr leftSource,
                                    const PDBAbstractPageSetPtr &rightInputPageSet,
                                    pdb::LogicalPlanPtr &plan,
-                                   int32_t chunkSize,
+                                   bool needToSwapLHSAndRhs,
+                                   uint64_t chunkSize,
                                    uint64_t workerID) override {
+
     // figure out the right join tuple
     std::vector<int> whereEveryoneGoes;
-    JoinTuplePtr correctJoinTuple = findJoinTuple(recordSchema, plan, whereEveryoneGoes);
+    JoinTuplePtr correctJoinTuple = findJoinTuple(recordSchemaLHS, plan, whereEveryoneGoes);
 
     // for debug
     for (auto &aa : whereEveryoneGoes) {
@@ -161,10 +170,12 @@ class JoinComp : public JoinCompBase {
     std::cout << "\n";
 
     // return the lhs join source
-    return correctJoinTuple->getJoinedSource(inputSchema, hashSchema, recordSchema, leftSource, rightInputPageSet, whereEveryoneGoes, chunkSize, workerID);
+    return correctJoinTuple->getJoinedSource(inputSchemaRHS, hashSchemaRHS, recordSchemaRHS, leftSource, rightInputPageSet, whereEveryoneGoes, needToSwapLHSAndRhs, chunkSize, workerID);
   }
 
-  JoinTuplePtr findJoinTuple(TupleSpec &recordSchema, LogicalPlanPtr &plan, vector<int> &whereEveryoneGoes) const {// get the producing atomic computation
+  JoinTuplePtr findJoinTuple(TupleSpec &recordSchema, LogicalPlanPtr &plan, vector<int> &whereEveryoneGoes) const {
+
+    // get the producing atomic computation
     AtomicComputationPtr producer = plan->getComputations().getProducingAtomicComputation(recordSchema.getSetName());
 
     // figure out the types

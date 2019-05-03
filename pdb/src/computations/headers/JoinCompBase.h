@@ -19,6 +19,7 @@
 #define JOINCOMPBASE_H
 
 #include "Computation.h"
+#include "RHSShuffleJoinSourceBase.h"
 #include <JoinArguments.h>
 
 namespace pdb {
@@ -41,21 +42,23 @@ class JoinCompBase : public Computation {
                                          TupleSpec &pipelinedAttsToOperateOn,
                                          TupleSpec &pipelinedAttsToIncludeInOutput) = 0;
 
-  virtual ComputeSourcePtr getLHSShuffleJoinSource(TupleSpec &inputSchema,
-                                                   TupleSpec &hashSchema,
-                                                   TupleSpec &recordSchema,
-                                                   const PDBAbstractPageSetPtr &leftInputPageSet,
-                                                   pdb::LogicalPlanPtr &plan,
-                                                   int32_t chunkSize,
-                                                   uint64_t workerID) = 0;
+  virtual RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
+                                                              TupleSpec &hashSchema,
+                                                              TupleSpec &recordSchema,
+                                                              const PDBAbstractPageSetPtr &leftInputPageSet,
+                                                              pdb::LogicalPlanPtr &plan,
+                                                              uint64_t chunkSize,
+                                                              uint64_t workerID) = 0;
 
-  virtual ComputeSourcePtr getJoinedSource(TupleSpec &inputSchema,
-                                           TupleSpec &hashSchema,
-                                           TupleSpec &recordSchema,
-                                           ComputeSourcePtr leftSource,
+  virtual ComputeSourcePtr getJoinedSource(TupleSpec &outputSchema,
+                                           TupleSpec &inputSchemaRHS,
+                                           TupleSpec &hashSchemaRHS,
+                                           TupleSpec &recordSchemaRHS,
+                                           RHSShuffleJoinSourceBasePtr leftSource,
                                            const PDBAbstractPageSetPtr &rightInputPageSet,
                                            pdb::LogicalPlanPtr &plan,
-                                           int32_t chunkSize,
+                                           bool needToSwapLHSAndRhs,
+                                           uint64_t chunkSize,
                                            uint64_t workerID) = 0;
 
   virtual PageProcessorPtr getShuffleJoinProcessor(size_t numNodes,

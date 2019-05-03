@@ -99,7 +99,7 @@ class Computation : public Object {
   // gets the output type of this query as a string
   virtual std::string getOutputType() = 0;
 
-  // set the first slot, by default
+  // set the first pos, by default
   bool setInput(Handle<Computation> toMe) {
     return setInput(0, toMe);
   }
@@ -116,7 +116,7 @@ class Computation : public Object {
       }
     }
 
-    // if we are adding this query to a valid slot
+    // if we are adding this query to a valid pos
     if (whichSlot < getNumInputs()) {
 
       //make sure the output type of the guy we are accepting meets the input type

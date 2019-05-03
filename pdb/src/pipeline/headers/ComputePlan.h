@@ -89,7 +89,7 @@ class ComputePlan {
   // called if the page can safely be destroyed because it has no useful data.  The latter is called if the
   // page stores a pdb :: Object that contains the result of the computation.
 
-  PipelinePtr buildPipeline(const std::string &sourceTupleSetName,
+  PipelinePtr buildPipeline(std::string sourceTupleSetName,
                             const std::string &targetTupleSetName,
                             const PDBAbstractPageSetPtr &inputPageSet,
                             const PDBAnonymousPageSetPtr &outputPageSet,

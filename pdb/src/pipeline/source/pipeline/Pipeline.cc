@@ -1,4 +1,6 @@
 #include <utility>
+#include <pipeline/Pipeline.h>
+
 
 /*****************************************************************************
  *                                                                           *
@@ -136,6 +138,9 @@ void pdb::Pipeline::run() {
           // we need to keep the page
           keepPage(ram, iteration);
         }
+        else {
+          dismissPage(ram, true);
+        }
 
         // get new page
         ram = std::make_shared<MemoryHolder>(outputPageSet->getNewPage());
@@ -163,6 +168,9 @@ void pdb::Pipeline::run() {
         // we need to keep the page
         keepPage(ram, iteration);
       }
+      else {
+        dismissPage(ram, true);
+      }
 
       // get new page
       ram = std::make_shared<MemoryHolder>(outputPageSet->getNewPage());
@@ -183,6 +191,9 @@ void pdb::Pipeline::run() {
     // we need to keep the page
     keepPage(ram, iteration);
   }
+  else {
+    dismissPage(ram, true);
+  }
 }
 
 void pdb::Pipeline::keepPage(pdb::MemoryHolderPtr ram, int iteration) {
@@ -190,4 +201,18 @@ void pdb::Pipeline::keepPage(pdb::MemoryHolderPtr ram, int iteration) {
   // set the iteration and store it in the list of unwritten pages
   ram->setIteration(iteration);
   unwrittenPages.push(ram);
+}
+
+void pdb::Pipeline::dismissPage(pdb::MemoryHolderPtr ram, bool dismissLast) {
+
+  // and force the reference count for this guy to go to zero
+  PDB_COUT << "to empty out containing block" << std::endl;
+  ram->outputSink.emptyOutContainingBlock();
+
+  if(dismissLast) {
+    makeObjectAllocatorBlock(1024, true);
+  }
+
+  // unpin the page so we don't have problems
+  ram->pageHandle->unpin();
 }

@@ -2,7 +2,7 @@
 #include <JoinMap.h>
 #include <JoinTuple.h>
 #include <UseTemporaryAllocationBlock.h>
-
+#include <StringIntPair.h>
 
 TEST(TestJoinMapWithJoinTuple, Test1) {
 

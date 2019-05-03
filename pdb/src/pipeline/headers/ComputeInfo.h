@@ -26,10 +26,10 @@ namespace pdb {
 enum ComputeInfoType {
 
   PAGE_PROCESSOR,
-  JOIN_ARGS
+  JOIN_ARGS,
+  SHUFFLE_JOIN_ARG
 
 };
-
 
 // this is the base class for parameters that are sent into a pipeline when it is built
 class ComputeInfo {
@@ -39,7 +39,7 @@ public:
 	virtual ~ComputeInfo () = default;
 };
 
-typedef std :: shared_ptr <ComputeInfo> ComputeInfoPtr;
+using ComputeInfoPtr = std::shared_ptr<pdb::ComputeInfo>;
 
 }
 

@@ -58,15 +58,15 @@ template<class ValueType>
 class JoinRecordList {
 
  private:
-  // the slot in the pair array
+  // the pos in the pair array
   uint32_t whichOne;
 
   // the pair array
-  JoinPairArray<ValueType> &parent;
+  JoinPairArray<ValueType> *parent;
 
  public:
   // constructor
-  JoinRecordList(uint32_t whichOne, JoinPairArray<ValueType> &parent);
+  JoinRecordList(uint32_t whichOne, JoinPairArray<ValueType> *parent);
 
   // returns the hash value that all of these guys share
   size_t getHash();
@@ -85,17 +85,30 @@ class JoinMapIterator {
  public:
   bool operator!=(const JoinMapIterator &me) const;
   bool operator==(const JoinMapIterator &me) const;
+  JoinMapIterator operator+(int howMuch) const;
   std::shared_ptr<JoinRecordList<ValueType>> operator*();
   void operator++();
+
+  JoinMapIterator(JoinPairArray<ValueType> *, std::shared_ptr<std::vector<std::pair<uint32_t, uint64_t>>> iterationOrder, bool isDone, int position);
   JoinMapIterator(Handle<JoinPairArray<ValueType>> iterateMeIn, bool);
   JoinMapIterator(Handle<JoinPairArray<ValueType>> iterateMeIn);
   JoinMapIterator();
+  
+  bool isDone();
+  const size_t getHash() const;
 
  private:
-  uint32_t slot;
-  // JiaNote: I change reference to pointer because I need initialize JoinMapIterator using
-  // default constructor for hash partitioned join
+
+  // the order in which we iterate (
+  std::shared_ptr<std::vector<std::pair<uint32_t, uint64_t>>> iterationOrder;
+
+  // which position in the are we on when we are iterating
+  uint32_t pos;
+  
+  // the join pair array of the join map we are iterating on
   JoinPairArray<ValueType> *iterateMe;
+  
+  // are we at the end?
   bool done;
 };
 
@@ -170,6 +183,18 @@ class JoinPairArray : public Object {
   // this method is used to do a deep copy of this join map
   template <class T> friend Handle<JoinMap<T>> deepCopyJoinMap(Handle<JoinMap<T>>& copyMe);
 };
+
+// so that we can compare page iterators
+template<typename RHS>
+class JoinIteratorComparator {
+ public:
+
+  bool operator() (const JoinMapIterator<RHS>& lhs, const JoinMapIterator<RHS>& rhs) const {
+    // compare the hashes
+    return lhs.getHash() > rhs.getHash();
+  }
+};
+
 }
 
 #include "JoinPairArray.cc"

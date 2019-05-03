@@ -62,7 +62,7 @@ JoinMap<ValueType>::JoinMap() {
 }
 
 template <class ValueType>
-JoinMap<ValueType>::~JoinMap() {}
+JoinMap<ValueType>::~JoinMap() = default;
 
 template <class ValueType>
 void JoinMap<ValueType>::setUnused(const size_t& clearMe) {
@@ -101,8 +101,7 @@ JoinMapIterator<ValueType> JoinMap<ValueType>::begin() {
 
 template <class ValueType>
 JoinMapIterator<ValueType> JoinMap<ValueType>::end() {
-    JoinMapIterator<ValueType> returnVal(myArray);
-    return returnVal;
+    return JoinMapIterator<ValueType>();
 }
 
 template <class ValueType>

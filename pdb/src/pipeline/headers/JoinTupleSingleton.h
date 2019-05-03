@@ -10,7 +10,8 @@
 #include <ComputeSink.h>
 #include <JoinProbeExecutor.h>
 #include <JoinSink.h>
-#include <LHSShuffleJoinSource.h>
+#include <RHSShuffleJoinSource.h>
+#include <JoinedShuffleJoinSource.h>
 #include <processors/ShuffleJoinProcessor.h>
 
 namespace pdb {
@@ -33,21 +34,22 @@ class JoinTupleSingleton {
                                  std::vector<int> whereEveryoneGoes,
                                  uint64_t numPartitions) = 0;
 
-  virtual ComputeSourcePtr getLHSShuffleJoinSource(TupleSpec &inputSchema,
-                                                   TupleSpec &hashSchema,
-                                                   TupleSpec &recordSchema,
-                                                   const PDBAbstractPageSetPtr &leftInputPageSet,
-                                                   std::vector<int> &recordOrder,
-                                                   int32_t chunkSize,
-                                                   uint64_t workerID) = 0;
+  virtual RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
+                                                              TupleSpec &hashSchema,
+                                                              TupleSpec &recordSchema,
+                                                              const PDBAbstractPageSetPtr &leftInputPageSet,
+                                                              std::vector<int> &recordOrder,
+                                                              uint64_t chunkSize,
+                                                              uint64_t workerID) = 0;
 
-  virtual ComputeSourcePtr getJoinedSource(TupleSpec &inputSchema,
-                                           TupleSpec &hashSchema,
-                                           TupleSpec &recordSchema,
-                                           ComputeSourcePtr leftSource,
-                                           const PDBAbstractPageSetPtr &rightInputPageSet,
-                                           std::vector<int> &whereEveryoneGoes,
-                                           int32_t chunkSize,
+  virtual ComputeSourcePtr getJoinedSource(TupleSpec &inputSchemaRHS,
+                                           TupleSpec &hashSchemaRHS,
+                                           TupleSpec &recordSchemaRHS,
+                                           RHSShuffleJoinSourceBasePtr rhsSource,
+                                           const PDBAbstractPageSetPtr &lhsInputPageSet,
+                                           std::vector<int> &lhsRecordOrder,
+                                           bool needToSwapLHSAndRhs,
+                                           uint64_t chunkSize,
                                            uint64_t workerID) = 0;
 
   virtual PageProcessorPtr getPageProcessor(size_t numNodes,
@@ -84,28 +86,29 @@ class JoinSingleton : public JoinTupleSingleton {
     return std::make_shared<JoinSink<HoldMe>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
   }
 
-  ComputeSourcePtr getLHSShuffleJoinSource(TupleSpec &inputSchema,
-                                           TupleSpec &hashSchema,
-                                           TupleSpec &recordSchema,
-                                           const PDBAbstractPageSetPtr &leftInputPageSet,
-                                           std::vector<int> &recordOrder,
-                                           int32_t chunkSize,
-                                           uint64_t workerID) override {
+  RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
+                                                      TupleSpec &hashSchema,
+                                                      TupleSpec &recordSchema,
+                                                      const PDBAbstractPageSetPtr &leftInputPageSet,
+                                                      std::vector<int> &recordOrder,
+                                                      uint64_t chunkSize,
+                                                      uint64_t workerID) override {
 
-    return std::make_shared<LHSShuffleJoinSource<HoldMe>>(inputSchema, hashSchema, recordSchema, recordOrder, leftInputPageSet, chunkSize, workerID);
+    return std::make_shared<RHSShuffleJoinSource<HoldMe>>(inputSchema, hashSchema, recordSchema, recordOrder, leftInputPageSet, chunkSize, workerID);
   }
 
-  ComputeSourcePtr getJoinedSource(TupleSpec &inputSchema,
-                                   TupleSpec &hashSchema,
-                                   TupleSpec &recordSchema,
-                                   ComputeSourcePtr leftSource,
-                                   const PDBAbstractPageSetPtr &rightInputPageSet,
-                                   std::vector<int> &recordOrder,
-                                   int32_t chunkSize,
+  ComputeSourcePtr getJoinedSource(TupleSpec &inputSchemaRHS,
+                                   TupleSpec &hashSchemaRHS,
+                                   TupleSpec &recordSchemaRHS,
+                                   RHSShuffleJoinSourceBasePtr rhsSource,
+                                   const PDBAbstractPageSetPtr &lhsInputPageSet,
+                                   std::vector<int> &lhsRecordOrder,
+                                   bool needToSwapLHSAndRhs,
+                                   uint64_t chunkSize,
                                    uint64_t workerID) override {
 
     /// remove this
-    return std::make_shared<LHSShuffleJoinSource<HoldMe>>(inputSchema, hashSchema, recordSchema, recordOrder, rightInputPageSet, chunkSize, workerID);
+    return std::make_shared<JoinedShuffleJoinSource<HoldMe>>(inputSchemaRHS, hashSchemaRHS, recordSchemaRHS, lhsInputPageSet, lhsRecordOrder, rhsSource, needToSwapLHSAndRhs, chunkSize, workerID);
   }
 
   PageProcessorPtr getPageProcessor(size_t numNodes,
@@ -117,7 +120,6 @@ class JoinSingleton : public JoinTupleSingleton {
 };
 
 typedef std::shared_ptr<JoinTupleSingleton> JoinTuplePtr;
-
 
 inline int findType(std::string &findMe, std::vector<std::string> &typeList) {
 
@@ -214,6 +216,5 @@ typename std::enable_if<std::is_base_of<JoinTupleBase, In1>::value, JoinTuplePtr
 }
 
 }
-
 
 #endif //PDB_JOINTUPLESINGLETON_H

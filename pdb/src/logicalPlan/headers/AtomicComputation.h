@@ -126,7 +126,7 @@ public:
     }
 
     // gets the name of the tuple set produced by this computation
-    std::string& getOutputName() {
+    std::string& getOutputName()  {
         return output.getSetName();
     }
 

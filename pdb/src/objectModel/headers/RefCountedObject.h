@@ -62,7 +62,7 @@ public:
 
 private:
     // so that no one can create one
-    RefCountedObject() {}
+    RefCountedObject() = default;
 };
 }
 

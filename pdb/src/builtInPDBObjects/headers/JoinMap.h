@@ -58,7 +58,7 @@ public:
     // this constructor pre-allocates initSize slots... initSize must be a power of two
     explicit JoinMap(uint32_t initSize);
 
-    // this constructor creates a map with a single slot
+    // this constructor creates a map with a single pos
     JoinMap();
 
     // destructor
@@ -110,7 +110,7 @@ Handle<JoinMap<JoinMapType>> deepCopyJoinMap(Handle<JoinMap<JoinMapType>>& copyM
     JoinMapRecordClass<JoinMapType> temp;
 
     // create a new map
-    Handle<JoinMap<JoinMapType>> joinMapToReturn = pdb::makeObject<JoinMap<JoinMapType>>();
+    Handle<JoinMap<JoinMapType>> joinMapToReturn = makeObject<JoinMap<JoinMapType>>();
 
     // copy the fields
     joinMapToReturn->objectSize = copyMe->objectSize;
@@ -137,7 +137,7 @@ Handle<JoinMap<JoinMapType>> deepCopyJoinMap(Handle<JoinMap<JoinMapType>>& copyM
     toMe.maxSlots = fromMe.maxSlots;
 
     // copy over the overflow area
-    new ((void*) &toMe.overflows) pdb::Vector<pdb::Vector<JoinMapType>>();
+    new ((void*) &toMe.overflows) Vector<Vector<JoinMapType>>();
     for(int i = 0; i < fromMe.overflows.size(); ++i) {
 
       // grab one of the overflow buckets
@@ -178,7 +178,7 @@ Handle<JoinMap<JoinMapType>> deepCopyJoinMap(Handle<JoinMap<JoinMapType>>& copyM
         // copy over the hash for this guy
         JM_GET_HASH(toMe.data, i) = JM_GET_HASH(fromMe.data, i);
 
-        // don't copy over an unused slot
+        // don't copy over an unused pos
         if (JM_GET_HASH(fromMe.data, i) == JM_UNUSED)
             continue;
 

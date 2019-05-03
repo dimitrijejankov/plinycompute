@@ -81,6 +81,9 @@ class Pipeline : public PipelineInterface {
   // store page
   void keepPage(pdb::MemoryHolderPtr ram, int iteration);
 
+  // dismiss the page if not needed anymore
+  void dismissPage(pdb::MemoryHolderPtr ram, bool dismissLast);
+
   // runs the pipeline
   void run() override;
 

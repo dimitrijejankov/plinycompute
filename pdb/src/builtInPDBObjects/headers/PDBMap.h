@@ -42,7 +42,7 @@ public:
     // this constructor pre-allocates initSize slots... initSize must be a power of two
     Map(uint32_t initSize);
 
-    // this constructor creates a map with a single slot
+    // this constructor creates a map with a single pos
     Map();
 
     // destructor

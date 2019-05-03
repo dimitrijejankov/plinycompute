@@ -20,7 +20,7 @@ class JoinSink : public ComputeSink {
   // if useTheseAtts[i] = j, it means that the i^th attribute that we need to extract from the input tuple is j
   std::vector<int> useTheseAtts;
 
-  // if whereEveryoneGoes[i] = j, it means that the i^th entry in useTheseAtts goes in the j^th slot in the holder tuple
+  // if whereEveryoneGoes[i] = j, it means that the i^th entry in useTheseAtts goes in the j^th pos in the holder tuple
   std::vector<int> whereEveryoneGoes;
 
   // this is the list of columns that we are processing

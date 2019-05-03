@@ -50,7 +50,7 @@ struct MapRecordClass {
     }
 };
 
-// a special code that tells us when a hash slot is unused
+// a special code that tells us when a hash pos is unused
 #define UNUSED 493295393
 
 unsigned int newHash(unsigned int x);
@@ -183,7 +183,7 @@ void PairArray<KeyType, ValueType>::setUpAndCopyFrom(void* target, void* source)
         // copy over the hash for this guy
         GET_HASH(toMe.data, i) = GET_HASH(fromMe.data, i);
 
-        // don't copy over an unused slot
+        // don't copy over an unused pos
         if (GET_HASH(fromMe.data, i) == UNUSED)
             continue;
 
@@ -237,13 +237,13 @@ int PairArray<KeyType, ValueType>::count(const KeyType& me) {
     // hash this dude
     size_t hashVal = Hasher<KeyType>::hash(me);
 
-    // figure out which slot he goes in
+    // figure out which pos he goes in
     size_t slot = hashVal % (numSlots - 1);
 
     // in the worst case, we can loop through the entire hash table looking.  :-(
     for (size_t slotsChecked = 0; slotsChecked < numSlots; slotsChecked++) {
 
-        // if we found an empty slot, then this guy was not here
+        // if we found an empty pos, then this guy was not here
         if (GET_HASH(data, slot) == UNUSED) {
             return 0;
         } else if (GET_HASH(data, slot) == hashVal) {
@@ -254,19 +254,19 @@ int PairArray<KeyType, ValueType>::count(const KeyType& me) {
             }
         }
 
-        // if we made it here, then it means that we found a non-empty slot, but no
-        // match... so we simply loop to the next iteration... if slot == (numSlots-1), it
+        // if we made it here, then it means that we found a non-empty pos, but no
+        // match... so we simply loop to the next iteration... if pos == (numSlots-1), it
         // means we've made it to the end of the hash table... go to the beginning
         if (slot == numSlots - 1)
             slot = 0;
 
-        // otherwise, just go to the next slot
+        // otherwise, just go to the next pos
         else
             slot++;
     }
 
     // we should never reach here
-    std::cout << "in count(): hashVal = " << hashVal << ", slot = " << slot
+    std::cout << "in count(): hashVal = " << hashVal << ", pos = " << slot
               << ", numSlots =" << numSlots << ". Warning: Ran off the end of the hash table!!\n";
     return 0;
     // exit (1);
@@ -278,18 +278,18 @@ void PairArray<KeyType, ValueType>::setUnused(const KeyType& me) {
     // hash this dude
     size_t hashVal = Hasher<KeyType>::hash(me);
 
-    // figure out which slot he goes in
+    // figure out which pos he goes in
     size_t slot = hashVal % (numSlots - 1);
 
     // in the worst case, we can loop through the entire hash table looking.  :-(
     for (size_t slotsChecked = 0; slotsChecked < numSlots; slotsChecked++) {
 
-        // if we found an empty slot, then this guy was not here
+        // if we found an empty pos, then this guy was not here
         if (GET_HASH(data, slot) == UNUSED) {
-            std::cout << "WARNING: setUnused for an empty slot" << std::endl;
+            std::cout << "WARNING: setUnused for an empty pos" << std::endl;
             return;
 
-            // found a non-empty slot; check for a match
+            // found a non-empty pos; check for a match
         } else if (GET_HASH(data, slot) == hashVal) {
 
             // potential match!!
@@ -303,19 +303,19 @@ void PairArray<KeyType, ValueType>::setUnused(const KeyType& me) {
             }
         }
 
-        // if we made it here, then it means that we found a non-empty slot, but no
-        // match... so we simply loop to the next iteration... if slot == numSlots - 1, it
+        // if we made it here, then it means that we found a non-empty pos, but no
+        // match... so we simply loop to the next iteration... if pos == numSlots - 1, it
         // means we've made it to the end of the hash table... go to the beginning
         if (slot == numSlots - 1)
             slot = 0;
 
-        // otherwise, just go to the next slot
+        // otherwise, just go to the next pos
         else
             slot++;
     }
 
     // we should never reach here
-    std::cout << "in setUnused(): hashVal = " << hashVal << ", slot = " << slot
+    std::cout << "in setUnused(): hashVal = " << hashVal << ", pos = " << slot
               << ", numSlots =" << numSlots << ". Warning: Ran off the end of the hash table!!\n";
     // exit (1);
 }
@@ -330,13 +330,13 @@ ValueType& PairArray<KeyType, ValueType>::operator[](const KeyType& me) {
     // hash this dude
     size_t hashVal = Hasher<KeyType>::hash(me);
 
-    // figure out which slot he goes in
+    // figure out which pos he goes in
     size_t slot = hashVal % (numSlots - 1);
 
     // in the worst case, we can loop through the entire hash table looking.  :-(
     for (size_t slotsChecked = 0; slotsChecked < numSlots; slotsChecked++) {
 
-        // if we found an empty slot, then this guy was not here
+        // if we found an empty pos, then this guy was not here
         if (GET_HASH(data, slot) == UNUSED) {
             try {
                 // construct the key and the value
@@ -366,7 +366,7 @@ ValueType& PairArray<KeyType, ValueType>::operator[](const KeyType& me) {
             // and return the value
             return GET_VALUE(data, slot, ValueType);
 
-            // found a non-empty slot; check for a match
+            // found a non-empty pos; check for a match
         } else if (GET_HASH(data, slot) == hashVal) {
 
             // potential match!!
@@ -377,13 +377,13 @@ ValueType& PairArray<KeyType, ValueType>::operator[](const KeyType& me) {
             }
         }
 
-        // if we made it here, then it means that we found a non-empty slot, but no
-        // match... so we simply loop to the next iteration... if slot == numSlots - 1, it
+        // if we made it here, then it means that we found a non-empty pos, but no
+        // match... so we simply loop to the next iteration... if pos == numSlots - 1, it
         // means we've made it to the end of the hash table... go to the beginning
         if (slot == numSlots - 1)
             slot = 0;
 
-        // otherwise, just go to the next slot
+        // otherwise, just go to the next pos
         else
             slot++;
     }
