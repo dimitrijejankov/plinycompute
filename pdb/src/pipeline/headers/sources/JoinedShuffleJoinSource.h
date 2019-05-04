@@ -77,11 +77,15 @@ public:
       // next we grab the join map we need
       lhsMaps.push_back((*returnVal)[workerID]);
 
-      // insert the iterator
-      lhsIterators.push(lhsMaps.back()->begin());
+      std::cout << lhsMaps.back()->size() << std::endl;
 
-      // push the page
-      lhsPages.push_back(page);
+      if(lhsMaps.back()->size() != 0) {
+        // insert the iterator
+        lhsIterators.push(lhsMaps.back()->begin());
+
+        // push the page
+        lhsPages.push_back(page);
+      }
     }
 
     // set up the output tuple
@@ -130,20 +134,33 @@ public:
       // clear the iterators from the previous iteration
       currIterators.clear();
 
-      // get the hash count
-      // the
+      // get the hash and count
       auto &rhsHash = currHash.first;
       auto &rhsCount = currHash.second;
 
+      // at the beginning we assume that there were not matches for the rhs on the lhs side
       for(int i = 0; i < rhsCount; ++i) {
         counts.emplace_back(0);
       }
 
-      size_t lhsHash{};
+      /// 1. Figure out if there is an lhs hash equal to the rhs hash
+
+      // if the left hand side does not have any iterators just skip
+      if(lhsIterators.empty()) {
+        continue;
+      }
+
+      // check if the lhs hash is above the rhs hash if it is there is nothing to join, go to the next records
+      if(lhsIterators.top().getHash() > rhsHash) {
+        continue;
+      }
+
+      // iterate till we either find a lhs hash that is equal or greater to the rhs one, or finish
       JoinMapIterator<LHS> curIterator;
+      size_t lhsHash{};
       do {
 
-        // if we don't have stuff just ignore
+        // if we are out of iterators this means we are done, break out of this loop
         if(lhsIterators.empty()) {
           break;
         }
@@ -151,12 +168,17 @@ public:
         // grab the current lhs hash
         curIterator = lhsIterators.top();
         lhsHash = curIterator.getHash();
-        lhsIterators.pop();
 
-        // move the iterator
+        // check if the lhs hash is above the rhs hash if it is there is nothing to join break out of this loop
+        if(lhsHash > rhsHash) {
+          break;
+        }
+
+        // move the iterator, and reinsert it into the queue since we either have a match or we are below the hash
+        lhsIterators.pop();
         auto nextIterator = curIterator + 1;
         if(!nextIterator.isDone()) {
-          lhsIterators.push(curIterator + 1);
+          lhsIterators.push(nextIterator);
         }
 
       } while (lhsHash < rhsHash);
@@ -166,8 +188,10 @@ public:
         continue;
       }
 
-      // store the current iterator
+      // store the current iterator, since at this point it lhs and rhs have the same hash
       currIterators.emplace_back(curIterator);
+
+      /// 1. Figure out if there are more iterators in the lhs that mach our rhs iterator
 
       do {
 
@@ -198,10 +222,11 @@ public:
         // do we sill need to do stuff?
       } while(lhsIterators.top().getHash() == rhsHash);
 
-      // for every time we need to replicate stuff on the right side
+      /// 2. Now for every rhs record we need to replicate every lhs record we could find
+
       for(auto i = 0; i < rhsCount; ++i) {
 
-        // go through each iterator that has stuff
+        // go through each iterator that has stuff in the lhs
         for(auto &iterator : currIterators) {
           auto it = *iterator;
           auto &records = *it;
@@ -222,7 +247,8 @@ public:
     // truncate if we have extra
     eraseEnd<LHS>(overallCounter, 0, lhsColumns);
 
-    // and finally, we need to replicate the rhs tuples
+    /// 3. Finally, we need to replicate the lhs records
+
     rhsMachine.replicate(rhsTuple.first, output, counts, offset);
 
     return output;

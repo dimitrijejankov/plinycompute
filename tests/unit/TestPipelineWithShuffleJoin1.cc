@@ -184,7 +184,7 @@ TEST(PipelineTest, TestShuffleJoin) {
   const uint64_t numNodes = 2;
   const uint64_t threadsPerNode = 2;
   const uint64_t curNode = 1;
-  const uint64_t curThread = 1;
+  const uint64_t curThread = 0;
 
   /// 1. Create the buffer manager that is going to provide the pages to the pipeline
 
@@ -224,7 +224,7 @@ TEST(PipelineTest, TestShuffleJoin) {
 
         // wait to get the page
         PDBPageHandle page;
-        setAPageQueues[workerID]->wait_dequeue(page);
+        setAPageQueues[curNode]->wait_dequeue(page);
 
         if(page == nullptr) {
           return (PDBPageHandle) nullptr;
@@ -280,7 +280,7 @@ TEST(PipelineTest, TestShuffleJoin) {
 
         // wait to get the page
         PDBPageHandle page;
-        setBPageQueues[workerID]->wait_dequeue(page);
+        setBPageQueues[curNode]->wait_dequeue(page);
 
         if(page == nullptr) {
           return (PDBPageHandle) nullptr;
@@ -316,7 +316,7 @@ TEST(PipelineTest, TestShuffleJoin) {
 
         // wait to get the page
         PDBPageHandle page;
-        setCPageQueues[workerID]->wait_dequeue(page);
+        setCPageQueues[curNode]->wait_dequeue(page);
 
         if(page == nullptr) {
           return (PDBPageHandle) nullptr;
@@ -345,6 +345,28 @@ TEST(PipelineTest, TestShuffleJoin) {
   }));
 
   EXPECT_CALL(*AndBJoinedPageSet, getNewPage).Times(testing::AtLeast(0));
+
+  // the page set that is going to contain the partitioned preaggregation results
+  ON_CALL(*AndBJoinedPageSet, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
+      [&](size_t workerID) {
+
+        // wait to get the page
+        PDBPageHandle page;
+        setAndBPageQueues[curNode]->wait_dequeue(page);
+
+        if(page == nullptr) {
+          return (PDBPageHandle) nullptr;
+        }
+
+        // repin the page
+        page->repin();
+
+        // return it
+        return page;
+      }));
+
+  // it should call send object exactly six times
+  EXPECT_CALL(*AndBJoinedPageSet, getNextPage).Times(testing::AtLeast(0));
 
   // the page set where we will write the final result
   std::shared_ptr<MockPageSetWriter> pageWriter = std::make_shared<MockPageSetWriter>();
@@ -489,7 +511,7 @@ TEST(PipelineTest, TestShuffleJoin) {
 
   /// 6. Build the join pipeline (This joins A and B and prepares the right side of the next join)
 
-  params = { { ComputeInfoType::PAGE_PROCESSOR,  myPlan.getProcessorForJoin("BHashedOnC", numNodes, threadsPerNode, setBPageQueues, myMgr) },
+  params = { { ComputeInfoType::PAGE_PROCESSOR,  myPlan.getProcessorForJoin("BHashedOnC", numNodes, threadsPerNode, setAndBPageQueues, myMgr) },
              { ComputeInfoType::JOIN_ARGS,  std::make_shared<JoinArguments>(JoinArgumentsInit {{"BHashedOnA", std::make_shared<JoinArg>(partitionedBPageSet)}}) },
              { ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(false) } };
   myPipeline = myPlan.buildPipeline(std::string("AandBJoined"), /* this is the TupleSet the pipeline starts with */
@@ -502,6 +524,9 @@ TEST(PipelineTest, TestShuffleJoin) {
                                     20,
                                     curThread);
   myPipeline->run();
+
+  // put nulls in the queues
+  for(int i = 0; i < numNodes; ++i) { setAndBPageQueues[i]->enqueue(nullptr); }
 
   /// 7. Process the set C (this becomes the left side of the join)
 
@@ -527,23 +552,25 @@ TEST(PipelineTest, TestShuffleJoin) {
 
   /// 8. Do the joining
   params = { { ComputeInfoType::PAGE_PROCESSOR, std::make_shared<NullProcessor>() },
-             { ComputeInfoType::JOIN_ARGS,  std::make_shared<JoinArguments>(JoinArgumentsInit {{"BHashedOnC", std::make_shared<JoinArg>(AndBJoinedPageSet)}}) },
-             { ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(true) }};
+             { ComputeInfoType::JOIN_ARGS,  std::make_shared<JoinArguments>(JoinArgumentsInit {{"CHashedOnC", std::make_shared<JoinArg>(partitionedCPageSet)}}) },
+             { ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(false) }};
   myPipeline = myPlan.buildPipeline(std::string("BandCJoined"), // left side of the join
                                     std::string("nothing"),     // the final writer
-                                    partitionedCPageSet,
+                                    AndBJoinedPageSet,
                                     pageWriter,
                                     params,
+                                    numNodes,
+                                    threadsPerNode,
                                     20,
-                                    1,
-                                    1,
-                                    0);
+                                    curThread);
 
   // and now, simply run the pipeline and then destroy it!!!
   myPipeline->run();
   myPipeline = nullptr;
 
   for(auto &page : writePages) {
+
+    page.second->repin();
 
     Handle<Vector<Handle<String>>> myVec = ((Record<Vector<Handle<String>>> *) page.second->getBytes())->getRootObject();
     std::cout << "Found that this has " << myVec->size() << " strings in it.\n";
