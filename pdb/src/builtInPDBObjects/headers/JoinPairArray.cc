@@ -540,7 +540,7 @@ template<class ValueType>
 JoinMapIterator<ValueType> JoinMapIterator<ValueType>::operator+(int howMuch) const {
 
   // if we are at the end mark as done
-  if ((pos + howMuch) > iterationOrder->size()) {
+  if ((pos + howMuch) >= iterationOrder->size()) {
     return JoinMapIterator<ValueType>(iterateMe, iterationOrder, true, (int) iterationOrder->size());
   }
 
