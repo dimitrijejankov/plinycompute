@@ -458,8 +458,6 @@ TEST(PipelineTest, TestShuffleJoin) {
       "almostFinal (result) <= APPLY (last (a, aAndC, c), last (), 'JoinComp_3', 'native_lambda_7', []) \n"
       "nothing () <= OUTPUT (almostFinal (result), 'outSet', 'myDB', 'SetWriter_4', [])";
 
-  std::cout << myTCAPString << std::endl;
-
   // and create a query object that contains all of this stuff
   ComputePlan myPlan(myTCAPString, myComputations);
 

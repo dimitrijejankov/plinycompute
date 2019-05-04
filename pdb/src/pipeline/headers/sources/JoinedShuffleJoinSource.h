@@ -77,8 +77,6 @@ public:
       // next we grab the join map we need
       lhsMaps.push_back((*returnVal)[workerID]);
 
-      std::cout << lhsMaps.back()->size() << std::endl;
-
       if(lhsMaps.back()->size() != 0) {
         // insert the iterator
         lhsIterators.push(lhsMaps.back()->begin());
