@@ -111,6 +111,9 @@ class RHSShuffleJoinSource : public RHSShuffleJoinSourceBase {
   }
 
   ~RHSShuffleJoinSource() override {
+    // unpin the pages
+    for_each (pages.begin(), pages.end(), [&](PDBPageHandle &page) { page->unpin(); });
+
     // delete the columns
     delete[] columns;
   }
@@ -159,11 +162,13 @@ class RHSShuffleJoinSource : public RHSShuffleJoinSourceBase {
       // reinsert the next iterator
       ++tmp;
       if (!tmp.isDone()) {
+
+        // reinsert the iterator
         pageIterators.push(tmp);
       }
 
       // did we fill up the tuple set
-      if (count > chunkSize) {
+      if (!pageIterators.empty() && count > chunkSize && pageIterators.top().getHash() != hash) {
         break;
       }
     }

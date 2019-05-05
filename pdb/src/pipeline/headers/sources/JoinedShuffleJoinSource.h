@@ -110,7 +110,10 @@ public:
 
   ~JoinedShuffleJoinSource() override {
 
+    // unpin the pages
+    for_each (lhsPages.begin(), lhsPages.end(), [&](PDBPageHandle &page) { page->unpin(); });
 
+    // delete the columns
     delete[] lhsColumns;
   }
 
