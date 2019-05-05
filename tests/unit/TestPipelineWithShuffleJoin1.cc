@@ -415,14 +415,7 @@ TEST(PipelineTest, TestShuffleJoin2) {
   }
 
   // make sure we had every record
-  for_each (counts.begin(), counts.end(), [&](auto &count) {
-    EXPECT_EQ(count.second, 0);
-
-    if(count.second != 0) {
-      std::cout << "sucks" << std::endl;
-    }
-
-  });
+  for_each (counts.begin(), counts.end(), [&](auto &count) { EXPECT_EQ(count.second, 0); });
 
 }
 
