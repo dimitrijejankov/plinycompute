@@ -304,7 +304,7 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
 
       // do we have the appropriate join arguments? if not throw an exception
       auto ht = joinArgs->hashTables.find(a->getOutput().getSetName());
-      if(ht != joinArgs->hashTables.end()) {
+      if(ht == joinArgs->hashTables.end()) {
         throw runtime_error("Hash table for the output set," + a->getOutput().getSetName() +  "not found!");
       }
 
@@ -321,7 +321,6 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
         std::cout << "We are pipelining the left input...\n";
         returnVal->addStage(myComp.getExecutor(false, myJoin->getRightProjection(), lastOne->getOutput(), myJoin->getInput(), myJoin->getProjection(), ht->second, numProcessingThreads, workerID, *this));
       }
-
     }
     else if(a->getAtomicComputationType() == "WriteSet") {
 

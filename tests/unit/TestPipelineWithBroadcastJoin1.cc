@@ -49,6 +49,7 @@
 // then the system
 using namespace pdb;
 
+
 PDBPageHandle getSetAPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr) {
 
   // create a page, loading it with random data
@@ -81,6 +82,7 @@ PDBPageHandle getSetAPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr) 
 
   return page;
 }
+
 
 PDBPageHandle getSetBPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr) {
 
@@ -118,6 +120,7 @@ PDBPageHandle getSetBPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr) 
   return page;
 }
 
+
 PDBPageHandle getSetCPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr){
 
   // create a page, loading it with random data
@@ -152,6 +155,8 @@ PDBPageHandle getSetCPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr){
   }
   return page;
 }
+
+
 class MockPageSetReader : public pdb::PDBAbstractPageSet {
  public:
   MOCK_METHOD1(getNextPage, PDBPageHandle(size_t
@@ -159,7 +164,6 @@ class MockPageSetReader : public pdb::PDBAbstractPageSet {
   MOCK_METHOD0(getNewPage, PDBPageHandle());
   MOCK_METHOD0(getNumPages, size_t());
 };
-
 class MockPageSetWriter : public pdb::PDBAnonymousPageSet {
  public:
   MOCK_METHOD1(getNextPage, PDBPageHandle(size_t
@@ -169,7 +173,6 @@ class MockPageSetWriter : public pdb::PDBAnonymousPageSet {
       pageHandle));
   MOCK_METHOD0(getNumPages, size_t());
 };
-
 TEST(PipelineTest, TestShuffleJoin) {
 
   // this is our configuration we are testing
@@ -207,7 +210,7 @@ TEST(PipelineTest, TestShuffleJoin) {
   // TODO:
   EXPECT_CALL(*setBReader, getNextPage(testing::An<size_t>())).Times(7);
 
-  
+
 
   // the page set that is gonna provide stuff
   std::shared_ptr<MockPageSetReader> setCReader = std::make_shared<MockPageSetReader>();
@@ -219,10 +222,6 @@ TEST(PipelineTest, TestShuffleJoin) {
 
   // TODO:
   EXPECT_CALL(*setCReader, getNextPage(testing::An<size_t>())).Times(7);
-
-
-
-
 
   std::vector<PDBPageQueuePtr> pageQueuesForA;
   pageQueuesForA.reserve(numNodes);
@@ -436,6 +435,84 @@ TEST(PipelineTest, TestShuffleJoin) {
 
 
 
+  params = {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<BroadcastJoinProcessor>(numNodes,threadsPerNode,pageQueuesForC, myMgr)},
+            {ComputeInfoType::JOIN_SIDE, std::make_shared<pdb::BroadcastJoinSide>(BroadcastJoinSideEnum::PROBE_SIDE)}};
+  myPipeline = myPlan.buildPipeline(std::string("C"), /* this is the TupleSet the pipeline starts with */
+                                    std::string("CHashedOnC"),     /* this is the TupleSet the pipeline ends with */
+                                    setCReader,
+                                    partitionedCPageSet,
+                                    params,
+                                    numNodes,
+                                    threadsPerNode,
+                                    20,
+                                    curThread);
+
+  // and now, simply run the pipeline and then destroy it!!!
+  std::cout << "\nRUNNING PIPELINE\n";
+  myPipeline->run();
+  std::cout << "\nDONE RUNNING PIPELINE\n";
+  myPipeline = nullptr;
+
+  for (int i = 0; i < numNodes; ++i) { pageQueuesForC[i]->enqueue(nullptr); }
+
+  myPipeline = myPlan.buildMergeJoinBroadcastPipeline("CHashedOnC",
+                                                      partitionedCPageSet,
+                                                      BroadcastedCPageSet,
+                                                      threadsPerNode,
+                                                      curThread);
+
+  std::cout << "\nRUNNING PIPELINE\n";
+  myPipeline->run();
+  std::cout << "\nDONE RUNNING PIPELINE\n";
+  myPipeline = nullptr;
+
+
+
+
+  unordered_map<string, JoinArgPtr> hashTables = {{"", std::make_shared<JoinArg>(BroadcastedAPageSet)},
+                                                  {"", std::make_shared<JoinArg>(BroadcastedCPageSet)}};
+  // set the parameters
+  params = {{ComputeInfoType::PAGE_PROCESSOR,
+             std::make_shared<BroadcastJoinProcessor>(numNodes, threadsPerNode, pageQueuesForA, myMgr)},
+            {ComputeInfoType::JOIN_SIDE, std::make_shared<pdb::BroadcastJoinSide>(BroadcastJoinSideEnum::PROBE_SIDE)},
+            {ComputeInfoType::JOIN_ARGS, std::make_shared<JoinArguments>(hashTables)}};
+  myPipeline = myPlan.buildPipeline(std::string("AandBJoined"), /* this is the TupleSet the pipeline starts with */
+                                    std::string("BHashedOnC"),     /* this is the TupleSet the pipeline ends with */
+                                    partitionedBPageSet,
+                                    andAndBJoinedPageSet,
+                                    params,
+                                    numNodes,
+                                    threadsPerNode,
+                                    20,
+                                    curThread);
+
+  // and now, simply run the pipeline and then destroy it!!!
+  std::cout << "\nRUNNING PIPELINE\n";
+  myPipeline->run();
+  std::cout << "\nDONE RUNNING PIPELINE\n";
+  myPipeline = nullptr;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -470,27 +547,7 @@ TEST(PipelineTest, TestShuffleJoin) {
 
   /// 7. This pipeline will build the probe side for the other join
 
-  unordered_map<string, JoinArgPtr> hashTables = {{"", std::make_shared<JoinArg>(BroadcastedAPageSet)}};
-  // set the parameters
-  params = {{ComputeInfoType::PAGE_PROCESSOR,
-             std::make_shared<BroadcastJoinProcessor>(numNodes, threadsPerNode, pageQueuesForA, myMgr)},
-            {ComputeInfoType::JOIN_SIDE, std::make_shared<pdb::BroadcastJoinSide>(BroadcastJoinSideEnum::PROBE_SIDE)},
-            {ComputeInfoType::JOIN_ARGS, std::make_shared<JoinArguments>(hashTables)}};
-  myPipeline = myPlan.buildPipeline(std::string("AandBJoined"), /* this is the TupleSet the pipeline starts with */
-                                    std::string("BHashedOnC"),     /* this is the TupleSet the pipeline ends with */
-                                    partitionedBPageSet,
-                                    andAndBJoinedPageSet,
-                                    params,
-                                    numNodes,
-                                    threadsPerNode,
-                                    20,
-                                    curThread);
 
-  // and now, simply run the pipeline and then destroy it!!!
-  std::cout << "\nRUNNING PIPELINE\n";
-  myPipeline->run();
-  std::cout << "\nDONE RUNNING PIPELINE\n";
-  myPipeline = nullptr;
 
   /*
   for (int i = 0; i < numNodes; ++i) { pageQueuesForB[i]->enqueue(nullptr); }
