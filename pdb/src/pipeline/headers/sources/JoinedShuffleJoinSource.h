@@ -248,7 +248,7 @@ public:
     // truncate if we have extra
     eraseEnd<LHS>(overallCounter, 0, lhsColumns);
 
-    /// 3. Finally, we need to replicate the lhs records
+    /// 3. Finally, we need to replicate the rhs records
 
     rhsMachine.replicate(rhsTuple.first, output, counts, offset);
 

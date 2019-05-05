@@ -98,7 +98,7 @@ PDBPageHandle getSetBPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr) 
   return page;
 }
 
-TEST(PipelineTest, TestShuffleJoinSingle) {
+TEST(PipelineTest, TestShuffleJoinSingleReversed) {
 
   // this is our configuration we are testing
   const uint64_t numNodes = 2;
@@ -366,11 +366,11 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
 
       /// 6. Do the joining
       params = {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<NullProcessor>()},
-                {ComputeInfoType::JOIN_ARGS, std::make_shared<JoinArguments>(JoinArgumentsInit{{"BHashedOnA", std::make_shared<JoinArg>(partitionedBPageSet)}})},
-                {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(false)}};
+                {ComputeInfoType::JOIN_ARGS, std::make_shared<JoinArguments>(JoinArgumentsInit{{"AHashed", std::make_shared<JoinArg>(partitionedAPageSet)}})},
+                {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(true)}};
       myPipeline = myPlan.buildPipeline(std::string("AandBJoined"), // left side of the join
                                         std::string("out"),     // the final writer
-                                        partitionedAPageSet,
+                                        partitionedBPageSet,
                                         pageWriter,
                                         params,
                                         numNodes,

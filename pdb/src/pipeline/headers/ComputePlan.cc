@@ -198,58 +198,82 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
     // cast the join computation
     auto *joinComputation = (ApplyJoin *) sourceAtomicComputation.get();
 
-    // some stuff we need to figure out
-    bool needsToSwapSides;
-    AtomicComputationPtr leftAtomicComp;
-    AtomicComputationPtr rightAtomicComp;
-
-    // figure out if the source is the left or right side
-    auto shuffleJoinArgs = std::dynamic_pointer_cast<ShuffleJoinArg>(params[ComputeInfoType::SHUFFLE_JOIN_ARG]);
-    if(!shuffleJoinArgs->swapLeftAndRightSide) {
-
-      leftAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getInput().getSetName());
-      rightAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getRightInput().getSetName());
-      needsToSwapSides = false;
-    }
-    else {
-
-      rightAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getInput().getSetName());
-      leftAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getRightInput().getSetName());
-      needsToSwapSides = true;
-    }
-
     // grab the join arguments
     JoinArgumentsPtr joinArgs = std::dynamic_pointer_cast<JoinArguments>(params[ComputeInfoType::JOIN_ARGS]);
     if(joinArgs == nullptr) {
       throw runtime_error("Join pipeline run without hash tables!");
     }
 
-    // do we have the appropriate join arguments? if not throw an exception
-    auto it = joinArgs->hashTables.find(rightAtomicComp->getOutput().getSetName());
-    if(it == joinArgs->hashTables.end()) {
-      throw runtime_error("Hash table for the output set," + rightAtomicComp->getOutput().getSetName() +  "not found!");
+    // figure out if the source is the left or right side
+    auto shuffleJoinArgs = std::dynamic_pointer_cast<ShuffleJoinArg>(params[ComputeInfoType::SHUFFLE_JOIN_ARG]);
+    if(!shuffleJoinArgs->swapLeftAndRightSide) {
+
+      AtomicComputationPtr leftAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getInput().getSetName());
+      AtomicComputationPtr rightAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getRightInput().getSetName());
+      bool needsToSwapSides = false;
+
+      // do we have the appropriate join arguments? if not throw an exception
+      auto it = joinArgs->hashTables.find(rightAtomicComp->getOutput().getSetName());
+      if(it == joinArgs->hashTables.end()) {
+        throw runtime_error("Hash table for the output set," + rightAtomicComp->getOutput().getSetName() +  "not found!");
+      }
+
+      // init the RHS source
+      auto rhsSource = ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getRHSShuffleJoinSource(rightAtomicComp->getOutput(),
+                                                                                                                                            joinComputation->getRightInput(),
+                                                                                                                                            joinComputation->getRightProjection(),
+                                                                                                                                            it->second->pageSet,
+                                                                                                                                            myPlan,
+                                                                                                                                            chunkSize,
+                                                                                                                                            workerID);
+
+      // init the compute source for the join
+      computeSource = ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getJoinedSource(joinComputation->getProjection(), // this tells me how the join tuple of the LHS is layed out
+                                                                                                                                   rightAtomicComp->getOutput(), // this gives the specification of the RHS tuple
+                                                                                                                                   joinComputation->getRightInput(), // this gives the location of the RHS hash
+                                                                                                                                   joinComputation->getRightProjection(), // this gives the projection of the RHS tuple
+                                                                                                                                   rhsSource, // the RHS source that gives us the tuples
+                                                                                                                                   inputPageSet, // the LHS page set
+                                                                                                                                   myPlan,
+                                                                                                                                   needsToSwapSides,
+                                                                                                                                   chunkSize,
+                                                                                                                                   workerID);
+
+    }
+    else {
+
+      AtomicComputationPtr rightAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getInput().getSetName());
+      AtomicComputationPtr leftAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getRightInput().getSetName());
+      bool needsToSwapSides = true;
+
+      // do we have the appropriate join arguments? if not throw an exception
+      auto it = joinArgs->hashTables.find(rightAtomicComp->getOutput().getSetName());
+      if(it == joinArgs->hashTables.end()) {
+        throw runtime_error("Hash table for the output set," + rightAtomicComp->getOutput().getSetName() +  "not found!");
+      }
+
+      // init the RHS source
+      auto rhsSource = ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getRHSShuffleJoinSource(rightAtomicComp->getOutput(),
+                                                                                                                                            joinComputation->getInput(),
+                                                                                                                                            joinComputation->getProjection(),
+                                                                                                                                            it->second->pageSet,
+                                                                                                                                            myPlan,
+                                                                                                                                            chunkSize,
+                                                                                                                                            workerID);
+
+      // init the compute source for the join
+      computeSource = ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getJoinedSource(joinComputation->getRightProjection(), // this tells me how the join tuple of the LHS is layed out
+                                                                                                                                   rightAtomicComp->getOutput(), // this gives the specification of the RHS tuple
+                                                                                                                                   joinComputation->getInput(), // this gives the location of the RHS hash
+                                                                                                                                   joinComputation->getProjection(), // this gives the projection of the RHS tuple
+                                                                                                                                   rhsSource, // the RHS source that gives us the tuples
+                                                                                                                                   inputPageSet, // the LHS page set
+                                                                                                                                   myPlan,
+                                                                                                                                   needsToSwapSides,
+                                                                                                                                   chunkSize,
+                                                                                                                                   workerID);
     }
 
-    // init the RHS source
-    auto rhsSource = ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getRHSShuffleJoinSource(rightAtomicComp->getOutput(),
-                                                                                                                                          joinComputation->getRightInput(),
-                                                                                                                                          joinComputation->getRightProjection(),
-                                                                                                                                          it->second->pageSet,
-                                                                                                                                          myPlan,
-                                                                                                                                          chunkSize,
-                                                                                                                                          workerID);
-
-    // init the compute source for the join
-    computeSource = ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getJoinedSource(joinComputation->getProjection(), // this tells me how the join tuple of the LHS is layed out
-                                                                                                                                 rightAtomicComp->getOutput(), // this gives the specification of the RHS tuple
-                                                                                                                                 joinComputation->getRightInput(), // this gives the location of the RHS hash
-                                                                                                                                 joinComputation->getRightProjection(), // this gives the projection of the RHS tuple
-                                                                                                                                 rhsSource, // the RHS source that gives us the tuples
-                                                                                                                                 inputPageSet, // the LHS page set
-                                                                                                                                 myPlan,
-                                                                                                                                 needsToSwapSides,
-                                                                                                                                 chunkSize,
-                                                                                                                                 workerID);
   }
   else {
 
