@@ -11,7 +11,7 @@ namespace pdb {
 
 class PDBJoinPhysicalNode : public pdb::PDBAbstractPhysicalNode {
 
- public:
+public:
 
   PDBJoinPhysicalNode(const std::vector<AtomicComputationPtr> &pipeline, size_t computationID, size_t currentNodeIndex)
       : PDBAbstractPhysicalNode(pipeline, computationID, currentNodeIndex) {};
@@ -23,6 +23,11 @@ class PDBJoinPhysicalNode : public pdb::PDBAbstractPhysicalNode {
   PDBPlanningResult generatePipelinedAlgorithm(const std::string &startTupleSet,
                                                  const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                  pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &additionalSources) override;
+
+  /**
+   * The other side
+   */
+  pdb::PDBAbstractPhysicalNodeWeakPtr otherSide;
 
 };
 

@@ -89,6 +89,11 @@ public:
 
     // add the pipe to the physical nodes
     physicalNodes[nodeHandle->getNodeIdentifier()] = nodeHandle;
+
+    // is this pipeline doing joining if it is store it in the join pipes
+    if(nodeHandle->isJoining()) {
+      joinPipes.push_back(nodeHandle);
+    }
   }
 
   /**
@@ -105,6 +110,11 @@ public:
    * All the nodes that are in the current pipeline
    */
   std::vector<AtomicComputationPtr> currentPipe;
+
+  /**
+   * All the pipelines that start with a join
+   */
+  std::vector<PDBAbstractPhysicalNodePtr> joinPipes;
 
   /**
    * The physical nodes we created

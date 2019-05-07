@@ -6,6 +6,7 @@
 #include <AtomicComputationList.h>
 #include <Parser.h>
 #include <PDBPipeNodeBuilder.h>
+#include <PDBJoinPhysicalNode.h>
 
 TEST(BufferManagerBackendTest, Test1) {
 
@@ -397,6 +398,12 @@ TEST(BufferManagerBackendTest, Test3) {
       // do we have one consumer
       EXPECT_EQ(out.back()->getConsumers().size(), 1);
       EXPECT_EQ(out.back()->getConsumers().front()->getPipeComputations().front()->getOutputName(), "AandBJoined");
+
+      // check the other side
+      auto otherSide = ((pdb::PDBJoinPhysicalNode*) out.back().get())->otherSide.lock();
+      firstComp = otherSide->getPipeComputations().front();
+      EXPECT_TRUE(firstComp->getAtomicComputationTypeID() == ScanSetAtomicTypeID && firstComp->getOutputName() == "B");
+
     }
     else if(firstComp->getAtomicComputationTypeID() == ScanSetAtomicTypeID && firstComp->getOutputName() == "B") {
 
@@ -438,6 +445,12 @@ TEST(BufferManagerBackendTest, Test3) {
       // do we have one consumer
       EXPECT_EQ(out.back()->getConsumers().size(), 1);
       EXPECT_EQ(out.back()->getConsumers().front()->getPipeComputations().front()->getOutputName(), "AandBJoined");
+
+      // check the other side
+      auto otherSide = ((pdb::PDBJoinPhysicalNode*) out.back().get())->otherSide.lock();
+      firstComp = otherSide->getPipeComputations().front();
+      EXPECT_TRUE(firstComp->getAtomicComputationTypeID() == ScanSetAtomicTypeID && firstComp->getOutputName() == "A");
+
     }
     else if(firstComp->getAtomicComputationTypeID() == ScanSetAtomicTypeID && firstComp->getOutputName() == "C") {
 
@@ -479,6 +492,12 @@ TEST(BufferManagerBackendTest, Test3) {
       // do we have one consumer
       EXPECT_EQ(out.back()->getConsumers().size(), 1);
       EXPECT_EQ(out.back()->getConsumers().front()->getPipeComputations().front()->getOutputName(), "BandCJoined");
+
+      // check the other side
+      auto otherSide = ((pdb::PDBJoinPhysicalNode*) out.back().get())->otherSide.lock();
+      firstComp = otherSide->getPipeComputations().front();
+      EXPECT_TRUE(firstComp->getAtomicComputationTypeID() == ApplyJoinTypeID && firstComp->getOutputName() == "AandBJoined");
+
     }
     else if(firstComp->getAtomicComputationTypeID() == ApplyJoinTypeID && firstComp->getOutputName() == "AandBJoined") {
 
@@ -548,6 +567,11 @@ TEST(BufferManagerBackendTest, Test3) {
       // do we have one consumer
       EXPECT_EQ(out.back()->getConsumers().size(), 1);
       EXPECT_EQ(out.back()->getConsumers().front()->getPipeComputations().front()->getOutputName(), "BandCJoined");
+
+      // check the other side
+      auto otherSide = ((pdb::PDBJoinPhysicalNode*) out.back().get())->otherSide.lock();
+      firstComp = otherSide->getPipeComputations().front();
+      EXPECT_TRUE(firstComp->getAtomicComputationTypeID() == ScanSetAtomicTypeID && firstComp->getOutputName() == "C");
     }
     else if(firstComp->getAtomicComputationTypeID() == ApplyJoinTypeID && firstComp->getOutputName() == "BandCJoined") {
 
@@ -613,10 +637,10 @@ TEST(BufferManagerBackendTest, Test3) {
         ++i;
       }
 
-
       // this must be the first time we visited this
       EXPECT_EQ(visitedNodes.find(out.back()), visitedNodes.end());
       visitedNodes.insert(out.back());
+
     }
     else {
       EXPECT_FALSE(true);

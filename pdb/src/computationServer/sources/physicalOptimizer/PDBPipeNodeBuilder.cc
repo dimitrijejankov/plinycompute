@@ -116,7 +116,6 @@ void pdb::PDBPipeNodeBuilder::transverseTCAPGraph(AtomicComputationPtr curNode) 
   if(consumers.size() > 1 && !currentPipe.empty()) {
 
     // this is a pipeline breaker create a pipe
-    //currentPipe.push_back(curNode);
     createPhysicalPipeline<PDBStraightPhysicalNode>();
     currentPipe.clear();
   }
@@ -154,6 +153,7 @@ void pdb::PDBPipeNodeBuilder::setConsumers(std::shared_ptr<PDBAbstractPhysicalNo
 
 void pdb::PDBPipeNodeBuilder::connectThePipes() {
 
+  // connect all the consumers and producers
   for(const auto &node : physicalNodes) {
 
     // get all the consumers of this pipe
@@ -168,5 +168,23 @@ void pdb::PDBPipeNodeBuilder::connectThePipes() {
       // add the consuming node of this guy
       node.second->addConsumer(consumer);
     }
+  }
+
+  // go through each join pipe and connect the left and right side of the join so that they know about each other
+  for(const auto &joinNode : joinPipes) {
+
+    // get the producers
+    auto &producers = joinNode->getProducers();
+    if(producers.size() != 2) {
+      throw std::runtime_error("There are not exactly two sides of a join pipe, something went wrong!");
+    }
+
+    // grab both sides of the join
+    auto joinSide1 = producers.front();
+    auto joinSide2 = producers.back();
+
+    // set the other join side
+    ((PDBJoinPhysicalNode*) joinSide1.get())->otherSide = joinSide2;
+    ((PDBJoinPhysicalNode*) joinSide2.get())->otherSide = joinSide1;
   }
 }

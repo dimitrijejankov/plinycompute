@@ -79,9 +79,17 @@ public:
     consumer->producers.push_back(getWeakHandle());
   }
 
+  /**
+   * Returns the consumers of this node
+   * @return - the list of consumers
+   */
   const std::list<PDBAbstractPhysicalNodePtr> &getConsumers();
 
-  const std::list<PDBAbstractPhysicalNodePtr> &getProducers();
+  /**
+   * Returns the list of producers of this node
+   * @return - the list of producers
+   */
+  const std::list<PDBAbstractPhysicalNodePtr> getProducers();
 
   /**
    * Returns the cost of running this pipeline
@@ -108,6 +116,21 @@ public:
    * @return a vector with the atomic computations
    */
   const std::vector<AtomicComputationPtr>& getPipeComputations() { return pipeline; }
+
+  /**
+   * Check if we are doing a join, at the beginning of this pipeline
+   * @return true if we are doing the join, false otherwise
+   */
+  bool isJoining() {
+
+    // just to make sure the pipeline is not empty
+    if(pipeline.empty()) {
+      return false;
+    }
+
+    // check if it is a join
+    return getPipeComputations().front()->getAtomicComputationTypeID() == ApplyJoinTypeID;
+  }
 
   /**
    * Checks whether this starts with a scan set in this case this means that it has a source set

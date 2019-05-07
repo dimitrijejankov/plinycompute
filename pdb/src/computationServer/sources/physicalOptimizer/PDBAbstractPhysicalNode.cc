@@ -9,7 +9,7 @@ const std::list<pdb::PDBAbstractPhysicalNodePtr> &pdb::PDBAbstractPhysicalNode::
   return consumers;
 }
 
-const std::list<pdb::PDBAbstractPhysicalNodePtr> &pdb::PDBAbstractPhysicalNode::getProducers() {
+const std::list<pdb::PDBAbstractPhysicalNodePtr> pdb::PDBAbstractPhysicalNode::getProducers() {
 
   // create the list
   std::list<PDBAbstractPhysicalNodePtr> out;

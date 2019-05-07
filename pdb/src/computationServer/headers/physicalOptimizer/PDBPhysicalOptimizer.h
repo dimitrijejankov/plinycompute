@@ -30,6 +30,14 @@
 namespace pdb {
 
 using OptimizerSource = std::pair<size_t, PDBAbstractPhysicalNodePtr>;
+class OptimizerSourceComparator
+{
+ public:
+  bool operator() (const OptimizerSource &lhs, const OptimizerSource &rhs) {
+    return lhs.first < rhs.first;
+  }
+};
+
 
 /**
  * This class basically takes in a TCAP and breaks it up into PhysicalAlgorithms, that are going to be sent to,
@@ -87,7 +95,7 @@ private:
   /**
    * These are all the sources we currently have
    */
-  priority_queue<OptimizerSource, vector<OptimizerSource>, function<bool(const OptimizerSource&, const OptimizerSource&)>> sources;
+  priority_queue<OptimizerSource, vector<OptimizerSource>, OptimizerSourceComparator> sources;
 
   /**
    * List of all the processed nodes so far
