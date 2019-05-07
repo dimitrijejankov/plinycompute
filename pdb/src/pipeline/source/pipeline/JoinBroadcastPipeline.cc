@@ -10,10 +10,10 @@
 #include <pipeline/JoinBroadcastPipeline.h>
 #include <MemoryHolder.h>
 
-pdb::JoinBroadcastPipeline::JoinBroadcastPipeline(size_t workerID,
+pdb::JoinBroadcastPipeline::JoinBroadcastPipeline(size_t workerID, size_t nodeID,
                                               pdb::PDBAnonymousPageSetPtr outputPageSet,
                                               pdb::PDBAbstractPageSetPtr inputPageSet,
-                                              pdb::ComputeSinkPtr merger) : workerID(workerID), outputPageSet(std::move(outputPageSet)), inputPageSet(std::move(inputPageSet)), merger(std::move(merger)) {}
+                                              pdb::ComputeSinkPtr merger) : workerID(workerID), nodeID(nodeID), outputPageSet(std::move(outputPageSet)), inputPageSet(std::move(inputPageSet)), merger(std::move(merger)) {}
 
 
 void pdb::JoinBroadcastPipeline::run() {
@@ -23,7 +23,7 @@ void pdb::JoinBroadcastPipeline::run() {
 
   // aggregate all hash maps
   PDBPageHandle inputPage;
-  while ((inputPage = inputPageSet->getNextPage(workerID)) != nullptr) {
+  while ((inputPage = inputPageSet->getNextPage(nodeID)) != nullptr) {
 
     // if we haven't created an output container create it.
     if (myRAM->outputSink == nullptr) {
@@ -32,6 +32,7 @@ void pdb::JoinBroadcastPipeline::run() {
     // write out the page
     merger->writeOutPage(inputPage, myRAM->outputSink);
 
+    inputPage->unpin();
   }
 
   // we only have one iteration

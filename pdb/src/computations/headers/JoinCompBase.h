@@ -33,6 +33,7 @@ class JoinCompBase : public Computation {
                                          TupleSpec &pipelinedAttsToOperateOn,
                                          TupleSpec &pipelinedAttsToIncludeInOutput,
                                          JoinArgPtr &joinArg,
+                                         uint64_t numNodes,
                                          uint64_t numProcessingThreads,
                                          uint64_t workerID,
                                          ComputePlan &computePlan) = 0;

@@ -313,13 +313,13 @@ inline PipelinePtr ComputePlan::buildPipeline(const std::string &sourceTupleSetN
 
         // if we are pipelining the right input, then we don't need to switch left and right inputs
         std::cout << "We are pipelining the right input...\n";
-        returnVal->addStage(myComp.getExecutor(true, myJoin->getProjection(), lastOne->getOutput(), myJoin->getRightInput(), myJoin->getRightProjection(), ht->second, numProcessingThreads, workerID, *this));
+        returnVal->addStage(myComp.getExecutor(true, myJoin->getProjection(), lastOne->getOutput(), myJoin->getRightInput(), myJoin->getRightProjection(), ht->second, numNodes, numProcessingThreads, workerID, *this));
 
       } else {
 
         // if we are pipelining the right input, then we don't need to switch left and right inputs
         std::cout << "We are pipelining the left input...\n";
-        returnVal->addStage(myComp.getExecutor(false, myJoin->getRightProjection(), lastOne->getOutput(), myJoin->getInput(), myJoin->getProjection(), ht->second, numProcessingThreads, workerID, *this));
+        returnVal->addStage(myComp.getExecutor(false, myJoin->getRightProjection(), lastOne->getOutput(), myJoin->getInput(), myJoin->getProjection(), ht->second, numNodes, numProcessingThreads, workerID, *this));
       }
     }
     else if(a->getAtomicComputationType() == "WriteSet") {
@@ -441,7 +441,7 @@ inline PipelinePtr ComputePlan::buildMergeJoinBroadcastPipeline(const string &ta
   Handle<JoinCompBase> joinComp = unsafeCast<JoinCompBase>(myPlan->getNode(targetComputationName).getComputationHandle());
   auto merger = joinComp->getComputeMerger(targetSpec, targetAttsToOpOn, targetProjection, workerID, numThreads, myPlan);
 
-  return std::make_shared<pdb::JoinBroadcastPipeline>(workerID, outputPageSet, inputPageSet, merger);
+  return std::make_shared<pdb::JoinBroadcastPipeline>(workerID, workerID/numThreads, outputPageSet, inputPageSet, merger);
 }
 
 

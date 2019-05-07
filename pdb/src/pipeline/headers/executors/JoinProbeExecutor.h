@@ -37,8 +37,14 @@ class JoinProbeExecution : public ComputeExecutor {
   // the list of counts for matches of each of the input tuples
   std::vector<uint32_t> counts;
 
+  // how many nodes are there
+  uint64_t numNodes;
+
   // how many processing threads are there
   uint64_t numProcessingThreads;
+
+  // how many partitions are there
+  uint64_t numPartitions;
 
   // the worker id
   uint64_t workerID;
@@ -67,13 +73,17 @@ class JoinProbeExecution : public ComputeExecutor {
                      TupleSpec &inputSchema,
                      TupleSpec &attsToOperateOn,
                      TupleSpec &attsToIncludeInOutput,
+                     uint64_t numNodes,
                      uint64_t numProcessingThreads,
                      uint64_t workerID,
-                     bool needToSwapLHSAndRhs) : myMachine(inputSchema, attsToIncludeInOutput), numProcessingThreads(numProcessingThreads), workerID(workerID) {
+                     bool needToSwapLHSAndRhs) : myMachine(inputSchema, attsToIncludeInOutput), numNodes(numNodes), numProcessingThreads(numProcessingThreads), workerID(workerID), numPartitions(numNodes*numProcessingThreads) {
 
 
     // grab each page and store the hash table
     PDBPageHandle page;
+    inputTables.resize(numNodes * numProcessingThreads);
+    std::cout << "inputTables has resized to: "<< numNodes * numProcessingThreads << std::endl;
+
     while((page = hashTable->getNextPage(workerID)) != nullptr) {
 
       // store the page
@@ -85,9 +95,9 @@ class JoinProbeExecution : public ComputeExecutor {
       // extract the hash table we've been given
       auto *input = (Record<JoinMap<RHSType>> *) page->getBytes();
       auto inputTable = input->getRootObject();
-
       // store the hash table
-      inputTables.emplace_back(inputTable);
+      std::cout << "input Table hash value: " << inputTable->getHashValue() << std::endl;
+      inputTables[inputTable->getHashValue()] = inputTable;
     }
 
     // set up the output tuple
@@ -115,13 +125,13 @@ class JoinProbeExecution : public ComputeExecutor {
     if (counts.size() != inputHash.size()) {
       counts.resize(inputHash.size());
     }
-
     // now, run through and attempt to hash
     int overallCounter = 0;
     for (int i = 0; i < inputHash.size(); i++) {
 
       // grab the approprate hash table
-      JoinMap<RHSType> &inputTableRef = *inputTables[inputHash[i] % numProcessingThreads];
+
+      JoinMap<RHSType> &inputTableRef = *inputTables[inputHash[i] % numPartitions];
 
       // deal with all of the matches
       auto a = inputTableRef.lookup(inputHash[i]);
@@ -131,7 +141,6 @@ class JoinProbeExecution : public ComputeExecutor {
         unpack(a[which], overallCounter, 0, columns);
         overallCounter++;
       }
-
       // remember how many matches we had
       counts[i] = numHits;
     }

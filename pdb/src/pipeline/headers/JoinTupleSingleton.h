@@ -25,6 +25,7 @@ class JoinTupleSingleton {
                                        TupleSpec &inputSchema,
                                        TupleSpec &attsToOperateOn,
                                        TupleSpec &attsToIncludeInOutput,
+                                       uint64_t numNodes,
                                        uint64_t numProcessingThreads,
                                        uint64_t workerID,
                                        bool needToSwapLHSAndRhs) = 0;
@@ -59,11 +60,12 @@ class JoinSingleton : public JoinTupleSingleton {
                                TupleSpec &inputSchema,
                                TupleSpec &attsToOperateOn,
                                TupleSpec &attsToIncludeInOutput,
+                               uint64_t numNodes,
                                uint64_t numProcessingThreads,
                                uint64_t workerID,
                                bool needToSwapLHSAndRhs) override {
 
-    return std::make_shared<JoinProbeExecution<HoldMe>>(hashTable, positions, inputSchema, attsToOperateOn, attsToIncludeInOutput, numProcessingThreads, workerID, needToSwapLHSAndRhs);
+    return std::make_shared<JoinProbeExecution<HoldMe>>(hashTable, positions, inputSchema, attsToOperateOn, attsToIncludeInOutput, numNodes, numProcessingThreads, workerID, needToSwapLHSAndRhs);
   }
 
   // creates a compute sink for this particular type

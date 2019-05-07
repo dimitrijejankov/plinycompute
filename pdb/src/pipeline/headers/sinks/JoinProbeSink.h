@@ -35,14 +35,12 @@ private:
   size_t numPartitions;
 
   // the number of JoinMaps
-  size_t numJoinMaps;
 
 public:
 
   JoinProbeSink(TupleSpec &inputSchema, TupleSpec &attsToOperateOn, TupleSpec &additionalAtts,
            std::vector<int> &whereEveryoneGoes, size_t numPartitions) : numPartitions(numPartitions), whereEveryoneGoes(whereEveryoneGoes) {
 
-    numJoinMaps= numPartitions * 2;
     // used to manage attributes and set up the output
     TupleSetSetupMachine myMachine(inputSchema);
 
@@ -65,12 +63,12 @@ public:
     Handle<Vector<Handle<JoinMap<RHSType>>>> returnVal = makeObject<Vector<Handle<JoinMap<RHSType>>>>();
 
     // create the maps
-    for(auto i = 0; i < numJoinMaps; ++i) {
-
+    for(auto i = 0; i < numPartitions; ++i) {
       // add the map
-      returnVal->push_back(makeObject<JoinMap<RHSType>>());
+      Handle<JoinMap<RHSType>> myJoinMap = makeObject<JoinMap<RHSType>>();
+      myJoinMap->setHashValue(i);
+      returnVal->push_back(myJoinMap);
     }
-
     return returnVal;
   }
 
@@ -78,6 +76,7 @@ public:
 
     // get the map we are adding to
     Handle<Vector<Handle<JoinMap<RHSType>>>> writeMe = unsafeCast<Vector<Handle<JoinMap<RHSType>>>>(writeToMe);
+    writeMe->resize(numPartitions);
 
     // get all of the columns
     if (columns == nullptr)
@@ -95,7 +94,7 @@ public:
     for (int i = 0; i < length; i++) {
 
       // the map
-      auto whichMap = keyColumn[i] % numJoinMaps;
+      auto whichMap = keyColumn[i] % numPartitions;
 
       JoinMap<RHSType> &myMap = *(*writeMe)[whichMap];
 

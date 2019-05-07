@@ -50,6 +50,7 @@ public:
     for(auto node = 0; node < numNodes; ++node) {
       pageQueues[node]->enqueue(memory->pageHandle);
     }
+
     return false;
   }
 

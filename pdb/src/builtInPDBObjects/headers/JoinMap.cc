@@ -51,6 +51,16 @@ void pdb::JoinMap<ValueType>::setUnused(const size_t& clearMe) {
 }
 
 template <class ValueType>
+void pdb::JoinMap<ValueType>::setHashValue(int64_t hashValue) {
+    joinHashValue = hashValue;
+}
+
+template<class ValueType>
+int64_t pdb::JoinMap<ValueType>::getHashValue() {
+    return joinHashValue;
+}
+
+template <class ValueType>
 ValueType& pdb::JoinMap<ValueType>::push(const size_t& me) {
 
     size_t objSize = this->objectSize;

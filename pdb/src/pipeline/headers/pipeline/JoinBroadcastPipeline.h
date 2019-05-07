@@ -17,6 +17,9 @@ class JoinBroadcastPipeline : public PipelineInterface {
   // the id of the worker this pipeline is running on
   size_t workerID;
 
+  // the id of the node the worker is running on
+  size_t nodeID;
+
   // this is the page set where we are going to be writing the output hash table
   pdb::PDBAnonymousPageSetPtr outputPageSet;
 
@@ -28,7 +31,7 @@ class JoinBroadcastPipeline : public PipelineInterface {
 
  public:
 
-  JoinBroadcastPipeline(size_t workerID,
+  JoinBroadcastPipeline(size_t workerID, size_t nodeID,
                       PDBAnonymousPageSetPtr outputPageSet,
                       PDBAbstractPageSetPtr inputPageSet,
                       ComputeSinkPtr merger);

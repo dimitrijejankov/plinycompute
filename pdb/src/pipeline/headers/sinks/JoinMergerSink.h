@@ -35,7 +35,8 @@ public:
 
     // we simply create a map to hold everything
     Handle<JoinMap<RHSType>> returnVal = makeObject<JoinMap<RHSType>>();
-
+    returnVal->setHashValue(workerID);
+    std::cout<<"When calling createNewOutputContainer() in JoinMergerSink, Hash Value for JoinMap is: "<< returnVal->getHashValue() << std::endl;
     return returnVal;
   }
 
@@ -50,20 +51,19 @@ public:
     JoinMap<RHSType> &myMap = *mergeToMe;
     // grab the hash table
     Handle<Object> hashTable = ((Record<Object> *) page->getBytes())->getRootObject();
+
     auto &joinMapVector = (*unsafeCast<Vector<Handle<JoinMap<RHSType>>>>(hashTable));
 
-    for (auto mapIndex = 2 * workerID; mapIndex <= 2*workerID+1; mapIndex++) {
+    auto &mergeMe = *(joinMapVector[workerID]);
 
-      auto &mergeMe = *(joinMapVector[mapIndex]);
-
-      for (auto it = mergeMe.begin(); it != mergeMe.end(); ++it) {
-        // get the records
-        JoinRecordList<RHSType> &records = *(*it);
-        // get the hash
-        auto hash = records.getHash();
-        // copy the records
-        for (size_t i = 0; i < records.size(); ++i) {
-          // copy a single record
+    for (auto it = mergeMe.begin(); it != mergeMe.end(); ++it) {
+      // get the records
+      JoinRecordList<RHSType> &records = *(*it);
+      // get the hash
+      auto hash = records.getHash();
+      // copy the records
+      for (size_t i = 0; i < records.size(); ++i) {
+        // copy a single record
           try {
             RHSType &temp = myMap.push(hash);
             temp = records[i];
@@ -72,7 +72,6 @@ public:
             // this must not happen. The combined records of the partition // TODO maybe handle this gracefully
             throw n;
           }
-        }
       }
     }
   }
