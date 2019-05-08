@@ -62,8 +62,9 @@ PDBPhysicalOptimizer::PDBPhysicalOptimizer(uint64_t computationID,
       throw runtime_error("Could not find the set I needed. " +  error);
     }
 
-    // add the source to the pq
-    sources.push(std::make_pair(set->setSize, source));
+    // add the source to the data structures
+    sources.insert(std::make_pair(set->setSize, source));
+    sourcesWithIDs[source->getNodeIdentifier()] = std::make_pair(set->setSize, source);
   }
 
 }

@@ -10,13 +10,13 @@ PDBPipelineType pdb::PDBStraightPhysicalNode::getType() {
   return PDB_STRAIGHT_PIPELINE;
 }
 
-pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm() {
+pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const map<std::string, OptimizerSource> &sourcesWithIDs) {
 
   // this is the page set we are scanning
   pdb::Handle<PDBSourcePageSetSpec> source = getSourcePageSet();
 
   // we have no additional sources
-  pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> additionalSources = nullptr;
+  pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> additionalSources = nullptr;
 
   // can we pipeline this guy? we can do that if we only have one consumer
   if(consumers.size() == 1) {
@@ -44,7 +44,7 @@ pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm() {
 
 pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generatePipelinedAlgorithm(const std::string &startTupleSet,
                                                                                 const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                                pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &additionalSources) {
+                                                                                pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) {
 
   // this is the same as @see generateAlgorithm except now the source is the source of the pipe we pipelined to this
   // and the additional source are transferred for that pipeline.

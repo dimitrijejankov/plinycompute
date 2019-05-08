@@ -43,7 +43,7 @@ public:
                        const std::string &finalTupleSet,
                        const pdb::Handle<PDBSourcePageSetSpec> &source,
                        const pdb::Handle<PDBSinkPageSetSpec> &sink,
-                       const pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &secondarySources)
+                       const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources)
       : firstTupleSet(firstTupleSet), finalTupleSet(finalTupleSet), source(source), sink(sink), secondarySources(secondarySources) {}
 
   /**
@@ -91,7 +91,7 @@ protected:
   /**
    * List of secondary sources like hash sets for join etc.. null if there are no secondary sources
    */
-  pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> secondarySources;
+  pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> secondarySources;
 
   // mark the tests that are testing this algorithm
   FRIEND_TEST(TestPhysicalOptimizer, TestAggregation);

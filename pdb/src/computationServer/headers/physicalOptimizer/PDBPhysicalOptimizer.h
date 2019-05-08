@@ -26,17 +26,10 @@
 #include <PDBPhysicalAlgorithm.h>
 #include <PDBPipeNodeBuilder.h>
 #include <PDBDistributedStorage.h>
+#include "PDBOptimizerSource.h"
 
 namespace pdb {
 
-using OptimizerSource = std::pair<size_t, PDBAbstractPhysicalNodePtr>;
-class OptimizerSourceComparator
-{
- public:
-  bool operator() (const OptimizerSource &lhs, const OptimizerSource &rhs) {
-    return lhs.first < rhs.first;
-  }
-};
 
 
 /**
@@ -93,14 +86,15 @@ private:
   size_t computationID;
 
   /**
-   * These are all the sources we currently have
+   * These are all the sources we currently have, with the associated size
    */
-  priority_queue<OptimizerSource, vector<OptimizerSource>, OptimizerSourceComparator> sources;
+  set<OptimizerSource,  OptimizerSourceComparator> sources;
 
   /**
-   * List of all the processed nodes so far
+   * Basically contains everything in the sources but instead of using it to get the source with the smallest cost,
+   * We are getting the source by the identifier.
    */
-  std::vector<OptimizerSource> processedSources;
+  map<std::string, OptimizerSource> sourcesWithIDs;
 
   /**
    * The logger associated with the physical optimizer

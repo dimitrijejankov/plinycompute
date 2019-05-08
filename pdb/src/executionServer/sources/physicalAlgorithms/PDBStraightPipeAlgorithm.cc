@@ -12,7 +12,7 @@ pdb::PDBStraightPipeAlgorithm::PDBStraightPipeAlgorithm(const std::string &first
                                                         const std::string &finalTupleSet,
                                                         const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                         const pdb::Handle<PDBSinkPageSetSpec> &sink,
-                                                        const pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &secondarySources)
+                                                        const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources)
                                                         : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources) {}
 
 

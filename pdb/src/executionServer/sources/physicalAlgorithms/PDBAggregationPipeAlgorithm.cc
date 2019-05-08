@@ -14,7 +14,7 @@ pdb::PDBAggregationPipeAlgorithm::PDBAggregationPipeAlgorithm(const std::string 
                                                               const pdb::Handle<pdb::PDBSinkPageSetSpec> &hashedToSend,
                                                               const pdb::Handle<pdb::PDBSourcePageSetSpec> &hashedToRecv,
                                                               const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
-                                                              const pdb::Handle<pdb::Vector<pdb::PDBSourcePageSetSpec>> &secondarySources)
+                                                              const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources)
     : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {}
 
 bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {

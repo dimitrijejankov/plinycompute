@@ -15,19 +15,19 @@ namespace pdb {
 pdb::Handle<pdb::PDBPhysicalAlgorithm> PDBPhysicalOptimizer::getNextAlgorithm() {
 
   // select a source and pop it
-  auto source = sources.top();
-  sources.pop();
+  auto source = *sources.begin();
 
   // runs the algorithm generation part
-  auto result = source.second->generateAlgorithm();
+  auto result = source.second->generateAlgorithm(sourcesWithIDs);
+
+  // remove the source we just used
+  sources.erase(sources.begin());
 
   // go through each consumer of the output of this algorithm and add it to the sources
   for(const auto &sourceNode : result.second) {
-    this->sources.push(std::make_pair(0, sourceNode));
+    sources.insert(std::make_pair(0, sourceNode));
+    sourcesWithIDs[sourceNode->getNodeIdentifier()] = std::make_pair(0, sourceNode);
   }
-
-  // mark the source as processed, we keep track of the so they don't get deallocated
-  processedSources.push_back(source);
 
   // return the algorithm
   return result.first;
@@ -53,7 +53,6 @@ std::vector<pair<uint64_t, std::string>> PDBPhysicalOptimizer::getPageSetsToRemo
 
   return std::move(ret);
 }
-
 
 }
 

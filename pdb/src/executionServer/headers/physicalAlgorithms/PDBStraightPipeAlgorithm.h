@@ -31,7 +31,7 @@ public:
                            const std::string &finalTupleSet,
                            const pdb::Handle<PDBSourcePageSetSpec> &source,
                            const pdb::Handle<PDBSinkPageSetSpec> &sink,
-                           const pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &secondarySources);
+                           const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources);
 
   /**
    * //TODO

@@ -12,7 +12,7 @@ PDBPipelineType pdb::PDBAggregationPhysicalNode::getType() {
   return PDB_AGGREGATION_PIPELINE;
 }
 
-PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm() {
+pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const map<string, OptimizerSource> &sourcesWithIDs) {
 
   // the aggregation has two parts, one part packs the records into a bunch of hash tables
   // the second part does the actual aggregation, both parts are run at the same time
@@ -41,7 +41,7 @@ PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm() {
   setSinkPageSet(sink);
 
   /// TODO This vector needs to check if we are doing a join.
-  pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> vector = nullptr;
+  pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> vector = nullptr;
 
   // create the algorithm
   pdb::Handle<PDBAggregationPipeAlgorithm> algorithm = pdb::makeObject<PDBAggregationPipeAlgorithm>(pipeline.front()->getOutputName(),
@@ -57,7 +57,7 @@ PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm() {
 
 PDBPlanningResult PDBAggregationPhysicalNode::generatePipelinedAlgorithm(const std::string &firstTupleSet,
                                                                          const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                         pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &additionalSources) {
+                                                                         pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) {
 
   // this is the same as @see generateAlgorithm except now the source is the source of the pipe we pipelined to this
   // and the additional source are transferred for that pipeline. We can not pipeline an aggregation

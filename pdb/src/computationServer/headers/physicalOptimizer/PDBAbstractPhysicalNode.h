@@ -1,6 +1,3 @@
-#include <utility>
-#include <cassert>
-
 //
 // Created by dimitrije on 2/21/19.
 //
@@ -9,10 +6,14 @@
 #define PDB_PDBABSTRACTPIPELINE_H
 
 #include <list>
+#include <map>
+#include <utility>
+#include <cassert>
 
 #include <AtomicComputation.h>
 #include <AtomicComputationClasses.h>
 #include <PDBPhysicalAlgorithm.h>
+#include "PDBOptimizerSource.h"
 #include <Handle.h>
 
 enum PDBPipelineType {
@@ -255,7 +256,7 @@ public:
    * Returns the algorithm we chose to run this pipeline
    * @return the planning result, a pair of the algorithm and the consumers of the result
    */
-  virtual PDBPlanningResult generateAlgorithm() = 0;
+  virtual pdb::PDBPlanningResult generateAlgorithm(const std::map<std::string, OptimizerSource> &sourcesWithIDs) = 0;
 
   /**
    * Returns the algorithm we chose to run this pipeline, but assumes that we are pipelining stuff into it...
@@ -263,7 +264,7 @@ public:
    */
   virtual PDBPlanningResult generatePipelinedAlgorithm(const std::string &startTupleSet,
                                                        const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                       pdb::Handle<pdb::Vector<PDBSourcePageSetSpec>> &additionalSources) = 0;
+                                                       pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) = 0;
 
 protected:
 
