@@ -360,3 +360,7 @@ void pdb::PDBAggregationPipeAlgorithm::cleanup() {
   aggregationPipelines = nullptr;
   pageQueues = nullptr;
 }
+
+pdb::PDBPhysicalAlgorithmType pdb::PDBAggregationPipeAlgorithm::getAlgorithmType() {
+  return DistributedAggregation;
+}

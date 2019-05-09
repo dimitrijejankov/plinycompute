@@ -39,6 +39,12 @@ public:
 
   void cleanup() override;
 
+  /**
+   * Returns BroadcastForJoin as the type
+   * @return the type
+   */
+  PDBPhysicalAlgorithmType getAlgorithmType() override;
+
 private:
 
   /**

@@ -20,7 +20,10 @@ pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const map
 
   // can we pipeline this guy? we can do that if we only have one consumer
   if(consumers.size() == 1) {
-    return consumers.front()->generatePipelinedAlgorithm(pipeline.front()->getOutputName(), source, additionalSources);
+    return consumers.front()->generatePipelinedAlgorithm(pipeline.front()->getOutputName(),
+                                                         source,
+                                                         sourcesWithIDs,
+                                                         additionalSources);
   }
 
   // the sink is basically the last computation in the pipeline
@@ -44,6 +47,7 @@ pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const map
 
 pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generatePipelinedAlgorithm(const std::string &startTupleSet,
                                                                                 const pdb::Handle<PDBSourcePageSetSpec> &source,
+                                                                                const std::map<string, OptimizerSource> &sourcesWithIDs,
                                                                                 pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) {
 
   // this is the same as @see generateAlgorithm except now the source is the source of the pipe we pipelined to this
@@ -51,7 +55,7 @@ pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generatePipelinedAlgorithm(
 
   // can we pipeline this guy? we can do that if we only have one consumer
   if(consumers.size() == 1) {
-    return consumers.front()->generatePipelinedAlgorithm(startTupleSet, source, additionalSources);
+    return consumers.front()->generatePipelinedAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources);
   }
 
   // the sink is basically the last computation in the pipeline

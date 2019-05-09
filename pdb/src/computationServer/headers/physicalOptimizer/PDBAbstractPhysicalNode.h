@@ -262,9 +262,10 @@ public:
    * Returns the algorithm we chose to run this pipeline, but assumes that we are pipelining stuff into it...
    * @return the planning result, a pair of the algorithm and the consumers of the result
    */
-  virtual PDBPlanningResult generatePipelinedAlgorithm(const std::string &startTupleSet,
-                                                       const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                       pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) = 0;
+  virtual pdb::PDBPlanningResult generatePipelinedAlgorithm(const std::string &startTupleSet,
+                                                            const pdb::Handle<PDBSourcePageSetSpec> &source,
+                                                            const std::map<std::string, OptimizerSource> &sourcesWithIDs,
+                                                            pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) = 0;
 
 protected:
 

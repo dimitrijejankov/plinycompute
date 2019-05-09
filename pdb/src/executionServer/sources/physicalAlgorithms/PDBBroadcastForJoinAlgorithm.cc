@@ -6,10 +6,16 @@
 
 pdb::PDBBroadcastForJoinAlgorithm::PDBBroadcastForJoinAlgorithm(const std::string &firstTupleSet,
                                                                 const std::string &finalTupleSet,
-                                                                const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                const pdb::Handle<PDBSinkPageSetSpec> &sink,
-                                                                const pdb::Handle<pdb::Vector<pdb::Handle<
-                                                                    PDBSourcePageSetSpec>>> &secondarySources) : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources) {
+                                                                const pdb::Handle<pdb::PDBSourcePageSetSpec> &source,
+                                                                const pdb::Handle<pdb::PDBSinkPageSetSpec> &intermediate,
+                                                                const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
+                                                                const pdb::Handle<pdb::Vector<pdb::Handle<pdb::PDBSourcePageSetSpec>>> &secondarySources)
+                                                                : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources),
+                                                                  intermediate(intermediate) {
+
 
 }
 
+pdb::PDBPhysicalAlgorithmType pdb::PDBBroadcastForJoinAlgorithm::getAlgorithmType() {
+  return BroadcastForJoin;
+}

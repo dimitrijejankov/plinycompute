@@ -9,9 +9,23 @@ public:
 
   PDBShuffleForJoinAlgorithm(const std::string &firstTupleSet,
                              const std::string &finalTupleSet,
-                             const pdb::Handle<PDBSourcePageSetSpec> &source,
-                             const pdb::Handle<PDBSinkPageSetSpec> &sink,
+                             const pdb::Handle<pdb::PDBSourcePageSetSpec> &source,
+                             const pdb::Handle<pdb::PDBSinkPageSetSpec> &intermediate,
+                             const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
                              const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources);
+
+  /**
+   * Returns ShuffleForJoinAlgorithm as the type
+   * @return the type
+   */
+  PDBPhysicalAlgorithmType getAlgorithmType() override;
+
+private:
+
+  /**
+   * The intermediate page set
+   */
+  pdb::Handle<PDBSinkPageSetSpec> intermediate;
 
 };
 

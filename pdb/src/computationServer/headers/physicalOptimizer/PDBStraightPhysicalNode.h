@@ -18,9 +18,10 @@ public:
 
   pdb::PDBPlanningResult generateAlgorithm(const std::map<std::string, OptimizerSource> &sourcesWithIDs) override;
 
-  PDBPlanningResult generatePipelinedAlgorithm(const std::string &startTupleSet,
-                                               const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                               pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) override;
+  pdb::PDBPlanningResult generatePipelinedAlgorithm(const std::string &startTupleSet,
+                                                    const pdb::Handle<PDBSourcePageSetSpec> &source,
+                                                    const std::map<std::string, OptimizerSource> &sourcesWithIDs,
+                                                    pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) override;
 };
 
 }

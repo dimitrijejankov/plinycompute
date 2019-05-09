@@ -55,9 +55,12 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const map<s
   return std::make_pair(algorithm, consumers);
 }
 
-PDBPlanningResult PDBAggregationPhysicalNode::generatePipelinedAlgorithm(const std::string &firstTupleSet,
-                                                                         const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                         pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) {
+pdb::PDBPlanningResult PDBAggregationPhysicalNode::generatePipelinedAlgorithm(const std::string &firstTupleSet,
+                                                                              const pdb::Handle<PDBSourcePageSetSpec> &source,
+                                                                              const std::map<string,
+                                                                                           OptimizerSource> &sourcesWithIDs,
+                                                                              pdb::Handle<pdb::Vector<pdb::Handle<
+                                                                                PDBSourcePageSetSpec>>> &additionalSources) {
 
   // this is the same as @see generateAlgorithm except now the source is the source of the pipe we pipelined to this
   // and the additional source are transferred for that pipeline. We can not pipeline an aggregation
