@@ -13,6 +13,7 @@ enum PDBSourceType {
   AggregationSource,
   ShuffledAggregatesSource,
   ShuffledJoinTuplesSource,
+  JoinedShuffleSource,
   BroadcastJoinSource
 };
 

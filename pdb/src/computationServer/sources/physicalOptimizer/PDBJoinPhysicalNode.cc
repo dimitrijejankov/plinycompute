@@ -13,19 +13,9 @@ PDBPipelineType pdb::PDBJoinPhysicalNode::getType() {
   return PDB_JOIN_SIDE_PIPELINE;
 }
 
-pdb::PDBPlanningResult pdb ::PDBJoinPhysicalNode::generateAlgorithm(const std::map<std::string, OptimizerSource> &sourcesWithIDs) {
-
-  // this is the page set we are scanning
-  pdb::Handle<PDBSourcePageSetSpec> source = getSourcePageSet();
-  pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> additionalSources = makeObject<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>>();
-
-  // generate the algorithm
-  return generateAlgorithm(pipeline.front()->getOutputName(), source, sourcesWithIDs, additionalSources);
-}
-
 pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generatePipelinedAlgorithm(const std::string &startTupleSet,
                                                                             const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                            const std::map<std::string, OptimizerSource> &sourcesWithIDs,
+                                                                            sourceCosts &sourcesWithIDs,
                                                                             pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) {
   // generate the algorithm
   return generateAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources);
@@ -33,7 +23,7 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generatePipelinedAlgorithm(cons
 
 pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::string &startTupleSet,
                                                                    const pdb::Handle<pdb::PDBSourcePageSetSpec> &source,
-                                                                   const std::map<std::string, pdb::OptimizerSource> &sourcesWithIDs,
+                                                                   sourceCosts &sourcesWithIDs,
                                                                    pdb::Handle<pdb::Vector<pdb::Handle<pdb::PDBSourcePageSetSpec>>> &additionalSources) {
   // check if the node is not processed
   assert(state == PDBJoinPhysicalNodeState::PDBJoinPhysicalNodeNotProcessed);
@@ -44,27 +34,41 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
   // if the other side has been broad casted then this is really cool and we can pipeline through this node
   if(otherSidePtr->state == PDBJoinPhysicalNodeBroadcasted) {
 
-    // create the additional sources
-    additionalSources->push_back(otherSidePtr->getSourcePageSet());
+    // make the additional source from the other side
+    pdb::Handle<PDBSourcePageSetSpec> additionalSource = pdb::makeObject<PDBSourcePageSetSpec>();
+    additionalSource->sourceType = PDBSourceType::BroadcastJoinSource;
+    additionalSource->pageSetIdentifier = std::make_pair(computationID, (String) otherSidePtr->pipeline.back()->getOutputName());
 
-    // pipeline this node to the next
-    generatePipelinedAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources);
+    // create the additional sources
+    additionalSources->push_back(additionalSource);
+
+    // make sure everything is
+    assert(consumers.size() == 1);
+
+    // pipeline this node to the next, it always has to exist and it always has to be one
+    return consumers.front()->generatePipelinedAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources);
   }
 
   // the sink is basically the last computation in the pipeline
   pdb::Handle<PDBSinkPageSetSpec> sink = pdb::makeObject<PDBSinkPageSetSpec>();
   sink->pageSetIdentifier = std::make_pair(computationID, (String) pipeline.back()->getOutputName());
 
-  pdb::Handle<PDBSinkPageSetSpec> intermediate = pdb::makeObject<PDBSinkPageSetSpec>();
-  intermediate->pageSetIdentifier = std::make_pair(computationID, (String) (pipeline.back()->getOutputName() + "_to_broadcast"));
-
   // check if we can broadcast this side (the other side is not shuffled and this side is small enough)
-  auto it = sourcesWithIDs.find(getNodeIdentifier());
+  auto it = sourcesWithIDs.find(source->pageSetIdentifier);
   if(it->second.first < SHUFFLE_JOIN_THRASHOLD && otherSidePtr->state == PDBJoinPhysicalNodeNotProcessed) {
 
     // set the type of the sink
     sink->sinkType = PDBSinkType::BroadcastJoinSink;
+
+    // create the intermediate page set
+    pdb::Handle<PDBSinkPageSetSpec> intermediate = pdb::makeObject<PDBSinkPageSetSpec>();
     intermediate->sinkType = PDBSinkType::BroadcastIntermediateJoinSink;
+    intermediate->pageSetIdentifier = std::make_pair(computationID, (String) (pipeline.back()->getOutputName() + "_to_broadcast"));
+
+    // set this nodes sink specifier
+    sinkPageSet.produced = true;
+    sinkPageSet.sinkType = BroadcastJoinSink;
+    sinkPageSet.pageSetIdentifier = sink->pageSetIdentifier;
 
     // ok so we have to shuffle this side, generate the algorithm
     pdb::Handle<PDBBroadcastForJoinAlgorithm> algorithm = pdb::makeObject<PDBBroadcastForJoinAlgorithm>(startTupleSet,
@@ -78,12 +82,21 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
     state = PDBJoinPhysicalNodeBroadcasted;
 
     // return the algorithm
-    return std::make_pair(algorithm, consumers);
+    return std::make_pair(algorithm, std::list<PDBAbstractPhysicalNodePtr>());
   }
 
   // set the type of the sink
   sink->sinkType = PDBSinkType::JoinShuffleSink;
+
+  // create the intermediate page set
+  pdb::Handle<PDBSinkPageSetSpec> intermediate = pdb::makeObject<PDBSinkPageSetSpec>();
   intermediate->sinkType = PDBSinkType::JoinShuffleIntermediateSink;
+  intermediate->pageSetIdentifier = std::make_pair(computationID, (String) (pipeline.back()->getOutputName() + "_to_shuffle"));
+
+  // set this nodes sink specifier
+  sinkPageSet.produced = true;
+  sinkPageSet.sinkType = JoinShuffleSink;
+  sinkPageSet.pageSetIdentifier = sink->pageSetIdentifier;
 
   // ok so we have to shuffle this side, generate the algorithm
   pdb::Handle<PDBShuffleForJoinAlgorithm> algorithm = pdb::makeObject<PDBShuffleForJoinAlgorithm>(startTupleSet,
@@ -107,5 +120,5 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
 }
 
 // set this value to some reasonable value // TODO this needs to be smarter
-const size_t pdb::PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = 0;
+const size_t pdb::PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = 4096;
 

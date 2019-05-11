@@ -95,6 +95,8 @@ protected:
 
   // mark the tests that are testing this algorithm
   FRIEND_TEST(TestPhysicalOptimizer, TestAggregation);
+  FRIEND_TEST(TestPhysicalOptimizer, TestJoin1);
+  FRIEND_TEST(TestPhysicalOptimizer, TestJoin2);
 };
 
 }

@@ -64,7 +64,7 @@ PDBPhysicalOptimizer::PDBPhysicalOptimizer(uint64_t computationID,
 
     // add the source to the data structures
     sources.insert(std::make_pair(set->setSize, source));
-    sourcesWithIDs[source->getNodeIdentifier()] = std::make_pair(set->setSize, source);
+    sourcesWithIDs[source->getSourcePageSet(sourcesWithIDs)->pageSetIdentifier] = std::make_pair(set->setSize, source);
   }
 
 }

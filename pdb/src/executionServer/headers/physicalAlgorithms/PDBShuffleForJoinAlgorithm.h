@@ -27,6 +27,8 @@ private:
    */
   pdb::Handle<PDBSinkPageSetSpec> intermediate;
 
+  FRIEND_TEST(TestPhysicalOptimizer, TestJoin2);
+  FRIEND_TEST(TestPhysicalOptimizer, TestJoin3);
 };
 
 }

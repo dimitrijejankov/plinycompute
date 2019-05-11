@@ -94,7 +94,7 @@ private:
    * Basically contains everything in the sources but instead of using it to get the source with the smallest cost,
    * We are getting the source by the identifier.
    */
-  map<std::string, OptimizerSource> sourcesWithIDs;
+  sourceCosts sourcesWithIDs;
 
   /**
    * The logger associated with the physical optimizer

@@ -159,11 +159,71 @@ public:
     return std::make_pair(scanSet->getDBName(), scanSet->getSetName());
   }
 
+  pdb::Handle<PDBSourcePageSetSpec> getRightSourcePageSet(sourceCosts &sourcesWithIDs) {
+
+    // create the source
+    pdb::Handle<PDBSourcePageSetSpec> source = pdb::makeObject<PDBSourcePageSetSpec>();
+
+    // make sure we are doing a join
+    assert(isJoining());
+    assert(producers.size() == 2);
+
+    // get the first producer
+    auto &firstProducer = *producers.front().lock();
+    auto first = sourcesWithIDs.find(firstProducer.getSourcePageSet(sourcesWithIDs)->pageSetIdentifier);
+    if(first == sourcesWithIDs.end()) { throw std::runtime_error("Did not find the page set : " + firstProducer.sinkPageSet.pageSetIdentifier.second); }
+
+    // get the second producer
+    auto &secondProducer = *producers.back().lock();
+    auto second = sourcesWithIDs.find(secondProducer.getSourcePageSet(sourcesWithIDs)->pageSetIdentifier);
+    if(second == sourcesWithIDs.end()) { throw std::runtime_error("Did not find the page set : " + secondProducer.sinkPageSet.pageSetIdentifier.second); }
+
+    // figure out which side
+    auto &whichSide = second->second.first >= first->second.first ? second->second : first->second;
+
+    // fill up the stuff
+    source->sourceType = getSourceTypeForSinkType(whichSide.second->sinkPageSet.sinkType);
+    source->pageSetIdentifier = whichSide.second->sinkPageSet.pageSetIdentifier;
+
+    // return the source
+    return source;
+  }
+
+  pdb::Handle<PDBSourcePageSetSpec> getLeftSourcePageSet(sourceCosts &sourcesWithIDs) {
+
+    // create the source
+    pdb::Handle<PDBSourcePageSetSpec> source = pdb::makeObject<PDBSourcePageSetSpec>();
+
+    // make sure we are doing a join
+    assert(isJoining());
+    assert(producers.size() == 2);
+
+    // get the first producer
+    auto &firstProducer = *producers.front().lock();
+    auto first = sourcesWithIDs.find(firstProducer.getSourcePageSet(sourcesWithIDs)->pageSetIdentifier);
+    if(first == sourcesWithIDs.end()) { throw std::runtime_error("Did not find the page set : " + (std::string) firstProducer.getSourcePageSet(sourcesWithIDs)->pageSetIdentifier.second); }
+
+    // get the second producer
+    auto &secondProducer = *producers.back().lock();
+    auto second = sourcesWithIDs.find(secondProducer.getSourcePageSet(sourcesWithIDs)->pageSetIdentifier);
+    if(second == sourcesWithIDs.end()) { throw std::runtime_error("Did not find the page set : " + (std::string) secondProducer.getSourcePageSet(sourcesWithIDs)->pageSetIdentifier.second); }
+
+    // figure out which side
+    auto &whichSide = second->second.first < first->second.first ? second->second : first->second;
+
+    // fill up the stuff
+    source->sourceType = getSourceTypeForSinkType(whichSide.second->sinkPageSet.sinkType);
+    source->pageSetIdentifier = whichSide.second->sinkPageSet.pageSetIdentifier;
+
+    // return the source
+    return source;
+  }
+
   /**
    * Returns the source page set
    * @return returns a new instance of PDBSourcePageSetSpec, that describes the page set that is the source for this node
    */
-  virtual pdb::Handle<PDBSourcePageSetSpec> getSourcePageSet() {
+  virtual pdb::Handle<PDBSourcePageSetSpec> getSourcePageSet(sourceCosts &pageSetSources) {
 
     pdb::Handle<PDBSourcePageSetSpec> source = pdb::makeObject<PDBSourcePageSetSpec>();
 
@@ -176,11 +236,21 @@ public:
       return source;
     }
 
-    // ok so this does not have and scan sets so this means it's source page set is produced by some other pipeline
-    // since there can only be one producer, we just have to check him
-    assert(producers.size() == 1);
+    // check if we are joining, then the source is the join of the left and right page set.
+    // it does not really exist, so we are going to approximate it's size by taking the max of the left and the right page set
+    if(isJoining()) {
 
-    // grab the producer
+      // fill up the stuff
+      source->sourceType = JoinedShuffleSource;
+      source->pageSetIdentifier = std::make_pair(computationID, pipeline.front()->getOutputName());
+
+      // return the source
+      return source;
+    }
+
+    // if we are not joining, (the source of this is not a shuffle join) we only have one producer and therefore the sink of that
+    // producer is the source for this pipeline
+    // if we are not a join we only have one producer, grab him
     auto producer = producers.front().lock();
 
     // grab the sink from the producer
@@ -195,6 +265,7 @@ public:
 
     // return the source
     return source;
+
   }
 
   /**
@@ -256,7 +327,20 @@ public:
    * Returns the algorithm we chose to run this pipeline
    * @return the planning result, a pair of the algorithm and the consumers of the result
    */
-  virtual pdb::PDBPlanningResult generateAlgorithm(const std::map<std::string, OptimizerSource> &sourcesWithIDs) = 0;
+  pdb::PDBPlanningResult generateAlgorithm(sourceCosts &sourcesWithIDs);
+
+  /**
+   * Returns the algorithm we chose to run this pipeline with specifying the parameters
+   * @param startTupleSet - the tuple set this pipeline starts with
+   * @param source - the page set that is being scanned
+   * @param sourcesWithIDs - this contains the available sources, indexed by the page set id
+   * @param additionalSources - any additional page sets the pipeline requires
+   * @return the planning result, a pair of the algorithm and the consumers of the result
+   */
+  virtual pdb::PDBPlanningResult generateAlgorithm(const std::string &startTupleSet,
+                                                   const pdb::Handle<PDBSourcePageSetSpec> &source,
+                                                   sourceCosts &sourcesWithIDs,
+                                                   pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) = 0;
 
   /**
    * Returns the algorithm we chose to run this pipeline, but assumes that we are pipelining stuff into it...
@@ -264,7 +348,7 @@ public:
    */
   virtual pdb::PDBPlanningResult generatePipelinedAlgorithm(const std::string &startTupleSet,
                                                             const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                            const std::map<std::string, OptimizerSource> &sourcesWithIDs,
+                                                            sourceCosts &sourcesWithIDs,
                                                             pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) = 0;
 
 protected:

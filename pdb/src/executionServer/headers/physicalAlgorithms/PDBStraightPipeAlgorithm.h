@@ -73,6 +73,7 @@ private:
    */
   bool shouldMaterialize = false;
 
+  FRIEND_TEST(TestPhysicalOptimizer, TestJoin3);
 };
 
 }

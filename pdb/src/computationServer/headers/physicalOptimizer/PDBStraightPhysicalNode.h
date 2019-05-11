@@ -16,12 +16,15 @@ public:
 
   PDBPipelineType getType() override;
 
-  pdb::PDBPlanningResult generateAlgorithm(const std::map<std::string, OptimizerSource> &sourcesWithIDs) override;
-
   pdb::PDBPlanningResult generatePipelinedAlgorithm(const std::string &startTupleSet,
                                                     const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                    const std::map<std::string, OptimizerSource> &sourcesWithIDs,
+                                                    sourceCosts &sourcesWithIDs,
                                                     pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) override;
+
+  pdb::PDBPlanningResult generateAlgorithm(const std::string &startTupleSet,
+                                           const pdb::Handle<PDBSourcePageSetSpec> &source,
+                                           sourceCosts& sourcesWithIDs,
+                                           pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) override;
 };
 
 }

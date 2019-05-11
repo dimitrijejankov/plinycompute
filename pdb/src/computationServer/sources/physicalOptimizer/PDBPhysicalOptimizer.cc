@@ -26,7 +26,7 @@ pdb::Handle<pdb::PDBPhysicalAlgorithm> PDBPhysicalOptimizer::getNextAlgorithm() 
   // go through each consumer of the output of this algorithm and add it to the sources
   for(const auto &sourceNode : result.second) {
     sources.insert(std::make_pair(0, sourceNode));
-    sourcesWithIDs[sourceNode->getNodeIdentifier()] = std::make_pair(0, sourceNode);
+    sourcesWithIDs[sourceNode->getSourcePageSet(sourcesWithIDs)->pageSetIdentifier] = std::make_pair(0, sourceNode);
   }
 
   // return the algorithm
