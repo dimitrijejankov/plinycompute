@@ -194,7 +194,7 @@ TEST(PipelineTest, TestBroadcastJoin) {
   ON_CALL(*setBReader, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke([&](size_t workerID) {
     return getSetBPageWithData(myMgr);
   }));
-//  EXPECT_CALL(*setBReader, getNextPage(testing::An<size_t>())).Times(1);
+  EXPECT_CALL(*setBReader, getNextPage(testing::An<size_t>())).Times(testing::AtLeast(1));
 
 
 
@@ -319,14 +319,26 @@ TEST(PipelineTest, TestBroadcastJoin) {
   EXPECT_CALL(*BroadcastedCPageSet, getNextPage).Times(testing::AtLeast(0));
 
 
-  std::shared_ptr<MockPageSetWriter> JoinedPageSet = std::make_shared<MockPageSetWriter>();
+  std::shared_ptr<MockPageSetWriter> pageWriter = std::make_shared<MockPageSetWriter>();
 
-  ON_CALL(*JoinedPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
-    return myMgr->getPage();
+  std::unordered_map<uint64_t , PDBPageHandle> writePages;
+
+  ON_CALL(*pageWriter, getNewPage).WillByDefault(testing::Invoke([&]() {
+    auto mypage = myMgr->getPage();
+    writePages[mypage->whichPage()] = mypage;
+    return mypage;
   }));
 
-  //EXPECT_CALL(*JoinedPageSet, getNewPage).Times(testing::AtLeast(1));
+  EXPECT_CALL(*pageWriter, getNewPage).Times(testing::AtLeast(1));
 
+
+  ON_CALL(*pageWriter, removePage(testing::An<PDBPageHandle>())).WillByDefault(testing::Invoke(
+      [&](PDBPageHandle pageHandle) {
+        writePages.erase(pageHandle->whichPage());
+      }));
+
+  // it should call send object exactly six times
+  EXPECT_CALL(*pageWriter, removePage).Times(testing::Exactly(0));
 
 
   /// 3. Create the computations and the TCAP
@@ -367,7 +379,7 @@ TEST(PipelineTest, TestBroadcastJoin) {
       "BHashedOnA (aAndC, hash) <= HASHRIGHT (BWithAExtracted (a), BWithAExtracted (aAndC), 'JoinComp_3', '==_2', []) \n"
       "\n"
       "/* now, join the two of them */ \n"
-      "AandBJoined (a, aAndC) <= JOIN (BHashedOnA (hash), BHashedOnA (aAndC), AHashed (hash), AHashed (a), 'JoinComp_3', []) \n"
+      "AandBJoined (a, aAndC) <= JOIN (AHashed (hash), AHashed (a), BHashedOnA (hash), BHashedOnA (aAndC), 'JoinComp_3', []) \n"
       "\n"
       "/* and extract the two atts and check for equality */ \n"
       "AandBJoinedWithAExtracted (a, aAndC, aExtracted) <= APPLY (AandBJoined (a), AandBJoined (a, aAndC), 'JoinComp_3', 'self_0', []) \n"
@@ -511,7 +523,7 @@ TEST(PipelineTest, TestBroadcastJoin) {
   myPipeline = myPlan.buildPipeline(std::string("B"), /* this is the TupleSet the pipeline starts with */
                                     std::string("nothing"),     /* this is the TupleSet the pipeline ends with */
                                     setBReader,
-                                    JoinedPageSet,
+                                    pageWriter,
                                     params,
                                     numNodes,
                                     threadsPerNode,
@@ -523,4 +535,22 @@ TEST(PipelineTest, TestBroadcastJoin) {
   myPipeline->run();
   std::cout << "\nDONE RUNNING JOIN PIPELINE\n";
   myPipeline = nullptr;
+
+  for (auto &page : writePages) {
+
+    page.second->repin();
+    Handle<Vector<Handle<String>>>
+        myVec = ((Record<Vector<Handle<String>>> *) page.second->getBytes())->getRootObject();
+
+    std::cout << "Found that this has " << myVec->size() << " strings in it.\n";
+
+    for(int i = 0; i < myVec->size(); ++i) {
+      if(i % 1000 == 0) {
+        std::cout << *(*myVec)[i] << std::endl;
+      }
+    }
+
+    page.second->unpin();
+  }
+
 }

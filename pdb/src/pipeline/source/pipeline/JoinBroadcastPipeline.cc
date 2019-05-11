@@ -28,6 +28,7 @@ void pdb::JoinBroadcastPipeline::run() {
     // if we haven't created an output container create it.
     if (myRAM->outputSink == nullptr) {
       myRAM->outputSink = merger->createNewOutputContainer();
+      inputPage->unpin();
     }
     // write out the page
     merger->writeOutPage(inputPage, myRAM->outputSink);

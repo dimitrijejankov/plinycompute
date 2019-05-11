@@ -9,6 +9,7 @@
 #include <TupleSpec.h>
 #include <JoinTuple.h>
 #include "ComputeExecutor.h"
+#include "StringIntPair.h"
 #include "JoinMap.h"
 
 namespace pdb {
