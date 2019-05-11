@@ -8,6 +8,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <physicalAlgorithms/PDBBroadcastForJoinAlgorithm.h>
 
 namespace pdb {
 
@@ -539,6 +540,89 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
   EXPECT_EQ(cnt, 2);
 
   EXPECT_FALSE(optimizer.hasAlgorithmToRun());
+}
+
+TEST(TestPhysicalOptimizer, TestJoin4) {
+
+  // 1MB for algorithm and stuff
+  const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
+
+  // setup the input parameters
+  uint64_t compID = 89;
+  pdb::String tcapString =
+      "/* scan the three inputs */ \n"
+      "A (a) <= SCAN ('myData', 'mySetA', 'SetScanner_0', []) \n"
+      "B (aAndC) <= SCAN ('myData', 'mySetB', 'SetScanner_1', []) \n"
+      "C (c) <= SCAN ('myData', 'mySetC', 'SetScanner_2', []) \n"
+      "\n"
+      "/* extract and hash a from A */ \n"
+      "AWithAExtracted (a, aExtracted) <= APPLY (A (a), A(a), 'JoinComp_3', 'self_0', []) \n"
+      "AHashed (a, hash) <= HASHLEFT (AWithAExtracted (aExtracted), A (a), 'JoinComp_3', '==_2', []) \n"
+      "\n"
+      "/* extract and hash a from B */ \n"
+      "BWithAExtracted (aAndC, a) <= APPLY (B (aAndC), B (aAndC), 'JoinComp_3', 'attAccess_1', []) \n"
+      "BHashedOnA (aAndC, hash) <= HASHRIGHT (BWithAExtracted (a), BWithAExtracted (aAndC), 'JoinComp_3', '==_2', []) \n"
+      "\n"
+      "/* now, join the two of them */ \n"
+      "AandBJoined (a, aAndC) <= JOIN (AHashed (hash), AHashed (a), BHashedOnA (hash), BHashedOnA (aAndC), 'JoinComp_3', []) \n"
+      "\n"
+      "/* and extract the two atts and check for equality */ \n"
+      "AandBJoinedWithAExtracted (a, aAndC, aExtracted) <= APPLY (AandBJoined (a), AandBJoined (a, aAndC), 'JoinComp_3', 'self_0', []) \n"
+      "AandBJoinedWithBothExtracted (a, aAndC, aExtracted, otherA) <= APPLY (AandBJoinedWithAExtracted (aAndC), AandBJoinedWithAExtracted (a, aAndC, aExtracted), 'JoinComp_3', 'attAccess_1', []) \n"
+      "AandBJoinedWithBool (aAndC, a, bool) <= APPLY (AandBJoinedWithBothExtracted (aExtracted, otherA), AandBJoinedWithBothExtracted (aAndC, a), 'JoinComp_3', '==_2', []) \n"
+      "AandBJoinedFiltered (a, aAndC) <= FILTER (AandBJoinedWithBool (bool), AandBJoinedWithBool (a, aAndC), 'JoinComp_3', []) \n"
+      "\n"
+      "/* now get ready to join the strings */ \n"
+      "AandBJoinedFilteredWithC (a, aAndC, cExtracted) <= APPLY (AandBJoinedFiltered (aAndC), AandBJoinedFiltered (a, aAndC), 'JoinComp_3', 'attAccess_3', []) \n"
+      "BHashedOnC (a, aAndC, hash) <= HASHLEFT (AandBJoinedFilteredWithC (cExtracted), AandBJoinedFilteredWithC (a, aAndC), 'JoinComp_3', '==_5', []) \n"
+      "CwithCExtracted (c, cExtracted) <= APPLY (C (c), C (c), 'JoinComp_3', 'self_0', []) \n"
+      "CHashedOnC (c, hash) <= HASHRIGHT (CwithCExtracted (cExtracted), CwithCExtracted (c), 'JoinComp_3', '==_5', []) \n"
+      "\n"
+      "/* join the two of them */ \n"
+      "BandCJoined (a, aAndC, c) <= JOIN (BHashedOnC (hash), BHashedOnC (a, aAndC), CHashedOnC (hash), CHashedOnC (c), 'JoinComp_3', []) \n"
+      "\n"
+      "/* and extract the two atts and check for equality */ \n"
+      "BandCJoinedWithCExtracted (a, aAndC, c, cFromLeft) <= APPLY (BandCJoined (aAndC), BandCJoined (a, aAndC, c), 'JoinComp_3', 'attAccess_3', []) \n"
+      "BandCJoinedWithBoth (a, aAndC, c, cFromLeft, cFromRight) <= APPLY (BandCJoinedWithCExtracted (c), BandCJoinedWithCExtracted (a, aAndC, c, cFromLeft), 'JoinComp_3', 'self_4', []) \n"
+      "BandCJoinedWithBool (a, aAndC, c, bool) <= APPLY (BandCJoinedWithBoth (cFromLeft, cFromRight), BandCJoinedWithBoth (a, aAndC, c), 'JoinComp_3', '==_5', []) \n"
+      "last (a, aAndC, c) <= FILTER (BandCJoinedWithBool (bool), BandCJoinedWithBool (a, aAndC, c), 'JoinComp_3', []) \n"
+      "\n"
+      "/* and here is the answer */ \n"
+      "almostFinal (result) <= APPLY (last (a, aAndC, c), last (), 'JoinComp_3', 'native_lambda_7', []) \n"
+      "nothing () <= OUTPUT (almostFinal (result), 'outSet', 'myDB', 'SetWriter_4', [])";
+
+  // make a logger
+  auto logger = make_shared<pdb::PDBLogger>("log.out");
+
+  // make the mock client
+  auto catalogClient = std::make_shared<MockCatalog>();
+  ON_CALL(*catalogClient,
+          getSet(testing::An<const std::string &>(),
+                 testing::An<const std::string &>(),
+                 testing::An<std::string &>())).WillByDefault(testing::Invoke(
+      [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
+        if (setName == "mySetA") {
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetA", "myData", "Nothing");
+          tmp->setSize = std::numeric_limits<size_t>::max() - 1;
+          return tmp;
+        } else if (setName == "mySetC") {
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetC", "myData", "Nothing");
+          tmp->setSize = std::numeric_limits<size_t>::max() - 2;
+          return tmp;
+        } else {
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetB", "myData", "Nothing");
+          tmp->setSize = std::numeric_limits<size_t>::max();
+          return tmp;
+        }
+      }));
+
+  EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(3));
+
+  // init the optimizer
+  pdb::PDBPhysicalOptimizer optimizer(compID, tcapString, catalogClient, logger);
+
+
+  /// TODO finish this
 }
 
 }

@@ -19,3 +19,11 @@ pdb::PDBBroadcastForJoinAlgorithm::PDBBroadcastForJoinAlgorithm(const std::strin
 pdb::PDBPhysicalAlgorithmType pdb::PDBBroadcastForJoinAlgorithm::getAlgorithmType() {
   return BroadcastForJoin;
 }
+
+bool pdb::PDBBroadcastForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
+  return true;
+}
+
+bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
+  return true;
+}

@@ -1,11 +1,11 @@
 # create the target
-add_pdb_integration_test(TestSelection)
+add_pdb_integration_test(TestJoin)
 
 # add a build dependency to build-tests target
-add_dependencies(build-integration-tests TestSelection)
+add_dependencies(build-integration-tests TestJoin)
 
 # add build dependencies to shared libraries it uses
-add_dependencies(TestSelection SharedEmployee)
-add_dependencies(TestSelection EmployeeBuiltInIdentitySelection)
-add_dependencies(TestSelection WriteBuiltinEmployeeSet)
-add_dependencies(TestSelection ScanEmployeeSet)
+add_dependencies(TestJoin SillyReadOfA)
+add_dependencies(TestJoin SillyReadOfB)
+add_dependencies(TestJoin SillyJoinIntString)
+add_dependencies(TestJoin SillyWriteIntString)

@@ -1,4 +1,4 @@
-//
-// Created by dimitrije on 5/11/19.
-//
+#include "GetVTable.h"
+#include "SillyReadOfB.h"
 
+GET_V_TABLE(SillyReadOfB)

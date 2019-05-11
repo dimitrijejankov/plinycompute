@@ -1,4 +1,5 @@
-//
-// Created by dimitrije on 5/11/19.
-//
 
+#include "GetVTable.h"
+#include "SillyWriteIntString.h"
+
+GET_V_TABLE(pdb::SillyWriteIntString)

@@ -1,4 +1,6 @@
-//
-// Created by dimitrije on 5/11/19.
-//
+#pragma once
 
+#include "GetVTable.h"
+#include "SillyReadOfC.h"
+
+GET_V_TABLE(SillyReadOfC)

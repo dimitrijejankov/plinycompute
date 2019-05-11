@@ -18,3 +18,11 @@ pdb::PDBShuffleForJoinAlgorithm::PDBShuffleForJoinAlgorithm(const std::string &f
 pdb::PDBPhysicalAlgorithmType pdb::PDBShuffleForJoinAlgorithm::getAlgorithmType() {
   return ShuffleForJoin;
 }
+
+bool pdb::PDBShuffleForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
+  return true;
+}
+
+bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
+  return true;
+}

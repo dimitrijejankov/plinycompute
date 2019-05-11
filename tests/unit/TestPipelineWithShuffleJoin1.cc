@@ -5,10 +5,10 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "objects/SillyReadOfA.h"
-#include "objects/SillyReadOfB.h"
-#include "objects/SillyJoinIntString.h"
-#include "objects/SillyWriteIntString.h"
+#include "SillyReadOfA.h"
+#include "SillyReadOfB.h"
+#include "SillyJoinIntString.h"
+#include "SillyWriteIntString.h"
 
 namespace pdb {
 

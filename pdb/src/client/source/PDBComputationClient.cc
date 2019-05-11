@@ -18,7 +18,7 @@ pdb::PDBComputationClient::PDBComputationClient(const string &address, int port,
 
 bool pdb::PDBComputationClient::executeComputations(Handle<Vector<Handle<Computation>>> &computations, const pdb::String &tcap, std::string &error) {
 
-  // essentially the buffer should be of this size
+  // essentially the buffer should be of this size //TODO this needs to be stress tested
   auto bufferSize = getRecord(computations)->numBytes() + tcap.size() + 1024;
 
   // send the request

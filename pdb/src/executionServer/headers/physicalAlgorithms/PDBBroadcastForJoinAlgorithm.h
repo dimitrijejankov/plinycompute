@@ -2,10 +2,14 @@
 
 #include "PDBPhysicalAlgorithm.h"
 
+// PRELOAD %PDBBroadcastForJoinAlgorithm%
+
 namespace pdb {
 
 class PDBBroadcastForJoinAlgorithm : public PDBPhysicalAlgorithm {
 public:
+
+  PDBBroadcastForJoinAlgorithm() = default;
 
   PDBBroadcastForJoinAlgorithm(const std::string &firstTupleSet,
                                const std::string &finalTupleSet,
@@ -14,11 +18,25 @@ public:
                                const pdb::Handle<PDBSinkPageSetSpec> &sink,
                                const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources);
 
+  ENABLE_DEEP_COPY
+
   /**
    * Returns DistributedAggregation as the type
    * @return the type
    */
   PDBPhysicalAlgorithmType getAlgorithmType() override;
+
+  /**
+   * //TODO
+   */
+  bool setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) override;
+
+  /**
+   * //TODO
+   */
+  bool run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) override;
+
+  void cleanup() override {  };
 
 private:
 

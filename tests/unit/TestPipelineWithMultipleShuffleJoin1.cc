@@ -38,11 +38,11 @@
 #include <PDBBufferManagerImpl.h>
 #include <processors/ShuffleJoinProcessor.h>
 
-#include "objects/SillyJoin.h"
-#include "objects/SillyReadOfA.h"
-#include "objects/SillyReadOfB.h"
-#include "objects/SillyReadOfC.h"
-#include "objects/SillyWrite.h"
+#include "SillyJoin.h"
+#include "SillyReadOfA.h"
+#include "SillyReadOfB.h"
+#include "SillyReadOfC.h"
+#include "SillyWrite.h"
 
 // to run the aggregate, the system first passes each through the hash operation...
 // then the system

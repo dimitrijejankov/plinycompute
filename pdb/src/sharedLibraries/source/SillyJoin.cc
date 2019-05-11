@@ -1,9 +1,6 @@
-#ifndef SillyAgg_C
-#define SillyAgg_C
+#pragma once
 
 #include "GetVTable.h"
-#include "SillyAgg.h"
+#include "SillyJoin.h"
 
-GET_V_TABLE(SillyAgg)
-
-#endif
+GET_V_TABLE(SillyJoin)

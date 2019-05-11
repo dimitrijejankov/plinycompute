@@ -5,6 +5,8 @@
 #ifndef PDB_SILLYWRITE_H
 #define PDB_SILLYWRITE_H
 
+#include <SetWriter.h>
+
 namespace pdb {
 
 class SillyWrite : public SetWriter <Handle <String>> {

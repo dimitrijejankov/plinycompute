@@ -1,4 +1,4 @@
-//
-// Created by dimitrije on 5/11/19.
-//
+#include "GetVTable.h"
+#include "SillyJoinIntString.h"
 
+GET_V_TABLE(SillyJoinIntString)

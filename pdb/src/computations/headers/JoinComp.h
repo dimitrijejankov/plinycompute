@@ -32,10 +32,6 @@ namespace pdb {
 template<typename Out, typename In1, typename In2, typename ...Rest>
 class JoinComp : public JoinCompBase {
 
- private:
-
-  std::vector<std::string> tupleSetNamesForInputs;
-
  public:
 
   // the computation returned by this method is called to see if a data item should be returned in the output set
@@ -212,25 +208,6 @@ class JoinComp : public JoinCompBase {
                                    std::vector<std::string> &outputColumnNames,
                                    std::string &addedOutputColumnName) override {
     return "";
-  }
-
-  // JiaNote: returns the latest tuple set name that contains the i-th input
-  std::string getTupleSetNameForIthInput(int i) {
-    if (i > this->getNumInputs()) {
-      return "";
-    }
-    return tupleSetNamesForInputs[i];
-  }
-
-  // JiaNote: set the latest tuple set name that contains the i-th input
-  void setTupleSetNameForIthInput(int i, std::string name) {
-    int numInputs = this->getNumInputs();
-    if (tupleSetNamesForInputs.size() != numInputs) {
-      tupleSetNamesForInputs.resize(numInputs, 0);
-    }
-    if (i < numInputs) {
-      tupleSetNamesForInputs[i] = name;
-    }
   }
 
   // gets an execute that can run a scan join... needToSwapAtts is true if the atts that are currently stored in the hash table need to

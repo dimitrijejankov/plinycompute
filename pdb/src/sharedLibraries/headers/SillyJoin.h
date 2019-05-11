@@ -5,6 +5,9 @@
 #ifndef PDB_SILLYJOIN_H
 #define PDB_SILLYJOIN_H
 
+#include <JoinComp.h>
+#include <LambdaCreationFunctions.h>
+
 namespace pdb {
 
 // this plan has three tables: A (a: int), B (a: int, c: String), C (c: int)

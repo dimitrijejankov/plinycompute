@@ -1,13 +1,13 @@
-#include <utility>
-
 #pragma once
 
+#include <utility>
 #include <RHSShuffleJoinSourceBase.h>
 #include <ComputeSource.h>
 #include <TupleSpec.h>
 #include <TupleSetMachine.h>
 #include <JoinTuple.h>
 #include <queue>
+#include <PDBAbstractPageSet.h>
 
 namespace pdb {
 
