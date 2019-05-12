@@ -5,6 +5,8 @@
 #ifndef PDB_SILLYREADOFB_H
 #define PDB_SILLYREADOFB_H
 
+#include <StringIntPair.h>
+
 namespace pdb {
 
 class SillyReadOfB : public SetScanner <StringIntPair> {
