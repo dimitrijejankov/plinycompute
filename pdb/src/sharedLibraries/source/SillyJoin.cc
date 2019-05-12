@@ -1,5 +1,3 @@
-#pragma once
-
 #include "GetVTable.h"
 #include "SillyJoin.h"
 

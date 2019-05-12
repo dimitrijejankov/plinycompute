@@ -126,6 +126,10 @@ class AndLambda : public TypedLambdaObject<bool> {
     return 2;
   }
 
+  unsigned int getNumInputs() override {
+    return 2;
+  }
+
   LambdaObjectPtr getChild(int which) override {
     if (which == 0)
       return lhs.getPtr();
@@ -133,6 +137,195 @@ class AndLambda : public TypedLambdaObject<bool> {
       return rhs.getPtr();
     return nullptr;
   }
+
+  //TODO: add comment here and refractor the code
+  std::string toTCAPString(std::vector<std::string> &inputTupleSetNames,
+                           std::vector<std::string> &inputColumnNames,
+                           std::vector<std::string> &inputColumnsToApply,
+                           std::vector<std::string> &childrenLambdaNames,
+                           int lambdaLabel,
+                           std::string computationName,
+                           int computationLabel,
+                           std::string &outputTupleSetName,
+                           std::vector<std::string> &outputColumns,
+                           std::string &outputColumnName,
+                           std::string &myLambdaName,
+                           MultiInputsBase *multiInputsComp = nullptr,
+                           bool amIPartOfJoinPredicate = false,
+                           bool amILeftChildOfEqualLambda = false,
+                           bool amIRightChildOfEqualLambda = false,
+                           std::string parentLambdaName = "",
+                           bool isSelfJoin = false) override {
+
+    if ((multiInputsComp != nullptr) && amIPartOfJoinPredicate) {
+      std::string tcapString;
+      std::string myComputationName = computationName + "_" + std::to_string(computationLabel);
+      // Step 1. get list of input names in LHS
+      unsigned int leftIndex = lhs.getInputIndex(0);
+      std::vector<std::string> lhsColumnNames =
+          multiInputsComp->getInputColumnsForIthInput(leftIndex);
+      std::vector<std::string> lhsInputNames;
+      for (const auto &curColumnName : lhsColumnNames) {
+        for (int j = 0; j < multiInputsComp->getNumInputs(); j++) {
+          if (multiInputsComp->getNameForIthInput(j) == curColumnName) {
+            lhsInputNames.push_back(curColumnName);
+            break;
+          }
+        }
+      }
+
+      // Step 2. get list of input names in RHS
+      unsigned int rightIndex = rhs.getInputIndex(0);
+      std::vector<std::string> rhsColumnNames =
+          multiInputsComp->getInputColumnsForIthInput(rightIndex);
+      std::vector<std::string> rhsInputNames;
+      for (const auto &curColumnName : rhsColumnNames) {
+        for (int j = 0; j < multiInputsComp->getNumInputs(); j++) {
+          if (multiInputsComp->getNameForIthInput(j) == curColumnName) {
+            rhsInputNames.push_back(curColumnName);
+            break;
+          }
+        }
+      }
+
+      // Step 3. if two lists are disjoint do a cartesian join, otherwise return ""
+      std::vector<std::string> inputNamesIntersection;
+
+      for (const auto &lhsInputName : lhsInputNames) {
+        for (const auto &rhsInputName : rhsInputNames) {
+          if (lhsInputName == rhsInputName) {
+            inputNamesIntersection.push_back(lhsInputName);
+          }
+        }
+      }
+
+      if (!inputNamesIntersection.empty()) {
+        return "";
+      } else {
+        // we need a cartesian join
+        // hashone for lhs
+        std::string leftTupleSetName =
+            multiInputsComp->getTupleSetNameForIthInput(leftIndex);
+        std::string leftColumnToApply = lhsInputNames[0];
+        std::vector<std::string> leftColumnsToApply;
+        leftColumnsToApply.push_back(leftColumnToApply);
+        std::string leftOutputTupleSetName = "hashOneFor_" + leftColumnToApply + "_" +
+            std::to_string(computationLabel) + "_" + std::to_string(lambdaLabel);
+        std::string leftOutputColumnName = "OneFor_left_" +
+            std::to_string(computationLabel) + "_" + std::to_string(lambdaLabel);
+        std::vector<std::string> leftOutputColumns;
+        for (const auto &lhsColumnName : lhsColumnNames) {
+          leftOutputColumns.push_back(lhsColumnName);
+        }
+        leftOutputColumns.push_back(leftOutputColumnName);
+        tcapString += this->getTCAPString(leftTupleSetName,
+                                          lhsColumnNames,
+                                          leftColumnsToApply,
+                                          leftOutputTupleSetName,
+                                          leftOutputColumns,
+                                          leftOutputColumnName,
+                                          "HASHONE",
+                                          myComputationName,
+                                          "",
+                                          std::map<std::string, std::string>());
+
+        // hashone for rhs
+        std::string rightTupleSetName = multiInputsComp->getTupleSetNameForIthInput(rightIndex);
+        std::string rightColumnToApply = rhsInputNames[0];
+        std::vector<std::string> rightColumnsToApply;
+        rightColumnsToApply.push_back(rightColumnToApply);
+        std::string rightOutputTupleSetName =
+            "hashOneFor_" + rightColumnToApply + "_" + std::to_string(computationLabel) + "_"
+                + std::to_string(lambdaLabel);
+        std::string rightOutputColumnName =
+            "OneFor_right_" + std::to_string(computationLabel) + "_" + std::to_string(lambdaLabel);
+        std::vector<std::string> rightOutputColumns;
+        for (const auto &rhsColumnName : rhsColumnNames) {
+          rightOutputColumns.push_back(rhsColumnName);
+        }
+        rightOutputColumns.push_back(rightOutputColumnName);
+        tcapString += this->getTCAPString(rightTupleSetName,
+                                          rhsColumnNames,
+                                          rightColumnsToApply,
+                                          rightOutputTupleSetName,
+                                          rightOutputColumns,
+                                          rightOutputColumnName,
+                                          "HASHONE",
+                                          myComputationName,
+                                          "",
+                                          std::map<std::string, std::string>());
+
+        // cartesian join lhs and rhs
+        tcapString += "\n/* CartesianJoin ( " + lhsInputNames[0];
+
+        outputTupleSetName = "CartesianJoined__" + lhsInputNames[0];
+        for (unsigned int i = 1; i < lhsInputNames.size(); i++) {
+          outputTupleSetName += "_" + lhsInputNames[i];
+          tcapString += " " + lhsInputNames[i];
+        }
+        outputTupleSetName += "___" + rhsInputNames[0];
+        tcapString += " ) and ( " + rhsInputNames[0];
+        for (unsigned int i = 1; i < rhsInputNames.size(); i++) {
+          outputTupleSetName += "_" + rhsInputNames[i];
+          tcapString += " " + rhsInputNames[i];
+        }
+        outputTupleSetName += "_";
+        tcapString += " ) */\n";
+
+        // TODO: push down projection here
+        outputColumns.clear();
+        tcapString += outputTupleSetName + "(" + lhsColumnNames[0];
+        outputColumns.push_back(lhsColumnNames[0]);
+        for (unsigned int i = 1; i < lhsColumnNames.size(); i++) {
+          tcapString += ", " + lhsColumnNames[i];
+          outputColumns.push_back(lhsColumnNames[i]);
+        }
+        tcapString += ", " + rhsColumnNames[0];
+        outputColumns.push_back(rhsColumnNames[0]);
+        for (unsigned int i = 1; i < rhsColumnNames.size(); i++) {
+          tcapString += ", " + rhsColumnNames[i];
+          outputColumns.push_back(rhsColumnNames[i]);
+        }
+        tcapString += ") <= JOIN (" + leftOutputTupleSetName + "(" + leftOutputColumnName +
+            "), " + leftOutputTupleSetName + "(" + lhsColumnNames[0];
+        for (unsigned int i = 1; i < lhsColumnNames.size(); i++) {
+          tcapString += ", " + lhsColumnNames[i];
+        }
+        tcapString += "), " + rightOutputTupleSetName + "(" + rightOutputColumnName +
+            "), " + rightOutputTupleSetName + "(" + rhsColumnNames[0];
+        for (unsigned int i = 1; i < rhsColumnNames.size(); i++) {
+          tcapString += ", " + rhsColumnNames[i];
+        }
+        tcapString += "), '" + myComputationName + "')\n";
+
+        // update multiInputsComp
+        for (unsigned int i = 0; i < multiInputsComp->getNumInputs(); i++) {
+          std::string curInput = multiInputsComp->getNameForIthInput(i);
+          auto iter = std::find(outputColumns.begin(), outputColumns.end(), curInput);
+          if (iter != outputColumns.end()) {
+            multiInputsComp->setTupleSetNameForIthInput(i, outputTupleSetName);
+            multiInputsComp->setInputColumnsForIthInput(i, outputColumns);
+            multiInputsComp->setInputColumnsToApplyForIthInput(i, outputColumns);
+          }
+        }
+        return tcapString;
+      }
+
+    } else {
+      return "";
+    }
+  }
+  /**
+  * Returns the additional information about this lambda currently just the lambda type
+  * @return the map
+  */
+  std::map<std::string, std::string> getInfo() override {
+    // fill in the info
+    return std::map<std::string, std::string>{
+        std::make_pair("lambdaType", getTypeOfLambda())
+    };
+  };
+
 
 };
 

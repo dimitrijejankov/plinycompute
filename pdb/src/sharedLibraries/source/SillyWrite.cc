@@ -1,4 +1,3 @@
-#pragma once
 
 #include "GetVTable.h"
 #include "SillyWrite.h"

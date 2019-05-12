@@ -28,6 +28,7 @@
 #include "executors/ApplyComputeExecutor.h"
 #include "TupleSetMachine.h"
 #include "LambdaTree.h"
+#include "mustache.h"
 
 namespace pdb {
 
@@ -37,7 +38,7 @@ class AttAccessLambda : public TypedLambdaObject <Ptr <Out>> {
 public:
 
   // create an att access lambda; offset is the position in the input object where we are going to find the input att
-  AttAccessLambda (std::string inputTypeNameIn, std::string attNameIn, std::string attType, Handle <ClassType> & input, size_t offset) : 
+  AttAccessLambda (std::string inputTypeNameIn, std::string attNameIn, std::string attType, Handle <ClassType> & input, size_t offset) :
              offsetOfAttToProcess (offset), inputTypeName (std::move(inputTypeNameIn)), attName (std::move(attNameIn)), attTypeName (std::move(attType)) {}
 
 
@@ -100,6 +101,10 @@ public:
     return inputTypeName;
   }
 
+  unsigned int getNumInputs() override {
+      return 1;
+  }
+
   int getNumChildren () override {
       return 0;
   }
@@ -108,6 +113,169 @@ public:
       return nullptr;
   }
 
+  //TODO: add comment here and refractor the code
+    std::string toTCAPString(std::vector<std::string> &inputTupleSetNames,
+                           std::vector<std::string> &inputColumnNames,
+                           std::vector<std::string> &inputColumnsToApply,
+                           std::vector<std::string> &childrenLambdaNames,
+                           int lambdaLabel,
+                           std::string computationName,
+                           int computationLabel,
+                           std::string &outputTupleSetName,
+                           std::vector<std::string> &outputColumns,
+                           std::string &outputColumnName,
+                           std::string &lambdaName,
+                           MultiInputsBase *multiInputsComp = nullptr,
+                           bool amIPartOfJoinPredicate = false,
+                           bool amILeftChildOfEqualLambda = false,
+                           bool amIRightChildOfEqualLambda = false,
+                           std::string parentLambdaName = "",
+                           bool isSelfJoin = false) override {
+
+       // create the data for the lambda
+      mustache::data lambdaData;
+      lambdaData.set("computationName", computationName);
+      lambdaData.set("computationLabel", std::to_string(computationLabel));
+      lambdaData.set("typeOfLambda", getTypeOfLambda());
+      lambdaData.set("lambdaLabel", std::to_string(lambdaLabel));
+
+       // create the computation name with label
+      mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
+      std::string computationNameWithLabel = computationNameWithLabelTemplate.render(lambdaData);
+
+       // create the lambda name
+      mustache::mustache lambdaNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}"};
+      lambdaName = lambdaNameTemplate.render(lambdaData);
+
+       // things we need to figure out in the next step
+      int index;
+      std::string inputTupleSetName;
+      std::string tupleSetMidTag;
+      std::string originalInputColumnToApply;
+
+       if (multiInputsComp == nullptr) {
+          tupleSetMidTag = "OutFor";
+          inputTupleSetName = inputTupleSetNames[0];
+      } else {
+          tupleSetMidTag = "ExtractedFor";
+          index = this->getInputIndex(0);
+          PDB_COUT << lambdaName << ": myIndex=" << index << std::endl;
+          inputTupleSetName = multiInputsComp->getTupleSetNameForIthInput(index);
+          PDB_COUT << "inputTupleSetName=" << inputTupleSetName << std::endl;
+          inputColumnNames = multiInputsComp->getInputColumnsForIthInput(index);
+          inputColumnsToApply.clear();
+          inputColumnsToApply.push_back(multiInputsComp->getNameForIthInput(index));
+          originalInputColumnToApply = multiInputsComp->getNameForIthInput(index);
+          PDB_COUT << "originalInputColumnToApply=" << originalInputColumnToApply << std::endl;
+      }
+
+       // set the lambda data
+      lambdaData.set("tupleSetMidTag", tupleSetMidTag);
+      lambdaData.set("attName", attName);
+
+       // create the output tuple set name
+      mustache::mustache outputTupleSetNameTemplate{"attAccess_{{lambdaLabel}}{{tupleSetMidTag}}{{computationName}}{{computationLabel}}"};
+      outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
+
+       // create the output column name
+      mustache::mustache outputColumnNameTemplate{"att_{{lambdaLabel}}{{tupleSetMidTag}}_{{attName}}"};
+      outputColumnName = outputColumnNameTemplate.render(lambdaData);
+
+       // initialize the output columns
+      outputColumns.clear();
+      for (const auto &inputColumnName : inputColumnNames) {
+          outputColumns.push_back(inputColumnName);
+      }
+      outputColumns.push_back(outputColumnName);
+
+       // generate the TCAP string for the lambda
+      std::string tcapString;
+
+       // the additional info about this attribute access lambda
+      std::map<std::string, std::string> info;
+
+       tcapString += this->getTCAPString(inputTupleSetName,
+                                        inputColumnNames,
+                                        inputColumnsToApply,
+                                        outputTupleSetName,
+                                        outputColumns,
+                                        outputColumnName,
+                                        "APPLY",
+                                        computationNameWithLabel,
+                                        lambdaName,
+                                        getInfo());
+
+       if (multiInputsComp != nullptr) {
+          if (amILeftChildOfEqualLambda || amIRightChildOfEqualLambda) {
+              inputTupleSetName = outputTupleSetName;
+              inputColumnNames.clear();
+              for (const auto &outputColumn : outputColumns) {
+                  // we want to remove the extracted value column from here
+                  if (outputColumn != outputColumnName) {
+                      inputColumnNames.push_back(outputColumn);
+                  }
+              }
+              inputColumnsToApply.clear();
+              inputColumnsToApply.push_back(outputColumnName);
+
+               std::string hashOperator = amILeftChildOfEqualLambda ? "HASHLEFT" : "HASHRIGHT";
+              outputTupleSetName = outputTupleSetName.append("_hashed");
+              outputColumnName = outputColumnName.append("_hash");
+              outputColumns.clear();
+
+               std::copy(inputColumnNames.begin(), inputColumnNames.end(), std::back_inserter(outputColumns));
+              outputColumns.push_back(outputColumnName);
+
+               tcapString += this->getTCAPString(inputTupleSetName,
+                                                inputColumnNames,
+                                                inputColumnsToApply,
+                                                outputTupleSetName,
+                                                outputColumns,
+                                                outputColumnName,
+                                                hashOperator,
+                                                computationNameWithLabel,
+                                                parentLambdaName,
+                                                std::map<std::string, std::string>());
+          }
+
+           if (!isSelfJoin) {
+              for (unsigned int i = 0; i < multiInputsComp->getNumInputs(); i++) {
+                  std::string curInput = multiInputsComp->getNameForIthInput(i);
+                  auto iter = std::find(outputColumns.begin(), outputColumns.end(), curInput);
+                  if (iter != outputColumns.end()) {
+                      PDB_COUT << "MultiInputBase for index=" << i << " is updated" << std::endl;
+                      multiInputsComp->setTupleSetNameForIthInput(i, outputTupleSetName);
+                      multiInputsComp->setInputColumnsForIthInput(i, outputColumns);
+                      multiInputsComp->setInputColumnsToApplyForIthInput(i, outputColumnName);
+                  }
+                  if (originalInputColumnToApply == curInput) {
+                      PDB_COUT << "MultiInputBase for index=" << i << " is updated" << std::endl;
+                      multiInputsComp->setTupleSetNameForIthInput(i, outputTupleSetName);
+                      multiInputsComp->setInputColumnsForIthInput(i, outputColumns);
+                      multiInputsComp->setInputColumnsToApplyForIthInput(i, outputColumnName);
+                  }
+              }
+          } else {
+              // only update myIndex
+              multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
+              multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
+              multiInputsComp->setInputColumnsToApplyForIthInput(index, outputColumnName);
+          }
+      }
+      return tcapString;
+  }
+
+   std::map<std::string, std::string> getInfo() override {
+
+       // fill in the info
+      return std::map<std::string, std::string>{
+
+           std::make_pair ("lambdaType", getTypeOfLambda()),
+          std::make_pair ("inputTypeName", inputTypeName),
+          std::make_pair ("attName", attName),
+          std::make_pair ("attTypeName", attTypeName)
+      };
+  };
 
 private:
 

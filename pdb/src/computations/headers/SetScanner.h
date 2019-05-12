@@ -27,9 +27,7 @@ namespace pdb {
 
 template<class OutputClass>
 class SetScanner : public Computation {
-public:
-
-  ENABLE_DEEP_COPY
+ public:
 
   SetScanner() = default;
 
@@ -54,20 +52,69 @@ public:
     return getTypeName<OutputClass>();
   }
 
+  bool needsMaterializeOutput() override {
+    return false;
+  }
+
   // below function implements the interface for parsing computation into a TCAP string
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
                            int computationLabel,
                            std::string &outputTupleSetName,
                            std::vector<std::string> &outputColumnNames,
                            std::string &addedOutputColumnName) override {
-    return "";
+    InputTupleSetSpecifier inputTupleSet;
+    if (!inputTupleSets.empty()) {
+      inputTupleSet = inputTupleSets[0];
+    }
+    return toTCAPString(inputTupleSet.getTupleSetName(),
+                        inputTupleSet.getColumnNamesToKeep(),
+                        inputTupleSet.getColumnNamesToApply(),
+                        computationLabel,
+                        outputTupleSetName,
+                        outputColumnNames,
+                        addedOutputColumnName);
   }
 
-  pdb::ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID) override {
+  std::string toTCAPString(std::string inputTupleSetName,
+                           std::vector<std::string> &inputColumnNames,
+                           std::vector<std::string> &inputColumnsToApply,
+                           int computationLabel,
+                           std::string &outputTupleSetName,
+                           std::vector<std::string> &outputColumnNames,
+                           std::string &addedOutputColumnName) {
+    // the template we are going to use to create the TCAP string for this ScanUserSet
+    mustache::mustache scanSetTemplate{"inputDataFor{{computationType}}_{{computationLabel}}(in{{computationLabel}})"
+                                       " <= SCAN ('{{setName}}', '{{dbName}}', '{{computationType}}_{{computationLabel}}')\n"};
+
+    // the data required to fill in the template
+    mustache::data scanSetData;
+    scanSetData.set("computationType", getComputationType());
+    scanSetData.set("computationLabel", std::to_string(computationLabel));
+    scanSetData.set("setName", std::string(setName));
+    scanSetData.set("dbName", std::string(dbName));
+    // output column name
+    mustache::mustache outputColumnNameTemplate{"in{{computationLabel}}"};
+    //  set the output column name
+    addedOutputColumnName = outputColumnNameTemplate.render(scanSetData);
+    outputColumnNames.push_back(addedOutputColumnName);
+    // output tuple set name template
+    mustache::mustache outputTupleSetTemplate{"inputDataFor{{computationType}}_{{computationLabel}}"};
+    outputTupleSetName = outputTupleSetTemplate.render(scanSetData);
+    // update the state of the computation
+    this->setTraversed(true);
+    this->setOutputTupleSetName(outputTupleSetName);
+    this->setOutputColumnToApply(addedOutputColumnName);
+    // return the TCAP string
+    return scanSetTemplate.render(scanSetData);
+  }
+
+  pdb::ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet,
+                                         size_t chunkSize,
+                                         uint64_t workerID) override {
     return std::make_shared<pdb::VectorTupleSetIterator>(pageSet, chunkSize, workerID);
   }
 
-private:
+ private:
 
   /**
    * The name of the database the set we are scanning belongs to

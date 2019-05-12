@@ -29,54 +29,55 @@ namespace pdb {
 // runs a filter operation
 class FilterExecutor : public ComputeExecutor {
 
-private:
+ private:
 
-	// this is the output TupleSet that we return
-	TupleSetPtr output;
+  // this is the output TupleSet that we return
+  TupleSetPtr output;
 
-	// the attribute to operate on
-	int whichAtt;
+  // the attribute to operate on
+  int whichAtt;
 
-	// to setup the output tuple set
-	TupleSetSetupMachine myMachine;
+  // to setup the output tuple set
+  TupleSetSetupMachine myMachine;
 
-public:
+ public:
 
-	// currently, we just ignore the extra parameter to the filter if we get it
-	FilterExecutor (TupleSpec &inputSchema, TupleSpec &attsToOperateOn, TupleSpec &attsToIncludeInOutput, ComputeInfoPtr) :
-                myMachine (inputSchema, attsToIncludeInOutput) {
-		
-		// this is the input attribute that we will process
-		output = std :: make_shared <TupleSet> ();
-		std :: vector <int> matches = myMachine.match (attsToOperateOn);
-		whichAtt = matches[0];
-	}
+  // currently, we just ignore the extra parameter to the filter if we get it
+  FilterExecutor(TupleSpec &inputSchema, TupleSpec &attsToOperateOn, TupleSpec &attsToIncludeInOutput, ComputeInfoPtr) :
+      myMachine(inputSchema, attsToIncludeInOutput) {
 
-	FilterExecutor (TupleSpec &inputSchema, TupleSpec &attsToOperateOn, TupleSpec &attsToIncludeInOutput) : 
-		myMachine (inputSchema, attsToIncludeInOutput) {
+    // this is the input attribute that we will process
+    output = std::make_shared<TupleSet>();
+    std::vector<int> matches = myMachine.match(attsToOperateOn);
+    whichAtt = matches[0];
+  }
 
-		// this is the input attribute that we will process
-		output = std :: make_shared <TupleSet> ();
-		std :: vector <int> matches = myMachine.match (attsToOperateOn);
-		whichAtt = matches[0];
-	}
+  FilterExecutor(TupleSpec &inputSchema, TupleSpec &attsToOperateOn, TupleSpec &attsToIncludeInOutput) :
+      myMachine(inputSchema, attsToIncludeInOutput) {
 
-	TupleSetPtr process (TupleSetPtr input) override {
+    // this is the input attribute that we will process
+    output = std::make_shared<TupleSet>();
+    std::vector<int> matches = myMachine.match(attsToOperateOn);
+    whichAtt = matches[0];
+  }
 
-		// set up the output tuple set
-		myMachine.setup (input, output);
+  TupleSetPtr process(TupleSetPtr input) override {
 
-		// get the input column to use as a filter
-		std :: vector <bool> &inputColumn = input->getColumn <bool> (whichAtt);
+    // set up the output tuple set
+    myMachine.setup(input, output);
 
-		// loop over the columns and filter
-		int numColumns = output->getNumColumns ();
-		for (int i = 0; i < numColumns; i++) {
-			output->filterColumn (i, inputColumn);
-		}
+    // get the input column to use as a filter
+    std::vector<bool> &inputColumn = input->getColumn<bool>(whichAtt);
 
-		return output;
-	}
+    // loop over the columns and filter
+    int numColumns = output->getNumColumns();
+    for (int i = 0; i < numColumns; i++) {
+      output->filterColumn(i, inputColumn);
+    }
+
+    return output;
+  }
+
 };
 
 }

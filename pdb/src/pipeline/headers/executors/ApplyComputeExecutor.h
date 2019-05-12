@@ -1,3 +1,5 @@
+#include <utility>
+
 /*****************************************************************************
  *                                                                           *
  *  Copyright 2018 Rice University                                           *
@@ -33,22 +35,22 @@ class ApplyComputeExecutor : public ComputeExecutor {
 
 private:
 
-	// this is the output TupleSet that we return
-	TupleSetPtr output;
+  // this is the output TupleSet that we return
+  TupleSetPtr output;
 
-	// this is a lambda that we'll call to process input
-	std :: function <TupleSetPtr (TupleSetPtr)> processInput;
+  // this is a lambda that we'll call to process input
+  std::function<TupleSetPtr(TupleSetPtr)> processInput;
 
 public:
 
-	ApplyComputeExecutor (TupleSetPtr outputIn, std :: function <TupleSetPtr (TupleSetPtr)> processInputIn) {
-		output = outputIn;
-		processInput = processInputIn;
-	}
+	ApplyComputeExecutor(TupleSetPtr outputIn, std::function<TupleSetPtr(TupleSetPtr)> processInputIn) {
+      output = std::move(outputIn);
+      processInput = std::move(processInputIn);
+    }
 
-	TupleSetPtr process (TupleSetPtr input) override {
-		return processInput (input);
-	}
+    TupleSetPtr process(TupleSetPtr input) override {
+      return processInput(input);
+    }
 };
 
 }

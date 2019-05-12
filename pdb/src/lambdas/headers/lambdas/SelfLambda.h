@@ -24,94 +24,109 @@
 #include "Ptr.h"
 #include "TupleSet.h"
 #include <vector>
-#include "executors/ApplyComputeExecutor.h"
 #include "TupleSetMachine.h"
 
 namespace pdb {
 
-template <class ClassType>
-class SelfLambda : public TypedLambdaObject <Ptr <ClassType>> {
+template<class ClassType>
+class SelfLambda : public TypedLambdaObject<pdb::Ptr<ClassType>> {
 
-public:
+ public:
+  std::string inputTypeName;
 
-	std :: string inputTypeName;
+ public:
+  // create an att access lambda; offset is the position in the input object where we are going to
+  // find the input att
+  SelfLambda(Handle<ClassType> &input) {
+    inputTypeName = getTypeName<ClassType>();
+    this->setInputIndex(0, -((input.getExactTypeInfoValue() + 1)));
+  }
 
-public:
+  std::string getTypeOfLambda() override {
+    return std::string("self");
+  }
 
-	// create an att access lambda; offset is the position in the input object where we are going to find the input att
-	explicit SelfLambda (Handle <ClassType> & input) {
-		inputTypeName = getTypeName <ClassType> ();
-                std :: cout << "SelfLambda: input class is " << input.getExactTypeInfoValue() << std :: endl;
-	}
+  std::string typeOfAtt() {
+    return inputTypeName;
+  }
 
-	std :: string getTypeOfLambda () override {
-		return std :: string ("self");
-	}
+  std::string getInputType() {
+    return inputTypeName;
+  }
 
-	std :: string typeOfAtt () {
-		return inputTypeName;
-	}
+  unsigned int getNumInputs() override {
+    return 1;
+  }
 
-	std :: string getInputType () {
-		return inputTypeName;
-	}
+  int getNumChildren() override {
+    return 0;
+  }
 
-	int getNumChildren () override {
-		return 0;
-	}
+  LambdaObjectPtr getChild(int which) override {
+    return nullptr;
+  }
 
-	LambdaObjectPtr getChild (int which) override {
-		return nullptr;
-	}
+  /**
+   * Returns the additional information about this lambda currently lambda type
+   * @return the map
+   */
+  std::map<std::string, std::string> getInfo() override {
 
-    ComputeExecutorPtr getExecutor (TupleSpec &inputSchema, TupleSpec &attsToOperateOn, TupleSpec &attsToIncludeInOutput) override {
+    // fill in the info
+    return std::map<std::string, std::string>{
+        std::make_pair ("lambdaType", getTypeOfLambda()),
+    };
+  };
 
-        // create the output tuple set
-        TupleSetPtr output = std :: make_shared <TupleSet> ();
+  ComputeExecutorPtr getExecutor(TupleSpec &inputSchema,
+                                 TupleSpec &attsToOperateOn,
+                                 TupleSpec &attsToIncludeInOutput) override {
 
-        // create the machine that is going to setup the output tuple set, using the input tuple set
-        TupleSetSetupMachinePtr myMachine = std :: make_shared <TupleSetSetupMachine> (inputSchema, attsToIncludeInOutput);
+    // create the output tuple set
+    TupleSetPtr output = std::make_shared<TupleSet>();
 
-        // this is the input attribute that we will process
-        std :: vector <int> matches = myMachine->match (attsToOperateOn);
-        int whichAtt = matches[0];
+    // create the machine that is going to setup the output tuple set, using the input tuple set
+    TupleSetSetupMachinePtr myMachine =
+        std::make_shared<TupleSetSetupMachine>(inputSchema, attsToIncludeInOutput);
 
-        // this is the output attribute
-        int outAtt = attsToIncludeInOutput.getAtts ().size ();
+    // this is the input attribute that we will process
+    std::vector<int> matches = myMachine->match(attsToOperateOn);
+    int whichAtt = matches[0];
 
-        return std :: make_shared <ApplyComputeExecutor> (
-                output,
-                [=] (TupleSetPtr input) {
+    // this is the output attribute
+    int outAtt = attsToIncludeInOutput.getAtts().size();
 
-                        // set up the output tuple set
-                        myMachine->setup (input, output);
+    return std::make_shared<ApplyComputeExecutor>(
+        output,
+        [=](TupleSetPtr input) {
 
-                        // get the columns to operate on
-                        std :: vector <Handle<ClassType>> &inputColumn = input->getColumn <Handle<ClassType>> (whichAtt);
+          // set up the output tuple set
+          myMachine->setup(input, output);
 
-                        // setup the output column, if it is not already set up
-                        if (!output->hasColumn (outAtt)) {
-                            output->addColumn (outAtt, new std :: vector <Ptr <ClassType>>, true);
-                        }
+          // get the columns to operate on
+          std::vector<Handle<ClassType>> &inputColumn =
+              input->getColumn<Handle<ClassType>>(whichAtt);
 
-                        // get the output column
-                        std :: vector <Ptr <ClassType>> &outColumn = output->getColumn <Ptr <ClassType>> (outAtt);
+          // setup the output column, if it is not already set up
+          if (!output->hasColumn(outAtt)) {
+            std::vector<Ptr<ClassType>> *outputCol = new std::vector<Ptr<ClassType>>;
+            output->addColumn(outAtt, outputCol, true);
+          }
 
-                        // loop down the columns, setting the output
-                        int numTuples = inputColumn.size ();
-                        outColumn.resize (numTuples);
-                        for (int i = 0; i < numTuples; i++) {
-                                outColumn [i] = (ClassType *) &(*(inputColumn[i]));
-                        }
+          // get the output column
+          std::vector<Ptr<ClassType>> &outColumn = output->getColumn<Ptr<ClassType>>(outAtt);
 
-                        return output;
-                }
-        );
+          // loop down the columns, setting the output
+          int numTuples = inputColumn.size();
+          outColumn.resize(numTuples);
+          for (int i = 0; i < numTuples; i++) {
+            outColumn[i] = (ClassType *) &(*(inputColumn[i]));
+          }
 
-    }
-
+          return output;
+        });
+  }
 };
-
 }
 
 #endif
