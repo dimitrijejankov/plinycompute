@@ -378,7 +378,7 @@ int32_t pdb::PDBCatalog::numRegisteredTypes() {
 std::vector<pdb::PDBCatalogSet> pdb::PDBCatalog::getSetsInDatabase(const std::string &dbName) {
 
   // select all the sets
-  auto rows = storage.select(columns(&PDBCatalogSet::name, &PDBCatalogSet::database, &PDBCatalogSet::type),
+  auto rows = storage.select(columns(&PDBCatalogSet::name, &PDBCatalogSet::database, &PDBCatalogSet::type, &PDBCatalogSet::setSize),
                              where(c(&PDBCatalogSet::database) == dbName));
 
   // create a return value
@@ -389,7 +389,7 @@ std::vector<pdb::PDBCatalogSet> pdb::PDBCatalog::getSetsInDatabase(const std::st
 
   // create the objects
   for(auto &r : rows) {
-    ret.emplace_back(pdb::PDBCatalogSet(std::get<1>(r), std::get<0>(r), *std::get<2>(r)));
+    ret.emplace_back(pdb::PDBCatalogSet(std::get<1>(r), std::get<0>(r), *std::get<2>(r), std::get<3>(r)));
   }
 
   return std::move(ret);

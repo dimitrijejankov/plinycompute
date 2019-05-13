@@ -695,7 +695,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         }
 
         // register the set with the catalog
-        res = pdbCatalog->registerSet(make_shared<PDBCatalogSet>(dbName, setName, internalTypeName), errMsg) && res;
+        res = pdbCatalog->registerSet(make_shared<PDBCatalogSet>(dbName, setName, internalTypeName, 0), errMsg) && res;
 
         // after we added the set to the local catalog, if this is the
         // manager catalog iterate over all nodes in the cluster and broadcast the

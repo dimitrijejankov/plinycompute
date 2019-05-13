@@ -28,9 +28,9 @@ TEST(CatalogTest, FullTest) {
   EXPECT_EQ(catalog.numRegisteredTypes() - numBefore, 2);
 
   // create the set
-  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db1", "set1", "Type1"), error));
-  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db1", "set2", "Type1"), error));
-  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db2", "set3", "Type2"), error));
+  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db1", "set1", "Type1", 0), error));
+  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db1", "set2", "Type1", 0), error));
+  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db2", "set3", "Type2", 0), error));
 
   // update the set
   EXPECT_TRUE(catalog.incrementSetSize("db1", "set1", 1024, error));

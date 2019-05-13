@@ -36,8 +36,8 @@ public:
    * @param database - the database the set belongs to
    * @param type - the id of the set type, something like 8xxx
    */
-  PDBCatalogSet(const std::string &database, const std::string &name, const std::string &type) :
-                setIdentifier(database + ":" + name), name(name), database(database), type(std::make_shared<std::string>(type)) {}
+  PDBCatalogSet(const std::string &database, const std::string &name, const std::string &type, size_t setSize) :
+                setIdentifier(database + ":" + name), name(name), database(database), type(std::make_shared<std::string>(type)), setSize(setSize) {}
 
   /**
    * The set is a string of the form "dbName:setName"

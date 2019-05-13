@@ -409,7 +409,7 @@ pdb::PDBCatalogSetPtr PDBCatalogClient::getSet(const std::string &dbName, const 
 
                 // do we have the thing
                 if(result != nullptr && result->databaseName == dbName && result->setName == setName) {
-                  return std::make_shared<pdb::PDBCatalogSet>(result->databaseName, result->setName, result->type);
+                  return std::make_shared<pdb::PDBCatalogSet>(result->databaseName, result->setName, result->type, result->setSize);
                 }
 
                 // return a null pointer otherwise
