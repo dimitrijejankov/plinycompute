@@ -118,7 +118,7 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
   /// 7. Create the self receiver to forward pages that are created on this node and the network senders to forward pages for the other nodes
 
   senders = std::make_shared<std::vector<PDBPageNetworkSenderPtr>>();
-  for(int i = 0; i < job->nodes.size(); ++i) {
+  for(unsigned i = 0; i < job->nodes.size(); ++i) {
 
     // check if it is this node or another node
     if(job->nodes[i]->port == job->thisNode->port && job->nodes[i]->address == job->thisNode->address) {

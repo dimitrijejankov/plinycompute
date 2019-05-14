@@ -1,6 +1,10 @@
 #pragma once
 
 #include "PDBPhysicalAlgorithm.h"
+#include "PageProcessor.h"
+#include "PDBPageNetworkSender.h"
+#include "PDBPageSelfReceiver.h"
+#include "PipelineInterface.h"
 
 // PRELOAD %PDBShuffleForJoinAlgorithm%
 
@@ -42,6 +46,31 @@ public:
   void cleanup() override {  };
 
  private:
+
+  /**
+   * This forwards the preaggregated pages to this node
+   */
+  pdb::PDBPageSelfReceiverPtr selfReceiver;
+
+  /**
+   * These senders forward pages that are for other nodes
+   */
+  std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> senders;
+
+  /**
+   *
+   */
+  std::shared_ptr<std::vector<PipelinePtr>> joinShufflePipelines = nullptr;
+
+  /**
+   *
+   */
+  std::shared_ptr<std::vector<PDBPageQueuePtr>> pageQueues = nullptr;
+
+  /**
+   *
+   */
+  PDBLoggerPtr logger;
 
   /**
    * The intermediate page set

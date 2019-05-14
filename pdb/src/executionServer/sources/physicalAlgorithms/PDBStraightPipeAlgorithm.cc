@@ -56,7 +56,7 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
   auto sinkNode = logicalPlan->getComputations().getProducingAtomicComputation(finalTupleSet);
 
   // ok so are we writing to an output set if so store the name of the output set
-  if(sinkNode->getAtomicComputationTypeID()  == WriteSetTypeID) {
+  if(sinkNode->getAtomicComputationTypeID() == WriteSetTypeID) {
 
     // cast the node to the output
     auto writerNode = std::dynamic_pointer_cast<WriteSet>(sinkNode);

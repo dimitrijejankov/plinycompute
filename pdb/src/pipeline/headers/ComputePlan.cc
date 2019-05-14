@@ -111,10 +111,10 @@ inline bool recurse(LogicalPlanPtr myPlan,
 }
 
 inline PageProcessorPtr ComputePlan::getProcessorForJoin(const std::string &tupleSetName,
-                                                  size_t numNodes,
-                                                  size_t numProcessingThreads,
-                                                  vector<PDBPageQueuePtr> pageQueues,
-                                                  PDBBufferManagerInterfacePtr bufferManager) {
+                                                         size_t numNodes,
+                                                         size_t numProcessingThreads,
+                                                         vector<PDBPageQueuePtr> &pageQueues,
+                                                         PDBBufferManagerInterfacePtr bufferManager) {
   // build the plan if it is not already done
   if (myPlan == nullptr)
     getPlan();

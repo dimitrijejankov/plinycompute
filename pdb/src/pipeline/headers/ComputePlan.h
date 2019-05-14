@@ -77,7 +77,7 @@ class ComputePlan {
   PageProcessorPtr getProcessorForJoin(const std::string &joinTupleSetName,
                                        size_t numNodes,
                                        size_t numProcessingThreads,
-                                       vector<PDBPageQueuePtr> pageQueues,
+                                       vector<PDBPageQueuePtr> &pageQueues,
                                        PDBBufferManagerInterfacePtr bufferManager);
 
   // this builds a pipeline between the Computation that produces sourceTupleSetName and the Computation
