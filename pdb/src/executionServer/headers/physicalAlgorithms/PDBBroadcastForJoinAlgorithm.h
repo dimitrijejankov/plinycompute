@@ -16,7 +16,8 @@ public:
                                const pdb::Handle<PDBSourcePageSetSpec> &source,
                                const pdb::Handle<PDBSinkPageSetSpec> &intermediate,
                                const pdb::Handle<PDBSinkPageSetSpec> &sink,
-                               const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources);
+                               const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                               bool swapLHSandRHS);
 
   ENABLE_DEEP_COPY
 

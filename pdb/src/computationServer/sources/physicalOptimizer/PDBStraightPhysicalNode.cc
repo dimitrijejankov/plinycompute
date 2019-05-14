@@ -13,22 +13,24 @@ PDBPipelineType pdb::PDBStraightPhysicalNode::getType() {
 pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generatePipelinedAlgorithm(const std::string &startTupleSet,
                                                                                 const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                                                 sourceCosts &sourcesWithIDs,
-                                                                                pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) {
+                                                                                pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
+                                                                                bool shouldSwapLeftAndRight) {
 
   // this is the same as @see generateAlgorithm except now the source is the source of the pipe we pipelined to this
   // and the additional source are transferred for that pipeline.
-  return generateAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources);
+  return generateAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
 }
 
 pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const std::string &startTupleSet,
                                                                        const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                                        sourceCosts &sourcesWithIDs,
-                                                                       pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) {
+                                                                       pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
+                                                                       bool shouldSwapLeftAndRight) {
 
 
   // can we pipeline this guy? we can do that if we only have one consumer
   if(consumers.size() == 1) {
-    return consumers.front()->generatePipelinedAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources);
+    return consumers.front()->generatePipelinedAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
   }
 
   // the sink is basically the last computation in the pipeline
@@ -44,7 +46,8 @@ pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const std
                                                                                               pipeline.back()->getOutputName(),
                                                                                               source,
                                                                                               sink,
-                                                                                              additionalSources);
+                                                                                              additionalSources,
+                                                                                              shouldSwapLeftAndRight);
 
   // return the algorithm and the nodes that consume it's result
   return std::make_pair(algorithm, consumers);

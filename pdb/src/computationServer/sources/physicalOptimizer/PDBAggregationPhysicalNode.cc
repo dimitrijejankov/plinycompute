@@ -15,7 +15,8 @@ PDBPipelineType pdb::PDBAggregationPhysicalNode::getType() {
 pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const std::string &firstTupleSet,
                                                                      const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                                      sourceCosts &sourcesWithIDs,
-                                                                     pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) {
+                                                                     pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
+                                                                     bool shouldSwapLeftAndRight) {
 
   // the aggregation has two parts, one part packs the records into a bunch of hash tables
   // the second part does the actual aggregation, both parts are run at the same time
@@ -47,7 +48,8 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const std::
                                                                                                     hashedToSend,
                                                                                                     hashedToRecv,
                                                                                                     sink,
-                                                                                                    additionalSources);
+                                                                                                    additionalSources,
+                                                                                                    shouldSwapLeftAndRight);
   // return the stuff
   return std::make_pair(algorithm, consumers);
 }
@@ -55,12 +57,13 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const std::
 pdb::PDBPlanningResult PDBAggregationPhysicalNode::generatePipelinedAlgorithm(const std::string &firstTupleSet,
                                                                               const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                                               sourceCosts &sourcesWithIDs,
-                                                                              pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) {
+                                                                              pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
+                                                                              bool shouldSwapLeftAndRight) {
 
   // this is the same as @see generateAlgorithm except now the source is the source of the pipe we pipelined to this
   // and the additional source are transferred for that pipeline. We can not pipeline an aggregation
 
-  return generateAlgorithm(firstTupleSet, source, sourcesWithIDs, additionalSources);
+  return generateAlgorithm(firstTupleSet, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
 }
 
 }

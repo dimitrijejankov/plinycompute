@@ -43,8 +43,9 @@ public:
                        const std::string &finalTupleSet,
                        const pdb::Handle<PDBSourcePageSetSpec> &source,
                        const pdb::Handle<PDBSinkPageSetSpec> &sink,
-                       const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources)
-      : firstTupleSet(firstTupleSet), finalTupleSet(finalTupleSet), source(source), sink(sink), secondarySources(secondarySources) {}
+                       const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                       bool swapLHSandRHS)
+      : firstTupleSet(firstTupleSet), finalTupleSet(finalTupleSet), source(source), sink(sink), secondarySources(secondarySources), swapLHSandRHS(swapLHSandRHS) {}
 
   /**
    * Sets up the whole algorithm
@@ -92,6 +93,11 @@ protected:
    * List of secondary sources like hash sets for join etc.. null if there are no secondary sources
    */
   pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> secondarySources;
+
+  /**
+   * Indicates whether the left and the right side are swapped
+   */
+  bool swapLHSandRHS = false;
 
   // mark the tests that are testing this algorithm
   FRIEND_TEST(TestPhysicalOptimizer, TestAggregation);

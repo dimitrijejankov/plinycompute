@@ -159,10 +159,7 @@ public:
     return std::make_pair(scanSet->getDBName(), scanSet->getSetName());
   }
 
-  pdb::Handle<PDBSourcePageSetSpec> getRightSourcePageSet(sourceCosts &sourcesWithIDs) {
-
-    // create the source
-    pdb::Handle<PDBSourcePageSetSpec> source = pdb::makeObject<PDBSourcePageSetSpec>();
+  std::tuple<pdb::Handle<PDBSourcePageSetSpec>, pdb::Handle<PDBSourcePageSetSpec>, bool> getJoinSources(sourceCosts &sourcesWithIDs) {
 
     // make sure we are doing a join
     assert(isJoining());
@@ -179,44 +176,24 @@ public:
     if(second == sourcesWithIDs.end()) { throw std::runtime_error("Did not find the page set : " + secondProducer.sinkPageSet.pageSetIdentifier.second); }
 
     // figure out which side
-    auto &whichSide = second->second.first >= first->second.first ? second->second : first->second;
+    auto &leftSide = second->second.first < first->second.first ? second->second : first->second;
+    auto &rightSide = second->second.first >= first->second.first ? second->second : first->second;
 
-    // fill up the stuff
-    source->sourceType = getSourceTypeForSinkType(whichSide.second->sinkPageSet.sinkType);
-    source->pageSetIdentifier = whichSide.second->sinkPageSet.pageSetIdentifier;
-
-    // return the source
-    return source;
-  }
-
-  pdb::Handle<PDBSourcePageSetSpec> getLeftSourcePageSet(sourceCosts &sourcesWithIDs) {
+    // should we swap the lhs and rhs side
+    bool shouldSwap = leftSide.second->pipeline.back()->getAtomicComputationTypeID() != HashLeftTypeID;
 
     // create the source
-    pdb::Handle<PDBSourcePageSetSpec> source = pdb::makeObject<PDBSourcePageSetSpec>();
+    pdb::Handle<PDBSourcePageSetSpec> leftSource = pdb::makeObject<PDBSourcePageSetSpec>();
+    leftSource->sourceType = getSourceTypeForSinkType(leftSide.second->sinkPageSet.sinkType);
+    leftSource->pageSetIdentifier = leftSide.second->sinkPageSet.pageSetIdentifier;
 
-    // make sure we are doing a join
-    assert(isJoining());
-    assert(producers.size() == 2);
-
-    // get the first producer
-    auto &firstProducer = *producers.front().lock();
-    auto first = sourcesWithIDs.find(firstProducer.getSourcePageSet(sourcesWithIDs)->pageSetIdentifier);
-    if(first == sourcesWithIDs.end()) { throw std::runtime_error("Did not find the page set : " + (std::string) firstProducer.getSourcePageSet(sourcesWithIDs)->pageSetIdentifier.second); }
-
-    // get the second producer
-    auto &secondProducer = *producers.back().lock();
-    auto second = sourcesWithIDs.find(secondProducer.getSourcePageSet(sourcesWithIDs)->pageSetIdentifier);
-    if(second == sourcesWithIDs.end()) { throw std::runtime_error("Did not find the page set : " + (std::string) secondProducer.getSourcePageSet(sourcesWithIDs)->pageSetIdentifier.second); }
-
-    // figure out which side
-    auto &whichSide = second->second.first < first->second.first ? second->second : first->second;
-
-    // fill up the stuff
-    source->sourceType = getSourceTypeForSinkType(whichSide.second->sinkPageSet.sinkType);
-    source->pageSetIdentifier = whichSide.second->sinkPageSet.pageSetIdentifier;
+    // create the source
+    pdb::Handle<PDBSourcePageSetSpec> rightSource = pdb::makeObject<PDBSourcePageSetSpec>();
+    rightSource->sourceType = getSourceTypeForSinkType(rightSide.second->sinkPageSet.sinkType);
+    rightSource->pageSetIdentifier = rightSide.second->sinkPageSet.pageSetIdentifier;
 
     // return the source
-    return source;
+    return std::make_tuple(leftSource, rightSource, shouldSwap);
   }
 
   /**
@@ -340,7 +317,8 @@ public:
   virtual pdb::PDBPlanningResult generateAlgorithm(const std::string &startTupleSet,
                                                    const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                    sourceCosts &sourcesWithIDs,
-                                                   pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) = 0;
+                                                   pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
+                                                   bool shouldSwapLeftAndRight) = 0;
 
   /**
    * Returns the algorithm we chose to run this pipeline, but assumes that we are pipelining stuff into it...
@@ -349,7 +327,8 @@ public:
   virtual pdb::PDBPlanningResult generatePipelinedAlgorithm(const std::string &startTupleSet,
                                                             const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                             sourceCosts &sourcesWithIDs,
-                                                            pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) = 0;
+                                                            pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
+                                                            bool shouldSwapLeftAndRight) = 0;
 
 protected:
 

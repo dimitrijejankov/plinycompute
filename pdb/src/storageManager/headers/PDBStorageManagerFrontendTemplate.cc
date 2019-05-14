@@ -289,21 +289,23 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetSetPages(p
 
     // try to find the page
     auto it = this->pageStats.find(set);
+    if(it != this->pageStats.end()) {
 
-    // reserve the pages
-    pages.reserve(it->second.lastPage);
+      // reserve the pages
+      pages.reserve(it->second.lastPage);
 
-    // do we even have this page
-    uint64_t currPage = 0;
-    while(currPage <= it->second.lastPage) {
+      // do we even have this page
+      uint64_t currPage = 0;
+      while(currPage <= it->second.lastPage) {
 
-      // check if the page is valid
-      if(pageExists(set, currPage) && !isPageBeingWrittenTo(set, currPage) && !isPageFree(set, currPage)) {
-        pages.emplace_back(currPage);
+        // check if the page is valid
+        if(pageExists(set, currPage) && !isPageBeingWrittenTo(set, currPage) && !isPageFree(set, currPage)) {
+          pages.emplace_back(currPage);
+        }
+
+        // if not try to go to the next one
+        currPage++;
       }
-
-      // if not try to go to the next one
-      currPage++;
     }
   }
 

@@ -20,7 +20,8 @@ public:
                              const pdb::Handle<pdb::PDBSourcePageSetSpec> &source,
                              const pdb::Handle<pdb::PDBSinkPageSetSpec> &intermediate,
                              const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
-                             const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources);
+                             const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                             bool swapLHSandRHS);
 
   ENABLE_DEEP_COPY
 
@@ -43,7 +44,7 @@ public:
   /**
    * //TODO
    */
-  void cleanup() override {  };
+  void cleanup() override;
 
  private:
 

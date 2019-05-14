@@ -14,8 +14,9 @@ pdb::PDBAggregationPipeAlgorithm::PDBAggregationPipeAlgorithm(const std::string 
                                                               const pdb::Handle<pdb::PDBSinkPageSetSpec> &hashedToSend,
                                                               const pdb::Handle<pdb::PDBSourcePageSetSpec> &hashedToRecv,
                                                               const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
-                                                              const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources)
-    : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {}
+                                                              const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                                                              const bool swapLHSandRHS)
+    : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, swapLHSandRHS), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {}
 
 bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
 
@@ -248,7 +249,7 @@ bool pdb::PDBAggregationPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManage
 
   // create the buzzer
   atomic_int sendersDone;
-  selfRecDone = senders->size();
+  sendersDone = senders->size();
   PDBBuzzerPtr sendersBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
 
     // did we fail?

@@ -31,7 +31,8 @@ public:
                               const Handle<PDBSinkPageSetSpec> &hashedToSend,
                               const Handle<PDBSourcePageSetSpec> &hashedToRecv,
                               const Handle<PDBSinkPageSetSpec> &sink,
-                              const Handle<Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources);
+                              const Handle<Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                              bool swapLHSandRHS);
 
   bool setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) override;
 

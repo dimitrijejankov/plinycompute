@@ -16,15 +16,17 @@ PDBPipelineType pdb::PDBJoinPhysicalNode::getType() {
 pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generatePipelinedAlgorithm(const std::string &startTupleSet,
                                                                             const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                                             sourceCosts &sourcesWithIDs,
-                                                                            pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources) {
+                                                                            pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
+                                                                            bool shouldSwapLeftAndRight) {
   // generate the algorithm
-  return generateAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources);
+  return generateAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
 }
 
 pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::string &startTupleSet,
-                                                                   const pdb::Handle<pdb::PDBSourcePageSetSpec> &source,
+                                                                   const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                                    sourceCosts &sourcesWithIDs,
-                                                                   pdb::Handle<pdb::Vector<pdb::Handle<pdb::PDBSourcePageSetSpec>>> &additionalSources) {
+                                                                   pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
+                                                                   bool shouldSwapLeftAndRight) {
   // check if the node is not processed
   assert(state == PDBJoinPhysicalNodeState::PDBJoinPhysicalNodeNotProcessed);
 
@@ -46,7 +48,7 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
     assert(consumers.size() == 1);
 
     // pipeline this node to the next, it always has to exist and it always has to be one
-    return consumers.front()->generatePipelinedAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources);
+    return consumers.front()->generatePipelinedAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
   }
 
   // the sink is basically the last computation in the pipeline
@@ -76,7 +78,8 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
                                                                                                         source,
                                                                                                         intermediate,
                                                                                                         sink,
-                                                                                                        additionalSources);
+                                                                                                        additionalSources,
+                                                                                                        shouldSwapLeftAndRight);
 
     // mark the state of this node as broadcasted
     state = PDBJoinPhysicalNodeBroadcasted;
@@ -104,7 +107,8 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
                                                                                                   source,
                                                                                                   intermediate,
                                                                                                   sink,
-                                                                                                  additionalSources);
+                                                                                                  additionalSources,
+                                                                                                  shouldSwapLeftAndRight);
 
   // mark the state of this node as shuffled
   state = PDBJoinPhysicalNodeShuffled;

@@ -34,6 +34,8 @@ using JoinArgPtr = std::shared_ptr<JoinArg>;
 // basically we bundle all join arguments together
 class JoinArguments : public pdb::ComputeInfo {
 public:
+  JoinArguments() = default;
+
   JoinArguments(std::initializer_list<std::pair<const std::string, JoinArgPtr>> l) : hashTables(l) {}
 
   // the list of hash tables

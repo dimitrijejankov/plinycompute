@@ -18,8 +18,9 @@ pdb::PDBShuffleForJoinAlgorithm::PDBShuffleForJoinAlgorithm(const std::string &f
                                                             const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                             const pdb::Handle<PDBSinkPageSetSpec> &intermediate,
                                                             const pdb::Handle<PDBSinkPageSetSpec> &sink,
-                                                            const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources)
-                                                            : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources),
+                                                            const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                                                            const bool swapLHSandRHS)
+                                                            : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, swapLHSandRHS),
                                                               intermediate(intermediate) {
 
 }
@@ -77,7 +78,7 @@ bool pdb::PDBShuffleForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManager
 
   // create the buzzer
   atomic_int sendersDone;
-  selfRecDone = senders->size();
+  sendersDone = senders->size();
   PDBBuzzerPtr sendersBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
 
     // did we fail?
@@ -174,6 +175,9 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
   // init the plan
   ComputePlan plan(job->tcap, *job->computations);
   LogicalPlanPtr logicalPlan = plan.getPlan();
+
+  // init the logger
+  logger = make_shared<PDBLogger>("joinPipeAlgorithm" + std::to_string(job->computationID));
 
   /// 1. Figure out the source page set
 
@@ -292,4 +296,14 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
   }
 
   return true;
+}
+void pdb::PDBShuffleForJoinAlgorithm::cleanup() {
+
+  // invalidate everything
+  pageQueues = nullptr;
+  joinShufflePipelines = nullptr;
+  logger = nullptr;
+  selfReceiver = nullptr;
+  senders = nullptr;
+  intermediate = nullptr;
 }
