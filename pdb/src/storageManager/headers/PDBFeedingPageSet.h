@@ -90,6 +90,8 @@ public:
 
 private:
 
+  int tt = 0;
+
   /**
    * Keeps track of all anonymous pages so that we can quickly remove them
    */

@@ -11,8 +11,8 @@
 
 namespace pdb {
 
-using PDBPageQueuePtr = shared_ptr<blocking_concurent_queue<PDBPageHandle>>;
-using PDBPageQueue = blocking_concurent_queue<PDBPageHandle>;
+using PDBPageQueuePtr = shared_ptr<concurent_queue<PDBPageHandle>>;
+using PDBPageQueue = concurent_queue<PDBPageHandle>;
 
 class PageProcessor;
 using PageProcessorPtr = std::shared_ptr<PageProcessor>;

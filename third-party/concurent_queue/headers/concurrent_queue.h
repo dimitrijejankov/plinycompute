@@ -4,11 +4,46 @@
 
 #pragma once
 
-#include <concurrent_queue_internal.h>
-#include <blocking_concurrent_queue_internal.h>
+#include <queue>
+#include <condition_variable>
 
-template<typename T, typename Traits = moodycamel::ConcurrentQueueDefaultTraits>
-using concurent_queue = moodycamel::ConcurrentQueue<T, Traits>;
+template <typename T>
+class concurent_queue {
 
-template<typename T, typename Traits = moodycamel::ConcurrentQueueDefaultTraits>
-using blocking_concurent_queue = moodycamel::BlockingConcurrentQueue<T, Traits>;
+private:
+
+  // the queue implementation
+  std::queue<T> _internal_queue;
+
+  // the mutex to lock the structure
+  std::mutex _m;
+
+  // the conditional variable to wait
+  std::condition_variable _cv;
+
+public:
+
+  inline void wait_dequeue(T &item) {
+
+    // wait until we have something in the queue
+    std::unique_lock<std::mutex> lk(_m);
+    _cv.wait(lk, [&]{return !_internal_queue.empty();});
+
+    // grab the element and pop the queue
+    item = _internal_queue.front();
+    _internal_queue.pop();
+  };
+
+  inline void enqueue(T const& item) {
+
+    // wait for lock
+    std::unique_lock<std::mutex> lk(_m);
+
+    // insert the element in the queue
+    _internal_queue.push(item);
+
+    // notify all the threads that are waiting
+    _cv.notify_all();
+  }
+
+};
