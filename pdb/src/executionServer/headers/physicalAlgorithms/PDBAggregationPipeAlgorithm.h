@@ -12,6 +12,7 @@
 #include <processors/PreaggregationPageProcessor.h>
 #include "PDBPhysicalAlgorithm.h"
 #include "PDBPageSelfReceiver.h"
+#include "Computation.h"
 #include "PDBPageNetworkSender.h"
 
 namespace pdb {
@@ -88,6 +89,11 @@ private:
    *
    */
   std::shared_ptr<std::vector<PDBPageQueuePtr>> pageQueues = nullptr;
+
+  /**
+   *
+   */
+  LogicalPlanPtr logicalPlan;
 
   // mark the tests that are testing this algorithm
   FRIEND_TEST(TestPhysicalOptimizer, TestAggregation);

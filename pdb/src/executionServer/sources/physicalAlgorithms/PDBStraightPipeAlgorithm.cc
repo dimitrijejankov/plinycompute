@@ -21,7 +21,7 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
 
   // init the plan
   ComputePlan plan(job->tcap, *job->computations);
-  LogicalPlanPtr logicalPlan = plan.getPlan();
+  logicalPlan = plan.getPlan();
 
   /// 1. Figure out the source page set
 
@@ -190,4 +190,5 @@ void pdb::PDBStraightPipeAlgorithm::cleanup() {
   // invalidate everything
   myPipelines = nullptr;
   outputSet = nullptr;
+  logicalPlan = nullptr;
 }

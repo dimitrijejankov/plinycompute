@@ -78,7 +78,11 @@ public:
       outColumn.resize (numTuples);
 
       for (int i = 0; i < numTuples; i++) {
-        outColumn [i] = (Out *) ((char *) &(*(inputColumn[i])) + offsetOfAttToProcess);
+
+        auto ptr = (char *) &(*(inputColumn[i]));
+        auto offset = offsetOfAttToProcess;
+        auto t = (Out *) (ptr + offset);
+        outColumn [i] = t;
       }
 
       return output;

@@ -5,6 +5,7 @@
 #include "PDBPageNetworkSender.h"
 #include "PDBPageSelfReceiver.h"
 #include "PipelineInterface.h"
+#include "Computation.h"
 
 // PRELOAD %PDBShuffleForJoinAlgorithm%
 
@@ -67,6 +68,11 @@ public:
    *
    */
   std::shared_ptr<std::vector<PDBPageQueuePtr>> pageQueues = nullptr;
+
+  /**
+   *
+   */
+  LogicalPlanPtr logicalPlan;
 
   /**
    *

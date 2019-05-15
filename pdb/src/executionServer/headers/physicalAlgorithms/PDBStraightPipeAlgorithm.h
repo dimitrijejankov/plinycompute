@@ -7,6 +7,7 @@
 
 #include "PDBStorageManagerBackend.h"
 #include "PDBPhysicalAlgorithm.h"
+#include "Computation.h"
 #include "pipeline/Pipeline.h"
 #include <vector>
 
@@ -73,6 +74,11 @@ private:
    * Should we materialize this or not?
    */
   bool shouldMaterialize = false;
+
+  /**
+   *
+   */
+  LogicalPlanPtr logicalPlan;
 
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin3);
 };

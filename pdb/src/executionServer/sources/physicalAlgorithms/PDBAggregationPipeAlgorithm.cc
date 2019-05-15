@@ -22,7 +22,7 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
 
   // init the plan
   ComputePlan plan(job->tcap, *job->computations);
-  LogicalPlanPtr logicalPlan = plan.getPlan();
+  logicalPlan = plan.getPlan();
 
   // init the logger
   logger = make_shared<PDBLogger>("aggregationPipeAlgorithm" + std::to_string(job->computationID));

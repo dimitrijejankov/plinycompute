@@ -78,7 +78,7 @@ bool pdb::PDBShuffleForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManager
 
   // create the buzzer
   atomic_int sendersDone;
-  sendersDone = senders->size();
+  sendersDone = 0;
   PDBBuzzerPtr sendersBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
 
     // did we fail?
@@ -174,7 +174,7 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
 
   // init the plan
   ComputePlan plan(job->tcap, *job->computations);
-  LogicalPlanPtr logicalPlan = plan.getPlan();
+  logicalPlan = plan.getPlan();
 
   // init the logger
   logger = make_shared<PDBLogger>("joinPipeAlgorithm" + std::to_string(job->computationID));
@@ -297,6 +297,7 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
 
   return true;
 }
+
 void pdb::PDBShuffleForJoinAlgorithm::cleanup() {
 
   // invalidate everything
@@ -306,4 +307,5 @@ void pdb::PDBShuffleForJoinAlgorithm::cleanup() {
   selfReceiver = nullptr;
   senders = nullptr;
   intermediate = nullptr;
+  logicalPlan = nullptr;
 }
