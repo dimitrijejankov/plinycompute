@@ -14,7 +14,6 @@ pdb::PDBSetPageSet::PDBSetPageSet(const std::string &db,
                                   pdb::PDBBufferManagerInterfacePtr bufferManager) : curPage(0), pages(pages), bufferManager(std::move(bufferManager)) {
   // make the pdb set
   this->set = make_shared<PDBSet>(db, set);
-  std::cout << "(" << db << " " << set << ") = " << pages.size() << std::endl;
 }
 
 pdb::PDBPageHandle pdb::PDBSetPageSet::getNextPage(size_t workerID) {
