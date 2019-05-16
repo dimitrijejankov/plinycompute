@@ -112,16 +112,29 @@ void pdb::PDBPipeNodeBuilder::transverseTCAPGraph(AtomicComputationPtr curNode) 
   // grab all the consumers
   auto consumers = atomicComps->getConsumingAtomicComputations(curNode->getOutputName());
 
+  // in the case that we have some multiple consumers and we might want to move stuff over from this pipeline
+  // to the consumer pipelines for example if we only have one apply aggregation, which would not do anything
+  std::vector<AtomicComputationPtr> moveTheseOver;
+
   // if we have multiple consumers and there is still stuff left in the pipe
   if(consumers.size() > 1 && !currentPipe.empty()) {
 
-    // this is a pipeline breaker create a pipe
-    createPhysicalPipeline<PDBStraightPhysicalNode>();
-    currentPipe.clear();
+    // in the case that we only have one ApplyAgg we move it to the next pipelines
+    if(currentPipe.size() == 1 && currentPipe.front()->getAtomicComputationTypeID() == ApplyAggTypeID) {
+      currentPipe.clear();
+      moveTheseOver.emplace_back(currentPipe.front());
+    }
+    else {
+
+      // this is a pipeline breaker create a pipe
+      createPhysicalPipeline<PDBStraightPhysicalNode>();
+      currentPipe.clear();
+    }
   }
 
   // go through each consumer and transverse to get the next pipe
   for(auto &consumer : consumers) {
+    currentPipe.insert(currentPipe.end(), moveTheseOver.begin(), moveTheseOver.end());
     currentPipe.push_back(consumer);
     transverseTCAPGraph(consumer);
   }
@@ -163,10 +176,12 @@ void pdb::PDBPipeNodeBuilder::connectThePipes() {
     for(const auto &atomicComputation : consumingAtomicComputation) {
 
       // get the consuming pipeline
-      auto consumer = startsWith[atomicComputation];
+      auto consumers = startsWith[atomicComputation];
 
-      // add the consuming node of this guy
-      node.second->addConsumer(consumer);
+      for(const auto &consumer : consumers) {
+        // add the consuming node of this guy
+        node.second->addConsumer(consumer);
+      }
     }
   }
 

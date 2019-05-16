@@ -85,7 +85,7 @@ public:
     }
 
     // add the starts with
-    startsWith[currentPipe.front()->getOutputName()] = nodeHandle;
+    startsWith[currentPipe.front()->getOutputName()].emplace_back(nodeHandle);
 
     // add the pipe to the physical nodes
     physicalNodes[nodeHandle->getNodeIdentifier()] = nodeHandle;
@@ -130,7 +130,7 @@ public:
    * Maps each pipe to the atomic computation it starts with.
    * The key is the name of the atomic computation the value is the pipe
    */
-  std::map<std::string, PDBAbstractPhysicalNodePtr> startsWith;
+  std::map<std::string, std::vector<PDBAbstractPhysicalNodePtr>> startsWith;
 
   /**
    * Maps each pipe to the list of atomic computations that consume it

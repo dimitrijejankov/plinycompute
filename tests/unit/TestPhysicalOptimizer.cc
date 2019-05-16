@@ -221,29 +221,32 @@ TEST(TestPhysicalOptimizer, TestMultiSink) {
   // we should have another source that reads the aggregation so we can generate another algorithm
   EXPECT_TRUE(optimizer.hasAlgorithmToRun());
 
-  /// 2. Get the second algorithm, it should be an straight pipeline, that copies
+  /// 2. Get the second algorithm, it should be an straight pipeline
 
-  // the second algorithm should be a PDBStraightPipeAlgorithm
+  // check if the optimizer has another algorithm
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+
+  // the third algorithm should be a PDBStraightPipeAlgorithm
   auto algorithm2 = optimizer.getNextAlgorithm();
 
   // cast the algorithm
-  Handle<pdb::PDBStraightPipeAlgorithm> strAlgorithm = unsafeCast<pdb::PDBStraightPipeAlgorithm>(algorithm2);
+  Handle<pdb::PDBStraightPipeAlgorithm> strAlgorithm1 = unsafeCast<pdb::PDBStraightPipeAlgorithm>(algorithm2);
 
   // check the source
-  EXPECT_EQ(strAlgorithm->source->sourceType, AggregationSource);
-  EXPECT_EQ((std::string) strAlgorithm->firstTupleSet, std::string("agg"));
-  EXPECT_EQ((std::string) strAlgorithm->source->pageSetIdentifier.second, std::string("aggWithValue"));
-  EXPECT_EQ(strAlgorithm->source->pageSetIdentifier.first, compID);
+  EXPECT_EQ(strAlgorithm1->source->sourceType, AggregationSource);
+  EXPECT_EQ((std::string) strAlgorithm1->firstTupleSet, std::string("agg"));
+  EXPECT_EQ((std::string) strAlgorithm1->source->pageSetIdentifier.second, std::string("aggWithValue"));
+  EXPECT_EQ(strAlgorithm1->source->pageSetIdentifier.first, compID);
 
   // check the sink
-  EXPECT_EQ(strAlgorithm->sink->sinkType, SetSink);
-  EXPECT_EQ((std::string) strAlgorithm->finalTupleSet, "agg");
-  EXPECT_EQ((std::string) strAlgorithm->sink->pageSetIdentifier.second, "agg");
-  EXPECT_EQ(strAlgorithm->sink->pageSetIdentifier.first, compID);
+  EXPECT_EQ(strAlgorithm1->sink->sinkType, SetSink);
+  EXPECT_EQ((std::string) strAlgorithm1->finalTupleSet, "selectionTwoFilterRemoved_out");
+  EXPECT_EQ((std::string) strAlgorithm1->sink->pageSetIdentifier.second, "selectionTwoFilterRemoved_out");
+  EXPECT_EQ(strAlgorithm1->sink->pageSetIdentifier.first, compID);
 
   // get the page sets we want to remove
   pageSetsToRemove = getPageSetsToRemove(optimizer);
-  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "aggWithValue")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "selectionTwoFilterRemoved_out")) != pageSetsToRemove.end());
   EXPECT_EQ(pageSetsToRemove.size(), 1);
 
   /// 3. Get the third algorithm, it should be an straight pipeline
@@ -251,57 +254,32 @@ TEST(TestPhysicalOptimizer, TestMultiSink) {
   // check if the optimizer has another algorithm
   EXPECT_TRUE(optimizer.hasAlgorithmToRun());
 
-  // the third algorithm should be a PDBStraightPipeAlgorithm
+  // the second algorithm should be a PDBStraightPipeAlgorithm
   auto algorithm3 = optimizer.getNextAlgorithm();
 
   // cast the algorithm
   Handle<pdb::PDBStraightPipeAlgorithm> strAlgorithm2 = unsafeCast<pdb::PDBStraightPipeAlgorithm>(algorithm3);
 
   // check the source
-  EXPECT_EQ(strAlgorithm2->source->sourceType, SetScanSource);
-  EXPECT_EQ((std::string) strAlgorithm2->firstTupleSet, std::string("selectionTwo"));
-  EXPECT_EQ((std::string) strAlgorithm2->source->pageSetIdentifier.second, std::string("agg"));
+  EXPECT_EQ(strAlgorithm2->source->sourceType, AggregationSource);
+  EXPECT_EQ((std::string) strAlgorithm2->firstTupleSet, std::string("agg"));
+  EXPECT_EQ((std::string) strAlgorithm2->source->pageSetIdentifier.second, std::string("aggWithValue"));
   EXPECT_EQ(strAlgorithm2->source->pageSetIdentifier.first, compID);
 
   // check the sink
   EXPECT_EQ(strAlgorithm2->sink->sinkType, SetSink);
-  EXPECT_EQ((std::string) strAlgorithm2->finalTupleSet, "selectionTwoFilterRemoved_out");
-  EXPECT_EQ((std::string) strAlgorithm2->sink->pageSetIdentifier.second, "selectionTwoFilterRemoved_out");
+  EXPECT_EQ((std::string) strAlgorithm2->finalTupleSet, "selectionOneFilterRemoved_out");
+  EXPECT_EQ((std::string) strAlgorithm2->sink->pageSetIdentifier.second, "selectionOneFilterRemoved_out");
   EXPECT_EQ(strAlgorithm2->sink->pageSetIdentifier.first, compID);
 
   // get the page sets we want to remove
   pageSetsToRemove = getPageSetsToRemove(optimizer);
-  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "selectionTwoFilterRemoved_out")) != pageSetsToRemove.end());
-  EXPECT_EQ(pageSetsToRemove.size(), 1);
-
-  /// 4. Get the third algorithm, it should be an straight pipeline
-
-  // check if the optimizer has another algorithm
-  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
-
-  // the second algorithm should be a PDBStraightPipeAlgorithm
-  auto algorithm4 = optimizer.getNextAlgorithm();
-
-  // cast the algorithm
-  Handle<pdb::PDBStraightPipeAlgorithm> strAlgorithm3 = unsafeCast<pdb::PDBStraightPipeAlgorithm>(algorithm4);
-
-  // check the source
-  EXPECT_EQ(strAlgorithm3->source->sourceType, SetScanSource);
-  EXPECT_EQ((std::string) strAlgorithm3->firstTupleSet, std::string("selectionOne"));
-  EXPECT_EQ((std::string) strAlgorithm3->source->pageSetIdentifier.second, std::string("agg"));
-  EXPECT_EQ(strAlgorithm3->source->pageSetIdentifier.first, compID);
-
-  // check the sink
-  EXPECT_EQ(strAlgorithm3->sink->sinkType, SetSink);
-  EXPECT_EQ((std::string) strAlgorithm3->finalTupleSet, "selectionOneFilterRemoved_out");
-  EXPECT_EQ((std::string) strAlgorithm3->sink->pageSetIdentifier.second, "selectionOneFilterRemoved_out");
-  EXPECT_EQ(strAlgorithm3->sink->pageSetIdentifier.first, compID);
-
-  // get the page sets we want to remove
-  pageSetsToRemove = getPageSetsToRemove(optimizer);
   EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "selectionOneFilterRemoved_out")) != pageSetsToRemove.end());
-  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "agg")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "aggWithValue")) != pageSetsToRemove.end());
   EXPECT_EQ(pageSetsToRemove.size(), 2);
+
+  // we should not have anything anymore
+  EXPECT_FALSE(optimizer.hasAlgorithmToRun());
 }
 
 TEST(TestPhysicalOptimizer, TestJoin1) {
