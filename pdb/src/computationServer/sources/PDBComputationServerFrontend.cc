@@ -311,7 +311,7 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
               optimizer.updateStats();
 
               // remove the page sets
-              if(removeUnusedPageSets(optimizer.getPageSetsToRemove())) {
+              if(!removeUnusedPageSets(optimizer.getPageSetsToRemove())) {
                 logger->error("Failed to remove some page sets.");
               }
             }
