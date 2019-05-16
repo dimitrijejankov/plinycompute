@@ -136,6 +136,174 @@ TEST(TestPhysicalOptimizer, TestAggregation) {
   EXPECT_FALSE(optimizer.hasAlgorithmToRun());
 }
 
+TEST(TestPhysicalOptimizer, TestMultiSink) {
+
+  // 1MB for algorithm and stuff
+  const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
+
+  // setup the parameters
+  uint64_t compID = 55;
+  pdb::String tcapString = "inputData(in0) <= SCAN ('myData', 'mySetA', 'SetScanner_0')\n"
+                           "methodCall_0OutFor_SelectionComp1(in0,methodCall_0OutFor__getSteve) <= APPLY (inputData(in0), inputData(in0), 'SelectionComp_1', 'methodCall_0', [('inputTypeName', 'pdb::Supervisor'), ('lambdaType', 'methodCall'), ('methodName', 'getSteve'), ('returnTypeName', 'pdb::Supervisor')])\n"
+                           "attAccess_1OutForSelectionComp1(in0,methodCall_0OutFor__getSteve,att_1OutFor_me) <= APPLY (methodCall_0OutFor_SelectionComp1(in0), methodCall_0OutFor_SelectionComp1(in0,methodCall_0OutFor__getSteve), 'SelectionComp_1', 'attAccess_1', [('attName', 'me'), ('attTypeName', 'pdb::Handle&lt;pdb::Employee&gt;'), ('inputTypeName', 'pdb::Supervisor'), ('lambdaType', 'attAccess')])\n"
+                           "equals_2OutForSelectionComp1(in0,methodCall_0OutFor__getSteve,att_1OutFor_me,bool_2_1) <= APPLY (attAccess_1OutForSelectionComp1(methodCall_0OutFor__getSteve,att_1OutFor_me), attAccess_1OutForSelectionComp1(in0,methodCall_0OutFor__getSteve,att_1OutFor_me), 'SelectionComp_1', '==_2', [('lambdaType', '==')])\n"
+                           "filteredInputForSelectionComp1(in0) <= FILTER (equals_2OutForSelectionComp1(bool_2_1), equals_2OutForSelectionComp1(in0), 'SelectionComp_1')\n"
+                           "methodCall_3OutFor_SelectionComp1(in0,methodCall_3OutFor__getMe) <= APPLY (filteredInputForSelectionComp1(in0), filteredInputForSelectionComp1(in0), 'SelectionComp_1', 'methodCall_3', [('inputTypeName', 'pdb::Supervisor'), ('lambdaType', 'methodCall'), ('methodName', 'getMe'), ('returnTypeName', 'pdb::Supervisor')])\n"
+                           "deref_4OutForSelectionComp1 (methodCall_3OutFor__getMe) <= APPLY (methodCall_3OutFor_SelectionComp1(methodCall_3OutFor__getMe), methodCall_3OutFor_SelectionComp1(), 'SelectionComp_1', 'deref_4')\n"
+                           "attAccess_0OutForAggregationComp2(methodCall_3OutFor__getMe,att_0OutFor_department) <= APPLY (deref_4OutForSelectionComp1(methodCall_3OutFor__getMe), deref_4OutForSelectionComp1(methodCall_3OutFor__getMe), 'AggregationComp_2', 'attAccess_0', [('attName', 'department'), ('attTypeName', 'pdb::String'), ('inputTypeName', 'pdb::Employee'), ('lambdaType', 'attAccess')])\n"
+                           "deref_1OutForAggregationComp2(methodCall_3OutFor__getMe, att_0OutFor_department) <= APPLY (attAccess_0OutForAggregationComp2(att_0OutFor_department), attAccess_0OutForAggregationComp2(methodCall_3OutFor__getMe), 'AggregationComp_2', 'deref_1')\n"
+                           "aggWithValue(att_0OutFor_department,methodCall_2OutFor__getSalary) <= APPLY (deref_1OutForAggregationComp2(methodCall_3OutFor__getMe), deref_1OutForAggregationComp2(att_0OutFor_department), 'AggregationComp_2', 'methodCall_2', [('inputTypeName', 'pdb::Employee'), ('lambdaType', 'methodCall'), ('methodName', 'getSalary'), ('returnTypeName', 'pdb::Employee')])\n"
+                           "agg (aggOutFor2)<= AGGREGATE (aggWithValue(att_0OutFor_department, methodCall_2OutFor__getSalary),'AggregationComp_2')\n"
+                           "selectionOne(aggOutFor2,methodCall_0OutFor__checkSales) <= APPLY (agg(aggOutFor2), agg(aggOutFor2), 'SelectionComp_3', 'methodCall_0', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'checkSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
+                           "selectionOneFilter(aggOutFor2) <= FILTER (selectionOne(methodCall_0OutFor__checkSales), selectionOne(aggOutFor2), 'SelectionComp_3')\n"
+                           "selectionOneFilterRemoved (methodCall_1OutFor__getTotSales) <= APPLY (selectionOneFilter(aggOutFor2), selectionOneFilter(), 'SelectionComp_3', 'methodCall_1', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'getTotSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
+                           "selectionOneFilterRemoved_out( ) <= OUTPUT ( selectionOneFilterRemoved ( methodCall_1OutFor__getTotSales ), 'outSet1', 'myDB', 'SetWriter_4')\n"
+                           "selectionTwo(aggOutFor2,methodCall_0OutFor__checkSales) <= APPLY (agg(aggOutFor2), agg(aggOutFor2), 'SelectionComp_5', 'methodCall_0', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'checkSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
+                           "selectionTwoFilter(aggOutFor2) <= FILTER (selectionTwo(methodCall_0OutFor__checkSales), selectionTwo(aggOutFor2), 'SelectionComp_5')\n"
+                           "selectionTwoFilterRemoved (methodCall_1OutFor__getTotSales) <= APPLY (selectionTwoFilter(aggOutFor2), selectionTwoFilter(), 'SelectionComp_5', 'methodCall_1', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'getTotSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
+                           "selectionTwoFilterRemoved_out( ) <= OUTPUT ( selectionTwoFilterRemoved ( methodCall_1OutFor__getTotSales ), 'outSet2', 'myDB', 'SetWriter_6')\n";
+
+  // make a logger
+  auto logger = make_shared<pdb::PDBLogger>("log.out");
+
+  // make the mock client
+  auto catalogClient = std::make_shared<MockCatalog>();
+  ON_CALL(*catalogClient,
+          getSet(testing::An<const std::string &>(), testing::An<const std::string &>(), testing::An<std::string &>())).WillByDefault(testing::Invoke(
+      [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
+        return std::make_shared<pdb::PDBCatalogSet>("mySetA", "myData", "Nothing", std::numeric_limits<size_t>::max());
+      }));
+
+  EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(1));
+
+  // init the optimizer
+  pdb::PDBPhysicalOptimizer optimizer(compID, tcapString, catalogClient, logger);
+
+  /// 1. Get the first algorithm, it should be an aggregation
+
+  // we should have one source so we should be able to generate an algorithm
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+
+  // the first algorithm should be a PDBAggregationPipeAlgorithm
+  auto algorithm1 = optimizer.getNextAlgorithm();
+
+  // cast the algorithm
+  Handle<pdb::PDBAggregationPipeAlgorithm> aggAlgorithm = unsafeCast<pdb::PDBAggregationPipeAlgorithm>(algorithm1);
+
+  // check the source
+  EXPECT_EQ(aggAlgorithm->source->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) aggAlgorithm->firstTupleSet, std::string("inputData"));
+  EXPECT_EQ((std::string) aggAlgorithm->source->pageSetIdentifier.second, std::string("inputData"));
+  EXPECT_EQ(aggAlgorithm->source->pageSetIdentifier.first, compID);
+
+  // check the sink that we are
+  EXPECT_EQ(aggAlgorithm->hashedToSend->sinkType, AggShuffleSink);
+  EXPECT_EQ((std::string) aggAlgorithm->hashedToSend->pageSetIdentifier.second, "aggWithValue_hashed_to_send");
+  EXPECT_EQ(aggAlgorithm->hashedToSend->pageSetIdentifier.first, compID);
+
+  // check the source
+  EXPECT_EQ(aggAlgorithm->hashedToRecv->sourceType, ShuffledAggregatesSource);
+  EXPECT_EQ((std::string) aggAlgorithm->hashedToRecv->pageSetIdentifier.second, std::string("aggWithValue_hashed_to_recv"));
+  EXPECT_EQ(aggAlgorithm->hashedToRecv->pageSetIdentifier.first, compID);
+
+  // check the sink
+  EXPECT_EQ(aggAlgorithm->sink->sinkType, AggregationSink);
+  EXPECT_EQ((std::string) aggAlgorithm->finalTupleSet, "aggWithValue");
+  EXPECT_EQ((std::string) aggAlgorithm->sink->pageSetIdentifier.second, "aggWithValue");
+  EXPECT_EQ(aggAlgorithm->sink->pageSetIdentifier.first, compID);
+
+  // get the page sets we want to remove
+  auto pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "aggWithValue_hashed_to_send")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "aggWithValue_hashed_to_recv")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 2);
+
+  // we should have another source that reads the aggregation so we can generate another algorithm
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+
+  /// 2. Get the second algorithm, it should be an straight pipeline, that copies
+
+  // the second algorithm should be a PDBStraightPipeAlgorithm
+  auto algorithm2 = optimizer.getNextAlgorithm();
+
+  // cast the algorithm
+  Handle<pdb::PDBStraightPipeAlgorithm> strAlgorithm = unsafeCast<pdb::PDBStraightPipeAlgorithm>(algorithm2);
+
+  // check the source
+  EXPECT_EQ(strAlgorithm->source->sourceType, AggregationSource);
+  EXPECT_EQ((std::string) strAlgorithm->firstTupleSet, std::string("agg"));
+  EXPECT_EQ((std::string) strAlgorithm->source->pageSetIdentifier.second, std::string("aggWithValue"));
+  EXPECT_EQ(strAlgorithm->source->pageSetIdentifier.first, compID);
+
+  // check the sink
+  EXPECT_EQ(strAlgorithm->sink->sinkType, SetSink);
+  EXPECT_EQ((std::string) strAlgorithm->finalTupleSet, "agg");
+  EXPECT_EQ((std::string) strAlgorithm->sink->pageSetIdentifier.second, "agg");
+  EXPECT_EQ(strAlgorithm->sink->pageSetIdentifier.first, compID);
+
+  // get the page sets we want to remove
+  pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "aggWithValue")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 1);
+
+  /// 3. Get the third algorithm, it should be an straight pipeline
+
+  // check if the optimizer has another algorithm
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+
+  // the third algorithm should be a PDBStraightPipeAlgorithm
+  auto algorithm3 = optimizer.getNextAlgorithm();
+
+  // cast the algorithm
+  Handle<pdb::PDBStraightPipeAlgorithm> strAlgorithm2 = unsafeCast<pdb::PDBStraightPipeAlgorithm>(algorithm3);
+
+  // check the source
+  EXPECT_EQ(strAlgorithm2->source->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) strAlgorithm2->firstTupleSet, std::string("selectionTwo"));
+  EXPECT_EQ((std::string) strAlgorithm2->source->pageSetIdentifier.second, std::string("agg"));
+  EXPECT_EQ(strAlgorithm2->source->pageSetIdentifier.first, compID);
+
+  // check the sink
+  EXPECT_EQ(strAlgorithm2->sink->sinkType, SetSink);
+  EXPECT_EQ((std::string) strAlgorithm2->finalTupleSet, "selectionTwoFilterRemoved_out");
+  EXPECT_EQ((std::string) strAlgorithm2->sink->pageSetIdentifier.second, "selectionTwoFilterRemoved_out");
+  EXPECT_EQ(strAlgorithm2->sink->pageSetIdentifier.first, compID);
+
+  // get the page sets we want to remove
+  pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "selectionTwoFilterRemoved_out")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 1);
+
+  /// 4. Get the third algorithm, it should be an straight pipeline
+
+  // check if the optimizer has another algorithm
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+
+  // the second algorithm should be a PDBStraightPipeAlgorithm
+  auto algorithm4 = optimizer.getNextAlgorithm();
+
+  // cast the algorithm
+  Handle<pdb::PDBStraightPipeAlgorithm> strAlgorithm3 = unsafeCast<pdb::PDBStraightPipeAlgorithm>(algorithm4);
+
+  // check the source
+  EXPECT_EQ(strAlgorithm3->source->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) strAlgorithm3->firstTupleSet, std::string("selectionOne"));
+  EXPECT_EQ((std::string) strAlgorithm3->source->pageSetIdentifier.second, std::string("agg"));
+  EXPECT_EQ(strAlgorithm3->source->pageSetIdentifier.first, compID);
+
+  // check the sink
+  EXPECT_EQ(strAlgorithm3->sink->sinkType, SetSink);
+  EXPECT_EQ((std::string) strAlgorithm3->finalTupleSet, "selectionOneFilterRemoved_out");
+  EXPECT_EQ((std::string) strAlgorithm3->sink->pageSetIdentifier.second, "selectionOneFilterRemoved_out");
+  EXPECT_EQ(strAlgorithm3->sink->pageSetIdentifier.first, compID);
+
+  // get the page sets we want to remove
+  pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "selectionOneFilterRemoved_out")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "agg")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 2);
+}
+
 TEST(TestPhysicalOptimizer, TestJoin1) {
 
   // 1MB for algorithm and stuff
@@ -211,6 +379,11 @@ TEST(TestPhysicalOptimizer, TestJoin1) {
   EXPECT_EQ((std::string) algorithmBroadcastA->sink->pageSetIdentifier.second, "AHashed");
   EXPECT_EQ(algorithmBroadcastA->sink->pageSetIdentifier.first, compID);
 
+  // get the page sets we want to remove
+  auto pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "AHashed_to_broadcast")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 1);
+
   // we should have one source so we should be able to generate an algorithm
   EXPECT_TRUE(optimizer.hasAlgorithmToRun());
 
@@ -236,6 +409,12 @@ TEST(TestPhysicalOptimizer, TestJoin1) {
   EXPECT_EQ(additionalSources[0]->sourceType, BroadcastJoinSource);
   EXPECT_EQ(additionalSources[0]->pageSetIdentifier.first, compID);
   EXPECT_EQ((std::string) additionalSources[0]->pageSetIdentifier.second, "AHashed");
+
+  // get the page sets we want to remove
+  pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "AHashed")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "out")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 2);
 
   // we should be done
   EXPECT_FALSE(optimizer.hasAlgorithmToRun());
@@ -278,15 +457,12 @@ TEST(TestPhysicalOptimizer, TestJoin2) {
                  testing::An<std::string &>())).WillByDefault(testing::Invoke(
       [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
         if (setName == "mySetA") {
-          auto tmp =
-              std::make_shared<pdb::PDBCatalogSet>("mySetA", "myData", "Nothing", std::numeric_limits<size_t>::max());
-          return tmp;
+          return std::make_shared<pdb::PDBCatalogSet>("mySetA", "myData", "Nothing", std::numeric_limits<size_t>::max());
         } else {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetB",
-                                                          "myData",
-                                                          "Nothing",
-                                                          std::numeric_limits<size_t>::max() - 1);
-          return tmp;
+          return std::make_shared<pdb::PDBCatalogSet>("mySetB",
+                                                      "myData",
+                                                      "Nothing",
+                                                      std::numeric_limits<size_t>::max() - 1);
         }
       }));
 
@@ -317,9 +493,8 @@ TEST(TestPhysicalOptimizer, TestJoin2) {
   EXPECT_EQ(shuffleB->sink->pageSetIdentifier.first, compID);
 
   // get the page sets we want to remove
-  auto pageSetsToRemove = optimizer.getPageSetsToRemove();
-  EXPECT_EQ(pageSetsToRemove[0].first, compID);
-  EXPECT_EQ(pageSetsToRemove[0].second, "BHashedOnA_to_shuffle");
+  auto pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "BHashedOnA_to_shuffle")) != pageSetsToRemove.end());
   EXPECT_EQ(pageSetsToRemove.size(), 1);
 
   // we should have another algorithm now for side A
@@ -345,9 +520,8 @@ TEST(TestPhysicalOptimizer, TestJoin2) {
   EXPECT_EQ(shuffleA->sink->pageSetIdentifier.first, compID);
 
   // get the page sets we want to remove
-  pageSetsToRemove = optimizer.getPageSetsToRemove();
-  EXPECT_EQ(pageSetsToRemove[0].first, compID);
-  EXPECT_EQ(pageSetsToRemove[0].second, "AHashed_to_shuffle");
+  pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "AHashed_to_shuffle")) != pageSetsToRemove.end());
   EXPECT_EQ(pageSetsToRemove.size(), 1);
 
   EXPECT_TRUE(optimizer.hasAlgorithmToRun());
@@ -367,21 +541,10 @@ TEST(TestPhysicalOptimizer, TestJoin2) {
   EXPECT_EQ(doJoin->sink->pageSetIdentifier.first, compID);
 
   // get the page sets we want to remove
-  pageSetsToRemove = optimizer.getPageSetsToRemove();
-
-  // left side of the join should be removed
-  EXPECT_EQ(pageSetsToRemove[0].first, compID);
-  EXPECT_EQ(pageSetsToRemove[0].second, "AHashed");
-
-  // right side of the join should be removed
-  EXPECT_EQ(pageSetsToRemove[1].first, compID);
-  EXPECT_EQ(pageSetsToRemove[1].second, "BHashedOnA");
-
-  // remove the output since it is materialized
-  EXPECT_EQ(pageSetsToRemove[2].first, compID);
-  EXPECT_EQ(pageSetsToRemove[2].second, "out");
-
-  // there should be exactly two sets to remove
+  pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "AHashed")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "BHashedOnA")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "out")) != pageSetsToRemove.end());
   EXPECT_EQ(pageSetsToRemove.size(), 3);
 
   // check how many secondary sources we have
@@ -500,10 +663,14 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
   EXPECT_EQ((std::string) algorithmBroadcastC->sink->pageSetIdentifier.second, "CHashedOnC");
   EXPECT_EQ(algorithmBroadcastC->sink->pageSetIdentifier.first, compID);
 
+  // get the page sets we want to remove
+  auto pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "CHashedOnC_to_broadcast")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 1);
+
   EXPECT_TRUE(optimizer.hasAlgorithmToRun());
 
-  Handle<pdb::PDBShuffleForJoinAlgorithm>
-      shuffleA = unsafeCast<pdb::PDBShuffleForJoinAlgorithm>(optimizer.getNextAlgorithm());
+  Handle<pdb::PDBShuffleForJoinAlgorithm> shuffleA = unsafeCast<pdb::PDBShuffleForJoinAlgorithm>(optimizer.getNextAlgorithm());
 
   // check the source
   EXPECT_EQ(shuffleA->source->sourceType, SetScanSource);
@@ -521,6 +688,12 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
   EXPECT_EQ((std::string) shuffleA->finalTupleSet, "AHashed");
   EXPECT_EQ((std::string) shuffleA->sink->pageSetIdentifier.second, "AHashed");
   EXPECT_EQ(shuffleA->sink->pageSetIdentifier.first, compID);
+
+  // get the page sets we want to remove
+  pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "AHashed_to_shuffle")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 1);
+
 
   EXPECT_TRUE(optimizer.hasAlgorithmToRun());
 
@@ -543,6 +716,11 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
   EXPECT_EQ((std::string) shuffleB->sink->pageSetIdentifier.second, "BHashedOnA");
   EXPECT_EQ(shuffleB->sink->pageSetIdentifier.first, compID);
 
+  // get the page sets we want to remove
+  pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "BHashedOnA_to_shuffle")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 1);
+
   EXPECT_TRUE(optimizer.hasAlgorithmToRun());
 
   Handle<pdb::PDBStraightPipeAlgorithm> doJoin = unsafeCast<pdb::PDBStraightPipeAlgorithm>(optimizer.getNextAlgorithm());
@@ -558,6 +736,14 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
   EXPECT_EQ((std::string) doJoin->finalTupleSet, "nothing");
   EXPECT_EQ((std::string) doJoin->sink->pageSetIdentifier.second, "nothing");
   EXPECT_EQ(doJoin->sink->pageSetIdentifier.first, compID);
+
+  // get the page sets we want to remove
+  pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "CHashedOnC")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "AHashed")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "BHashedOnA")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "nothing")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 4);
 
   size_t cnt = 0;
 
@@ -677,55 +863,6 @@ TEST(TestPhysicalOptimizer, TestJoin4) {
 
 
   /// TODO finish this
-}
-
-TEST(TestPhysicalOptimizer, TestMultiSink) {
-
-  // 1MB for algorithm and stuff
-  const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
-
-  // setup the parameters
-  uint64_t compID = 55;
-  pdb::String tcapString = "inputDataForSetScanner_0(in0) <= SCAN ('myData', 'mySetA', 'SetScanner_0')\n"
-                           "methodCall_0OutFor_SelectionComp1(in0,methodCall_0OutFor__getSteve) <= APPLY (inputDataForSetScanner_0(in0), inputDataForSetScanner_0(in0), 'SelectionComp_1', 'methodCall_0', [('inputTypeName', 'pdb::Supervisor'), ('lambdaType', 'methodCall'), ('methodName', 'getSteve'), ('returnTypeName', 'pdb::Supervisor')])\n"
-                           "attAccess_1OutForSelectionComp1(in0,methodCall_0OutFor__getSteve,att_1OutFor_me) <= APPLY (methodCall_0OutFor_SelectionComp1(in0), methodCall_0OutFor_SelectionComp1(in0,methodCall_0OutFor__getSteve), 'SelectionComp_1', 'attAccess_1', [('attName', 'me'), ('attTypeName', 'pdb::Handle&lt;pdb::Employee&gt;'), ('inputTypeName', 'pdb::Supervisor'), ('lambdaType', 'attAccess')])\n"
-                           "equals_2OutForSelectionComp1(in0,methodCall_0OutFor__getSteve,att_1OutFor_me,bool_2_1) <= APPLY (attAccess_1OutForSelectionComp1(methodCall_0OutFor__getSteve,att_1OutFor_me), attAccess_1OutForSelectionComp1(in0,methodCall_0OutFor__getSteve,att_1OutFor_me), 'SelectionComp_1', '==_2', [('lambdaType', '==')])\n"
-                           "filteredInputForSelectionComp1(in0) <= FILTER (equals_2OutForSelectionComp1(bool_2_1), equals_2OutForSelectionComp1(in0), 'SelectionComp_1')\n"
-                           "methodCall_3OutFor_SelectionComp1(in0,methodCall_3OutFor__getMe) <= APPLY (filteredInputForSelectionComp1(in0), filteredInputForSelectionComp1(in0), 'SelectionComp_1', 'methodCall_3', [('inputTypeName', 'pdb::Supervisor'), ('lambdaType', 'methodCall'), ('methodName', 'getMe'), ('returnTypeName', 'pdb::Supervisor')])\n"
-                           "deref_4OutForSelectionComp1 (methodCall_3OutFor__getMe) <= APPLY (methodCall_3OutFor_SelectionComp1(methodCall_3OutFor__getMe), methodCall_3OutFor_SelectionComp1(), 'SelectionComp_1', 'deref_4')\n"
-                           "attAccess_0OutForAggregationComp2(methodCall_3OutFor__getMe,att_0OutFor_department) <= APPLY (deref_4OutForSelectionComp1(methodCall_3OutFor__getMe), deref_4OutForSelectionComp1(methodCall_3OutFor__getMe), 'AggregationComp_2', 'attAccess_0', [('attName', 'department'), ('attTypeName', 'pdb::String'), ('inputTypeName', 'pdb::Employee'), ('lambdaType', 'attAccess')])\n"
-                           "deref_1OutForAggregationComp2(methodCall_3OutFor__getMe, att_0OutFor_department) <= APPLY (attAccess_0OutForAggregationComp2(att_0OutFor_department), attAccess_0OutForAggregationComp2(methodCall_3OutFor__getMe), 'AggregationComp_2', 'deref_1')\n"
-                           "methodCall_2OutFor_AggregationComp2(att_0OutFor_department,methodCall_2OutFor__getSalary) <= APPLY (deref_1OutForAggregationComp2(methodCall_3OutFor__getMe), deref_1OutForAggregationComp2(att_0OutFor_department), 'AggregationComp_2', 'methodCall_2', [('inputTypeName', 'pdb::Employee'), ('lambdaType', 'methodCall'), ('methodName', 'getSalary'), ('returnTypeName', 'pdb::Employee')])\n"
-                           "aggOutForAggregationComp2 (aggOutFor2)<= AGGREGATE (methodCall_2OutFor_AggregationComp2(att_0OutFor_department, methodCall_2OutFor__getSalary),'AggregationComp_2')\n"
-                           "methodCall_0OutFor_SelectionComp3(aggOutFor2,methodCall_0OutFor__checkSales) <= APPLY (aggOutForAggregationComp2(aggOutFor2), aggOutForAggregationComp2(aggOutFor2), 'SelectionComp_3', 'methodCall_0', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'checkSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
-                           "filteredInputForSelectionComp3(aggOutFor2) <= FILTER (methodCall_0OutFor_SelectionComp3(methodCall_0OutFor__checkSales), methodCall_0OutFor_SelectionComp3(aggOutFor2), 'SelectionComp_3')\n"
-                           "methodCall_1OutFor_SelectionComp3 (methodCall_1OutFor__getTotSales) <= APPLY (filteredInputForSelectionComp3(aggOutFor2), filteredInputForSelectionComp3(), 'SelectionComp_3', 'methodCall_1', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'getTotSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
-                           "methodCall_1OutFor_SelectionComp3_out( ) <= OUTPUT ( methodCall_1OutFor_SelectionComp3 ( methodCall_1OutFor__getTotSales ), 'outSet1', 'myDB', 'SetWriter_4')\n"
-                           "methodCall_0OutFor_SelectionComp5(aggOutFor2,methodCall_0OutFor__checkSales) <= APPLY (aggOutForAggregationComp2(aggOutFor2), aggOutForAggregationComp2(aggOutFor2), 'SelectionComp_5', 'methodCall_0', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'checkSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
-                           "filteredInputForSelectionComp5(aggOutFor2) <= FILTER (methodCall_0OutFor_SelectionComp5(methodCall_0OutFor__checkSales), methodCall_0OutFor_SelectionComp5(aggOutFor2), 'SelectionComp_5')\n"
-                           "methodCall_1OutFor_SelectionComp5 (methodCall_1OutFor__getTotSales) <= APPLY (filteredInputForSelectionComp5(aggOutFor2), filteredInputForSelectionComp5(), 'SelectionComp_5', 'methodCall_1', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'getTotSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
-                           "methodCall_1OutFor_SelectionComp5_out( ) <= OUTPUT ( methodCall_1OutFor_SelectionComp5 ( methodCall_1OutFor__getTotSales ), 'outSet2', 'myDB', 'SetWriter_6')\n";
-
-  // make a logger
-  auto logger = make_shared<pdb::PDBLogger>("log.out");
-
-  // make the mock client
-  auto catalogClient = std::make_shared<MockCatalog>();
-  ON_CALL(*catalogClient,
-          getSet(testing::An<const std::string &>(), testing::An<const std::string &>(), testing::An<std::string &>())).WillByDefault(testing::Invoke(
-          [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
-            return std::make_shared<pdb::PDBCatalogSet>("mySetA", "myData", "Nothing", std::numeric_limits<size_t>::max());
-          }));
-
-  EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(1));
-
-  // init the optimizer
-  pdb::PDBPhysicalOptimizer optimizer(compID, tcapString, catalogClient, logger);
-
-  //
-
-
-
 }
 
 }

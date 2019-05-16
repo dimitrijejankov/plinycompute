@@ -103,6 +103,7 @@ protected:
   FRIEND_TEST(TestPhysicalOptimizer, TestAggregation);
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin1);
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin2);
+  FRIEND_TEST(TestPhysicalOptimizer, TestMultiSink);
 };
 
 }
