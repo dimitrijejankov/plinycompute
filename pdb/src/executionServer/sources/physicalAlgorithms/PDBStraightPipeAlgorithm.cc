@@ -5,6 +5,8 @@
 #include <PDBVector.h>
 #include <ComputePlan.h>
 #include <GenericWork.h>
+#include <physicalAlgorithms/PDBStraightPipeAlgorithm.h>
+
 #include "physicalAlgorithms/PDBStraightPipeAlgorithm.h"
 #include "ExJob.h"
 

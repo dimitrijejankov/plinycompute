@@ -50,8 +50,19 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const std::
                                                                                                     sink,
                                                                                                     additionalSources,
                                                                                                     shouldSwapLeftAndRight);
-  // return the stuff
-  return std::make_pair(algorithm, consumers);
+  // add all the consumed page sets
+  std::list<PDBPageSetIdentifier> consumedPageSets = { source->pageSetIdentifier, hashedToSend->pageSetIdentifier, hashedToRecv->pageSetIdentifier };
+  for(int i = 0; i < additionalSources->size(); ++i) {
+    consumedPageSets.insert(consumedPageSets.begin(), (*additionalSources)[i]->pageSetIdentifier);
+  }
+
+  // set the page sets created
+  std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets = { std::make_pair(sink->pageSetIdentifier, consumers.size()),
+                                                                       std::make_pair(hashedToSend->pageSetIdentifier, 1),
+                                                                       std::make_pair(hashedToRecv->pageSetIdentifier, 1) };
+
+  // return the algorithm and the nodes that consume it's result
+  return std::move(PDBPlanningResult(algorithm, consumers, consumedPageSets, newPageSets));
 }
 
 pdb::PDBPlanningResult PDBAggregationPhysicalNode::generatePipelinedAlgorithm(const std::string &firstTupleSet,

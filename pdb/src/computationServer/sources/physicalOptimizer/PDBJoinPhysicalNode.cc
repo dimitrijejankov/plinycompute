@@ -84,8 +84,18 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
     // mark the state of this node as broadcasted
     state = PDBJoinPhysicalNodeBroadcasted;
 
-    // return the algorithm
-    return std::make_pair(algorithm, std::list<PDBAbstractPhysicalNodePtr>());
+    // add all the consumed page sets
+    std::list<PDBPageSetIdentifier> consumedPageSets = { source->pageSetIdentifier, intermediate->pageSetIdentifier };
+    for(int i = 0; i < additionalSources->size(); ++i) {
+      consumedPageSets.insert(consumedPageSets.begin(), (*additionalSources)[i]->pageSetIdentifier);
+    }
+
+    // set the page sets created, the produced page set has to have a page set
+    std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets = { std::make_pair(sink->pageSetIdentifier, 1),
+                                                                         std::make_pair(intermediate->pageSetIdentifier, 1) };
+
+    // return the algorithm and the nodes that consume it's result
+    return std::move(PDBPlanningResult(algorithm, std::list<pdb::PDBAbstractPhysicalNodePtr>(), consumedPageSets, newPageSets));
   }
 
   // set the type of the sink
@@ -119,8 +129,18 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
     newSources.insert(newSources.begin(), consumers.begin(), consumers.end());
   }
 
+  // add all the consumed page sets
+  std::list<PDBPageSetIdentifier> consumedPageSets = { source->pageSetIdentifier, intermediate->pageSetIdentifier };
+  for(int i = 0; i < additionalSources->size(); ++i) {
+    consumedPageSets.insert(consumedPageSets.begin(), (*additionalSources)[i]->pageSetIdentifier);
+  }
+
+  // set the page sets created, the produced page set has to have a page set
+  std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets = { std::make_pair(sink->pageSetIdentifier, 1),
+                                                                       std::make_pair(intermediate->pageSetIdentifier, 1) };
+
   // return the algorithm and the nodes that consume it's result
-  return std::make_pair(algorithm, newSources);
+  return std::move(PDBPlanningResult(algorithm, newSources, consumedPageSets, newPageSets));
 }
 
 // set this value to some reasonable value // TODO this needs to be smarter

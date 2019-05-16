@@ -24,13 +24,42 @@ pdb::Handle<pdb::PDBPhysicalAlgorithm> PDBPhysicalOptimizer::getNextAlgorithm() 
   sources.erase(sources.begin());
 
   // go through each consumer of the output of this algorithm and add it to the sources
-  for(const auto &sourceNode : result.second) {
+  for(const auto &sourceNode : result.newSourceNodes) {
     sources.insert(std::make_pair(0, sourceNode));
     sourcesWithIDs[sourceNode->getSourcePageSet(sourcesWithIDs)->pageSetIdentifier] = std::make_pair(0, sourceNode);
   }
 
+  // add the new page sets
+  for(const auto &pageSet : result.newPageSets) {
+
+    // insert the page set with the specified number of consumers
+    activePageSets[pageSet.first] += pageSet.second;
+  }
+
+  // deallocate the old ones
+  for(const auto &pageSet : result.consumedPageSets) {
+
+    // if we have that page set (it is not a pdb set)
+    if(activePageSets.find(pageSet) != activePageSets.end()) {
+
+      // remove the page set
+      activePageSets[pageSet]--;
+    }
+  }
+
+  // add the page sets that are due to be removed
+  for(auto it = activePageSets.begin(); it != activePageSets.end(); it++) {
+
+    //  check if we should remove this one
+    auto jt = it;
+    if(jt->second == 0) {
+      pageSetsToRemove.emplace_back(jt->first);
+      activePageSets.erase(jt);
+    }
+  }
+
   // return the algorithm
-  return result.first;
+  return result.runMe;
 }
 
 bool PDBPhysicalOptimizer::hasAlgorithmToRun() {
@@ -41,17 +70,14 @@ void PDBPhysicalOptimizer::updateStats() {
 
 }
 
-std::vector<pair<uint64_t, std::string>> PDBPhysicalOptimizer::getPageSetsToRemove() {
+std::vector<PDBPageSetIdentifier> PDBPhysicalOptimizer::getPageSetsToRemove() {
 
-  /// TODO this is just here to test the
-  vector<pair<uint64_t, string>> ret;
-  ret.reserve(2);
+  // empty out the page set
+  auto tmp = std::move(pageSetsToRemove);
+  pageSetsToRemove = std::vector<PDBPageSetIdentifier>();
 
-  // just add some page set identifiers for the selection
-  ret.emplace_back(std::make_pair(computationID, "inputDataForScanSet_0"));
-  ret.emplace_back(std::make_pair(computationID, "nativ_1OutForSelectionComp1_out"));
-
-  return std::move(ret);
+  // return the value
+  return std::move(tmp);
 }
 
 }

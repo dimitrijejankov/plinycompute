@@ -49,6 +49,15 @@ pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const std
                                                                                               additionalSources,
                                                                                               shouldSwapLeftAndRight);
 
+  // add all the consumed page sets
+  std::list<PDBPageSetIdentifier> consumedPageSets = { source->pageSetIdentifier };
+  for(int i = 0; i < additionalSources->size(); ++i) {
+    consumedPageSets.insert(consumedPageSets.begin(), (*additionalSources)[i]->pageSetIdentifier);
+  }
+
+  // set the page sets created
+  std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets = { std::make_pair(sink->pageSetIdentifier, consumers.size()) };
+
   // return the algorithm and the nodes that consume it's result
-  return std::make_pair(algorithm, consumers);
+  return std::move(PDBPlanningResult(algorithm, consumers, consumedPageSets, newPageSets));
 }

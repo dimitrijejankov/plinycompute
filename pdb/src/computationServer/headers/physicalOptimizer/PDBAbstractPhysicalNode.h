@@ -1,3 +1,5 @@
+#include <utility>
+
 //
 // Created by dimitrije on 2/21/19.
 //
@@ -29,7 +31,35 @@ class PDBAbstractPhysicalNode;
 using PDBAbstractPhysicalNodePtr = std::shared_ptr<PDBAbstractPhysicalNode>;
 using PDBAbstractPhysicalNodeWeakPtr = std::weak_ptr<PDBAbstractPhysicalNode>;
 
-using PDBPlanningResult = std::pair<Handle<PDBPhysicalAlgorithm>, std::list<pdb::PDBAbstractPhysicalNodePtr>>;
+struct PDBPlanningResult {
+
+  PDBPlanningResult(const Handle<PDBPhysicalAlgorithm> &runMe,
+                    std::list<pdb::PDBAbstractPhysicalNodePtr> newSourceNodes,
+                    std::list<PDBPageSetIdentifier> consumedPageSets,
+                    std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets) :
+                    runMe(runMe), newSourceNodes(std::move(newSourceNodes)), consumedPageSets(std::move(consumedPageSets)), newPageSets(std::move(newPageSets)) {}
+
+  /**
+   * Algorithm we are supposed to run
+   */
+  Handle<PDBPhysicalAlgorithm> runMe;
+
+  /**
+   * The new sources we want to create
+   */
+  std::list<pdb::PDBAbstractPhysicalNodePtr> newSourceNodes;
+
+  /**
+   * The page sets that we consumed
+   */
+  std::list<PDBPageSetIdentifier> consumedPageSets;
+
+  /**
+   * The new page sets that were created
+   */
+  std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets;
+
+};
 
 class PDBAbstractPhysicalNode {
 
@@ -295,6 +325,8 @@ public:
       case BroadcastJoinSink: return BroadcastJoinSource;
       default:break;
     }
+
+    std::cout << " asd" << std::endl;
 
     // this is not supposed to happen
     assert(false);

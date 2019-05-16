@@ -64,15 +64,24 @@ TEST(TestTcapGeneration, Test1) {
   myAgg->setInput(myFilter);
 
   // make the final filter
-  Handle<Computation> myFinalFilter = makeObject<FinalQuery>();
-  myFinalFilter->setInput(myAgg);
+  Handle<Computation> myFinalFilter1 = makeObject<FinalQuery>();
+  myFinalFilter1->setInput(myAgg);
 
   // make the set writer
-  Handle<Computation> myWrite = makeObject<WriteSalaries>();
-  myWrite->setInput(myFinalFilter);
+  Handle<Computation> myWrite1 = makeObject<WriteSalaries>();
+  myWrite1->setInput(myFinalFilter1);
+
+  // make the final filter
+  Handle<Computation> myFinalFilter2 = makeObject<FinalQuery>();
+  myFinalFilter2->setInput(myAgg);
+
+  // make the set writer
+  Handle<Computation> myWrite2 = makeObject<WriteSalaries>();
+  myWrite2->setInput(myFinalFilter2);
+
 
   // the query graph has only the aggregation
-  std::vector<Handle<Computation>> queryGraph = { myWrite };
+  std::vector<Handle<Computation>> queryGraph = { myWrite1, myWrite2 };
 
   // create the graph analyzer
   pdb::QueryGraphAnalyzer queryAnalyzer(queryGraph);

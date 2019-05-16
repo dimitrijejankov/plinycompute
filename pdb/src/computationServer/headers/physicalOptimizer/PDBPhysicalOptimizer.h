@@ -76,7 +76,7 @@ public:
    * Returns the list of all the page sets that are scheduled to remove
    * @return the identifier of the page sets we need to remove, usually pairs of (computationID, tupleSetName)
    */
-  std::vector<pair<uint64_t, std::string>> getPageSetsToRemove();
+  std::vector<PDBPageSetIdentifier> getPageSetsToRemove();
 
 private:
 
@@ -95,6 +95,16 @@ private:
    * We are getting the source by the identifier.
    */
   sourceCosts sourcesWithIDs;
+
+  /**
+   * The page sets that are active, and the number of their consumers.
+   */
+  map<PDBPageSetIdentifier, size_t, PageSetIdentifierComparator> activePageSets;
+
+  /**
+   * The page sets we can safely remove
+   */
+  vector<PDBPageSetIdentifier> pageSetsToRemove;
 
   /**
    * The logger associated with the physical optimizer
