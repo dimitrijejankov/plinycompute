@@ -18,6 +18,7 @@ public:
 
   MOCK_METHOD0(getNumPages, size_t ());
 
+  MOCK_METHOD0(resetPageSet, void ());
 };
 
 TEST(SetScannerTest, Test1) {

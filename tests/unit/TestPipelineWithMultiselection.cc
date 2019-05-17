@@ -137,13 +137,7 @@ TEST(PipelineTest, TestSelection) {
                         "filteredInputForMultiSelectionComp1(in0) <= FILTER (nativ_0OutForMultiSelectionComp1(nativ_0_1OutFor), nativ_0OutForMultiSelectionComp1(in0), 'MultiSelectionComp_1')\n"
                         "nativ_1OutForMultiSelectionComp1 (nativ_1_1OutFor) <= APPLY (filteredInputForMultiSelectionComp1(in0), filteredInputForMultiSelectionComp1(), 'MultiSelectionComp_1', 'native_lambda_1', [('lambdaType', 'native_lambda')])\n"
                         "flattenedOutForMultiSelectionComp1(flattened_nativ_1_1OutFor) <= FLATTEN (nativ_1OutForMultiSelectionComp1(nativ_1_1OutFor), nativ_1OutForMultiSelectionComp1(), 'MultiSelectionComp_1')\n"
-                        "flattenedOutForMultiSelectionComp1_out( ) <= OUTPUT ( flattenedOutForMultiSelectionComp1 ( flattened_nativ_1_1OutFor ), '', '', 'SetWriter_2')\n"
-                        "inputDataForSetScanner_0(in0) <= SCAN ('', '', 'SetScanner_0')\n"
-                        "nativ_0OutForMultiSelectionComp1(in0,nativ_0_1OutFor) <= APPLY (inputDataForSetScanner_0(in0), inputDataForSetScanner_0(in0), 'MultiSelectionComp_1', 'native_lambda_0', [('lambdaType', 'native_lambda')])\n"
-                        "filteredInputForMultiSelectionComp1(in0) <= FILTER (nativ_0OutForMultiSelectionComp1(nativ_0_1OutFor), nativ_0OutForMultiSelectionComp1(in0), 'MultiSelectionComp_1')\n"
-                        "nativ_1OutForMultiSelectionComp1 (nativ_1_1OutFor) <= APPLY (filteredInputForMultiSelectionComp1(in0), filteredInputForMultiSelectionComp1(), 'MultiSelectionComp_1', 'native_lambda_1', [('lambdaType', 'native_lambda')])\n"
-                        "flattenedOutForMultiSelectionComp1(flattened_nativ_1_1OutFor) <= FLATTEN (nativ_1OutForMultiSelectionComp1(nativ_1_1OutFor), nativ_1OutForMultiSelectionComp1(), 'MultiSelectionComp_1')\n"
-                        "flattenedOutForMultiSelectionComp1_out( ) <= OUTPUT ( flattenedOutForMultiSelectionComp1 ( flattened_nativ_1_1OutFor ), '', '', 'SetWriter_2')";
+                        "flattenedOutForMultiSelectionComp1_out( ) <= OUTPUT ( flattenedOutForMultiSelectionComp1 ( flattened_nativ_1_1OutFor ), '', '', 'SetWriter_2')\n";
 
   // and create a query object that contains all of this stuff
   ComputePlan myPlan(myTCAPString, myComputations);

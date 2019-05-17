@@ -21,20 +21,20 @@
 
 // by Shangyu, June 2017
 
-#include "WriteUserSet.h"
+#include "SetWriter.h"
 #include "LDADocWordTopicAssignment.h"
 
 using namespace pdb;
-class WriteLDADocWordTopicAssignmentSet : public WriteUserSet<LDADocWordTopicAssignment> {
+class WriteLDADocWordTopicAssignmentSet : public SetWriter<LDADocWordTopicAssignment> {
 
 public:
     ENABLE_DEEP_COPY
 
-    WriteLDADocWordTopicAssignmentSet() {}
+    WriteLDADocWordTopicAssignmentSet() = default;
 
     // below constructor is not required, but if we do not call setOutput() here, we must call
     // setOutput() later to set the output set
-    WriteLDADocWordTopicAssignmentSet(std::string dbName, std::string setName) {
+    WriteLDADocWordTopicAssignmentSet(const std::string &dbName, const std::string &setName) {
         this->setOutput(dbName, setName);
     }
 };
