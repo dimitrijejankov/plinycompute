@@ -221,11 +221,11 @@ private:
   }
 
   //JiaNote: Returning a TCAP string for this Join computation
-  virtual std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
-                                   int computationLabel,
-                                   std::string &outputTupleSetName,
-                                   std::vector<std::string> &outputColumnNames,
-                                   std::string &addedOutputColumnName) override {
+  std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
+                           int computationLabel,
+                           std::string &outputTupleSetName,
+                           std::vector<std::string> &outputColumnNames,
+                           std::string &addedOutputColumnName) override {
     if (inputTupleSets.size() == getNumInputs()) {
       std::string tcapString;
       if (multiInputsBase == nullptr) {
