@@ -237,26 +237,6 @@ class MultiSelectionComp : public Computation {
     return tcapString;
   }
 
-  void setOutput(std::string dbName, std::string setName) override {
-    this->outputSetScanner = makeObject<SetScanner<Out>>(dbName, setName);;
-  }
-
-  void setBatchSize(int batchSize) override {
-    if (this->outputSetScanner != nullptr) {
-      this->outputSetScanner->setBatchSize(batchSize);
-    }
-  }
-
-  // to return the database name
-  std::string getDatabaseName() override {
-    return this->outputSetScanner->getDatabaseName();
-  }
-
-  // to return the set name
-  std::string getSetName() override {
-    return this->outputSetScanner->getSetName();
-  }
-
 };
 
 }

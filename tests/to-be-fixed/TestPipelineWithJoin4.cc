@@ -138,7 +138,7 @@ class SillyReadOfA : public SetScanner<int> {
   }
 };
 
-class SillyReadOfB : public SetScanner<StringIntPair> {
+class ReadStringIntPair : public SetScanner<StringIntPair> {
 
   ENABLE_DEEP_COPY
 
@@ -174,7 +174,7 @@ class SillyReadOfB : public SetScanner<StringIntPair> {
                 data->push_back(myPair);
               }
             } catch (NotEnoughSpace &e) {
-              std::cout << "got to " << i << " when proucing data for SillyReadOfB.\n";
+              std::cout << "got to " << i << " when proucing data for ReadStringIntPair.\n";
               getRecord(data);
             }
           }
@@ -308,7 +308,7 @@ int main() {
 
   // create all of the computation objects
   Handle<Computation> readA = makeObject<SillyReadOfA>();
-  Handle<Computation> readB = makeObject<SillyReadOfB>();
+  Handle<Computation> readB = makeObject<ReadStringIntPair>();
   Handle<Computation> readC = makeObject<SillyReadOfC>();
   Handle<Computation> readD = makeObject<SillyReadOfD>();
   Handle<Computation> myJoin = makeObject<SillyJoin>();

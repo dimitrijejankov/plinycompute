@@ -6,6 +6,6 @@ add_dependencies(build-integration-tests TestJoin)
 
 # add build dependencies to shared libraries it uses
 add_dependencies(TestJoin SillyReadOfA)
-add_dependencies(TestJoin SillyReadOfB)
+add_dependencies(TestJoin ReadStringIntPair)
 add_dependencies(TestJoin SillyJoinIntString)
 add_dependencies(TestJoin SillyWriteIntString)

@@ -2,7 +2,7 @@
 #include <SharedEmployee.h>
 #include <GenericWork.h>
 #include <SillyReadOfA.h>
-#include <SillyReadOfB.h>
+#include <ReadStringIntPair.h>
 #include <SillyJoinIntString.h>
 #include <SillyWriteIntString.h>
 #include "StringIntPair.h"
@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
 
   // now, register a type for user data
   pdbClient.registerType("libraries/libSillyReadOfA.so");
-  pdbClient.registerType("libraries/libSillyReadOfB.so");
+  pdbClient.registerType("libraries/libReadStringIntPair.so");
   pdbClient.registerType("libraries/libSillyJoinIntString.so");
   pdbClient.registerType("libraries/libSillyWriteIntString.so");
 
@@ -143,7 +143,7 @@ int main(int argc, char* argv[]) {
 
   // here is the list of computations
   Handle <Computation> readA = makeObject <SillyReadOfA>();
-  Handle <Computation> readB = makeObject <SillyReadOfB>();
+  Handle <Computation> readB = makeObject <ReadStringIntPair>();
   Handle <Computation> join = makeObject <SillyJoinIntString>();
   join->setInput(0, readA);
   join->setInput(1, readB);

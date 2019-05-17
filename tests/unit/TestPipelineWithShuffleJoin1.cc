@@ -6,7 +6,7 @@
 #include <gmock/gmock.h>
 
 #include "SillyReadOfA.h"
-#include "SillyReadOfB.h"
+#include "ReadStringIntPair.h"
 #include "SillyJoinIntString.h"
 #include "SillyWriteIntString.h"
 
@@ -21,6 +21,8 @@ class MockPageSetReader : public pdb::PDBAbstractPageSet {
   MOCK_METHOD0(getNewPage, PDBPageHandle());
 
   MOCK_METHOD0(getNumPages, size_t ());
+
+  MOCK_METHOD0(resetPageSet, void ());
 
 };
 
@@ -243,7 +245,7 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
 
   // create all of the computation objects
   Handle <Computation> readA = makeObject <SillyReadOfA>();
-  Handle <Computation> readB = makeObject <SillyReadOfB>();
+  Handle <Computation> readB = makeObject <ReadStringIntPair>();
   Handle <Computation> join = makeObject <SillyJoinIntString>();
   Handle <Computation> write = makeObject <SillyWriteIntString>();
 

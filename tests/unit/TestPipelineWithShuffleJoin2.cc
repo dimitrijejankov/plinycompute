@@ -6,7 +6,7 @@
 #include <gmock/gmock.h>
 
 #include "SillyReadOfA.h"
-#include "SillyReadOfB.h"
+#include "ReadStringIntPair.h"
 #include "SillyJoinIntString.h"
 #include "SillyWriteIntString.h"
 
@@ -243,7 +243,7 @@ TEST(PipelineTest, TestShuffleJoinSingleReversed) {
 
   // create all of the computation objects
   Handle <Computation> readA = makeObject <SillyReadOfA>();
-  Handle <Computation> readB = makeObject <SillyReadOfB>();
+  Handle <Computation> readB = makeObject <ReadStringIntPair>();
   Handle <Computation> join = makeObject <SillyJoinIntString>();
   Handle <Computation> write = makeObject <SillyWriteIntString>();
 

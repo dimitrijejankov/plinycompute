@@ -25,15 +25,13 @@
 
 namespace pdb {
 
-QueryGraphAnalyzer::QueryGraphAnalyzer(
-    std::vector<Handle<Computation>> &queryGraph) {
-  for (int i = 0; i < queryGraph.size(); i++) {
-    this->queryGraph.push_back(queryGraph[i]);
+QueryGraphAnalyzer::QueryGraphAnalyzer(std::vector<Handle<Computation>> &queryGraph) {
+  for (const auto &i : queryGraph) {
+    this->queryGraph.push_back(i);
   }
 }
 
-QueryGraphAnalyzer::QueryGraphAnalyzer(
-    Handle<Vector<Handle<Computation>>> queryGraph) {
+QueryGraphAnalyzer::QueryGraphAnalyzer(Handle<Vector<Handle<Computation>>> queryGraph) {
   for (int i = 0; i < queryGraph->size(); i++) {
     this->queryGraph.push_back((*queryGraph)[i]);
   }
@@ -50,16 +48,16 @@ std::string QueryGraphAnalyzer::parseTCAPString() {
     InputTupleSetSpecifier inputTupleSet;
     inputTupleSets.push_back(inputTupleSet);
     curSink = queryGraph[i];
-    std::string outputTupleSetName = "";
+    std::string outputTupleSetName;
     std::vector<std::string> outputColumnNames;
-    std::string addedOutputColumnName = "";
+    std::string addedOutputColumnName;
     traverse(tcapStrings, curSink, inputTupleSets, computationLabel,
              outputTupleSetName, outputColumnNames, addedOutputColumnName);
   }
 
-  std::string tcapStringToReturn = "";
-  for (int i = 0; i < tcapStrings.size(); i++) {
-    tcapStringToReturn += tcapStrings[i];
+  std::string tcapStringToReturn;
+  for (const auto &tcapString : tcapStrings) {
+    tcapStringToReturn += tcapString;
   }
   std::cout << tcapStringToReturn << std::endl;
   return tcapStringToReturn;
@@ -140,8 +138,7 @@ void QueryGraphAnalyzer::clearGraphMarks(Handle<Computation> sink) {
 
 void QueryGraphAnalyzer::clearGraphMarks() {
 
-  for (int i = 0; i < this->queryGraph.size(); i++) {
-    Handle<Computation> sink = this->queryGraph[i];
+  for (auto sink : this->queryGraph) {
     clearGraphMarks(sink);
   }
 }
@@ -154,7 +151,7 @@ void QueryGraphAnalyzer::parseComputations(
     Handle<Computation> curNode = sink->getIthInput(i);
     parseComputations(computations, curNode);
   }
-  if (sink->isTraversed() == false) {
+  if (!sink->isTraversed()) {
     computations.push_back(sink);
     sink->setTraversed(true);
   }
@@ -163,8 +160,7 @@ void QueryGraphAnalyzer::parseComputations(
 void QueryGraphAnalyzer::parseComputations(
     std::vector<Handle<Computation>> &computations) {
   this->clearGraphMarks();
-  for (int i = 0; i < this->queryGraph.size(); i++) {
-    Handle<Computation> sink = this->queryGraph[i];
+  for (auto sink : this->queryGraph) {
     parseComputations(computations, sink);
   }
 }

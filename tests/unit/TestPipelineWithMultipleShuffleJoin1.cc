@@ -40,7 +40,7 @@
 
 #include "SillyJoin.h"
 #include "SillyReadOfA.h"
-#include "SillyReadOfB.h"
+#include "ReadStringIntPair.h"
 #include "SillyReadOfC.h"
 #include "SillyWrite.h"
 
@@ -107,7 +107,7 @@ PDBPageHandle getSetBPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr) 
           data->push_back (myPair);
         }
       } catch (NotEnoughSpace &e) {
-        std::cout << "got to " << i << " when proucing data for SillyReadOfB.\n";
+        std::cout << "got to " << i << " when proucing data for ReadStringIntPair.\n";
         getRecord(data);
       }
     }
@@ -403,7 +403,7 @@ TEST(PipelineTest, TestShuffleJoin) {
 
   // create all of the computation objects
   Handle <Computation> readA = makeObject <SillyReadOfA> ();
-  Handle <Computation> readB = makeObject <SillyReadOfB> ();
+  Handle <Computation> readB = makeObject <ReadStringIntPair> ();
   Handle <Computation> readC = makeObject <SillyReadOfC> ();
   Handle <Computation> myJoin = makeObject <SillyJoin> ();
   Handle <Computation> myWriter = makeObject <SillyWrite> ();

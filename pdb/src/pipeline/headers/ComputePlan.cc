@@ -21,6 +21,7 @@
 
 #include "ComputePlan.h"
 #include "executors/FilterExecutor.h"
+#include "executors/FlattenExecutor.h"
 #include "AtomicComputationClasses.h"
 #include "lambdas/EqualsLambda.h"
 #include "JoinCompBase.h"
@@ -425,6 +426,11 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
       returnVal->addStage(myPlan->getNode(a->getComputationName()).
           getLambda(((HashLeft *) a.get())->getLambdaToApply())->getRightHasher(lastOne->getOutput(), a->getInput(), a->getProjection()));
 
+
+    } else if (a->getAtomicComputationType() == "Flatten") {
+
+      std::cout << "Adding: " << a->getProjection() << " + flatten [" << a->getInput() << "] => " << a->getOutput() << "\n";
+      returnVal->addStage(std::make_shared<FlattenExecutor>(lastOne->getOutput(), a->getInput(), a->getProjection()));
 
     } else if (a->getAtomicComputationType() == "JoinSets") {
 

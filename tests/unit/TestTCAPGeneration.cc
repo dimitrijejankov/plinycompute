@@ -34,7 +34,7 @@
 #include <WriteBuiltinEmployeeSet.h>
 #include <ComputePlan.h>
 #include <SillyReadOfA.h>
-#include <SillyReadOfB.h>
+#include <ReadStringIntPair.h>
 #include <SillyJoinIntString.h>
 #include <SillyWriteIntString.h>
 #include <QueryGraphAnalyzer.h>
@@ -44,6 +44,8 @@
 #include <WriteSalaries.h>
 #include <FinalQuery.h>
 #include <gtest/gtest.h>
+#include <StringIntPairMultiSelection.h>
+#include <WriteStringIntPair.h>
 
 using namespace pdb;
 
@@ -98,7 +100,7 @@ TEST(TestTcapGeneration, Test2) {
 
   // here is the list of computations
   Handle <Computation> readA = makeObject <SillyReadOfA>();
-  Handle <Computation> readB = makeObject <SillyReadOfB>();
+  Handle <Computation> readB = makeObject <ReadStringIntPair>();
   Handle <Computation> join = makeObject <SillyJoinIntString>();
   join->setInput(0, readA);
   join->setInput(1, readB);
@@ -107,6 +109,26 @@ TEST(TestTcapGeneration, Test2) {
 
   // the query graph has only the aggregation
   std::vector<Handle<Computation>> queryGraph = { write };
+
+  // create the graph analyzer
+  pdb::QueryGraphAnalyzer queryAnalyzer(queryGraph);
+
+  // parse the tcap string
+  std::string tcapString = queryAnalyzer.parseTCAPString();
+
+  std::cout << tcapString << std::endl;
+}
+
+TEST(TestTcapGeneration, Test3) {
+
+  Handle <Computation> readStringIntPair = makeObject <ReadStringIntPair>();
+  Handle <Computation> multiSelection = makeObject <StringIntPairMultiSelection>();
+  multiSelection->setInput(0, readStringIntPair);
+  Handle <Computation> writeStringIntPair = makeObject <WriteStringIntPair>();
+  writeStringIntPair->setInput(0, multiSelection);
+
+  // the query graph has only the aggregation
+  std::vector<Handle<Computation>> queryGraph = { writeStringIntPair };
 
   // create the graph analyzer
   pdb::QueryGraphAnalyzer queryAnalyzer(queryGraph);
