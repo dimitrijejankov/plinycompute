@@ -81,8 +81,8 @@ int main(int argc, char* argv[]) {
       numSteve += supers->size();
 
       // send the data twice so we aggregate two times each department
-      pdbClient.sendData<Supervisor>("chris_db", "chris_set1", supers);
-      pdbClient.sendData<Supervisor>("chris_db", "chris_set2", supers);
+      pdbClient.sendData<Supervisor>("chris_db", "chris_set", supers);
+      pdbClient.sendData<Supervisor>("chris_db", "chris_set", supers);
     }
   }
 
@@ -106,11 +106,11 @@ int main(int argc, char* argv[]) {
       "selectionOne(aggOutFor2,methodCall_0OutFor__checkSales) <= APPLY (agg(aggOutFor2), agg(aggOutFor2), 'SelectionComp_3', 'methodCall_0', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'checkSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
       "selectionOneFilter(aggOutFor2) <= FILTER (selectionOne(methodCall_0OutFor__checkSales), selectionOne(aggOutFor2), 'SelectionComp_3')\n"
       "selectionOneFilterRemoved (methodCall_1OutFor__getTotSales) <= APPLY (selectionOneFilter(aggOutFor2), selectionOneFilter(), 'SelectionComp_3', 'methodCall_1', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'getTotSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
-      "selectionOneFilterRemoved_out( ) <= OUTPUT ( selectionOneFilterRemoved ( methodCall_1OutFor__getTotSales ), 'chris_db', 'chris_set2', 'SetWriter_4')\n"
+      "selectionOneFilterRemoved_out( ) <= OUTPUT ( selectionOneFilterRemoved ( methodCall_1OutFor__getTotSales ), 'chris_db', 'output_set1', 'SetWriter_4')\n"
       "selectionTwo(aggOutFor2,methodCall_0OutFor__checkSales) <= APPLY (agg(aggOutFor2), agg(aggOutFor2), 'SelectionComp_5', 'methodCall_0', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'checkSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
       "selectionTwoFilter(aggOutFor2) <= FILTER (selectionTwo(methodCall_0OutFor__checkSales), selectionTwo(aggOutFor2), 'SelectionComp_5')\n"
       "selectionTwoFilterRemoved (methodCall_1OutFor__getTotSales) <= APPLY (selectionTwoFilter(aggOutFor2), selectionTwoFilter(), 'SelectionComp_5', 'methodCall_1', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'getTotSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
-      "selectionTwoFilterRemoved_out( ) <= OUTPUT ( selectionTwoFilterRemoved ( methodCall_1OutFor__getTotSales ), 'chris_db', 'chris_set1', 'SetWriter_6')\n";
+      "selectionTwoFilterRemoved_out( ) <= OUTPUT ( selectionTwoFilterRemoved ( methodCall_1OutFor__getTotSales ), 'chris_db', 'output_set2', 'SetWriter_6')\n";
 
   // here is the list of computations
   Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
@@ -177,7 +177,7 @@ int main(int argc, char* argv[]) {
     i++;
   }
 
-  std::cout << R"(Got for ("chris_db", "output_set1"))" << i << " records expected " << numSteve << std::endl;
+  std::cout << R"(Got for ("chris_db", "output_set1") )" << i << " records expected " << numSteve << std::endl;
 
   /// 6. Get the set from the
 
@@ -200,7 +200,7 @@ int main(int argc, char* argv[]) {
     i++;
   }
 
-  std::cout << R"(Got for ("chris_db", "output_set2"))" << i << " records expected " << numSteve << std::endl;
+  std::cout << R"(Got for ("chris_db", "output_set2") )" << i << " records expected " << numSteve << std::endl;
 
   // shutdown the server
   pdbClient.shutDownServer();

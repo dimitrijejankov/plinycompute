@@ -200,6 +200,7 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
 
     // we are reading from an existing page set get it
     sourcePageSet = storage->getPageSet(std::make_pair(source->pageSetIdentifier.first, source->pageSetIdentifier.second));
+    sourcePageSet->resetPageSet();
   }
 
   // did we manage to get a source page set? if not the setup failed

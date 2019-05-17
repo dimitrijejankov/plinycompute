@@ -33,6 +33,11 @@ public:
    * @return the number
    */
   virtual size_t getNumPages() = 0;
+
+  /**
+   * Resets the page set so it can be reused
+   */
+  virtual void resetPageSet() = 0;
 };
 
 }

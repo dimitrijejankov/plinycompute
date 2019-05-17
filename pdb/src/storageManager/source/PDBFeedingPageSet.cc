@@ -98,13 +98,18 @@ void pdb::PDBFeedingPageSet::finishFeeding() {
   // increment the number of finished feeders
   numFinishedFeeders++;
 
-  if(numFinishedFeeders == numFeeders) {
-    std::cout << this->tt << ": " << pages.size() << std::endl;
-  }
-
   // notify that we are done feeding
   lck.unlock();
   cv.notify_all();
+}
+
+void pdb::PDBFeedingPageSet::resetPageSet() {
+
+  // lock pages structure
+  unique_lock<std::mutex> lck(m);
+
+  // reset the next pages
+  for_each(nextPageForWorker.begin(), nextPageForWorker.end(), [&](auto &page) {page = 0;});
 }
 
 

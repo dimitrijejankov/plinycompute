@@ -39,3 +39,9 @@ pdb::PDBPageHandle pdb::PDBSetPageSet::getNewPage() {
 size_t pdb::PDBSetPageSet::getNumPages() {
   return pages.size();
 }
+
+void pdb::PDBSetPageSet::resetPageSet() {
+
+  // reset the page counter
+  curPage = 0;
+}

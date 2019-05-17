@@ -88,9 +88,12 @@ public:
    */
   size_t getNumPages() override;
 
-private:
+  /**
+   * Resets the page set so it can be reused
+   */
+  void resetPageSet() override;
 
-  int tt = 0;
+ private:
 
   /**
    * Keeps track of all anonymous pages so that we can quickly remove them

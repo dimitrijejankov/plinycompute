@@ -48,6 +48,7 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
 
     // we are reading from an existing page set get it
     sourcePageSet = storage->getPageSet(std::make_pair(job->computationID, firstTupleSet));
+    sourcePageSet->resetPageSet();
   }
 
   // did we manage to get a source page set? if not the setup failed

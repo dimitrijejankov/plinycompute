@@ -51,7 +51,12 @@ public:
    */
   void removePage(PDBPageHandle pageHandle);
 
-private:
+  /**
+   * Resets the page set so it can be reused
+   */
+  void resetPageSet() override;
+
+ private:
 
   /**
    * Keeps track of all anonymous pages so that we can quickly remove them

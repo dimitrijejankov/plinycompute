@@ -72,3 +72,15 @@ size_t pdb::PDBAnonymousPageSet::getNumPages() {
   // return the size
   return pages.size();
 }
+
+void pdb::PDBAnonymousPageSet::resetPageSet() {
+
+  // lock the pages struct
+  std::unique_lock<std::mutex> lck(m);
+
+  // set the done to false since we are reusing this page set
+  isDone = false;
+
+  // set the current page to start
+  curPage = pages.begin();
+}

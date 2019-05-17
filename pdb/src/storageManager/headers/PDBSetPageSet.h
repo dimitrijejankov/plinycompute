@@ -49,6 +49,11 @@ public:
    */
   size_t getNumPages() override;
 
+  /**
+   * Resets the page set so it can be reused
+   */
+  void resetPageSet() override;
+
  private:
 
   // current page, it is thread safe to update it
