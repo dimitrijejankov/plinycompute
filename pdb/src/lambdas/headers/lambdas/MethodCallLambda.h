@@ -51,7 +51,7 @@ class MethodCallLambda : public TypedLambdaObject<Out> {
       methodName(std::move(methodName)), returnTypeName(std::move(returnTypeName)) {
 
     std::cout << "MethodCallLambda: input type code is " << input.getExactTypeInfoValue() << std::endl;
-
+    this->setInputIndex(0, -(input.getExactTypeInfoValue() + 1));
   }
 
   std::string getTypeOfLambda() override {

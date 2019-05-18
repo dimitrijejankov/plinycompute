@@ -66,6 +66,4 @@ void pdb::ExecutionServerBackend::registerHandlers(pdb::PDBServer &forMe) {
           }));
 }
 
-void pdb::ExecutionServerBackend::init() {
-
-}
+void pdb::ExecutionServerBackend::init() {}

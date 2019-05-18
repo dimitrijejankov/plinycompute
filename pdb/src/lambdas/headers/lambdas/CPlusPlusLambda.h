@@ -122,7 +122,35 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
 
  public:
 
-  explicit CPlusPlusLambda(F arg) : myFunc(arg) {}
+  CPlusPlusLambda(F arg,
+                  Handle<ParamOne>& input1,
+                  Handle<ParamTwo>& input2,
+                  Handle<ParamThree>& input3,
+                  Handle<ParamFour>& input4,
+                  Handle<ParamFive>& input5)
+      : myFunc(arg) {
+
+    if (getTypeName<ParamOne>() != "pdb::Nothing") {
+      this->numInputs++;
+      this->setInputIndex(0, -((input1.getExactTypeInfoValue() + 1)));
+    }
+    if (getTypeName<ParamTwo>() != "pdb::Nothing") {
+      this->numInputs++;
+      this->setInputIndex(1, -((input2.getExactTypeInfoValue() + 1)));
+    }
+    if (getTypeName<ParamThree>() != "pdb::Nothing") {
+      this->numInputs++;
+      this->setInputIndex(2, -((input3.getExactTypeInfoValue() + 1)));
+    }
+    if (getTypeName<ParamFour>() != "pdb::Nothing") {
+      this->numInputs++;
+      this->setInputIndex(3, -((input4.getExactTypeInfoValue() + 1)));
+    }
+    if (getTypeName<ParamFive>() != "pdb::Nothing") {
+      this->numInputs++;
+      this->setInputIndex(4, -((input5.getExactTypeInfoValue() + 1)));
+    }
+  }
 
   ~CPlusPlusLambda() = default;
 

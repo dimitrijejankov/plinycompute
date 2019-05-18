@@ -68,6 +68,8 @@ class AndLambda : public TypedLambdaObject<bool> {
   AndLambda(LambdaTree<LeftType> lhsIn, LambdaTree<RightType> rhsIn) {
     lhs = lhsIn;
     rhs = rhsIn;
+    this->setInputIndex(0, lhs.getInputIndex(0));
+    this->setInputIndex(1, rhs.getInputIndex(0));
   }
 
   ComputeExecutorPtr getExecutor(TupleSpec& inputSchema,

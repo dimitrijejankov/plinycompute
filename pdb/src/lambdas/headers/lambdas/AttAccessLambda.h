@@ -39,7 +39,9 @@ public:
 
   // create an att access lambda; offset is the position in the input object where we are going to find the input att
   AttAccessLambda (std::string inputTypeNameIn, std::string attNameIn, std::string attType, Handle <ClassType> & input, size_t offset) :
-             offsetOfAttToProcess (offset), inputTypeName (std::move(inputTypeNameIn)), attName (std::move(attNameIn)), attTypeName (std::move(attType)) {}
+             offsetOfAttToProcess (offset), inputTypeName (std::move(inputTypeNameIn)), attName (std::move(attNameIn)), attTypeName (std::move(attType)) {
+    this->setInputIndex(0, -(input.getExactTypeInfoValue() + 1));
+  }
 
 
   ComputeExecutorPtr getExecutor (TupleSpec &inputSchema, TupleSpec &attsToOperateOn, TupleSpec &attsToIncludeInOutput) override {
