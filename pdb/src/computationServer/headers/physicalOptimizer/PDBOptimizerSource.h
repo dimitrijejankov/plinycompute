@@ -24,6 +24,6 @@ class PageSetIdentifierComparator
   bool operator() (const PDBPageSetIdentifier &lhs, const PDBPageSetIdentifier &rhs);
 };
 
-using sourceCosts = std::map<std::pair<size_t, std::string>, OptimizerSource, PageSetIdentifierComparator>;
+using PDBPageSetCosts = std::map<PDBPageSetIdentifier, size_t, PageSetIdentifierComparator>;
 
 }

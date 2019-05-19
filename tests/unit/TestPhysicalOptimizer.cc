@@ -10,6 +10,14 @@
 #include <gmock/gmock.h>
 #include <physicalAlgorithms/PDBBroadcastForJoinAlgorithm.h>
 
+#include <ReadInt.h>
+#include <ReadStringIntPair.h>
+#include <StringSelectionOfStringIntPair.h>
+#include <IntSimpleJoin.h>
+#include <WriteSumResult.h>
+#include <IntAggregation.h>
+#include <physicalAlgorithms/PDBPhysicalAlgorithm.h>
+
 namespace pdb {
 
 class MockCatalog {
@@ -504,6 +512,10 @@ TEST(TestPhysicalOptimizer, TestJoin2) {
 
   EXPECT_TRUE(optimizer.hasAlgorithmToRun());
 
+  // update the stats on the page sets
+  optimizer.updatePageSet(std::make_pair(compID, "BHashedOnA"), 10);
+  optimizer.updatePageSet(std::make_pair(compID, "AHashed"), 11);
+
   Handle<pdb::PDBStraightPipeAlgorithm> doJoin = unsafeCast<pdb::PDBStraightPipeAlgorithm>(optimizer.getNextAlgorithm());
 
   // check the source
@@ -538,6 +550,7 @@ TEST(TestPhysicalOptimizer, TestJoin2) {
 
   EXPECT_FALSE(optimizer.hasAlgorithmToRun());
 }
+
 
 TEST(TestPhysicalOptimizer, TestJoin3) {
 
@@ -701,6 +714,11 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
 
   EXPECT_TRUE(optimizer.hasAlgorithmToRun());
 
+  // update the stats on the page sets
+  optimizer.updatePageSet(std::make_pair(compID, "BHashedOnA"), 10);
+  optimizer.updatePageSet(std::make_pair(compID, "AHashed"), 9);
+
+
   Handle<pdb::PDBStraightPipeAlgorithm> doJoin = unsafeCast<pdb::PDBStraightPipeAlgorithm>(optimizer.getNextAlgorithm());
 
   // check the source
@@ -757,54 +775,60 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
   EXPECT_FALSE(optimizer.hasAlgorithmToRun());
 }
 
-TEST(TestPhysicalOptimizer, TestJoin4) {
+TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
+
+  const size_t compID = 76;
 
   // 1MB for algorithm and stuff
   const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
 
-  // setup the input parameters
-  uint64_t compID = 89;
-  pdb::String tcapString =
-      "/* scan the three inputs */ \n"
-      "A (a) <= SCAN ('myData', 'mySetA', 'SetScanner_0', []) \n"
-      "B (aAndC) <= SCAN ('myData', 'mySetB', 'SetScanner_1', []) \n"
-      "C (c) <= SCAN ('myData', 'mySetC', 'SetScanner_2', []) \n"
-      "\n"
-      "/* extract and hash a from A */ \n"
-      "AWithAExtracted (a, aExtracted) <= APPLY (A (a), A(a), 'JoinComp_3', 'self_0', []) \n"
-      "AHashed (a, hash) <= HASHLEFT (AWithAExtracted (aExtracted), A (a), 'JoinComp_3', '==_2', []) \n"
-      "\n"
-      "/* extract and hash a from B */ \n"
-      "BWithAExtracted (aAndC, a) <= APPLY (B (aAndC), B (aAndC), 'JoinComp_3', 'attAccess_1', []) \n"
-      "BHashedOnA (aAndC, hash) <= HASHRIGHT (BWithAExtracted (a), BWithAExtracted (aAndC), 'JoinComp_3', '==_2', []) \n"
-      "\n"
-      "/* now, join the two of them */ \n"
-      "AandBJoined (a, aAndC) <= JOIN (AHashed (hash), AHashed (a), BHashedOnA (hash), BHashedOnA (aAndC), 'JoinComp_3', []) \n"
-      "\n"
-      "/* and extract the two atts and check for equality */ \n"
-      "AandBJoinedWithAExtracted (a, aAndC, aExtracted) <= APPLY (AandBJoined (a), AandBJoined (a, aAndC), 'JoinComp_3', 'self_0', []) \n"
-      "AandBJoinedWithBothExtracted (a, aAndC, aExtracted, otherA) <= APPLY (AandBJoinedWithAExtracted (aAndC), AandBJoinedWithAExtracted (a, aAndC, aExtracted), 'JoinComp_3', 'attAccess_1', []) \n"
-      "AandBJoinedWithBool (aAndC, a, bool) <= APPLY (AandBJoinedWithBothExtracted (aExtracted, otherA), AandBJoinedWithBothExtracted (aAndC, a), 'JoinComp_3', '==_2', []) \n"
-      "AandBJoinedFiltered (a, aAndC) <= FILTER (AandBJoinedWithBool (bool), AandBJoinedWithBool (a, aAndC), 'JoinComp_3', []) \n"
-      "\n"
-      "/* now get ready to join the strings */ \n"
-      "AandBJoinedFilteredWithC (a, aAndC, cExtracted) <= APPLY (AandBJoinedFiltered (aAndC), AandBJoinedFiltered (a, aAndC), 'JoinComp_3', 'attAccess_3', []) \n"
-      "BHashedOnC (a, aAndC, hash) <= HASHLEFT (AandBJoinedFilteredWithC (cExtracted), AandBJoinedFilteredWithC (a, aAndC), 'JoinComp_3', '==_5', []) \n"
-      "CwithCExtracted (c, cExtracted) <= APPLY (C (c), C (c), 'JoinComp_3', 'self_0', []) \n"
-      "CHashedOnC (c, hash) <= HASHRIGHT (CwithCExtracted (cExtracted), CwithCExtracted (c), 'JoinComp_3', '==_5', []) \n"
-      "\n"
-      "/* join the two of them */ \n"
-      "BandCJoined (a, aAndC, c) <= JOIN (BHashedOnC (hash), BHashedOnC (a, aAndC), CHashedOnC (hash), CHashedOnC (c), 'JoinComp_3', []) \n"
-      "\n"
-      "/* and extract the two atts and check for equality */ \n"
-      "BandCJoinedWithCExtracted (a, aAndC, c, cFromLeft) <= APPLY (BandCJoined (aAndC), BandCJoined (a, aAndC, c), 'JoinComp_3', 'attAccess_3', []) \n"
-      "BandCJoinedWithBoth (a, aAndC, c, cFromLeft, cFromRight) <= APPLY (BandCJoinedWithCExtracted (c), BandCJoinedWithCExtracted (a, aAndC, c, cFromLeft), 'JoinComp_3', 'self_4', []) \n"
-      "BandCJoinedWithBool (a, aAndC, c, bool) <= APPLY (BandCJoinedWithBoth (cFromLeft, cFromRight), BandCJoinedWithBoth (a, aAndC, c), 'JoinComp_3', '==_5', []) \n"
-      "last (a, aAndC, c) <= FILTER (BandCJoinedWithBool (bool), BandCJoinedWithBool (a, aAndC, c), 'JoinComp_3', []) \n"
-      "\n"
-      "/* and here is the answer */ \n"
-      "almostFinal (result) <= APPLY (last (a, aAndC, c), last (), 'JoinComp_3', 'native_lambda_7', []) \n"
-      "nothing () <= OUTPUT (almostFinal (result), 'outSet', 'myDB', 'SetWriter_4', [])";
+  // the TCAP we are about to run
+  String tcap = "inputDataForSetScanner_0(in0) <= SCAN ('test78_db', 'test78_set1', 'SetScanner_0')\n"
+                "inputDataForSetScanner_1(in1) <= SCAN ('test78_db', 'test78_set2', 'SetScanner_1')\n"
+                "\n"
+                "/* Apply selection filtering */\n"
+                "nativ_0OutForSelectionComp2(in1,nativ_0_2OutFor) <= APPLY (inputDataForSetScanner_1(in1), inputDataForSetScanner_1(in1), 'SelectionComp_2', 'native_lambda_0', [('lambdaType', 'native_lambda')])\n"
+                "filteredInputForSelectionComp2(in1) <= FILTER (nativ_0OutForSelectionComp2(nativ_0_2OutFor), nativ_0OutForSelectionComp2(in1), 'SelectionComp_2')\n"
+                "\n"
+                "/* Apply selection projection */\n"
+                "attAccess_1OutForSelectionComp2(in1,att_1OutFor_myString) <= APPLY (filteredInputForSelectionComp2(in1), filteredInputForSelectionComp2(in1), 'SelectionComp_2', 'attAccess_1', [('attName', 'myString'), ('attTypeName', 'pdb::Handle&lt;pdb::String&gt;'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
+                "deref_2OutForSelectionComp2 (att_1OutFor_myString) <= APPLY (attAccess_1OutForSelectionComp2(att_1OutFor_myString), attAccess_1OutForSelectionComp2(), 'SelectionComp_2', 'deref_2')\n"
+                "self_0ExtractedJoinComp3(in0,self_0_3Extracted) <= APPLY (inputDataForSetScanner_0(in0), inputDataForSetScanner_0(in0), 'JoinComp_3', 'self_0', [('lambdaType', 'self')])\n"
+                "self_0ExtractedJoinComp3_hashed(in0,self_0_3Extracted_hash) <= HASHLEFT (self_0ExtractedJoinComp3(self_0_3Extracted), self_0ExtractedJoinComp3(in0), 'JoinComp_3', '==_2', [])\n"
+                "attAccess_1ExtractedForJoinComp3(in1,att_1ExtractedFor_myInt) <= APPLY (inputDataForSetScanner_1(in1), inputDataForSetScanner_1(in1), 'JoinComp_3', 'attAccess_1', [('attName', 'myInt'), ('attTypeName', 'int'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
+                "attAccess_1ExtractedForJoinComp3_hashed(in1,att_1ExtractedFor_myInt_hash) <= HASHRIGHT (attAccess_1ExtractedForJoinComp3(att_1ExtractedFor_myInt), attAccess_1ExtractedForJoinComp3(in1), 'JoinComp_3', '==_2', [])\n"
+                "\n"
+                "/* Join ( in0 ) and ( in1 ) */\n"
+                "JoinedFor_equals2JoinComp3(in0, in1) <= JOIN (self_0ExtractedJoinComp3_hashed(self_0_3Extracted_hash), self_0ExtractedJoinComp3_hashed(in0), attAccess_1ExtractedForJoinComp3_hashed(att_1ExtractedFor_myInt_hash), attAccess_1ExtractedForJoinComp3_hashed(in1), 'JoinComp_3')\n"
+                "JoinedFor_equals2JoinComp3_WithLHSExtracted(in0,in1,LHSExtractedFor_2_3) <= APPLY (JoinedFor_equals2JoinComp3(in0), JoinedFor_equals2JoinComp3(in0,in1), 'JoinComp_3', 'self_0', [('lambdaType', 'self')])\n"
+                "JoinedFor_equals2JoinComp3_WithBOTHExtracted(in0,in1,LHSExtractedFor_2_3,RHSExtractedFor_2_3) <= APPLY (JoinedFor_equals2JoinComp3_WithLHSExtracted(in1), JoinedFor_equals2JoinComp3_WithLHSExtracted(in0,in1,LHSExtractedFor_2_3), 'JoinComp_3', 'attAccess_1', [('attName', 'myInt'), ('attTypeName', 'int'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
+                "JoinedFor_equals2JoinComp3_BOOL(in0,in1,bool_2_3) <= APPLY (JoinedFor_equals2JoinComp3_WithBOTHExtracted(LHSExtractedFor_2_3,RHSExtractedFor_2_3), JoinedFor_equals2JoinComp3_WithBOTHExtracted(in0,in1), 'JoinComp_3', '==_2', [('lambdaType', '==')])\n"
+                "JoinedFor_equals2JoinComp3_FILTERED(in0, in1) <= FILTER (JoinedFor_equals2JoinComp3_BOOL(bool_2_3), JoinedFor_equals2JoinComp3_BOOL(in0, in1), 'JoinComp_3')\n"
+                "attAccess_3ExtractedForJoinComp3(in0,in1,att_3ExtractedFor_myString) <= APPLY (JoinedFor_equals2JoinComp3_FILTERED(in1), JoinedFor_equals2JoinComp3_FILTERED(in0,in1), 'JoinComp_3', 'attAccess_3', [('attName', 'myString'), ('attTypeName', 'pdb::Handle&lt;pdb::String&gt;'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
+                "attAccess_3ExtractedForJoinComp3_hashed(in0,in1,att_3ExtractedFor_myString_hash) <= HASHLEFT (attAccess_3ExtractedForJoinComp3(att_3ExtractedFor_myString), attAccess_3ExtractedForJoinComp3(in0,in1), 'JoinComp_3', '==_5', [])\n"
+                "self_4ExtractedJoinComp3(att_1OutFor_myString,self_4_3Extracted) <= APPLY (deref_2OutForSelectionComp2(att_1OutFor_myString), deref_2OutForSelectionComp2(att_1OutFor_myString), 'JoinComp_3', 'self_4', [('lambdaType', 'self')])\n"
+                "self_4ExtractedJoinComp3_hashed(att_1OutFor_myString,self_4_3Extracted_hash) <= HASHRIGHT (self_4ExtractedJoinComp3(self_4_3Extracted), self_4ExtractedJoinComp3(att_1OutFor_myString), 'JoinComp_3', '==_5', [])\n"
+                "\n"
+                "/* Join ( in0 in1 ) and ( att_1OutFor_myString ) */\n"
+                "JoinedFor_equals5JoinComp3(in0, in1, att_1OutFor_myString) <= JOIN (attAccess_3ExtractedForJoinComp3_hashed(att_3ExtractedFor_myString_hash), attAccess_3ExtractedForJoinComp3_hashed(in0, in1), self_4ExtractedJoinComp3_hashed(self_4_3Extracted_hash), self_4ExtractedJoinComp3_hashed(att_1OutFor_myString), 'JoinComp_3')\n"
+                "JoinedFor_equals5JoinComp3_WithLHSExtracted(in0,in1,att_1OutFor_myString,LHSExtractedFor_5_3) <= APPLY (JoinedFor_equals5JoinComp3(in1), JoinedFor_equals5JoinComp3(in0,in1,att_1OutFor_myString), 'JoinComp_3', 'attAccess_3', [('attName', 'myString'), ('attTypeName', 'pdb::Handle&lt;pdb::String&gt;'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
+                "JoinedFor_equals5JoinComp3_WithBOTHExtracted(in0,in1,att_1OutFor_myString,LHSExtractedFor_5_3,RHSExtractedFor_5_3) <= APPLY (JoinedFor_equals5JoinComp3_WithLHSExtracted(att_1OutFor_myString), JoinedFor_equals5JoinComp3_WithLHSExtracted(in0,in1,att_1OutFor_myString,LHSExtractedFor_5_3), 'JoinComp_3', 'self_4', [('lambdaType', 'self')])\n"
+                "JoinedFor_equals5JoinComp3_BOOL(in0,in1,att_1OutFor_myString,bool_5_3) <= APPLY (JoinedFor_equals5JoinComp3_WithBOTHExtracted(LHSExtractedFor_5_3,RHSExtractedFor_5_3), JoinedFor_equals5JoinComp3_WithBOTHExtracted(in0,in1,att_1OutFor_myString), 'JoinComp_3', '==_5', [('lambdaType', '==')])\n"
+                "JoinedFor_equals5JoinComp3_FILTERED(in0, in1, att_1OutFor_myString) <= FILTER (JoinedFor_equals5JoinComp3_BOOL(bool_5_3), JoinedFor_equals5JoinComp3_BOOL(in0, in1, att_1OutFor_myString), 'JoinComp_3')\n"
+                "\n"
+                "/* run Join projection on ( in0 )*/\n"
+                "nativ_7OutForJoinComp3 (nativ_7_3OutFor) <= APPLY (JoinedFor_equals5JoinComp3_FILTERED(in0), JoinedFor_equals5JoinComp3_FILTERED(), 'JoinComp_3', 'native_lambda_7', [('lambdaType', 'native_lambda')])\n"
+                "\n"
+                "/* Extract key for aggregation */\n"
+                "nativ_0OutForAggregationComp4(nativ_7_3OutFor,nativ_0_4OutFor) <= APPLY (nativ_7OutForJoinComp3(nativ_7_3OutFor), nativ_7OutForJoinComp3(nativ_7_3OutFor), 'AggregationComp_4', 'native_lambda_0', [('lambdaType', 'native_lambda')])\n"
+                "\n"
+                "/* Extract value for aggregation */\n"
+                "nativ_1OutForAggregationComp4(nativ_0_4OutFor,nativ_1_4OutFor) <= APPLY (nativ_0OutForAggregationComp4(nativ_7_3OutFor), nativ_0OutForAggregationComp4(nativ_0_4OutFor), 'AggregationComp_4', 'native_lambda_1', [('lambdaType', 'native_lambda')])\n"
+                "\n"
+                "/* Apply aggregation */\n"
+                "aggOutForAggregationComp4 (aggOutFor4)<= AGGREGATE (nativ_1OutForAggregationComp4(nativ_0_4OutFor, nativ_1_4OutFor),'AggregationComp_4')\n"
+                "aggOutForAggregationComp4_out( ) <= OUTPUT ( aggOutForAggregationComp4 ( aggOutFor4 ), 'test78_db', 'output_set1', 'SetWriter_5')";
+
 
   // make a logger
   auto logger = make_shared<pdb::PDBLogger>("log.out");
@@ -816,20 +840,18 @@ TEST(TestPhysicalOptimizer, TestJoin4) {
                  testing::An<const std::string &>(),
                  testing::An<std::string &>())).WillByDefault(testing::Invoke(
       [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
-        if (setName == "mySetA") {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetA",
-                                                          "myData",
+
+        if (setName == "test78_set1") {
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("test78_db",
+                                                          "test78_set1",
                                                           "Nothing",
                                                           std::numeric_limits<size_t>::max() - 1);
           return tmp;
-        } else if (setName == "mySetC") {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetC",
-                                                          "myData",
+        } else {
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("test78_db",
+                                                          "test78_set2",
                                                           "Nothing",
                                                           std::numeric_limits<size_t>::max() - 2);
-          return tmp;
-        } else {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetB", "myData", "Nothing", std::numeric_limits<size_t>::max());
           return tmp;
         }
       }));
@@ -837,10 +859,181 @@ TEST(TestPhysicalOptimizer, TestJoin4) {
   EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(3));
 
   // init the optimizer
-  pdb::PDBPhysicalOptimizer optimizer(compID, tcapString, catalogClient, logger);
+  pdb::PDBPhysicalOptimizer optimizer(compID, tcap, catalogClient, logger);
 
+  /// 1. First algorithm
 
-  /// TODO finish this
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+
+  Handle<pdb::PDBShuffleForJoinAlgorithm> shuffleSet2FirstJoin = unsafeCast<pdb::PDBShuffleForJoinAlgorithm>(optimizer.getNextAlgorithm());
+
+  // check the source
+  EXPECT_EQ(shuffleSet2FirstJoin->source->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) shuffleSet2FirstJoin->firstTupleSet, std::string("inputDataForSetScanner_1"));
+  EXPECT_EQ((std::string) shuffleSet2FirstJoin->source->pageSetIdentifier.second, std::string("inputDataForSetScanner_1"));
+  EXPECT_EQ(shuffleSet2FirstJoin->source->pageSetIdentifier.first, compID);
+
+  // check the intermediate set
+  EXPECT_EQ(shuffleSet2FirstJoin->intermediate->sinkType, JoinShuffleIntermediateSink);
+  EXPECT_EQ((std::string) shuffleSet2FirstJoin->intermediate->pageSetIdentifier.second, "attAccess_1ExtractedForJoinComp3_hashed_to_shuffle");
+  EXPECT_EQ(shuffleSet2FirstJoin->intermediate->pageSetIdentifier.first, compID);
+
+  // check the sink
+  EXPECT_EQ(shuffleSet2FirstJoin->sink->sinkType, JoinShuffleSink);
+  EXPECT_EQ((std::string) shuffleSet2FirstJoin->finalTupleSet, "attAccess_1ExtractedForJoinComp3_hashed");
+  EXPECT_EQ((std::string) shuffleSet2FirstJoin->sink->pageSetIdentifier.second, "attAccess_1ExtractedForJoinComp3_hashed");
+  EXPECT_EQ(shuffleSet2FirstJoin->sink->pageSetIdentifier.first, compID);
+
+  // get the page sets we want to remove
+  auto pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "attAccess_1ExtractedForJoinComp3_hashed_to_shuffle")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 1);
+
+  /// 2. Second algorithm
+
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+
+  Handle<pdb::PDBShuffleForJoinAlgorithm> shuffleSet2SecondJoin = unsafeCast<pdb::PDBShuffleForJoinAlgorithm>(optimizer.getNextAlgorithm());
+
+  // check the source
+  EXPECT_EQ(shuffleSet2SecondJoin->source->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) shuffleSet2SecondJoin->firstTupleSet, std::string("inputDataForSetScanner_1"));
+  EXPECT_EQ((std::string) shuffleSet2SecondJoin->source->pageSetIdentifier.second, std::string("inputDataForSetScanner_1"));
+  EXPECT_EQ(shuffleSet2SecondJoin->source->pageSetIdentifier.first, compID);
+
+  // check the intermediate set
+  EXPECT_EQ(shuffleSet2SecondJoin->intermediate->sinkType, JoinShuffleIntermediateSink);
+  EXPECT_EQ((std::string) shuffleSet2SecondJoin->intermediate->pageSetIdentifier.second, "self_4ExtractedJoinComp3_hashed_to_shuffle");
+  EXPECT_EQ(shuffleSet2SecondJoin->intermediate->pageSetIdentifier.first, compID);
+
+  // check the sink
+  EXPECT_EQ(shuffleSet2SecondJoin->sink->sinkType, JoinShuffleSink);
+  EXPECT_EQ((std::string) shuffleSet2SecondJoin->finalTupleSet, "self_4ExtractedJoinComp3_hashed");
+  EXPECT_EQ((std::string) shuffleSet2SecondJoin->sink->pageSetIdentifier.second, "self_4ExtractedJoinComp3_hashed");
+  EXPECT_EQ(shuffleSet2SecondJoin->sink->pageSetIdentifier.first, compID);
+
+  // get the page sets we want to remove
+  pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "self_4ExtractedJoinComp3_hashed_to_shuffle")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 1);
+
+  /// 3. Third algorithm
+
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+
+  Handle<pdb::PDBShuffleForJoinAlgorithm> shuffleSet1 = unsafeCast<pdb::PDBShuffleForJoinAlgorithm>(optimizer.getNextAlgorithm());
+
+  // check the source
+  EXPECT_EQ(shuffleSet1->source->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) shuffleSet1->firstTupleSet, std::string("inputDataForSetScanner_0"));
+  EXPECT_EQ((std::string) shuffleSet1->source->pageSetIdentifier.second, std::string("inputDataForSetScanner_0"));
+  EXPECT_EQ(shuffleSet1->source->pageSetIdentifier.first, compID);
+
+  // check the intermediate set
+  EXPECT_EQ(shuffleSet1->intermediate->sinkType, JoinShuffleIntermediateSink);
+  EXPECT_EQ((std::string) shuffleSet1->intermediate->pageSetIdentifier.second, "self_0ExtractedJoinComp3_hashed_to_shuffle");
+  EXPECT_EQ(shuffleSet1->intermediate->pageSetIdentifier.first, compID);
+
+  // check the sink
+  EXPECT_EQ(shuffleSet1->sink->sinkType, JoinShuffleSink);
+  EXPECT_EQ((std::string) shuffleSet1->finalTupleSet, "self_0ExtractedJoinComp3_hashed");
+  EXPECT_EQ((std::string) shuffleSet1->sink->pageSetIdentifier.second, "self_0ExtractedJoinComp3_hashed");
+  EXPECT_EQ(shuffleSet1->sink->pageSetIdentifier.first, compID);
+
+  // get the page sets we want to remove
+  pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "self_0ExtractedJoinComp3_hashed_to_shuffle")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 1);
+
+  /// 4. Fourth algorithm
+
+  // update the stats on the page sets
+  optimizer.updatePageSet(std::make_pair(compID, "attAccess_1ExtractedForJoinComp3_hashed"), 10);
+  optimizer.updatePageSet(std::make_pair(compID, "self_0ExtractedJoinComp3_hashed"), 11);
+
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+
+  // get the algorithm
+  Handle<pdb::PDBShuffleForJoinAlgorithm> doJoin = unsafeCast<pdb::PDBShuffleForJoinAlgorithm>(optimizer.getNextAlgorithm());
+
+  // check the source
+  EXPECT_EQ(doJoin->source->sourceType, ShuffledJoinTuplesSource);
+  EXPECT_EQ((std::string) doJoin->firstTupleSet, "JoinedFor_equals2JoinComp3");
+  EXPECT_EQ((std::string) doJoin->source->pageSetIdentifier.second, "attAccess_1ExtractedForJoinComp3_hashed");
+  EXPECT_EQ(doJoin->source->pageSetIdentifier.first, compID);
+
+  // check the intermediate set
+  EXPECT_EQ(doJoin->intermediate->sinkType, JoinShuffleIntermediateSink);
+  EXPECT_EQ((std::string) doJoin->intermediate->pageSetIdentifier.second, "attAccess_3ExtractedForJoinComp3_hashed_to_shuffle");
+  EXPECT_EQ(doJoin->intermediate->pageSetIdentifier.first, compID);
+
+  // check the sink
+  EXPECT_EQ(doJoin->sink->sinkType, JoinShuffleSink);
+  EXPECT_EQ((std::string) doJoin->finalTupleSet, "attAccess_3ExtractedForJoinComp3_hashed");
+  EXPECT_EQ((std::string) doJoin->sink->pageSetIdentifier.second, "attAccess_3ExtractedForJoinComp3_hashed");
+  EXPECT_EQ(doJoin->sink->pageSetIdentifier.first, compID);
+
+  // get the page sets we want to remove
+  pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "attAccess_1ExtractedForJoinComp3_hashed")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "self_0ExtractedJoinComp3_hashed")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "attAccess_1ExtractedForJoinComp3_hashed")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 3);
+
+  // check how many secondary sources we have
+  pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>> &additionalSources = *doJoin->secondarySources;
+
+  // we should have only one
+  EXPECT_EQ(additionalSources.size(), 1);
+
+  // check it
+  EXPECT_EQ(additionalSources[0]->sourceType, ShuffledJoinTuplesSource);
+  EXPECT_EQ(additionalSources[0]->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string) additionalSources[0]->pageSetIdentifier.second, "self_0ExtractedJoinComp3_hashed");
+
+  /// 5. Fourth algorithm
+
+  // update the stats on the page sets
+  optimizer.updatePageSet(std::make_pair(compID, "self_4ExtractedJoinComp3_hashed"), 10);
+  optimizer.updatePageSet(std::make_pair(compID, "attAccess_3ExtractedForJoinComp3_hashed"), 11);
+
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+
+  // cast the algorithm
+  Handle<pdb::PDBAggregationPipeAlgorithm> aggAlgorithm = unsafeCast<pdb::PDBAggregationPipeAlgorithm>(optimizer.getNextAlgorithm());
+
+  // check the source
+  EXPECT_EQ(aggAlgorithm->source->sourceType, ShuffledJoinTuplesSource);
+  EXPECT_EQ((std::string) aggAlgorithm->firstTupleSet, std::string("JoinedFor_equals5JoinComp3"));
+  EXPECT_EQ((std::string) aggAlgorithm->source->pageSetIdentifier.second, std::string("self_4ExtractedJoinComp3_hashed"));
+  EXPECT_EQ(aggAlgorithm->source->pageSetIdentifier.first, compID);
+
+  // check the sink that we are
+  EXPECT_EQ(aggAlgorithm->hashedToSend->sinkType, AggShuffleSink);
+  EXPECT_EQ((std::string) aggAlgorithm->hashedToSend->pageSetIdentifier.second, "nativ_1OutForAggregationComp4_hashed_to_send");
+  EXPECT_EQ(aggAlgorithm->hashedToSend->pageSetIdentifier.first, compID);
+
+  // check the source
+  EXPECT_EQ(aggAlgorithm->hashedToRecv->sourceType, ShuffledAggregatesSource);
+  EXPECT_EQ((std::string) aggAlgorithm->hashedToRecv->pageSetIdentifier.second, std::string("nativ_1OutForAggregationComp4_hashed_to_recv"));
+  EXPECT_EQ(aggAlgorithm->hashedToRecv->pageSetIdentifier.first, compID);
+
+  // check the sink
+  EXPECT_EQ(aggAlgorithm->sink->sinkType, AggregationSink);
+  EXPECT_EQ((std::string) aggAlgorithm->finalTupleSet, "nativ_1OutForAggregationComp4");
+  EXPECT_EQ((std::string) aggAlgorithm->sink->pageSetIdentifier.second, "nativ_1OutForAggregationComp4");
+  EXPECT_EQ(aggAlgorithm->sink->pageSetIdentifier.first, compID);
+
+  // get the page sets we want to remove
+  pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "nativ_1OutForAggregationComp4_hashed_to_send")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "nativ_1OutForAggregationComp4_hashed_to_recv")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "self_4ExtractedJoinComp3_hashed")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "attAccess_3ExtractedForJoinComp3_hashed")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 4);
+
+  // we should have another source that reads the aggregation so we can generate another algorithm
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
 }
 
 }

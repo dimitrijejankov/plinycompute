@@ -44,10 +44,11 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
                                                      scanNode->getSetName(),
                                                      std::make_pair(source->pageSetIdentifier.first,
                                                                     source->pageSetIdentifier.second));
+    sourcePageSet->resetPageSet();
   } else {
 
     // we are reading from an existing page set get it
-    sourcePageSet = storage->getPageSet(std::make_pair(job->computationID, firstTupleSet));
+    sourcePageSet = storage->getPageSet(source->pageSetIdentifier);
     sourcePageSet->resetPageSet();
   }
 
@@ -76,7 +77,19 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
 
   // set the parameters
   auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
-  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<PreaggregationPageProcessor>(job->numberOfNodes, job->numberOfProcessingThreads, *pageQueues, myMgr) } };
+
+  // figure out the join arguments
+  auto joinArguments = getJoinArguments (storage);
+
+  // if we could not create them we are out of here
+  if(joinArguments == nullptr) {
+    return false;
+  }
+
+  // initialize the parameters
+  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<PreaggregationPageProcessor>(job->numberOfNodes, job->numberOfProcessingThreads, *pageQueues, myMgr) },
+                                                       { ComputeInfoType::JOIN_ARGS, joinArguments },
+                                                       { ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS) }};
 
   // fill uo the vector for each thread
   preaggregationPipelines = std::make_shared<std::vector<PipelinePtr>>();

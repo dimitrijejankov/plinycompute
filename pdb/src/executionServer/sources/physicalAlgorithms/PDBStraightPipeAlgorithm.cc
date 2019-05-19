@@ -41,11 +41,12 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
     sourcePageSet = storage->createPageSetFromPDBSet(scanNode->getDBName(),
                                                      scanNode->getSetName(),
                                                      std::make_pair(source->pageSetIdentifier.first, source->pageSetIdentifier.second));
+    sourcePageSet->resetPageSet();
   }
   else {
 
     // we are reading from an existing page set get it
-    sourcePageSet = storage->getPageSet(std::make_pair(source->pageSetIdentifier.first, source->pageSetIdentifier.second));
+    sourcePageSet = storage->getPageSet(source->pageSetIdentifier);
     sourcePageSet->resetPageSet();
   }
 
@@ -85,27 +86,18 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
   // get the number of worker threads from this server's config
   int32_t numWorkers = storage->getConfiguration()->numThreads;
 
-  // go through each of the additional sources and add them to the join arguments
-  auto joinArguments = std::make_shared<JoinArguments>();
-  for(int i = 0; i < this->secondarySources->size(); ++i) {
+  // figure out the join arguments
+  auto joinArguments = getJoinArguments (storage);
 
-    // grab the source identifier and with it the page set of the additional source
-    auto &sourceIdentifier = *(*this->secondarySources)[i];
-    auto additionalSource = storage->getPageSet(std::make_pair(sourceIdentifier.pageSetIdentifier.first, sourceIdentifier.pageSetIdentifier.second));
-
-    // do we have have a page set for that
-    if(additionalSource == nullptr) {
-      return false;
-    }
-
-    // insert the join argument
-    joinArguments->hashTables[sourceIdentifier.pageSetIdentifier.second] = std::make_shared<JoinArg>(additionalSource);
+  // if we could not create them we are out of here
+  if(joinArguments == nullptr) {
+    return false;
   }
 
   // empty computations parameters
   std::map<ComputeInfoType, ComputeInfoPtr> params =  {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<NullProcessor>()},
                                                        {ComputeInfoType::JOIN_ARGS, joinArguments},
-                                                       {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(true)}};
+                                                       {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)}};
 
 
   // build a pipeline for each worker thread

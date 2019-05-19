@@ -12,7 +12,7 @@ PDBPipelineType pdb::PDBStraightPhysicalNode::getType() {
 
 pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generatePipelinedAlgorithm(const std::string &startTupleSet,
                                                                                 const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                                sourceCosts &sourcesWithIDs,
+                                                                                PDBPageSetCosts &sourcesWithIDs,
                                                                                 pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
                                                                                 bool shouldSwapLeftAndRight) {
 
@@ -23,7 +23,7 @@ pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generatePipelinedAlgorithm(
 
 pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const std::string &startTupleSet,
                                                                        const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                       sourceCosts &sourcesWithIDs,
+                                                                       PDBPageSetCosts &sourcesWithIDs,
                                                                        pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
                                                                        bool shouldSwapLeftAndRight) {
 

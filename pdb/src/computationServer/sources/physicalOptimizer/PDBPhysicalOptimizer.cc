@@ -18,15 +18,15 @@ pdb::Handle<pdb::PDBPhysicalAlgorithm> PDBPhysicalOptimizer::getNextAlgorithm() 
   auto source = *sources.begin();
 
   // runs the algorithm generation part
-  auto result = source.second->generateAlgorithm(sourcesWithIDs);
+  auto result = source.second->generateAlgorithm(pageSetCosts);
 
-  // remove the source we just used
+  // remove the source we just used, and add it to the list of processed sources
   sources.erase(sources.begin());
+  processedSources.push_back(source);
 
   // go through each consumer of the output of this algorithm and add it to the sources
   for(const auto &sourceNode : result.newSourceNodes) {
     sources.insert(std::make_pair(0, sourceNode));
-    sourcesWithIDs[sourceNode->getSourcePageSet(sourcesWithIDs)->pageSetIdentifier] = std::make_pair(0, sourceNode);
   }
 
   // add the new page sets
@@ -34,6 +34,7 @@ pdb::Handle<pdb::PDBPhysicalAlgorithm> PDBPhysicalOptimizer::getNextAlgorithm() 
 
     // insert the page set with the specified number of consumers
     activePageSets[pageSet.first] += pageSet.second;
+    pageSetCosts[pageSet.first] = 0;
   }
 
   // deallocate the old ones
@@ -66,11 +67,16 @@ bool PDBPhysicalOptimizer::hasAlgorithmToRun() {
   return !sources.empty();
 }
 
-void PDBPhysicalOptimizer::updateStats() {
-
+void PDBPhysicalOptimizer::updatePageSet(const PDBPageSetIdentifier &identifier, size_t size) {
+  pageSetCosts[identifier] = size;
 }
 
 std::vector<PDBPageSetIdentifier> PDBPhysicalOptimizer::getPageSetsToRemove() {
+
+  // set the sizes of all the removed sets to 0
+  for (const auto &i : pageSetsToRemove) {
+    pageSetCosts[i] = 0;
+  }
 
   // empty out the page set
   auto tmp = std::move(pageSetsToRemove);

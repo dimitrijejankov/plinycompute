@@ -1,6 +1,7 @@
 //
 // Created by dimitrije on 3/26/19.
 //
+#include "EqualsLambda.h"
 #include "ComputeSink.h"
 #include "TupleSetMachine.h"
 #include "TupleSet.h"

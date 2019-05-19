@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "SillyReadOfA.h"
+#include "ReadInt.h"
 #include "ReadStringIntPair.h"
 #include "SillyJoinIntString.h"
 #include "SillyWriteIntString.h"
@@ -243,7 +243,7 @@ TEST(PipelineTest, TestShuffleJoinSingleReversed) {
   Vector <Handle <Computation>> myComputations;
 
   // create all of the computation objects
-  Handle <Computation> readA = makeObject <SillyReadOfA>();
+  Handle <Computation> readA = makeObject <ReadInt>();
   Handle <Computation> readB = makeObject <ReadStringIntPair>();
   Handle <Computation> join = makeObject <SillyJoinIntString>();
   Handle <Computation> write = makeObject <SillyWriteIntString>();

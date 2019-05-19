@@ -195,11 +195,12 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
     sourcePageSet = storage->createPageSetFromPDBSet(scanNode->getDBName(),
                                                      scanNode->getSetName(),
                                                      std::make_pair(source->pageSetIdentifier.first, source->pageSetIdentifier.second));
+    sourcePageSet->resetPageSet();
   }
   else {
 
     // we are reading from an existing page set get it
-    sourcePageSet = storage->getPageSet(std::make_pair(source->pageSetIdentifier.first, source->pageSetIdentifier.second));
+    sourcePageSet = storage->getPageSet(source->pageSetIdentifier);
     sourcePageSet->resetPageSet();
   }
 
@@ -223,15 +224,24 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
   pageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
   for(int i = 0; i < job->numberOfNodes; ++i) { pageQueues->emplace_back(std::make_shared<PDBPageQueue>()); }
 
-  // set the parameters
-  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
-  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR, plan.getProcessorForJoin(finalTupleSet,
-                                                                                                                   job->numberOfNodes,
-                                                                                                                   job->numberOfProcessingThreads,
-                                                                                                                   *pageQueues,
-                                                                                                                   myMgr)} };
+  /// 4. Set the parameters
 
-  /// 4. Create the page set that contains the shuffled join side pages for this node
+  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
+
+  // figure out the join arguments
+  auto joinArguments = getJoinArguments (storage);
+
+  // if we could not create them we are out of here
+  if(joinArguments == nullptr) {
+    return false;
+  }
+
+  // empty computations parameters
+  std::map<ComputeInfoType, ComputeInfoPtr> params =  {{ComputeInfoType::PAGE_PROCESSOR, plan.getProcessorForJoin(finalTupleSet, job->numberOfNodes, job->numberOfProcessingThreads, *pageQueues, myMgr)},
+                                                       {ComputeInfoType::JOIN_ARGS, joinArguments},
+                                                       {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)}};
+
+  /// 5. Create the page set that contains the shuffled join side pages for this node
 
   // get the receive page set
   auto recvPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(sink->pageSetIdentifier.first, sink->pageSetIdentifier.second),
@@ -243,7 +253,7 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
     return false;
   }
 
-  /// 5. Create the self receiver to forward pages that are created on this node and the network senders to forward pages for the other nodes
+  /// 6. Create the self receiver to forward pages that are created on this node and the network senders to forward pages for the other nodes
 
   senders = std::make_shared<std::vector<PDBPageNetworkSenderPtr>>();
   for(unsigned i = 0; i < job->nodes.size(); ++i) {
@@ -276,7 +286,7 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
     }
   }
 
-  /// 6. Create the join pipeline
+  /// 7. Create the join pipeline
 
   joinShufflePipelines = std::make_shared<std::vector<PipelinePtr>>();
   for (uint64_t workerID = 0; workerID < job->numberOfProcessingThreads; ++workerID) {

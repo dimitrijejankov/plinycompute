@@ -1,3 +1,7 @@
+#include <utility>
+
+#include <utility>
+
 /*****************************************************************************
  *                                                                           *
  *  Copyright 2018 Rice University                                           *
@@ -15,38 +19,35 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
+#pragma once
 
-#ifndef DOUBLE_SUM_RESULT_H
-#define DOUBLE_SUM_RESULT_H
+#include "AggregateComp.h"
+#include "LambdaCreationFunctions.h"
+#include "SumResult.h"
 
+using namespace pdb;
 
-#include "Object.h"
-
-// PRELOAD %DoubleSumResult%
-
-namespace pdb {
-
-class DoubleSumResult : public Object {
-
+class IntAggregation : public AggregateComp<SumResult, int, int, int> {
 public:
-    double total;
-    int identifier;
 
-    ENABLE_DEEP_COPY
+  ENABLE_DEEP_COPY
 
-    double getTotal() {
-        return total;
-    }
+  IntAggregation() = default;
 
-    int& getKey() {
-        return identifier;
-    }
+  // the below constructor is NOT REQUIRED
+  // user can also set output later by invoking the setOutput (std :: string dbName, std :: string
+  // setName)  method
+  IntAggregation(std::string dbName, std::string setName) {
+    this->setOutput(std::move(dbName), std::move(setName));
+  }
 
-    double& getValue() {
-        return total;
-    }
+  // the key type must have == and size_t hash () defined
+  Lambda<int> getKeyProjection(Handle<int> aggMe) override {
+    return makeLambda(aggMe, [](Handle<int>& aggMe) { return 0; });
+  }
+
+  // the value type must have + defined
+  Lambda<int> getValueProjection(Handle<int> aggMe) override {
+    return makeLambda(aggMe, [](Handle<int>& aggMe) { return 1; });
+  }
 };
-}
-
-
-#endif

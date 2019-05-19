@@ -12,6 +12,7 @@
 #include <PDBSourcePageSetSpec.h>
 #include <PDBSinkPageSetSpec.h>
 #include <PDBVector.h>
+#include <JoinArguments.h>
 #include <gtest/gtest_prod.h>
 
 namespace pdb {
@@ -70,6 +71,14 @@ public:
 protected:
 
   /**
+   * Returns the additional sources as join arguments, if we can not find a page set that is specified in the additional sources
+   * this method will return null
+   * @param storage - Storage manager backend
+   * @return the arguments if we can create them, null_ptr otherwise
+   */
+  std::shared_ptr<JoinArguments> getJoinArguments(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage);
+
+  /**
    * The source the algorithm should setup
    */
   pdb::Handle<PDBSourcePageSetSpec> source;
@@ -104,6 +113,7 @@ protected:
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin1);
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin2);
   FRIEND_TEST(TestPhysicalOptimizer, TestMultiSink);
+  FRIEND_TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin);
 };
 
 }

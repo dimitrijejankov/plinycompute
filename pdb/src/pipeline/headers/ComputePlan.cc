@@ -250,7 +250,7 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
       // do we have the appropriate join arguments? if not throw an exception
       auto it = joinArgs->hashTables.find(rightAtomicComp->getOutput().getSetName());
       if(it == joinArgs->hashTables.end()) {
-        throw runtime_error("Hash table for the output set," + rightAtomicComp->getOutput().getSetName() +  "not found!");
+        throw runtime_error("Hash table for the output set," + rightAtomicComp->getOutput().getSetName() +  " not found!");
       }
 
       // init the RHS source

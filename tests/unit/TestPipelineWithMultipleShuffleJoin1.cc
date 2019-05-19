@@ -39,7 +39,7 @@
 #include <processors/ShuffleJoinProcessor.h>
 
 #include "SillyJoin.h"
-#include "SillyReadOfA.h"
+#include "ReadInt.h"
 #include "ReadStringIntPair.h"
 #include "SillyReadOfC.h"
 #include "SillyWrite.h"
@@ -71,7 +71,7 @@ PDBPageHandle getSetAPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr) 
           data->push_back(myInt);
         }
       } catch (NotEnoughSpace &e) {
-        std::cout << "got to " << i << " when proucing data for SillyReadOfA.\n";
+        std::cout << "got to " << i << " when proucing data for ReadInt.\n";
         getRecord(data);
       }
     }
@@ -402,7 +402,7 @@ TEST(PipelineTest, TestShuffleJoin) {
   Vector <Handle <Computation>> myComputations;
 
   // create all of the computation objects
-  Handle <Computation> readA = makeObject <SillyReadOfA> ();
+  Handle <Computation> readA = makeObject <ReadInt> ();
   Handle <Computation> readB = makeObject <ReadStringIntPair> ();
   Handle <Computation> readC = makeObject <SillyReadOfC> ();
   Handle <Computation> myJoin = makeObject <SillyJoin> ();

@@ -15,7 +15,7 @@ PDBPipelineType pdb::PDBJoinPhysicalNode::getType() {
 
 pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generatePipelinedAlgorithm(const std::string &startTupleSet,
                                                                             const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                            sourceCosts &sourcesWithIDs,
+                                                                            PDBPageSetCosts &sourcesWithIDs,
                                                                             pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
                                                                             bool shouldSwapLeftAndRight) {
   // generate the algorithm
@@ -24,7 +24,7 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generatePipelinedAlgorithm(cons
 
 pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::string &startTupleSet,
                                                                    const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                   sourceCosts &sourcesWithIDs,
+                                                                   PDBPageSetCosts &sourcesWithIDs,
                                                                    pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
                                                                    bool shouldSwapLeftAndRight) {
   // check if the node is not processed
@@ -57,7 +57,7 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
 
   // check if we can broadcast this side (the other side is not shuffled and this side is small enough)
   auto it = sourcesWithIDs.find(source->pageSetIdentifier);
-  if(it->second.first < SHUFFLE_JOIN_THRASHOLD && otherSidePtr->state == PDBJoinPhysicalNodeNotProcessed) {
+  if(it->second < SHUFFLE_JOIN_THRASHOLD && otherSidePtr->state == PDBJoinPhysicalNodeNotProcessed) {
 
     // set the type of the sink
     sink->sinkType = PDBSinkType::BroadcastJoinSink;

@@ -14,7 +14,7 @@ PDBPipelineType pdb::PDBAggregationPhysicalNode::getType() {
 
 pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const std::string &firstTupleSet,
                                                                      const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                     sourceCosts &sourcesWithIDs,
+                                                                     PDBPageSetCosts &sourcesWithIDs,
                                                                      pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
                                                                      bool shouldSwapLeftAndRight) {
 
@@ -67,7 +67,7 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const std::
 
 pdb::PDBPlanningResult PDBAggregationPhysicalNode::generatePipelinedAlgorithm(const std::string &firstTupleSet,
                                                                               const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                              sourceCosts &sourcesWithIDs,
+                                                                              PDBPageSetCosts &sourcesWithIDs,
                                                                               pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
                                                                               bool shouldSwapLeftAndRight) {
 

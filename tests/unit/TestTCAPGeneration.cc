@@ -16,9 +16,6 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef TEST_62_H
-#define TEST_62_H
-
 #include "PDBDebug.h"
 #include "PDBString.h"
 #include "Lambda.h"
@@ -33,7 +30,7 @@
 #include <EmployeeBuiltInIdentitySelection.h>
 #include <WriteBuiltinEmployeeSet.h>
 #include <ComputePlan.h>
-#include <SillyReadOfA.h>
+#include <ReadInt.h>
 #include <ReadStringIntPair.h>
 #include <SillyJoinIntString.h>
 #include <SillyWriteIntString.h>
@@ -46,6 +43,10 @@
 #include <gtest/gtest.h>
 #include <StringIntPairMultiSelection.h>
 #include <WriteStringIntPair.h>
+#include <StringSelectionOfStringIntPair.h>
+#include <IntSimpleJoin.h>
+#include <IntAggregation.h>
+#include <WriteSumResult.h>
 
 using namespace pdb;
 
@@ -99,7 +100,7 @@ TEST(TestTcapGeneration, Test2) {
   const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
 
   // here is the list of computations
-  Handle <Computation> readA = makeObject <SillyReadOfA>();
+  Handle <Computation> readA = makeObject <ReadInt>();
   Handle <Computation> readB = makeObject <ReadStringIntPair>();
   Handle <Computation> join = makeObject <SillyJoinIntString>();
   join->setInput(0, readA);
@@ -121,6 +122,8 @@ TEST(TestTcapGeneration, Test2) {
 
 TEST(TestTcapGeneration, Test3) {
 
+  const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
+
   Handle <Computation> readStringIntPair = makeObject <ReadStringIntPair>();
   Handle <Computation> multiSelection = makeObject <StringIntPairMultiSelection>();
   multiSelection->setInput(0, readStringIntPair);
@@ -139,4 +142,31 @@ TEST(TestTcapGeneration, Test3) {
   std::cout << tcapString << std::endl;
 }
 
-#endif
+TEST(TestTcapGeneration, Test4) {
+
+  const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
+
+  Handle<Computation> myScanSet1 = makeObject<ReadInt>("test78_db", "test78_set1");
+  Handle<Computation> myScanSet2 = makeObject<ReadStringIntPair>("test78_db", "test78_set2");
+  Handle<Computation> mySelection = makeObject<StringSelectionOfStringIntPair>();
+  mySelection->setInput(myScanSet2);
+  Handle<Computation> myJoin = makeObject<IntSimpleJoin>();
+  myJoin->setInput(0, myScanSet1);
+  myJoin->setInput(1, myScanSet2);
+  myJoin->setInput(2, mySelection);
+  Handle<Computation> myAggregation = makeObject<IntAggregation>();
+  myAggregation->setInput(myJoin);
+  Handle<Computation> myWriter = makeObject<WriteSumResult>("test78_db", "output_set1");
+  myWriter->setInput(myAggregation);
+
+  // the query graph has only the aggregation
+  std::vector<Handle<Computation>> queryGraph = { myWriter };
+
+  // create the graph analyzer
+  pdb::QueryGraphAnalyzer queryAnalyzer(queryGraph);
+
+  // parse the tcap string
+  std::string tcapString = queryAnalyzer.parseTCAPString();
+
+  std::cout << tcapString << std::endl;
+}

@@ -21,13 +21,13 @@ public:
 
   pdb::PDBPlanningResult generateAlgorithm(const std::string &firstTupleSet,
                                              const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                             sourceCosts &sourcesWithIDs,
+                                             PDBPageSetCosts &sourcesWithIDs,
                                              pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
                                              bool shouldSwapLeftAndRight) override;
 
   pdb::PDBPlanningResult generatePipelinedAlgorithm(const std::string &firstTupleSet,
                                                     const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                    sourceCosts &sourcesWithIDs,
+                                                    PDBPageSetCosts &sourcesWithIDs,
                                                     pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
                                                     bool shouldSwapLeftAndRight) override;
 

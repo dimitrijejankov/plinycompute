@@ -70,7 +70,7 @@ public:
   /**
    * Updates the set statistics //TODO this needs to be implemented
    */
-  void updateStats();
+  void updatePageSet(const PDBPageSetIdentifier &identifier, size_t size);
 
   /**
    * Returns the list of all the page sets that are scheduled to remove
@@ -91,10 +91,14 @@ private:
   set<OptimizerSource,  OptimizerSourceComparator> sources;
 
   /**
-   * Basically contains everything in the sources but instead of using it to get the source with the smallest cost,
-   * We are getting the source by the identifier.
+   * All the sources that have been processed
    */
-  sourceCosts sourcesWithIDs;
+  std::vector<OptimizerSource> processedSources;
+
+  /**
+   * These are basically the sizes of the page sets that are relevant to this optimizer
+   */
+  PDBPageSetCosts pageSetCosts;
 
   /**
    * The page sets that are active, and the number of their consumers.

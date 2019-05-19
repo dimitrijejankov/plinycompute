@@ -86,6 +86,7 @@ public:
 
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin2);
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin3);
+  FRIEND_TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin);
 };
 
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utility>
+#include <PDBAbstractPageSet.h>
 #include <ComputeInfo.h>
 
 namespace pdb {
