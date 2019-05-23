@@ -371,7 +371,8 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleMaterializeSe
   uint64_t totalSize = 0;
 
   // start forwarding the pages
-  for(int i = 0; i < request->numPages; ++i) {
+  bool hasNext = true;
+  while (hasNext) {
 
     uint64_t pageNum;
     {
@@ -429,6 +430,9 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleMaterializeSe
 
           // set the freeze size
           freezeSize = result->materializeSize;
+
+          // set the has next
+          hasNext = result->hasNext;
 
           // finish
           return result->success;

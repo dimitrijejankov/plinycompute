@@ -170,14 +170,11 @@ bool pdb::PDBStorageManagerBackend::removePageSet(const std::pair<uint64_t, std:
   return pageSets.erase(pageSetID) == 1;
 }
 
-bool pdb::PDBStorageManagerBackend::materializePageSet(pdb::PDBAbstractPageSetPtr pageSet, const std::pair<std::string, std::string> &set) {
+bool pdb::PDBStorageManagerBackend::materializePageSet(const pdb::PDBAbstractPageSetPtr& pageSet, const std::pair<std::string, std::string> &set) {
 
   // result indicators
   std::string error;
   bool success = true;
-
-  // number of pages that we need to write
-  auto numPages = pageSet->getNumPages();
 
   /// 1. Connect to the frontend
 
@@ -220,7 +217,7 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(pdb::PDBAbstractPageSetPt
   const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
   // set the stat results
-  pdb::Handle<StoMaterializePageSetRequest> materializeRequest = pdb::makeObject<StoMaterializePageSetRequest>(numPages, set.first, set.second);
+  pdb::Handle<StoMaterializePageSetRequest> materializeRequest = pdb::makeObject<StoMaterializePageSetRequest>(set.first, set.second);
 
   // sends result to requester
   success = comm->sendObject(materializeRequest, error);
@@ -273,7 +270,11 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(pdb::PDBAbstractPageSetPt
 
   // go through each page and materialize
   PDBPageHandle page;
-  while ((page = pageSet->getNextPage(0)) != nullptr) {
+  auto numPages = pageSet->getNumPages();
+  for (int i = 0; i < numPages; ++i) {
+
+    // grab the next page
+    page = pageSet->getNextPage(0);
 
     // repin the page
     page->repin();
@@ -304,7 +305,7 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(pdb::PDBAbstractPageSetPt
     const pdb::UseTemporaryAllocationBlock blk{1024};
 
     // make a request to mark that we succeeded
-    pdb::Handle<StoMaterializePageResult> materializeResult = pdb::makeObject<StoMaterializePageResult>(set.first, set.second, pageSize, true);
+    pdb::Handle<StoMaterializePageResult> materializeResult = pdb::makeObject<StoMaterializePageResult>(set.first, set.second, pageSize, true, (i + 1) < numPages);
 
     // sends result to requester
     success = comm->sendObject(materializeResult, error);

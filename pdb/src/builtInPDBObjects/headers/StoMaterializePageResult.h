@@ -34,8 +34,8 @@ public:
   StoMaterializePageResult() = default;
   ~StoMaterializePageResult() = default;
 
-  StoMaterializePageResult(const std::string &db, const std::string &set, size_t materializeSize, bool success) :
-                           materializeSize(materializeSize), databaseName(db), setName(set), success(success) {}
+  StoMaterializePageResult(const std::string &db, const std::string &set, size_t materializeSize, bool success, bool hasNext) :
+                           materializeSize(materializeSize), databaseName(db), setName(set), success(success), hasNext(hasNext) {}
 
   ENABLE_DEEP_COPY
 
@@ -58,6 +58,11 @@ public:
    * Did we succeed in writing the stuff to the page
    */
   bool success = false;
+
+  /**
+   * Do we have a next page or not
+   */
+  bool hasNext = false;
 };
 
 }

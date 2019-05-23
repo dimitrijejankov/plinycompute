@@ -65,7 +65,7 @@ public:
    * @param set - the set we want to materialize to
    * @return true if it succeeds false otherwise
    */
-  bool materializePageSet(PDBAbstractPageSetPtr pageSet, const std::pair<std::string, std::string> &set);
+  bool materializePageSet(const PDBAbstractPageSetPtr& pageSet, const std::pair<std::string, std::string> &set);
 
  private:
 
