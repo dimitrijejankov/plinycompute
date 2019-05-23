@@ -41,12 +41,33 @@ pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const std
   // just store the sink page set for later use by the eventual consumers
   setSinkPageSet(sink);
 
+  // figure out the materializations
+  pdb::Handle<pdb::Vector<PDBSetObject>> setsToMaterialize = pdb::makeObject<pdb::Vector<PDBSetObject>>();
+  if(consumers.empty()) {
+
+    // the last computation has to be a write set!
+    if(pipeline.back()->getAtomicComputationTypeID() == WriteSetTypeID) {
+
+      // cast the node to the output
+      auto writerNode = std::dynamic_pointer_cast<WriteSet>(pipeline.back());
+
+      // add the set of this node to the materialization
+      setsToMaterialize->push_back(PDBSetObject(writerNode->getDBName(), writerNode->getSetName()));
+    }
+    else {
+
+      // throw exception this is not supposed to happen
+      throw runtime_error("TCAP does not end with a write set.");
+    }
+  }
+
   // generate the algorithm
   pdb::Handle<PDBStraightPipeAlgorithm> algorithm = pdb::makeObject<PDBStraightPipeAlgorithm>(startTupleSet,
                                                                                               pipeline.back()->getOutputName(),
                                                                                               source,
                                                                                               sink,
                                                                                               additionalSources,
+                                                                                              setsToMaterialize,
                                                                                               shouldSwapLeftAndRight);
 
   // add all the consumed page sets

@@ -19,8 +19,9 @@ pdb::PDBShuffleForJoinAlgorithm::PDBShuffleForJoinAlgorithm(const std::string &f
                                                             const pdb::Handle<PDBSinkPageSetSpec> &intermediate,
                                                             const pdb::Handle<PDBSinkPageSetSpec> &sink,
                                                             const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                                                            const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
                                                             const bool swapLHSandRHS)
-                                                            : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, swapLHSandRHS),
+                                                            : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, setsToMaterialize, swapLHSandRHS),
                                                               intermediate(intermediate) {
 
 }

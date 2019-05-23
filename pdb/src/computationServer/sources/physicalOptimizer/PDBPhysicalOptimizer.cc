@@ -49,10 +49,10 @@ pdb::Handle<pdb::PDBPhysicalAlgorithm> PDBPhysicalOptimizer::getNextAlgorithm() 
   }
 
   // add the page sets that are due to be removed
-  for(auto it = activePageSets.begin(); it != activePageSets.end(); it++) {
+  for(auto it = activePageSets.begin(); it != activePageSets.end();) {
 
     //  check if we should remove this one
-    auto jt = it;
+    auto jt = it++;
     if(jt->second == 0) {
       pageSetsToRemove.emplace_back(jt->first);
       activePageSets.erase(jt);

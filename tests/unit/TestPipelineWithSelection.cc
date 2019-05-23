@@ -227,6 +227,7 @@ TEST(PipelineTest, TestSelection) {
 
   /// 5. Check the results
 
+  EXPECT_TRUE(!writePages.empty());
   for(auto &page : writePages) {
 
     Handle<Vector<Handle<Employee>>> myHashTable = ((Record<Vector<Handle<Employee>>> *) page.second->getBytes())->getRootObject();

@@ -33,6 +33,7 @@ public:
                               const Handle<PDBSourcePageSetSpec> &hashedToRecv,
                               const Handle<PDBSinkPageSetSpec> &sink,
                               const Handle<Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                              const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
                               bool swapLHSandRHS);
 
   bool setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) override;
@@ -70,7 +71,7 @@ private:
   std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> senders;
 
   /**
-   *
+   * The logger for this algorithm, initialized on setup
    */
   PDBLoggerPtr logger;
 

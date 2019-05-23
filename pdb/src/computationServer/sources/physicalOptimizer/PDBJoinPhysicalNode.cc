@@ -79,6 +79,7 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
                                                                                                         intermediate,
                                                                                                         sink,
                                                                                                         additionalSources,
+                                                                                                        pdb::makeObject<pdb::Vector<PDBSetObject>>(),
                                                                                                         shouldSwapLeftAndRight);
 
     // mark the state of this node as broadcasted
@@ -118,6 +119,7 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
                                                                                                   intermediate,
                                                                                                   sink,
                                                                                                   additionalSources,
+                                                                                                  pdb::makeObject<pdb::Vector<PDBSetObject>>(),
                                                                                                   shouldSwapLeftAndRight);
 
   // mark the state of this node as shuffled

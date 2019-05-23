@@ -1024,6 +1024,11 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   EXPECT_EQ((std::string) aggAlgorithm->sink->pageSetIdentifier.second, "nativ_1OutForAggregationComp4");
   EXPECT_EQ(aggAlgorithm->sink->pageSetIdentifier.first, compID);
 
+  // check the sets we need to materialize
+  EXPECT_EQ(aggAlgorithm->setsToMaterialize->size(), 1);
+  EXPECT_EQ((std::string)(*aggAlgorithm->setsToMaterialize)[0].database, "test78_db");
+  EXPECT_EQ((std::string)(*aggAlgorithm->setsToMaterialize)[0].set, "output_set1");
+
   // get the page sets we want to remove
   pageSetsToRemove = getPageSetsToRemove(optimizer);
   EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "nativ_1OutForAggregationComp4_hashed_to_send")) != pageSetsToRemove.end());
@@ -1033,7 +1038,7 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   EXPECT_EQ(pageSetsToRemove.size(), 4);
 
   // we should have another source that reads the aggregation so we can generate another algorithm
-  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+  EXPECT_FALSE(optimizer.hasAlgorithmToRun());
 }
 
 }

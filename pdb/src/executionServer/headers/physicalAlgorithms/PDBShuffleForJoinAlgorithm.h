@@ -22,6 +22,7 @@ public:
                              const pdb::Handle<pdb::PDBSinkPageSetSpec> &intermediate,
                              const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
                              const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                             const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
                              bool swapLHSandRHS);
 
   ENABLE_DEEP_COPY

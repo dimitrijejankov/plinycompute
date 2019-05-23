@@ -10,8 +10,9 @@ pdb::PDBBroadcastForJoinAlgorithm::PDBBroadcastForJoinAlgorithm(const std::strin
                                                                 const pdb::Handle<pdb::PDBSinkPageSetSpec> &intermediate,
                                                                 const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
                                                                 const pdb::Handle<pdb::Vector<pdb::Handle<pdb::PDBSourcePageSetSpec>>> &secondarySources,
+                                                                const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
                                                                 const bool swapLHSandRHS)
-                                                                : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, swapLHSandRHS),
+                                                                : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, setsToMaterialize, swapLHSandRHS),
                                                                   intermediate(intermediate) {
 
 

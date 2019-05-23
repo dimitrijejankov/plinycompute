@@ -11,6 +11,7 @@
 #include <PDBString.h>
 #include <PDBSourcePageSetSpec.h>
 #include <PDBSinkPageSetSpec.h>
+#include <PDBSetObject.h>
 #include <PDBVector.h>
 #include <JoinArguments.h>
 #include <gtest/gtest_prod.h>
@@ -45,8 +46,9 @@ public:
                        const pdb::Handle<PDBSourcePageSetSpec> &source,
                        const pdb::Handle<PDBSinkPageSetSpec> &sink,
                        const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                       const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
                        bool swapLHSandRHS)
-      : firstTupleSet(firstTupleSet), finalTupleSet(finalTupleSet), source(source), sink(sink), secondarySources(secondarySources), swapLHSandRHS(swapLHSandRHS) {}
+      : firstTupleSet(firstTupleSet), finalTupleSet(finalTupleSet), source(source), sink(sink), secondarySources(secondarySources), setsToMaterialize(setsToMaterialize), swapLHSandRHS(swapLHSandRHS) {}
 
   /**
    * Sets up the whole algorithm
@@ -102,6 +104,11 @@ protected:
    * List of secondary sources like hash sets for join etc.. null if there are no secondary sources
    */
   pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> secondarySources;
+
+  /**
+   * The sets we want to materialize the result of this aggregation to
+   */
+  pdb::Handle<pdb::Vector<PDBSetObject>> setsToMaterialize;
 
   /**
    * Indicates whether the left and the right side are swapped

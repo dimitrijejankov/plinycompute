@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
   /// 1. Register the classes
 
   // now, register a type for user data
-  pdbClient.registerType("libraries/libSillyReadOfA.so");
+  pdbClient.registerType("libraries/libReadInt.so");
   pdbClient.registerType("libraries/libReadStringIntPair.so");
   pdbClient.registerType("libraries/libSillyJoinIntString.so");
   pdbClient.registerType("libraries/libSillyWriteIntString.so");

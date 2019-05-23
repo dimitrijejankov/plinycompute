@@ -10,13 +10,14 @@
 
 pdb::PDBAggregationPipeAlgorithm::PDBAggregationPipeAlgorithm(const std::string &firstTupleSet,
                                                               const std::string &finalTupleSet,
-                                                              const pdb::Handle<pdb::PDBSourcePageSetSpec> &source,
-                                                              const pdb::Handle<pdb::PDBSinkPageSetSpec> &hashedToSend,
-                                                              const pdb::Handle<pdb::PDBSourcePageSetSpec> &hashedToRecv,
-                                                              const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
-                                                              const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
-                                                              const bool swapLHSandRHS)
-    : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, swapLHSandRHS), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {}
+                                                              const Handle<PDBSourcePageSetSpec> &source,
+                                                              const Handle<PDBSinkPageSetSpec> &hashedToSend,
+                                                              const Handle<PDBSourcePageSetSpec> &hashedToRecv,
+                                                              const Handle<PDBSinkPageSetSpec> &sink,
+                                                              const Handle<Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                                                              const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
+                                                              bool swapLHSandRHS)
+    : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, setsToMaterialize, swapLHSandRHS), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {}
 
 bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
 
@@ -357,6 +358,14 @@ bool pdb::PDBAggregationPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManage
   // wait until all the aggregation pipelines have completed
   while (aggCounter < aggregationPipelines->size()) {
     aggBuzzer->wait();
+  }
+
+  /// 6. Should we materialize
+
+  // if we have sets to materialize we do that
+  if(setsToMaterialize->size() != 0) {
+
+
   }
 
   return true;

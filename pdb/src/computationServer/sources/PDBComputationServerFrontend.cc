@@ -283,7 +283,7 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
               job->tcap = request->tcapString;
               job->jobID = jobID++;
               job->physicalAlgorithm = algorithm;
-              job->numberOfProcessingThreads = getConfiguration()->numThreads;
+              job->numberOfProcessingThreads = (uint64_t) getConfiguration()->numThreads;
               job->numberOfNodes = catalogClient->getActiveWorkerNodes().size();
 
               // just set how much we need for the computation object in case somebody embed some data in it

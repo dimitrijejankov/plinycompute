@@ -379,6 +379,10 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
   }
 
   // now we have the list of computations, and so it is time to build the pipeline... start by building a compute sink
+  std::cout << "targetComputationName : " <<  targetComputationName << std::endl;
+  std::cout << "targetSpec : " <<  targetSpec << std::endl;
+  std::cout << "targetAttsToOpOn : " <<  targetAttsToOpOn << std::endl;
+  std::cout << "targetProjection : " <<  targetProjection << std::endl;
   ComputeSinkPtr computeSink = myPlan->getNode(targetComputationName).getComputation().getComputeSink(targetSpec,
                                                                                                       targetAttsToOpOn,
                                                                                                       targetProjection,

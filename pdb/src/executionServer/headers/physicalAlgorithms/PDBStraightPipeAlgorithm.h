@@ -33,6 +33,7 @@ public:
                            const pdb::Handle<PDBSourcePageSetSpec> &source,
                            const pdb::Handle<PDBSinkPageSetSpec> &sink,
                            const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                           const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
                            bool swapLHSandRHS);
 
   /**
@@ -65,22 +66,12 @@ private:
   std::shared_ptr<std::vector<PipelinePtr>> myPipelines = nullptr;
 
   /**
-   * The name of the database <databaseName, setName> initialized when you call setup on this object, this has to be null when sending
-   * meaning once you run the algorithm the algorithm can not go over the wire!
-   */
-  std::shared_ptr<std::pair<std::string, std::string>> outputSet = nullptr;
-
-  /**
-   * Should we materialize this or not?
-   */
-  bool shouldMaterialize = false;
-
-  /**
    *
    */
   LogicalPlanPtr logicalPlan;
 
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin3);
+  FRIEND_TEST(TestPhysicalOptimizer, TestTwoSinksSelection);
 };
 
 }

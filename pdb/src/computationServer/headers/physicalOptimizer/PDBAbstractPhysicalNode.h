@@ -97,8 +97,8 @@ public:
   void removeConsumer(const PDBAbstractPhysicalNodePtr &consumer) {
 
     // detach them
-    consumers.remove(consumer);
     consumer->producers.remove_if([&](PDBAbstractPhysicalNodeWeakPtr p){ return this->getHandle() == p.lock(); });
+    consumers.remove(consumer);
   }
 
   /**

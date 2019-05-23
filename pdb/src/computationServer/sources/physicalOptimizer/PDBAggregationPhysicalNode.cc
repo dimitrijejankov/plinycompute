@@ -3,6 +3,9 @@
 //
 
 #include <physicalAlgorithms/PDBAggregationPipeAlgorithm.h>
+#include <physicalOptimizer/PDBAggregationPhysicalNode.h>
+#include <PDBSetObject.h>
+
 #include "physicalOptimizer/PDBAggregationPhysicalNode.h"
 
 
@@ -38,6 +41,33 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const std::
   sink->sinkType = PDBSinkType::AggregationSink;
   sink->pageSetIdentifier = std::make_pair(computationID, (String) pipeline.back()->getOutputName());
 
+  // figure out if we need to materialize the result of the aggregation, this happens if the aggregation is directly added to a write set
+  // in that case the next node (it's consumer) will contain two atomic computations, one that starts at the aggregation, the other that is a
+  // write set, there fore we check for exactly that and if we find it we need to materialize
+  pdb::Handle<pdb::Vector<PDBSetObject>> setsToMaterialize = pdb::makeObject<pdb::Vector<PDBSetObject>>();
+  for(auto consumer = consumers.begin(); consumer != consumers.end();) {
+
+    // if it only has two computations in the pipeline, mark that we need to materialize the result
+    auto &computations = (*consumer)->getPipeComputations();
+    if(computations.size() == 2 &&
+       computations[0]->getAtomicComputationTypeID() == ApplyAggTypeID &&
+       computations[1]->getAtomicComputationTypeID() == WriteSetTypeID) {
+
+      // cast the node to the output
+      auto writerNode = std::dynamic_pointer_cast<WriteSet>(computations[1]);
+
+      // add the set of this node to the materialization
+      setsToMaterialize->push_back(PDBSetObject(writerNode->getDBName(), writerNode->getSetName()));
+
+      // remove this consumer
+      auto tmp = consumer++;
+      removeConsumer(*tmp);
+    }
+
+    // go to the next one
+    consumer++;
+  }
+
   // just store the sink page set for later use by the eventual consumers
   setSinkPageSet(sink);
 
@@ -49,11 +79,16 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const std::
                                                                                                     hashedToRecv,
                                                                                                     sink,
                                                                                                     additionalSources,
+                                                                                                    setsToMaterialize,
                                                                                                     shouldSwapLeftAndRight);
   // add all the consumed page sets
   std::list<PDBPageSetIdentifier> consumedPageSets = { source->pageSetIdentifier, hashedToSend->pageSetIdentifier, hashedToRecv->pageSetIdentifier };
   for(int i = 0; i < additionalSources->size(); ++i) {
     consumedPageSets.insert(consumedPageSets.begin(), (*additionalSources)[i]->pageSetIdentifier);
+  }
+  // if there are no consumers, (this happens if all the consumers are materializations), mark the ink set as consumed too
+  if(consumers.empty()) {
+    consumedPageSets.insert(consumedPageSets.begin(), sink->pageSetIdentifier);
   }
 
   // set the page sets created

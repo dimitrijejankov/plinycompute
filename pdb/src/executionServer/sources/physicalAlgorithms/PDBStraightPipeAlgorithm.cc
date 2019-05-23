@@ -15,8 +15,9 @@ pdb::PDBStraightPipeAlgorithm::PDBStraightPipeAlgorithm(const std::string &first
                                                         const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                         const pdb::Handle<PDBSinkPageSetSpec> &sink,
                                                         const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                                                        const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
                                                         const bool swapLHSandRHS)
-                                                        : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, swapLHSandRHS) {}
+                                                        : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, setsToMaterialize, swapLHSandRHS) {}
 
 
 bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
@@ -56,22 +57,6 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
   }
 
   /// 2. Figure out the sink tuple set
-
-  // figure out the sink node
-  auto sinkNode = logicalPlan->getComputations().getProducingAtomicComputation(finalTupleSet);
-
-  // ok so are we writing to an output set if so store the name of the output set
-  if(sinkNode->getAtomicComputationTypeID() == WriteSetTypeID) {
-
-    // cast the node to the output
-    auto writerNode = std::dynamic_pointer_cast<WriteSet>(sinkNode);
-
-    // set the output set
-    outputSet = std::make_shared<std::pair<std::string, std::string>>(writerNode->getDBName(), writerNode->getSetName());
-
-    // we should materialize this
-    shouldMaterialize = true;
-  }
 
   // get the sink page set
   auto sinkPageSet = storage->createAnonymousPageSet(std::make_pair(sink->pageSetIdentifier.first, sink->pageSetIdentifier.second));
@@ -159,21 +144,21 @@ bool pdb::PDBStraightPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManagerBa
   }
 
   // should we materialize this to a set?
-  if(shouldMaterialize) {
+  for(int j = 0; j < setsToMaterialize->size(); ++j) {
 
     // get the page set
     auto sinkPageSet = storage->getPageSet(std::make_pair(sink->pageSetIdentifier.first, sink->pageSetIdentifier.second));
 
     // if the thing does not exist finish!
     if(sinkPageSet == nullptr) {
-      return false;
+      success = false;
     }
 
-    // copy the anonymous page set to the real set
-    return storage->materializePageSet(sinkPageSet, *outputSet);
+    // materialize the page set
+    success = storage->materializePageSet(sinkPageSet, std::make_pair<std::string, std::string>((*setsToMaterialize)[j].database, (*setsToMaterialize)[j].set)) && success;
   }
 
-  return true;
+  return success;
 }
 
 pdb::PDBPhysicalAlgorithmType pdb::PDBStraightPipeAlgorithm::getAlgorithmType() {
@@ -184,6 +169,5 @@ void pdb::PDBStraightPipeAlgorithm::cleanup() {
 
   // invalidate everything
   myPipelines = nullptr;
-  outputSet = nullptr;
   logicalPlan = nullptr;
 }

@@ -1,3 +1,5 @@
+#include <utility>
+
 /*****************************************************************************
  *                                                                           *
  *  Copyright 2018 Rice University                                           *
@@ -25,8 +27,8 @@
 
 namespace pdb {
 
-PDBPipeNodeBuilder::PDBPipeNodeBuilder(size_t computationID, const std::shared_ptr<AtomicComputationList> &computations)
-    : atomicComps(computations), currentNodeIndex(0), computationID(computationID) {}
+PDBPipeNodeBuilder::PDBPipeNodeBuilder(size_t computationID, std::shared_ptr<AtomicComputationList> computations)
+    : atomicComps(std::move(computations)), currentNodeIndex(0), computationID(computationID) {}
 }
 
 std::vector<pdb::PDBAbstractPhysicalNodePtr> pdb::PDBPipeNodeBuilder::generateAnalyzerGraph() {
@@ -146,13 +148,9 @@ void pdb::PDBPipeNodeBuilder::setConsumers(std::shared_ptr<PDBAbstractPhysicalNo
   std::vector<std::string> consumers;
 
   // go trough each consumer of this node
-  for(const auto &consumer : atomicComps->getConsumingAtomicComputations(this->currentPipe.back()->getOutputName())) {
-
-    // if the next pipe begins with a write set we just ignore it...
-    // this is happening usually when we have an aggregation connected to a write set which is not really necessary
-    if(consumer->getAtomicComputationTypeID() == WriteSetTypeID){
-      continue;
-    }
+  auto &consumingAtomicComputations = atomicComps->getConsumingAtomicComputations(this->currentPipe.back()->getOutputName());
+  consumers.reserve(consumingAtomicComputations.size());
+  for(const auto &consumer : consumingAtomicComputations) {
 
     // add them to the consumers
     consumers.push_back(consumer->getOutputName());
