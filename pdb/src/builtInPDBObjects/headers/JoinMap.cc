@@ -69,6 +69,16 @@ void JoinMap<ValueType>::setUnused(const size_t& clearMe) {
     myArray->setUnused(clearMe);
 }
 
+template<class ValueType>
+void pdb::JoinMap<ValueType>::setHashValue(int64_t hashValue) {
+    joinHashValue = hashValue;
+}
+
+template<class ValueType>
+int64_t pdb::JoinMap<ValueType>::getHashValue() {
+    return joinHashValue;
+}
+
 template <class ValueType>
 ValueType& JoinMap<ValueType>::push(const size_t& me) {
     if (myArray->isOverFull()) {

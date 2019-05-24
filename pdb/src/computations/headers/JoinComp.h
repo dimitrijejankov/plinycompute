@@ -116,8 +116,15 @@ private:
     std::vector<int> whereEveryoneGoes;
     JoinTuplePtr correctJoinTuple = findJoinTuple(projection, plan, whereEveryoneGoes);
 
-    // return the sink
-    return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+    auto it = params.find(ComputeInfoType::JOIN_SIDE);
+    BroadcastJoinSidePtr joinSide = dynamic_pointer_cast<BroadcastJoinSide>(it->second);
+
+    if (joinSide->value == BroadcastJoinSideEnum::PROBE_SIDE) {
+
+      return correctJoinTuple->getProbeSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+    } else {
+      return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+    }
   }
 
   PageProcessorPtr getShuffleJoinProcessor(size_t numNodes,

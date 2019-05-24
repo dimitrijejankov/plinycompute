@@ -104,8 +104,11 @@ class ComputePlan {
                                        const PDBAnonymousPageSetPtr &outputPageSet,
                                        uint64_t workerID);
 
-
-
+  PipelinePtr buildMergeJoinBroadcastPipeline(const string &targetTupleSetName,
+                                                                  const PDBAbstractPageSetPtr &inputPageSet,
+                                                                  const PDBAnonymousPageSetPtr &outputPageSet,
+                                                                  uint64_t numThreads,
+                                                                  uint64_t workerID);
 
 };
 

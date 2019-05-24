@@ -13,6 +13,8 @@
 #include <RHSShuffleJoinSource.h>
 #include <JoinedShuffleJoinSource.h>
 #include <processors/ShuffleJoinProcessor.h>
+#include <JoinProbeSink.h>
+#include <MergeSink.h>
 
 namespace pdb {
 
@@ -33,6 +35,12 @@ class JoinTupleSingleton {
                                  TupleSpec &projection,
                                  std::vector<int> whereEveryoneGoes,
                                  uint64_t numPartitions) = 0;
+
+  virtual ComputeSinkPtr getProbeSink(TupleSpec &consumeMe,
+                                      TupleSpec &attsToOpOn,
+                                      TupleSpec &projection,
+                                      std::vector<int> whereEveryoneGoes,
+                                      uint64_t numPartitions) = 0;
 
   virtual RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
                                                               TupleSpec &hashSchema,
@@ -56,6 +64,8 @@ class JoinTupleSingleton {
                                             size_t numProcessingThreads,
                                             vector<PDBPageQueuePtr> &pageQueues,
                                             PDBBufferManagerInterfacePtr &bufferManager) = 0;
+
+  virtual ComputeSinkPtr getMerger(uint64_t workerID, uint64_t numPartitions) = 0;
 };
 
 // this is an actual class
@@ -84,6 +94,15 @@ class JoinSingleton : public JoinTupleSingleton {
                          std::vector<int> whereEveryoneGoes,
                          uint64_t numPartitions) override {
     return std::make_shared<JoinSink<HoldMe>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+  }
+
+  // creates a compute sink for this particular type
+  ComputeSinkPtr getProbeSink(TupleSpec &consumeMe,
+                              TupleSpec &attsToOpOn,
+                              TupleSpec &projection,
+                              std::vector<int> whereEveryoneGoes,
+                              uint64_t numPartitions) override {
+    return std::make_shared<JoinProbeSink < HoldMe>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
   }
 
   RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
@@ -116,6 +135,10 @@ class JoinSingleton : public JoinTupleSingleton {
                                     vector<PDBPageQueuePtr> &pageQueues,
                                     PDBBufferManagerInterfacePtr &bufferManager) override {
     return std::make_shared<ShuffleJoinProcessor<HoldMe>>(numNodes, numProcessingThreads, pageQueues, bufferManager);
+  }
+
+  ComputeSinkPtr getMerger(uint64_t workerID, uint64_t numPartitions) override {
+    return std::make_shared<MergerSink<HoldMe>>(workerID, numPartitions);
   }
 };
 

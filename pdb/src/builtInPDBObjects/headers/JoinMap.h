@@ -49,6 +49,8 @@ private:
     // number of partitions (per node)
     int numPartitions;
 
+    int64_t joinHashValue = -1;
+
 public:
     ENABLE_DEEP_COPY
 
@@ -81,6 +83,12 @@ public:
 
     // returns 0 if this entry is undefined; 1 if it is defined
     int count(const size_t& which);
+
+    // sets the hash value for the JoinMap
+    void setHashValue(int64_t hashValue);
+
+    // gets the hash value for the JoinMap
+    int64_t getHashValue();
 
     // these are used for iteration
     JoinMapIterator<ValueType> begin();

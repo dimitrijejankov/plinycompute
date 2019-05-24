@@ -31,10 +31,14 @@
 #include "Lexer.h"
 #include "Parser.h"
 #include "StringIntPair.h"
+#include "JoinBroadcastPipeline.h"
+
 
 extern int yydebug;
 
+
 namespace pdb {
+
 
 inline LogicalPlanPtr ComputePlan::getPlan() {
 
@@ -72,9 +76,11 @@ inline LogicalPlanPtr ComputePlan::getPlan() {
   return myPlan;
 }
 
+
 inline void ComputePlan::nullifyPlanPointer() {
   myPlan = nullptr;
 }
+
 
 // this does a DFS, trying to find a list of computations that lead to the specified computation
 inline bool recurse(LogicalPlanPtr myPlan,
@@ -110,6 +116,7 @@ inline bool recurse(LogicalPlanPtr myPlan,
   // if we made it here, we could not find the target
   return false;
 }
+
 
 inline PageProcessorPtr ComputePlan::getProcessorForJoin(const std::string &tupleSetName,
                                                          size_t numNodes,
@@ -159,6 +166,7 @@ inline PageProcessorPtr ComputePlan::getProcessorForJoin(const std::string &tupl
                                                                                                                               targetProjection,
                                                                                                                               myPlan);
 }
+
 
 inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
                                               const std::string &targetTupleSetName,
@@ -484,6 +492,7 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
   return returnVal;
 }
 
+
 inline PipelinePtr ComputePlan::buildAggregationPipeline(const std::string &targetTupleSetName,
                                                          const PDBAbstractPageSetPtr &inputPageSet,
                                                          const PDBAnonymousPageSetPtr &outputPageSet,
@@ -508,6 +517,94 @@ inline PipelinePtr ComputePlan::buildAggregationPipeline(const std::string &targ
 
   return std::make_shared<pdb::AggregationPipeline>(workerID, outputPageSet, inputPageSet, combiner);
 }
+
+
+inline PipelinePtr ComputePlan::buildMergeJoinBroadcastPipeline(const string &targetTupleSetName,
+                                                                const PDBAbstractPageSetPtr &inputPageSet,
+                                                                const PDBAnonymousPageSetPtr &outputPageSet,
+                                                                uint64_t numThreads,
+                                                                uint64_t workerID) {
+
+  // build the plan if it is not already done
+  if (myPlan == nullptr)
+    getPlan();
+
+  // get all of the computations
+  AtomicComputationList &allComps = myPlan->getComputations();
+
+  // find the target atomic computation
+  auto targetAtomicComp = allComps.getProducingAtomicComputation(targetTupleSetName);
+
+  // find the target real PDBComputation
+  auto targetComputationName = targetAtomicComp->getComputationName();
+
+  // and get the schema for the output TupleSet objects that it is supposed to produce
+  TupleSpec &targetSpec = targetAtomicComp->getOutput();
+
+  // and get the projection for this guy
+  std::vector<AtomicComputationPtr> &consumers = allComps.getConsumingAtomicComputations(targetSpec.getSetName());
+
+  for (auto i = 0; i < consumers.size(); i++) {
+    std::cout << "consumers output: " << consumers[i]->getOutput() << std::endl;
+    std::cout << "consumers input: " << consumers[i]->getInput() << std::endl;
+    std::cout << "consumers output: " << consumers[i]->getProjection() << std::endl;
+  }
+
+  TupleSpec targetProjection;
+  TupleSpec targetAttsToOpOn;
+  for (auto &a : consumers) {
+    if (a->getComputationName() == targetComputationName) {
+
+      std::cout << "targetComputationName was " << targetComputationName << "\n";
+
+      // we found the consuming computation
+      if (targetSpec == a->getInput()) {
+        targetProjection = a->getProjection();
+
+        //added following to merge join code
+        if (targetComputationName.find("JoinComp") == std::string::npos) {
+          targetSpec = targetProjection;
+        }
+
+        targetAttsToOpOn = a->getInput();
+        break;
+      }
+
+      // the only way that the input to this guy does not match targetSpec is if he is a join, which has two inputs
+      if (a->getAtomicComputationType() != std::string("JoinSets")) {
+        std::cout << "This is bad... is the target computation name correct??";
+        std::cout << "Didn't find a JoinSets, target was " << targetSpec.getSetName() << "\n";
+        exit(1);
+      }
+
+      // get the join and make sure it matches
+      auto *myGuy = (ApplyJoin *) a.get();
+      if (!(myGuy->getRightInput() == targetSpec)) {
+        std::cout << "This is bad... is the target computation name correct??";
+        std::cout << "Find a JoinSets, target was " << targetSpec.getSetName() << "\n";
+        exit(1);
+      }
+
+      std::cout << "Building sink for: " << targetSpec << " " << myGuy->getRightProjection() << " "
+                << myGuy->getRightInput() << "\n";
+      targetProjection = myGuy->getRightProjection();
+      targetAttsToOpOn = myGuy->getRightInput();
+      std::cout << "Building sink for: " << targetSpec << " " << targetAttsToOpOn << " " << targetProjection << "\n";
+    }
+  }
+
+  Handle<JoinCompBase>
+      joinComp = unsafeCast<JoinCompBase>(myPlan->getNode(targetComputationName).getComputationHandle());
+  auto
+      merger = joinComp->getComputeMerger(targetSpec, targetAttsToOpOn, targetProjection, workerID, numThreads, myPlan);
+
+  return std::make_shared<pdb::JoinBroadcastPipeline>(workerID,
+                                                      workerID / numThreads,
+                                                      outputPageSet,
+                                                      inputPageSet,
+                                                      merger);
+}
+
 
 inline ComputePlan::ComputePlan(String &TCAPComputation, Vector<Handle<Computation>> &allComputations) : TCAPComputation(TCAPComputation),
                                                                                                          allComputations(allComputations) {}

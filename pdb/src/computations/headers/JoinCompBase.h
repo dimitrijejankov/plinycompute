@@ -15,7 +15,7 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
-#ifndef  JOINCOMPBASE_H
+#ifndef JOINCOMPBASE_H
 #define JOINCOMPBASE_H
 
 #include "Computation.h"
@@ -67,6 +67,10 @@ class JoinCompBase : public Computation {
                                                    PDBBufferManagerInterfacePtr &bufferManager,
                                                    TupleSpec &recordSchema,
                                                    pdb::LogicalPlanPtr &plan) = 0;
+
+  virtual ComputeSinkPtr getComputeMerger(TupleSpec &consumeMe, TupleSpec &attsToOpOn, TupleSpec &projection,
+                                          uint64_t workerID, uint64_t numPartitions, pdb::LogicalPlanPtr &plan) = 0;
+
 };
 
 }

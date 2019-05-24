@@ -16,6 +16,21 @@ public:
   bool swapLeftAndRightSide;
 };
 
+class BroadcastJoinSide;
+using BroadcastJoinSidePtr = std::shared_ptr<BroadcastJoinSide>;
+
+enum BroadcastJoinSideEnum{
+  BUILD_SIDE,
+  PROBE_SIDE
+};
+
+class BroadcastJoinSide : public pdb::ComputeInfo {
+ public:
+  explicit BroadcastJoinSide(BroadcastJoinSideEnum value): value(value){}
+  BroadcastJoinSideEnum value;
+};
+
+
 // used to parameterize joins that are run as part of a pipeline
 class JoinArg {
 public:
@@ -27,7 +42,7 @@ public:
   PDBAbstractPageSetPtr pageSet;
 
   // the location of the hash table // TODO this needs to be a page set or something
-  void *pageWhereHashTableIs = nullptr;
+  // void *pageWhereHashTableIs = nullptr;
 };
 using JoinArgPtr = std::shared_ptr<JoinArg>;
 
