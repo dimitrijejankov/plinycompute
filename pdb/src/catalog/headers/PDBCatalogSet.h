@@ -20,6 +20,21 @@ class PDBCatalogSet;
 typedef std::shared_ptr<PDBCatalogSet> PDBCatalogSetPtr;
 
 /**
+ * The type of the container the pages of this set have
+ */
+enum PDBCatalogSetContainerType {
+
+  // this means that this set does not have any
+  PDB_CATALOG_SET_NO_CONTAINER,
+
+  // this means that the root object is a pdb::Vector
+  PDB_CATALOG_SET_VECTOR_CONTAINER,
+
+  // this means that the root object is pdb::Map
+  PDB_CATALOG_SET_MAP_CONTAINER
+};
+
+/**
  * A class to map the sets
  */
 class PDBCatalogSet {
@@ -36,8 +51,13 @@ public:
    * @param database - the database the set belongs to
    * @param type - the id of the set type, something like 8xxx
    */
-  PDBCatalogSet(const std::string &database, const std::string &name, const std::string &type, size_t setSize) :
-                setIdentifier(database + ":" + name), name(name), database(database), type(std::make_shared<std::string>(type)), setSize(setSize) {}
+  PDBCatalogSet(const std::string &database, const std::string &name, const std::string &type, size_t setSize, PDBCatalogSetContainerType containerType) :
+                setIdentifier(database + ":" + name),
+                name(name),
+                database(database),
+                type(std::make_shared<std::string>(type)),
+                setSize(setSize),
+                containerType(containerType) {}
 
   /**
    * The set is a string of the form "dbName:setName"
@@ -65,6 +85,11 @@ public:
   std::shared_ptr<std::string> type;
 
   /**
+   * The type of the container this set stores
+   */
+   int containerType = PDB_CATALOG_SET_NO_CONTAINER;
+
+  /**
    * Return the schema of the database object
    * @return the schema
    */
@@ -76,6 +101,7 @@ public:
                                            sqlite_orm::make_column("setDatabase", &PDBCatalogSet::database),
                                            sqlite_orm::make_column("setSize", &PDBCatalogSet::setSize),
                                            sqlite_orm::make_column("setType", &PDBCatalogSet::type),
+                                           sqlite_orm::make_column("setContainerType", &PDBCatalogSet::containerType),
                                            sqlite_orm::foreign_key(&PDBCatalogSet::database).references(&PDBCatalogDatabase::name),
                                            sqlite_orm::foreign_key(&PDBCatalogSet::type).references(&PDBCatalogType::name),
                                            sqlite_orm::primary_key(&PDBCatalogSet::setIdentifier));

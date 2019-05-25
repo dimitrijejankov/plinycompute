@@ -23,6 +23,8 @@
 #include "SimpleSendDataRequest.h"
 #include "SimpleSendBytesRequest.h"
 #include "SimpleRequestResult.h"
+#include "PDBStorageVectorIterator.h"
+#include "PDBStorageMapIterator.h"
 
 
 namespace pdb {
@@ -48,10 +50,17 @@ bool PDBDistributedStorageClient::sendData(const std::string &db, const std::str
 }
 
 template<class DataType>
-PDBStorageIteratorPtr<DataType> PDBDistributedStorageClient::getIterator(const std::string &database, const std::string &set) {
+PDBStorageIteratorPtr<DataType> PDBDistributedStorageClient::getVectorIterator(const std::string &database, const std::string &set) {
 
-  return std::make_shared<PDBStorageIterator<DataType>>(address, port, 5, set, database);
+  return std::make_shared<PDBStorageVectorIterator<DataType>>(address, port, 5, set, database);
 }
+
+template<class DataType>
+PDBStorageIteratorPtr<DataType> PDBDistributedStorageClient::getMapIterator(const std::string &database, const std::string &set) {
+
+  return std::make_shared<PDBStorageMapIterator<DataType>>(address, port, 5, set, database);
+}
+
 
 }
 

@@ -12,6 +12,7 @@
 #include <PDBSourcePageSetSpec.h>
 #include <PDBSinkPageSetSpec.h>
 #include <PDBSetObject.h>
+#include <PDBCatalogSet.h>
 #include <PDBVector.h>
 #include <JoinArguments.h>
 #include <gtest/gtest_prod.h>
@@ -69,6 +70,17 @@ public:
    * Returns the type of the algorithm we want to run
    */
   virtual PDBPhysicalAlgorithmType getAlgorithmType() { throw std::runtime_error("Can not get the type of the base class"); };
+
+  /**
+   * Returns the all the that are about to be materialized by the algorithm
+   * @return the vector of @see PDBSetObject
+   */
+  const pdb::Handle<pdb::Vector<PDBSetObject>> &getSetsToMaterialize() { return setsToMaterialize; }
+
+  /**
+   * Returns the type of the container that the materialized result will have
+   */
+  virtual pdb::PDBCatalogSetContainerType getOutputContainerType() { return PDB_CATALOG_SET_NO_CONTAINER; };
 
 protected:
 

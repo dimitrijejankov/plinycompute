@@ -29,6 +29,25 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
   atomic_bool success;
   success = true;
 
+  /// 0. Setup the metadata in the catalog about the sets we are going to materialize
+
+  // grab a catalog client
+  auto client = getFunctionality<PDBCatalogClient>();
+
+  // the sets we want to update the metadata for
+  auto setsToMaterialize = job->getSetsToMaterialize();
+
+  // the type of the container
+  auto containerType = job->getOutputSetContainer();
+
+  // update the mateadata for each set
+  for(const auto &set : setsToMaterialize) {
+
+    // update the container type
+    std::string error;
+    success = client.updateSetContainerType(set.first, set.second, containerType, error) && success;
+  }
+
   // create the buzzer
   atomic_int counter;
   counter = 0;
@@ -46,7 +65,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
   // for each node start a worker
   for(int i = 0; i < job->nodes.size(); ++i) {
 
-    /// 0. Start a worker for each node
+    /// 1. Start a worker for each node
 
     // grab a worker
     auto worker = parent->getWorkerQueue()->getWorker();
@@ -56,7 +75,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
 
       std::string errMsg;
 
-      /// 1. Connect to the node
+      /// 2. Connect to the node
 
       // connect to the server
       PDBCommunicator comm;
@@ -78,7 +97,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
         return;
       }
 
-      /// 2. schedule the computation
+      /// 3. schedule the computation
 
       // make an allocation block
       const pdb::UseTemporaryAllocationBlock tempBlock{job->computationSize + 1024 * 1024};
@@ -96,7 +115,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
         return;
       }
 
-      /// 3. Run the computation and wait for it to finish
+      /// 4. Run the computation and wait for it to finish
       if(!runScheduledJob(comm, errMsg)) {
 
         // we failed to run the job

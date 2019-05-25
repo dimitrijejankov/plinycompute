@@ -42,19 +42,24 @@ template <class KeyType, class ValueType>
 class PDBMapIterator {
 
 public:
-    PDBMapIterator() {
-        done = true;
-        iterateMe = nullptr;
-    };
-    bool operator!=(const PDBMapIterator& me) const;
-    bool operator==(const PDBMapIterator& me) const;
-    MapRecordClass<KeyType, ValueType>& operator*();
-    void operator++();
-    PDBMapIterator(Handle<PairArray<KeyType, ValueType>> iterateMeIn, bool);
-    PDBMapIterator(Handle<PairArray<KeyType, ValueType>> iterateMeIn);
+  PDBMapIterator() {
+      done = true;
+      iterateMe = nullptr;
+  };
+
+  PDBMapIterator(Handle<PairArray<KeyType, ValueType>> iterateMeIn, bool);
+  PDBMapIterator(Handle<PairArray<KeyType, ValueType>> iterateMeIn);
+
+  bool operator!=(const PDBMapIterator& me) const;
+  bool operator==(const PDBMapIterator& me) const;
+  MapRecordClass<KeyType, ValueType>& operator*();
+  void operator++();
+
+  void* getValuePtr();
+  void* getKeyPtr();
 
 private:
-    uint32_t slot;
+    uint32_t slot{};
     Handle<PairArray<KeyType, ValueType>> iterateMe;
     bool done;
 };

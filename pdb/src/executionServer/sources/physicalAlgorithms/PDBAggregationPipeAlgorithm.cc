@@ -362,10 +362,21 @@ bool pdb::PDBAggregationPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManage
 
   /// 6. Should we materialize
 
-  // if we have sets to materialize we do that
-  if(setsToMaterialize->size() != 0) {
+  // should we materialize this to a set?
+  for(int j = 0; j < setsToMaterialize->size(); ++j) {
 
+    // get the page set
+    auto sinkPageSet = storage->getPageSet(std::make_pair(sink->pageSetIdentifier.first, sink->pageSetIdentifier.second));
 
+    // if the thing does not exist finish!
+    if(sinkPageSet == nullptr) {
+      success = false;
+      break;
+    }
+
+    // materialize the page set
+    sinkPageSet->resetPageSet();
+    success = storage->materializePageSet(sinkPageSet, std::make_pair<std::string, std::string>((*setsToMaterialize)[j].database, (*setsToMaterialize)[j].set)) && success;
   }
 
   return true;
@@ -387,4 +398,8 @@ void pdb::PDBAggregationPipeAlgorithm::cleanup() {
 
 pdb::PDBPhysicalAlgorithmType pdb::PDBAggregationPipeAlgorithm::getAlgorithmType() {
   return DistributedAggregation;
+}
+
+pdb::PDBCatalogSetContainerType pdb::PDBAggregationPipeAlgorithm::getOutputContainerType() {
+  return PDBCatalogSetContainerType::PDB_CATALOG_SET_MAP_CONTAINER;
 }

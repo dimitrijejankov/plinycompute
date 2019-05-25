@@ -9,7 +9,8 @@
 #include <PDBString.h>
 #include <PDBVector.h>
 #include <Computation.h>
-#include "PDBPhysicalAlgorithm.h"
+#include <PDBCatalogSet.h>
+#include <PDBPhysicalAlgorithm.h>
 #include <ExJobNode.h>
 
 // PRELOAD %ExJob%
@@ -72,6 +73,37 @@ public:
    * the IP and port of the
    */
   pdb::Handle<ExJobNode> thisNode;
+
+  /**
+   * Returns all the sets that are going to be materialized after the job is executed
+   * @return - a vector of pairs the frist value is the database name, the second value is the set name
+   */
+  std::vector<std::pair<std::string, std::string>> getSetsToMaterialize() {
+
+    // get the sets to materialize
+    const auto& sets = physicalAlgorithm->getSetsToMaterialize();
+
+    // allocate the output container
+    std::vector<std::pair<std::string, std::string>> out;
+    out.reserve(sets->size());
+
+    // copy the sets
+    for(int i = 0; i < sets->size(); ++i) {
+      out.emplace_back(make_pair((*sets)[i].database, (*sets)[i].set));
+    }
+
+    // return it
+    return std::move(out);
+  }
+
+  /**
+   * Returns the type of the output container, that the materializing sets are going to have
+   * @return the type
+   */
+  pdb::PDBCatalogSetContainerType getOutputSetContainer() {
+    return physicalAlgorithm->getOutputContainerType();
+  }
+
 };
 
 }

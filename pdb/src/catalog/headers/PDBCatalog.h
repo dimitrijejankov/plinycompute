@@ -114,6 +114,15 @@ class PDBCatalog {
   bool updateNodeStatus(const std::string &nodeID, bool isActive, std::string &error);
 
   /**
+   * Update the set container type, @see PDBCatalogSetContainerType for valid values
+   * @param dbName - the name of the database the set belongs to
+   * @param setName - the name of the set
+   * @param error - error string if any
+   * @return true if we succeed false otherwise
+   */
+  bool updateSetContainer(const std::string &dbName, const std::string &setName, PDBCatalogSetContainerType type, std::string &error);
+
+  /**
    * Check if the database with the provided name exists
    * @param name - the name of the database
    * @return - true if it does false otherwise

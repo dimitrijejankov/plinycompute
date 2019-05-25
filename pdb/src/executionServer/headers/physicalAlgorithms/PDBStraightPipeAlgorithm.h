@@ -57,7 +57,13 @@ public:
    */
   PDBPhysicalAlgorithmType getAlgorithmType() override;
 
-private:
+  /**
+   * The output container type of the straight pipeline is always a vector, meaning the root object is always a pdb::Vector
+   * @return PDB_CATALOG_SET_VECTOR_CONTAINER
+   */
+  PDBCatalogSetContainerType getOutputContainerType() override;
+
+ private:
 
   /**
    * Vector of pipelines that will run this algorithm. The pipelines will be built when you call setup on this object.

@@ -209,28 +209,75 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleGetNextPage(const
   return make_pair(success, error);
 }
 
+template<class Communicator>
+void pdb::PDBDistributedStorage::respondAddDataWithError(shared_ptr<Communicator> &sendUsingMe, std::string &errMsg) {
+
+  // log the error
+  logger->error(errMsg);
+
+  // skip the data part
+  sendUsingMe->skipBytes(errMsg);
+
+  // create an allocation block to hold the response
+  const UseTemporaryAllocationBlock tempBlock{1024};
+  Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+
+  // sends result to requester
+  sendUsingMe->sendObject(response, errMsg);
+}
+
 template<class Communicator, class Requests>
 std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb::Handle<pdb::DisAddData> &request,
                                                                        shared_ptr<Communicator> &sendUsingMe) {
   /// 0. Check if the set exists
 
-  if(!getFunctionalityPtr<PDBCatalogClient>()->setExists(request->databaseName, request->setName)) {
+  // get the set if exists
+  std::string error;
+  bool success;
+  auto set = getFunctionalityPtr<PDBCatalogClient>()->getSet(request->databaseName, request->setName, error);
+
+  // make sure the set exists
+  if(set == nullptr) {
 
     // make the error string
     std::string errMsg = "The set does not exist!";
 
-    // log the error
-    logger->error(errMsg);
+    // respond with error
+    respondAddDataWithError(sendUsingMe, errMsg);
 
-    // skip the data part
-    sendUsingMe->skipBytes(errMsg);
+    // return the problem
+    return make_pair(false, errMsg);
+  }
 
-    // create an allocation block to hold the response
-    const UseTemporaryAllocationBlock tempBlock{1024};
-    Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+  // make sure the container type of the set is set to
+  if(set->containerType == PDBCatalogSetContainerType::PDB_CATALOG_SET_NO_CONTAINER) {
 
-    // sends result to requester
-    sendUsingMe->sendObject(response, errMsg);
+    // update the container type
+    success = getFunctionalityPtr<PDBCatalogClient>()->updateSetContainerType(set->database, set->name, PDBCatalogSetContainerType::PDB_CATALOG_SET_VECTOR_CONTAINER, error);
+
+    // if we failed to update the container type this is an error
+    if(!success) {
+
+      // make the error string
+      std::string errMsg = "Could not update the container type of the set!";
+
+      // respond with error
+      respondAddDataWithError(sendUsingMe, errMsg);
+
+      // return the problem
+      return make_pair(false, errMsg);
+    }
+  }
+  // if the existing container type is not a vector
+  else if(set->containerType != PDBCatalogSetContainerType::PDB_CATALOG_SET_VECTOR_CONTAINER ) {
+
+    // make the error string
+    std::string errMsg = "The container type of the set is not a vector. You can only add data to vector sets!";
+
+    // respond with error
+    respondAddDataWithError(sendUsingMe, errMsg);
+
+    // return the problem
     return make_pair(false, errMsg);
   }
 
@@ -267,7 +314,6 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
   auto page = bufferManager->getPage(numBytes);
 
   // receive bytes
-  std::string error;
   sendUsingMe->receiveBytes(page->getBytes(), error);
 
   // check the uncompressed size

@@ -120,6 +120,18 @@ class PDBDistributedStorage : public ServerFunctionality {
  private:
 
   /**
+   * This method responds back to the client with an error. This should only be used before the actual data is received
+   *
+   * @tparam Communicator - the communicator class PDBCommunicator is used to handle the request. This is basically here
+   * so we could write unit tests
+   *
+   * @param sendUsingMe - the communicator that is sending the data
+   * @param errMsg - the error message that we want to send back to the client
+   */
+  template<class Communicator>
+  void respondAddDataWithError(shared_ptr<Communicator> &sendUsingMe, std::string &errMsg);
+
+  /**
    * The policy we want to use for dispatching.
    * Maybe make this be per set..
    */

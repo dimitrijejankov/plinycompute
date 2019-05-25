@@ -64,12 +64,20 @@ public:
   bool sendData(const std::string &db, const std::string &set, Handle<Vector<Handle<DataType>>> dataToSend, std::string &errMsg);
 
   /**
-   * Returns an iterator that can fetch records from the storage
+   * Returns an vector iterator that can fetch records from the storage
    * @param set - the set want to grab the iterator for
    * @return the iterator
    */
   template <class DataType>
-  PDBStorageIteratorPtr<DataType> getIterator(const std::string &database, const std::string &set);
+  PDBStorageIteratorPtr<DataType> getVectorIterator(const std::string &database, const std::string &set);
+
+  /**
+   * Returns an map iterator that can fetch records from the storage
+   * @param set - the set want to grab the iterator for
+   * @return the iterator
+   */
+  template <class DataType>
+  PDBStorageIteratorPtr<DataType> getMapIterator(const std::string &database, const std::string &set);
 
 private:
 

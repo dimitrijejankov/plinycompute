@@ -104,7 +104,7 @@ class PDBClient : public ServerFunctionality {
    * @return true if we succeed false otherwise
    */
   template<class DataType>
-  PDBStorageIteratorPtr<DataType> getSetIterator(std::string dbName, std::string setName);
+  PDBStorageIteratorPtr<DataType> getSetIterator(const std::string& dbName, const std::string& setName);
 
   /// TODO this will go away once we have tcap generation
   bool executeComputations(Handle<Vector<Handle<Computation>>> &computations, const pdb::String &tcap);

@@ -221,6 +221,42 @@ bool pdb::PDBCatalog::updateNodeStatus(const std::string &nodeID, bool isActive,
   }
 }
 
+bool pdb::PDBCatalog::updateSetContainer(const std::string &dbName, const std::string &setName, PDBCatalogSetContainerType type, std::string &error) {
+
+  try {
+
+    // grab the set we want to update
+    auto set = getSet(dbName, setName);
+
+    // if the node exists don't create it
+    if(set == nullptr) {
+
+      // set the error
+      error = "The set with the name (" + dbName + "," + setName + ") does not exist\n";
+
+      // we failed return false
+      return false;
+    }
+
+    // ok the node exists set the status
+    set->containerType = type;
+
+    // insert the the set
+    storage.replace(*set);
+
+    // return true
+    return true;
+
+  } catch(std::system_error &e) {
+
+    // set the error we failed
+    error = "The set with the name (" + dbName + "," + setName + ") count not be updated! The SQL error is : "  + std::string(e.what());
+
+    // we failed
+    return false;
+  }
+}
+
 bool pdb::PDBCatalog::databaseExists(const std::string &name) {
 
   // try to find the database
@@ -378,7 +414,7 @@ int32_t pdb::PDBCatalog::numRegisteredTypes() {
 std::vector<pdb::PDBCatalogSet> pdb::PDBCatalog::getSetsInDatabase(const std::string &dbName) {
 
   // select all the sets
-  auto rows = storage.select(columns(&PDBCatalogSet::name, &PDBCatalogSet::database, &PDBCatalogSet::type, &PDBCatalogSet::setSize),
+  auto rows = storage.select(columns(&PDBCatalogSet::name, &PDBCatalogSet::database, &PDBCatalogSet::type, &PDBCatalogSet::setSize, &PDBCatalogSet::containerType),
                              where(c(&PDBCatalogSet::database) == dbName));
 
   // create a return value
@@ -389,7 +425,7 @@ std::vector<pdb::PDBCatalogSet> pdb::PDBCatalog::getSetsInDatabase(const std::st
 
   // create the objects
   for(auto &r : rows) {
-    ret.emplace_back(pdb::PDBCatalogSet(std::get<1>(r), std::get<0>(r), *std::get<2>(r), std::get<3>(r)));
+    ret.emplace_back(pdb::PDBCatalogSet(std::get<1>(r), std::get<0>(r), *std::get<2>(r), std::get<3>(r), (PDBCatalogSetContainerType) std::get<4>(r)));
   }
 
   return std::move(ret);
@@ -541,3 +577,4 @@ std::vector<pdb::PDBCatalogNodePtr> pdb::PDBCatalog::getWorkerNodes() {
   // return the nodes
   return std::move(ret);
 }
+

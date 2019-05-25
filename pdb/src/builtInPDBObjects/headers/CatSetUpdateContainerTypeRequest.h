@@ -16,43 +16,48 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef CATGETSETBASERESULT_H
-#define CATGETSETBASERESULT_H
+#pragma once
 
+#include <PDBCatalogSet.h>
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
-#include "PDBCatalogSet.h"
 
-// PRELOAD %CatGetSetResult%
+// PRELOAD %CatSetUpdateContainerTypeRequest%
 
 namespace pdb {
 
 /**
- * Encapsulates a request to search for a type in the catalog
+ * Encapsulates a request to update the type of the container
  */
-class CatGetSetResult : public Object {
+class CatSetUpdateContainerTypeRequest : public Object {
 
  public:
 
-  CatGetSetResult() = default;
-  ~CatGetSetResult() = default;
+  CatSetUpdateContainerTypeRequest() = default;
+  ~CatSetUpdateContainerTypeRequest() = default;
 
   /**
    * Creates a request to get the database
    * @param database - the name of database
    */
-  explicit CatGetSetResult(const std::string &database,
-                           const std::string &set,
-                           const std::string &internalType,
-                           const std::string &type,
-                           size_t setSize,
-                           const PDBCatalogSetContainerType &containerType) : databaseName(database),
-                                                                              setName(set),
-                                                                              internalType(internalType),
-                                                                              type(type),
-                                                                              containerType(containerType),
-                                                                              setSize(setSize) {}
+  explicit CatSetUpdateContainerTypeRequest(const std::string &database,
+                                            const std::string &set,
+                                            PDBCatalogSetContainerType containerType) : databaseName(database),
+                                                                                     setName(set),
+                                                                                     containerType(containerType) {}
+
+  /**
+   * Copy the request this is needed by the broadcast
+   * @param pdbItemToCopy - the request to copy
+   */
+  explicit CatSetUpdateContainerTypeRequest(const Handle<CatSetUpdateContainerTypeRequest>& pdbItemToCopy) {
+
+    // copy the thing
+    databaseName = pdbItemToCopy->databaseName;
+    setName = pdbItemToCopy->setName;
+    containerType = pdbItemToCopy->containerType;
+  }
 
   ENABLE_DEEP_COPY
 
@@ -67,26 +72,8 @@ class CatGetSetResult : public Object {
   String setName;
 
   /**
-   * The the name of the internal type that is going to be handling the types.
-   * For example a pdb::Vector<StringIntPair> is going to be handled by pdb::Vector<pdb::Nothing>
+   * The type of the container
    */
-  String internalType;
-
-  /**
-   * The real name of the type see above
-   */
-  String type;
-
-  /**
-   * The size of the set
-   */
-  size_t setSize;
-
-  /**
-   * The type of the container that are stored on the pages of this set
-   */
-  PDBCatalogSetContainerType containerType;
+  PDBCatalogSetContainerType containerType = PDBCatalogSetContainerType::PDB_CATALOG_SET_NO_CONTAINER;
 };
 }
-
-#endif

@@ -48,7 +48,13 @@ public:
    */
   PDBPhysicalAlgorithmType getAlgorithmType() override;
 
-private:
+  /**
+   * The pages of the aggregation always have as the root object pdb::map so it returns PDB_CATALOG_SET_MAP_CONTAINER
+   * @return PDB_CATALOG_SET_MAP_CONTAINER
+   */
+  PDBCatalogSetContainerType getOutputContainerType() override;
+
+ private:
 
   /**
    * The sink tuple set where we are putting stuff

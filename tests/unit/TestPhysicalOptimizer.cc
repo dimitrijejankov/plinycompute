@@ -69,7 +69,7 @@ TEST(TestPhysicalOptimizer, TestAggregation) {
                  testing::An<const std::string &>(),
                  testing::An<std::string &>())).WillByDefault(testing::Invoke(
       [&](const std::string &, const std::string &, std::string &errMsg) {
-        return std::make_shared<pdb::PDBCatalogSet>("input_set", "by8_db", "Nothing", 10);
+        return std::make_shared<pdb::PDBCatalogSet>("input_set", "by8_db", "Nothing", 10, PDB_CATALOG_SET_NO_CONTAINER);
       }));
 
   EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(1));
@@ -179,7 +179,7 @@ TEST(TestPhysicalOptimizer, TestMultiSink) {
   ON_CALL(*catalogClient,
           getSet(testing::An<const std::string &>(), testing::An<const std::string &>(), testing::An<std::string &>())).WillByDefault(testing::Invoke(
       [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
-        return std::make_shared<pdb::PDBCatalogSet>("mySetA", "myData", "Nothing", std::numeric_limits<size_t>::max());
+        return std::make_shared<pdb::PDBCatalogSet>("mySetA", "myData", "Nothing", std::numeric_limits<size_t>::max(), PDB_CATALOG_SET_NO_CONTAINER);
       }));
 
   EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(1));
@@ -327,10 +327,10 @@ TEST(TestPhysicalOptimizer, TestJoin1) {
                  testing::An<std::string &>())).WillByDefault(testing::Invoke(
       [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
         if (setName == "mySetA") {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetA", "myData", "Nothing", 1000);
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetA", "myData", "Nothing", 1000, PDB_CATALOG_SET_NO_CONTAINER);
           return tmp;
         } else {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetB", "myData", "Nothing", 2000);
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetB", "myData", "Nothing", 2000, PDB_CATALOG_SET_NO_CONTAINER);
           return tmp;
         }
       }));
@@ -443,12 +443,12 @@ TEST(TestPhysicalOptimizer, TestJoin2) {
                  testing::An<std::string &>())).WillByDefault(testing::Invoke(
       [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
         if (setName == "mySetA") {
-          return std::make_shared<pdb::PDBCatalogSet>("mySetA", "myData", "Nothing", std::numeric_limits<size_t>::max());
+          return std::make_shared<pdb::PDBCatalogSet>("mySetA", "myData", "Nothing", std::numeric_limits<size_t>::max(), PDB_CATALOG_SET_NO_CONTAINER);
         } else {
           return std::make_shared<pdb::PDBCatalogSet>("mySetB",
                                                       "myData",
                                                       "Nothing",
-                                                      std::numeric_limits<size_t>::max() - 1);
+                                                      std::numeric_limits<size_t>::max() - 1, PDB_CATALOG_SET_NO_CONTAINER);
         }
       }));
 
@@ -615,13 +615,14 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
           auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetA",
                                                           "myData",
                                                           "Nothing",
-                                                          std::numeric_limits<size_t>::max() - 1);
+                                                          std::numeric_limits<size_t>::max() - 1,
+                                                          PDB_CATALOG_SET_NO_CONTAINER);
           return tmp;
         } else if (setName == "mySetC") {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetC", "myData", "Nothing", 0);
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetC", "myData", "Nothing", 0, PDB_CATALOG_SET_NO_CONTAINER);
           return tmp;
         } else {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetB", "myData", "Nothing", std::numeric_limits<size_t>::max());
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetB", "myData", "Nothing", std::numeric_limits<size_t>::max(), PDB_CATALOG_SET_NO_CONTAINER);
           return tmp;
         }
       }));
@@ -845,13 +846,15 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
           auto tmp = std::make_shared<pdb::PDBCatalogSet>("test78_db",
                                                           "test78_set1",
                                                           "Nothing",
-                                                          std::numeric_limits<size_t>::max() - 1);
+                                                          std::numeric_limits<size_t>::max() - 1,
+                                                          PDB_CATALOG_SET_NO_CONTAINER);
           return tmp;
         } else {
           auto tmp = std::make_shared<pdb::PDBCatalogSet>("test78_db",
                                                           "test78_set2",
                                                           "Nothing",
-                                                          std::numeric_limits<size_t>::max() - 2);
+                                                          std::numeric_limits<size_t>::max() - 2,
+                                                          PDB_CATALOG_SET_NO_CONTAINER);
           return tmp;
         }
       }));

@@ -172,6 +172,11 @@ bool pdb::PDBStorageManagerBackend::removePageSet(const std::pair<uint64_t, std:
 
 bool pdb::PDBStorageManagerBackend::materializePageSet(const pdb::PDBAbstractPageSetPtr& pageSet, const std::pair<std::string, std::string> &set) {
 
+  // if the page set is empty no need materialize stuff
+  if(pageSet->getNumPages() == 0) {
+    return true;
+  }
+
   // result indicators
   std::string error;
   bool success = true;

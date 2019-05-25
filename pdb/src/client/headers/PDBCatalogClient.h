@@ -126,6 +126,19 @@ public:
                         size_t sizeToAdd,
                         std::string &errMsg);
 
+  /**
+   * Update the container type of a set for a particular set by size
+   * @param databaseName - the database the set belongs to
+   * @param setName - the name of the set
+   * @param containerType - the new type we want to set
+   * @param errMsg - the error message if any
+   * @return - true if we succeed
+   */
+  bool updateSetContainerType(const std::string &databaseName,
+                              const std::string &setName,
+                              PDBCatalogSetContainerType containerType,
+                              std::string &errMsg);
+
   /* Sends a request to the Catalog Server to delete a database; returns true on
    * success, false on
    * fail

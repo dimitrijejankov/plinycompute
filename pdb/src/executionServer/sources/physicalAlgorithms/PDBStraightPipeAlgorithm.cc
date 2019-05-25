@@ -143,6 +143,11 @@ bool pdb::PDBStraightPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManagerBa
     tempBuzzer->wait();
   }
 
+  // if we failed finish
+  if(!success) {
+    return success;
+  }
+
   // should we materialize this to a set?
   for(int j = 0; j < setsToMaterialize->size(); ++j) {
 
@@ -152,9 +157,11 @@ bool pdb::PDBStraightPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManagerBa
     // if the thing does not exist finish!
     if(sinkPageSet == nullptr) {
       success = false;
+      break;
     }
 
     // materialize the page set
+    sinkPageSet->resetPageSet();
     success = storage->materializePageSet(sinkPageSet, std::make_pair<std::string, std::string>((*setsToMaterialize)[j].database, (*setsToMaterialize)[j].set)) && success;
   }
 
@@ -170,4 +177,8 @@ void pdb::PDBStraightPipeAlgorithm::cleanup() {
   // invalidate everything
   myPipelines = nullptr;
   logicalPlan = nullptr;
+}
+
+pdb::PDBCatalogSetContainerType pdb::PDBStraightPipeAlgorithm::getOutputContainerType() {
+  return PDBCatalogSetContainerType::PDB_CATALOG_SET_VECTOR_CONTAINER;
 }

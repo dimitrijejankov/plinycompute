@@ -223,6 +223,6 @@ int main(int argc, char* argv[]) {
 
     // grab the record
     auto r = it->getNextRecord();
-    std::cout <<"Identifier : " << r->identifier << " Value : " << r->total << std::endl;
+    std::cout << "Value : " << r->getValue() << " Key : " << r->getKey() << std::endl;
   }
 }
