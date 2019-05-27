@@ -1,7 +1,4 @@
 
-#ifndef CATALOG_UNIT_H
-#define CATALOG_UNIT_H
-
 #include <cstring>
 #include <iostream>
 #include <time.h>
@@ -919,10 +916,189 @@ TEST(BufferManagerTest, Test12) {
   }
 }
 
+// test clearing og the set, and then use different page sizes to freeze
+TEST(BufferManagerTest, Test13) {
+  PDBBufferManagerImpl myMgr;
+  myMgr.initialize("tempDSFSD", 64, 16, "metadata", ".");
+  PDBSetPtr set1 = make_shared<PDBSet>("DB", "set1");
+  PDBSetPtr set2 = make_shared<PDBSet>("DB", "set2");
+
+  // clear empty set
+  myMgr.clearSet(set1);
+  myMgr.clearSet(set2);
+
+  char bufferA[64]{};
+  char bufferB[32]{};
+
+  std::vector<size_t> freezeSizes = {16, 32, 64};
+
+  for(int n = 0; n < 100; n++) {
+
+    size_t sizeA = freezeSizes[n % 3];
+    size_t sizeB = sizeA / 2;
+
+    PDBPageHandle page1 = myMgr.getPage(set1, 0);
+    PDBPageHandle page2 = myMgr.getPage(set2, 0);
+    char *bytes = (char *) page1->getBytes();
+    memset(bytes, 'A' + n % 10, sizeA);
+    bytes[sizeA - 1] = 0;
+    bytes = (char *) page2->getBytes();
+    memset(bytes, 'V' + n % 10, sizeB);
+    bytes[sizeB - 1] = 0;
+    page1->unpin();
+    page2->freezeSize(sizeB);
+    page2->unpin();
+    for (uint64_t i = 0; i < 32; i++) {
+      PDBPageHandle page3 = myMgr.getPage(set1, i + 1);
+      PDBPageHandle page4 = myMgr.getPage(set1, i + 31);
+      PDBPageHandle page5 = myMgr.getPage(set2, i + 1);
+      bytes = (char *) page5->getBytes();
+      memset(bytes, 'V' + n % 10, sizeB);
+      bytes[sizeB - 1] = 0;
+      page5->freezeSize(sizeB);
+    }
+    page1->repin();
+    bytes = (char *) page1->getBytes();
+    memset(bufferA, 'A' + n % 10, sizeA - 1);
+    bufferA[sizeA - 1] = '\0';
+    EXPECT_EQ(memcmp(bufferA, bytes, sizeA), 0);
+
+    page2->repin();
+    bytes = (char *) page2->getBytes();
+    memset(bufferB, 'V' + n % 10, sizeB - 1);
+    bufferB[sizeB - 1] = '\0';
+    EXPECT_EQ(memcmp(bufferB, bytes, sizeB), 0);
+
+    // reset stuff esentially
+    myMgr.clearSet(set1);
+    myMgr.clearSet(set2);
+  }
+}
+
+// test clearing the set while doing other stuff with the other set
+TEST(BufferManagerTest, Test14) {
+
+  // create the buffer manager
+  PDBBufferManagerImpl myMgr;
+  myMgr.initialize("tempDSFSD", 64, 10, "metadata", ".");
+
+  // parameters
+  const int firstSetSize = 8;
+  const int secondSetSize = 32;
+  const int numSetPages = 30;
+  const int numPages = 1000;
+  const int numThreads = 4;
+
+  // some random set
+  PDBSetPtr set = make_shared<PDBSet>("DB", "set1");
+  for(uint64_t i = 0; i < numSetPages; ++i) {
+
+    // init the page of the set
+    PDBPageHandle page = myMgr.getPage(set, i);
+    memset(page->getBytes(), 'V' + (int)i % 10, firstSetSize);
+    page->freezeSize(firstSetSize);
+    page->setDirty();
+    page->unpin();
+  }
+
+  // used to sync
+  std::atomic<std::int32_t> sync;
+  sync = 0;
+
+  // run multiple threads
+  std::vector<std::thread> threads;
+  threads.reserve(numThreads);
+  for(int t = 0; t < numThreads; ++t) {
+
+    threads.emplace_back(std::thread([&](int tmp) {
+
+      // sync the threads to make sure there is more overlapping
+      sync++;
+      while (sync != numThreads) {}
+
+      int offset = 0;
+
+      std::vector<PDBPageHandle> pageHandles;
+
+      // grab anon pages
+      for(int i = 0; i < numPages; ++i) {
+
+        // grab the page
+        auto page = myMgr.getPage();
+
+        // grab the page and fill it in
+        char* bytes = (char*) page->getBytes();
+        for(char j = 0; j < 64; ++j) {
+          bytes[j] = static_cast<char>((j + offset + tmp) % 128);
+        }
+
+        // once it reaches the half of the pages the first thread is going to do a clear of the set
+        if(tmp == 0 && i == numPages / 2) {
+          myMgr.clearSet(set);
+        }
+
+        // store page
+        pageHandles.push_back(page);
+
+        // unpin the page
+        page->unpin();
+
+        // increment the offset
+        offset++;
+      }
+
+      // sync the threads to make sure there is more overlapping
+      sync++;
+      while (sync != 2 * numThreads) {}
+
+      offset = 0;
+      for(auto &page : pageHandles) {
+
+        // repin the page
+        page->repin();
+
+        // grab the page and fill it in
+        char* bytes = (char*) page->getBytes();
+        for(char j = 0; j < 64; ++j) {
+          EXPECT_EQ(bytes[j], static_cast<char>((j + offset + tmp) % 128));
+        }
+
+        // unpin the page
+        page->unpin();
+
+        // increment the offset
+        offset++;
+      }
+
+      // remove all the page handles
+      pageHandles.clear();
+
+    }, t));
+  }
+
+  for(auto &t : threads) {
+    t.join();
+  }
+
+  // fill the set up again
+  for(uint64_t i = 0; i < numSetPages; ++i) {
+
+    // init the page of the set
+    PDBPageHandle page = myMgr.getPage(set, i);
+    memset(page->getBytes(), 'V' + (int)i % 10, secondSetSize);
+    page->freezeSize(secondSetSize);
+    page->setDirty();
+  }
+
+  char tmpBuffer[secondSetSize];
+  for(uint64_t i = 0; i < numSetPages; ++i) {
+    memset(tmpBuffer, 'V' + (int)i % 10, secondSetSize);
+    PDBPageHandle page = myMgr.getPage(set, i);
+    EXPECT_EQ(memcmp(tmpBuffer, page->getBytes(), secondSetSize), 0);
+  }
+}
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-
-#endif

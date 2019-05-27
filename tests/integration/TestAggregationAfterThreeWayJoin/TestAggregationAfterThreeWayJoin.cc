@@ -225,4 +225,7 @@ int main(int argc, char* argv[]) {
     auto r = it->getNextRecord();
     std::cout << "Value : " << r->getValue() << " Key : " << r->getKey() << std::endl;
   }
+
+  // shutdown the server
+  pdbClient.shutDownServer();
 }

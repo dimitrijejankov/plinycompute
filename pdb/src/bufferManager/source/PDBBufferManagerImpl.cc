@@ -90,6 +90,94 @@ size_t PDBBufferManagerImpl::getMaxPageSize() {
   return sharedMemory.pageSize;
 }
 
+void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
+
+  // lock the buffer manager
+  std::unique_lock<std::mutex> lock(m);
+
+  // close the file if open
+  auto fd = fds.find(set);
+  if(fd != fds.end()) {
+    close(fd->second);
+    fds.erase(fd);
+  }
+
+  // remove the pages from all the pages
+  bool found = false;
+  for(auto it = allPages.begin(); it != allPages.end(); ) {
+
+    // check if the set matches
+    if (*it->first.first == *set) {
+
+      // find the parent page of this page
+      void *memLoc = (char *) sharedMemory.memory + ((((char *) it->second->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+
+      // decrease the number of pinned pages
+      numPinned[memLoc]--;
+      if(numPinned[memLoc] == 0) {
+
+        // first we need to remove all the mini pages that this page is split into and are not used
+        auto &unused = unusedMiniPages[memLoc];
+        auto &miniPages = emptyMiniPages[unused.second];
+
+        // go through each unused mini page and remove it!
+        for (auto const &kt : unused.first) {
+          auto const jt = std::find(miniPages.begin(), miniPages.end(), kt);
+          miniPages.erase(jt);
+        }
+
+        // clear the unused pages
+        unused.first.clear();
+
+        // add it to the lru
+        numPinned[memLoc] = -lastTimeTick;
+        lastUsed.insert(make_pair(memLoc, lastTimeTick));
+        lastTimeTick++;
+      }
+
+      // remove the page from the constituentPages
+      auto &siblings = constituentPages[memLoc];
+      auto pagePos = std::find(siblings.begin(), siblings.end(), it->second);
+      siblings.erase(pagePos);
+
+      allPages.erase(it++);
+
+      // mark tha we have found it
+      found = true;
+
+      // go to the next one
+      continue;
+    }
+
+    if(found) {
+      break;
+    }
+
+    // go to next
+    ++it;
+  }
+
+  // remove all page locations for that set
+  for(auto it = pageLocations.begin(); it != pageLocations.end(); ) {
+
+    // check if the set matches
+    if (*it->first.first == *set) {
+
+      // remove the location since the set matches
+      pageLocations.erase(it++);
+      continue;
+    }
+
+    // go to next
+    ++it;
+  }
+
+  // remove the end of files
+  endOfFiles.erase(set);
+
+}
+
+
 PDBBufferManagerImpl::~PDBBufferManagerImpl() {
 
   if (!initialized)
