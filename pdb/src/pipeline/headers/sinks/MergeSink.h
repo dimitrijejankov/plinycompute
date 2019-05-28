@@ -63,6 +63,10 @@ class MergerSink : public ComputeSink {
       // get the hash
       auto hash = records.getHash();
       // copy the records
+
+      std::cout<< "records size: "<<records.size()<<std::endl;
+
+
       for (size_t i = 0; i < records.size(); ++i) {
         // copy a single record
         try {

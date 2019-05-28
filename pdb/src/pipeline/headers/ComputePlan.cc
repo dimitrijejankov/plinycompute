@@ -231,7 +231,7 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
       auto rhsSource = ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getRHSShuffleJoinSource(rightAtomicComp->getOutput(),
                                                                                                                                             joinComputation->getRightInput(),
                                                                                                                                             joinComputation->getRightProjection(),
-                                                                                                                                            it->second->pageSet,
+                                                                                                                                            it->second->hashTablePageSet,
                                                                                                                                             myPlan,
                                                                                                                                             chunkSize,
                                                                                                                                             workerID);
@@ -265,7 +265,7 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
       auto rhsSource = ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getRHSShuffleJoinSource(rightAtomicComp->getOutput(),
                                                                                                                                             joinComputation->getInput(),
                                                                                                                                             joinComputation->getProjection(),
-                                                                                                                                            it->second->pageSet,
+                                                                                                                                            it->second->hashTablePageSet,
                                                                                                                                             myPlan,
                                                                                                                                             chunkSize,
                                                                                                                                             workerID);
@@ -465,13 +465,12 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
 
         // if we are pipelining the right input, then we don't need to switch left and right inputs
         std::cout << "We are pipelining the right input...\n";
-        returnVal->addStage(myComp.getExecutor(true, myJoin->getProjection(), lastOne->getOutput(), myJoin->getRightInput(), myJoin->getRightProjection(), it->second, *this));
-
+        returnVal->addStage(myComp.getExecutor(true, myJoin->getProjection(), lastOne->getOutput(), myJoin->getRightInput(), myJoin->getRightProjection(), it->second, numNodes, numProcessingThreads, workerID, *this));
       } else {
 
         // if we are pipelining the right input, then we don't need to switch left and right inputs
         std::cout << "We are pipelining the left input...\n";
-        returnVal->addStage(myComp.getExecutor(false, myJoin->getRightProjection(), lastOne->getOutput(), myJoin->getInput(), myJoin->getProjection(), it->second, *this));
+        returnVal->addStage(myComp.getExecutor(false, myJoin->getRightProjection(), lastOne->getOutput(), myJoin->getInput(), myJoin->getProjection(), it->second, numNodes, numProcessingThreads, workerID, *this));
       }
 
     }

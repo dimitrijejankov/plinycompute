@@ -81,9 +81,12 @@ int64_t pdb::JoinMap<ValueType>::getHashValue() {
 
 template <class ValueType>
 ValueType& JoinMap<ValueType>::push(const size_t& me) {
+    size_t objSize = this->objectSize;
     if (myArray->isOverFull()) {
         Handle<JoinPairArray<ValueType>> temp = myArray->doubleArray();
+        std::cout<<"temp objSize: "<<temp->getobjSize() << std::endl;
         myArray = temp;
+        std::cout << "myArray objSize: " << myArray->getobjSize() << std::endl;
     }
     return myArray->push(me);
 }

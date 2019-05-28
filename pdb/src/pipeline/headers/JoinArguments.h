@@ -36,10 +36,10 @@ class JoinArg {
 public:
 
   // init the join arguments
-  explicit JoinArg(PDBAbstractPageSetPtr pageSet) : pageSet(std::move(pageSet)) {}
+  explicit JoinArg(PDBAbstractPageSetPtr hashTablePageSet) : hashTablePageSet(std::move(hashTablePageSet)) {}
 
   // the pointer
-  PDBAbstractPageSetPtr pageSet;
+  PDBAbstractPageSetPtr hashTablePageSet;
 
   // the location of the hash table // TODO this needs to be a page set or something
   // void *pageWhereHashTableIs = nullptr;
@@ -50,9 +50,8 @@ using JoinArgPtr = std::shared_ptr<JoinArg>;
 class JoinArguments : public pdb::ComputeInfo {
 public:
   JoinArguments() = default;
-
   JoinArguments(std::initializer_list<std::pair<const std::string, JoinArgPtr>> l) : hashTables(l) {}
-
+  explicit JoinArguments(unordered_map<string, JoinArgPtr> hashTables) : hashTables(std::move(hashTables)) {}
   // the list of hash tables
   std::unordered_map<std::string, JoinArgPtr> hashTables;
 };

@@ -18,6 +18,7 @@ class MockPageSetReader : public pdb::PDBAbstractPageSet {
       workerID));
   MOCK_METHOD0(getNewPage, PDBPageHandle());
   MOCK_METHOD0(getNumPages, size_t());
+  MOCK_METHOD0(resetPageSet, void());
 };
 
 class MockPageSetWriter : public pdb::PDBAnonymousPageSet {

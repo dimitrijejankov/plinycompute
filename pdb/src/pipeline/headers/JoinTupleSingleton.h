@@ -23,11 +23,14 @@ class JoinTupleSingleton {
 
  public:
 
-  virtual ComputeExecutorPtr getProber(void *hashTable,
+  virtual ComputeExecutorPtr getProber(PDBAbstractPageSetPtr &hashTable,
                                        std::vector<int> &positions,
                                        TupleSpec &inputSchema,
                                        TupleSpec &attsToOperateOn,
                                        TupleSpec &attsToIncludeInOutput,
+                                       uint64_t numNodes,
+                                       uint64_t numProcessingThreads,
+                                       uint64_t workerID,
                                        bool needToSwapLHSAndRhs) = 0;
 
   virtual ComputeSinkPtr getSink(TupleSpec &consumeMe,
@@ -78,13 +81,26 @@ class JoinSingleton : public JoinTupleSingleton {
  public:
 
   // gets a hash table prober
-  ComputeExecutorPtr getProber(void *hashTable,
+
+  ComputeExecutorPtr getProber(PDBAbstractPageSetPtr &hashTable,
                                std::vector<int> &positions,
                                TupleSpec &inputSchema,
                                TupleSpec &attsToOperateOn,
                                TupleSpec &attsToIncludeInOutput,
+                               uint64_t numNodes,
+                               uint64_t numProcessingThreads,
+                               uint64_t workerID,
                                bool needToSwapLHSAndRhs) override {
-    return std::make_shared<JoinProbeExecution<HoldMe>>(hashTable, positions, inputSchema, attsToOperateOn, attsToIncludeInOutput, needToSwapLHSAndRhs);
+
+    return std::make_shared<JoinProbeExecution<HoldMe>>(hashTable,
+                                                        positions,
+                                                        inputSchema,
+                                                        attsToOperateOn,
+                                                        attsToIncludeInOutput,
+                                                        numNodes,
+                                                        numProcessingThreads,
+                                                        workerID,
+                                                        needToSwapLHSAndRhs);
   }
 
   // creates a compute sink for this particular type
