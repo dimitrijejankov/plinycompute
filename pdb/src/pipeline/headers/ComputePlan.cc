@@ -456,7 +456,7 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
 
       // do we have the appropriate join arguments? if not throw an exception
       auto it = joinArgs->hashTables.find(a->getOutput().getSetName());
-      if(it != joinArgs->hashTables.end()) {
+      if(it == joinArgs->hashTables.end()) {
         throw runtime_error("Hash table for the output set," + a->getOutput().getSetName() +  "not found!");
       }
 
