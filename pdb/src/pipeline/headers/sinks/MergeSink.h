@@ -58,14 +58,15 @@ class MergerSink : public ComputeSink {
     auto &mergeMe = *(joinMapVector[workerID]);
 
     for (auto it = mergeMe.begin(); it != mergeMe.end(); ++it) {
+
+      // get the ptr
+      auto recordsPtr = *it;
+
       // get the records
-      JoinRecordList<RHSType> &records = *(*it);
+      JoinRecordList<RHSType> records = *(recordsPtr);
       // get the hash
       auto hash = records.getHash();
       // copy the records
-
-      std::cout<< "records size: "<<records.size()<<std::endl;
-
 
       for (size_t i = 0; i < records.size(); ++i) {
         // copy a single record

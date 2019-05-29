@@ -397,7 +397,6 @@ Handle<JoinPairArray<ValueType>> JoinPairArray<ValueType>::doubleArray() {
       }
 
       newOne.overflows = overflows;
-      std::cout<<"newOne objSize: "<<newOne.objSize<< std::endl;
       // and return this guy
       return tempArray;
 }
@@ -433,22 +432,12 @@ size_t JoinRecordList<ValueType>::getHash() {
 template<class ValueType>
 size_t JoinRecordList<ValueType>::size() {
 
-  // in the case where this guy is not in the list, we return a zero
-  if (parent == NULL){
-    std::cout << "parent->numSlots: " << parent->numSlots << std::endl;
-    std::cout << "parent->objSize: " << parent->objSize << std::endl;
-  }
-  std::cout << "parent address: "<< parent << std::endl;
-  std::cout << "parent->numSlots: " << parent->numSlots << std::endl;
-  std::cout << "parent->objSize: " << parent->objSize << std::endl;
-
   uint32_t objSize = parent->objSize;
   if (JM_GET_HASH(parent->data, whichOne) == JM_UNUSED)
     return 0;
 
   if (JM_GET_NEXT(parent->data, whichOne) != UINT32_MAX) {
     if (JM_GET_NEXT(parent->data, whichOne) < parent->overflows.size()) {
-      std::cout << "parent->objSize: " << parent->objSize << std::endl;
       return parent->overflows[JM_GET_NEXT(parent->data, whichOne)].size() + 1;
     } else {
       std::cout << "not invalid pos, return 0" << std::endl;
@@ -464,7 +453,6 @@ ValueType &JoinRecordList<ValueType>::operator[](const size_t i) {
   if (parent == nullptr){
     std::cout<<" parent is null! " << std::endl;
   }
-  std::cout<<"parent->objSize: "<< parent->objSize << std::endl;
   uint32_t objSize = parent->objSize;
   return i == 0 ? JM_GET_VALUE(parent->data, whichOne, ValueType) : parent->overflows[JM_GET_NEXT(parent->data, whichOne)][i - 1];
 }
