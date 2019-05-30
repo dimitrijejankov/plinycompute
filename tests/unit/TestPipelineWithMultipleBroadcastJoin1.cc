@@ -420,6 +420,7 @@ TEST(PipelineTest, TestBroadcastJoin) {
     setAPageVectors.emplace_back(std::move(pageVector));
   }
 
+  /// 5. Process the pages in Set A for every worker in each node
   for (curNode = 0; curNode < numNodes; ++curNode) {
     for (curThread = 0; curThread < threadsPerNode; ++curThread) {
 
@@ -427,11 +428,11 @@ TEST(PipelineTest, TestBroadcastJoin) {
                setAPageVectors[curNode].end(),
                [&](PDBPageHandle &page) { pageQueuesForA[curNode]->enqueue(page); });
 
-      myPipeline = myPlan.buildMergeJoinBroadcastPipeline("AHashed",
-                                                          partitionedAPageSet,
-                                                          BroadcastedAPageSet,
-                                                          threadsPerNode,
-                                                          curNode * threadsPerNode + curThread);
+      myPipeline = myPlan.buildBroadcastJoinPipeline("AHashed",
+                                                     partitionedAPageSet,
+                                                     BroadcastedAPageSet,
+                                                     threadsPerNode,
+                                                     curNode * threadsPerNode + curThread);
       std::cout << "\nRUNNING BROADCAST JOIN PIPELINE FOR SET A\n";
       myPipeline->run();
       std::cout << "\nDONE RUNNING BROADCAST JOIN PIPELINE FOR SET A\n";
@@ -468,6 +469,7 @@ TEST(PipelineTest, TestBroadcastJoin) {
     setCPageVectors.emplace_back(std::move(pageVector));
   }
 
+  /// 6. Process the pages in Set C for every worker in each node
   for (curNode = 0; curNode < numNodes; ++curNode) {
     for (curThread = 0; curThread < threadsPerNode; ++curThread) {
 
@@ -475,11 +477,11 @@ TEST(PipelineTest, TestBroadcastJoin) {
                setCPageVectors[curNode].end(),
                [&](PDBPageHandle &page) { pageQueuesForC[curNode]->enqueue(page); });
 
-      myPipeline = myPlan.buildMergeJoinBroadcastPipeline("CHashedOnC",
-                                                          partitionedCPageSet,
-                                                          BroadcastedCPageSet,
-                                                          threadsPerNode,
-                                                          curNode * threadsPerNode + curThread);
+      myPipeline = myPlan.buildBroadcastJoinPipeline("CHashedOnC",
+                                                     partitionedCPageSet,
+                                                     BroadcastedCPageSet,
+                                                     threadsPerNode,
+                                                     curNode * threadsPerNode + curThread);
       std::cout << "\nRUNNING BROADCAST JOIN PIPELINE FOR SET C\n";
       myPipeline->run();
       std::cout << "\nDONE RUNNING BROADCAST JOIN PIPELINE FOR SET C\n";

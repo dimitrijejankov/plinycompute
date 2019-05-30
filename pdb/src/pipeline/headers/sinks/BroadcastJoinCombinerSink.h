@@ -2,8 +2,8 @@
 // Created by yuxin on 2/19/19.
 //
 
-#ifndef PDB_MergerSink_H
-#define PDB_MergerSink_H
+#ifndef PDB_BROADCASTJOINCOMBINERSINK_H
+#define PDB_BROADCASTJOINCOMBINERSINK_H
 
 #include <ComputeSink.h>
 #include <TupleSpec.h>
@@ -15,7 +15,7 @@ namespace pdb {
 
 // this class is used to create a ComputeSink object that stores special objects that wrap up multiple columns of a tuple
 template<typename RHSType>
-class MergerSink : public ComputeSink {
+class BroadcastJoinCombinerSink : public ComputeSink {
 
  private:
 
@@ -27,9 +27,9 @@ class MergerSink : public ComputeSink {
 
  public:
 
-  explicit MergerSink(uint64_t workerID, size_t numPartitions) : numPartitions(numPartitions), workerID(workerID) {}
+  explicit BroadcastJoinCombinerSink(uint64_t workerID, size_t numPartitions) : numPartitions(numPartitions), workerID(workerID) {}
 
-  ~MergerSink() override = default;
+  ~BroadcastJoinCombinerSink() override = default;
 
   Handle<Object> createNewOutputContainer() override {
 

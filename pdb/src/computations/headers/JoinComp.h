@@ -156,7 +156,7 @@ private:
     std::cout << "\n";
 
     // return the merger
-    return correctJoinTuple->getMerger(workerID, numPartitions);
+    return correctJoinTuple->getBroadcastJoinHashMapCombiner(workerID, numPartitions);
   }
 
   PageProcessorPtr getShuffleJoinProcessor(size_t numNodes,

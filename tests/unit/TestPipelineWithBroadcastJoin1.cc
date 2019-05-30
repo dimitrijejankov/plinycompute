@@ -128,10 +128,10 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
   pageQueuesForA.reserve(numNodes);
   for (int i = 0; i < numNodes; ++i) { pageQueuesForA.emplace_back(std::make_shared<PDBPageQueue>()); }
 
-  //
+  // PageVectors are used as a SET for containing all the pages sent to different nodes
   std::vector<std::vector<PDBPageHandle>> setAPageVectors;
 
-  // the page set that is going to contain the partitioned preaggregation results
+  // the page set that is going to contain the partitioned results for set A
   std::shared_ptr<MockPageSetWriter> partitionedAPageSet = std::make_shared<MockPageSetWriter>();
 
   ON_CALL(*partitionedAPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
@@ -140,7 +140,6 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
 
   EXPECT_CALL(*partitionedAPageSet, getNewPage).Times(testing::AtLeast(1));
 
-  // the page set that is going to contain the partitioned preaggregation results
   ON_CALL(*partitionedAPageSet, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
       [&](size_t nodeID) {
         // wait to get the page
@@ -155,9 +154,9 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
         return page;
       }));
 
-  // it should call send object exactly six times
   EXPECT_CALL(*partitionedAPageSet, getNextPage).Times(testing::AtLeast(0));
 
+  // the queue that containing all the pages already been broadcasted
   std::queue<PDBPageHandle> BroadcastedAPageSetQueue;
   std::shared_ptr<MockPageSetWriter> BroadcastedAPageSet = std::make_shared<MockPageSetWriter>();
 
@@ -265,6 +264,7 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
   std::cout << "\nDONE RUNNING PIPELINE\n";
   myPipeline = nullptr;
 
+  // collect the pages with different nodes into a single setAPageVectors
   for (int i = 0; i < numNodes; ++i) {
     pageQueuesForA[i]->enqueue(nullptr);
     PDBPageHandle page;
@@ -276,6 +276,7 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
     setAPageVectors.emplace_back(std::move(tmp));
   }
 
+  /// 5. Process the pages for every worker in each node
   for (curNode = 0; curNode < numNodes; ++curNode) {
     for (curThread = 0; curThread < threadsPerNode; ++curThread) {
 
@@ -283,18 +284,18 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
                setAPageVectors[curNode].end(),
                [&](PDBPageHandle &page) { pageQueuesForA[curNode]->enqueue(page); });
 
-      myPipeline = myPlan.buildMergeJoinBroadcastPipeline("AHashed",
-                                                          partitionedAPageSet,
-                                                          BroadcastedAPageSet,
-                                                          threadsPerNode,
-                                                          curNode * threadsPerNode + curThread);
+      myPipeline = myPlan.buildBroadcastJoinPipeline("AHashed",
+                                                     partitionedAPageSet,
+                                                     BroadcastedAPageSet,
+                                                     threadsPerNode,
+                                                     curNode * threadsPerNode + curThread);
       std::cout << "\nRUNNING BROADCAST JOIN PIPELINE FOR SET A\n";
       myPipeline->run();
       std::cout << "\nDONE RUNNING BROADCAST JOIN PIPELINE FOR SET A\n";
       myPipeline = nullptr;
     }
   }
-  /// 5. Process the right side of the join (set B)
+  /// 6. Process the right side of the join (set B)
 
   BroadcastedAPageSetQueue.push(nullptr);
 
