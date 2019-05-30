@@ -133,6 +133,10 @@ bool PDBClient::registerType(const std::string &fileContainingSharedLib) {
   return result;
 }
 
+bool PDBClient::clearSet(const string &dbName, const string &setName) {
+  return distributedStorage->clearSet(dbName, setName, errorMsg);
+}
+
 bool PDBClient::executeComputations(Handle<Vector<Handle<Computation>>> &computations, const pdb::String &tcap) {
   return computationClient->executeComputations(computations, tcap, errorMsg);
 }
@@ -156,6 +160,7 @@ void PDBClient::listNodesInCluster() {
 void PDBClient::listUserDefinedTypes() {
   cout << catalogClient->listUserDefinedTypes(returnedMsg);
 }
+
 
 
 }

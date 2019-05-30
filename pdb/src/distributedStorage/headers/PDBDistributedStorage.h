@@ -16,8 +16,7 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef PDB_PDBDISTRIBUTEDSTORAGETEMPLATE_H
-#define PDB_PDBDISTRIBUTEDSTORAGETEMPLATE_H
+#pragma once
 
 #include "ServerFunctionality.h"
 #include "PDBLogger.h"
@@ -26,10 +25,14 @@
 #include "PDBVector.h"
 #include "StoGetNextPageRequest.h"
 #include "DisAddData.h"
+#include "DisClearSet.h"
+#include "PDBDistributedStorageSetLock.h"
 #include "PDBDispatchPolicy.h"
+#include <StoDispatchData.h>
 
 #include <string>
 #include <queue>
+#include <condition_variable>
 #include <unordered_map>
 #include <vector>
 #include <PDBPageHandle.h>
@@ -46,7 +49,7 @@ using PDBDistributedStoragePtr = std::shared_ptr<PDBDistributedStorage>;
  */
 class PDBDistributedStorage : public ServerFunctionality {
 
- public:
+public:
 
   ~PDBDistributedStorage() = default;
 
@@ -60,6 +63,41 @@ class PDBDistributedStorage : public ServerFunctionality {
    * @param forMe
    */
   void registerHandlers(PDBServer &forMe) override;
+
+  /**
+   * Blocks until we are granted to use the set. The requestedState is NONE an exception is thrown.
+   * The request expires once the lock goes out of scope
+   *
+   * @param dbName - the name of the database the set belongs to
+   * @param setName - the name of the set
+   * @param stateRequested - indicates what we are trying to use the set for
+   * @return - a lock for the request if it succeeds
+   */
+  PDBDistributedStorageSetLockPtr useSet(const std::string &dbName,
+                                         const std::string &setName,
+                                         PDBDistributedStorageSetState stateRequested);
+
+  /**
+   * Tries to use the set, for a specified purpose.
+   *
+   * If the requestedState is WRITING_DATA then the request will be granted if and only if the set is in WRITING_DATA or NONE state.
+   * If the requestedState is READING_DATA then the request will be granted if and only if the set is in READING_DATA or NONE state.
+   * If the requestedState is CLEARING_DATA then the request will be granted if and only if the set is in NONE state.
+   * If the requestedState is NONE an exception is thrown.
+   *
+   * The request expires once the lock goes out of scope
+   *
+   * @param dbName - the name of the database the set belongs to
+   * @param setName - the name of the set
+   * @param stateRequested - indicates what we are trying to use the set for
+   * @return - a lock for the request if it succeeds
+   */
+  PDBDistributedStorageSetLockPtr tryUsingSet(const std::string &dbName,
+                                              const std::string &setName,
+                                              PDBDistributedStorageSetState stateRequested,
+                                              std::unique_lock<std::mutex> &lck);
+
+private:
 
   /**
    * Requests a page from a node and stores it's compressed bytes onto an anonymous page.
@@ -117,7 +155,62 @@ class PDBDistributedStorage : public ServerFunctionality {
   std::pair<bool, std::string> handleAddData(const pdb::Handle<pdb::DisAddData> &request,
                                              std::shared_ptr<Communicator> &sendUsingMe);
 
- private:
+  /**
+   * This handler clears a particular set, it removes all info about it.
+   * It will succeed if the set is not in use.
+   *
+   * @tparam Communicator - the communicator class PDBCommunicator is used to handle the request. This is basically here
+   * so we could write unit tests
+   *
+   * @tparam Requests - is the request factory for this
+   *
+   * @param request - the request for the clear set
+   * @param sendUsingMe - the communicator that is sending the data
+   * @return
+   */
+  template<class Communicator, class Requests>
+  std::pair<bool, std::string> handleClearSet(const pdb::Handle<pdb::DisClearSet> &request,
+                                              std::shared_ptr<Communicator> &sendUsingMe);
+
+  /**
+   * This structure holds info about how we are currently using the set
+   */
+  struct PDBDistributedStorageSetStateStruct {
+
+    /**
+     * The current state
+     */
+    PDBDistributedStorageSetState state;
+
+    /**
+     * The number of current readers
+     */
+    int32_t numReaders;
+
+    /**
+     * Number of current writers
+     */
+    int32_t numWriters;
+
+  };
+
+  /**
+   * Same as the other @tryUsingSet just without lock parameter
+   * @param dbName - the name of the database the set belongs to
+   * @param setName - the name of the set
+   * @param stateRequested - indicates what we are trying to use the set for
+   * @return - a lock for the request if it succeeds
+   */
+  PDBDistributedStorageSetLockPtr tryUsingSet(const std::string &dbName,
+                                              const std::string &setName,
+                                              PDBDistributedStorageSetState stateRequested);
+
+  /**
+   * This marks that we are done using a particular set
+   * @param dbName - the name of the database the set belongs to
+   * @param setName - the name of the set
+   */
+  void finishUsingSet(const std::string &dbName, const std::string &setName, PDBDistributedStorageSetState stateRequested);
 
   /**
    * This method responds back to the client with an error. This should only be used before the actual data is received
@@ -141,9 +234,26 @@ class PDBDistributedStorage : public ServerFunctionality {
    * The logger for the distributed storage
    */
   PDBLoggerPtr logger;
+
+  /**
+   * Contains the info about what sets are currently in use by the system, this is runtime info.
+   */
+  std::map<std::pair<std::string, std::string>, PDBDistributedStorageSetStateStruct> setStates;
+
+  /**
+   * Used to lock the set @see setsInUse
+   */
+  std::mutex setInUseLck;
+
+  /**
+   * Used to block in the case we want to wait for a set to be free
+   */
+  std::condition_variable cv;
+
+  // add the distributed storage lock as a friend
+  friend class PDBDistributedStorageSetLock;
 };
+
 }
 
 #include <PDBDistributedStorageTemplate.cc>
-
-#endif  // OBJECTQUERYMODEL_DISPATCHER_H

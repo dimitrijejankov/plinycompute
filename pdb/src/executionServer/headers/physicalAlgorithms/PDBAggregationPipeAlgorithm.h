@@ -97,10 +97,6 @@ public:
    */
   std::shared_ptr<std::vector<PDBPageQueuePtr>> pageQueues = nullptr;
 
-  /**
-   *
-   */
-  LogicalPlanPtr logicalPlan;
 
   // mark the tests that are testing this algorithm
   FRIEND_TEST(TestPhysicalOptimizer, TestAggregation);

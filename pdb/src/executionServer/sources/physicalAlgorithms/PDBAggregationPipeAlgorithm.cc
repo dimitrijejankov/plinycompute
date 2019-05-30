@@ -33,25 +33,8 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
   // get the source computation
   auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
 
-  // if this is a scan set get the page set from a real set
-  PDBAbstractPageSetPtr sourcePageSet;
-  if (srcNode->getAtomicComputationTypeID() == ScanSetAtomicTypeID) {
-
-    // cast it to a scan
-    auto scanNode = std::dynamic_pointer_cast<ScanSet>(srcNode);
-
-    // get the page set
-    sourcePageSet = storage->createPageSetFromPDBSet(scanNode->getDBName(),
-                                                     scanNode->getSetName(),
-                                                     std::make_pair(source->pageSetIdentifier.first,
-                                                                    source->pageSetIdentifier.second));
-    sourcePageSet->resetPageSet();
-  } else {
-
-    // we are reading from an existing page set get it
-    sourcePageSet = storage->getPageSet(source->pageSetIdentifier);
-    sourcePageSet->resetPageSet();
-  }
+  // go grab the source page set
+  PDBAbstractPageSetPtr sourcePageSet = getSourcePageSet(storage);
 
   // did we manage to get a source page set? if not the setup failed
   if (sourcePageSet == nullptr) {

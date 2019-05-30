@@ -71,10 +71,6 @@ public:
    */
   std::shared_ptr<std::vector<PipelinePtr>> myPipelines = nullptr;
 
-  /**
-   *
-   */
-  LogicalPlanPtr logicalPlan;
 
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin3);
   FRIEND_TEST(TestPhysicalOptimizer, TestTwoSinksSelection);

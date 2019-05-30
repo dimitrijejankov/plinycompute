@@ -102,7 +102,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageReques
 }
 
 template <class Communicator, class Requests>
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedData(pdb::Handle<pdb::StoDispatchData> request, std::shared_ptr<Communicator> sendUsingMe)  {
+std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedData(pdb::Handle<pdb::StoDispatchData> request, std::shared_ptr<Communicator> sendUsingMe) {
 
   /// 1. Get the page from the distributed storage
 
@@ -163,7 +163,6 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
 
   PDBCommunicatorPtr communicatorToBackend = make_shared<PDBCommunicator>();
   if (!communicatorToBackend->connectToLocalServer(logger, getConfiguration()->ipcFile, error)) {
-
     return std::make_pair(false, error);
   }
 
@@ -558,6 +557,61 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleRemovePageSet
 
   // return
   return std::make_pair(success, error);
+}
+
+template <class Communicator>
+std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleClearSetRequest(pdb::Handle<pdb::StoClearSetRequest> &request,
+                                                                                   std::shared_ptr<Communicator> &sendUsingMe) {
+  std::string error;
+
+  // lock the structures
+  std::unique_lock<std::mutex> lck{pageMutex};
+
+  // make the set
+  auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
+
+  // remove the stats
+  pageStats.erase(set);
+
+  // make sure we have no pages that we are writing to
+  auto it = pagesBeingWrittenTo.find(set);
+  if(it != pagesBeingWrittenTo.end() && !it->second.empty()) {
+
+    // set the error
+    error = "There are currently pages being written to, failed to remove the set.";
+
+    // create an allocation block to hold the response
+    const UseTemporaryAllocationBlock tempBlock{1024};
+    Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, error);
+
+    // sends result to requester
+    sendUsingMe->sendObject(response, error);
+
+    // return
+    return std::make_pair(false, error);
+  }
+
+  // remove the pages being written to
+  pagesBeingWrittenTo.erase(set);
+
+  // remove the skipped pages
+  freeSkippedPages.erase(set);
+
+  // get the buffer manger
+  auto bufferManager = std::dynamic_pointer_cast<pdb::PDBBufferManagerFrontEnd>(getFunctionalityPtr<pdb::PDBBufferManagerInterface>());
+
+  // clear the set from the buffer manager
+  bufferManager->clearSet(set);
+
+  // create an allocation block to hold the response
+  const UseTemporaryAllocationBlock tempBlock{1024};
+  Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(true, error);
+
+  // sends result to requester
+  sendUsingMe->sendObject(response, error);
+
+  // return
+  return std::make_pair(true, error);
 }
 
 template <class Communicator>

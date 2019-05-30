@@ -16,17 +16,14 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef DISPATCHER_SERVER_CC
-#define DISPATCHER_SERVER_CC
-
 #include "PDBDistributedStorage.h"
 #include <snappy.h>
 #include <HeapRequestHandler.h>
 #include <DisAddData.h>
+#include <DisClearSet.h>
 #include <BufGetPageRequest.h>
 #include <PDBBufferManagerInterface.h>
 #include <PDBDispatchRandomPolicy.h>
-#include <StoDispatchData.h>
 #include "PDBCatalogClient.h"
 #include <boost/filesystem/path.hpp>
 #include <PDBDistributedStorage.h>
@@ -53,7 +50,6 @@ forMe.registerHandler(
     StoGetNextPageRequest_TYPEID,
     make_shared<pdb::HeapRequestHandler<pdb::StoGetNextPageRequest>>(
         [&](Handle<pdb::StoGetNextPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
-
           return handleGetNextPage<PDBCommunicator, RequestFactory>(request, sendUsingMe);
         }));
 
@@ -61,11 +57,165 @@ forMe.registerHandler(
     DisAddData_TYPEID,
     make_shared<HeapRequestHandler<pdb::DisAddData>>(
         [&](Handle<pdb::DisAddData> request, PDBCommunicatorPtr sendUsingMe) {
-
           return handleAddData<PDBCommunicator, RequestFactory>(request, sendUsingMe);
+    }));
+
+forMe.registerHandler(
+    DisClearSet_TYPEID,
+    make_shared<HeapRequestHandler<pdb::DisClearSet>>(
+        [&](Handle<pdb::DisClearSet> request, PDBCommunicatorPtr sendUsingMe) {
+          return handleClearSet<PDBCommunicator, RequestFactory>(request, sendUsingMe);
     }));
 }
 
+pdb::PDBDistributedStorageSetLockPtr pdb::PDBDistributedStorage::useSet(const std::string &dbName,
+                                                                        const std::string &setName,
+                                                                        pdb::PDBDistributedStorageSetState stateRequested) {
+
+  PDBDistributedStorageSetLockPtr setLock;
+
+  // lock the structure
+  std::unique_lock<std::mutex> lck{setInUseLck};
+
+  // wait until we can use the set
+  cv.wait(lck, [&] {
+
+    // try to use the set
+    setLock = tryUsingSet(dbName, setName, stateRequested, lck);
+
+    // return if is granted, stop waiting
+    return setLock->isGranted();
+  });
+
+  // return the lock
+  return setLock;
 }
 
-#endif
+PDBDistributedStorageSetLockPtr pdb::PDBDistributedStorage::tryUsingSet(const std::string &dbName,
+                                                                        const std::string &setName,
+                                                                        PDBDistributedStorageSetState stateRequested) {
+
+  // lock the structure
+  std::unique_lock<std::mutex> lck{setInUseLck};
+
+  // try to use the set
+  return tryUsingSet(dbName, setName, stateRequested, lck);
+}
+
+PDBDistributedStorageSetLockPtr pdb::PDBDistributedStorage::tryUsingSet(const std::string &dbName,
+                                                                        const std::string &setName,
+                                                                        PDBDistributedStorageSetState stateRequested,
+                                                                        std::unique_lock<std::mutex> &lck) {
+
+
+
+  // grab a ptr to the distributed storage
+  auto distStorage = getFunctionalityPtr<pdb::PDBDistributedStorage>();
+
+  // get the
+  auto &isInUse = setStates[std::make_pair(dbName, setName)];
+
+  switch (stateRequested) {
+    case PDBDistributedStorageSetState::NONE: { throw std::runtime_error(""); }
+    case PDBDistributedStorageSetState::WRITING_DATA: {
+
+      // check if we can grant it
+      if(isInUse.state == PDBDistributedStorageSetState::NONE || isInUse.state == PDBDistributedStorageSetState::WRITING_DATA) {
+
+        // update the state
+        isInUse.numWriters++;
+        isInUse.state =  PDBDistributedStorageSetState::WRITING_DATA;
+
+        // return
+        return std::make_shared<PDBDistributedStorageSetLock>(dbName, setName, PDBDistributedStorageSetState::WRITING_DATA, distStorage);
+      }
+
+      // failed to do it
+      return std::make_shared<PDBDistributedStorageSetLock>(dbName, setName, PDBDistributedStorageSetState::NONE, distStorage);
+    }
+    case PDBDistributedStorageSetState::READING_DATA: {
+
+      // check if we can grant it
+      if(isInUse.state == PDBDistributedStorageSetState::NONE || isInUse.state == PDBDistributedStorageSetState::READING_DATA) {
+
+        // update the state
+        isInUse.numReaders++;
+        isInUse.state =  PDBDistributedStorageSetState::READING_DATA;
+
+        // return
+        return std::make_shared<PDBDistributedStorageSetLock>(dbName, setName, PDBDistributedStorageSetState::READING_DATA, distStorage);
+      }
+
+      // failed to do it
+      return std::make_shared<PDBDistributedStorageSetLock>(dbName, setName, PDBDistributedStorageSetState::NONE, distStorage);
+    }
+    case PDBDistributedStorageSetState::CLEARING_DATA : {
+
+      // check if we can grant it
+      if(isInUse.state == PDBDistributedStorageSetState::NONE) {
+        isInUse.state =  PDBDistributedStorageSetState::CLEARING_DATA;
+
+        // return
+        return std::make_shared<PDBDistributedStorageSetLock>(dbName, setName, PDBDistributedStorageSetState::CLEARING_DATA, distStorage);
+      }
+
+      // failed to do it
+      return std::make_shared<PDBDistributedStorageSetLock>(dbName, setName, PDBDistributedStorageSetState::NONE, distStorage);
+    }
+  }
+}
+
+void pdb::PDBDistributedStorage::finishUsingSet(const std::string &dbName, const std::string &setName, PDBDistributedStorageSetState stateRequested) {
+
+  // lock the structure
+  std::unique_lock<std::mutex> lck{setInUseLck};
+
+  // get the
+  auto &isInUse = setStates[std::make_pair(dbName, setName)];
+
+  if(stateRequested == PDBDistributedStorageSetState::WRITING_DATA && isInUse.state == PDBDistributedStorageSetState::WRITING_DATA) {
+
+    // decrement the number of writers
+    assert(isInUse.numWriters > 0);
+    isInUse.numWriters--;
+
+    // check if we are done writing
+    if(isInUse.numWriters == 0) {
+
+      // set the state back to none
+      isInUse.state = PDBDistributedStorageSetState::NONE;
+    }
+  }
+  else if(stateRequested == PDBDistributedStorageSetState::READING_DATA && isInUse.state == PDBDistributedStorageSetState::READING_DATA) {
+
+    // decrement the number of readers
+    assert(isInUse.numReaders > 0);
+    isInUse.numReaders--;
+
+    // check if we are done reading
+    if(isInUse.numReaders == 0) {
+
+      // set the state back to none
+      isInUse.state = PDBDistributedStorageSetState::NONE;
+    }
+  }
+  else if(stateRequested == PDBDistributedStorageSetState::CLEARING_DATA && isInUse.state == PDBDistributedStorageSetState::CLEARING_DATA) {
+
+    // make some checks
+    assert(isInUse.numReaders == 0);
+    assert(isInUse.numReaders == 0);
+
+    // set the state back to none
+    isInUse.state = PDBDistributedStorageSetState::NONE;
+  }
+  else {
+
+    // this is not supposed to happen throw an exception
+    throw std::runtime_error("There is an invalid state this is not supposed to happen!");
+  }
+
+  // notify that we have changed stuff
+  cv.notify_all();
+}
+
+}

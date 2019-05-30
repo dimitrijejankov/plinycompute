@@ -143,6 +143,8 @@ class PDBClient : public ServerFunctionality {
   template<class DataType>
   bool sendData(const std::string &database, const std::string &set, Handle<Vector<Handle<DataType>>> dataToSend);
 
+  bool clearSet(const std::string &dbName, const std::string &setName);
+
  private:
 
   std::shared_ptr<pdb::PDBCatalogClient> catalogClient;

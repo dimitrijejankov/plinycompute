@@ -26,6 +26,10 @@ void pdb::PDBComputationServerFrontend::init() {
 
 bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job) {
 
+  // the locks for the sets
+  std::vector<PDBDistributedStorageSetLockPtr> locks;
+  auto distStorage = getFunctionalityPtr<PDBDistributedStorage>();
+
   atomic_bool success;
   success = true;
 
@@ -46,6 +50,9 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
     // update the container type
     std::string error;
     success = client.updateSetContainerType(set.first, set.second, containerType, error) && success;
+
+    // get access for writing for the sets, this will block until we can get access to the set
+    locks.emplace_back(distStorage->useSet(set.first, set.second, PDBDistributedStorageSetState::WRITING_DATA));
   }
 
   // create the buzzer

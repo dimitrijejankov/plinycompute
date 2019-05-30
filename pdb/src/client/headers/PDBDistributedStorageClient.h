@@ -64,6 +64,13 @@ public:
   bool sendData(const std::string &db, const std::string &set, Handle<Vector<Handle<DataType>>> dataToSend, std::string &errMsg);
 
   /**
+   * Removes all the data from a set
+   * @param dbName - the name of the database
+   * @param setName  - the name of the set
+   */
+  bool clearSet(const string &dbName, const string &setName, std::string &errMsg);
+
+  /**
    * Returns an vector iterator that can fetch records from the storage
    * @param set - the set want to grab the iterator for
    * @return the iterator

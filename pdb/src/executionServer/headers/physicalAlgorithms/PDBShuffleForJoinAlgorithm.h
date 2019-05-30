@@ -73,11 +73,6 @@ public:
   /**
    *
    */
-  LogicalPlanPtr logicalPlan;
-
-  /**
-   *
-   */
   PDBLoggerPtr logger;
 
   /**

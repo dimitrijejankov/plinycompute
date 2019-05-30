@@ -20,6 +20,7 @@
 
 #include "PDBDistributedStorageClient.h"
 #include "DisAddData.h"
+#include "DisClearSet.h"
 #include "SimpleSendDataRequest.h"
 #include "SimpleSendBytesRequest.h"
 #include "SimpleRequestResult.h"
@@ -60,7 +61,6 @@ PDBStorageIteratorPtr<DataType> PDBDistributedStorageClient::getMapIterator(cons
 
   return std::make_shared<PDBStorageMapIterator<DataType>>(address, port, 5, set, database);
 }
-
 
 }
 

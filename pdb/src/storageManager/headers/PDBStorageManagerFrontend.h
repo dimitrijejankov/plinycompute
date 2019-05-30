@@ -21,6 +21,7 @@
 #include <StoMaterializePageResult.h>
 #include <StoRemovePageSetRequest.h>
 #include <StoStartFeedingPageSetRequest.h>
+#include <StoClearSetRequest.h>
 
 namespace pdb {
 
@@ -134,6 +135,16 @@ public:
    */
   template <class Communicator>
   std::pair<bool, std::string> handleStartFeedingPageSetRequest(pdb::Handle<pdb::StoStartFeedingPageSetRequest> &request, std::shared_ptr<Communicator> &sendUsingMe);
+
+  /**
+   *
+   * @tparam Communicator
+   * @param request
+   * @param sendUsingMe
+   * @return
+   */
+  template <class Communicator>
+  std::pair<bool, std::string> handleClearSetRequest(pdb::Handle<pdb::StoClearSetRequest> &request, std::shared_ptr<Communicator> &sendUsingMe);
 
   /**
    * This method handles the situation where we want to reclaim a page of a set that was allocated for the backend to

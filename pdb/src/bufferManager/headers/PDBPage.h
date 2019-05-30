@@ -19,7 +19,7 @@
 #include <atomic>
 
 // this is the smallest mini-page size that we can have
-#define MIN_PAGE_SIZE 8u
+#define MIN_PAGE_SIZE 1048576u
 
 // create a smart pointer for pages
 using namespace std;

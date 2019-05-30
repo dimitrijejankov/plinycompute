@@ -13,6 +13,7 @@
 #include <PDBSinkPageSetSpec.h>
 #include <PDBSetObject.h>
 #include <PDBCatalogSet.h>
+#include <LogicalPlan.h>
 #include <PDBVector.h>
 #include <JoinArguments.h>
 #include <gtest/gtest_prod.h>
@@ -85,6 +86,13 @@ public:
 protected:
 
   /**
+   * Returns the source page set we are scanning.
+   * @param storage - a ptr to the storage manager backend so we can grab the page set
+   * @return - the page set
+   */
+  PDBAbstractPageSetPtr getSourcePageSet(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage);
+
+  /**
    * Returns the additional sources as join arguments, if we can not find a page set that is specified in the additional sources
    * this method will return null
    * @param storage - Storage manager backend
@@ -126,6 +134,11 @@ protected:
    * Indicates whether the left and the right side are swapped
    */
   bool swapLHSandRHS = false;
+
+  /**
+   * The logical plan
+   */
+  pdb::LogicalPlanPtr logicalPlan;
 
   // mark the tests that are testing this algorithm
   FRIEND_TEST(TestPhysicalOptimizer, TestAggregation);
