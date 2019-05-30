@@ -55,7 +55,6 @@ PDBPageHandle getSetAPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr) 
   {
     // this implementation only serves six pages
     static int numPages = 0;
-    std::cout << " We are trying to get pages from set A, the number is now: " << numPages << std::endl;
     if (numPages == 6)
       return nullptr;
 
@@ -116,7 +115,6 @@ PDBPageHandle getSetCPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr) 
   {
     // this implementation only serves six pages
     static int numPages = 0;
-    std::cout << " We are trying to get pages from set C, the number is now: " << numPages << std::endl;
     if (numPages == 6)
       return nullptr;
 
@@ -262,7 +260,6 @@ TEST(PipelineTest, TestBroadcastJoin) {
   ON_CALL(*BroadcastedAPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
     PDBPageHandle myPage = myMgr->getPage();
     BroadcastedAPageSetQueue.push(myPage);
-    std::cout << "BroadcastedAPageSetQueue.push: " << BroadcastedAPageSetQueue.size() << std::endl;
     return myPage;
   }));
 
@@ -270,7 +267,6 @@ TEST(PipelineTest, TestBroadcastJoin) {
 
   ON_CALL(*BroadcastedAPageSet, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
       [&](size_t workerID) {
-        std::cout << "BroadcastedAPageSetQueue.size(): " << BroadcastedAPageSetQueue.size() << std::endl;
         PDBPageHandle myPage = BroadcastedAPageSetQueue.front();
         BroadcastedAPageSetQueue.pop();
         return myPage;
@@ -283,7 +279,6 @@ TEST(PipelineTest, TestBroadcastJoin) {
   ON_CALL(*BroadcastedCPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
     PDBPageHandle myPage = myMgr->getPage();
     BroadcastedCPageSetQueue.push(myPage);
-    std::cout << "BroadcastedCPageSetQueue.push: " << BroadcastedCPageSetQueue.size() << std::endl;
     return myPage;
   }));
 
@@ -291,7 +286,6 @@ TEST(PipelineTest, TestBroadcastJoin) {
 
   ON_CALL(*BroadcastedCPageSet, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
       [&](size_t workerID) {
-        std::cout << "BroadcastedCPageSetQueue.size(): " << BroadcastedCPageSetQueue.size() << std::endl;
         PDBPageHandle myPage = BroadcastedCPageSetQueue.front();
         BroadcastedCPageSetQueue.pop();
         return myPage;
@@ -399,9 +393,7 @@ TEST(PipelineTest, TestBroadcastJoin) {
                                                        std::make_shared<BroadcastJoinProcessor>(numNodes,
                                                                                                 threadsPerNode,
                                                                                                 pageQueuesForA,
-                                                                                                myMgr)},
-                                                      {ComputeInfoType::JOIN_SIDE,
-                                                       std::make_shared<pdb::BroadcastJoinSide>(BroadcastJoinSideEnum::PROBE_SIDE)}};
+                                                                                                myMgr)}};
   PipelinePtr myPipeline = myPlan.buildPipeline(std::string("A"), /* this is the TupleSet the pipeline starts with */
                                                 std::string("AHashed"),     /* this is the TupleSet the pipeline ends with */
                                                 setAReader,
@@ -448,8 +440,7 @@ TEST(PipelineTest, TestBroadcastJoin) {
   }
 
   params = {{ComputeInfoType::PAGE_PROCESSOR,
-             std::make_shared<BroadcastJoinProcessor>(numNodes, threadsPerNode, pageQueuesForC, myMgr)},
-            {ComputeInfoType::JOIN_SIDE, std::make_shared<pdb::BroadcastJoinSide>(BroadcastJoinSideEnum::PROBE_SIDE)}};
+             std::make_shared<BroadcastJoinProcessor>(numNodes, threadsPerNode, pageQueuesForC, myMgr)}};
   myPipeline = myPlan.buildPipeline(std::string("C"), /* this is the TupleSet the pipeline starts with */
                                     std::string("CHashedOnC"),     /* this is the TupleSet the pipeline ends with */
                                     setCReader,

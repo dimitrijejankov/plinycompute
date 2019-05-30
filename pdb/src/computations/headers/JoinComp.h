@@ -115,16 +115,7 @@ private:
     // figure out the right join tuple
     std::vector<int> whereEveryoneGoes;
     JoinTuplePtr correctJoinTuple = findJoinTuple(projection, plan, whereEveryoneGoes);
-
-    auto it = params.find(ComputeInfoType::JOIN_SIDE);
-    BroadcastJoinSidePtr joinSide = dynamic_pointer_cast<BroadcastJoinSide>(it->second);
-
-    if (joinSide->value == BroadcastJoinSideEnum::PROBE_SIDE) {
-
-      return correctJoinTuple->getProbeSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
-    } else {
-      return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
-    }
+    return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
   }
 
   ComputeSinkPtr getComputeMerger(TupleSpec &consumeMe, TupleSpec &attsToOpOn, TupleSpec &projection,

@@ -87,7 +87,6 @@ class JoinProbeExecution : public ComputeExecutor {
     // grab each page and store the hash table
     PDBPageHandle page;
     inputTables.resize(numNodes * numProcessingThreads);
-    std::cout << "inputTables has resized to: " << numNodes * numProcessingThreads << std::endl;
     while ((page = hashTable->getNextPage(workerID)) != nullptr) {
       // store the page
       pages.emplace_back(page);
@@ -96,8 +95,6 @@ class JoinProbeExecution : public ComputeExecutor {
       // extract the hash table we've been given
       auto *input = (Record<JoinMap<RHSType>> *) page->getBytes();
       auto inputTable = input->getRootObject();
-      // store the hash table
-      std::cout << "input Table hash value: " << inputTable->getHashValue() << std::endl;
       inputTables[inputTable->getHashValue()] = inputTable;
     }
 

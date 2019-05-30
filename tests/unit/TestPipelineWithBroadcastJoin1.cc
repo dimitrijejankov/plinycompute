@@ -68,14 +68,11 @@ PDBPageHandle getSetBPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr) 
     static int numPages = 0;
     if (numPages == 6)
       return nullptr;
-
     // create a page, loading it with random data
     {
       const UseTemporaryAllocationBlock tempBlock{page->getBytes(), 1024 * 1024};
-
       // write a bunch of supervisors to it
       Handle<Vector<Handle<StringIntPair>>> data = makeObject<Vector<Handle<StringIntPair>>>();
-
       for (int i = 0; i < 8000; i++) {
         std::ostringstream oss;
         oss << "My string is " << i;
@@ -83,18 +80,16 @@ PDBPageHandle getSetBPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr) 
         Handle<StringIntPair> myPair = makeObject<StringIntPair>(oss.str(), i);
         data->push_back(myPair);
       }
-
       getRecord(data);
     }
     numPages++;
   }
-
   return page;
 }
 
 TEST(PipelineTest, TestShuffleJoinSingle) {
 
-  // this is our configuration we are testing
+  ///0. Number of nodes and number of threadsPerNode
   const uint64_t numNodes = 2;
   const uint64_t threadsPerNode = 2;
   uint64_t curNode = 1;
@@ -128,11 +123,12 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
 
   EXPECT_CALL(*setBReader, getNextPage(testing::An<size_t>())).Times(7);
 
-  // make the function return pages with the Vector<JoinMap<JoinRecord>>
+  // each node will have a concurrent queue for storing pages
   std::vector<PDBPageQueuePtr> pageQueuesForA;
   pageQueuesForA.reserve(numNodes);
   for (int i = 0; i < numNodes; ++i) { pageQueuesForA.emplace_back(std::make_shared<PDBPageQueue>()); }
 
+  //
   std::vector<std::vector<PDBPageHandle>> setAPageVectors;
 
   // the page set that is going to contain the partitioned preaggregation results
@@ -168,7 +164,6 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
   ON_CALL(*BroadcastedAPageSet, getNewPage).WillByDefault(testing::Invoke([&]() {
     PDBPageHandle myPage = myMgr->getPage();
     BroadcastedAPageSetQueue.push(myPage);
-    std::cout << "BroadcastedAPageSetQueue.push: " << BroadcastedAPageSetQueue.size() << std::endl;
     return myPage;
   }));
 
@@ -176,7 +171,6 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
 
   ON_CALL(*BroadcastedAPageSet, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
       [&](size_t workerID) {
-        std::cout << "BroadcastedAPageSetQueue.size(): " << BroadcastedAPageSetQueue.size() << std::endl;
         PDBPageHandle myPage = BroadcastedAPageSetQueue.front();
         BroadcastedAPageSetQueue.pop();
         return myPage;
@@ -254,9 +248,7 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
                                                        std::make_shared<BroadcastJoinProcessor>(numNodes,
                                                                                                 threadsPerNode,
                                                                                                 pageQueuesForA,
-                                                                                                myMgr)},
-                                                      {ComputeInfoType::JOIN_SIDE,
-                                                       std::make_shared<pdb::BroadcastJoinSide>(BroadcastJoinSideEnum::PROBE_SIDE)}};
+                                                                                                myMgr)}};
   PipelinePtr myPipeline = myPlan.buildPipeline(std::string("A"), /* this is the TupleSet the pipeline starts with */
                                                 std::string("AHashed"),     /* this is the TupleSet the pipeline ends with */
                                                 setAReader,

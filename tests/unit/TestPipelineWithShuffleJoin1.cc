@@ -386,7 +386,7 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
     }
   }
 
-  // we expect each of the join pairs for a particular number to appear 36 time and only numbers from 0 to 7999 are joined
+  // we expect each of the join pairs for a particular number to appear 36  time and only numbers from 0 to 7999 are joined
   std::unordered_map<int, int> counts;
   for(int i = 0; i < 8000; ++i) { counts[i] = 36;}
   for(auto &page : writePages) {

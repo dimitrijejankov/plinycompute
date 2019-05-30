@@ -36,8 +36,6 @@ class MergerSink : public ComputeSink {
     // we simply create a map to hold everything
     Handle<JoinMap<RHSType>> returnVal = makeObject<JoinMap<RHSType>>();
     returnVal->setHashValue(workerID);
-    std::cout << "When calling createNewOutputContainer() in MergerSink, Hash Value for JoinMap is: "
-              << returnVal->getHashValue() << std::endl;
     return returnVal;
   }
 

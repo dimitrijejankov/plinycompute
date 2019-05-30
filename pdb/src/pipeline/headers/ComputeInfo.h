@@ -27,7 +27,6 @@ enum ComputeInfoType {
   PAGE_PROCESSOR,
   JOIN_ARGS,
   SHUFFLE_JOIN_ARG,
-  JOIN_SIDE
 };
 
 // this is the base class for parameters that are sent into a pipeline when it is built

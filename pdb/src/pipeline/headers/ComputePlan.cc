@@ -507,7 +507,7 @@ inline PipelinePtr ComputePlan::buildAggregationPipeline(const std::string &targ
   // find the target atomic computation
   auto targetAtomicComp = allComps.getProducingAtomicComputation(targetTupleSetName);
 
-  // find the target real PDBcomputation
+  // find the target real PDBComputation
   auto targetComputationName = targetAtomicComp->getComputationName();
 
   // grab the aggregation combiner
@@ -542,12 +542,6 @@ inline PipelinePtr ComputePlan::buildMergeJoinBroadcastPipeline(const string &ta
 
   // and get the projection for this guy
   std::vector<AtomicComputationPtr> &consumers = allComps.getConsumingAtomicComputations(targetSpec.getSetName());
-
-  for (auto i = 0; i < consumers.size(); i++) {
-    std::cout << "consumers output: " << consumers[i]->getOutput() << std::endl;
-    std::cout << "consumers input: " << consumers[i]->getInput() << std::endl;
-    std::cout << "consumers output: " << consumers[i]->getProjection() << std::endl;
-  }
 
   TupleSpec targetProjection;
   TupleSpec targetAttsToOpOn;
@@ -592,23 +586,14 @@ inline PipelinePtr ComputePlan::buildMergeJoinBroadcastPipeline(const string &ta
     }
   }
 
-  Handle<JoinCompBase>
-      joinComp = unsafeCast<JoinCompBase>(myPlan->getNode(targetComputationName).getComputationHandle());
-  auto
-      merger = joinComp->getComputeMerger(targetSpec, targetAttsToOpOn, targetProjection, workerID, numThreads, myPlan);
-
-  return std::make_shared<pdb::JoinBroadcastPipeline>(workerID,
-                                                      workerID / numThreads,
-                                                      outputPageSet,
-                                                      inputPageSet,
-                                                      merger);
+  Handle<JoinCompBase> joinComp = unsafeCast<JoinCompBase>(myPlan->getNode(targetComputationName).getComputationHandle());
+  auto merger = joinComp->getComputeMerger(targetSpec, targetAttsToOpOn, targetProjection, workerID, numThreads, myPlan);
+  return std::make_shared<pdb::JoinBroadcastPipeline>(workerID, workerID / numThreads, outputPageSet, inputPageSet, merger);
 }
 
 
 inline ComputePlan::ComputePlan(String &TCAPComputation, Vector<Handle<Computation>> &allComputations) : TCAPComputation(TCAPComputation),
                                                                                                          allComputations(allComputations) {}
-
-
 }
 
 #endif
