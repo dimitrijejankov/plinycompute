@@ -19,17 +19,17 @@
 #define WRITE_TOPICS_PER_WORD_H
 
 #include "LDATopicWordProb.h"
-#include "SetScanner.h"
+#include "SetWriter.h"
 
 using namespace pdb;
-class WriteTopicsPerWord : public SetScanner<LDATopicWordProb> {
+class WriteTopicsPerWord : public SetWriter<LDATopicWordProb> {
 public:
 
   ENABLE_DEEP_COPY
 
   WriteTopicsPerWord() = default;
 
-  WriteTopicsPerWord(const std::string &dbName, const std::string &setName) : SetScanner(dbName, setName) {}
+  WriteTopicsPerWord(const std::string &dbName, const std::string &setName) : SetWriter(dbName, setName) {}
 
 };
 
