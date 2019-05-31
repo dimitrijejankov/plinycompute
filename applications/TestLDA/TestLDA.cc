@@ -52,6 +52,7 @@
 #include "WriteTopicsPerWord.h"
 #include "LDATopicAssignmentMultiSelection.h"
 #include "LDATopicWordProb.h"
+#include "QueryGraphAnalyzer.h"
 
 #include <ctime>
 #include <time.h>
@@ -148,11 +149,8 @@ int main(int argc, char *argv[]) {
     /* Create the Database and Sets */
     pdbClient.createDatabase("LDA_db");
 
-    //pdbClient.removeSet("LDA_db", "LDA_input_set"); ///TODO
-    pdbClient.createSet<LDADocument>("LDA_db", "LDA_input_set");
-
-    //pdbClient.removeSet("LDA_db", "LDA_meta_data_set"); ///TODO
-    pdbClient.createSet<int>("LDA_db", "LDA_meta_data_set");
+    pdbClient.clearSet("LDA_db", "LDA_input_set");
+    pdbClient.clearSet("LDA_db", "LDA_meta_data_set");
 
     int blockSize = 8;
 
@@ -279,21 +277,13 @@ int main(int argc, char *argv[]) {
   std::string myNextWriterForTopicsPerDocSetName =
       std::string("TopicsPerDoc") + std::to_string(1);
 
-  //pdbClient.removeSet("LDA_db", myNextReaderForTopicsPerDocSetName); ///TODO
-  pdbClient.createSet<IntDoubleVectorPair>("LDA_db",
-                                           myNextReaderForTopicsPerDocSetName);
+  pdbClient.clearSet("LDA_db", myNextReaderForTopicsPerDocSetName);
 
-  //pdbClient.removeSet("LDA_db", myNextReaderForTopicsPerWordSetName); ///TODO
-  pdbClient.createSet<IntDoubleVectorPair>("LDA_db",
-                                           myNextReaderForTopicsPerWordSetName);
+  pdbClient.clearSet("LDA_db", myNextReaderForTopicsPerWordSetName);
 
-  //pdbClient.removeSet("LDA_db", myNextWriterForTopicsPerDocSetName); ///TODO
-  pdbClient.createSet<IntDoubleVectorPair>("LDA_db",
-                                           myNextWriterForTopicsPerDocSetName);
+  pdbClient.clearSet("LDA_db", myNextWriterForTopicsPerDocSetName);
 
-  //pdbClient.removeSet("LDA_db", myNextWriterForTopicsPerWordSetName); ///TODO
-  pdbClient.createSet<IntDoubleVectorPair>("LDA_db",
-                                           myNextWriterForTopicsPerWordSetName);
+  pdbClient.clearSet("LDA_db", myNextWriterForTopicsPerWordSetName);
 
   /* Main LDA Program */
 
@@ -310,8 +300,7 @@ int main(int argc, char *argv[]) {
   /* Initialization */
 
   /* Initialize the topic mixture probabilities for each document */
-  Handle<Computation> myInitialScanSet =
-      makeObject<ScanLDADocumentSet>("LDA_db", "LDA_input_set");
+  Handle<Computation> myInitialScanSet = makeObject<ScanLDADocumentSet>("LDA_db", "LDA_input_set");
   Handle<Computation> myDocID = makeObject<LDADocIDAggregate>();
   myDocID->setInput(myInitialScanSet);
   Handle<Computation> myDocTopicProb = makeObject<LDAInitialTopicProbSelection>(*alpha);
@@ -400,16 +389,27 @@ int main(int argc, char *argv[]) {
     myComputations->push_back(myWriterForTopicsPerWord);
     myComputations->push_back(myWriterForTopicsPerDoc);
 
+    // the query graph has only the aggregation
+    std::vector<Handle<Computation>> queryGraph = { myWriterForTopicsPerWord, myWriterForTopicsPerDoc };
+
+    // create the graph analyzer
+    pdb::QueryGraphAnalyzer queryAnalyzer(queryGraph);
+
+    // parse the tcap string
+    std::string tcapString = queryAnalyzer.parseTCAPString();
+
+    std::cout << tcapString << std::endl;
+
     /* Excute the computations */
-    pdbClient.executeComputations(myComputations, "NEED TO ADD");
+    pdbClient.executeComputations(myComputations, tcapString);
 
     /* [5] Prepare sets for the next iteration */
 
     /* Clear the sets that have been read in this iteration by old readers */
     std::string myReaderForTopicsPerWordSetName = std::string("TopicsPerWord") + std::to_string(n % 2);
     std::string myReaderForTopicsPerDocSetName = std::string("TopicsPerDoc") + std::to_string(n % 2);
-    //pdbClient.clearSet("LDA_db", myReaderForTopicsPerWordSetName, "pdb::IntDoubleVectorPair"); ///TODO
-    //pdbClient.clearSet("LDA_db", myReaderForTopicsPerDocSetName, "pdb::IntDoubleVectorPair"); ///TODO
+    pdbClient.clearSet("LDA_db", myReaderForTopicsPerWordSetName);
+    pdbClient.clearSet("LDA_db", myReaderForTopicsPerDocSetName);
 
     /* Finally, create the new readers */
     input2 = makeObject<ScanTopicsPerWord>("LDA_db", myWriterForTopicsPerWordSetName);

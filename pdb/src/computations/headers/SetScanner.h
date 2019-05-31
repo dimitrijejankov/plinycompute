@@ -62,6 +62,7 @@ class SetScanner : public Computation {
                            std::string &outputTupleSetName,
                            std::vector<std::string> &outputColumnNames,
                            std::string &addedOutputColumnName) override {
+
     InputTupleSetSpecifier inputTupleSet;
     if (!inputTupleSets.empty()) {
       inputTupleSet = inputTupleSets[0];
@@ -75,6 +76,17 @@ class SetScanner : public Computation {
                         addedOutputColumnName);
   }
 
+  /**
+   * Below function returns a TCAP string for this Computation
+   * @param inputTupleSetName
+   * @param inputColumnNames
+   * @param inputColumnsToApply
+   * @param computationLabel
+   * @param outputTupleSetName
+   * @param outputColumnNames
+   * @param addedOutputColumnName
+   * @return
+   */
   std::string toTCAPString(std::string inputTupleSetName,
                            std::vector<std::string> &inputColumnNames,
                            std::vector<std::string> &inputColumnsToApply,
@@ -82,6 +94,7 @@ class SetScanner : public Computation {
                            std::string &outputTupleSetName,
                            std::vector<std::string> &outputColumnNames,
                            std::string &addedOutputColumnName) {
+
     // the template we are going to use to create the TCAP string for this ScanUserSet
     mustache::mustache scanSetTemplate{"inputDataFor{{computationType}}_{{computationLabel}}(in{{computationLabel}})"
                                        " <= SCAN ('{{setName}}', '{{dbName}}', '{{computationType}}_{{computationLabel}}')\n"};
@@ -92,18 +105,23 @@ class SetScanner : public Computation {
     scanSetData.set("computationLabel", std::to_string(computationLabel));
     scanSetData.set("setName", std::string(setName));
     scanSetData.set("dbName", std::string(dbName));
+
     // output column name
     mustache::mustache outputColumnNameTemplate{"in{{computationLabel}}"};
+
     //  set the output column name
     addedOutputColumnName = outputColumnNameTemplate.render(scanSetData);
     outputColumnNames.push_back(addedOutputColumnName);
+
     // output tuple set name template
     mustache::mustache outputTupleSetTemplate{"inputDataFor{{computationType}}_{{computationLabel}}"};
     outputTupleSetName = outputTupleSetTemplate.render(scanSetData);
+
     // update the state of the computation
     this->setTraversed(true);
     this->setOutputTupleSetName(outputTupleSetName);
     this->setOutputColumnToApply(addedOutputColumnName);
+
     // return the TCAP string
     return scanSetTemplate.render(scanSetData);
   }

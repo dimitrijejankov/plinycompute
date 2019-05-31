@@ -44,7 +44,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
   // the type of the container
   auto containerType = job->getOutputSetContainer();
 
-  // update the mateadata for each set
+  // update the meta data for each set
   for(const auto &set : setsToMaterialize) {
 
     // update the container type
@@ -53,6 +53,16 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
 
     // get access for writing for the sets, this will block until we can get access to the set
     locks.emplace_back(distStorage->useSet(set.first, set.second, PDBDistributedStorageSetState::WRITING_DATA));
+  }
+
+  // are we scanning the set, if so update the metadata in the distributed storage that we are doing that
+  if(job->isScanningSet()) {
+
+    // get source set
+    auto sourceSet = job->getScanningSet();
+
+    // add the lock
+    locks.emplace_back(distStorage->useSet(sourceSet.first, sourceSet.second, PDBDistributedStorageSetState::READING_DATA));
   }
 
   // create the buzzer

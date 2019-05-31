@@ -43,14 +43,13 @@ public:
 
   virtual ~PDBPhysicalAlgorithm() = default;
 
-  PDBPhysicalAlgorithm(const std::string &firstTupleSet,
-                       const std::string &finalTupleSet,
+  PDBPhysicalAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                       const AtomicComputationPtr &finalAtomicComputation,
                        const pdb::Handle<PDBSourcePageSetSpec> &source,
                        const pdb::Handle<PDBSinkPageSetSpec> &sink,
                        const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
                        const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
-                       bool swapLHSandRHS)
-      : firstTupleSet(firstTupleSet), finalTupleSet(finalTupleSet), source(source), sink(sink), secondarySources(secondarySources), setsToMaterialize(setsToMaterialize), swapLHSandRHS(swapLHSandRHS) {}
+                       bool swapLHSandRHS);
 
   /**
    * Sets up the whole algorithm
@@ -79,6 +78,12 @@ public:
   const pdb::Handle<pdb::Vector<PDBSetObject>> &getSetsToMaterialize() { return setsToMaterialize; }
 
   /**
+   * Returns the set this algorithm is going to scan
+   * @return source set as @see PDBSetObject
+   */
+  const pdb::Handle<PDBSetObject> &getSetToScan() { return sourceSet; }
+
+  /**
    * Returns the type of the container that the materialized result will have
    */
   virtual pdb::PDBCatalogSetContainerType getOutputContainerType() { return PDB_CATALOG_SET_NO_CONTAINER; };
@@ -101,12 +106,17 @@ protected:
   std::shared_ptr<JoinArguments> getJoinArguments(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage);
 
   /**
-   * The source the algorithm should setup
+   * The source set we want to scan
+   */
+  pdb::Handle<PDBSetObject> sourceSet;
+
+  /**
+   * The source page set the algorithm should setup
    */
   pdb::Handle<PDBSourcePageSetSpec> source;
 
   /**
-   * The sink the algorithm should setup
+   * The sink page set the algorithm should setup
    */
   pdb::Handle<PDBSinkPageSetSpec> sink;
 

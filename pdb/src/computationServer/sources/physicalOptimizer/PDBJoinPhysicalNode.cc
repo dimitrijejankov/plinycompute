@@ -13,16 +13,16 @@ PDBPipelineType pdb::PDBJoinPhysicalNode::getType() {
   return PDB_JOIN_SIDE_PIPELINE;
 }
 
-pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generatePipelinedAlgorithm(const std::string &startTupleSet,
+pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generatePipelinedAlgorithm(const AtomicComputationPtr &startAtomicComputation,
                                                                             const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                                             PDBPageSetCosts &sourcesWithIDs,
                                                                             pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
                                                                             bool shouldSwapLeftAndRight) {
   // generate the algorithm
-  return generateAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
+  return generateAlgorithm(startAtomicComputation, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
 }
 
-pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::string &startTupleSet,
+pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const AtomicComputationPtr &startAtomicComputation,
                                                                    const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                                    PDBPageSetCosts &sourcesWithIDs,
                                                                    pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
@@ -48,7 +48,7 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
     assert(consumers.size() == 1);
 
     // pipeline this node to the next, it always has to exist and it always has to be one
-    return consumers.front()->generatePipelinedAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
+    return consumers.front()->generatePipelinedAlgorithm(startAtomicComputation, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
   }
 
   // the sink is basically the last computation in the pipeline
@@ -73,8 +73,8 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
     sinkPageSet.pageSetIdentifier = sink->pageSetIdentifier;
 
     // ok so we have to shuffle this side, generate the algorithm
-    pdb::Handle<PDBBroadcastForJoinAlgorithm> algorithm = pdb::makeObject<PDBBroadcastForJoinAlgorithm>(startTupleSet,
-                                                                                                        pipeline.back()->getOutputName(),
+    pdb::Handle<PDBBroadcastForJoinAlgorithm> algorithm = pdb::makeObject<PDBBroadcastForJoinAlgorithm>(startAtomicComputation,
+                                                                                                        pipeline.back(),
                                                                                                         source,
                                                                                                         intermediate,
                                                                                                         sink,
@@ -113,8 +113,8 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
   sinkPageSet.pageSetIdentifier = sink->pageSetIdentifier;
 
   // ok so we have to shuffle this side, generate the algorithm
-  pdb::Handle<PDBShuffleForJoinAlgorithm> algorithm = pdb::makeObject<PDBShuffleForJoinAlgorithm>(startTupleSet,
-                                                                                                  pipeline.back()->getOutputName(),
+  pdb::Handle<PDBShuffleForJoinAlgorithm> algorithm = pdb::makeObject<PDBShuffleForJoinAlgorithm>(startAtomicComputation,
+                                                                                                  pipeline.back(),
                                                                                                   source,
                                                                                                   intermediate,
                                                                                                   sink,

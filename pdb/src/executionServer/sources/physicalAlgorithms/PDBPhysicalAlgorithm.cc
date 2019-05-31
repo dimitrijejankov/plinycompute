@@ -5,6 +5,31 @@
 
 namespace pdb {
 
+PDBPhysicalAlgorithm::PDBPhysicalAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                                           const AtomicComputationPtr &finalAtomicComputation,
+                                           const pdb::Handle<PDBSourcePageSetSpec> &source,
+                                           const pdb::Handle<PDBSinkPageSetSpec> &sink,
+                                           const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                                           const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
+                                           bool swapLHSandRHS) : firstTupleSet(fistAtomicComputation->getOutputName()),
+                                                                 finalTupleSet(finalAtomicComputation->getOutputName()),
+                                                                 source(source),
+                                                                 sink(sink),
+                                                                 secondarySources(secondarySources),
+                                                                 setsToMaterialize(setsToMaterialize),
+                                                                 swapLHSandRHS(swapLHSandRHS) {
+
+  // check if we are scanning a set if we are fill in sourceSet field
+  if(fistAtomicComputation->getAtomicComputationTypeID() == ScanSetAtomicTypeID) {
+
+    // cast to a scan set
+    auto scanSet = (ScanSet*) fistAtomicComputation.get();
+
+    // get the set info
+    sourceSet = pdb::makeObject<PDBSetObject>(scanSet->getDBName(), scanSet->getSetName());
+  }
+}
+
 PDBAbstractPageSetPtr PDBPhysicalAlgorithm::getSourcePageSet(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
 
   // get the source computation

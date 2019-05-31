@@ -8,8 +8,8 @@
 #include "PDBStorageManagerBackend.h"
 #include "GenericWork.h"
 
-pdb::PDBAggregationPipeAlgorithm::PDBAggregationPipeAlgorithm(const std::string &firstTupleSet,
-                                                              const std::string &finalTupleSet,
+pdb::PDBAggregationPipeAlgorithm::PDBAggregationPipeAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                                                              const AtomicComputationPtr &finalAtomicComputation,
                                                               const Handle<PDBSourcePageSetSpec> &source,
                                                               const Handle<PDBSinkPageSetSpec> &hashedToSend,
                                                               const Handle<PDBSourcePageSetSpec> &hashedToRecv,
@@ -17,7 +17,7 @@ pdb::PDBAggregationPipeAlgorithm::PDBAggregationPipeAlgorithm(const std::string 
                                                               const Handle<Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
                                                               const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
                                                               bool swapLHSandRHS)
-    : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, setsToMaterialize, swapLHSandRHS), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {}
+    : PDBPhysicalAlgorithm(fistAtomicComputation, finalAtomicComputation, source, sink, secondarySources, setsToMaterialize, swapLHSandRHS), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {}
 
 bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
 

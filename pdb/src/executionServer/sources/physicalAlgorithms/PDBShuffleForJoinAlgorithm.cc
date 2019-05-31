@@ -13,15 +13,15 @@
 #include <GenericWork.h>
 #include <memory>
 
-pdb::PDBShuffleForJoinAlgorithm::PDBShuffleForJoinAlgorithm(const std::string &firstTupleSet,
-                                                            const std::string &finalTupleSet,
+pdb::PDBShuffleForJoinAlgorithm::PDBShuffleForJoinAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                                                            const AtomicComputationPtr &finalAtomicComputation,
                                                             const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                             const pdb::Handle<PDBSinkPageSetSpec> &intermediate,
                                                             const pdb::Handle<PDBSinkPageSetSpec> &sink,
                                                             const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
                                                             const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
                                                             const bool swapLHSandRHS)
-                                                            : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, setsToMaterialize, swapLHSandRHS),
+                                                            : PDBPhysicalAlgorithm(fistAtomicComputation, finalAtomicComputation, source, sink, secondarySources, setsToMaterialize, swapLHSandRHS),
                                                               intermediate(intermediate) {
 
 }

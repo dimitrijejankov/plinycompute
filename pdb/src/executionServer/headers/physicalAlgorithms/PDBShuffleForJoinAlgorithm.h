@@ -16,8 +16,8 @@ public:
 
   PDBShuffleForJoinAlgorithm() = default;
 
-  PDBShuffleForJoinAlgorithm(const std::string &firstTupleSet,
-                             const std::string &finalTupleSet,
+  PDBShuffleForJoinAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                             const AtomicComputationPtr &finalAtomicComputation,
                              const pdb::Handle<pdb::PDBSourcePageSetSpec> &source,
                              const pdb::Handle<pdb::PDBSinkPageSetSpec> &intermediate,
                              const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,

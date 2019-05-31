@@ -37,7 +37,7 @@ pdb::PDBPlanningResult pdb::PDBAbstractPhysicalNode::generateAlgorithm(PDBPageSe
   }
 
   // generate the algorithm
-  return generateAlgorithm(pipeline.front()->getOutputName(), source, pageSetCosts, additionalSources, shouldSwapLeftAndRight);
+  return generateAlgorithm(pipeline.front(), source, pageSetCosts, additionalSources, shouldSwapLeftAndRight);
 }
 
 const std::list<pdb::PDBAbstractPhysicalNodePtr> pdb::PDBAbstractPhysicalNode::getProducers() {

@@ -28,8 +28,8 @@ public:
 
   ~PDBStraightPipeAlgorithm() override = default;
 
-  PDBStraightPipeAlgorithm(const std::string &firstTupleSet,
-                           const std::string &finalTupleSet,
+  PDBStraightPipeAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                           const AtomicComputationPtr &finalAtomicComputation,
                            const pdb::Handle<PDBSourcePageSetSpec> &source,
                            const pdb::Handle<PDBSinkPageSetSpec> &sink,
                            const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,

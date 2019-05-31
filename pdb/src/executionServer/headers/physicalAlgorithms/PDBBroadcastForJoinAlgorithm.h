@@ -11,8 +11,8 @@ public:
 
   PDBBroadcastForJoinAlgorithm() = default;
 
-  PDBBroadcastForJoinAlgorithm(const std::string &firstTupleSet,
-                               const std::string &finalTupleSet,
+  PDBBroadcastForJoinAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                               const AtomicComputationPtr &finalAtomicComputation,
                                const pdb::Handle<PDBSourcePageSetSpec> &source,
                                const pdb::Handle<PDBSinkPageSetSpec> &intermediate,
                                const pdb::Handle<PDBSinkPageSetSpec> &sink,

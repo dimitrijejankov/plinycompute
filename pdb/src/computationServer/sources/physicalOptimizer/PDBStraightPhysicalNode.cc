@@ -10,7 +10,7 @@ PDBPipelineType pdb::PDBStraightPhysicalNode::getType() {
   return PDB_STRAIGHT_PIPELINE;
 }
 
-pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generatePipelinedAlgorithm(const std::string &startTupleSet,
+pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generatePipelinedAlgorithm(const AtomicComputationPtr &startAtomicComputation,
                                                                                 const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                                                 PDBPageSetCosts &sourcesWithIDs,
                                                                                 pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
@@ -18,10 +18,10 @@ pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generatePipelinedAlgorithm(
 
   // this is the same as @see generateAlgorithm except now the source is the source of the pipe we pipelined to this
   // and the additional source are transferred for that pipeline.
-  return generateAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
+  return generateAlgorithm(startAtomicComputation, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
 }
 
-pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const std::string &startTupleSet,
+pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const AtomicComputationPtr &startAtomicComputation,
                                                                        const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                                        PDBPageSetCosts &sourcesWithIDs,
                                                                        pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
@@ -30,7 +30,7 @@ pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const std
 
   // can we pipeline this guy? we can do that if we only have one consumer
   if(consumers.size() == 1) {
-    return consumers.front()->generatePipelinedAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
+    return consumers.front()->generatePipelinedAlgorithm(startAtomicComputation, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
   }
 
   // the sink is basically the last computation in the pipeline
@@ -62,8 +62,8 @@ pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const std
   }
 
   // generate the algorithm
-  pdb::Handle<PDBStraightPipeAlgorithm> algorithm = pdb::makeObject<PDBStraightPipeAlgorithm>(startTupleSet,
-                                                                                              pipeline.back()->getOutputName(),
+  pdb::Handle<PDBStraightPipeAlgorithm> algorithm = pdb::makeObject<PDBStraightPipeAlgorithm>(startAtomicComputation,
+                                                                                              pipeline.back(),
                                                                                               source,
                                                                                               sink,
                                                                                               additionalSources,

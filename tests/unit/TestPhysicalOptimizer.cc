@@ -42,7 +42,7 @@ TEST(TestPhysicalOptimizer, TestAggregation) {
   // setup the input parameters
   uint64_t compID = 99;
   pdb::String tcapString =
-      "inputData (in) <= SCAN ('input_set', 'by8_db', 'SetScanner_0', []) \n"
+      "inputData (in) <= SCAN ('by8_db', 'input_set', 'SetScanner_0', []) \n"
       "inputWithAtt (in, att) <= APPLY (inputData (in), inputData (in), 'SelectionComp_1', 'methodCall_0', []) \n"
       "inputWithAttAndMethod (in, att, method) <= APPLY (inputWithAtt (in), inputWithAtt (in, att), 'SelectionComp_1', 'attAccess_1', []) \n"
       "inputWithBool (in, bool) <= APPLY (inputWithAttAndMethod (att, method), inputWithAttAndMethod (in), 'SelectionComp_1', '==_2', []) \n"
@@ -86,10 +86,13 @@ TEST(TestPhysicalOptimizer, TestAggregation) {
   // cast the algorithm
   Handle<pdb::PDBAggregationPipeAlgorithm> aggAlgorithm = unsafeCast<pdb::PDBAggregationPipeAlgorithm>(algorithm1);
 
-  // check the sourceEXPECT_EQ(aggAlgorithm->source->sourceType, SetScanSource);
+  // check the source
+  EXPECT_EQ(aggAlgorithm->source->sourceType, SetScanSource);
   EXPECT_EQ((std::string) aggAlgorithm->firstTupleSet, std::string("inputData"));
   EXPECT_EQ((std::string) aggAlgorithm->source->pageSetIdentifier.second, std::string("inputData"));
   EXPECT_EQ(aggAlgorithm->source->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string)aggAlgorithm->getSetToScan()->database, "by8_db");
+  EXPECT_EQ((std::string)aggAlgorithm->getSetToScan()->set, "input_set");
 
   // check the sink that we are
   EXPECT_EQ(aggAlgorithm->hashedToSend->sinkType, AggShuffleSink);
@@ -203,6 +206,8 @@ TEST(TestPhysicalOptimizer, TestMultiSink) {
   EXPECT_EQ((std::string) aggAlgorithm->firstTupleSet, std::string("inputData"));
   EXPECT_EQ((std::string) aggAlgorithm->source->pageSetIdentifier.second, std::string("inputData"));
   EXPECT_EQ(aggAlgorithm->source->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string)aggAlgorithm->getSetToScan()->database, "myData");
+  EXPECT_EQ((std::string)aggAlgorithm->getSetToScan()->set, "mySetA");
 
   // check the sink that we are
   EXPECT_EQ(aggAlgorithm->hashedToSend->sinkType, AggShuffleSink);
@@ -352,6 +357,8 @@ TEST(TestPhysicalOptimizer, TestJoin1) {
   EXPECT_EQ((std::string) algorithmBroadcastA->firstTupleSet, std::string("A"));
   EXPECT_EQ((std::string) algorithmBroadcastA->source->pageSetIdentifier.second, std::string("A"));
   EXPECT_EQ(algorithmBroadcastA->source->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string)algorithmBroadcastA->getSetToScan()->database, "myData");
+  EXPECT_EQ((std::string)algorithmBroadcastA->getSetToScan()->set, "mySetA");
 
   // check the intermediate set
   EXPECT_EQ(algorithmBroadcastA->intermediate->sinkType, BroadcastIntermediateJoinSink);
@@ -381,6 +388,8 @@ TEST(TestPhysicalOptimizer, TestJoin1) {
   EXPECT_EQ((std::string) algorithmPipelineThroughB->firstTupleSet, std::string("B"));
   EXPECT_EQ((std::string) algorithmPipelineThroughB->source->pageSetIdentifier.second, std::string("B"));
   EXPECT_EQ(algorithmPipelineThroughB->source->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string)algorithmPipelineThroughB->getSetToScan()->database, "myData");
+  EXPECT_EQ((std::string)algorithmPipelineThroughB->getSetToScan()->set, "mySetB");
 
   // check the sink
   EXPECT_EQ(algorithmPipelineThroughB->sink->sinkType, SetSink);
@@ -466,6 +475,8 @@ TEST(TestPhysicalOptimizer, TestJoin2) {
   EXPECT_EQ((std::string) shuffleB->firstTupleSet, std::string("B"));
   EXPECT_EQ((std::string) shuffleB->source->pageSetIdentifier.second, std::string("B"));
   EXPECT_EQ(shuffleB->source->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string)shuffleB->getSetToScan()->database, "myData");
+  EXPECT_EQ((std::string)shuffleB->getSetToScan()->set, "mySetB");
 
   // check the intermediate set
   EXPECT_EQ(shuffleB->intermediate->sinkType, JoinShuffleIntermediateSink);
@@ -493,6 +504,8 @@ TEST(TestPhysicalOptimizer, TestJoin2) {
   EXPECT_EQ((std::string) shuffleA->firstTupleSet, "A");
   EXPECT_EQ((std::string) shuffleA->source->pageSetIdentifier.second, "A");
   EXPECT_EQ(shuffleA->source->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string)shuffleA->getSetToScan()->database, "myData");
+  EXPECT_EQ((std::string)shuffleA->getSetToScan()->set, "mySetA");
 
   // check the intermediate set
   EXPECT_EQ(shuffleA->intermediate->sinkType, JoinShuffleIntermediateSink);
@@ -500,7 +513,7 @@ TEST(TestPhysicalOptimizer, TestJoin2) {
   EXPECT_EQ(shuffleA->intermediate->pageSetIdentifier.first, compID);
 
   // check the sink
-  EXPECT_EQ(shuffleB->sink->sinkType, JoinShuffleSink);
+  EXPECT_EQ(shuffleA->sink->sinkType, JoinShuffleSink);
   EXPECT_EQ((std::string) shuffleA->finalTupleSet, "AHashed");
   EXPECT_EQ((std::string) shuffleA->sink->pageSetIdentifier.second, "AHashed");
   EXPECT_EQ(shuffleA->sink->pageSetIdentifier.first, compID);
@@ -642,6 +655,8 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
   EXPECT_EQ((std::string) algorithmBroadcastC->firstTupleSet, std::string("C"));
   EXPECT_EQ((std::string) algorithmBroadcastC->source->pageSetIdentifier.second, std::string("C"));
   EXPECT_EQ(algorithmBroadcastC->source->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string)algorithmBroadcastC->getSetToScan()->database, "myData");
+  EXPECT_EQ((std::string)algorithmBroadcastC->getSetToScan()->set, "mySetC");
 
   // check the intermediate set
   EXPECT_EQ(algorithmBroadcastC->intermediate->sinkType, BroadcastIntermediateJoinSink);
@@ -669,6 +684,8 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
   EXPECT_EQ((std::string) shuffleA->firstTupleSet, "A");
   EXPECT_EQ((std::string) shuffleA->source->pageSetIdentifier.second, "A");
   EXPECT_EQ(shuffleA->source->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string)shuffleA->getSetToScan()->database, "myData");
+  EXPECT_EQ((std::string)shuffleA->getSetToScan()->set, "mySetA");
 
   // check the intermediate set
   EXPECT_EQ(shuffleA->intermediate->sinkType, JoinShuffleIntermediateSink);
@@ -696,6 +713,8 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
   EXPECT_EQ((std::string) shuffleB->firstTupleSet, std::string("B"));
   EXPECT_EQ((std::string) shuffleB->source->pageSetIdentifier.second, std::string("B"));
   EXPECT_EQ(shuffleB->source->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string)shuffleB->getSetToScan()->database, "myData");
+  EXPECT_EQ((std::string)shuffleB->getSetToScan()->set, "mySetB");
 
   // check the intermediate set
   EXPECT_EQ(shuffleB->intermediate->sinkType, JoinShuffleIntermediateSink);
@@ -875,6 +894,8 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   EXPECT_EQ((std::string) shuffleSet2FirstJoin->firstTupleSet, std::string("inputDataForSetScanner_1"));
   EXPECT_EQ((std::string) shuffleSet2FirstJoin->source->pageSetIdentifier.second, std::string("inputDataForSetScanner_1"));
   EXPECT_EQ(shuffleSet2FirstJoin->source->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string)shuffleSet2FirstJoin->getSetToScan()->database, "test78_db");
+  EXPECT_EQ((std::string)shuffleSet2FirstJoin->getSetToScan()->set, "test78_set2");
 
   // check the intermediate set
   EXPECT_EQ(shuffleSet2FirstJoin->intermediate->sinkType, JoinShuffleIntermediateSink);
@@ -903,6 +924,8 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   EXPECT_EQ((std::string) shuffleSet2SecondJoin->firstTupleSet, std::string("inputDataForSetScanner_1"));
   EXPECT_EQ((std::string) shuffleSet2SecondJoin->source->pageSetIdentifier.second, std::string("inputDataForSetScanner_1"));
   EXPECT_EQ(shuffleSet2SecondJoin->source->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string)shuffleSet2SecondJoin->getSetToScan()->database, "test78_db");
+  EXPECT_EQ((std::string)shuffleSet2SecondJoin->getSetToScan()->set, "test78_set2");
 
   // check the intermediate set
   EXPECT_EQ(shuffleSet2SecondJoin->intermediate->sinkType, JoinShuffleIntermediateSink);
@@ -931,6 +954,8 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   EXPECT_EQ((std::string) shuffleSet1->firstTupleSet, std::string("inputDataForSetScanner_0"));
   EXPECT_EQ((std::string) shuffleSet1->source->pageSetIdentifier.second, std::string("inputDataForSetScanner_0"));
   EXPECT_EQ(shuffleSet1->source->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string)shuffleSet2SecondJoin->getSetToScan()->database, "test78_db");
+  EXPECT_EQ((std::string)shuffleSet2SecondJoin->getSetToScan()->set, "test78_set2");
 
   // check the intermediate set
   EXPECT_EQ(shuffleSet1->intermediate->sinkType, JoinShuffleIntermediateSink);
@@ -1043,6 +1068,5 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   // we should have another source that reads the aggregation so we can generate another algorithm
   EXPECT_FALSE(optimizer.hasAlgorithmToRun());
 }
-
 
 }

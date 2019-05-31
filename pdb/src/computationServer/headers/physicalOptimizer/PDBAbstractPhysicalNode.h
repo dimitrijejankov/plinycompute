@@ -335,13 +335,13 @@ public:
 
   /**
    * Returns the algorithm we chose to run this pipeline with specifying the parameters
-   * @param startTupleSet - the tuple set this pipeline starts with
+   * @param startAtomicComputation - the atomic computation we are starting to do the planning
    * @param source - the page set that is being scanned
    * @param sourcesWithIDs - this contains the available sources, indexed by the page set id
    * @param additionalSources - any additional page sets the pipeline requires
    * @return the planning result, a pair of the algorithm and the consumers of the result
    */
-  virtual pdb::PDBPlanningResult generateAlgorithm(const std::string &startTupleSet,
+  virtual pdb::PDBPlanningResult generateAlgorithm(const AtomicComputationPtr &startAtomicComputation,
                                                    const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                    PDBPageSetCosts &sourcesWithIDs,
                                                    pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
@@ -351,7 +351,7 @@ public:
    * Returns the algorithm we chose to run this pipeline, but assumes that we are pipelining stuff into it...
    * @return the planning result, a pair of the algorithm and the consumers of the result
    */
-  virtual pdb::PDBPlanningResult generatePipelinedAlgorithm(const std::string &startTupleSet,
+  virtual pdb::PDBPlanningResult generatePipelinedAlgorithm(const AtomicComputationPtr &startAtomicComputation,
                                                             const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                             PDBPageSetCosts &sourcesWithIDs,
                                                             pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,

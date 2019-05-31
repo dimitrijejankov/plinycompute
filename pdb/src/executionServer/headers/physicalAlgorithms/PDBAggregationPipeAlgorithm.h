@@ -26,8 +26,8 @@ public:
 
   ~PDBAggregationPipeAlgorithm() override = default;
 
-  PDBAggregationPipeAlgorithm(const std::string &firstTupleSet,
-                              const std::string &finalTupleSet,
+  PDBAggregationPipeAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                              const AtomicComputationPtr &finalAtomicComputation,
                               const Handle<PDBSourcePageSetSpec> &source,
                               const Handle<PDBSinkPageSetSpec> &hashedToSend,
                               const Handle<PDBSourcePageSetSpec> &hashedToRecv,

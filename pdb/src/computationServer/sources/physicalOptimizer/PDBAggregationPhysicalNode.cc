@@ -15,7 +15,7 @@ PDBPipelineType pdb::PDBAggregationPhysicalNode::getType() {
   return PDB_AGGREGATION_PIPELINE;
 }
 
-pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const std::string &firstTupleSet,
+pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const AtomicComputationPtr &startAtomicComputation,
                                                                      const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                                      PDBPageSetCosts &sourcesWithIDs,
                                                                      pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
@@ -72,8 +72,8 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const std::
   setSinkPageSet(sink);
 
   // create the algorithm
-  pdb::Handle<PDBAggregationPipeAlgorithm> algorithm = pdb::makeObject<PDBAggregationPipeAlgorithm>(firstTupleSet,
-                                                                                                    pipeline.back()->getOutputName(),
+  pdb::Handle<PDBAggregationPipeAlgorithm> algorithm = pdb::makeObject<PDBAggregationPipeAlgorithm>(startAtomicComputation,
+                                                                                                    pipeline.back(),
                                                                                                     source,
                                                                                                     hashedToSend,
                                                                                                     hashedToRecv,
@@ -100,7 +100,7 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const std::
   return std::move(PDBPlanningResult(algorithm, consumers, consumedPageSets, newPageSets));
 }
 
-pdb::PDBPlanningResult PDBAggregationPhysicalNode::generatePipelinedAlgorithm(const std::string &firstTupleSet,
+pdb::PDBPlanningResult PDBAggregationPhysicalNode::generatePipelinedAlgorithm(const AtomicComputationPtr &startAtomicComputation,
                                                                               const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                                               PDBPageSetCosts &sourcesWithIDs,
                                                                               pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
@@ -109,7 +109,7 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generatePipelinedAlgorithm(co
   // this is the same as @see generateAlgorithm except now the source is the source of the pipe we pipelined to this
   // and the additional source are transferred for that pipeline. We can not pipeline an aggregation
 
-  return generateAlgorithm(firstTupleSet, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
+  return generateAlgorithm(startAtomicComputation, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
 }
 
 }

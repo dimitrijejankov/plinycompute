@@ -10,14 +10,14 @@
 #include "physicalAlgorithms/PDBStraightPipeAlgorithm.h"
 #include "ExJob.h"
 
-pdb::PDBStraightPipeAlgorithm::PDBStraightPipeAlgorithm(const std::string &firstTupleSet,
-                                                        const std::string &finalTupleSet,
+pdb::PDBStraightPipeAlgorithm::PDBStraightPipeAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                                                        const AtomicComputationPtr &finalAtomicComputation,
                                                         const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                         const pdb::Handle<PDBSinkPageSetSpec> &sink,
                                                         const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
                                                         const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
                                                         const bool swapLHSandRHS)
-                                                        : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, setsToMaterialize, swapLHSandRHS) {}
+                                                        : PDBPhysicalAlgorithm(fistAtomicComputation, finalAtomicComputation, source, sink, secondarySources, setsToMaterialize, swapLHSandRHS) {}
 
 
 bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {

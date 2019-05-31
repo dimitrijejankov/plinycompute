@@ -175,7 +175,7 @@ int main(int argc, char* argv[]) {
     // grab the record
     auto r = it->getNextRecord();
 
-    // should be 2 since we sent the same data twiced
+    // should be 2 since we sent the same data twice
     if(*r != 2) {
       std::cout << "Record is not aggregated twice" << std::endl;
       break;
