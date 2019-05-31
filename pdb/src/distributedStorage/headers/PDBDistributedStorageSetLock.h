@@ -16,6 +16,7 @@ enum class PDBDistributedStorageSetState {
   NONE,
   WRITING_DATA,
   READING_DATA,
+  WRITE_READ_DATA,
   CLEARING_DATA,
   Default = NONE
 };

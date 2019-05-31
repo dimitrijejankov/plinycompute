@@ -116,15 +116,29 @@ PDBDistributedStorageSetLockPtr pdb::PDBDistributedStorage::tryUsingSet(const st
   auto &isInUse = setStates[std::make_pair(dbName, setName)];
 
   switch (stateRequested) {
-    case PDBDistributedStorageSetState::NONE: { throw std::runtime_error(""); }
+    case PDBDistributedStorageSetState::NONE: {
+      throw std::runtime_error("You can not request a request of type NONE!");
+    }
+    case PDBDistributedStorageSetState::WRITE_READ_DATA : {
+      throw std::runtime_error("You can not request a request to both read and write (but they can happen at the same time)!");
+    }
     case PDBDistributedStorageSetState::WRITING_DATA: {
 
       // check if we can grant it
-      if(isInUse.state == PDBDistributedStorageSetState::NONE || isInUse.state == PDBDistributedStorageSetState::WRITING_DATA) {
+      if(isInUse.state == PDBDistributedStorageSetState::NONE ||
+         isInUse.state == PDBDistributedStorageSetState::WRITING_DATA ||
+         isInUse.state == PDBDistributedStorageSetState::WRITE_READ_DATA) {
 
         // update the state
         isInUse.numWriters++;
-        isInUse.state =  PDBDistributedStorageSetState::WRITING_DATA;
+
+        // update the state if we need
+        if(isInUse.state == PDBDistributedStorageSetState::NONE) {
+          isInUse.state = PDBDistributedStorageSetState::WRITING_DATA;
+        }
+        else if(isInUse.state == PDBDistributedStorageSetState::READING_DATA) {
+          isInUse.state = PDBDistributedStorageSetState::WRITE_READ_DATA;
+        }
 
         // return
         return std::make_shared<PDBDistributedStorageSetLock>(dbName, setName, PDBDistributedStorageSetState::WRITING_DATA, distStorage);
@@ -136,11 +150,20 @@ PDBDistributedStorageSetLockPtr pdb::PDBDistributedStorage::tryUsingSet(const st
     case PDBDistributedStorageSetState::READING_DATA: {
 
       // check if we can grant it
-      if(isInUse.state == PDBDistributedStorageSetState::NONE || isInUse.state == PDBDistributedStorageSetState::READING_DATA) {
+      if(isInUse.state == PDBDistributedStorageSetState::NONE ||
+         isInUse.state == PDBDistributedStorageSetState::READING_DATA ||
+         isInUse.state == PDBDistributedStorageSetState::WRITE_READ_DATA) {
 
         // update the state
         isInUse.numReaders++;
-        isInUse.state =  PDBDistributedStorageSetState::READING_DATA;
+
+        // update the state if we need
+        if(isInUse.state == PDBDistributedStorageSetState::NONE) {
+          isInUse.state = PDBDistributedStorageSetState::READING_DATA;
+        }
+        else if(isInUse.state == PDBDistributedStorageSetState::WRITING_DATA) {
+          isInUse.state = PDBDistributedStorageSetState::WRITE_READ_DATA;
+        }
 
         // return
         return std::make_shared<PDBDistributedStorageSetLock>(dbName, setName, PDBDistributedStorageSetState::READING_DATA, distStorage);
@@ -173,27 +196,29 @@ void pdb::PDBDistributedStorage::finishUsingSet(const std::string &dbName, const
   // get the
   auto &isInUse = setStates[std::make_pair(dbName, setName)];
 
-  if(stateRequested == PDBDistributedStorageSetState::WRITING_DATA && isInUse.state == PDBDistributedStorageSetState::WRITING_DATA) {
+  if(stateRequested == PDBDistributedStorageSetState::WRITING_DATA &&
+     (isInUse.state == PDBDistributedStorageSetState::WRITING_DATA || isInUse.state == PDBDistributedStorageSetState::WRITE_READ_DATA)) {
 
     // decrement the number of writers
     assert(isInUse.numWriters > 0);
     isInUse.numWriters--;
 
     // check if we are done writing
-    if(isInUse.numWriters == 0) {
+    if(isInUse.numReaders == 0 && isInUse.numWriters == 0) {
 
       // set the state back to none
       isInUse.state = PDBDistributedStorageSetState::NONE;
     }
   }
-  else if(stateRequested == PDBDistributedStorageSetState::READING_DATA && isInUse.state == PDBDistributedStorageSetState::READING_DATA) {
+  else if(stateRequested == PDBDistributedStorageSetState::READING_DATA &&
+          (isInUse.state == PDBDistributedStorageSetState::READING_DATA || isInUse.state == PDBDistributedStorageSetState::WRITE_READ_DATA)) {
 
     // decrement the number of readers
     assert(isInUse.numReaders > 0);
     isInUse.numReaders--;
 
     // check if we are done reading
-    if(isInUse.numReaders == 0) {
+    if(isInUse.numReaders == 0 && isInUse.numWriters == 0) {
 
       // set the state back to none
       isInUse.state = PDBDistributedStorageSetState::NONE;
