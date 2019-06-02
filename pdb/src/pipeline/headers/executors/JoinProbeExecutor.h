@@ -11,6 +11,7 @@
 #include "ComputeExecutor.h"
 #include "StringIntPair.h"
 #include "JoinMap.h"
+#include "PDBAbstractPageSet.h"
 
 namespace pdb {
 
@@ -61,7 +62,7 @@ class JoinProbeExecution : public ComputeExecutor {
 
   ~JoinProbeExecution() {
     if (columns != nullptr)
-      delete columns;
+      delete [] columns;
   }
 
   // when we probe a hash table, a subset of the atts that we need to put into the output stream are stored in the hash table... the positions
