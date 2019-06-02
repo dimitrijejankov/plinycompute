@@ -97,7 +97,7 @@ class SetScanner : public Computation {
 
     // the template we are going to use to create the TCAP string for this ScanUserSet
     mustache::mustache scanSetTemplate{"inputDataFor{{computationType}}_{{computationLabel}}(in{{computationLabel}})"
-                                       " <= SCAN ('{{setName}}', '{{dbName}}', '{{computationType}}_{{computationLabel}}')\n"};
+                                       " <= SCAN ('{{dbName}}', '{{setName}}', '{{computationType}}_{{computationLabel}}')\n"};
 
     // the data required to fill in the template
     mustache::data scanSetData;

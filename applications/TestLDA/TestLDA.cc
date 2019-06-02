@@ -149,8 +149,8 @@ int main(int argc, char *argv[]) {
     /* Create the Database and Sets */
     pdbClient.createDatabase("LDA_db");
 
-    pdbClient.clearSet("LDA_db", "LDA_input_set");
-    pdbClient.clearSet("LDA_db", "LDA_meta_data_set");
+    pdbClient.createSet<LDADocument>("LDA_db", "LDA_input_set");
+    pdbClient.createSet<int>("LDA_db", "LDA_meta_data_set");
 
     int blockSize = 8;
 
@@ -268,22 +268,15 @@ int main(int argc, char *argv[]) {
   }
 
   /* Create sets to store the intermediate data that will be used between iterations */
-  std::string myNextReaderForTopicsPerWordSetName =
-      std::string("TopicsPerWord") + std::to_string(0);
-  std::string myNextReaderForTopicsPerDocSetName =
-      std::string("TopicsPerDoc") + std::to_string(0);
-  std::string myNextWriterForTopicsPerWordSetName =
-      std::string("TopicsPerWord") + std::to_string(1);
-  std::string myNextWriterForTopicsPerDocSetName =
-      std::string("TopicsPerDoc") + std::to_string(1);
+  std::string myNextReaderForTopicsPerWordSetName = std::string("TopicsPerWord") + std::to_string(0);
+  std::string myNextReaderForTopicsPerDocSetName = std::string("TopicsPerDoc") + std::to_string(0);
+  std::string myNextWriterForTopicsPerWordSetName = std::string("TopicsPerWord") + std::to_string(1);
+  std::string myNextWriterForTopicsPerDocSetName = std::string("TopicsPerDoc") + std::to_string(1);
 
-  pdbClient.clearSet("LDA_db", myNextReaderForTopicsPerDocSetName);
-
-  pdbClient.clearSet("LDA_db", myNextReaderForTopicsPerWordSetName);
-
-  pdbClient.clearSet("LDA_db", myNextWriterForTopicsPerDocSetName);
-
-  pdbClient.clearSet("LDA_db", myNextWriterForTopicsPerWordSetName);
+  pdbClient.createSet<IntDoubleVectorPair>("LDA_db", myNextReaderForTopicsPerDocSetName);
+  pdbClient.createSet<IntDoubleVectorPair>("LDA_db", myNextReaderForTopicsPerWordSetName);
+  pdbClient.createSet<IntDoubleVectorPair>("LDA_db", myNextWriterForTopicsPerDocSetName);
+  pdbClient.createSet<IntDoubleVectorPair>("LDA_db", myNextWriterForTopicsPerWordSetName);
 
   /* Main LDA Program */
 

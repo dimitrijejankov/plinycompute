@@ -98,7 +98,7 @@ class SetWriter : public Computation {
     // the template we are going to use to create the TCAP string for this ScanUserSet
     mustache::mustache writeSetTemplate{"{{outputTupleSetName}}( {{outputColumnNames}}) <= "
                                         "OUTPUT ( {{inputTupleSetName}} ( {{inputColumnsToApply}} ), "
-                                        "'{{setName}}', '{{dbName}}', '{{computationType}}_{{computationLabel}}')\n"};
+                                        "'{{dbName}}', '{{setName}}', '{{computationType}}_{{computationLabel}}')\n"};
 
     // the data required to fill in the template
     mustache::data writeSetData;
