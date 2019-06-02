@@ -372,23 +372,6 @@ int main(int argc, char *argv[]) {
     Handle<Computation> myWriterForTopicsPerDoc = makeObject<WriteIntDoubleVectorPairSet>("LDA_db", myWriterForTopicsPerDocSetName);
     myWriterForTopicsPerDoc->setInput(myDocTopicProb);
 
-    // here is the list of computations
-    Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
-
-    // put them in the list of computations
-    myComputations->push_back(myInitialScanSet);
-    myComputations->push_back(input1);
-    myComputations->push_back(input2);
-    myComputations->push_back(myIdentitySelection);
-    myComputations->push_back(myDocWordTopicCount);
-    myComputations->push_back(myDocTopicCountAgg);
-    myComputations->push_back(myDocTopicProb);
-    myComputations->push_back(myTopicWordCount);
-    myComputations->push_back(myTopicWordProb);
-    myComputations->push_back(myWordTopicProb);
-    myComputations->push_back(myWriterForTopicsPerWord);
-    myComputations->push_back(myWriterForTopicsPerDoc);
-
     // the query graph has only the aggregation
     std::vector<Handle<Computation>> queryGraph = { myWriterForTopicsPerWord, myWriterForTopicsPerDoc };
 
@@ -398,7 +381,11 @@ int main(int argc, char *argv[]) {
     // parse the tcap string
     std::string tcapString = queryAnalyzer.parseTCAPString();
 
-    std::cout << tcapString << std::endl;
+    // here is the list of computations
+    Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
+
+    // grab the computations
+    queryAnalyzer.parseComputations(*myComputations);
 
     /* Excute the computations */
     pdbClient.executeComputations(myComputations, tcapString);

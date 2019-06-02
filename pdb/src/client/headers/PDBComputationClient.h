@@ -43,6 +43,11 @@ public:
   /* Logger to debug information */
   PDBLoggerPtr myLogger;
 
+  // what is the maximum computation size we support (bytes)
+  static const uint64_t MAX_COMPUTATION_SIZE;
+
+  // what is the increment we are going to increase the computation size if needed (bytes)
+  static const uint64_t MAX_STEP_SIZE;
 };
 
 }
