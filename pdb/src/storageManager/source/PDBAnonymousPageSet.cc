@@ -8,6 +8,11 @@ pdb::PDBAnonymousPageSet::PDBAnonymousPageSet(const pdb::PDBBufferManagerInterfa
 
 pdb::PDBPageHandle pdb::PDBAnonymousPageSet::getNextPage(size_t workerID) {
 
+  // if we don't have pages return null
+  if(pages.empty()){
+    return nullptr;
+  }
+
   // are we done if so return null
   if(isDone) {
     return nullptr;

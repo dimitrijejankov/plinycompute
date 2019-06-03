@@ -120,6 +120,18 @@ class SetWriter : public Computation {
     return writeSetTemplate.render(writeSetData);
   }
 
+  /**
+   * Sets the output set of the set writer
+   * @param dbName - the name of the database the set belongs to
+   * @param setName - the name of the set
+   */
+  void setOutputSet(std::string dbName, std::string setName) override {
+
+    // set the set identifier
+    this->dbName = dbName;
+    this->setName = setName;
+  }
+
   pdb::ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection, uint64_t numberOfPartitions) override {
     return std::make_shared<pdb::VectorSink<OutputClass>>(consumeMe, projection);
   }

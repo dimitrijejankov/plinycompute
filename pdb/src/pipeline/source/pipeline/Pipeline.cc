@@ -190,6 +190,9 @@ void pdb::Pipeline::run() {
 
     // we need to keep the page
     keepPage(ram, iteration);
+
+    // TODO make this nicer
+    makeObjectAllocatorBlock(1024, true);
   }
   else {
     dismissPage(ram, true);

@@ -23,14 +23,19 @@ void pdb::AggregationPipeline::run() {
     merger->writeOutPage(inputPage, myRAM->outputSink);
   }
 
-  // we only have one iteration
-  myRAM->setIteration(0);
+  // check if we actually had a page we wrote to
+  if(myRAM->pageHandle == nullptr) {
 
-  // and force the reference count for this guy to go to zero
-  myRAM->outputSink.emptyOutContainingBlock();
+    // we only have one iteration
+    myRAM->setIteration(0);
 
-  // unpin the page so we don't have problems
-  myRAM->pageHandle->unpin();
+    // and force the reference count for this guy to go to zero
+    myRAM->outputSink.emptyOutContainingBlock();
+
+    // unpin the page so we don't have problems
+    myRAM->pageHandle->unpin();
+  }
+
 }
 
 pdb::AggregationPipeline::AggregationPipeline(size_t workerID,

@@ -184,7 +184,7 @@ class Computation : public Object {
 
   //set user set for output when necessary (e.g. results need to be materialized)
   //by default it do nothing, subclasses shall override this function to handle the case when results need to be materialized.
-  virtual void setOutput(std::string dbName, std::string setName) {}
+  virtual void setOutputSet(std::string dbName, std::string setName) {}
 
   virtual std::string getDatabaseName() { return ""; }
 

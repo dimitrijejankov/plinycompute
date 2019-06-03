@@ -310,6 +310,8 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
               // grab a algorithm
               auto algorithm = optimizer.getNextAlgorithm();
 
+              std::cout << "Running " << algorithm->firstTupleSet << " , " << algorithm->finalTupleSet << std::endl;
+
               // make the job
               Handle<ExJob> job = pdb::makeObject<ExJob>();
 

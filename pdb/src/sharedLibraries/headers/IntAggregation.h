@@ -35,10 +35,10 @@ public:
   IntAggregation() = default;
 
   // the below constructor is NOT REQUIRED
-  // user can also set output later by invoking the setOutput (std :: string dbName, std :: string
+  // user can also set output later by invoking the setOutputSet (std :: string dbName, std :: string
   // setName)  method
   IntAggregation(std::string dbName, std::string setName) {
-    this->setOutput(std::move(dbName), std::move(setName));
+    this->setOutputSet(std::move(dbName), std::move(setName));
   }
 
   // the key type must have == and size_t hash () defined

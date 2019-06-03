@@ -146,5 +146,5 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const AtomicC
 }
 
 // set this value to some reasonable value // TODO this needs to be smarter
-const size_t pdb::PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = 4096;
+const size_t pdb::PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = 0;
 

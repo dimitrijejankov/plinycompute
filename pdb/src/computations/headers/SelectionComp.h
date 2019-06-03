@@ -19,6 +19,7 @@
 #ifndef SELECTION_COMP
 #define SELECTION_COMP
 
+#include <sources/VectorTupleSetIterator.h>
 #include "Computation.h"
 #include "TypeName.h"
 
@@ -56,6 +57,12 @@ class SelectionComp : public Computation {
     } else {
       return "";
     }
+  }
+
+  pdb::ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet,
+                                         size_t chunkSize,
+                                         uint64_t workerID) override {
+    return std::make_shared<pdb::VectorTupleSetIterator>(pageSet, chunkSize, workerID);
   }
 
   // get the number of inputs to this query type

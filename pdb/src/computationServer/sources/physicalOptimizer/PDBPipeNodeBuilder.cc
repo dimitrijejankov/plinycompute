@@ -123,8 +123,8 @@ void pdb::PDBPipeNodeBuilder::transverseTCAPGraph(AtomicComputationPtr curNode) 
 
     // in the case that we only have one ApplyAgg we move it to the next pipelines
     if(currentPipe.size() == 1 && currentPipe.front()->getAtomicComputationTypeID() == ApplyAggTypeID) {
-      currentPipe.clear();
       moveTheseOver.emplace_back(currentPipe.front());
+      currentPipe.clear();
     }
     else {
 

@@ -17,7 +17,7 @@ class WriteSumResult : public pdb::SetWriter<SumResult> {
   WriteSumResult() = default;
 
   WriteSumResult(std::string dbName, std::string setName) {
-    this->setOutput(std::move(dbName), std::move(setName));
+    this->setOutputSet(std::move(dbName), std::move(setName));
   }
 };
 
