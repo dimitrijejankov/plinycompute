@@ -10,32 +10,25 @@ void pdb::AggregationPipeline::run() {
   // this is where we are outputting all of our results to
   MemoryHolderPtr myRAM = std::make_shared<MemoryHolder>(outputPageSet->getNewPage());
 
+  // create an output container create it.
+  myRAM->outputSink = merger->createNewOutputContainer();
+
   // aggregate all hash maps
   PDBPageHandle inputPage;
   while ((inputPage = inputPageSet->getNextPage(workerID)) != nullptr) {
-
-    // if we haven't created an output container create it.
-    if (myRAM->outputSink == nullptr) {
-      myRAM->outputSink = merger->createNewOutputContainer();
-    }
 
     // write out the page
     merger->writeOutPage(inputPage, myRAM->outputSink);
   }
 
-  // check if we actually had a page we wrote to
-  if(myRAM->pageHandle == nullptr) {
+  // we only have one iteration
+  myRAM->setIteration(0);
 
-    // we only have one iteration
-    myRAM->setIteration(0);
+  // and force the reference count for this guy to go to zero
+  myRAM->outputSink.emptyOutContainingBlock();
 
-    // and force the reference count for this guy to go to zero
-    myRAM->outputSink.emptyOutContainingBlock();
-
-    // unpin the page so we don't have problems
-    myRAM->pageHandle->unpin();
-  }
-
+  // unpin the page so we don't have problems
+  myRAM->pageHandle->unpin();
 }
 
 pdb::AggregationPipeline::AggregationPipeline(size_t workerID,
