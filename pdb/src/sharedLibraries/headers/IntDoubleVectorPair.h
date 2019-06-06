@@ -27,15 +27,14 @@
 using namespace pdb;
 class IntDoubleVectorPair : public Object {
 
-private:
 public:
     int myInt;
     Vector<double> myVector;
 
     ENABLE_DEEP_COPY
 
-    ~IntDoubleVectorPair() {}
-    IntDoubleVectorPair() {}
+    ~IntDoubleVectorPair() = default;
+    IntDoubleVectorPair() = default;
 
     IntDoubleVectorPair(int fromInt, Handle<Vector<double>>& fromVector) {
         this->myInt = fromInt;

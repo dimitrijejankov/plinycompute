@@ -188,7 +188,7 @@ int main(int argc, char *argv[]) {
             }
 
           } catch (pdb::NotEnoughSpace &n) {
-            pdbClient.sendData<LDADocument>("LDA_input_set", "LDA_db", storeMe);
+            pdbClient.sendData<LDADocument>("LDA_db", "LDA_input_set", storeMe);
             pdb::makeObjectAllocatorBlock(blockSize * 1024u * 1024u, true);
             storeMe = pdb::makeObject<pdb::Vector<pdb::Handle<LDADocument>>>();
           }
@@ -197,7 +197,7 @@ int main(int argc, char *argv[]) {
 
       /* Handle the last few entries */
       if (storeMe->size() > 0) {
-        pdbClient.sendData<LDADocument>("LDA_input_set", "LDA_db", storeMe);
+        pdbClient.sendData<LDADocument>("LDA_db", "LDA_input_set", storeMe);
         pdb::makeObjectAllocatorBlock(blockSize * 1024u * 1024u, true);
       }
 
@@ -209,7 +209,7 @@ int main(int argc, char *argv[]) {
         storeMeToo->push_back(me);
       }
 
-      pdbClient.sendData<int>("LDA_meta_data_set", "LDA_db", storeMeToo);
+      pdbClient.sendData<int>("LDA_db", "LDA_meta_data_set", storeMeToo);
       pdb::makeObjectAllocatorBlock(blockSize * 1024u * 1024u, true);
     }
 
@@ -243,10 +243,10 @@ int main(int argc, char *argv[]) {
             myData->setCount(countNum);
             storeMe->push_back(myData);
           }
-          pdbClient.sendData<LDADocument>("LDA_input_set", "LDA_db", storeMe);
+          pdbClient.sendData<LDADocument>("LDA_db", "LDA_input_set", storeMe);
 
         } catch (pdb::NotEnoughSpace &n) {
-          pdbClient.sendData<LDADocument>("LDA_input_set", "LDA_db", storeMe);
+          pdbClient.sendData<LDADocument>("LDA_db", "LDA_input_set", storeMe);
           rollback = false;
         }
 
@@ -262,7 +262,7 @@ int main(int argc, char *argv[]) {
         storeMeToo->push_back(me);
       }
 
-      pdbClient.sendData<int>("LDA_meta_data_set", "LDA_db", storeMeToo);
+      pdbClient.sendData<int>("LDA_db", "LDA_meta_data_set", storeMeToo);
       pdb::makeObjectAllocatorBlock(blockSize * 1024u * 1024u, true);
     }
   }
@@ -412,15 +412,11 @@ int main(int argc, char *argv[]) {
     r->getVector().print();
     std::cout << std::endl;
   }
+  
+  std::cout << "Time Duration: " << std::chrono::duration_cast<std::chrono::duration<float>>(end - total_begin).count() << " secs." << std::endl;
 
-  int code = system("scripts/cleanupSoFiles.sh force");
-  if (code < 0) {
-    std::cout << "Can't cleanup so files" << std::endl;
-  }
-
-  std::cout << "Time Duration: "
-            << std::chrono::duration_cast<std::chrono::duration<float>>(end - total_begin).count()
-            << " secs." << std::endl;
+  // shutdown the server
+  pdbClient.shutDownServer();
 }
 
 #endif

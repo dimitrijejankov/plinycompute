@@ -3,7 +3,7 @@
 //
 
 #include <ComputePlan.h>
-
+#include <PDBCatalogClient.h>
 #include <physicalAlgorithms/PDBShuffleForJoinAlgorithm.h>
 #include <ExJob.h>
 #include <PDBStorageManagerBackend.h>
@@ -220,10 +220,14 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
     return false;
   }
 
+  // get catalog client
+  auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
+
   // empty computations parameters
   std::map<ComputeInfoType, ComputeInfoPtr> params =  {{ComputeInfoType::PAGE_PROCESSOR, plan.getProcessorForJoin(finalTupleSet, job->numberOfNodes, job->numberOfProcessingThreads, *pageQueues, myMgr)},
                                                        {ComputeInfoType::JOIN_ARGS, joinArguments},
-                                                       {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)}};
+                                                       {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)},
+                                                       {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient)}};
 
   /// 5. Create the page set that contains the shuffled join side pages for this node
 

@@ -54,9 +54,6 @@ foreach(test-dir ${sub-dir})
     include(${test-dir}/CMakeLists.txt)
 endforeach()
 
-# include the unit tests
-include(tests/unit/CMakeLists.txt)
-
 # add a custom target to run the integration tests
 add_custom_target(run-integration-tests
                   python ${PROJECT_SOURCE_DIR}/scripts/runTests.py --test-suite int

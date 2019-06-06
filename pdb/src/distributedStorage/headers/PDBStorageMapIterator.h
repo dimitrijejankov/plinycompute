@@ -1,37 +1,12 @@
 #pragma once
 
-#include "PDBStorageIterator.h"
 #include <string>
+
+#include "PDBStorageIterator.h"
+#include "PDBAggregationResultTest.h"
 
 namespace pdb {
 
-// SFINAE test for getKey
-template <typename T>
-class hasGetKey
-{
-  typedef char one;
-  typedef long two;
-
-  template <typename C> static one test( typeof(&C::getKey) ) ;
-  template <typename C> static two test(...);
-
- public:
-  enum { value = sizeof(test<T>(0)) == sizeof(char) };
-};
-
-// SFINAE test for getValue
-template <typename T>
-class hasGetValue
-{
-  typedef char one;
-  typedef long two;
-
-  template <typename C> static one test( typeof(&C::getValue) ) ;
-  template <typename C> static two test(...);
-
- public:
-  enum { value = sizeof(test<T>(0)) == sizeof(char) };
-};
 
 // predefine
 template <typename T, typename Enable = void>

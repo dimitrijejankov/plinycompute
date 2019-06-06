@@ -24,13 +24,32 @@ elseif (UNIX AND NOT APPLE)
     SET(CMAKE_CXX_FLAGS "-fPIC -Wno-deprecated-declarations")
 endif ()
 
-# address sanetizer uncomment if needed
-#set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-#set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+# if we are compiling for debug add the debug flags
+if(CMAKE_BUILD_TYPE MATCHES DEBUG)
+
+    # this is to make the standard lib object readable in the debugger, this will require a boost library compiled for that
+    # you can provide it with -DUSE_CUSTOM_BOOST=ON and -DCUSTOM_BOOST_LOCATION=/path/to/boost
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -D_GLIBCXX_DEBUG") #TODO write a proper script that gets boost 1.7 and compiles it with these flags
+
+# if we are compiling for release
+elseif(CMAKE_BUILD_TYPE MATCHES RELEASE)
+
+    # do -O3 and set the instruction set to the native one for this machine
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
+
+# if we are compiling the unit tests
+elseif(CMAKE_BUILD_TYPE MATCHES UNIT_TESTS)
+
+    # the unit test have the same stuff enabled as the regular tests
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g") #TODO make this work with D_GLIBCXX_DEBUG
+
+    # in the unit tests the minimum page size will be set to 8 bytes so that they can execute fast
+    add_definitions(-DMIN_PAGE_SIZE=8)
+
+endif ()
 
 #set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=thread -fPIE -g")
 #set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=thread -fPIE -g")
-
 
 # set the definitions for the compiler
 ADD_DEFINITIONS(-DINITIALIZE_ALLOCATOR_BLOCK)
@@ -83,8 +102,6 @@ include_directories("${PROJECT_SOURCE_DIR}/pdb/src/sharedLibraries/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/storageManager/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/work/headers")
 
-
-
 # add the third party libraries as includes
 include_directories("${PROJECT_SOURCE_DIR}/third-party/mustache/headers")
 include_directories("${PROJECT_SOURCE_DIR}/third-party/qunit/headers")
@@ -133,10 +150,16 @@ FIND_PACKAGE(FLEX REQUIRED)
 # set the output paths
 SET(LogicalPlanFlexOutput ${CMAKE_SOURCE_DIR}/pdb/src/logicalPlan/source/Lexer.c)
 
-# find the UUID package
-FIND_PACKAGE(UUID REQUIRED)
+# if you want to use a custom version of boost set -DUSE_CUSTOM_BOOST=ON and -DCUSTOM_BOOST_LOCATION=/path/to/boost
+IF(USE_CUSTOM_BOOST)
+
+   # set the custom location
+   SET(Boost_INCLUDE_DIRS ${CUSTOM_BOOST_LOCATION}/include)
+   SET(Boost_LIBRARY_DIRS ${CUSTOM_BOOST_LOCATION}/lib)
+ENDIF()
 
 # find the boost package
+SET(Boost_NO_BOOST_CMAKE ON)
 FIND_PACKAGE(Boost COMPONENTS program_options filesystem system REQUIRED)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
 
@@ -200,9 +223,7 @@ add_custom_command (
 )
 
 # create a target to run the command and make every other target depend on it so it gets to run first
-add_custom_target(object-type-ids ALL
-        DEPENDS object-type-ids-command
-)
+add_custom_target(object-type-ids ALL DEPENDS object-type-ids-command)
 
 # include the directory we just created in the clean target
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES ${CMAKE_CURRENT_BINARY_DIR}/type-id-data)
@@ -291,13 +312,11 @@ add_library(pdb-tests-common $<TARGET_OBJECTS:catalog>
 
 # link the dependent libraries so that they are made of the public interface
 target_link_libraries(pdb-server-common PRIVATE ${SNAPPY_LIBRARY})
-target_link_libraries(pdb-server-common PUBLIC ${UUID_LIBRARY})
 target_link_libraries(pdb-server-common PRIVATE ${CMAKE_DL_LIBS})
 target_link_libraries(pdb-server-common PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(pdb-server-common PRIVATE ${Boost_LIBRARIES})
 
 target_link_libraries(pdb-tests-common PRIVATE ${SNAPPY_LIBRARY})
-target_link_libraries(pdb-tests-common PUBLIC ${UUID_LIBRARY})
 target_link_libraries(pdb-tests-common PRIVATE ${CMAKE_DL_LIBS})
 target_link_libraries(pdb-tests-common PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(pdb-tests-common PRIVATE ${Boost_LIBRARIES})
@@ -305,31 +324,43 @@ target_link_libraries(pdb-tests-common PRIVATE ${Boost_LIBRARIES})
 # form the parsers for the logical plan
 add_library(logical-plan-parser OBJECT ${LogicalPlanFlexOutput} ${LogicalPlanParserOutput})
 
-# set dependencies for pdb-main
-add_custom_target(pdb-main)
-add_dependencies(pdb-main pdb-node)
+# check if the target is unit tests
+if(CMAKE_BUILD_TYPE MATCHES UNIT_TESTS)
 
-# set the pdb-worker build target
-set(SOURCE_FILES_PDB_CLUSTER ${PROJECT_SOURCE_DIR}/pdb/src/mainServer/source/NodeMain.cc $<TARGET_OBJECTS:logical-plan-parser>)
-add_executable(pdb-node ${SOURCE_FILES_PDB_CLUSTER})
-target_link_libraries(pdb-node pdb-server-common)
-target_link_libraries(pdb-node ${GSL_LIBRARIES})
+    # include the unit tests
+    include(tests/unit/CMakeLists.txt)
 
-# compile all the objects
-file(GLOB files "${PROJECT_SOURCE_DIR}/pdb/src/sharedLibraries/source/*.cc")
-add_custom_target(shared-libraries)
-foreach(file ${files})
-    get_filename_component(fileName "${file}" NAME_WE)
-    add_library(${fileName} MODULE ${file})
-    target_link_libraries(${fileName} pdb-shared-common)
-    add_dependencies(shared-libraries ${fileName})
-endforeach()
+    # include benchmarks that are in the benchmarks directory
+    include(benchmarks/Benchmarks.cmake)
 
-# include tests that are in tests directory
-include(tests/Tests.cmake)
+else()
 
-# include tests that are in applications directory
-include(applications/Applications.cmake)
+    # set the pdb-worker build target
+    set(SOURCE_FILES_PDB_CLUSTER ${PROJECT_SOURCE_DIR}/pdb/src/mainServer/source/NodeMain.cc $<TARGET_OBJECTS:logical-plan-parser>)
+    add_executable(pdb-node ${SOURCE_FILES_PDB_CLUSTER})
+    target_link_libraries(pdb-node pdb-server-common)
+    target_link_libraries(pdb-node ${GSL_LIBRARIES})
 
-# include benchmarks that are in the benchmarks directory
-include(benchmarks/Benchmarks.cmake)
+    # set dependencies for pdb-main
+    add_custom_target(pdb-main)
+    add_dependencies(pdb-main pdb-node)
+
+    # compile all the objects
+    file(GLOB files "${PROJECT_SOURCE_DIR}/pdb/src/sharedLibraries/source/*.cc")
+    add_custom_target(shared-libraries)
+    foreach(file ${files})
+        get_filename_component(fileName "${file}" NAME_WE)
+        add_library(${fileName} MODULE ${file})
+        target_link_libraries(${fileName} pdb-shared-common)
+        add_dependencies(shared-libraries ${fileName})
+    endforeach()
+
+    # include tests that are in tests directory
+    include(tests/Tests.cmake)
+
+    # include tests that are in applications directory
+    include(applications/Applications.cmake)
+
+endif()
+
+

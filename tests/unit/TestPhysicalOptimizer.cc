@@ -1069,4 +1069,5 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   EXPECT_FALSE(optimizer.hasAlgorithmToRun());
 }
 
+
 }

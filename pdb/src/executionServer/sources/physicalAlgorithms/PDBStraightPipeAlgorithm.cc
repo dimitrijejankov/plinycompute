@@ -5,6 +5,7 @@
 #include <PDBVector.h>
 #include <ComputePlan.h>
 #include <GenericWork.h>
+#include <PDBCatalogClient.h>
 #include <physicalAlgorithms/PDBStraightPipeAlgorithm.h>
 
 #include "physicalAlgorithms/PDBStraightPipeAlgorithm.h"
@@ -62,10 +63,14 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
     return false;
   }
 
+  // get catalog client
+  auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
+
   // empty computations parameters
   std::map<ComputeInfoType, ComputeInfoPtr> params =  {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<NullProcessor>()},
                                                        {ComputeInfoType::JOIN_ARGS, joinArguments},
-                                                       {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)}};
+                                                       {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)},
+                                                       {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient)}};
 
 
   // build a pipeline for each worker thread

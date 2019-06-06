@@ -29,6 +29,9 @@ void pdb::AggregationPipeline::run() {
 
   // unpin the page so we don't have problems
   myRAM->pageHandle->unpin();
+
+  // TODO make this nicer
+  makeObjectAllocatorBlock(1024, true);
 }
 
 pdb::AggregationPipeline::AggregationPipeline(size_t workerID,

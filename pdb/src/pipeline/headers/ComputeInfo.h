@@ -27,7 +27,8 @@ enum ComputeInfoType {
 
   PAGE_PROCESSOR,
   JOIN_ARGS,
-  SHUFFLE_JOIN_ARG
+  SHUFFLE_JOIN_ARG,
+  SOURCE_SET_INFO
 
 };
 

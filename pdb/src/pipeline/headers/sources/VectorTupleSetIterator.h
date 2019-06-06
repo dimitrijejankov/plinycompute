@@ -79,9 +79,23 @@ class VectorTupleSetIterator : public ComputeSource {
     // set the current page (can be null if there is none)
     curPage = pageSet->getNextPage(workerID);
 
-    // extract the vector from the first page if there is no page just set it to null
-    curRec = curPage == nullptr ? nullptr : (Record<Vector<Handle<Object>>> *) curPage->getBytes();
+    // check if we actually have a page
+    if(curPage == nullptr) {
 
+      // set the current rec to null
+      curRec = nullptr;
+      lastRec = nullptr;
+      pos = 0;
+
+      // just get out
+      return ;
+    }
+
+    // repin the page
+    curPage->repin();
+
+    // extract the vector from the first page if there is no page just set it to null
+    curRec = (Record<Vector<Handle<Object>>> *) curPage->getBytes();
     if (curRec != nullptr) {
 
       iterateOverMe = curRec->getRootObject();

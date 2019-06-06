@@ -121,14 +121,16 @@ void pdb::PDBPipeNodeBuilder::transverseTCAPGraph(AtomicComputationPtr curNode) 
   // if we have multiple consumers and there is still stuff left in the pipe
   if(consumers.size() > 1 && !currentPipe.empty()) {
 
-    // in the case that we only have one ApplyAgg we move it to the next pipelines
+    // move the last computation to the next pipeline since it needs to start from it
+    moveTheseOver.emplace_back(currentPipe.back());
+
+    // in the case that we only have one ApplyAgg that is going to be moved to the next pipeline just ignore it.
     if(currentPipe.size() == 1 && currentPipe.front()->getAtomicComputationTypeID() == ApplyAggTypeID) {
-      moveTheseOver.emplace_back(currentPipe.front());
       currentPipe.clear();
     }
     else {
 
-      // this is a pipeline breaker create a pipe
+      // otherwise this is a pipeline breaker create a pipe
       createPhysicalPipeline<PDBStraightPhysicalNode>();
       currentPipe.clear();
     }
@@ -149,15 +151,17 @@ void pdb::PDBPipeNodeBuilder::setConsumers(std::shared_ptr<PDBAbstractPhysicalNo
 
   // go trough each consumer of this node
   auto &consumingAtomicComputations = atomicComps->getConsumingAtomicComputations(this->currentPipe.back()->getOutputName());
-  consumers.reserve(consumingAtomicComputations.size());
-  for(const auto &consumer : consumingAtomicComputations) {
+
+  // if we are only having one consumer then then next pipe starts with the atomic computation that consumes this one
+  if(consumingAtomicComputations.size() == 1) {
 
     // add them to the consumers
-    consumers.push_back(consumer->getOutputName());
+    consumers.push_back(consumingAtomicComputations.front()->getOutputName());
+    this->consumedBy[node->getNodeIdentifier()] = consumers;
   }
-
-  // set the consumers
-  if(!consumers.empty()) {
+  else if(consumingAtomicComputations.size() > 1) {
+    // add them to the consumers
+    consumers.push_back(this->currentPipe.back()->getOutputName());
     this->consumedBy[node->getNodeIdentifier()] = consumers;
   }
 }
@@ -177,6 +181,7 @@ void pdb::PDBPipeNodeBuilder::connectThePipes() {
       auto consumers = startsWith[atomicComputation];
 
       for(const auto &consumer : consumers) {
+
         // add the consuming node of this guy
         node.second->addConsumer(consumer);
       }

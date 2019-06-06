@@ -88,24 +88,11 @@ pdb::PDBSetPageSetPtr pdb::PDBStorageManagerBackend::createPageSetFromPDBSet(con
     return nullptr;
   }
 
-  /// 2. Check if we already have the thing if we do return it
+  /// 3. Crate it and return it
 
-  std::unique_lock<std::mutex> lck(pageSetMutex);
-
-  // try to find the page if it exists return it
-  auto it = pageSets.find(pageSetID);
-  if(it != pageSets.end()) {
-    return std::dynamic_pointer_cast<PDBSetPageSet>(it->second);
-  }
-
-  /// 3. We don't have it so create it
 
   // store the page set
-  auto pageSet = std::make_shared<pdb::PDBSetPageSet>(db, set, pageInfo.second, getFunctionalityPtr<PDBBufferManagerInterface>());
-  pageSets[pageSetID] = pageSet;
-
-  // return it
-  return pageSet;
+  return std::make_shared<pdb::PDBSetPageSet>(db, set, pageInfo.second, getFunctionalityPtr<PDBBufferManagerInterface>());
 }
 
 pdb::PDBAnonymousPageSetPtr pdb::PDBStorageManagerBackend::createAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID) {

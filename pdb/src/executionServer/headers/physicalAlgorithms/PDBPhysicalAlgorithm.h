@@ -14,6 +14,7 @@
 #include <PDBSetObject.h>
 #include <PDBCatalogSet.h>
 #include <LogicalPlan.h>
+#include <SourceSetArg.h>
 #include <PDBVector.h>
 #include <JoinArguments.h>
 #include <gtest/gtest_prod.h>
@@ -88,6 +89,16 @@ public:
    */
   virtual pdb::PDBCatalogSetContainerType getOutputContainerType() { return PDB_CATALOG_SET_NO_CONTAINER; };
 
+  /**
+ * This is the tuple set of the atomic computation from which we are starting our pipeline
+ */
+  pdb::String firstTupleSet;
+
+  /**
+   * The is the tuple set of the atomic computation where we are ending our pipeline
+   */
+  pdb::String finalTupleSet;
+
 protected:
 
   /**
@@ -96,6 +107,12 @@ protected:
    * @return - the page set
    */
   PDBAbstractPageSetPtr getSourcePageSet(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage);
+
+  /**
+   * Return the info that is going to be provided to the pipeline about the main source set we are scanning
+   * @return an instance of SourceSetArgPtr
+   */
+  pdb::SourceSetArgPtr getSourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient);
 
   /**
    * Returns the additional sources as join arguments, if we can not find a page set that is specified in the additional sources
@@ -119,16 +136,6 @@ protected:
    * The sink page set the algorithm should setup
    */
   pdb::Handle<PDBSinkPageSetSpec> sink;
-
-  /**
-   * This is the tuple set of the atomic computation from which we are starting our pipeline
-   */
-  pdb::String firstTupleSet;
-
-  /**
-   * The is the tuple set of the atomic computation where we are ending our pipeline
-   */
-  pdb::String finalTupleSet;
 
   /**
    * List of secondary sources like hash sets for join etc.. null if there are no secondary sources

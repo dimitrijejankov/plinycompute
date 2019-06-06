@@ -23,6 +23,7 @@
 #include "Lambda.h"
 #include "ComputeSource.h"
 #include "ComputeSink.h"
+#include "PageProcessor.h"
 #include "InputTupleSetSpecifier.h"
 #include "PDBString.h"
 #include "PDBAbstractPageSet.h"
@@ -30,8 +31,16 @@
 
 namespace pdb {
 
+// predefine the buffer manager interface
+class PDBBufferManagerInterface;
+using PDBBufferManagerInterfacePtr = std::shared_ptr<PDBBufferManagerInterface>;
+
+// predefine the logical plan
 struct LogicalPlan;
 using LogicalPlanPtr = std::shared_ptr<LogicalPlan>;
+
+// the compute plan
+class ComputePlan;
 
 // all nodes in a user-supplied computation are descended from this
 class Computation : public Object {
@@ -50,6 +59,12 @@ class Computation : public Object {
   // a pointer to a ComputeSource object that can actually produce TupleSet objects corresponding
   // to that particular TupleSpec
   virtual ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID) { return nullptr; }
+
+  // this one is basically the same as compute @see getComputeSource except it takes in the pipeline parameters
+  virtual ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet,
+                                            size_t chunkSize,
+                                            uint64_t workerID,
+                                            std::map<ComputeInfoType, ComputeInfoPtr> &params) { return getComputeSource(pageSet, chunkSize, workerID); }
 
   // likewise, if this particular computation can be used as a compute sink in a pipeline, this
   // method will return the compute sink object associated with the computation.  It requires the

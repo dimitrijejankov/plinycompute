@@ -2,6 +2,7 @@
 #include <PDBStorageManagerBackend.h>
 #include <AtomicComputationClasses.h>
 #include <AtomicComputation.h>
+#include <PDBCatalogClient.h>
 
 namespace pdb {
 
@@ -32,19 +33,13 @@ PDBPhysicalAlgorithm::PDBPhysicalAlgorithm(const AtomicComputationPtr &fistAtomi
 
 PDBAbstractPageSetPtr PDBPhysicalAlgorithm::getSourcePageSet(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
 
-  // get the source computation
-  auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
-
   // if this is a scan set get the page set from a real set
   PDBAbstractPageSetPtr sourcePageSet;
-  if (srcNode->getAtomicComputationTypeID() == ScanSetAtomicTypeID) {
-
-    // cast it to a scan
-    auto scanNode = std::dynamic_pointer_cast<ScanSet>(srcNode);
+  if (sourceSet != nullptr) {
 
     // get the page set
-    sourcePageSet = storage->createPageSetFromPDBSet(scanNode->getDBName(),
-                                                     scanNode->getSetName(),
+    sourcePageSet = storage->createPageSetFromPDBSet(sourceSet->database,
+                                                     sourceSet->set,
                                                      std::make_pair(source->pageSetIdentifier.first,
                                                                     source->pageSetIdentifier.second));
     sourcePageSet->resetPageSet();
@@ -57,6 +52,18 @@ PDBAbstractPageSetPtr PDBPhysicalAlgorithm::getSourcePageSet(std::shared_ptr<pdb
 
   // return the page set
   return sourcePageSet;
+}
+
+pdb::SourceSetArgPtr PDBPhysicalAlgorithm::getSourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient) {
+
+  // check if we actually have a set
+  if(sourceSet == nullptr) {
+    return nullptr;
+  }
+
+  // return the argument
+  std::string error;
+  return std::make_shared<pdb::SourceSetArg>(catalogClient->getSet(sourceSet->database, sourceSet->set, error));
 }
 
 std::shared_ptr<JoinArguments> PDBPhysicalAlgorithm::getJoinArguments(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {

@@ -2,6 +2,8 @@
 // Created by dimitrije on 3/20/19.
 //
 
+#include <SourceSetArg.h>
+#include <PDBCatalogClient.h>
 #include "ComputePlan.h"
 #include "ExJob.h"
 #include "PDBAggregationPipeAlgorithm.h"
@@ -59,9 +61,6 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
 
   /// 4. Init the preaggregation pipelines
 
-  // set the parameters
-  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
-
   // figure out the join arguments
   auto joinArguments = getJoinArguments (storage);
 
@@ -70,10 +69,17 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
     return false;
   }
 
+  // get the buffer manager
+  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
+
+  // get catalog client
+  auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
+
   // initialize the parameters
   std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<PreaggregationPageProcessor>(job->numberOfNodes, job->numberOfProcessingThreads, *pageQueues, myMgr) },
                                                        { ComputeInfoType::JOIN_ARGS, joinArguments },
-                                                       { ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS) }};
+                                                       { ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS) },
+                                                       { ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient)}} ;
 
   // fill uo the vector for each thread
   preaggregationPipelines = std::make_shared<std::vector<PipelinePtr>>();

@@ -15,13 +15,14 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
+#pragma once
 
-#ifndef SCAN_SET_H
-#define SCAN_SET_H
-
-#include <PDBAbstractPageSet.h>
-#include <sources/VectorTupleSetIterator.h>
+#include <sources/MapTupleSetIterator.h>
+#include "PDBAbstractPageSet.h"
+#include "VectorTupleSetIterator.h"
+#include "SourceSetArg.h"
 #include "Computation.h"
+#include "PDBAggregationResultTest.h"
 
 namespace pdb {
 
@@ -126,13 +127,94 @@ class SetScanner : public Computation {
     return scanSetTemplate.render(scanSetData);
   }
 
+  /**
+   * Returns the approprate source by returning the result of a proxy method @see _getComputeSource
+   * @param pageSet - the page set we are scanning
+   * @param chunkSize - the size of the chunk each tuple set is going to be
+   * @param workerID - the id of the worker
+   * @param params - the pipeline parameters we use to get the info about the set
+   * @return can be either @see VectorTupleSetIterator or @see MapTupleSetIterator depending on the type of the set
+   */
   pdb::ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet,
                                          size_t chunkSize,
-                                         uint64_t workerID) override {
-    return std::make_shared<pdb::VectorTupleSetIterator>(pageSet, chunkSize, workerID);
+                                         uint64_t workerID,
+                                         std::map<ComputeInfoType, ComputeInfoPtr> &params) override {
+
+    return _getComputeSource(pageSet, chunkSize, workerID, params);
   }
 
  private:
+
+  /**
+   * This is the method that is going to be instantiate if the OutputClass can be a result of an aggregation.
+   * This means that it has getValue and getKey methods defined.
+   * If checks the type of the set to see if it is a vector set or a set that is a result of an aggregation.
+   * based on that it returns the approprate source
+   * @tparam T - alias for the output type
+   * @param pageSet - the page set we are scanning
+   * @param chunkSize - the size of the chunk each tuple set is going to be
+   * @param workerID - the id of the worker
+   * @param params - the pipeline parameters we use to get the info about the set
+   * @return can be either @see VectorTupleSetIterator or @see MapTupleSetIterator depending on the type of the set
+   */
+  template<class T = OutputClass>
+  typename std::enable_if_t<hasGetKey<T>::value and hasGetValue<T>::value, pdb::ComputeSourcePtr>
+  _getComputeSource(const PDBAbstractPageSetPtr &pageSet,
+                                          size_t chunkSize,
+                                          uint64_t workerID,
+                                          std::map<ComputeInfoType, ComputeInfoPtr> &params) {
+
+    // declare upfront the key and the value types
+    using Value = typename std::remove_reference<decltype(std::declval<T>().getValue())>::type;
+    using Key = typename std::remove_reference<decltype(std::declval<T>().getKey())>::type;
+
+    auto sourceSetInfo = std::dynamic_pointer_cast<SourceSetArg>(params[ComputeInfoType::SOURCE_SET_INFO]);
+
+    // check if we actually have it
+    if(sourceSetInfo == nullptr && sourceSetInfo->set == nullptr) {
+      throw runtime_error("Did not get any info about set ("  + (string) dbName +"," + (string) setName +")");
+    }
+
+    if(sourceSetInfo->set->containerType == PDB_CATALOG_SET_VECTOR_CONTAINER) {
+      return std::make_shared<pdb::VectorTupleSetIterator>(pageSet, chunkSize, workerID);
+    }
+    else if(sourceSetInfo->set->containerType == PDB_CATALOG_SET_MAP_CONTAINER) {
+      return std::make_shared<pdb::MapTupleSetIterator<Key, Value, OutputClass>> (pageSet, workerID, chunkSize);
+    }
+
+    throw runtime_error("Unknown container  type for set ("  + (string) dbName +"," + (string) setName +")");
+  }
+
+  /**
+   * This is the method that is going to be instantiate if the OutputClass does not even qualify to be a result of an
+   * aggregation.
+   * @tparam T - alias for the output type
+   * @param pageSet - the page set we are scanning
+   * @param chunkSize - the size of the chunk each tuple set is going to be
+   * @param workerID - the id of the worker
+   * @param params - the pipeline parameters we use to get the info about the set
+   * @return the appropriate compute source, currently this can only be an @see VectorTupleSetIterator
+   */
+  template<class T = OutputClass>
+  typename std::enable_if_t<!hasGetKey<T>::value or !hasGetValue<T>::value, pdb::ComputeSourcePtr>
+   _getComputeSource(const PDBAbstractPageSetPtr &pageSet,
+                                          size_t chunkSize,
+                                          uint64_t workerID,
+                                          std::map<ComputeInfoType, ComputeInfoPtr> &params) {
+    auto sourceSetInfo = std::dynamic_pointer_cast<SourceSetArg>(params[ComputeInfoType::SOURCE_SET_INFO]);
+
+    // check if we actually have it
+    if(sourceSetInfo == nullptr && sourceSetInfo->set == nullptr) {
+      throw runtime_error("Did not get any info about set ("  + (string) dbName +"," + (string) setName +")");
+    }
+
+    if(sourceSetInfo->set->containerType == PDB_CATALOG_SET_VECTOR_CONTAINER) {
+      return std::make_shared<pdb::VectorTupleSetIterator>(pageSet, chunkSize, workerID);
+    }
+
+    // this is not good
+    throw runtime_error("Unknown container  type for set ("  + (string) dbName +"," + (string) setName +")");
+  }
 
   /**
    * The name of the database the set we are scanning belongs to
@@ -147,5 +229,3 @@ class SetScanner : public Computation {
 };
 
 }
-
-#endif

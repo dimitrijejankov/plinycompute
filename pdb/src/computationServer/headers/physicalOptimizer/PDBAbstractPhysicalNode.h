@@ -321,10 +321,9 @@ public:
       default:break;
     }
 
-    std::cout << " asd" << std::endl;
-
     // this is not supposed to happen
     assert(false);
+    return NoSource;
   }
 
   /**
@@ -410,7 +409,7 @@ protected:
     /**
      * The type of the sink
      */
-    PDBSinkType sinkType = None;
+    PDBSinkType sinkType = NoSink;
 
     /**
      * Each page set is identified by a integer and a string. Generally set to (computationID, tupleSetIdentifier)

@@ -75,9 +75,10 @@ public:
     Lambda<bool> getSelection(Handle<LDADocument> doc,
                               Handle<IntDoubleVectorPair> DocTopicProb,
                               Handle<LDATopicWordProb> WordTopicProb) override {
-        return (makeLambdaFromMethod(doc, getDoc) ==
-                makeLambdaFromMethod(DocTopicProb, getUnsigned)) &&
-            (makeLambdaFromMethod(doc, getWord) == makeLambdaFromMethod(WordTopicProb, getKey));
+        return (makeLambdaFromMember(doc, docID) ==
+                makeLambdaFromMember(DocTopicProb, myInt)) &&
+               (makeLambdaFromMember(doc, wordID) ==
+                makeLambdaFromMember(WordTopicProb, whichWord));
     }
 
     Lambda<Handle<LDADocWordTopicAssignment>> getProjection(

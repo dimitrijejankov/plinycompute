@@ -279,7 +279,7 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
   else {
 
     // our source is a normal source and not a join source, so we just grab it from the computation
-    computeSource = myPlan->getNode(producerName).getComputation().getComputeSource(inputPageSet, chunkSize, workerID);
+    computeSource = myPlan->getNode(producerName).getComputation().getComputeSource(inputPageSet, chunkSize, workerID, params);
   }
 
   std::cout << "\nBUILDING PIPELINE\n";
@@ -332,8 +332,9 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
   // and get the projection for this guy
   const auto &consumers = allComps.getConsumingAtomicComputations(targetSpec.getSetName());
 
-  TupleSpec targetProjection;
-  TupleSpec targetAttsToOpOn;
+  /// TODO this whole part needs to be rewritten
+  TupleSpec targetProjection = targetSpec;
+  TupleSpec targetAttsToOpOn = targetSpec;
   for (auto &a : consumers) {
     if (a->getComputationName() == targetComputationName) {
 
