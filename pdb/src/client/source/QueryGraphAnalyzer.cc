@@ -25,7 +25,7 @@
 
 namespace pdb {
 
-QueryGraphAnalyzer::QueryGraphAnalyzer(std::vector<Handle<Computation>> &queryGraph) {
+QueryGraphAnalyzer::QueryGraphAnalyzer(const vector<Handle < Computation>> &queryGraph) {
   for (const auto &i : queryGraph) {
     this->queryGraph.push_back(i);
   }
