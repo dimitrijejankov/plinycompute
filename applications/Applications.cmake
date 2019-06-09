@@ -17,3 +17,11 @@ endfunction(add_pdb_application)
 
 
 include(${PROJECT_SOURCE_DIR}/applications/TestLDA/CMakeLists.txt)
+
+# Add BenchAggregationBalanced and its shared libraries
+add_pdb_application(BenchAggregationBalanced)
+# Note: these shared libraries are in pdb/src/sharedLibraries
+add_dependencies(BenchAggregationBalanced SillyAgg)
+add_dependencies(BenchAggregationBalanced ScanEmployeeSet)
+add_dependencies(BenchAggregationBalanced WriteDepartmentTotal)
+add_dependencies(BenchAggregationBalanced pdb-node)
