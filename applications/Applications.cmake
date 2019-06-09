@@ -17,3 +17,4 @@ endfunction(add_pdb_application)
 
 
 include(${PROJECT_SOURCE_DIR}/applications/TestLDA/CMakeLists.txt)
+include(${PROJECT_SOURCE_DIR}/applications/TestGMM/CMakeLists.txt)

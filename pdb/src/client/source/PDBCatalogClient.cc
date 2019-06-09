@@ -359,11 +359,10 @@ bool PDBCatalogClient::createDatabase(std::string databaseName,
       databaseName);
 }
 
-// sends a request to the Catalog Server to remove Metadata for a Set that is
-// deleted
-bool PDBCatalogClient::deleteSet(const std::string &databaseName, const std::string &setName, std::string &errMsg) {
+// sends a request to the Catalog Server to remove Metadata for a Set that is removed
+bool PDBCatalogClient::removeSet(const std::string &databaseName, const std::string &setName, std::string &errMsg) {
 
-  return RequestFactory::heapRequest< CatDeleteSetRequest, SimpleRequestResult, bool>(
+  return RequestFactory::heapRequest<CatDeleteSetRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
         if (result != nullptr) {

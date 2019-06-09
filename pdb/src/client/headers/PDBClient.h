@@ -157,6 +157,8 @@ class PDBClient : public ServerFunctionality {
 
   bool clearSet(const std::string &dbName, const std::string &setName);
 
+  bool removeSet(const std::string &dbName, const std::string &setName);
+
  private:
 
   std::shared_ptr<pdb::PDBCatalogClient> catalogClient;

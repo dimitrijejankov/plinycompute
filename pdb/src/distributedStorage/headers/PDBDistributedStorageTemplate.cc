@@ -11,6 +11,7 @@
 #include <StoDispatchData.h>
 #include <StoClearSetRequest.h>
 #include <DisClearSet.h>
+#include <DisRemoveSet.h>
 #include <GenericWork.h>
 
 template<class Communicator, class Requests>
@@ -540,6 +541,149 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleClearSet(const pd
 
   if (!success) {
     error = "Could not completely clear the set";
+  }
+
+  // create an allocation block to hold the response
+  const UseTemporaryAllocationBlock tempBlock{1024};
+  Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(success, error);
+
+  // sends result to requester
+  sendUsingMe->sendObject(response, error);
+
+  // return
+  return make_pair((bool) success, error);
+}
+
+template<class Communicator, class Requests>
+std::pair<bool, std::string> pdb::PDBDistributedStorage::handleRemoveSet(const pdb::Handle<pdb::DisRemoveSet> &request,
+                                                                         shared_ptr<Communicator> &sendUsingMe) {
+  /// 0. Check if the set exists
+
+  // get the set if exists
+  std::string error;
+  auto catalogClient = getFunctionalityPtr<PDBCatalogClient>();
+  auto set = catalogClient->getSet(request->databaseName, request->setName, error);
+
+  // make sure the set exists
+  if (set == nullptr) {
+
+    // make the error string
+    std::string errMsg =
+        "The set requested (" + (std::string) request->databaseName + "," + (std::string) request->setName
+            + ") to remove does note exist!";
+
+    // log the error
+    logger->error(errMsg);
+
+    // create an allocation block to hold the response
+    const UseTemporaryAllocationBlock tempBlock{1024};
+    Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+
+    // sends result to requester
+    sendUsingMe->sendObject(response, errMsg);
+    return make_pair(false, errMsg);
+  }
+
+  /// 1. Try to use the set, if it is already in use NACK
+
+  auto setLock = tryUsingSet(request->databaseName, request->setName, PDBDistributedStorageSetState::CLEARING_DATA);
+  if(!setLock->isClearGranted()) {
+
+    // make the error string
+    std::string errMsg =
+        "The set requested (" + (std::string) request->databaseName + "," + (std::string) request->setName
+            + ") is in use therefore we can not remove it!";
+
+    // log the error
+    logger->error(errMsg);
+
+    // create an allocation block to hold the response
+    const UseTemporaryAllocationBlock tempBlock{1024};
+    Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+
+    // sends result to requester
+    sendUsingMe->sendObject(response, errMsg);
+    return make_pair(false, errMsg);
+  }
+
+  /// 2. Remove the set from the catalog
+  atomic_bool success;
+  success = catalogClient->removeSet(request->databaseName, request->setName, error);
+  if(!success) {
+
+    // make the error string
+    std::string errMsg =
+        "The set requested (" + (std::string) request->databaseName + "," + (std::string) request->setName
+            + ") could not be removed from the catalog and therefore we can not remove it!. Error was : " + error;
+
+    // log the error
+    logger->error(errMsg);
+
+    // create an allocation block to hold the response
+    const UseTemporaryAllocationBlock tempBlock{1024};
+    Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+
+    // sends result to requester
+    sendUsingMe->sendObject(response, errMsg);
+    return make_pair(false, errMsg);
+  }
+
+  /// 2. Send concurrently all the worker nodes a request for the storage to clear the set.
+
+  // grab the nodes we want to forward the request to
+  auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
+
+  // success indicator
+  success = true;
+
+  // create the buzzer
+  atomic_int counter;
+  counter = 0;
+  PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
+
+    // did we fail?
+    if (myAlarm == PDBAlarm::GenericError) {
+      success = false;
+    }
+
+    // increment the count
+    cnt++;
+  });
+
+  // send a request to clear to each storage
+  for (auto i = 0; i < nodes.size(); ++i) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = this->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&, nodeID = i](PDBBuzzerPtr callerBuzzer) {
+
+      // make a request and return the value
+      success = RequestFactory::heapRequest<pdb::StoClearSetRequest, SimpleRequestResult, bool>(
+          logger, nodes[nodeID]->port, nodes[nodeID]->address, false, 1024, [&](Handle<SimpleRequestResult> result) {
+
+            // check if we got a ACK
+            return result != nullptr && result->getRes().first;
+          }, request->databaseName, request->setName);
+
+      // signal that the run was successful
+      callerBuzzer->buzz(success ? PDBAlarm::WorkAllDone : PDBAlarm::GenericError, counter);
+    });
+
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
+  // wait until all the nodes are finished
+  while (counter < nodes.size()) {
+    tempBuzzer->wait();
+  }
+
+  /// 3. Send back the response to the client
+
+  if (!success) {
+    error = "Could not completely remove the set, failed to clear its data.";
   }
 
   // create an allocation block to hold the response

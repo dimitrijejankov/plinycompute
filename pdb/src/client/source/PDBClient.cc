@@ -138,6 +138,10 @@ bool PDBClient::clearSet(const string &dbName, const string &setName) {
   return distributedStorage->clearSet(dbName, setName, errorMsg);
 }
 
+bool PDBClient::removeSet(const string &dbName, const string &setName) {
+  return distributedStorage->removeSet(dbName, setName, errorMsg);
+}
+
 bool PDBClient::executeComputations(Handle<Vector<Handle<Computation>>> &computations, const pdb::String &tcap) {
   return computationClient->executeComputations(computations, tcap, errorMsg);
 }
