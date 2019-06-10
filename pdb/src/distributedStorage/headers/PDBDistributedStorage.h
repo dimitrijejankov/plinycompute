@@ -26,6 +26,7 @@
 #include "StoGetNextPageRequest.h"
 #include "DisAddData.h"
 #include "DisClearSet.h"
+#include "DisRemoveSet.h"
 #include "PDBDistributedStorageSetLock.h"
 #include "PDBDispatchPolicy.h"
 #include <StoDispatchData.h>
@@ -156,7 +157,7 @@ private:
                                              std::shared_ptr<Communicator> &sendUsingMe);
 
   /**
-   * This handler clears a particular set, it removes all info about it.
+   * This handler clears a particular set, just the data.
    * It will succeed if the set is not in use.
    *
    * @tparam Communicator - the communicator class PDBCommunicator is used to handle the request. This is basically here
@@ -171,6 +172,22 @@ private:
   template<class Communicator, class Requests>
   std::pair<bool, std::string> handleClearSet(const pdb::Handle<pdb::DisClearSet> &request,
                                               std::shared_ptr<Communicator> &sendUsingMe);
+  /**
+   * This handler removes a particular set, it removes all info about it.
+   * It will succeed if the set is not in use.
+   *
+   * @tparam Communicator - the communicator class PDBCommunicator is used to handle the request. This is basically here
+   * so we could write unit tests
+   *
+   * @tparam Requests - is the request factory for this
+   *
+   * @param request - the request for the remove set
+   * @param sendUsingMe - the communicator that is sending the data
+   * @return
+   */
+  template<class Communicator, class Requests>
+  std::pair<bool, std::string> handleRemoveSet(const pdb::Handle<pdb::DisRemoveSet> &request,
+                                               std::shared_ptr<Communicator> &sendUsingMe);
 
   /**
    * This structure holds info about how we are currently using the set

@@ -114,6 +114,15 @@ public:
                  const std::string &setName, std::string &errMsg);
 
   /**
+   * Sends a request to the Catalog Server to delete a set returns true on success, false on fail
+   * @param databaseName
+   * @param setName
+   * @param errMsg
+   * @return
+   */
+  bool removeSet(const std::string &databaseName, const std::string &setName, std::string &errMsg);
+
+  /**
    * Increments the size of a set for a particular set by size
    * @param databaseName - the database the set belongs to
    * @param setName - the name of the set
@@ -144,11 +153,6 @@ public:
    * fail
    */
   bool deleteDatabase(const std::string &databaseName, std::string &errMsg);
-
-  /* Sends a request to the Catalog Server to delete a set returns true on
-   * success, false on fail
-   */
-  bool deleteSet(const std::string &databaseName, const std::string &setName, std::string &errMsg);
 
   bool setExists(const std::string &dbName, const std::string &setName);
 

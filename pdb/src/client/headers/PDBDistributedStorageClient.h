@@ -71,6 +71,15 @@ public:
   bool clearSet(const string &dbName, const string &setName, std::string &errMsg);
 
   /**
+   * Removes all the data from the set and then removes the actually set
+   * @param dbName - the name of the database the set belongs to
+   * @param setName - the name of the set we want to remove
+   * @param errMsg - the error message
+   * @return true if we succeed false otherwise
+   */
+  bool removeSet(const string &dbName, const string &setName, std::string &errMsg);
+
+  /**
    * Returns an vector iterator that can fetch records from the storage
    * @param set - the set want to grab the iterator for
    * @return the iterator

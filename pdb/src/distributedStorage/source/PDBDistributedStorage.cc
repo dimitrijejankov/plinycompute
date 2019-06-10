@@ -21,6 +21,7 @@
 #include <HeapRequestHandler.h>
 #include <DisAddData.h>
 #include <DisClearSet.h>
+#include <DisRemoveSet.h>
 #include <BufGetPageRequest.h>
 #include <PDBBufferManagerInterface.h>
 #include <PDBDispatchRandomPolicy.h>
@@ -65,6 +66,13 @@ forMe.registerHandler(
     make_shared<HeapRequestHandler<pdb::DisClearSet>>(
         [&](Handle<pdb::DisClearSet> request, PDBCommunicatorPtr sendUsingMe) {
           return handleClearSet<PDBCommunicator, RequestFactory>(request, sendUsingMe);
+    }));
+
+  forMe.registerHandler(
+    DisRemoveSet_TYPEID,
+    make_shared<HeapRequestHandler<pdb::DisRemoveSet>>(
+        [&](Handle<pdb::DisRemoveSet> request, PDBCommunicatorPtr sendUsingMe) {
+          return handleRemoveSet<PDBCommunicator, RequestFactory>(request, sendUsingMe);
     }));
 }
 

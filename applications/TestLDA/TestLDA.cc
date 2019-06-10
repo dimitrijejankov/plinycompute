@@ -354,9 +354,9 @@ int main(int argc, char *argv[]) {
     myWordTopicProb->setInput(myTopicWordProb);
 
     /*
- * [4] Write the intermediate results doc-topic probability and word-topic probability to sets
- *     Use them in the next iteration
- */
+     * [4] Write the intermediate results doc-topic probability and word-topic probability to sets
+     *     Use them in the next iteration
+     */
     std::string myWriterForTopicsPerWordSetName = std::string("TopicsPerWord") + std::to_string((n + 1) % 2);
     Handle<Computation> myWriterForTopicsPerWord = makeObject<WriteTopicsPerWord>("LDA_db", myWriterForTopicsPerWordSetName);
     myWriterForTopicsPerWord->setInput(myWordTopicProb);
@@ -365,23 +365,8 @@ int main(int argc, char *argv[]) {
     Handle<Computation> myWriterForTopicsPerDoc = makeObject<WriteIntDoubleVectorPairSet>("LDA_db", myWriterForTopicsPerDocSetName);
     myWriterForTopicsPerDoc->setInput(myDocTopicProb);
 
-    // the query graph has only the aggregation
-    std::vector<Handle<Computation>> queryGraph = { myWriterForTopicsPerWord, myWriterForTopicsPerDoc };
-
-    // create the graph analyzer
-    pdb::QueryGraphAnalyzer queryAnalyzer(queryGraph);
-
-    // parse the tcap string
-    std::string tcapString = queryAnalyzer.parseTCAPString();
-
-    // here is the list of computations
-    Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
-
-    // grab the computations
-    queryAnalyzer.parseComputations(*myComputations);
-
-    /* Excute the computations */
-    pdbClient.executeComputations(myComputations, tcapString);
+    // execute the computations
+    pdbClient.executeComputations({ myWriterForTopicsPerWord, myWriterForTopicsPerDoc });
 
     /* [5] Prepare sets for the next iteration */
 
