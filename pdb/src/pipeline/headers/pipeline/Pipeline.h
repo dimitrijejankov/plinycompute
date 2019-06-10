@@ -63,6 +63,9 @@ class Pipeline : public PipelineInterface {
   // and here is all of the pages we've not yet written back
   std::queue<MemoryHolderPtr> unwrittenPages;
 
+  // cleans the pipeline from all the leftover pages
+  void cleanPipeline();
+
   // writes back any unwritten pages
   void cleanPages(int iteration);
 
