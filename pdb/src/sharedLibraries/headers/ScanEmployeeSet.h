@@ -18,6 +18,7 @@ class ScanEmployeeSet : public pdb::SetScanner<pdb::Employee> {
 
   ScanEmployeeSet() = default;
 
+  ScanEmployeeSet(const std::string &db, const std::string &set) : SetScanner(db, set) {}
 
 };
 

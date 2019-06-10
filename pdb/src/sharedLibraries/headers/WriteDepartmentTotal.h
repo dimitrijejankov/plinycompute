@@ -13,6 +13,8 @@ namespace pdb {
 class WriteDepartmentTotal : public SetWriter<DepartmentTotal> {
  public:
   ENABLE_DEEP_COPY
+  WriteDepartmentTotal() = default;
+  WriteDepartmentTotal(const String &dbName, const String &setName) : SetWriter(dbName, setName) {}
 };
 
 }

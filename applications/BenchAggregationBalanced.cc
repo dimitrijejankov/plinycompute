@@ -22,9 +22,9 @@
 #include <chrono>
 #include <ratio>
 #include <utility>
+#include <thread>
 
 #include <boost/program_options.hpp>
-#include <benchmark/benchmark.h>
 
 #include <PDBClient.h>
 #include <Handle.h>
@@ -72,10 +72,19 @@ BenchAggregationBalanced(const int numDepartments,
   /// First is the setup code (won't be timed)
   // Start the server
   std::cout << "Starting manager node" << std::endl;
-  systemwrap("./bin/pdb-node -m");
+  if (!fork()) {
+    systemwrap("./bin/pdb-node -m");
+    exit(0);
+  }
+  // Wait 10 seconds
+  std::this_thread::sleep_for(std::chrono::seconds(10));
   if (standalone) {
     std::cout << "Starting 1 worker node" << std::endl;
-    systemwrap("./bin/pdb-node -p 8109 -r ./pdbRootW1");
+    if (!fork()) {
+      systemwrap("./bin/pdb-node -p 8109 -r ./pdbRootW1");
+      exit(0);
+    }
+    std::this_thread::sleep_for(std::chrono::seconds(10));
   }
   // Set up client
 
@@ -142,11 +151,6 @@ BenchAggregationBalanced(const int numDepartments,
     // We don't want to measure setup time here, only time to execute the computations
     pdb::makeObjectAllocatorBlock(1024 * 1024, true);
 
-    pdb::String myTCAPString = ""; // TODO
-
-    pdb::Handle<pdb::Vector<pdb::Handle<pdb::Computation>>> myComputations =
-        pdb::makeObject<pdb::Vector<pdb::Handle<pdb::Computation>>>();
-
     pdb::Handle<pdb::Computation> scanComp =
         pdb::makeObject<ScanEmployeeSet>(dbname, inputSet);
     pdb::Handle<pdb::Computation> aggComp =
@@ -157,14 +161,10 @@ BenchAggregationBalanced(const int numDepartments,
     aggComp->setInput(scanComp);
     writeComp->setInput(aggComp);
 
-    myComputations->push_back(scanComp);
-    myComputations->push_back(aggComp);
-    myComputations->push_back(writeComp);
-
     // See example here of recording execution time:
     // https://en.cppreference.com/w/cpp/chrono/duration/duration_cast
     auto start = std::chrono::system_clock::now(); // system_clock is the "real" (wall-clock) system time
-    pdbClient.executeComputations(myComputations, myTCAPString);
+    pdbClient.executeComputations({writeComp});
     auto end = std::chrono::system_clock::now();
 
     // The type parameters here are: the numerical type used to store the
@@ -198,11 +198,9 @@ BenchAggregationBalanced(const int numDepartments,
         } else if (roundedTotal == (lowerBound + 1)) {
           --upperCount;
         } else {
-//          std::stringstream errMsgStream;
           std::cout << "A department had an illegal total: instead of " << lowerBound << " or " << (lowerBound+1) <<
                     " the total was " << roundedTotal << "!" << std::endl;
           std::cout << "Exiting now" << std::endl;
-//          state.SkipWithError(errMsgStream.str().c_str());
           everythingOk = false;
           break;
         }
@@ -211,11 +209,9 @@ BenchAggregationBalanced(const int numDepartments,
         break;
       }
       if ((lowerCount != 0) || (upperCount != 0)) {
-//        std::stringstream errMsgStream;
         std::cout << "Incorrect counts for department totals: lowerCount = " << lowerCount <<
                   " and upperCount = " << upperCount << "!" << std::endl;
         std:: cout << "Exiting now" << std::endl;
-//        state.SkipWithError(errMsgStream.str().c_str());
         break;
       }
     }
@@ -228,6 +224,7 @@ BenchAggregationBalanced(const int numDepartments,
   /// Finally, shut down server.
   std::cout << "Finished the work loop. Now shutting down server." << std::endl;
   pdbClient.shutDownServer();
+  return times;
 }
 
 
