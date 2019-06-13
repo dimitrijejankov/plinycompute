@@ -50,8 +50,8 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const Atomi
     // if it only has two computations in the pipeline, mark that we need to materialize the result
     auto &computations = (*consumer)->getPipeComputations();
     if(computations.size() == 2 &&
-       computations[0]->getAtomicComputationTypeID() == ApplyAggTypeID &&
-       computations[1]->getAtomicComputationTypeID() == WriteSetTypeID) {
+        computations[0]->getAtomicComputationTypeID() == ApplyAggTypeID &&
+        computations[1]->getAtomicComputationTypeID() == WriteSetTypeID) {
 
       // cast the node to the output
       auto writerNode = std::dynamic_pointer_cast<WriteSet>(computations[1]);
@@ -87,12 +87,18 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const Atomi
     consumedPageSets.insert(consumedPageSets.begin(), (*additionalSources)[i]->pageSetIdentifier);
   }
   // if there are no consumers, (this happens if all the consumers are materializations), mark the ink set as consumed too
+  size_t sinkConsumers = consumers.size();
   if(consumers.empty()) {
+
+    // since we are materializing this set we are kind of consuming it
+    sinkConsumers = 1;
+
+    // add the sink to the list of consumed page sets
     consumedPageSets.insert(consumedPageSets.begin(), sink->pageSetIdentifier);
   }
 
   // set the page sets created
-  std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets = { std::make_pair(sink->pageSetIdentifier, consumers.size()),
+  std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets = { std::make_pair(sink->pageSetIdentifier, sinkConsumers),
                                                                        std::make_pair(hashedToSend->pageSetIdentifier, 1),
                                                                        std::make_pair(hashedToRecv->pageSetIdentifier, 1) };
 
