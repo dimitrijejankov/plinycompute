@@ -164,6 +164,7 @@ class MockPageSetReader : public pdb::PDBAbstractPageSet {
 
   MOCK_METHOD0(getNumPages, size_t ());
 
+  MOCK_METHOD0(resetPageSet, void());
 };
 
 class MockPageSetWriter: public pdb::PDBAnonymousPageSet {

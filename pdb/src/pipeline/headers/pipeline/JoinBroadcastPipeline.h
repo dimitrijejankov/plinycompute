@@ -31,7 +31,7 @@ class JoinBroadcastPipeline : public PipelineInterface {
 
  public:
 
-  JoinBroadcastPipeline(size_t workerID, size_t nodeID,
+  JoinBroadcastPipeline(size_t workerID,
                         PDBAnonymousPageSetPtr outputPageSet,
                         PDBAbstractPageSetPtr inputPageSet,
                         ComputeSinkPtr merger);

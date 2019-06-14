@@ -1,6 +1,15 @@
 #pragma once
 
 #include "PDBPhysicalAlgorithm.h"
+#include <ComputePlan.h>
+#include <ExJob.h>
+#include <PDBStorageManagerBackend.h>
+#include <PDBPageNetworkSender.h>
+#include <BroadcastJoinProcessor.h>
+#include <PDBPageSelfReceiver.h>
+#include <GenericWork.h>
+#include <memory>
+
 
 // PRELOAD %PDBBroadcastForJoinAlgorithm%
 

@@ -87,7 +87,7 @@ class JoinProbeExecution : public ComputeExecutor {
 
     // grab each page and store the hash table
     PDBPageHandle page;
-    inputTables.resize(numNodes * numProcessingThreads);
+    inputTables.resize(numProcessingThreads);
     while ((page = hashTable->getNextPage(workerID)) != nullptr) {
       // store the page
       pages.emplace_back(page);
@@ -130,7 +130,7 @@ class JoinProbeExecution : public ComputeExecutor {
 
       // grab the approprate hash table
 
-      JoinMap<RHSType> &inputTableRef = *inputTables[inputHash[i] % numPartitions];
+      JoinMap<RHSType> &inputTableRef = *inputTables[(inputHash[i] % numPartitions) % numProcessingThreads];
 
       // deal with all of the matches
       auto a = inputTableRef.lookup(inputHash[i]);

@@ -119,7 +119,7 @@ private:
   }
 
   ComputeSinkPtr getComputeMerger(TupleSpec &consumeMe, TupleSpec &attsToOpOn, TupleSpec &projection,
-                                  uint64_t workerID, uint64_t numPartitions, pdb::LogicalPlanPtr &plan) override {
+                                  uint64_t workerID, uint64_t numNodes, pdb::LogicalPlanPtr &plan) override {
 
     // loop through each of the attributes that we are supposed to accept, and for each of them, find the type
     std::vector<std::string> typeList;
@@ -156,7 +156,7 @@ private:
     std::cout << "\n";
 
     // return the merger
-    return correctJoinTuple->getBroadcastJoinHashMapCombiner(workerID, numPartitions);
+    return correctJoinTuple->getBroadcastJoinHashMapCombiner(workerID, numNodes);
   }
 
   PageProcessorPtr getShuffleJoinProcessor(size_t numNodes,

@@ -139,8 +139,8 @@ class JoinSingleton : public JoinTupleSingleton {
     return std::make_shared<ShuffleJoinProcessor<HoldMe>>(numNodes, numProcessingThreads, pageQueues, bufferManager);
   }
 
-  ComputeSinkPtr getBroadcastJoinHashMapCombiner(uint64_t workerID, uint64_t numPartitions) override {
-    return std::make_shared<BroadcastJoinCombinerSink<HoldMe>>(workerID, numPartitions);
+  ComputeSinkPtr getBroadcastJoinHashMapCombiner(uint64_t workerID, uint64_t numNodes) override {
+    return std::make_shared<BroadcastJoinCombinerSink<HoldMe>>(workerID, numNodes);
   }
 };
 

@@ -167,7 +167,7 @@ TEST(PipelineTest, TestBroadcastJoin) {
   /// 1. Create the buffer manager that is going to provide the pages to the pipeline
   // create the buffer manager
   std::shared_ptr<PDBBufferManagerImpl> myMgr = std::make_shared<PDBBufferManagerImpl>();
-  myMgr->initialize("tempDSFSD", 2 * 1024 * 1024, 16, "metadata", ".");
+  myMgr->initialize("tempDSFSD", 4 * 1024 * 1024, 16, "metadata", ".");
 
   /// 2. Init the page sets
   // the page set that is gonna provide stuff
@@ -219,10 +219,10 @@ TEST(PipelineTest, TestBroadcastJoin) {
   EXPECT_CALL(*partitionedAPageSet, getNewPage).Times(testing::AtLeast(1));
 
   ON_CALL(*partitionedAPageSet, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
-      [&](size_t nodeID) {
+      [&](size_t workerID) {
         // wait to get the page
         PDBPageHandle page;
-        pageQueuesForA[nodeID]->wait_dequeue(page);
+        pageQueuesForA[curNode]->wait_dequeue(page);
         if (page == nullptr) {
           return (PDBPageHandle) nullptr;
         }
@@ -241,10 +241,10 @@ TEST(PipelineTest, TestBroadcastJoin) {
   EXPECT_CALL(*partitionedCPageSet, getNewPage).Times(testing::AtLeast(1));
 
   ON_CALL(*partitionedCPageSet, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
-      [&](size_t nodeID) {
+      [&](size_t workerID) {
         // wait to get the page
         PDBPageHandle page;
-        pageQueuesForC[nodeID]->wait_dequeue(page);
+        pageQueuesForC[curNode]->wait_dequeue(page);
         if (page == nullptr) {
           return (PDBPageHandle) nullptr;
         }
@@ -421,7 +421,6 @@ TEST(PipelineTest, TestBroadcastJoin) {
   }
 
   /// 5. Process the pages in Set A for every worker in each node
-  for (curNode = 0; curNode < numNodes; ++curNode) {
     for (curThread = 0; curThread < threadsPerNode; ++curThread) {
 
       for_each(setAPageVectors[curNode].begin(),
@@ -432,13 +431,13 @@ TEST(PipelineTest, TestBroadcastJoin) {
                                                      partitionedAPageSet,
                                                      BroadcastedAPageSet,
                                                      threadsPerNode,
-                                                     curNode * threadsPerNode + curThread);
+                                                     numNodes,
+                                                     curThread);
       std::cout << "\nRUNNING BROADCAST JOIN PIPELINE FOR SET A\n";
       myPipeline->run();
       std::cout << "\nDONE RUNNING BROADCAST JOIN PIPELINE FOR SET A\n";
       myPipeline = nullptr;
     }
-  }
 
   params = {{ComputeInfoType::PAGE_PROCESSOR,
              std::make_shared<BroadcastJoinProcessor>(numNodes, threadsPerNode, pageQueuesForC, myMgr)}};
@@ -470,9 +469,7 @@ TEST(PipelineTest, TestBroadcastJoin) {
   }
 
   /// 6. Process the pages in Set C for every worker in each node
-  for (curNode = 0; curNode < numNodes; ++curNode) {
     for (curThread = 0; curThread < threadsPerNode; ++curThread) {
-
       for_each(setCPageVectors[curNode].begin(),
                setCPageVectors[curNode].end(),
                [&](PDBPageHandle &page) { pageQueuesForC[curNode]->enqueue(page); });
@@ -481,13 +478,14 @@ TEST(PipelineTest, TestBroadcastJoin) {
                                                      partitionedCPageSet,
                                                      BroadcastedCPageSet,
                                                      threadsPerNode,
-                                                     curNode * threadsPerNode + curThread);
+                                                     numNodes,
+                                                     curThread);
       std::cout << "\nRUNNING BROADCAST JOIN PIPELINE FOR SET C\n";
       myPipeline->run();
       std::cout << "\nDONE RUNNING BROADCAST JOIN PIPELINE FOR SET C\n";
       myPipeline = nullptr;
     }
-  }
+
 
   BroadcastedAPageSetQueue.push(nullptr);
   BroadcastedCPageSetQueue.push(nullptr);

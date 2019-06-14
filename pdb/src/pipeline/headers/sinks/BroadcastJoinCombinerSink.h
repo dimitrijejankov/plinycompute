@@ -19,15 +19,15 @@ class BroadcastJoinCombinerSink : public ComputeSink {
 
  private:
 
-  // the number of partitions
-  size_t numPartitions;
+  //number of nodes
+  uint64_t numNodes;
 
   // the worker id
   uint64_t workerID;
 
  public:
 
-  explicit BroadcastJoinCombinerSink(uint64_t workerID, size_t numPartitions) : numPartitions(numPartitions), workerID(workerID) {}
+  explicit BroadcastJoinCombinerSink(uint64_t workerID, uint64_t numNodes) : workerID(workerID), numNodes(numNodes){}
 
   ~BroadcastJoinCombinerSink() override = default;
 
@@ -53,28 +53,33 @@ class BroadcastJoinCombinerSink : public ComputeSink {
 
     auto &joinMapVector = (*unsafeCast<Vector<Handle<JoinMap<RHSType>>>>(hashTable));
 
-    auto &mergeMe = *(joinMapVector[workerID]);
+    for (int offset = 0; offset < numNodes; offset++) {
 
-    for (auto it = mergeMe.begin(); it != mergeMe.end(); ++it) {
-      // get the ptr
-      auto recordsPtr = *it;
+      auto joinMapIndex = offset * numNodes + workerID;
 
-      // get the records
-      JoinRecordList<RHSType> records = *(recordsPtr);
+      auto &mergeMe = *(joinMapVector[joinMapIndex]);
 
-      // get the hash
-      auto hash = records.getHash();
+      for (auto it = mergeMe.begin(); it != mergeMe.end(); ++it) {
+        // get the ptr
+        auto recordsPtr = *it;
 
-      // copy the records
-      for (size_t i = 0; i < records.size(); ++i) {
-        // copy a single record
-        try {
-          RHSType &temp = myMap.push(hash);
-          temp = records[i];
-          // if we get an exception, then we could not fit a new key/value pair
-        } catch (NotEnoughSpace &n) {
-          // this must not happen. The combined records of the partition // TODO maybe handle this gracefully
-          throw n;
+        // get the records
+        JoinRecordList<RHSType> records = *(recordsPtr);
+
+        // get the hash
+        auto hash = records.getHash();
+
+        // copy the records
+        for (size_t i = 0; i < records.size(); ++i) {
+          // copy a single record
+          try {
+            RHSType &temp = myMap.push(hash);
+            temp = records[i];
+            // if we get an exception, then we could not fit a new key/value pair
+          } catch (NotEnoughSpace &n) {
+            // this must not happen. The combined records of the partition // TODO maybe handle this gracefully
+            throw n;
+          }
         }
       }
     }

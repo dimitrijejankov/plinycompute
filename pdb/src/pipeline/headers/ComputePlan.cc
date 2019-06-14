@@ -522,6 +522,7 @@ inline PipelinePtr ComputePlan::buildBroadcastJoinPipeline(const string &targetT
                                                            const PDBAbstractPageSetPtr &inputPageSet,
                                                            const PDBAnonymousPageSetPtr &outputPageSet,
                                                            uint64_t numThreads,
+                                                           uint64_t numNodes,
                                                            uint64_t workerID) {
 
   // build the plan if it is not already done
@@ -587,10 +588,10 @@ inline PipelinePtr ComputePlan::buildBroadcastJoinPipeline(const string &targetT
   }
 
   Handle<JoinCompBase> joinComp = unsafeCast<JoinCompBase>(myPlan->getNode(targetComputationName).getComputationHandle());
-  auto merger = joinComp->getComputeMerger(targetSpec, targetAttsToOpOn, targetProjection, workerID, numThreads, myPlan);
+  auto merger = joinComp->getComputeMerger(targetSpec, targetAttsToOpOn, targetProjection, workerID, numNodes, myPlan);
 
   // build the JoinBroadcastPipeline, the nodeID = workerID / num of threads per node
-  return std::make_shared<pdb::JoinBroadcastPipeline>(workerID, workerID / numThreads, outputPageSet, inputPageSet, merger);
+  return std::make_shared<pdb::JoinBroadcastPipeline>(workerID, outputPageSet, inputPageSet, merger);
 }
 
 

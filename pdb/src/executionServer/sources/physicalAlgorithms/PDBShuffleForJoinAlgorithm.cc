@@ -229,7 +229,7 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
                                                                                                                    job->numberOfNodes,
                                                                                                                    job->numberOfProcessingThreads,
                                                                                                                    *pageQueues,
-                                                                                                                   myMgr)} };
+                                                                                                                   myMgr) } };
 
   /// 4. Create the page set that contains the shuffled join side pages for this node
 

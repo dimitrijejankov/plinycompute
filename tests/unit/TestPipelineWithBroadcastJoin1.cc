@@ -99,7 +99,7 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
 
   // create the buffer manager
   std::shared_ptr<PDBBufferManagerImpl> myMgr = std::make_shared<PDBBufferManagerImpl>();
-  myMgr->initialize("tempDSFSD", 2 * 1024 * 1024, 16, "metadata", ".");
+  myMgr->initialize("tempDSFSD", 4 * 1024 * 1024, 16, "metadata", ".");
 
   /// 2. Init the page sets
 
@@ -141,10 +141,10 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
   EXPECT_CALL(*partitionedAPageSet, getNewPage).Times(testing::AtLeast(1));
 
   ON_CALL(*partitionedAPageSet, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
-      [&](size_t nodeID) {
+      [&](size_t workerID) {
         // wait to get the page
         PDBPageHandle page;
-        pageQueuesForA[nodeID]->wait_dequeue(page);
+        pageQueuesForA[curNode]->wait_dequeue(page);
         if (page == nullptr) {
           return (PDBPageHandle) nullptr;
         }
@@ -277,9 +277,7 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
   }
 
   /// 5. Process the pages for every worker in each node
-  for (curNode = 0; curNode < numNodes; ++curNode) {
-    for (curThread = 0; curThread < threadsPerNode; ++curThread) {
-
+  for (curThread = 0; curThread < threadsPerNode; ++curThread) {
       for_each(setAPageVectors[curNode].begin(),
                setAPageVectors[curNode].end(),
                [&](PDBPageHandle &page) { pageQueuesForA[curNode]->enqueue(page); });
@@ -288,12 +286,12 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
                                                      partitionedAPageSet,
                                                      BroadcastedAPageSet,
                                                      threadsPerNode,
-                                                     curNode * threadsPerNode + curThread);
+                                                     numNodes,
+                                                     curThread);
       std::cout << "\nRUNNING BROADCAST JOIN PIPELINE FOR SET A\n";
       myPipeline->run();
       std::cout << "\nDONE RUNNING BROADCAST JOIN PIPELINE FOR SET A\n";
       myPipeline = nullptr;
-    }
   }
   /// 6. Process the right side of the join (set B)
 

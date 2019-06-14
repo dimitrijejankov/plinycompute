@@ -10,12 +10,11 @@
 #include <pipeline/JoinBroadcastPipeline.h>
 #include <MemoryHolder.h>
 
-pdb::JoinBroadcastPipeline::JoinBroadcastPipeline(size_t workerID, size_t nodeID,
+pdb::JoinBroadcastPipeline::JoinBroadcastPipeline(size_t workerID,
                                                   pdb::PDBAnonymousPageSetPtr outputPageSet,
                                                   pdb::PDBAbstractPageSetPtr inputPageSet,
                                                   pdb::ComputeSinkPtr merger)
     : workerID(workerID),
-      nodeID(nodeID),
       outputPageSet(std::move(outputPageSet)),
       inputPageSet(std::move(inputPageSet)),
       merger(std::move(merger)) {}
@@ -27,7 +26,7 @@ void pdb::JoinBroadcastPipeline::run() {
 
   // aggregate all hash maps
   PDBPageHandle inputPage;
-  while ((inputPage = inputPageSet->getNextPage(nodeID)) != nullptr) {
+  while ((inputPage = inputPageSet->getNextPage(workerID)) != nullptr) {
 
     // if we haven't created an output container create it.
     if (myRAM->outputSink == nullptr) {
