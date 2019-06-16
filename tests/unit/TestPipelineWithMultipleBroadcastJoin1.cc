@@ -490,8 +490,8 @@ TEST(PipelineTest, TestBroadcastJoin) {
   BroadcastedAPageSetQueue.push(nullptr);
   BroadcastedCPageSetQueue.push(nullptr);
 
-  unordered_map<string, JoinArgPtr> hashTables = {{"AandBJoined", std::make_shared<JoinArg>(BroadcastedAPageSet)},
-                                                  {"BandCJoined", std::make_shared<JoinArg>(BroadcastedCPageSet)}};
+  unordered_map<string, JoinArgPtr> hashTables = {{"AHashed", std::make_shared<JoinArg>(BroadcastedAPageSet)},
+                                                  {"CHashedOnC", std::make_shared<JoinArg>(BroadcastedCPageSet)}};
   // set the parameters
   params = {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<NullProcessor>()},
             {ComputeInfoType::JOIN_ARGS, std::make_shared<JoinArguments>(hashTables)}};

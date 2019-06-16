@@ -14,7 +14,8 @@ enum PDBSourceType {
   ShuffledAggregatesSource,
   ShuffledJoinTuplesSource,
   JoinedShuffleSource,
-  BroadcastJoinSource
+  BroadcastJoinSource,
+  BroadcastIntermediateJoinSource
 };
 
 // PRELOAD %PDBSourcePageSetSpec%

@@ -46,12 +46,13 @@ class BroadcastJoinProcessor : public PageProcessor {
 
     memory->pageHandle->freezeSize(record->numBytes());
 
-    memory->pageHandle->unpin();
+    //memory->pageHandle->unpin();
 
     for (auto node = 0; node < numNodes; ++node) {
       pageQueues[node]->enqueue(memory->pageHandle);
     }
 
+    memory->pageHandle->unpin();
     return false;
   }
 

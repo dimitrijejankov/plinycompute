@@ -48,6 +48,9 @@ class BroadcastJoinCombinerSink : public ComputeSink {
     Handle<JoinMap<RHSType>> mergeToMe = unsafeCast<JoinMap<RHSType>>(writeToMe);
 
     JoinMap<RHSType> &myMap = *mergeToMe;
+
+    page->repin();
+
     // grab the hash table
     Handle<Object> hashTable = ((Record<Object> *) page->getBytes())->getRootObject();
 

@@ -62,10 +62,14 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
     // set the type of the sink
     sink->sinkType = PDBSinkType::BroadcastJoinSink;
 
-    // create the intermediate page set
-    pdb::Handle<PDBSinkPageSetSpec> intermediate = pdb::makeObject<PDBSinkPageSetSpec>();
-    intermediate->sinkType = PDBSinkType::BroadcastIntermediateJoinSink;
-    intermediate->pageSetIdentifier = std::make_pair(computationID, (String) (pipeline.back()->getOutputName() + "_to_broadcast"));
+    // this is the page set that is containing the bunch of hash maps want to send
+    pdb::Handle<PDBSinkPageSetSpec> hashedToSend = pdb::makeObject<PDBSinkPageSetSpec>();
+    hashedToSend->sinkType = PDBSinkType::BroadcastIntermediateJoinSink;
+    hashedToSend->pageSetIdentifier = std::make_pair(computationID, (String)(pipeline.back()->getOutputName() + "_hashed_to_send"));
+
+    pdb::Handle<PDBSourcePageSetSpec> hashedToRecv = pdb::makeObject<PDBSourcePageSetSpec>();
+    hashedToRecv->sourceType = PDBSourceType::BroadcastIntermediateJoinSource;
+    hashedToRecv->pageSetIdentifier = std::make_pair(computationID, (String)(pipeline.back()->getOutputName() + "_hashed_to_recv"));
 
     // set this nodes sink specifier
     sinkPageSet.produced = true;
@@ -76,7 +80,8 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
     pdb::Handle<PDBBroadcastForJoinAlgorithm> algorithm = pdb::makeObject<PDBBroadcastForJoinAlgorithm>(startTupleSet,
                                                                                                         pipeline.back()->getOutputName(),
                                                                                                         source,
-                                                                                                        intermediate,
+                                                                                                        hashedToSend,
+                                                                                                        hashedToRecv,
                                                                                                         sink,
                                                                                                         additionalSources,
                                                                                                         shouldSwapLeftAndRight);
@@ -85,14 +90,15 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
     state = PDBJoinPhysicalNodeBroadcasted;
 
     // add all the consumed page sets
-    std::list<PDBPageSetIdentifier> consumedPageSets = { source->pageSetIdentifier, intermediate->pageSetIdentifier };
+    std::list<PDBPageSetIdentifier> consumedPageSets = { source->pageSetIdentifier, hashedToSend->pageSetIdentifier, hashedToRecv->pageSetIdentifier };
     for(int i = 0; i < additionalSources->size(); ++i) {
       consumedPageSets.insert(consumedPageSets.begin(), (*additionalSources)[i]->pageSetIdentifier);
     }
 
     // set the page sets created, the produced page set has to have a page set
     std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets = { std::make_pair(sink->pageSetIdentifier, 1),
-                                                                         std::make_pair(intermediate->pageSetIdentifier, 1) };
+                                                                         std::make_pair(hashedToSend->pageSetIdentifier, 1),
+                                                                         std::make_pair(hashedToRecv->pageSetIdentifier, 1)};
 
     // return the algorithm and the nodes that consume it's result
     return std::move(PDBPlanningResult(algorithm, std::list<pdb::PDBAbstractPhysicalNodePtr>(), consumedPageSets, newPageSets));
@@ -144,5 +150,6 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
 }
 
 // set this value to some reasonable value // TODO this needs to be smarter
-const size_t pdb::PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = 4096;
+const size_t pdb::PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = std::numeric_limits<size_t>::max();
+
 

@@ -7,12 +7,12 @@
 pdb::PDBBroadcastForJoinAlgorithm::PDBBroadcastForJoinAlgorithm(const std::string &firstTupleSet,
                                                                 const std::string &finalTupleSet,
                                                                 const pdb::Handle<pdb::PDBSourcePageSetSpec> &source,
-                                                                const pdb::Handle<pdb::PDBSinkPageSetSpec> &intermediate,
+                                                                const pdb::Handle<pdb::PDBSinkPageSetSpec> &hashedToSend,
+                                                                const pdb::Handle<pdb::PDBSourcePageSetSpec> &hashedToRecv,
                                                                 const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
                                                                 const pdb::Handle<pdb::Vector<pdb::Handle<pdb::PDBSourcePageSetSpec>>> &secondarySources,
                                                                 const bool swapLHSandRHS)
-    : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, swapLHSandRHS), intermediate(intermediate) {
-
+    : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, swapLHSandRHS), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {
 }
 
 pdb::PDBPhysicalAlgorithmType pdb::PDBBroadcastForJoinAlgorithm::getAlgorithmType() {
@@ -179,7 +179,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManag
   while (prejoinCounter < prebroadcastjoinPipelines->size()) {
     preaggBuzzer->wait();
   }
-
+  std::cout<<"Running prejoinPipelines Done!"<< std::endl << std::endl << std::endl;
   // ok they have finished now push a null page to each of the preagg queues
   for (auto &queue : *pageQueues) { queue->enqueue(nullptr); }
 
@@ -187,16 +187,18 @@ bool pdb::PDBBroadcastForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManag
   while (selfRecDone == 0) {
     selfRefBuzzer->wait();
   }
-
+  std::cout << "Running selfRec Done!" << std::endl << std::endl << std::endl;
   // wait while we are running the senders
   while (sendersDone < senders->size()) {
     sendersBuzzer->wait();
   }
-
+  std::cout << "Running senders Done!" << std::endl << std::endl << std::endl;
   // wait until all the aggregation pipelines have completed
   while (joinCounter < broadcastjoinPipelines->size()) {
     joinBuzzer->wait();
   }
+
+  std::cout << "Running joinPipelines Done!" << std::endl << std::endl << std::endl;
 
   return true;
 }
@@ -245,7 +247,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
   /// discard them since they will be processed by the PreaggregationPageProcessor and they won't stay around).
 
   // get the sink page set
-  auto intermediatePageSet = storage->createAnonymousPageSet(intermediate->pageSetIdentifier);
+  auto intermediatePageSet = storage->createAnonymousPageSet(hashedToSend->pageSetIdentifier);
 
   // did we manage to get a sink page set? if not the setup failed
   if (intermediatePageSet == nullptr) {
@@ -293,11 +295,14 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
     return false;
   }
 
+  // set it to concurrent since each thread needs to use the same pages
+  sinkPageSet->setAccessOrder(PDBAnonymousPageSetAccessPattern::CONCURRENT);
+
   /// 6. Create the page set that contains the preaggregated pages for this node
 
   // get the receive page set
-  auto recvPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(intermediate->pageSetIdentifier.first,
-                                                                           intermediate->pageSetIdentifier.second),
+  auto recvPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(hashedToRecv->pageSetIdentifier.first,
+                                                                           hashedToRecv->pageSetIdentifier.second),
                                                             job->numberOfProcessingThreads,
                                                             job->numberOfNodes);
 
@@ -325,8 +330,8 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
                                                            job->numberOfNodes,
                                                            storage->getConfiguration()->maxRetries,
                                                            logger,
-                                                           std::make_pair(intermediate->pageSetIdentifier.first,
-                                                                          intermediate->pageSetIdentifier.second),
+                                                           std::make_pair(hashedToRecv->pageSetIdentifier.first,
+                                                                          hashedToRecv->pageSetIdentifier.second),
                                                            pageQueues->at(i));
 
       // setup the sender, if we fail return false
@@ -360,7 +365,8 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
 }
 
 void pdb::PDBBroadcastForJoinAlgorithm::cleanup() {
-  intermediate = nullptr;
+  hashedToSend = nullptr;
+  hashedToRecv = nullptr;
   selfReceiver = nullptr;
   senders = nullptr;
   logger = nullptr;

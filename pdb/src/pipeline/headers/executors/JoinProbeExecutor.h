@@ -8,6 +8,7 @@
 #include <TupleSetMachine.h>
 #include <TupleSpec.h>
 #include <JoinTuple.h>
+#include <thread>
 #include "ComputeExecutor.h"
 #include "StringIntPair.h"
 #include "JoinMap.h"

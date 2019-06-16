@@ -454,20 +454,24 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
         throw runtime_error("Join pipeline run without hash tables!");
       }
 
-      // do we have the appropriate join arguments? if not throw an exception
-      auto it = joinArgs->hashTables.find(a->getOutput().getSetName());
-      if(it == joinArgs->hashTables.end()) {
-        throw runtime_error("Hash table for the output set," + a->getOutput().getSetName() +  "not found!");
-      }
-
       // check if we are pipelining the right input
       if (lastOne->getOutput().getSetName() == myJoin->getRightInput().getSetName()) {
+
+        // do we have the appropriate join arguments? if not throw an exception
+        auto it = joinArgs->hashTables.find(myJoin->getInput().getSetName());
+        if (it == joinArgs->hashTables.end()) {
+          throw runtime_error("Hash table for the output set," + a->getOutput().getSetName() + "not found!");
+        }
 
         // if we are pipelining the right input, then we don't need to switch left and right inputs
         std::cout << "We are pipelining the right input...\n";
         returnVal->addStage(myComp.getExecutor(true, myJoin->getProjection(), lastOne->getOutput(), myJoin->getRightInput(), myJoin->getRightProjection(), it->second, numNodes, numProcessingThreads, workerID, *this));
       } else {
-
+        // do we have the appropriate join arguments? if not throw an exception
+        auto it = joinArgs->hashTables.find(myJoin->getRightInput().getSetName());
+        if (it == joinArgs->hashTables.end()) {
+          throw runtime_error("Hash table for the output set," + a->getOutput().getSetName() + "not found!");
+        }
         // if we are pipelining the right input, then we don't need to switch left and right inputs
         std::cout << "We are pipelining the left input...\n";
         returnVal->addStage(myComp.getExecutor(false, myJoin->getRightProjection(), lastOne->getOutput(), myJoin->getInput(), myJoin->getProjection(), it->second, numNodes, numProcessingThreads, workerID, *this));
@@ -483,7 +487,6 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
       std::cout << "This is bad... found an unexpected computation type (" << a->getComputationName()
                 << ") inside of a pipeline.\n";
     }
-
     lastOne = a;
   }
 

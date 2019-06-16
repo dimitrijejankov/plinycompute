@@ -23,7 +23,8 @@ class PDBBroadcastForJoinAlgorithm : public PDBPhysicalAlgorithm {
   PDBBroadcastForJoinAlgorithm(const std::string &firstTupleSet,
                                const std::string &finalTupleSet,
                                const pdb::Handle<pdb::PDBSourcePageSetSpec> &source,
-                               const pdb::Handle<pdb::PDBSinkPageSetSpec> &intermediate,
+                               const pdb::Handle<pdb::PDBSinkPageSetSpec> &hashedToSend,
+                               const pdb::Handle<pdb::PDBSourcePageSetSpec> &hashedToRecv,
                                const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
                                const pdb::Handle<pdb::Vector<pdb::Handle<pdb::PDBSourcePageSetSpec>>> &secondarySources,
                                const bool swapLHSandRHS);
@@ -53,9 +54,14 @@ class PDBBroadcastForJoinAlgorithm : public PDBPhysicalAlgorithm {
  private:
 
   /**
-   * The intermediate page set
+   * The sink tuple set where we are putting stuff
    */
-  pdb::Handle<PDBSinkPageSetSpec> intermediate;
+  pdb::Handle<PDBSinkPageSetSpec> hashedToSend;
+
+  /**
+   * The sink type the algorithm should setup
+   */
+  pdb::Handle<PDBSourcePageSetSpec> hashedToRecv;
 
   /**
    * This forwards the preaggregated pages to this node

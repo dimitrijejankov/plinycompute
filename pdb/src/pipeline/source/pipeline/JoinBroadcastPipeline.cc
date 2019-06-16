@@ -39,6 +39,9 @@ void pdb::JoinBroadcastPipeline::run() {
     inputPage->unpin();
   }
 
+  // make sure we have a root record on the page
+  getRecord(myRAM->outputSink);
+
   // we only have one iteration
   myRAM->setIteration(0);
 
@@ -47,4 +50,7 @@ void pdb::JoinBroadcastPipeline::run() {
 
   // unpin the page so we don't have problems
   myRAM->pageHandle->unpin();
+
+  // TODO make this nicer
+  makeObjectAllocatorBlock(1024, true);
 }

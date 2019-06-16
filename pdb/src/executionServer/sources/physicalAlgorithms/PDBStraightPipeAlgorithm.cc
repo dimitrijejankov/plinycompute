@@ -85,10 +85,10 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
   // get the number of worker threads from this server's config
   int32_t numWorkers = storage->getConfiguration()->numThreads;
 
+  std::cout << " Have you get the Hash Tables " << std::endl;
   // go through each of the additional sources and add them to the join arguments
   auto joinArguments = std::make_shared<JoinArguments>();
   for(int i = 0; i < this->secondarySources->size(); ++i) {
-
     // grab the source identifier and with it the page set of the additional source
     auto &sourceIdentifier = *(*this->secondarySources)[i];
     auto additionalSource = storage->getPageSet(std::make_pair(sourceIdentifier.pageSetIdentifier.first, sourceIdentifier.pageSetIdentifier.second));
@@ -97,6 +97,7 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
     if(additionalSource == nullptr) {
       return false;
     }
+
 
     // insert the join argument
     joinArguments->hashTables[sourceIdentifier.pageSetIdentifier.second] = std::make_shared<JoinArg>(additionalSource);

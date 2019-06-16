@@ -4,39 +4,44 @@
 
 #include "PDBAnonymousPageSet.h"
 
-pdb::PDBAnonymousPageSet::PDBAnonymousPageSet(const pdb::PDBBufferManagerInterfacePtr &bufferManager) : bufferManager(bufferManager), isDone(false), needsInitialization(true) {}
+pdb::PDBAnonymousPageSet::PDBAnonymousPageSet(const pdb::PDBBufferManagerInterfacePtr &bufferManager) : bufferManager(bufferManager) {}
 
 pdb::PDBPageHandle pdb::PDBAnonymousPageSet::getNextPage(size_t workerID) {
-
-  // are we done if so return null
-  if(isDone) {
-    return nullptr;
-  }
-
-  // do we need to initialize the iterator to the start
-  if(needsInitialization) {
-
-    // set the current page to start
-    curPage = pages.begin();
-
-    // mark the thing as initialized
-    needsInitialization = false;
-  }
 
   // lock so we can mess with the data structure
   std::unique_lock<std::mutex> lck(m);
 
+  // if we don't have pages return null
+  if (pages.empty()) {
+    return nullptr;
+  }
+
+  // in the case that we are doing a sequential access we are simply going to treat each worker as the same worker with the index 0
+  workerID = accessPattern == PDBAnonymousPageSetAccessPattern::CONCURRENT ? workerID : 0;
+
+  // do we need to initialize the iterator to the start
+  if(nextPageForWorker.find(workerID) == nextPageForWorker.end()) {
+
+    // set the current page to start
+    nextPageForWorker[workerID] = pages.begin();
+  }
+
   // grab the current page
-  auto page = curPage->second;
+  auto &curPage = nextPageForWorker[workerID];
+
+  // is this the last page for this worker if so end
+  if(curPage == pages.end()) {
+    return nullptr;
+  }
+
+  // grab the page handle from it
+  auto pageHandle = curPage->second;
 
   // go to the next page
   curPage++;
 
-  // if done mark as done
-  isDone = curPage == pages.end();
-
   // return the page
-  return page;
+  return pageHandle;
 }
 
 pdb::PDBPageHandle pdb::PDBAnonymousPageSet::getNewPage() {
@@ -78,9 +83,18 @@ void pdb::PDBAnonymousPageSet::resetPageSet() {
   // lock the pages struct
   std::unique_lock<std::mutex> lck(m);
 
-  // set the done to false since we are reusing this page set
-  isDone = false;
+  // reset the current pages
+  nextPageForWorker.clear();
+}
 
-  // set the current page to start
-  curPage = pages.begin();
+void pdb::PDBAnonymousPageSet::setAccessOrder(PDBAnonymousPageSetAccessPattern pattern) {
+
+  // lock the pages struct
+  std::unique_lock<std::mutex> lck(m);
+
+  // set the pattern
+  accessPattern = pattern;
+
+  // reset the current pages
+  nextPageForWorker.clear();
 }
