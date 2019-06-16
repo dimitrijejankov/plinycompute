@@ -24,8 +24,17 @@
 #include "DepartmentTotal.h"
 #include "PreaggregationSink.h"
 #include "AggregationCombinerSink.h"
+#include "AbstractAdder.h"
 
 namespace pdb {
+
+template<class In1, class In2=In1, class Out=In1>
+class DefaultAdder : public AbstractAdder<In1, In2, Out> {
+ public:
+  Out& add(In1& in1, In2& in2) override {
+    return in1 + in2;
+  }
+};
 
 // this aggregates items of type InputClass.  To aggregate an item, the result of getKeyProjection () is
 // used to extract a key from on input, and the result of getValueProjection () is used to extract a
@@ -38,14 +47,17 @@ namespace pdb {
 // To convert a key-value pair into an OutputClass object, the result of getKey () is set to the desired key,
 // and the result of getValue () is set to the desired value.
 //
-template<class OutputClass, class InputClass, class KeyClass, class ValueClass>
+template<class OutputClass, class InputClass, class KeyClass, class ValueClass,
+    class TempValueClass = ValueClass,
+    class TVAdder = DefaultAdder<ValueClass, TempValueClass>,
+    class VVAdder = DefaultAdder<ValueClass>>
 class AggregateComp : public AggregateCompBase {
 
   // gets the operation tht extracts a key from an input object
   virtual Lambda<KeyClass> getKeyProjection(Handle<InputClass> aggMe) = 0;
 
   // gets the operation that extracts a value from an input object
-  virtual Lambda<ValueClass> getValueProjection(Handle<InputClass> aggMe) = 0;
+  virtual Lambda<TempValueClass> getValueProjection(Handle<InputClass> aggMe) = 0;
 
   // extract the key projection and value projection
   void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
