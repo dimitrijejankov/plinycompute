@@ -71,8 +71,13 @@ class JoinCompBase : public Computation {
                                                    TupleSpec &recordSchema,
                                                    pdb::LogicalPlanPtr &plan) = 0;
 
-  virtual ComputeSinkPtr getComputeMerger(TupleSpec &consumeMe, TupleSpec &attsToOpOn, TupleSpec &projection,
-                                          uint64_t workerID, uint64_t numPartitions, pdb::LogicalPlanPtr &plan) = 0;
+  virtual ComputeSinkPtr getComputeMerger(TupleSpec &consumeMe,
+                                          TupleSpec &attsToOpOn,
+                                          TupleSpec &projection,
+                                          uint64_t workerID,
+                                          uint64_t numThreads,
+                                          uint64_t numNodes,
+                                          pdb::LogicalPlanPtr &plan) = 0;
 
 };
 

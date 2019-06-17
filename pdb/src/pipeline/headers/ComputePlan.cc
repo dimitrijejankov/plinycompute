@@ -591,7 +591,7 @@ inline PipelinePtr ComputePlan::buildBroadcastJoinPipeline(const string &targetT
   }
 
   Handle<JoinCompBase> joinComp = unsafeCast<JoinCompBase>(myPlan->getNode(targetComputationName).getComputationHandle());
-  auto merger = joinComp->getComputeMerger(targetSpec, targetAttsToOpOn, targetProjection, workerID, numNodes, myPlan);
+  auto merger = joinComp->getComputeMerger(targetSpec, targetAttsToOpOn, targetProjection, workerID, numThreads, numNodes, myPlan);
 
   // build the JoinBroadcastPipeline, the nodeID = workerID / num of threads per node
   return std::make_shared<pdb::JoinBroadcastPipeline>(workerID, outputPageSet, inputPageSet, merger);

@@ -22,12 +22,13 @@ class BroadcastJoinCombinerSink : public ComputeSink {
   //number of nodes
   uint64_t numNodes;
 
+  uint64_t numThreads;
   // the worker id
   uint64_t workerID;
 
  public:
 
-  explicit BroadcastJoinCombinerSink(uint64_t workerID, uint64_t numNodes) : workerID(workerID), numNodes(numNodes){}
+  explicit BroadcastJoinCombinerSink(uint64_t workerID, uint64_t numThreads, uint64_t numNodes) : workerID(workerID),numThreads(numThreads), numNodes(numNodes){}
 
   ~BroadcastJoinCombinerSink() override = default;
 
@@ -58,7 +59,7 @@ class BroadcastJoinCombinerSink : public ComputeSink {
 
     for (int offset = 0; offset < numNodes; offset++) {
 
-      auto joinMapIndex = offset * numNodes + workerID;
+      auto joinMapIndex = offset * numThreads + workerID;
 
       auto &mergeMe = *(joinMapVector[joinMapIndex]);
 
