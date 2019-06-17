@@ -23,34 +23,20 @@
 #include "Pipeline.h"
 #include "NullProcessor.h"
 
-pdb::Pipeline::Pipeline(PDBAnonymousPageSetPtr outputPageSet, ComputeSourcePtr dataSource, ComputeSinkPtr tupleSink, PageProcessorPtr pageProcessor) :
-    outputPageSet(std::move(outputPageSet)), dataSource(std::move(dataSource)), dataSink(std::move(tupleSink)), pageProcessor(std::move(pageProcessor)) {}
+pdb::Pipeline::Pipeline(PDBAnonymousPageSetPtr outputPageSet,
+                        ComputeSourcePtr dataSource,
+                        ComputeSinkPtr tupleSink,
+                        PageProcessorPtr pageProcessor) :
+    outputPageSet(std::move(outputPageSet)),
+    dataSource(std::move(dataSource)),
+    dataSink(std::move(tupleSink)),
+    pageProcessor(std::move(pageProcessor)) {}
 
 pdb::Pipeline::~Pipeline() {
 
   // kill all of the pipeline stages
   while (!pipeline.empty())
     pipeline.pop_back();
-
-  // first, reverse the queue so we go oldest to newest
-  // this ensures that everything is deleted in the reverse order that it was created
-  std::vector<MemoryHolderPtr> reverser;
-  while (!unwrittenPages.empty()) {
-    reverser.push_back(unwrittenPages.front());
-    unwrittenPages.pop();
-  }
-
-  while (!reverser.empty()) {
-    unwrittenPages.push(reverser.back());
-    reverser.pop_back();
-  }
-
-  // write back all of the pages
-  cleanPages(999999999);
-
-  if (!unwrittenPages.empty())
-    std::cout << "This is bad: in destructor for pipeline, still some pages with objects!!\n";
-
 }
 
 // adds a stage to the pipeline
@@ -109,6 +95,29 @@ void pdb::Pipeline::cleanPages(int iteration) {
   }
 }
 
+// cleans the pipeline
+void pdb::Pipeline::cleanPipeline() {
+
+  // first, reverse the queue so we go oldest to newest
+  // this ensures that everything is deleted in the reverse order that it was created
+  std::vector<MemoryHolderPtr> reverser;
+  while (!unwrittenPages.empty()) {
+    reverser.push_back(unwrittenPages.front());
+    unwrittenPages.pop();
+  }
+
+  while (!reverser.empty()) {
+    unwrittenPages.push(reverser.back());
+    reverser.pop_back();
+  }
+
+  // write back all of the pages
+  cleanPages(999999999);
+
+  if (!unwrittenPages.empty())
+    std::cout << "This is bad: in destructor for pipeline, still some pages with objects!!\n";
+}
+
 // runs the pipeline
 void pdb::Pipeline::run() {
 
@@ -137,8 +146,7 @@ void pdb::Pipeline::run() {
 
           // we need to keep the page
           keepPage(ram, iteration);
-        }
-        else {
+        } else {
           dismissPage(ram, true);
         }
 
@@ -167,8 +175,7 @@ void pdb::Pipeline::run() {
 
         // we need to keep the page
         keepPage(ram, iteration);
-      }
-      else {
+      } else {
         dismissPage(ram, true);
       }
 
@@ -185,15 +192,20 @@ void pdb::Pipeline::run() {
     cleanPages(iteration);
   }
 
-  // process the page
+  // process the last page
   if (pageProcessor->process(ram)) {
 
     // we need to keep the page
     keepPage(ram, iteration);
-  }
-  else {
+
+    // TODO make this nicer
+    makeObjectAllocatorBlock(1024, true);
+  } else {
     dismissPage(ram, true);
   }
+
+  // clean the pipeline before we finish running
+  cleanPipeline();
 }
 
 void pdb::Pipeline::keepPage(pdb::MemoryHolderPtr ram, int iteration) {
@@ -209,7 +221,7 @@ void pdb::Pipeline::dismissPage(pdb::MemoryHolderPtr ram, bool dismissLast) {
   PDB_COUT << "to empty out containing block" << std::endl;
   ram->outputSink.emptyOutContainingBlock();
 
-  if(dismissLast) {
+  if (dismissLast) {
     makeObjectAllocatorBlock(1024, true);
   }
 
