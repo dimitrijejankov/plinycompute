@@ -132,7 +132,7 @@ TEST(PipelineTest, TestSelection) {
   myComputations.push_back(writeStringIntPair);
 
   // now we create the TCAP string
-  String myTCAPString = "inputDataForSetScanner_0(in0) <= SCAN ('', '', 'SetScanner_0')\n"
+  String myTCAPString = "inputDataForSetScanner_0(in0) <= SCAN ('db', 'set', 'SetScanner_0')\n"
                         "nativ_0OutForMultiSelectionComp1(in0,nativ_0_1OutFor) <= APPLY (inputDataForSetScanner_0(in0), inputDataForSetScanner_0(in0), 'MultiSelectionComp_1', 'native_lambda_0', [('lambdaType', 'native_lambda')])\n"
                         "filteredInputForMultiSelectionComp1(in0) <= FILTER (nativ_0OutForMultiSelectionComp1(nativ_0_1OutFor), nativ_0OutForMultiSelectionComp1(in0), 'MultiSelectionComp_1')\n"
                         "nativ_1OutForMultiSelectionComp1 (nativ_1_1OutFor) <= APPLY (filteredInputForMultiSelectionComp1(in0), filteredInputForMultiSelectionComp1(), 'MultiSelectionComp_1', 'native_lambda_1', [('lambdaType', 'native_lambda')])\n"
@@ -147,7 +147,7 @@ TEST(PipelineTest, TestSelection) {
   /// 3. Setup the mock calls to the PageSets for the input and the output
 
   // empty computations parameters
-  std::map<ComputeInfoType, ComputeInfoPtr> params;
+  std::map<ComputeInfoType, ComputeInfoPtr> params = {{ ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("db", "set", "", 0, PDB_CATALOG_SET_VECTOR_CONTAINER)) }};
 
   // the page set that is gonna provide stuff
   std::shared_ptr<MockPageSetReader> pageReader = std::make_shared<MockPageSetReader>();
