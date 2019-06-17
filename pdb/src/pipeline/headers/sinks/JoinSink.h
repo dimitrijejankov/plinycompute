@@ -58,7 +58,9 @@ class JoinSink : public ComputeSink {
     for(auto i = 0; i < numPartitions; ++i) {
 
       // add the map
-      returnVal->push_back(makeObject<JoinMap<RHSType>>());
+      Handle<JoinMap<RHSType>> myJoinMap = makeObject<JoinMap<RHSType>>();
+      myJoinMap->setHashValue(i);
+      returnVal->push_back(myJoinMap);
     }
 
     return returnVal;

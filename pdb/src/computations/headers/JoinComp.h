@@ -115,9 +115,48 @@ private:
     // figure out the right join tuple
     std::vector<int> whereEveryoneGoes;
     JoinTuplePtr correctJoinTuple = findJoinTuple(projection, plan, whereEveryoneGoes);
-
-    // return the sink
     return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+  }
+
+  ComputeSinkPtr getComputeMerger(TupleSpec &consumeMe, TupleSpec &attsToOpOn, TupleSpec &projection,
+                                  uint64_t workerID, uint64_t numThreads, uint64_t numNodes, pdb::LogicalPlanPtr &plan) override {
+
+    // loop through each of the attributes that we are supposed to accept, and for each of them, find the type
+    std::vector<std::string> typeList;
+    AtomicComputationPtr producer = plan->getComputations().getProducingAtomicComputation(consumeMe.getSetName());
+    std::cout << "consumeMe was: " << consumeMe << "\n";
+    std::cout << "attsToOpOn was: " << attsToOpOn << "\n";
+    std::cout << "projection was: " << projection << "\n";
+    for (auto &a : projection.getAtts()) {
+
+      // find the identity of the producing computation
+      std::cout << "finding the source of " << projection.getSetName() << "." << a << "\n";
+      std::pair<std::string, std::string> res = producer->findSource(a, plan->getComputations());
+      std::cout << "got " << res.first << " " << res.second << "\n";
+
+      // and find its type... in the first case, there is not a particular lambda that we need to ask for
+      if (res.second.empty()) {
+        typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getComputation().getOutputType() + ">");
+      } else {
+        typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getLambda(res.second)->getOutputType() + ">");
+      }
+    }
+
+    for (auto &aa : typeList) {
+      std::cout << "Got type " << aa << "\n";
+    }
+
+    // now we get the correct join tuple, that will allow us to pack tuples from the join in a hash table
+    std::vector<int> whereEveryoneGoes;
+    JoinTuplePtr correctJoinTuple = findCorrectJoinTuple<In1, In2, Rest...>(typeList, whereEveryoneGoes);
+
+    for (auto &aa : whereEveryoneGoes) {
+      std::cout << aa << " ";
+    }
+    std::cout << "\n";
+
+    // return the merger
+    return correctJoinTuple->getBroadcastJoinHashMapCombiner(workerID, numThreads, numNodes);
   }
 
   PageProcessorPtr getShuffleJoinProcessor(size_t numNodes,
@@ -326,17 +365,20 @@ private:
                                  TupleSpec &pipelinedAttsToOperateOn,
                                  TupleSpec &pipelinedAttsToIncludeInOutput,
                                  JoinArgPtr &joinArg,
+                                 uint64_t numNodes,
+                                 uint64_t numProcessingThreads,
+                                 uint64_t workerID,
                                  ComputePlan &computePlan) override {
-
 
     std::cout << "pipelinedInputSchema is " << pipelinedInputSchema << "\n";
     std::cout << "pipelinedAttsToOperateOn is " << pipelinedAttsToOperateOn << "\n";
     std::cout << "pipelinedAttsToIncludeInOutput is " << pipelinedAttsToIncludeInOutput << "\n";
-    std::cout << "From the join arg, got " << (size_t) joinArg->pageWhereHashTableIs << "\n";
+    //std::cout << "From the join arg, got " << joinArg->hashTablePageSet->getNumPages() << "\n";
 
     // loop through each of the attributes that we are supposed to accept, and for each of them, find the type
     std::vector<std::string> typeList;
-    AtomicComputationPtr producer = computePlan.getPlan()->getComputations().getProducingAtomicComputation(hashedInputSchema.getSetName());
+    AtomicComputationPtr producer =
+        computePlan.getPlan()->getComputations().getProducingAtomicComputation(hashedInputSchema.getSetName());
     for (auto &a : (hashedInputSchema.getAtts())) {
 
       // find the identity of the producing computation
@@ -368,11 +410,14 @@ private:
     std::cout << "\n";
 
     // and return the correct probing code
-    return correctJoinTuple->getProber(joinArg->pageWhereHashTableIs,
+    return correctJoinTuple->getProber(joinArg->hashTablePageSet,
                                        whereEveryoneGoes,
                                        pipelinedInputSchema,
                                        pipelinedAttsToOperateOn,
                                        pipelinedAttsToIncludeInOutput,
+                                       numNodes,
+                                       numProcessingThreads,
+                                       workerID,
                                        needToSwapAtts);
   }
 
