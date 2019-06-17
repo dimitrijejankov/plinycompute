@@ -49,7 +49,7 @@ class DefaultAdder : public AbstractAdder<In1, In2, Out> {
 //
 template<class OutputClass, class InputClass, class KeyClass, class ValueClass,
     class TempValueClass = ValueClass,
-    class TVAdder = DefaultAdder<ValueClass, TempValueClass>,
+    class VTAdder = DefaultAdder<ValueClass, TempValueClass>,
     class VVAdder = DefaultAdder<ValueClass>>
 class AggregateComp : public AggregateCompBase {
 
@@ -217,7 +217,7 @@ class AggregateComp : public AggregateCompBase {
   }
 
   ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection, uint64_t numberOfPartitions) override {
-    return std::make_shared<pdb::PreaggregationSink<KeyClass, ValueClass>>(consumeMe, projection, numberOfPartitions);
+    return std::make_shared<pdb::PreaggregationSink<KeyClass, TempValueClass, ValueClass, VTAdder>>(consumeMe, projection, numberOfPartitions);
   }
 
   ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID) override {

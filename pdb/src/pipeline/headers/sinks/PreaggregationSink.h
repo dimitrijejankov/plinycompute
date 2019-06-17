@@ -13,7 +13,7 @@
 namespace pdb {
 
 // runs hashes all of the tuples
-template<class KeyType, class ValueType>
+template<class KeyType, class TempValueType, class ValueType, class VTAdder>
 class PreaggregationSink : public ComputeSink {
 
  private:
@@ -25,10 +25,12 @@ class PreaggregationSink : public ComputeSink {
   // how many partitions do we have
   size_t numPartitions;
 
+  VTAdder vtadder; // Encapsulates function to add ValueType and TempValueType
+
  public:
 
-  PreaggregationSink(TupleSpec &inputSchema, TupleSpec &attsToOperateOn, size_t numPartitions) : numPartitions(numPartitions) {
-
+  PreaggregationSink(TupleSpec &inputSchema, TupleSpec &attsToOperateOn, size_t numPartitions) : numPartitions(numPartitions), vtadder() {
+    // TODO: if VTAdder becomes a PDB Object type, need to instantiate it here
     // to setup the output tuple set
     TupleSpec empty{};
     TupleSetSetupMachine myMachine(inputSchema, empty);
@@ -64,7 +66,7 @@ class PreaggregationSink : public ComputeSink {
 
     // get the input columns
     std::vector<KeyType> &keyColumn = input->getColumn<KeyType>(whichAttToHash);
-    std::vector<ValueType> &valueColumn = input->getColumn<ValueType>(whichAttToAggregate);
+    std::vector<TempValueType> &tempValueColumn = input->getColumn<TempValueType>(whichAttToAggregate);
 
     // and aggregate everyone
     size_t length = keyColumn.size();
@@ -93,13 +95,15 @@ class PreaggregationSink : public ComputeSink {
           // if we got here, then we ran out of space, and so we need to delete the already-processed
           // data so that we can try again...
           keyColumn.erase(keyColumn.begin(), keyColumn.begin() + i);
-          valueColumn.erase(valueColumn.begin(), valueColumn.begin() + i);
+          tempValueColumn.erase(tempValueColumn.begin(), tempValueColumn.begin() + i);
           throw n;
         }
 
         // we were able to fit a new key/value pair, so copy over the value
         try {
-          *temp = valueColumn[i];
+          // Note: this will implicitly call ValueType's overloaded assignment operator to convert the
+          // TempValueType to a ValueType
+          *temp = tempValueColumn[i];
 
           // if we could not fit the value...
         } catch (NotEnoughSpace &n) {
@@ -109,7 +113,7 @@ class PreaggregationSink : public ComputeSink {
 
           // and erase all of these guys from the tuple set since they were processed
           keyColumn.erase(keyColumn.begin(), keyColumn.begin() + i);
-          valueColumn.erase(valueColumn.begin(), valueColumn.begin() + i);
+          tempValueColumn.erase(tempValueColumn.begin(), tempValueColumn.begin() + i);
           throw n;
         }
 
@@ -117,12 +121,14 @@ class PreaggregationSink : public ComputeSink {
       } else {
 
         // get the value and a copy of it
+        // TODO: is there a way to do this without doing an extra copy?
         ValueType &temp = myMap[keyColumn[i]];
         ValueType copy = temp;
 
         // and add to the old value, producing a new one
         try {
-          temp = copy + valueColumn[i];
+          // TODO should there be a different definition when we just want to add numeric types without function overhead?
+          temp = vtadder.add(copy, tempValueColumn[i]);
 
           // if we got here, then it means that we ram out of RAM when we were trying
           // to put the new value into the hash table
@@ -133,7 +139,7 @@ class PreaggregationSink : public ComputeSink {
 
           // and erase all of the guys who were processed
           keyColumn.erase(keyColumn.begin(), keyColumn.begin() + i);
-          valueColumn.erase(valueColumn.begin(), valueColumn.begin() + i);
+          tempValueColumn.erase(tempValueColumn.begin(), tempValueColumn.begin() + i);
           throw n;
         }
       }
