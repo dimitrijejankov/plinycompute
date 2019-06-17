@@ -12,8 +12,8 @@ pdb::PDBBroadcastForJoinAlgorithm::PDBBroadcastForJoinAlgorithm(const AtomicComp
                                                                 const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
                                                                 const pdb::Handle<pdb::Vector<pdb::Handle<pdb::PDBSourcePageSetSpec>>> &secondarySources,
                                                                 const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
-                                                                const bool swapLHSandRHS)
-    : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, swapLHSandRHS), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {
+                                                                const bool swapLHSandRHS): PDBPhysicalAlgorithm(fistAtomicComputation,finalAtomicComputation,source,sink,secondarySources,setsToMaterialize,
+    swapLHSandRHS), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {
 }
 
 pdb::PDBPhysicalAlgorithmType pdb::PDBBroadcastForJoinAlgorithm::getAlgorithmType() {
@@ -262,13 +262,12 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
 
   /// 4. Init the preaggregation pipelines
 
+  auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
+
   // set the parameters
   auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
-  std::map<ComputeInfoType, ComputeInfoPtr> params = {{ComputeInfoType::PAGE_PROCESSOR,
-                                                       std::make_shared<BroadcastJoinProcessor>(job->numberOfNodes,
-                                                                                                job->numberOfProcessingThreads,
-                                                                                                *pageQueues,
-                                                                                                myMgr)}};
+  std::map<ComputeInfoType, ComputeInfoPtr> params = {{ComputeInfoType::PAGE_PROCESSOR,std::make_shared<BroadcastJoinProcessor>(job->numberOfNodes,job->numberOfProcessingThreads,*pageQueues,myMgr)},
+                                                      {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient)}};
 
   // fill uo the vector for each thread
   prebroadcastjoinPipelines = std::make_shared<std::vector<PipelinePtr>>();
