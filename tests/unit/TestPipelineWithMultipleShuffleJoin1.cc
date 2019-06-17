@@ -419,9 +419,9 @@ TEST(PipelineTest, TestShuffleJoin) {
   // now we create the TCAP string
   String myTCAPString =
       "/* scan the three inputs */ \n"
-      "A (a) <= SCAN ('mySet', 'myData', 'SetScanner_0', []) \n"
-      "B (aAndC) <= SCAN ('mySet', 'myData', 'SetScanner_1', []) \n"
-      "C (c) <= SCAN ('mySet', 'myData', 'SetScanner_2', []) \n"
+      "A (a) <= SCAN ('myData', 'mySetA', 'SetScanner_0', []) \n"
+      "B (aAndC) <= SCAN ('myData', 'mySetB', 'SetScanner_1', []) \n"
+      "C (c) <= SCAN ('myData', 'mySetC', 'SetScanner_2', []) \n"
       "\n"
       "/* extract and hash a from A */ \n"
       "AWithAExtracted (a, aExtracted) <= APPLY (A (a), A(a), 'JoinComp_3', 'self_0', []) \n"
@@ -465,7 +465,8 @@ TEST(PipelineTest, TestShuffleJoin) {
   /// 4. Process the left side of the join (set A)
 
   // set the parameters
-  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  myPlan.getProcessorForJoin("AHashed", numNodes, threadsPerNode, setAPageQueues, myMgr) } };
+  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  myPlan.getProcessorForJoin("AHashed", numNodes, threadsPerNode, setAPageQueues, myMgr) },
+                                                       { ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("myData", "mySetA", "", 0, PDB_CATALOG_SET_VECTOR_CONTAINER)) } };
 
   PipelinePtr myPipeline = myPlan.buildPipeline(std::string("A"), /* this is the TupleSet the pipeline starts with */
                                                 std::string("AHashed"),     /* this is the TupleSet the pipeline ends with */
@@ -488,7 +489,8 @@ TEST(PipelineTest, TestShuffleJoin) {
 
   /// 5. Process the right side of the join (set B)
 
-  params = { { ComputeInfoType::PAGE_PROCESSOR,  myPlan.getProcessorForJoin("BHashedOnA", numNodes, threadsPerNode, setBPageQueues, myMgr) } };
+  params = { { ComputeInfoType::PAGE_PROCESSOR,  myPlan.getProcessorForJoin("BHashedOnA", numNodes, threadsPerNode, setBPageQueues, myMgr) },
+             { ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("myData", "mySetB", "", 0, PDB_CATALOG_SET_VECTOR_CONTAINER)) } };
   myPipeline = myPlan.buildPipeline(std::string("B"), /* this is the TupleSet the pipeline starts with */
                                     std::string("BHashedOnA"),     /* this is the TupleSet the pipeline ends with */
                                     setBReader,
@@ -529,7 +531,8 @@ TEST(PipelineTest, TestShuffleJoin) {
 
   /// 7. Process the set C (this becomes the left side of the join)
 
-  params = { { ComputeInfoType::PAGE_PROCESSOR,  myPlan.getProcessorForJoin("CHashedOnC", numNodes, threadsPerNode, setCPageQueues, myMgr) } };
+  params = { { ComputeInfoType::PAGE_PROCESSOR,  myPlan.getProcessorForJoin("CHashedOnC", numNodes, threadsPerNode, setCPageQueues, myMgr) },
+             { ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("myData", "mySetC", "", 0, PDB_CATALOG_SET_VECTOR_CONTAINER)) } };
   myPipeline = myPlan.buildPipeline(std::string("C"), /* this is the TupleSet the pipeline starts with */
                                     std::string("CHashedOnC"),     /* this is the TupleSet the pipeline ends with */
                                     setCReader,

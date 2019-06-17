@@ -185,7 +185,7 @@ public:
       } while (lhsHash < rhsHash);
 
       // if we don't have a match skip this
-      if(lhsIterators.empty() || lhsHash > rhsHash) {
+      if(lhsHash > rhsHash) {
         continue;
       }
 
