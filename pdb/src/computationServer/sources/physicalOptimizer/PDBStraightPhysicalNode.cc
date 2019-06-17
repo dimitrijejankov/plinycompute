@@ -10,27 +10,27 @@ PDBPipelineType pdb::PDBStraightPhysicalNode::getType() {
   return PDB_STRAIGHT_PIPELINE;
 }
 
-pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generatePipelinedAlgorithm(const std::string &startTupleSet,
+pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generatePipelinedAlgorithm(const AtomicComputationPtr &startAtomicComputation,
                                                                                 const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                                sourceCosts &sourcesWithIDs,
+                                                                                PDBPageSetCosts &sourcesWithIDs,
                                                                                 pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
                                                                                 bool shouldSwapLeftAndRight) {
 
   // this is the same as @see generateAlgorithm except now the source is the source of the pipe we pipelined to this
   // and the additional source are transferred for that pipeline.
-  return generateAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
+  return generateAlgorithm(startAtomicComputation, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
 }
 
-pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const std::string &startTupleSet,
+pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const AtomicComputationPtr &startAtomicComputation,
                                                                        const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                       sourceCosts &sourcesWithIDs,
+                                                                       PDBPageSetCosts &sourcesWithIDs,
                                                                        pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
                                                                        bool shouldSwapLeftAndRight) {
 
 
   // can we pipeline this guy? we can do that if we only have one consumer
   if(consumers.size() == 1) {
-    return consumers.front()->generatePipelinedAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
+    return consumers.front()->generatePipelinedAlgorithm(startAtomicComputation, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
   }
 
   // the sink is basically the last computation in the pipeline
@@ -41,12 +41,33 @@ pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const std
   // just store the sink page set for later use by the eventual consumers
   setSinkPageSet(sink);
 
+  // figure out the materializations
+  pdb::Handle<pdb::Vector<PDBSetObject>> setsToMaterialize = pdb::makeObject<pdb::Vector<PDBSetObject>>();
+  if(consumers.empty()) {
+
+    // the last computation has to be a write set!
+    if(pipeline.back()->getAtomicComputationTypeID() == WriteSetTypeID) {
+
+      // cast the node to the output
+      auto writerNode = std::dynamic_pointer_cast<WriteSet>(pipeline.back());
+
+      // add the set of this node to the materialization
+      setsToMaterialize->push_back(PDBSetObject(writerNode->getDBName(), writerNode->getSetName()));
+    }
+    else {
+
+      // throw exception this is not supposed to happen
+      throw runtime_error("TCAP does not end with a write set.");
+    }
+  }
+
   // generate the algorithm
-  pdb::Handle<PDBStraightPipeAlgorithm> algorithm = pdb::makeObject<PDBStraightPipeAlgorithm>(startTupleSet,
-                                                                                              pipeline.back()->getOutputName(),
+  pdb::Handle<PDBStraightPipeAlgorithm> algorithm = pdb::makeObject<PDBStraightPipeAlgorithm>(startAtomicComputation,
+                                                                                              pipeline.back(),
                                                                                               source,
                                                                                               sink,
                                                                                               additionalSources,
+                                                                                              setsToMaterialize,
                                                                                               shouldSwapLeftAndRight);
 
   // add all the consumed page sets

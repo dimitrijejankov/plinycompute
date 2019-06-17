@@ -28,6 +28,7 @@
 #include <CatUpdateNodeStatusRequest.h>
 #include <PDBCatalogClient.h>
 #include <CatSetUpdateSizeRequest.h>
+#include <CatSetUpdateContainerTypeRequest.h>
 
 #include "CatCreateDatabaseRequest.h"
 #include "CatCreateSetRequest.h"
@@ -358,11 +359,10 @@ bool PDBCatalogClient::createDatabase(std::string databaseName,
       databaseName);
 }
 
-// sends a request to the Catalog Server to remove Metadata for a Set that is
-// deleted
-bool PDBCatalogClient::deleteSet(const std::string &databaseName, const std::string &setName, std::string &errMsg) {
+// sends a request to the Catalog Server to remove Metadata for a Set that is removed
+bool PDBCatalogClient::removeSet(const std::string &databaseName, const std::string &setName, std::string &errMsg) {
 
-  return RequestFactory::heapRequest< CatDeleteSetRequest, SimpleRequestResult, bool>(
+  return RequestFactory::heapRequest<CatDeleteSetRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
         if (result != nullptr) {
@@ -409,7 +409,7 @@ pdb::PDBCatalogSetPtr PDBCatalogClient::getSet(const std::string &dbName, const 
 
                 // do we have the thing
                 if(result != nullptr && result->databaseName == dbName && result->setName == setName) {
-                  return std::make_shared<pdb::PDBCatalogSet>(result->databaseName, result->setName, result->type, result->setSize);
+                  return std::make_shared<pdb::PDBCatalogSet>(result->databaseName, result->setName, result->type, result->setSize, result->containerType);
                 }
 
                 // return a null pointer otherwise
@@ -430,16 +430,38 @@ bool PDBCatalogClient::incrementSetSize(const std::string &databaseName,
 
         if (result != nullptr) {
           if (!result->getRes().first) {
-            errMsg = "Error deleting set: " + result->getRes().second;
-            myLogger->error("Error deleting set: " + result->getRes().second);
+            errMsg = "Error updating set: " + result->getRes().second;
+            myLogger->error("Error updating set: " + result->getRes().second);
             return false;
           }
           return true;
         }
-        errMsg = "Error getting type name: got nothing back from catalog";
+        errMsg = "Error getting set: got nothing back from catalog";
         return false;
       },
       databaseName, setName, sizeToAdd);
+}
+
+bool PDBCatalogClient::updateSetContainerType(const string &databaseName,
+                                              const string &setName,
+                                              PDBCatalogSetContainerType containerType,
+                                              string &errMsg) {
+  // make a request and return the value
+  return RequestFactory::heapRequest<CatSetUpdateContainerTypeRequest, SimpleRequestResult, bool>(
+      myLogger, port, address, false, 1024,
+      [&](Handle<SimpleRequestResult> result) {
+        if (result != nullptr) {
+          if (!result->getRes().first) {
+            errMsg = "Error updating set: " + result->getRes().second;
+            myLogger->error("Error updating set: " + result->getRes().second);
+            return false;
+          }
+          return true;
+        }
+        errMsg = "Error getting set: got nothing back from catalog";
+        return false;
+      },
+      databaseName, setName, containerType);
 }
 
 pdb::PDBCatalogDatabasePtr PDBCatalogClient::getDatabase(const std::string &dbName, std::string &errMsg) {
@@ -591,7 +613,6 @@ string PDBCatalogClient::listAllRegisteredMetadata(std::string &errMsg) {
   string category = "all";
   return printCatalogMetadata(category, errMsg);
 }
-
 
 
 }

@@ -33,30 +33,11 @@ int main(int argc, char* argv[]) {
 
   /// 3. Fill in the data multi-threaded
 
-  // init the worker threads of this server
-  auto workers = make_shared<pdb::PDBWorkerQueue>(make_shared<pdb::PDBLogger>("worker.log"),  10);
-
-  // create the buzzer
-  atomic_int counter;
-  counter = 0;
-  PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
-    cnt++;
-  });
-
   atomic_int count;
   count = 0;
 
   std::vector<std::string> names = {"Frank", "Joe", "Mark", "David", "Zoe"};
   for(int j = 0; j < 5; j++) {
-
-    // the thread
-    int thread = j;
-
-    // grab a worker
-    pdb::PDBWorkerPtr myWorker = workers->getWorker();
-
-    // start the thread
-    pdb::PDBWorkPtr myWork = make_shared<pdb::GenericWork>([&, thread](PDBBuzzerPtr callerBuzzer) {
 
       // allocate the thing
       pdb::makeObjectAllocatorBlock(blockSize * 1024l * 1024, true);
@@ -71,32 +52,20 @@ int main(int argc, char* argv[]) {
           pdb::Handle<Employee> myData;
 
           if (i % 100 == 0) {
-            myData = pdb::makeObject<Employee>(names[thread] + " Frank", count);
+            myData = pdb::makeObject<Employee>(names[j] + " Frank", count);
           } else {
-            myData = pdb::makeObject<Employee>(names[thread] + " " + to_string(count), count + 45);
+            myData = pdb::makeObject<Employee>(names[j] + " " + to_string(count), count + 45);
           }
 
-
           storeMe->push_back(myData);
-          count++;
         }
 
       } catch (pdb::NotEnoughSpace &n) {
 
+        storeMe->pop_back();
+        count += storeMe->size();
         pdbClient.sendData<Employee>("chris_db", "chris_set", storeMe);
       }
-
-      // excellent everything worked just as expected
-      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
-    });
-
-    // run the work
-    myWorker->execute(myWork, tempBuzzer);
-  }
-
-  // wait until all the nodes are finished
-  while (counter < 5) {
-    tempBuzzer->wait();
   }
 
   /// 4. Make query graph an run query

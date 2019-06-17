@@ -11,7 +11,12 @@
 #include <PDBString.h>
 #include <PDBSourcePageSetSpec.h>
 #include <PDBSinkPageSetSpec.h>
+#include <PDBSetObject.h>
+#include <PDBCatalogSet.h>
+#include <LogicalPlan.h>
+#include <SourceSetArg.h>
 #include <PDBVector.h>
+#include <JoinArguments.h>
 #include <gtest/gtest_prod.h>
 
 namespace pdb {
@@ -39,13 +44,13 @@ public:
 
   virtual ~PDBPhysicalAlgorithm() = default;
 
-  PDBPhysicalAlgorithm(const std::string &firstTupleSet,
-                       const std::string &finalTupleSet,
+  PDBPhysicalAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                       const AtomicComputationPtr &finalAtomicComputation,
                        const pdb::Handle<PDBSourcePageSetSpec> &source,
                        const pdb::Handle<PDBSinkPageSetSpec> &sink,
                        const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
-                       bool swapLHSandRHS)
-      : firstTupleSet(firstTupleSet), finalTupleSet(finalTupleSet), source(source), sink(sink), secondarySources(secondarySources), swapLHSandRHS(swapLHSandRHS) {}
+                       const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
+                       bool swapLHSandRHS);
 
   /**
    * Sets up the whole algorithm
@@ -67,21 +72,26 @@ public:
    */
   virtual PDBPhysicalAlgorithmType getAlgorithmType() { throw std::runtime_error("Can not get the type of the base class"); };
 
-protected:
+  /**
+   * Returns the all the that are about to be materialized by the algorithm
+   * @return the vector of @see PDBSetObject
+   */
+  const pdb::Handle<pdb::Vector<PDBSetObject>> &getSetsToMaterialize() { return setsToMaterialize; }
 
   /**
-   * The source the algorithm should setup
+   * Returns the set this algorithm is going to scan
+   * @return source set as @see PDBSetObject
    */
-  pdb::Handle<PDBSourcePageSetSpec> source;
+  const pdb::Handle<PDBSetObject> &getSetToScan() { return sourceSet; }
 
   /**
-   * The sink the algorithm should setup
+   * Returns the type of the container that the materialized result will have
    */
-  pdb::Handle<PDBSinkPageSetSpec> sink;
+  virtual pdb::PDBCatalogSetContainerType getOutputContainerType() { return PDB_CATALOG_SET_NO_CONTAINER; };
 
   /**
-   * This is the tuple set of the atomic computation from which we are starting our pipeline
-   */
+ * This is the tuple set of the atomic computation from which we are starting our pipeline
+ */
   pdb::String firstTupleSet;
 
   /**
@@ -89,21 +99,70 @@ protected:
    */
   pdb::String finalTupleSet;
 
+protected:
+
+  /**
+   * Returns the source page set we are scanning.
+   * @param storage - a ptr to the storage manager backend so we can grab the page set
+   * @return - the page set
+   */
+  PDBAbstractPageSetPtr getSourcePageSet(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage);
+
+  /**
+   * Return the info that is going to be provided to the pipeline about the main source set we are scanning
+   * @return an instance of SourceSetArgPtr
+   */
+  pdb::SourceSetArgPtr getSourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient);
+
+  /**
+   * Returns the additional sources as join arguments, if we can not find a page set that is specified in the additional sources
+   * this method will return null
+   * @param storage - Storage manager backend
+   * @return the arguments if we can create them, null_ptr otherwise
+   */
+  std::shared_ptr<JoinArguments> getJoinArguments(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage);
+
+  /**
+   * The source set we want to scan
+   */
+  pdb::Handle<PDBSetObject> sourceSet;
+
+  /**
+   * The source page set the algorithm should setup
+   */
+  pdb::Handle<PDBSourcePageSetSpec> source;
+
+  /**
+   * The sink page set the algorithm should setup
+   */
+  pdb::Handle<PDBSinkPageSetSpec> sink;
+
   /**
    * List of secondary sources like hash sets for join etc.. null if there are no secondary sources
    */
   pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> secondarySources;
 
   /**
+   * The sets we want to materialize the result of this aggregation to
+   */
+  pdb::Handle<pdb::Vector<PDBSetObject>> setsToMaterialize;
+
+  /**
    * Indicates whether the left and the right side are swapped
    */
   bool swapLHSandRHS = false;
+
+  /**
+   * The logical plan
+   */
+  pdb::LogicalPlanPtr logicalPlan;
 
   // mark the tests that are testing this algorithm
   FRIEND_TEST(TestPhysicalOptimizer, TestAggregation);
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin1);
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin2);
   FRIEND_TEST(TestPhysicalOptimizer, TestMultiSink);
+  FRIEND_TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin);
 };
 
 }

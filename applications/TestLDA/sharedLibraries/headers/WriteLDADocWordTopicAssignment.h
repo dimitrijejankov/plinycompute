@@ -30,7 +30,7 @@ public:
   WriteLDADocWordTopicAssignment() = default;
 
   WriteLDADocWordTopicAssignment(std::string dbName, std::string setName) {
-    this->setOutput(std::move(dbName), std::move(setName));
+    this->setOutputSet(std::move(dbName), std::move(setName));
   }
 
 };

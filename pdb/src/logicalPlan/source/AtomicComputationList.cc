@@ -33,8 +33,7 @@ AtomicComputationPtr AtomicComputationList::getProducingAtomicComputation(std::s
 }
 
 // gets the list of comptuations that consume the tuple set with the specified name
-std::vector<AtomicComputationPtr>& AtomicComputationList::getConsumingAtomicComputations(
-    std::string inputName) {
+std::vector<AtomicComputationPtr>& AtomicComputationList::getConsumingAtomicComputations(std::string inputName) {
     if (consumers.count(inputName) == 0) {
         PDB_COUT << "This could be bad... can't find the guy consuming input " << inputName
                  << ".\n";

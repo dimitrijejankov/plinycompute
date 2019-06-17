@@ -1,3 +1,5 @@
+#include <utility>
+
 #include <PDBVector.h>
 #include <PDBCommunicator.h>
 #include <HeapRequest.h>
@@ -8,19 +10,22 @@
 namespace pdb {
 
 template<class T>
-PDBStorageIterator<T>::PDBStorageIterator(const string &address,
-                                          int port,
-                                          int maxRetries,
-                                          const string &set,
-                                          const string &db)
-    : address(address), port(port), maxRetries(maxRetries), set(set), db(db) {
+PDBStorageVectorIterator<T>::PDBStorageVectorIterator(string address,
+                                                      int port,
+                                                      int maxRetries,
+                                                      string set,
+                                                      string db) : address(std::move(address)),
+                                                                   port(port),
+                                                                   maxRetries(maxRetries),
+                                                                   set(std::move(set)),
+                                                                   db(std::move(db)) {
 
-      // init the logger
-      logger = std::make_shared<PDBLogger>("setIterator");
+  // init the logger
+  logger = std::make_shared<PDBLogger>("setIterator");
 }
 
 template<class T>
-bool PDBStorageIterator<T>::hasNextRecord() {
+bool PDBStorageVectorIterator<T>::hasNextRecord() {
 
   // are we starting out
   if (buffer == nullptr && !getNextPage(true)) {
@@ -45,7 +50,7 @@ bool PDBStorageIterator<T>::hasNextRecord() {
 }
 
 template<class T>
-Handle<T> PDBStorageIterator<T>::getNextRecord() {
+Handle<T> PDBStorageVectorIterator<T>::getNextRecord() {
 
   // are we starting out
   if (buffer == nullptr && !getNextPage(true)) {
@@ -70,7 +75,7 @@ Handle<T> PDBStorageIterator<T>::getNextRecord() {
 }
 
 template<class T>
-bool PDBStorageIterator<T>::getNextPage(bool isFirst) {
+bool PDBStorageVectorIterator<T>::getNextPage(bool isFirst) {
 
   // the buffer for the compressed data
   std::unique_ptr<char[]> compressedBuffer;

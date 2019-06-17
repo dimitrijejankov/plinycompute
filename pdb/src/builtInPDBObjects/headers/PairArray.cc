@@ -30,6 +30,7 @@
 #include "Handle.h"
 #include "Object.h"
 #include "InterfaceFunctions.h"
+#include "PairArray.h"
 
 namespace pdb {
 
@@ -589,6 +590,20 @@ bool PDBMapIterator<KeyType, ValueType>::operator==(
         return false;
     return true;
 }
+
+template<class KeyType, class ValueType>
+void *PDBMapIterator<KeyType, ValueType>::getValuePtr() {
+  int objSize = iterateMe->objSize;
+  int valueOffset = iterateMe->valueOffset;
+  return GET_VALUE_PTR(iterateMe->data, slot);
+}
+
+template<class KeyType, class ValueType>
+void *PDBMapIterator<KeyType, ValueType>::getKeyPtr() {
+  int objSize = iterateMe->objSize;
+  return GET_KEY_PTR(iterateMe->data, slot);
+}
+
 }
 
 #endif

@@ -8,6 +8,7 @@
 namespace pdb {
 
 enum PDBSourceType {
+  NoSource,
   MergeSource,
   SetScanSource,
   AggregationSource,

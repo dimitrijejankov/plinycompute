@@ -8,7 +8,7 @@
 namespace pdb {
 
 enum PDBSinkType {
-  None,
+  NoSink,
   SetSink,
   AggregationSink,
   AggShuffleSink,

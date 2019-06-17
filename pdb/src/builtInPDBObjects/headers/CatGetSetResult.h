@@ -22,6 +22,7 @@
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
+#include "PDBCatalogSet.h"
 
 // PRELOAD %CatGetSetResult%
 
@@ -45,11 +46,13 @@ class CatGetSetResult : public Object {
                            const std::string &set,
                            const std::string &internalType,
                            const std::string &type,
-                           size_t setSize) : databaseName(database),
-                                             setName(set),
-                                             internalType(internalType),
-                                             type(type),
-                                             setSize(setSize) {}
+                           size_t setSize,
+                           const PDBCatalogSetContainerType &containerType) : databaseName(database),
+                                                                              setName(set),
+                                                                              internalType(internalType),
+                                                                              type(type),
+                                                                              containerType(containerType),
+                                                                              setSize(setSize) {}
 
   ENABLE_DEEP_COPY
 
@@ -78,6 +81,11 @@ class CatGetSetResult : public Object {
    * The size of the set
    */
   size_t setSize;
+
+  /**
+   * The type of the container that are stored on the pages of this set
+   */
+  PDBCatalogSetContainerType containerType;
 };
 }
 

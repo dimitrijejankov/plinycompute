@@ -26,13 +26,14 @@ public:
 
   ~PDBAggregationPipeAlgorithm() override = default;
 
-  PDBAggregationPipeAlgorithm(const std::string &firstTupleSet,
-                              const std::string &finalTupleSet,
+  PDBAggregationPipeAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                              const AtomicComputationPtr &finalAtomicComputation,
                               const Handle<PDBSourcePageSetSpec> &source,
                               const Handle<PDBSinkPageSetSpec> &hashedToSend,
                               const Handle<PDBSourcePageSetSpec> &hashedToRecv,
                               const Handle<PDBSinkPageSetSpec> &sink,
                               const Handle<Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                              const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
                               bool swapLHSandRHS);
 
   bool setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) override;
@@ -47,7 +48,13 @@ public:
    */
   PDBPhysicalAlgorithmType getAlgorithmType() override;
 
-private:
+  /**
+   * The pages of the aggregation always have as the root object pdb::map so it returns PDB_CATALOG_SET_MAP_CONTAINER
+   * @return PDB_CATALOG_SET_MAP_CONTAINER
+   */
+  PDBCatalogSetContainerType getOutputContainerType() override;
+
+ private:
 
   /**
    * The sink tuple set where we are putting stuff
@@ -70,7 +77,7 @@ private:
   std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> senders;
 
   /**
-   *
+   * The logger for this algorithm, initialized on setup
    */
   PDBLoggerPtr logger;
 
@@ -90,14 +97,11 @@ private:
    */
   std::shared_ptr<std::vector<PDBPageQueuePtr>> pageQueues = nullptr;
 
-  /**
-   *
-   */
-  LogicalPlanPtr logicalPlan;
 
   // mark the tests that are testing this algorithm
   FRIEND_TEST(TestPhysicalOptimizer, TestAggregation);
   FRIEND_TEST(TestPhysicalOptimizer, TestMultiSink);
+  FRIEND_TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin);
 };
 
 }

@@ -5,7 +5,7 @@
 #include <PDBAbstractPhysicalNode.h>
 #include <physicalOptimizer/PDBAbstractPhysicalNode.h>
 
-pdb::PDBPlanningResult pdb::PDBAbstractPhysicalNode::generateAlgorithm(sourceCosts &sourcesWithIDs) {
+pdb::PDBPlanningResult pdb::PDBAbstractPhysicalNode::generateAlgorithm(PDBPageSetCosts &pageSetCosts) {
 
   // create the additional sources vector, initially it is empty
   pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> additionalSources = makeObject<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>>();
@@ -19,7 +19,7 @@ pdb::PDBPlanningResult pdb::PDBAbstractPhysicalNode::generateAlgorithm(sourceCos
   // are we doing a join
   if(isJoining()) {
 
-    auto joinSources = getJoinSources(sourcesWithIDs);
+    auto joinSources = getJoinSources(pageSetCosts);
 
     // add the right source to the additional sources
     additionalSources->push_back(std::get<1>(joinSources));
@@ -33,11 +33,11 @@ pdb::PDBPlanningResult pdb::PDBAbstractPhysicalNode::generateAlgorithm(sourceCos
   else {
 
     // set the source set
-    source = getSourcePageSet(sourcesWithIDs);
+    source = getSourcePageSet(pageSetCosts);
   }
 
   // generate the algorithm
-  return generateAlgorithm(pipeline.front()->getOutputName(), source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
+  return generateAlgorithm(pipeline.front(), source, pageSetCosts, additionalSources, shouldSwapLeftAndRight);
 }
 
 const std::list<pdb::PDBAbstractPhysicalNodePtr> pdb::PDBAbstractPhysicalNode::getProducers() {

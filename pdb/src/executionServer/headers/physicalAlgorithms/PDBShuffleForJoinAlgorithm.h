@@ -16,12 +16,13 @@ public:
 
   PDBShuffleForJoinAlgorithm() = default;
 
-  PDBShuffleForJoinAlgorithm(const std::string &firstTupleSet,
-                             const std::string &finalTupleSet,
+  PDBShuffleForJoinAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                             const AtomicComputationPtr &finalAtomicComputation,
                              const pdb::Handle<pdb::PDBSourcePageSetSpec> &source,
                              const pdb::Handle<pdb::PDBSinkPageSetSpec> &intermediate,
                              const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
                              const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                             const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
                              bool swapLHSandRHS);
 
   ENABLE_DEEP_COPY
@@ -72,11 +73,6 @@ public:
   /**
    *
    */
-  LogicalPlanPtr logicalPlan;
-
-  /**
-   *
-   */
   PDBLoggerPtr logger;
 
   /**
@@ -86,6 +82,7 @@ public:
 
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin2);
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin3);
+  FRIEND_TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin);
 };
 
 }

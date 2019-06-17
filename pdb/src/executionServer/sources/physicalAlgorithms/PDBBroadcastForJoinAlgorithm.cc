@@ -4,13 +4,14 @@
 
 #include <physicalAlgorithms/PDBBroadcastForJoinAlgorithm.h>
 
-pdb::PDBBroadcastForJoinAlgorithm::PDBBroadcastForJoinAlgorithm(const std::string &firstTupleSet,
-                                                                const std::string &finalTupleSet,
+pdb::PDBBroadcastForJoinAlgorithm::PDBBroadcastForJoinAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                                                                const AtomicComputationPtr &finalAtomicComputation,
                                                                 const pdb::Handle<pdb::PDBSourcePageSetSpec> &source,
                                                                 const pdb::Handle<pdb::PDBSinkPageSetSpec> &hashedToSend,
                                                                 const pdb::Handle<pdb::PDBSourcePageSetSpec> &hashedToRecv,
                                                                 const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
                                                                 const pdb::Handle<pdb::Vector<pdb::Handle<pdb::PDBSourcePageSetSpec>>> &secondarySources,
+                                                                const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
                                                                 const bool swapLHSandRHS)
     : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, swapLHSandRHS), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {
 }

@@ -15,38 +15,12 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
+#ifndef LA_ROW_SUM_AGGREGATE_CC
+#define LA_ROW_SUM_AGGREGATE_CC
 
-#ifndef DOUBLE_SUM_RESULT_H
-#define DOUBLE_SUM_RESULT_H
+#include "LARowSumAggregate.h"
+#include "GetVTable.h"
 
-
-#include "Object.h"
-
-// PRELOAD %DoubleSumResult%
-
-namespace pdb {
-
-class DoubleSumResult : public Object {
-
-public:
-    double total;
-    int identifier;
-
-    ENABLE_DEEP_COPY
-
-    double getTotal() {
-        return total;
-    }
-
-    int& getKey() {
-        return identifier;
-    }
-
-    double& getValue() {
-        return total;
-    }
-};
-}
-
+GET_V_TABLE(LARowSumAggregate)
 
 #endif

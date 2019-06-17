@@ -48,7 +48,7 @@ class QueryGraphAnalyzer {
 
 public:
   // constructor
-  QueryGraphAnalyzer(std::vector<Handle<Computation>> &queryGraph);
+  QueryGraphAnalyzer(const vector<Handle < Computation>> &queryGraph);
 
   // constructor
   QueryGraphAnalyzer(Handle<Vector<Handle<Computation>>> queryGraph);
@@ -57,14 +57,14 @@ public:
   std::string parseTCAPString();
 
   // to traverse the sub-tree and put each traversed computation to a vector
-  void parseComputations(std::vector<Handle<Computation>> &computations,
+  void parseComputations(Vector<Handle<Computation>> &computations,
                          Handle<Computation> sink);
 
   // to convert user query to a pdb::Vector of computations
   // this method will invoke makeObject, but will not allocate allocation blocks
   // you must ensure current allocation block has sufficient memory before
   // invoking this method
-  void parseComputations(std::vector<Handle<Computation>> &computations);
+  void parseComputations(Vector<Handle<Computation>> &computations);
 
   // to traverse from a graph sink recursively
   void traverse(std::vector<std::string> &tcapStrings, Handle<Computation> sink,

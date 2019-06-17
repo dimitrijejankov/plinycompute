@@ -241,12 +241,19 @@ private:
       pair<string, string> res = producer->findSource(a, plan->getComputations());
       cout << "got " << res.first << " " << res.second << "\n";
 
-      // and find its type... in the first case, there is not a particular lambda that we need to ask for
       if (res.second.empty()) {
         typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getComputation().getOutputType() + ">");
       } else {
-        typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getLambda(res.second)->getOutputType() + ">");
+
+        std::string myType = plan->getNode(res.first).getLambda(res.second)->getOutputType();
+        if (myType.find_first_of("pdb::Handle<") == 0) {
+          typeList.push_back(myType);
+        } else {
+          typeList.push_back("pdb::Handle<" + myType + ">");
+        }
       }
+
+      std::cout << "Type found : " << typeList.back() << std::endl;
     }
 
     //

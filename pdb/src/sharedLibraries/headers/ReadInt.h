@@ -9,7 +9,12 @@
 
 namespace pdb {
 
-class SillyReadOfA : public SetScanner <int> {
+class ReadInt : public SetScanner <int> {
+public:
+
+  ReadInt() = default;
+
+  ReadInt(const std::string &db, const std::string &set) : SetScanner(db, set) {}
 
   ENABLE_DEEP_COPY
 

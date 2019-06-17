@@ -52,6 +52,7 @@
 #include "WriteTopicsPerWord.h"
 #include "LDATopicAssignmentMultiSelection.h"
 #include "LDATopicWordProb.h"
+#include "QueryGraphAnalyzer.h"
 
 #include <ctime>
 #include <time.h>
@@ -148,10 +149,7 @@ int main(int argc, char *argv[]) {
     /* Create the Database and Sets */
     pdbClient.createDatabase("LDA_db");
 
-    //pdbClient.removeSet("LDA_db", "LDA_input_set"); ///TODO
     pdbClient.createSet<LDADocument>("LDA_db", "LDA_input_set");
-
-    //pdbClient.removeSet("LDA_db", "LDA_meta_data_set"); ///TODO
     pdbClient.createSet<int>("LDA_db", "LDA_meta_data_set");
 
     int blockSize = 8;
@@ -190,7 +188,7 @@ int main(int argc, char *argv[]) {
             }
 
           } catch (pdb::NotEnoughSpace &n) {
-            pdbClient.sendData<LDADocument>("LDA_input_set", "LDA_db", storeMe);
+            pdbClient.sendData<LDADocument>("LDA_db", "LDA_input_set", storeMe);
             pdb::makeObjectAllocatorBlock(blockSize * 1024u * 1024u, true);
             storeMe = pdb::makeObject<pdb::Vector<pdb::Handle<LDADocument>>>();
           }
@@ -199,7 +197,7 @@ int main(int argc, char *argv[]) {
 
       /* Handle the last few entries */
       if (storeMe->size() > 0) {
-        pdbClient.sendData<LDADocument>("LDA_input_set", "LDA_db", storeMe);
+        pdbClient.sendData<LDADocument>("LDA_db", "LDA_input_set", storeMe);
         pdb::makeObjectAllocatorBlock(blockSize * 1024u * 1024u, true);
       }
 
@@ -211,7 +209,7 @@ int main(int argc, char *argv[]) {
         storeMeToo->push_back(me);
       }
 
-      pdbClient.sendData<int>("LDA_meta_data_set", "LDA_db", storeMeToo);
+      pdbClient.sendData<int>("LDA_db", "LDA_meta_data_set", storeMeToo);
       pdb::makeObjectAllocatorBlock(blockSize * 1024u * 1024u, true);
     }
 
@@ -245,10 +243,10 @@ int main(int argc, char *argv[]) {
             myData->setCount(countNum);
             storeMe->push_back(myData);
           }
-          pdbClient.sendData<LDADocument>("LDA_input_set", "LDA_db", storeMe);
+          pdbClient.sendData<LDADocument>("LDA_db", "LDA_input_set", storeMe);
 
         } catch (pdb::NotEnoughSpace &n) {
-          pdbClient.sendData<LDADocument>("LDA_input_set", "LDA_db", storeMe);
+          pdbClient.sendData<LDADocument>("LDA_db", "LDA_input_set", storeMe);
           rollback = false;
         }
 
@@ -264,36 +262,21 @@ int main(int argc, char *argv[]) {
         storeMeToo->push_back(me);
       }
 
-      pdbClient.sendData<int>("LDA_meta_data_set", "LDA_db", storeMeToo);
+      pdbClient.sendData<int>("LDA_db", "LDA_meta_data_set", storeMeToo);
       pdb::makeObjectAllocatorBlock(blockSize * 1024u * 1024u, true);
     }
   }
 
   /* Create sets to store the intermediate data that will be used between iterations */
-  std::string myNextReaderForTopicsPerWordSetName =
-      std::string("TopicsPerWord") + std::to_string(0);
-  std::string myNextReaderForTopicsPerDocSetName =
-      std::string("TopicsPerDoc") + std::to_string(0);
-  std::string myNextWriterForTopicsPerWordSetName =
-      std::string("TopicsPerWord") + std::to_string(1);
-  std::string myNextWriterForTopicsPerDocSetName =
-      std::string("TopicsPerDoc") + std::to_string(1);
+  std::string myNextReaderForTopicsPerWordSetName = std::string("TopicsPerWord") + std::to_string(0);
+  std::string myNextReaderForTopicsPerDocSetName = std::string("TopicsPerDoc") + std::to_string(0);
+  std::string myNextWriterForTopicsPerWordSetName = std::string("TopicsPerWord") + std::to_string(1);
+  std::string myNextWriterForTopicsPerDocSetName = std::string("TopicsPerDoc") + std::to_string(1);
 
-  //pdbClient.removeSet("LDA_db", myNextReaderForTopicsPerDocSetName); ///TODO
-  pdbClient.createSet<IntDoubleVectorPair>("LDA_db",
-                                           myNextReaderForTopicsPerDocSetName);
-
-  //pdbClient.removeSet("LDA_db", myNextReaderForTopicsPerWordSetName); ///TODO
-  pdbClient.createSet<IntDoubleVectorPair>("LDA_db",
-                                           myNextReaderForTopicsPerWordSetName);
-
-  //pdbClient.removeSet("LDA_db", myNextWriterForTopicsPerDocSetName); ///TODO
-  pdbClient.createSet<IntDoubleVectorPair>("LDA_db",
-                                           myNextWriterForTopicsPerDocSetName);
-
-  //pdbClient.removeSet("LDA_db", myNextWriterForTopicsPerWordSetName); ///TODO
-  pdbClient.createSet<IntDoubleVectorPair>("LDA_db",
-                                           myNextWriterForTopicsPerWordSetName);
+  pdbClient.createSet<IntDoubleVectorPair>("LDA_db", myNextReaderForTopicsPerDocSetName);
+  pdbClient.createSet<IntDoubleVectorPair>("LDA_db", myNextReaderForTopicsPerWordSetName);
+  pdbClient.createSet<IntDoubleVectorPair>("LDA_db", myNextWriterForTopicsPerDocSetName);
+  pdbClient.createSet<IntDoubleVectorPair>("LDA_db", myNextWriterForTopicsPerWordSetName);
 
   /* Main LDA Program */
 
@@ -310,8 +293,7 @@ int main(int argc, char *argv[]) {
   /* Initialization */
 
   /* Initialize the topic mixture probabilities for each document */
-  Handle<Computation> myInitialScanSet =
-      makeObject<ScanLDADocumentSet>("LDA_db", "LDA_input_set");
+  Handle<Computation> myInitialScanSet = makeObject<ScanLDADocumentSet>("LDA_db", "LDA_input_set");
   Handle<Computation> myDocID = makeObject<LDADocIDAggregate>();
   myDocID->setInput(myInitialScanSet);
   Handle<Computation> myDocTopicProb = makeObject<LDAInitialTopicProbSelection>(*alpha);
@@ -372,9 +354,9 @@ int main(int argc, char *argv[]) {
     myWordTopicProb->setInput(myTopicWordProb);
 
     /*
- * [4] Write the intermediate results doc-topic probability and word-topic probability to sets
- *     Use them in the next iteration
- */
+     * [4] Write the intermediate results doc-topic probability and word-topic probability to sets
+     *     Use them in the next iteration
+     */
     std::string myWriterForTopicsPerWordSetName = std::string("TopicsPerWord") + std::to_string((n + 1) % 2);
     Handle<Computation> myWriterForTopicsPerWord = makeObject<WriteTopicsPerWord>("LDA_db", myWriterForTopicsPerWordSetName);
     myWriterForTopicsPerWord->setInput(myWordTopicProb);
@@ -383,33 +365,16 @@ int main(int argc, char *argv[]) {
     Handle<Computation> myWriterForTopicsPerDoc = makeObject<WriteIntDoubleVectorPairSet>("LDA_db", myWriterForTopicsPerDocSetName);
     myWriterForTopicsPerDoc->setInput(myDocTopicProb);
 
-    // here is the list of computations
-    Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
-
-    // put them in the list of computations
-    myComputations->push_back(myInitialScanSet);
-    myComputations->push_back(input1);
-    myComputations->push_back(input2);
-    myComputations->push_back(myIdentitySelection);
-    myComputations->push_back(myDocWordTopicCount);
-    myComputations->push_back(myDocTopicCountAgg);
-    myComputations->push_back(myDocTopicProb);
-    myComputations->push_back(myTopicWordCount);
-    myComputations->push_back(myTopicWordProb);
-    myComputations->push_back(myWordTopicProb);
-    myComputations->push_back(myWriterForTopicsPerWord);
-    myComputations->push_back(myWriterForTopicsPerDoc);
-
-    /* Excute the computations */
-    pdbClient.executeComputations(myComputations, "NEED TO ADD");
+    // execute the computations
+    pdbClient.executeComputations({ myWriterForTopicsPerWord, myWriterForTopicsPerDoc });
 
     /* [5] Prepare sets for the next iteration */
 
     /* Clear the sets that have been read in this iteration by old readers */
     std::string myReaderForTopicsPerWordSetName = std::string("TopicsPerWord") + std::to_string(n % 2);
     std::string myReaderForTopicsPerDocSetName = std::string("TopicsPerDoc") + std::to_string(n % 2);
-    //pdbClient.clearSet("LDA_db", myReaderForTopicsPerWordSetName, "pdb::IntDoubleVectorPair"); ///TODO
-    //pdbClient.clearSet("LDA_db", myReaderForTopicsPerDocSetName, "pdb::IntDoubleVectorPair"); ///TODO
+    pdbClient.clearSet("LDA_db", myReaderForTopicsPerWordSetName);
+    pdbClient.clearSet("LDA_db", myReaderForTopicsPerDocSetName);
 
     /* Finally, create the new readers */
     input2 = makeObject<ScanTopicsPerWord>("LDA_db", myWriterForTopicsPerWordSetName);
@@ -432,15 +397,11 @@ int main(int argc, char *argv[]) {
     r->getVector().print();
     std::cout << std::endl;
   }
+  
+  std::cout << "Time Duration: " << std::chrono::duration_cast<std::chrono::duration<float>>(end - total_begin).count() << " secs." << std::endl;
 
-  int code = system("scripts/cleanupSoFiles.sh force");
-  if (code < 0) {
-    std::cout << "Can't cleanup so files" << std::endl;
-  }
-
-  std::cout << "Time Duration: "
-            << std::chrono::duration_cast<std::chrono::duration<float>>(end - total_begin).count()
-            << " secs." << std::endl;
+  // shutdown the server
+  pdbClient.shutDownServer();
 }
 
 #endif

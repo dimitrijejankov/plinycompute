@@ -2,21 +2,24 @@
 // Created by dimitrije on 3/20/19.
 //
 
+#include <SourceSetArg.h>
+#include <PDBCatalogClient.h>
 #include "ComputePlan.h"
 #include "ExJob.h"
 #include "PDBAggregationPipeAlgorithm.h"
 #include "PDBStorageManagerBackend.h"
 #include "GenericWork.h"
 
-pdb::PDBAggregationPipeAlgorithm::PDBAggregationPipeAlgorithm(const std::string &firstTupleSet,
-                                                              const std::string &finalTupleSet,
-                                                              const pdb::Handle<pdb::PDBSourcePageSetSpec> &source,
-                                                              const pdb::Handle<pdb::PDBSinkPageSetSpec> &hashedToSend,
-                                                              const pdb::Handle<pdb::PDBSourcePageSetSpec> &hashedToRecv,
-                                                              const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
-                                                              const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
-                                                              const bool swapLHSandRHS)
-    : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, swapLHSandRHS), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {}
+pdb::PDBAggregationPipeAlgorithm::PDBAggregationPipeAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                                                              const AtomicComputationPtr &finalAtomicComputation,
+                                                              const Handle<PDBSourcePageSetSpec> &source,
+                                                              const Handle<PDBSinkPageSetSpec> &hashedToSend,
+                                                              const Handle<PDBSourcePageSetSpec> &hashedToRecv,
+                                                              const Handle<PDBSinkPageSetSpec> &sink,
+                                                              const Handle<Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                                                              const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
+                                                              bool swapLHSandRHS)
+    : PDBPhysicalAlgorithm(fistAtomicComputation, finalAtomicComputation, source, sink, secondarySources, setsToMaterialize, swapLHSandRHS), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {}
 
 bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
 
@@ -32,24 +35,8 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
   // get the source computation
   auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
 
-  // if this is a scan set get the page set from a real set
-  PDBAbstractPageSetPtr sourcePageSet;
-  if (srcNode->getAtomicComputationTypeID() == ScanSetAtomicTypeID) {
-
-    // cast it to a scan
-    auto scanNode = std::dynamic_pointer_cast<ScanSet>(srcNode);
-
-    // get the page set
-    sourcePageSet = storage->createPageSetFromPDBSet(scanNode->getDBName(),
-                                                     scanNode->getSetName(),
-                                                     std::make_pair(source->pageSetIdentifier.first,
-                                                                    source->pageSetIdentifier.second));
-  } else {
-
-    // we are reading from an existing page set get it
-    sourcePageSet = storage->getPageSet(std::make_pair(job->computationID, firstTupleSet));
-    sourcePageSet->resetPageSet();
-  }
+  // go grab the source page set
+  PDBAbstractPageSetPtr sourcePageSet = getSourcePageSet(storage);
 
   // did we manage to get a source page set? if not the setup failed
   if (sourcePageSet == nullptr) {
@@ -74,9 +61,25 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
 
   /// 4. Init the preaggregation pipelines
 
-  // set the parameters
+  // figure out the join arguments
+  auto joinArguments = getJoinArguments (storage);
+
+  // if we could not create them we are out of here
+  if(joinArguments == nullptr) {
+    return false;
+  }
+
+  // get the buffer manager
   auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
-  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<PreaggregationPageProcessor>(job->numberOfNodes, job->numberOfProcessingThreads, *pageQueues, myMgr) } };
+
+  // get catalog client
+  auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
+
+  // initialize the parameters
+  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<PreaggregationPageProcessor>(job->numberOfNodes, job->numberOfProcessingThreads, *pageQueues, myMgr) },
+                                                       { ComputeInfoType::JOIN_ARGS, joinArguments },
+                                                       { ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS) },
+                                                       { ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient)}} ;
 
   // fill uo the vector for each thread
   preaggregationPipelines = std::make_shared<std::vector<PipelinePtr>>();
@@ -346,6 +349,25 @@ bool pdb::PDBAggregationPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManage
     aggBuzzer->wait();
   }
 
+  /// 6. Should we materialize
+
+  // should we materialize this to a set?
+  for(int j = 0; j < setsToMaterialize->size(); ++j) {
+
+    // get the page set
+    auto sinkPageSet = storage->getPageSet(std::make_pair(sink->pageSetIdentifier.first, sink->pageSetIdentifier.second));
+
+    // if the thing does not exist finish!
+    if(sinkPageSet == nullptr) {
+      success = false;
+      break;
+    }
+
+    // materialize the page set
+    sinkPageSet->resetPageSet();
+    success = storage->materializePageSet(sinkPageSet, std::make_pair<std::string, std::string>((*setsToMaterialize)[j].database, (*setsToMaterialize)[j].set)) && success;
+  }
+
   return true;
 }
 
@@ -365,4 +387,8 @@ void pdb::PDBAggregationPipeAlgorithm::cleanup() {
 
 pdb::PDBPhysicalAlgorithmType pdb::PDBAggregationPipeAlgorithm::getAlgorithmType() {
   return DistributedAggregation;
+}
+
+pdb::PDBCatalogSetContainerType pdb::PDBAggregationPipeAlgorithm::getOutputContainerType() {
+  return PDBCatalogSetContainerType::PDB_CATALOG_SET_MAP_CONTAINER;
 }

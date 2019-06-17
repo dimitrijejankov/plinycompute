@@ -11,9 +11,13 @@
 namespace pdb {
 
 class ReadStringIntPair : public SetScanner <StringIntPair> {
+public:
+
+  ReadStringIntPair() = default;
+
+  ReadStringIntPair(const std::string &db, const std::string &set) : SetScanner(db, set) {}
 
   ENABLE_DEEP_COPY
-
 };
 
 

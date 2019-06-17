@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "SillyReadOfA.h"
+#include "ReadInt.h"
 #include "ReadStringIntPair.h"
 #include "SillyJoinIntString.h"
 #include "SillyWriteIntString.h"
@@ -244,7 +244,7 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
   Vector <Handle <Computation>> myComputations;
 
   // create all of the computation objects
-  Handle <Computation> readA = makeObject <SillyReadOfA>();
+  Handle <Computation> readA = makeObject <ReadInt>();
   Handle <Computation> readB = makeObject <ReadStringIntPair>();
   Handle <Computation> join = makeObject <SillyJoinIntString>();
   Handle <Computation> write = makeObject <SillyWriteIntString>();
@@ -255,8 +255,8 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
   myComputations.push_back (join);
   myComputations.push_back (write);
 
-  pdb::String tcapString = "A(a) <= SCAN ('mySetA', 'myData', 'SetScanner_0')\n"
-                           "B(b) <= SCAN ('mySetB', 'myData', 'SetScanner_1')\n"
+  pdb::String tcapString = "A(a) <= SCAN ('myData', 'mySetA', 'SetScanner_0')\n"
+                           "B(b) <= SCAN ('myData', 'mySetB', 'SetScanner_1')\n"
                            "A_extracted_value(a,self_0_2Extracted) <= APPLY (A(a), A(a), 'JoinComp_2', 'self_0', [('lambdaType', 'self')])\n"
                            "AHashed(a,a_value_for_hashed) <= HASHLEFT (A_extracted_value(self_0_2Extracted), A_extracted_value(a), 'JoinComp_2', '==_2', [])\n"
                            "B_extracted_value(b,b_value_for_hash) <= APPLY (B(b), B(b), 'JoinComp_2', 'attAccess_1', [('attName', 'myInt'), ('attTypeName', 'int'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
@@ -279,7 +279,8 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
   /// 4. Process the left side of the join (set A)
 
   // set the parameters
-  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  myPlan.getProcessorForJoin("AHashed", numNodes, threadsPerNode, setAPageQueues, myMgr) } };
+  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  myPlan.getProcessorForJoin("AHashed", numNodes, threadsPerNode, setAPageQueues, myMgr) },
+                                                       { ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("myData", "mySetA", "", 0, PDB_CATALOG_SET_VECTOR_CONTAINER)) }};
 
   PipelinePtr myPipeline = myPlan.buildPipeline(std::string("A"), /* this is the TupleSet the pipeline starts with */
                                                 std::string("AHashed"),     /* this is the TupleSet the pipeline ends with */
@@ -320,7 +321,8 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
 
   /// 5. Process the right side of the join (set B)
 
-  params = { { ComputeInfoType::PAGE_PROCESSOR,  myPlan.getProcessorForJoin("BHashedOnA", numNodes, threadsPerNode, setBPageQueues, myMgr) } };
+  params = { { ComputeInfoType::PAGE_PROCESSOR,  myPlan.getProcessorForJoin("BHashedOnA", numNodes, threadsPerNode, setBPageQueues, myMgr) },
+             { ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("myData", "mySetB", "", 0, PDB_CATALOG_SET_VECTOR_CONTAINER)) } };
   myPipeline = myPlan.buildPipeline(std::string("B"), /* this is the TupleSet the pipeline starts with */
                                     std::string("BHashedOnA"),     /* this is the TupleSet the pipeline ends with */
                                     setBReader,

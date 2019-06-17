@@ -139,6 +139,13 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
       make_shared<pdb::HeapRequestHandler<pdb::StoStartFeedingPageSetRequest>>([&](Handle<pdb::StoStartFeedingPageSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
         return handleStartFeedingPageSetRequest(request, sendUsingMe);
       }));
+
+  forMe.registerHandler(
+      StoClearSetRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoClearSetRequest>>([&](Handle<pdb::StoClearSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
+        return handleClearSetRequest(request, sendUsingMe);
+  }));
+
 }
 
 bool pdb::PDBStorageManagerFrontend::isPageBeingWrittenTo(const pdb::PDBSetPtr &set, uint64_t pageNum) {

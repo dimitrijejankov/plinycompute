@@ -200,7 +200,8 @@ void pdb::Pipeline::run() {
 
     // TODO make this nicer
     makeObjectAllocatorBlock(1024, true);
-  } else {
+  }
+  else {
     dismissPage(ram, true);
   }
 

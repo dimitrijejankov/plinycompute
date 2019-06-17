@@ -42,6 +42,15 @@ class PDBSet {
 	  dbName = std::move(dbNameIn);
   }
 
+  bool operator==(const PDBSet &rhs) const {
+    return setName == rhs.setName &&
+        dbName == rhs.dbName;
+  }
+
+  bool operator!=(const PDBSet &rhs) const {
+    return !(rhs == *this);
+  }
+
  private:
 
   string setName;

@@ -52,8 +52,33 @@ namespace pdb {
   }
 
   template<class DataType>
-  PDBStorageIteratorPtr<DataType> PDBClient::getSetIterator(std::string dbName, std::string setName) {
-    return distributedStorage->getIterator<DataType>(dbName, setName);
+  PDBStorageIteratorPtr<DataType> PDBClient::getSetIterator(const std::string& dbName, const std::string& setName) {
+
+    // get the set from the client
+    std::string error;
+    auto set = catalogClient->getSet(dbName, setName, error);
+
+    // if we did not find a set return a nullptr for the iterator
+    if(set == nullptr) {
+      return nullptr;
+    }
+
+    // check what kind of set we are dealing with
+    if(set->containerType == PDBCatalogSetContainerType::PDB_CATALOG_SET_VECTOR_CONTAINER) {
+
+      // returns the vector iterator
+      return distributedStorage->getVectorIterator<DataType>(dbName, setName);
+    }
+    else if(set->containerType == PDBCatalogSetContainerType::PDB_CATALOG_SET_MAP_CONTAINER) {
+
+      // returns the map iterator
+      return distributedStorage->getMapIterator<DataType>(dbName, setName);
+    }
+    else {
+
+      // ok we can only handle vector and map sets this is a problem
+      throw runtime_error("The iterator can only be obtained for vector sets or map sets.");
+    }
   }
 
 }

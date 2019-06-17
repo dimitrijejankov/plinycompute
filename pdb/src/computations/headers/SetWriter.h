@@ -98,7 +98,7 @@ class SetWriter : public Computation {
     // the template we are going to use to create the TCAP string for this ScanUserSet
     mustache::mustache writeSetTemplate{"{{outputTupleSetName}}( {{outputColumnNames}}) <= "
                                         "OUTPUT ( {{inputTupleSetName}} ( {{inputColumnsToApply}} ), "
-                                        "'{{setName}}', '{{dbName}}', '{{computationType}}_{{computationLabel}}')\n"};
+                                        "'{{dbName}}', '{{setName}}', '{{computationType}}_{{computationLabel}}')\n"};
 
     // the data required to fill in the template
     mustache::data writeSetData;
@@ -118,6 +118,18 @@ class SetWriter : public Computation {
 
     // return the TCAP string
     return writeSetTemplate.render(writeSetData);
+  }
+
+  /**
+   * Sets the output set of the set writer
+   * @param dbName - the name of the database the set belongs to
+   * @param setName - the name of the set
+   */
+  void setOutputSet(std::string dbName, std::string setName) override {
+
+    // set the set identifier
+    this->dbName = dbName;
+    this->setName = setName;
   }
 
   pdb::ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection, uint64_t numberOfPartitions) override {

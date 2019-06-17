@@ -26,8 +26,44 @@ void pdb::PDBComputationServerFrontend::init() {
 
 bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job) {
 
+  // the locks for the sets
+  std::vector<PDBDistributedStorageSetLockPtr> locks;
+  auto distStorage = getFunctionalityPtr<PDBDistributedStorage>();
+
   atomic_bool success;
   success = true;
+
+  /// 0. Setup the metadata in the catalog about the sets we are going to materialize
+
+  // grab a catalog client
+  auto client = getFunctionality<PDBCatalogClient>();
+
+  // the sets we want to update the metadata for
+  auto setsToMaterialize = job->getSetsToMaterialize();
+
+  // the type of the container
+  auto containerType = job->getOutputSetContainer();
+
+  // update the meta data for each set
+  for(const auto &set : setsToMaterialize) {
+
+    // update the container type
+    std::string error;
+    success = client.updateSetContainerType(set.first, set.second, containerType, error) && success;
+
+    // get access for writing for the sets, this will block until we can get access to the set
+    locks.emplace_back(distStorage->useSet(set.first, set.second, PDBDistributedStorageSetState::WRITING_DATA));
+  }
+
+  // are we scanning the set, if so update the metadata in the distributed storage that we are doing that
+  if(job->isScanningSet()) {
+
+    // get source set
+    auto sourceSet = job->getScanningSet();
+
+    // add the lock
+    locks.emplace_back(distStorage->useSet(sourceSet.first, sourceSet.second, PDBDistributedStorageSetState::READING_DATA));
+  }
 
   // create the buzzer
   atomic_int counter;
@@ -46,7 +82,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
   // for each node start a worker
   for(int i = 0; i < job->nodes.size(); ++i) {
 
-    /// 0. Start a worker for each node
+    /// 1. Start a worker for each node
 
     // grab a worker
     auto worker = parent->getWorkerQueue()->getWorker();
@@ -56,7 +92,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
 
       std::string errMsg;
 
-      /// 1. Connect to the node
+      /// 2. Connect to the node
 
       // connect to the server
       PDBCommunicator comm;
@@ -78,7 +114,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
         return;
       }
 
-      /// 2. schedule the computation
+      /// 3. schedule the computation
 
       // make an allocation block
       const pdb::UseTemporaryAllocationBlock tempBlock{job->computationSize + 1024 * 1024};
@@ -96,7 +132,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
         return;
       }
 
-      /// 3. Run the computation and wait for it to finish
+      /// 4. Run the computation and wait for it to finish
       if(!runScheduledJob(comm, errMsg)) {
 
         // we failed to run the job
@@ -274,6 +310,8 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
               // grab a algorithm
               auto algorithm = optimizer.getNextAlgorithm();
 
+              std::cout << "Running " << algorithm->firstTupleSet << " , " << algorithm->finalTupleSet << std::endl;
+
               // make the job
               Handle<ExJob> job = pdb::makeObject<ExJob>();
 
@@ -283,7 +321,7 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
               job->tcap = request->tcapString;
               job->jobID = jobID++;
               job->physicalAlgorithm = algorithm;
-              job->numberOfProcessingThreads = getConfiguration()->numThreads;
+              job->numberOfProcessingThreads = (uint64_t) getConfiguration()->numThreads;
               job->numberOfNodes = catalogClient->getActiveWorkerNodes().size();
 
               // just set how much we need for the computation object in case somebody embed some data in it
@@ -306,9 +344,6 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
 
                 break;
               }
-
-              // update stats
-              optimizer.updateStats();
 
               // remove the page sets
               if(!removeUnusedPageSets(optimizer.getPageSetsToRemove())) {

@@ -28,14 +28,14 @@ using namespace pdb;
 
 class LDATopicWordProb : public Object {
 
-private:
+ public:
     /* The word for which we have the topic probabilities */
     unsigned whichWord;
 
     /* The list of probabilities */
     NumericalVector<double> probabilities;
 
-public:
+
     ENABLE_DEEP_COPY
 
     LDATopicWordProb() {}

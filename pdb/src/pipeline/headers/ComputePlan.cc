@@ -258,7 +258,7 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
       // do we have the appropriate join arguments? if not throw an exception
       auto it = joinArgs->hashTables.find(rightAtomicComp->getOutput().getSetName());
       if(it == joinArgs->hashTables.end()) {
-        throw runtime_error("Hash table for the output set," + rightAtomicComp->getOutput().getSetName() +  "not found!");
+        throw runtime_error("Hash table for the output set," + rightAtomicComp->getOutput().getSetName() +  " not found!");
       }
 
       // init the RHS source
@@ -287,7 +287,7 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
   else {
 
     // our source is a normal source and not a join source, so we just grab it from the computation
-    computeSource = myPlan->getNode(producerName).getComputation().getComputeSource(inputPageSet, chunkSize, workerID);
+    computeSource = myPlan->getNode(producerName).getComputation().getComputeSource(inputPageSet, chunkSize, workerID, params);
   }
 
   std::cout << "\nBUILDING PIPELINE\n";
@@ -340,8 +340,9 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
   // and get the projection for this guy
   const auto &consumers = allComps.getConsumingAtomicComputations(targetSpec.getSetName());
 
-  TupleSpec targetProjection;
-  TupleSpec targetAttsToOpOn;
+  /// TODO this whole part needs to be rewritten
+  TupleSpec targetProjection = targetSpec;
+  TupleSpec targetAttsToOpOn = targetSpec;
   for (auto &a : consumers) {
     if (a->getComputationName() == targetComputationName) {
 
@@ -387,6 +388,10 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
   }
 
   // now we have the list of computations, and so it is time to build the pipeline... start by building a compute sink
+  std::cout << "targetComputationName : " <<  targetComputationName << std::endl;
+  std::cout << "targetSpec : " <<  targetSpec << std::endl;
+  std::cout << "targetAttsToOpOn : " <<  targetAttsToOpOn << std::endl;
+  std::cout << "targetProjection : " <<  targetProjection << std::endl;
   ComputeSinkPtr computeSink = myPlan->getNode(targetComputationName).getComputation().getComputeSink(targetSpec,
                                                                                                       targetAttsToOpOn,
                                                                                                       targetProjection,

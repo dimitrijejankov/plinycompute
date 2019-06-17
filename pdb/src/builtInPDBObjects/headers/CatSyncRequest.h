@@ -69,12 +69,12 @@ public:
   /**
    * ID of the node
    */
-  pdb::String nodeID;
+  String nodeID;
 
   /**
    * IP address of the node
    */
-  pdb::String nodeIP;
+  String nodeIP;
 
   /**
    * The port of the node
@@ -84,7 +84,7 @@ public:
   /**
    * The type of the node "worker" or "manager"
    */
-  pdb::String nodeType;
+  String nodeType;
 
   /**
    * The number of cores on the node

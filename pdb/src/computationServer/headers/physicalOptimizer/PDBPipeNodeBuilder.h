@@ -30,7 +30,7 @@ class PDBPipeNodeBuilder {
 
 public:
 
-  PDBPipeNodeBuilder(size_t computationID, const std::shared_ptr<AtomicComputationList> &computations);
+  PDBPipeNodeBuilder(size_t computationID, std::shared_ptr<AtomicComputationList> computations);
 
   /**
    *

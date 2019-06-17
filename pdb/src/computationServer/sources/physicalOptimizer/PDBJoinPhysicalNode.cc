@@ -13,18 +13,18 @@ PDBPipelineType pdb::PDBJoinPhysicalNode::getType() {
   return PDB_JOIN_SIDE_PIPELINE;
 }
 
-pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generatePipelinedAlgorithm(const std::string &startTupleSet,
+pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generatePipelinedAlgorithm(const AtomicComputationPtr &startAtomicComputation,
                                                                             const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                            sourceCosts &sourcesWithIDs,
+                                                                            PDBPageSetCosts &sourcesWithIDs,
                                                                             pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
                                                                             bool shouldSwapLeftAndRight) {
   // generate the algorithm
-  return generateAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
+  return generateAlgorithm(startAtomicComputation, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
 }
 
-pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::string &startTupleSet,
+pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const AtomicComputationPtr &startAtomicComputation,
                                                                    const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                   sourceCosts &sourcesWithIDs,
+                                                                   PDBPageSetCosts &sourcesWithIDs,
                                                                    pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
                                                                    bool shouldSwapLeftAndRight) {
   // check if the node is not processed
@@ -48,7 +48,7 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
     assert(consumers.size() == 1);
 
     // pipeline this node to the next, it always has to exist and it always has to be one
-    return consumers.front()->generatePipelinedAlgorithm(startTupleSet, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
+    return consumers.front()->generatePipelinedAlgorithm(startAtomicComputation, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
   }
 
   // the sink is basically the last computation in the pipeline
@@ -57,7 +57,7 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
 
   // check if we can broadcast this side (the other side is not shuffled and this side is small enough)
   auto it = sourcesWithIDs.find(source->pageSetIdentifier);
-  if(it->second.first < SHUFFLE_JOIN_THRASHOLD && otherSidePtr->state == PDBJoinPhysicalNodeNotProcessed) {
+  if(it->second < SHUFFLE_JOIN_THRASHOLD && otherSidePtr->state == PDBJoinPhysicalNodeNotProcessed) {
 
     // set the type of the sink
     sink->sinkType = PDBSinkType::BroadcastJoinSink;
@@ -77,13 +77,14 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
     sinkPageSet.pageSetIdentifier = sink->pageSetIdentifier;
 
     // ok so we have to shuffle this side, generate the algorithm
-    pdb::Handle<PDBBroadcastForJoinAlgorithm> algorithm = pdb::makeObject<PDBBroadcastForJoinAlgorithm>(startTupleSet,
-                                                                                                        pipeline.back()->getOutputName(),
+    pdb::Handle<PDBBroadcastForJoinAlgorithm> algorithm = pdb::makeObject<PDBBroadcastForJoinAlgorithm>(startAtomicComputation,
+                                                                                                        pipeline.back(),
                                                                                                         source,
                                                                                                         hashedToSend,
                                                                                                         hashedToRecv,
                                                                                                         sink,
                                                                                                         additionalSources,
+                                                                                                        pdb::makeObject<pdb::Vector<PDBSetObject>>(),
                                                                                                         shouldSwapLeftAndRight);
 
     // mark the state of this node as broadcasted
@@ -118,12 +119,13 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
   sinkPageSet.pageSetIdentifier = sink->pageSetIdentifier;
 
   // ok so we have to shuffle this side, generate the algorithm
-  pdb::Handle<PDBShuffleForJoinAlgorithm> algorithm = pdb::makeObject<PDBShuffleForJoinAlgorithm>(startTupleSet,
-                                                                                                  pipeline.back()->getOutputName(),
+  pdb::Handle<PDBShuffleForJoinAlgorithm> algorithm = pdb::makeObject<PDBShuffleForJoinAlgorithm>(startAtomicComputation,
+                                                                                                  pipeline.back(),
                                                                                                   source,
                                                                                                   intermediate,
                                                                                                   sink,
                                                                                                   additionalSources,
+                                                                                                  pdb::makeObject<pdb::Vector<PDBSetObject>>(),
                                                                                                   shouldSwapLeftAndRight);
 
   // mark the state of this node as shuffled
@@ -151,5 +153,4 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const std::st
 
 // set this value to some reasonable value // TODO this needs to be smarter
 const size_t pdb::PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = std::numeric_limits<size_t>::max();
-
 

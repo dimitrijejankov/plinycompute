@@ -21,6 +21,7 @@
 
 #include <ShutDown.h>
 #include <PDBClient.h>
+#include <QueryGraphAnalyzer.h>
 
 #include "PDBClient.h"
 
@@ -133,8 +134,34 @@ bool PDBClient::registerType(const std::string &fileContainingSharedLib) {
   return result;
 }
 
+bool PDBClient::clearSet(const string &dbName, const string &setName) {
+  return distributedStorage->clearSet(dbName, setName, errorMsg);
+}
+
+bool PDBClient::removeSet(const string &dbName, const string &setName) {
+  return distributedStorage->removeSet(dbName, setName, errorMsg);
+}
+
 bool PDBClient::executeComputations(Handle<Vector<Handle<Computation>>> &computations, const pdb::String &tcap) {
   return computationClient->executeComputations(computations, tcap, errorMsg);
+}
+
+bool PDBClient::executeComputations(const std::vector<Handle<Computation>> &sinks) {
+
+  // create the graph analyzer
+  pdb::QueryGraphAnalyzer queryAnalyzer(sinks);
+
+  // parse the TCAP string
+  std::string tcapString = queryAnalyzer.parseTCAPString();
+
+  // here is the list of computations
+  Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
+
+  // grab the computations
+  queryAnalyzer.parseComputations(*myComputations);
+
+  // execute the computations
+  return computationClient->executeComputations(myComputations, tcapString, errorMsg);
 }
 
 void PDBClient::listAllRegisteredMetadata() {
@@ -156,6 +183,7 @@ void PDBClient::listNodesInCluster() {
 void PDBClient::listUserDefinedTypes() {
   cout << catalogClient->listUserDefinedTypes(returnedMsg);
 }
+
 
 
 }

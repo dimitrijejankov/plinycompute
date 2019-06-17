@@ -34,7 +34,7 @@ public:
   StoMaterializePageSetRequest() = default;
   ~StoMaterializePageSetRequest() = default;
 
-  StoMaterializePageSetRequest(uint64_t numPages, const std::string &db, const std::string &set) : numPages(numPages), databaseName(db), setName(set) {}
+  StoMaterializePageSetRequest(const std::string &db, const std::string &set) : databaseName(db), setName(set) {}
 
   ENABLE_DEEP_COPY
 
@@ -47,11 +47,6 @@ public:
    * The name of the set we are storing the stuff
    */
   String setName;
-
-  /**
-   * the number of pages we want to get to write
-   */
-  uint64_t numPages = 0;
 
 };
 

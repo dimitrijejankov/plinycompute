@@ -16,8 +16,11 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef MAP_TUPLESET_ITER_H
-#define MAP_TUPLESET_ITER_H
+#pragma once
+
+#include <ComputeSource.h>
+#include <PDBPageHandle.h>
+#include <PDBAbstractPageSet.h>
 
 namespace pdb {
 
@@ -124,5 +127,3 @@ class MapTupleSetIterator : public ComputeSource {
 };
 
 }
-
-#endif

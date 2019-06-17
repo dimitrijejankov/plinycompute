@@ -28,12 +28,12 @@ using namespace pdb;
 class LDADocument : public Object {
 
 /* Document ID, word ID, and the number of this word in this document */
-private:
+public:
+
     unsigned docID;
     unsigned wordID;
     unsigned count;
 
-public:
     ENABLE_DEEP_COPY
 
     LDADocument() {}

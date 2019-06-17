@@ -25,7 +25,7 @@
 
 namespace pdb {
 
-QueryGraphAnalyzer::QueryGraphAnalyzer(std::vector<Handle<Computation>> &queryGraph) {
+QueryGraphAnalyzer::QueryGraphAnalyzer(const vector<Handle < Computation>> &queryGraph) {
   for (const auto &i : queryGraph) {
     this->queryGraph.push_back(i);
   }
@@ -138,13 +138,12 @@ void QueryGraphAnalyzer::clearGraphMarks(Handle<Computation> sink) {
 
 void QueryGraphAnalyzer::clearGraphMarks() {
 
-  for (auto sink : this->queryGraph) {
+  for (const auto &sink : this->queryGraph) {
     clearGraphMarks(sink);
   }
 }
 
-void QueryGraphAnalyzer::parseComputations(
-    std::vector<Handle<Computation>> &computations, Handle<Computation> sink) {
+void QueryGraphAnalyzer::parseComputations(Vector<Handle<Computation>> &computations, Handle<Computation> sink) {
 
   int numInputs = sink->getNumInputs();
   for (int i = 0; i < numInputs; i++) {
@@ -157,10 +156,9 @@ void QueryGraphAnalyzer::parseComputations(
   }
 }
 
-void QueryGraphAnalyzer::parseComputations(
-    std::vector<Handle<Computation>> &computations) {
+void QueryGraphAnalyzer::parseComputations(Vector<Handle<Computation>> &computations) {
   this->clearGraphMarks();
-  for (auto sink : this->queryGraph) {
+  for (const auto &sink : this->queryGraph) {
     parseComputations(computations, sink);
   }
 }

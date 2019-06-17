@@ -15,10 +15,10 @@ class WriteSalaries : public pdb::SetWriter<double> {
 
   WriteSalaries() = default;
 
-  // below constructor is not required, but if we do not call setOutput() here, we must call
-  // setOutput() later to set the output set
+  // below constructor is not required, but if we do not call setOutputSet() here, we must call
+  // setOutputSet() later to set the output set
   WriteSalaries(std::string dbName, std::string setName) {
-    this->setOutput(std::move(dbName), std::move(setName));
+    this->setOutputSet(std::move(dbName), std::move(setName));
   }
 };
 

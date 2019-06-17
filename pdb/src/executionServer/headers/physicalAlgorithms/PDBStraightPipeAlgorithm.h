@@ -28,11 +28,12 @@ public:
 
   ~PDBStraightPipeAlgorithm() override = default;
 
-  PDBStraightPipeAlgorithm(const std::string &firstTupleSet,
-                           const std::string &finalTupleSet,
+  PDBStraightPipeAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                           const AtomicComputationPtr &finalAtomicComputation,
                            const pdb::Handle<PDBSourcePageSetSpec> &source,
                            const pdb::Handle<PDBSinkPageSetSpec> &sink,
                            const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                           const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
                            bool swapLHSandRHS);
 
   /**
@@ -56,7 +57,13 @@ public:
    */
   PDBPhysicalAlgorithmType getAlgorithmType() override;
 
-private:
+  /**
+   * The output container type of the straight pipeline is always a vector, meaning the root object is always a pdb::Vector
+   * @return PDB_CATALOG_SET_VECTOR_CONTAINER
+   */
+  PDBCatalogSetContainerType getOutputContainerType() override;
+
+ private:
 
   /**
    * Vector of pipelines that will run this algorithm. The pipelines will be built when you call setup on this object.
@@ -64,23 +71,9 @@ private:
    */
   std::shared_ptr<std::vector<PipelinePtr>> myPipelines = nullptr;
 
-  /**
-   * The name of the database <databaseName, setName> initialized when you call setup on this object, this has to be null when sending
-   * meaning once you run the algorithm the algorithm can not go over the wire!
-   */
-  std::shared_ptr<std::pair<std::string, std::string>> outputSet = nullptr;
-
-  /**
-   * Should we materialize this or not?
-   */
-  bool shouldMaterialize = false;
-
-  /**
-   *
-   */
-  LogicalPlanPtr logicalPlan;
 
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin3);
+  FRIEND_TEST(TestPhysicalOptimizer, TestTwoSinksSelection);
 };
 
 }

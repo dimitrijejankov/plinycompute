@@ -5,18 +5,20 @@
 #include <PDBVector.h>
 #include <ComputePlan.h>
 #include <GenericWork.h>
+#include <PDBCatalogClient.h>
 #include <physicalAlgorithms/PDBStraightPipeAlgorithm.h>
 
 #include "physicalAlgorithms/PDBStraightPipeAlgorithm.h"
 #include "ExJob.h"
 
-pdb::PDBStraightPipeAlgorithm::PDBStraightPipeAlgorithm(const std::string &firstTupleSet,
-                                                        const std::string &finalTupleSet,
+pdb::PDBStraightPipeAlgorithm::PDBStraightPipeAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                                                        const AtomicComputationPtr &finalAtomicComputation,
                                                         const pdb::Handle<PDBSourcePageSetSpec> &source,
                                                         const pdb::Handle<PDBSinkPageSetSpec> &sink,
                                                         const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
+                                                        const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
                                                         const bool swapLHSandRHS)
-                                                        : PDBPhysicalAlgorithm(firstTupleSet, finalTupleSet, source, sink, secondarySources, swapLHSandRHS) {}
+                                                        : PDBPhysicalAlgorithm(fistAtomicComputation, finalAtomicComputation, source, sink, secondarySources, setsToMaterialize, swapLHSandRHS) {}
 
 
 bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
@@ -30,24 +32,8 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
   // get the source computation
   auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
 
-  // if this is a scan set get the page set from a real set
-  PDBAbstractPageSetPtr sourcePageSet;
-  if(srcNode->getAtomicComputationTypeID() == ScanSetAtomicTypeID) {
-
-    // cast it to a scan
-    auto scanNode = std::dynamic_pointer_cast<ScanSet>(srcNode);
-
-    // get the page set
-    sourcePageSet = storage->createPageSetFromPDBSet(scanNode->getDBName(),
-                                                     scanNode->getSetName(),
-                                                     std::make_pair(source->pageSetIdentifier.first, source->pageSetIdentifier.second));
-  }
-  else {
-
-    // we are reading from an existing page set get it
-    sourcePageSet = storage->getPageSet(std::make_pair(source->pageSetIdentifier.first, source->pageSetIdentifier.second));
-    sourcePageSet->resetPageSet();
-  }
+  // go grab the source page set
+  PDBAbstractPageSetPtr sourcePageSet = getSourcePageSet(storage);
 
   // did we manage to get a source page set? if not the setup failed
   if(sourcePageSet == nullptr) {
@@ -55,22 +41,6 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
   }
 
   /// 2. Figure out the sink tuple set
-
-  // figure out the sink node
-  auto sinkNode = logicalPlan->getComputations().getProducingAtomicComputation(finalTupleSet);
-
-  // ok so are we writing to an output set if so store the name of the output set
-  if(sinkNode->getAtomicComputationTypeID() == WriteSetTypeID) {
-
-    // cast the node to the output
-    auto writerNode = std::dynamic_pointer_cast<WriteSet>(sinkNode);
-
-    // set the output set
-    outputSet = std::make_shared<std::pair<std::string, std::string>>(writerNode->getDBName(), writerNode->getSetName());
-
-    // we should materialize this
-    shouldMaterialize = true;
-  }
 
   // get the sink page set
   auto sinkPageSet = storage->createAnonymousPageSet(std::make_pair(sink->pageSetIdentifier.first, sink->pageSetIdentifier.second));
@@ -85,28 +55,22 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
   // get the number of worker threads from this server's config
   int32_t numWorkers = storage->getConfiguration()->numThreads;
 
-  std::cout << " Have you get the Hash Tables " << std::endl;
-  // go through each of the additional sources and add them to the join arguments
-  auto joinArguments = std::make_shared<JoinArguments>();
-  for(int i = 0; i < this->secondarySources->size(); ++i) {
-    // grab the source identifier and with it the page set of the additional source
-    auto &sourceIdentifier = *(*this->secondarySources)[i];
-    auto additionalSource = storage->getPageSet(std::make_pair(sourceIdentifier.pageSetIdentifier.first, sourceIdentifier.pageSetIdentifier.second));
+  // figure out the join arguments
+  auto joinArguments = getJoinArguments (storage);
 
-    // do we have have a page set for that
-    if(additionalSource == nullptr) {
-      return false;
-    }
-
-
-    // insert the join argument
-    joinArguments->hashTables[sourceIdentifier.pageSetIdentifier.second] = std::make_shared<JoinArg>(additionalSource);
+  // if we could not create them we are out of here
+  if(joinArguments == nullptr) {
+    return false;
   }
+
+  // get catalog client
+  auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
 
   // empty computations parameters
   std::map<ComputeInfoType, ComputeInfoPtr> params =  {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<NullProcessor>()},
                                                        {ComputeInfoType::JOIN_ARGS, joinArguments},
-                                                       {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(true)}};
+                                                       {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)},
+                                                       {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient)}};
 
 
   // build a pipeline for each worker thread
@@ -167,22 +131,29 @@ bool pdb::PDBStraightPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManagerBa
     tempBuzzer->wait();
   }
 
+  // if we failed finish
+  if(!success) {
+    return success;
+  }
+
   // should we materialize this to a set?
-  if(shouldMaterialize) {
+  for(int j = 0; j < setsToMaterialize->size(); ++j) {
 
     // get the page set
     auto sinkPageSet = storage->getPageSet(std::make_pair(sink->pageSetIdentifier.first, sink->pageSetIdentifier.second));
 
     // if the thing does not exist finish!
     if(sinkPageSet == nullptr) {
-      return false;
+      success = false;
+      break;
     }
 
-    // copy the anonymous page set to the real set
-    return storage->materializePageSet(sinkPageSet, *outputSet);
+    // materialize the page set
+    sinkPageSet->resetPageSet();
+    success = storage->materializePageSet(sinkPageSet, std::make_pair<std::string, std::string>((*setsToMaterialize)[j].database, (*setsToMaterialize)[j].set)) && success;
   }
 
-  return true;
+  return success;
 }
 
 pdb::PDBPhysicalAlgorithmType pdb::PDBStraightPipeAlgorithm::getAlgorithmType() {
@@ -193,6 +164,9 @@ void pdb::PDBStraightPipeAlgorithm::cleanup() {
 
   // invalidate everything
   myPipelines = nullptr;
-  outputSet = nullptr;
   logicalPlan = nullptr;
+}
+
+pdb::PDBCatalogSetContainerType pdb::PDBStraightPipeAlgorithm::getOutputContainerType() {
+  return PDBCatalogSetContainerType::PDB_CATALOG_SET_VECTOR_CONTAINER;
 }

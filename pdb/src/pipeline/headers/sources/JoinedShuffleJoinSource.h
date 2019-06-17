@@ -104,7 +104,7 @@ public:
       offset = 0;
 
       // the left input will be put at the recordOrder.size()-th column
-      createCols<LHS>(lhsColumns, *output, (int) lhsRecordOrder.size(), 0, lhsRecordOrder);
+      createCols<LHS>(lhsColumns, *output, (int) recordSchemaRHS.getAtts().size(), 0, lhsRecordOrder);
     }
   }
 
@@ -185,7 +185,7 @@ public:
       } while (lhsHash < rhsHash);
 
       // if we don't have a match skip this
-      if(lhsIterators.empty() || lhsHash > rhsHash) {
+      if(lhsHash > rhsHash) {
         continue;
       }
 

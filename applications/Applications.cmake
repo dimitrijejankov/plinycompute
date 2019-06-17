@@ -16,4 +16,7 @@ function(add_pdb_application test-name)
 endfunction(add_pdb_application)
 
 
+
 include(${PROJECT_SOURCE_DIR}/applications/TestLDA/CMakeLists.txt)
+include(${PROJECT_SOURCE_DIR}/applications/TestGMM/CMakeLists.txt)
+include(${PROJECT_SOURCE_DIR}/applications/TestLinearAlgebra/CMakeLists.txt)

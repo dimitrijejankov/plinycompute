@@ -82,6 +82,16 @@ class MultiSelectionComp : public Computation {
     return getTypeName<Out>();
   }
 
+  pdb::ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet,
+                                         size_t chunkSize,
+                                         uint64_t workerID) override {
+    return std::make_shared<pdb::VectorTupleSetIterator>(pageSet, chunkSize, workerID);
+  }
+
+  pdb::ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection, uint64_t numberOfPartitions) override {
+    return std::make_shared<pdb::VectorSink<Out>>(consumeMe, projection);
+  }
+
   /**
    * below function implements the interface for parsing computation into a TCAP string
    * @param inputTupleSets

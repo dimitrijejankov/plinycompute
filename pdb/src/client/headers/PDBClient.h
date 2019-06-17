@@ -104,10 +104,22 @@ class PDBClient : public ServerFunctionality {
    * @return true if we succeed false otherwise
    */
   template<class DataType>
-  PDBStorageIteratorPtr<DataType> getSetIterator(std::string dbName, std::string setName);
+  PDBStorageIteratorPtr<DataType> getSetIterator(const std::string& dbName, const std::string& setName);
 
-  /// TODO this will go away once we have tcap generation
+  /**
+   * Runs the query with the provided computations and TCAP string, should be used if you want a custom TCAP
+   * @param computations - the computations asocciated with the TACP
+   * @param tcap - the TCAP string we are running
+   * @return true if we succeed in executing
+   */
   bool executeComputations(Handle<Vector<Handle<Computation>>> &computations, const pdb::String &tcap);
+
+  /**
+   * Runs the query by specifying just the sinks, the tcap will be automatically generated
+   * @param computations - the computations
+   * @return true if we succeed false otherwise
+   */
+  bool executeComputations(const std::vector<Handle<Computation>> &sinks);
 
   /**
    * Lists all metadata registered in the catalog.
@@ -142,6 +154,10 @@ class PDBClient : public ServerFunctionality {
    */
   template<class DataType>
   bool sendData(const std::string &database, const std::string &set, Handle<Vector<Handle<DataType>>> dataToSend);
+
+  bool clearSet(const std::string &dbName, const std::string &setName);
+
+  bool removeSet(const std::string &dbName, const std::string &setName);
 
  private:
 

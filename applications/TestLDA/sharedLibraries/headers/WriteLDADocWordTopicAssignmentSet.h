@@ -32,10 +32,10 @@ public:
 
     WriteLDADocWordTopicAssignmentSet() = default;
 
-    // below constructor is not required, but if we do not call setOutput() here, we must call
-    // setOutput() later to set the output set
+    // below constructor is not required, but if we do not call setOutputSet() here, we must call
+    // setOutputSet() later to set the output set
     WriteLDADocWordTopicAssignmentSet(const std::string &dbName, const std::string &setName) {
-        this->setOutput(dbName, setName);
+      this->setOutputSet(dbName, setName);
     }
 };
 

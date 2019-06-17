@@ -88,24 +88,11 @@ pdb::PDBSetPageSetPtr pdb::PDBStorageManagerBackend::createPageSetFromPDBSet(con
     return nullptr;
   }
 
-  /// 2. Check if we already have the thing if we do return it
+  /// 3. Crate it and return it
 
-  std::unique_lock<std::mutex> lck(pageSetMutex);
-
-  // try to find the page if it exists return it
-  auto it = pageSets.find(pageSetID);
-  if(it != pageSets.end()) {
-    return std::dynamic_pointer_cast<PDBSetPageSet>(it->second);
-  }
-
-  /// 3. We don't have it so create it
 
   // store the page set
-  auto pageSet = std::make_shared<pdb::PDBSetPageSet>(db, set, pageInfo.second, getFunctionalityPtr<PDBBufferManagerInterface>());
-  pageSets[pageSetID] = pageSet;
-
-  // return it
-  return pageSet;
+  return std::make_shared<pdb::PDBSetPageSet>(db, set, pageInfo.second, getFunctionalityPtr<PDBBufferManagerInterface>());
 }
 
 pdb::PDBAnonymousPageSetPtr pdb::PDBStorageManagerBackend::createAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID) {
@@ -170,14 +157,16 @@ bool pdb::PDBStorageManagerBackend::removePageSet(const std::pair<uint64_t, std:
   return pageSets.erase(pageSetID) == 1;
 }
 
-bool pdb::PDBStorageManagerBackend::materializePageSet(pdb::PDBAbstractPageSetPtr pageSet, const std::pair<std::string, std::string> &set) {
+bool pdb::PDBStorageManagerBackend::materializePageSet(const pdb::PDBAbstractPageSetPtr& pageSet, const std::pair<std::string, std::string> &set) {
+
+  // if the page set is empty no need materialize stuff
+  if(pageSet->getNumPages() == 0) {
+    return true;
+  }
 
   // result indicators
   std::string error;
   bool success = true;
-
-  // number of pages that we need to write
-  auto numPages = pageSet->getNumPages();
 
   /// 1. Connect to the frontend
 
@@ -220,7 +209,7 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(pdb::PDBAbstractPageSetPt
   const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
   // set the stat results
-  pdb::Handle<StoMaterializePageSetRequest> materializeRequest = pdb::makeObject<StoMaterializePageSetRequest>(numPages, set.first, set.second);
+  pdb::Handle<StoMaterializePageSetRequest> materializeRequest = pdb::makeObject<StoMaterializePageSetRequest>(set.first, set.second);
 
   // sends result to requester
   success = comm->sendObject(materializeRequest, error);
@@ -273,7 +262,11 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(pdb::PDBAbstractPageSetPt
 
   // go through each page and materialize
   PDBPageHandle page;
-  while ((page = pageSet->getNextPage(0)) != nullptr) {
+  auto numPages = pageSet->getNumPages();
+  for (int i = 0; i < numPages; ++i) {
+
+    // grab the next page
+    page = pageSet->getNextPage(0);
 
     // repin the page
     page->repin();
@@ -304,7 +297,7 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(pdb::PDBAbstractPageSetPt
     const pdb::UseTemporaryAllocationBlock blk{1024};
 
     // make a request to mark that we succeeded
-    pdb::Handle<StoMaterializePageResult> materializeResult = pdb::makeObject<StoMaterializePageResult>(set.first, set.second, pageSize, true);
+    pdb::Handle<StoMaterializePageResult> materializeResult = pdb::makeObject<StoMaterializePageResult>(set.first, set.second, pageSize, true, (i + 1) < numPages);
 
     // sends result to requester
     success = comm->sendObject(materializeResult, error);
