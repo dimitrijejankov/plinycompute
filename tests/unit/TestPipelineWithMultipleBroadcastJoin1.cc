@@ -39,10 +39,11 @@
 #include <processors/BroadcastJoinProcessor.h>
 
 #include "SillyJoin.h"
-#include "SillyReadOfA.h"
 #include "SillyReadOfB.h"
 #include "SillyReadOfC.h"
 #include "SillyWrite.h"
+#include "ReadInt.h"
+#include "ReadStringIntPair.h"
 
 // to run the aggregate, the system first passes each through the hash operation...
 // then the system
@@ -323,8 +324,8 @@ TEST(PipelineTest, TestBroadcastJoin) {
   Vector<Handle<Computation>> myComputations;
 
   // create all of the computation objects
-  Handle<Computation> readA = makeObject<SillyReadOfA>();
-  Handle<Computation> readB = makeObject<SillyReadOfB>();
+  Handle<Computation> readA = makeObject<ReadInt>();
+  Handle<Computation> readB = makeObject<ReadStringIntPair>();
   Handle<Computation> readC = makeObject<SillyReadOfC>();
   Handle<Computation> myJoin = makeObject<SillyJoin>();
   Handle<Computation> myWriter = makeObject<SillyWrite>();
@@ -339,9 +340,9 @@ TEST(PipelineTest, TestBroadcastJoin) {
   // now we create the TCAP string
   String myTCAPString =
       "/* scan the three inputs */ \n"
-      "A (a) <= SCAN ('mySet', 'myData', 'SetScanner_0', []) \n"
-      "B (aAndC) <= SCAN ('mySet', 'myData', 'SetScanner_1', []) \n"
-      "C (c) <= SCAN ('mySet', 'myData', 'SetScanner_2', []) \n"
+      "A (a) <= SCAN ('myData', 'mySetA', 'SetScanner_0', []) \n"
+      "B (aAndC) <= SCAN ('myData', 'mySetB', 'SetScanner_1', []) \n"
+      "C (c) <= SCAN ('myData', 'mySetC', 'SetScanner_2', []) \n"
       "\n"
       "/* extract and hash a from A */ \n"
       "AWithAExtracted (a, aExtracted) <= APPLY (A (a), A(a), 'JoinComp_3', 'self_0', []) \n"
@@ -385,15 +386,11 @@ TEST(PipelineTest, TestBroadcastJoin) {
   ComputePlan myPlan(myTCAPString, myComputations);
 
   /// 4. Run the pipeline to process the A<int> set. Basically this splits set A into a numNodes * threadsPerNode JoinMaps.
-  /// Each page being put into the pageQueue will have threadsPerNode number of JoinMaps. Each join map has records
+  /// Each page being put into the pageQueue will have numNodes * threadsPerNode  number of JoinMaps. Each join map has records
   /// with the same hash % (numNodes * threadsPerNode). The join map records will be of type JoinTuple<int, char[0]>
 
-
-  std::map<ComputeInfoType, ComputeInfoPtr> params = {{ComputeInfoType::PAGE_PROCESSOR,
-                                                       std::make_shared<BroadcastJoinProcessor>(numNodes,
-                                                                                                threadsPerNode,
-                                                                                                pageQueuesForA,
-                                                                                                myMgr)}};
+  std::map<ComputeInfoType, ComputeInfoPtr> params = {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<BroadcastJoinProcessor>(numNodes,threadsPerNode, pageQueuesForA, myMgr)},
+                                                      {ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("myData", "mySetA","", 0, PDB_CATALOG_SET_VECTOR_CONTAINER))}};
   PipelinePtr myPipeline = myPlan.buildPipeline(std::string("A"), /* this is the TupleSet the pipeline starts with */
                                                 std::string("AHashed"),     /* this is the TupleSet the pipeline ends with */
                                                 setAReader,
@@ -439,8 +436,11 @@ TEST(PipelineTest, TestBroadcastJoin) {
       myPipeline = nullptr;
     }
 
-  params = {{ComputeInfoType::PAGE_PROCESSOR,
-             std::make_shared<BroadcastJoinProcessor>(numNodes, threadsPerNode, pageQueuesForC, myMgr)}};
+  /// 6. Run the pipeline to process the C<String> set. Basically this splits set C into a numNodes * threadsPerNode JoinMaps.
+  /// Each page being put into the pageQueue will have numNodes * threadsPerNode number of JoinMaps. Each join map has records
+  /// with the same hash % (numNodes * threadsPerNode). The join map records will be of type JoinTuple<String, char[0]>
+  params = {{ComputeInfoType::PAGE_PROCESSOR,std::make_shared<BroadcastJoinProcessor>(numNodes, threadsPerNode, pageQueuesForC, myMgr)},
+            {ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("myData","mySetC","",0, PDB_CATALOG_SET_VECTOR_CONTAINER))}};
   myPipeline = myPlan.buildPipeline(std::string("C"), /* this is the TupleSet the pipeline starts with */
                                     std::string("CHashedOnC"),     /* this is the TupleSet the pipeline ends with */
                                     setCReader,
@@ -468,7 +468,7 @@ TEST(PipelineTest, TestBroadcastJoin) {
     setCPageVectors.emplace_back(std::move(pageVector));
   }
 
-  /// 6. Process the pages in Set C for every worker in each node
+  /// 7. Process the pages in Set C for every worker in each node
     for (curThread = 0; curThread < threadsPerNode; ++curThread) {
       for_each(setCPageVectors[curNode].begin(),
                setCPageVectors[curNode].end(),
@@ -490,11 +490,13 @@ TEST(PipelineTest, TestBroadcastJoin) {
   BroadcastedAPageSetQueue.push(nullptr);
   BroadcastedCPageSetQueue.push(nullptr);
 
+  /// 8. Process the right side of the Join. Build the pipeline with the Join Argument from pages in Set A and Set C
   unordered_map<string, JoinArgPtr> hashTables = {{"AHashed", std::make_shared<JoinArg>(BroadcastedAPageSet)},
                                                   {"CHashedOnC", std::make_shared<JoinArg>(BroadcastedCPageSet)}};
   // set the parameters
   params = {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<NullProcessor>()},
-            {ComputeInfoType::JOIN_ARGS, std::make_shared<JoinArguments>(hashTables)}};
+            {ComputeInfoType::JOIN_ARGS, std::make_shared<JoinArguments>(hashTables)},
+            {ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("myData","mySetB","",0, PDB_CATALOG_SET_VECTOR_CONTAINER))}};
   myPipeline = myPlan.buildPipeline(std::string("B"), /* this is the TupleSet the pipeline starts with */
                                     std::string("nothing"),     /* this is the TupleSet the pipeline ends with */
                                     setBReader,
