@@ -221,23 +221,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
   auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
 
   // if this is a scan set get the page set from a real set
-  PDBAbstractPageSetPtr sourcePageSet;
-  if (srcNode->getAtomicComputationTypeID() == ScanSetAtomicTypeID) {
-
-    // cast it to a scan
-    auto scanNode = std::dynamic_pointer_cast<ScanSet>(srcNode);
-
-    // get the page set
-    sourcePageSet = storage->createPageSetFromPDBSet(scanNode->getDBName(),
-                                                     scanNode->getSetName(),
-                                                     std::make_pair(source->pageSetIdentifier.first,
-                                                                    source->pageSetIdentifier.second));
-  } else {
-
-    // we are reading from an existing page set get it
-    sourcePageSet = storage->getPageSet(std::make_pair(job->computationID, firstTupleSet));
-    sourcePageSet->resetPageSet();
-  }
+  PDBAbstractPageSetPtr sourcePageSet = getSourcePageSet(storage);
 
   // did we manage to get a source page set? if not the setup failed
   if (sourcePageSet == nullptr) {
@@ -260,13 +244,23 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
   pageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
   for (int i = 0; i < job->numberOfNodes; ++i) { pageQueues->emplace_back(std::make_shared<PDBPageQueue>()); }
 
-  /// 4. Init the preaggregation pipelines
+  // figure out the join arguments
+  auto joinArguments = getJoinArguments(storage);
 
+  // if we could not create them we are out of here
+  if (joinArguments == nullptr) {
+    return false;
+  }
+
+  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
+  // get catalog client
   auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
 
   // set the parameters
-  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
+
   std::map<ComputeInfoType, ComputeInfoPtr> params = {{ComputeInfoType::PAGE_PROCESSOR,std::make_shared<BroadcastJoinProcessor>(job->numberOfNodes,job->numberOfProcessingThreads,*pageQueues,myMgr)},
+                                                      {ComputeInfoType::JOIN_ARGS, joinArguments},
+                                                      {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)},
                                                       {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient)}};
 
   // fill uo the vector for each thread

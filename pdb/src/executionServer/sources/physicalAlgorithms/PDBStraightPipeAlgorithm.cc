@@ -56,7 +56,7 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
   int32_t numWorkers = storage->getConfiguration()->numThreads;
 
   // figure out the join arguments
-  auto joinArguments = getJoinArguments (storage);
+  auto joinArguments = getJoinArguments(storage);
 
   // if we could not create them we are out of here
   if(joinArguments == nullptr) {
