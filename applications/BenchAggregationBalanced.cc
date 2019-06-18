@@ -71,21 +71,21 @@ BenchAggregationBalanced(const int numDepartments,
   }
   /// First is the setup code (won't be timed)
   // Start the server
-//  std::cout << "Starting manager node" << std::endl;
-//  if (!fork()) {
-//    systemwrap("./bin/pdb-node -m");
-//    exit(0);
-//  }
-//  // Wait 10 seconds
-//  std::this_thread::sleep_for(std::chrono::seconds(10));
-//  if (standalone) {
-//    std::cout << "Starting 1 worker node" << std::endl;
-//    if (!fork()) {
-//      systemwrap("./bin/pdb-node -p 8109 -r ./pdbRootW1");
-//      exit(0);
-//    }
-//    std::this_thread::sleep_for(std::chrono::seconds(10));
-//  }
+  std::cout << "Starting manager node" << std::endl;
+  if (!fork()) {
+    systemwrap("./bin/pdb-node -m");
+    exit(0);
+  }
+  // Wait 10 seconds
+  std::this_thread::sleep_for(std::chrono::seconds(10));
+  if (standalone) {
+    std::cout << "Starting 1 worker node" << std::endl;
+    if (!fork()) {
+      systemwrap("./bin/pdb-node -p 8109 -r ./pdbRootW1");
+      exit(0);
+    }
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+  }
   // Set up client
 
   pdb::PDBClient pdbClient(managerPort, managerHostname);
@@ -220,7 +220,6 @@ BenchAggregationBalanced(const int numDepartments,
     pdbClient.clearSet(dbname, outputSet);
 
   }
-
   /// Finally, shut down server.
   std::cout << "Finished the work loop. Now shutting down server." << std::endl;
   pdbClient.shutDownServer();
@@ -232,21 +231,44 @@ BenchAggregationBalanced(const int numDepartments,
 int main(int argc, char *argv[]) {
   // Code for parsing program options is modified from here:
   // http://www.radmangames.com/programming/how-to-use-boost-program_options
-//  try {
-//    /** Define and parse the program options
-//     */
-//    namespace po = boost::program_options;
-//    po::options_description desc("Options");
-//    desc.add_options()
-//        ("help,h", "Prints usage information")
-//        ()
-//  }
-  int numReps = 5;
-  bool validate = true;
-  bool standalone = true;
+  int numReps;
+  bool validate;
+  bool standalone ;
+  try {
+    /** Define and parse the program options
+     */
+    namespace po = boost::program_options;
+    po::options_description desc("Options");
+    desc.add_options()
+        ("help,h", "Prints usage information")
+        ("numreps,n", po::value<int>(&numReps)->default_value(5), "Number of times the Aggregation is repeated for each numDepartments/totalNumEmployees combination")
+        ("validate,v", po::bool_switch(&validate), "Every rep, iterate over the aggregated output and check whether it looks correct")
+        ("standalone,s", po::bool_switch(&standalone), "Run the cluster in standalone mode");
+
+    po::variables_map vm;
+    try {
+      po::store(po::parse_command_line(argc, argv, desc), vm);
+      if (vm.count("help")) {
+        std::cout << desc << std::endl;
+        return 0;
+      }
+
+      po::notify(vm);
+    } catch (po::error& e) {
+      std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+      std::cerr << desc << std::endl;
+      return 1;
+    }
+  } catch(std::exception& e) {
+    std::cerr << "Unhandled exception caught while parsing command line args: " << e.what() << std::endl;
+    std::cerr << "This program will now exit." << std::endl;
+    return 2;
+  }
+
   std::vector<std::pair<int, int>> column_values; // Contains pairs of (numDepartments, totalNumEmployees)
 #define ADDPAIR(x,y) column_values.push_back(std::make_pair<int,int>((x), (y)))
   ADDPAIR(100, 10000);
+  ADDPAIR(50, 50000);
 
   auto numcols = column_values.size();
   double table[numReps][numcols];
