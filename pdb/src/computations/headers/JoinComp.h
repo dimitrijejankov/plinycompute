@@ -138,7 +138,12 @@ private:
       if (res.second.empty()) {
         typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getComputation().getOutputType() + ">");
       } else {
-        typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getLambda(res.second)->getOutputType() + ">");
+        std::string myType = plan->getNode(res.first).getLambda(res.second)->getOutputType();
+        if (myType.find_first_of("pdb::Handle<") == 0) {
+          typeList.push_back(myType);
+        } else {
+          typeList.push_back("pdb::Handle<" + myType + ">");
+        }
       }
     }
 
@@ -390,8 +395,12 @@ private:
         typeList.push_back(
             "pdb::Handle<" + computePlan.getPlan()->getNode(res.first).getComputation().getOutputType() + ">");
       } else {
-        typeList.push_back(
-            "pdb::Handle<" + computePlan.getPlan()->getNode(res.first).getLambda(res.second)->getOutputType() + ">");
+        std::string myType = computePlan.getPlan()->getNode(res.first).getLambda(res.second)->getOutputType();
+        if (myType.find_first_of("pdb::Handle<") == 0) {
+          typeList.push_back(myType);
+        } else {
+          typeList.push_back("pdb::Handle<" + myType + ">");
+        }
       }
     }
 

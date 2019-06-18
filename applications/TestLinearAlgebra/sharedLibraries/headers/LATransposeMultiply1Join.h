@@ -87,7 +87,7 @@ public:
 
                 return resultMatrixBlock;
             } else {
-                std::cerr << "Wrong librayCode!" << std::endl;
+                std::cerr << "Wrong library Code!" << std::endl;
                 exit(1);
             }
         });

@@ -55,9 +55,9 @@
 #include "LARowMaxAggregate.h"
 #include "LARowMinAggregate.h"
 #include "LARowSumAggregate.h"
-#include "LAScaleMultiplyJoin.h"
-#include "LAScaleMultiplyJoin.h"
-#include "LASubstractJoin.h"
+#include "LAElementwiseMultiplyJoin.h"
+#include "LAElementwiseMultiplyJoin.h"
+#include "LASubtractJoin.h"
 #include "LATransposeMultiply1Join.h"
 #include "LATransposeSelection.h"
 
@@ -348,14 +348,14 @@ pdb::Handle<pdb::Computation>& LAMultiplicativeExpressionNode::evaluate(LAPDBIns
     if (multiOperator.compare("none") == 0) {
         query2 = rightChild->evaluate(instance);
         setDimension(rightChild->getDimension());
-    } else if (multiOperator.compare("scale_multiply") == 0) {
-        query2 = makeObject<LAScaleMultiplyJoin>();
+    } else if (multiOperator.compare("elementwise_multiply") == 0) {
+        query2 = makeObject<LAElementwiseMultiplyJoin>();
         query2->setInput(0, leftChild->evaluate(instance));
         query2->setInput(1, rightChild->evaluate(instance));
         LADimension dimLeft = leftChild->getDimension();
         LADimension dimRight = rightChild->getDimension();
         if (dimLeft != dimRight) {
-            std::cerr << "Scale Multiply operator dimension not match: " << leftChild->toString()
+            std::cerr << "Elementwise Multiply operator dimension not match: " << leftChild->toString()
                       << "," << rightChild->toString() << std::endl;
             exit(1);
         }
@@ -420,14 +420,14 @@ pdb::Handle<pdb::Computation>& LAAdditiveExpressionNode::evaluate(LAPDBInstance&
             exit(1);
         }
         setDimension(dimLeft);
-    } else if (addOperator.compare("substract") == 0) {
-        query = makeObject<LASubstractJoin>();
+    } else if (addOperator.compare("subtract") == 0) {
+        query = makeObject<LASubtractJoin>();
         query->setInput(0, leftChild->evaluate(instance));
         query->setInput(1, rightChild->evaluate(instance));
         LADimension dimLeft = leftChild->getDimension();
         LADimension dimRight = rightChild->getDimension();
         if (dimLeft != dimRight) {
-            std::cerr << "Substract operator dimension not match: " << leftChild->toString() << ","
+            std::cerr << "Subtract operator dimension not match: " << leftChild->toString() << ","
                       << rightChild->toString() << std::endl;
             exit(1);
         }

@@ -2,6 +2,7 @@
 
 #include "PDBPhysicalAlgorithm.h"
 #include <ComputePlan.h>
+#include <PDBCatalogClient.h>
 #include <ExJob.h>
 #include <PDBStorageManagerBackend.h>
 #include <PDBPageNetworkSender.h>
@@ -20,13 +21,14 @@ class PDBBroadcastForJoinAlgorithm : public PDBPhysicalAlgorithm {
 
   PDBBroadcastForJoinAlgorithm() = default;
 
-  PDBBroadcastForJoinAlgorithm(const std::string &firstTupleSet,
-                               const std::string &finalTupleSet,
+  PDBBroadcastForJoinAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+                               const AtomicComputationPtr &finalAtomicComputation,
                                const pdb::Handle<pdb::PDBSourcePageSetSpec> &source,
                                const pdb::Handle<pdb::PDBSinkPageSetSpec> &hashedToSend,
                                const pdb::Handle<pdb::PDBSourcePageSetSpec> &hashedToRecv,
                                const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
                                const pdb::Handle<pdb::Vector<pdb::Handle<pdb::PDBSourcePageSetSpec>>> &secondarySources,
+                               const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
                                const bool swapLHSandRHS);
 
   ENABLE_DEEP_COPY

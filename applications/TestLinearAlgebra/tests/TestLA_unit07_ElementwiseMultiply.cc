@@ -15,8 +15,8 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
-#ifndef TEST_LA_02_CC
-#define TEST_LA_02_CC
+#ifndef TEST_LA_07_CC
+#define TEST_LA_07_CC
 
 
 // by Binhang, May 2017
@@ -31,7 +31,7 @@
 #include "LAScanMatrixBlockSet.h"
 #include "LAWriteMatrixBlockSet.h"
 #include "MatrixBlock.h"
-#include "LAAddJoin.h"
+#include "LAElementwiseMultiplyJoin.h"
 
 
 using namespace pdb;
@@ -74,13 +74,13 @@ int main(int argc, char* argv[]) {
         pdbClient.registerType("libraries/libMatrixBlock.so");
 
         // now, create a new database
-        pdbClient.createDatabase("LA02_db");
+        pdbClient.createDatabase("LA07_db");
 
         // now, create the first matrix set in that database
-        pdbClient.createSet<MatrixBlock>("LA02_db", "LA_input_set1");
+        pdbClient.createSet<MatrixBlock>("LA07_db", "LA_input_set1");
 
         // now, create the first matrix set in that database
-        pdbClient.createSet<MatrixBlock>("LA02_db", "LA_input_set2");
+        pdbClient.createSet<MatrixBlock>("LA07_db", "LA_input_set2");
 
         // Step 2. Add data
         int matrixRowNums = 4;
@@ -114,7 +114,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        pdbClient.sendData<MatrixBlock>("LA02_db", "LA_input_set1", storeMatrix1);
+        pdbClient.sendData<MatrixBlock>("LA07_db", "LA_input_set1", storeMatrix1);
         PDB_COUT << total << " MatrixBlock data sent to dispatcher server~~" << std::endl;
 
         // Add Matrix 2
@@ -141,31 +141,31 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        pdbClient.sendData<MatrixBlock>("LA02_db", "LA_input_set2", storeMatrix2);
+        pdbClient.sendData<MatrixBlock>("LA07_db", "LA_input_set2", storeMatrix2);
         PDB_COUT << total << " MatrixBlock data sent to dispatcher server~~" << std::endl;
     }
     // now, create a new set in that database to store output data
 
     PDB_COUT << "to create a new set for storing output data" << std::endl;
-    pdbClient.createSet<MatrixBlock>("LA02_db", "LA_sum_set");
+    pdbClient.createSet<MatrixBlock>("LA07_db", "LA_ElementwiseProduct_set");
 
     // Step 3. To execute a Query
     // for allocations
     const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
     // register this query class
-    pdbClient.registerType("libraries/libLAAddJoin.so");
+    pdbClient.registerType("libraries/libLAElementwiseMultiplyJoin.so");
     pdbClient.registerType("libraries/libLAScanMatrixBlockSet.so");
     pdbClient.registerType("libraries/libLAWriteMatrixBlockSet.so");
 
-    Handle<Computation> myMatrixSet1 = makeObject<LAScanMatrixBlockSet>("LA02_db", "LA_input_set1");
-    Handle<Computation> myMatrixSet2 = makeObject<LAScanMatrixBlockSet>("LA02_db", "LA_input_set2");
+    Handle<Computation> myMatrixSet1 = makeObject<LAScanMatrixBlockSet>("LA07_db", "LA_input_set1");
+    Handle<Computation> myMatrixSet2 = makeObject<LAScanMatrixBlockSet>("LA07_db", "LA_input_set2");
 
-    Handle<Computation> myAddJoin = makeObject<LAAddJoin>();
+    Handle<Computation> myAddJoin = makeObject<LAElementwiseMultiplyJoin>();
     myAddJoin->setInput(0, myMatrixSet1);
     myAddJoin->setInput(1, myMatrixSet2);
 
-    Handle<Computation> mySumWriteSet = makeObject<LAWriteMatrixBlockSet>("LA02_db", "LA_sum_set");
+    Handle<Computation> mySumWriteSet =makeObject<LAWriteMatrixBlockSet>("LA07_db", "LA_ElementwiseProduct_set");
     mySumWriteSet->setInput(myAddJoin);
 
     auto begin = std::chrono::high_resolution_clock::now();
@@ -180,7 +180,7 @@ int main(int argc, char* argv[]) {
     if (printResult) {
         std::cout << "to print result..." << std::endl;
 
-        auto input1_iter = pdbClient.getSetIterator<MatrixBlock>("LA02_db", "LA_input_set1");
+        auto input1_iter = pdbClient.getSetIterator<MatrixBlock>("LA07_db", "LA_input_set1");
         std::cout << "Input Matrix 1 " << std::endl;
         int countIn1 = 0;
         while(input1_iter->hasNextRecord()){
@@ -192,7 +192,7 @@ int main(int argc, char* argv[]) {
         }
         std::cout << "Matrix input1 block nums:" << countIn1 << std::endl;
 
-        auto input2_iter = pdbClient.getSetIterator<MatrixBlock>("LA02_db", "LA_input_set2");
+        auto input2_iter = pdbClient.getSetIterator<MatrixBlock>("LA07_db", "LA_input_set2");
         std::cout << "Input Matrix 2 " << std::endl;
         int countIn2 = 0;
         while(input2_iter->hasNextRecord()){
@@ -204,9 +204,8 @@ int main(int argc, char* argv[]) {
         }
         std::cout << "Matrix input2 block nums:" << countIn2 << std::endl;
 
-
-        auto output_iter = pdbClient.getSetIterator<MatrixBlock>("LA02_db", "LA_sum_set");
-        std::cout << "Sum query results: " << std::endl;
+        auto output_iter = pdbClient.getSetIterator<MatrixBlock>("LA07_db", "LA_ElementwiseProduct_set");
+        std::cout << "Elementwise Multiply query results: " << std::endl;
         int countOut = 0;
         while(output_iter->hasNextRecord()){
             countOut++;
@@ -216,10 +215,10 @@ int main(int argc, char* argv[]) {
 
             std::cout << std::endl;
         }
-        std::cout << "Sum output count:" << countOut << "\n";
+        std::cout << "Elementwise Multiply count:" << countOut << "\n";
     }
 
-    pdbClient.removeSet("LA02_db", "LA_sum_set");
+    pdbClient.removeSet("LA07_db", "LA_ElementwiseProduct_set");
 
     int code = system("scripts/cleanupSoFiles.sh force");
     if (code < 0) {

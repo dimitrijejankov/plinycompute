@@ -38,10 +38,7 @@
 using namespace pdb;
 int main(int argc, char* argv[]) {
     bool printResult = true;
-    bool clusterMode = false;
-    std::cout
-        << "Usage: #printResult[Y/N] #clusterMode[Y/N] #dataSize[MB] #managerIp #SubstractData[Y/N]"
-        << std::endl;
+    std::cout << "Usage: #printResult[Y/N] #managerIp #addData[Y/N]" << std::endl;
     if (argc > 1) {
         if (strcmp(argv[1], "N") == 0) {
             printResult = false;
@@ -51,55 +48,30 @@ int main(int argc, char* argv[]) {
             std::cout << "Will print result." << std::endl;
         }
     } else {
-        std::cout << "Will print result. If you don't want to print result, you can Substract N as "
-                     "the first parameter to disable result printing."
-                  << std::endl;
+        std::cout << "Will print result. If you don't want to print result, you can add N as the "
+                     "first parameter to disable result printing." << std::endl;
     }
-
-    if (argc > 2) {
-        if (strcmp(argv[2], "Y") == 0) {
-            clusterMode = true;
-            std::cout << "You successfully set the test to run on cluster." << std::endl;
-        } else {
-            clusterMode = false;
-        }
-    } else {
-        std::cout << "Will run on local node. If you want to run on cluster, you can Substract any "
-                     "character as the second parameter to run on the cluster configured by "
-                     "$PDB_HOME/conf/serverlist."
-                  << std::endl;
-    }
-
-    int blockSize = 64;  // by default we Substract 64MB data
-    if (argc > 3) {
-        blockSize = atoi(argv[3]);
-    }
-    blockSize = 64;  // Force it to be 64 by now.
-
-
-    std::cout << "To Substract data with size: " << blockSize << "MB" << std::endl;
 
     std::string managerIp = "localhost";
-    if (argc > 4) {
-        managerIp = argv[4];
+    if (argc > 2) {
+        managerIp = argv[2];
     }
-    std::cout << "Manager IP Substractress is " << managerIp << std::endl;
+    std::cout << "Manager IP Address is " << managerIp << std::endl;
 
-    bool whetherToSubstractData = true;
-    if (argc > 5) {
-        if (strcmp(argv[5], "N") == 0) {
-            whetherToSubstractData = false;
+    bool whetherToAddData = true;
+    if (argc > 3) {
+        if (strcmp(argv[3], "N") == 0) {
+            whetherToAddData = false;
         }
     }
-
     PDBClient pdbClient(8108, managerIp);
 
-    string errMsg;
+    int blockSize = 64;  // Force it to be 64 by now.
+    std::cout << "To add data with size: " << blockSize << "MB" << std::endl;
 
-    if (whetherToSubstractData == true) {
+    if (whetherToAddData) {
         // Step 1. Create Database and Set
         // now, register a type for user data
-        // TODO: once sharedLibrary is supported, Substract this line back!!!
         pdbClient.registerType("libraries/libMatrixMeta.so");
         pdbClient.registerType("libraries/libMatrixData.so");
         pdbClient.registerType("libraries/libMatrixBlock.so");
@@ -114,7 +86,7 @@ int main(int argc, char* argv[]) {
         pdbClient.createSet<MatrixBlock>("LA04_db", "LA_input_set2");
 
 
-        // Step 2. Substract data
+        // Step 2. add data
         int matrixRowNums = 4;
         int matrixColNums = 4;
         int blockRowNums = 10;
@@ -122,7 +94,7 @@ int main(int argc, char* argv[]) {
 
         int total = 0;
 
-        // Substract Matrix 1
+        // Add Matrix 1
         pdb::makeObjectAllocatorBlock(blockSize * 1024 * 1024, true);
         pdb::Handle<pdb::Vector<pdb::Handle<MatrixBlock>>> storeMatrix1 =
             pdb::makeObject<pdb::Vector<pdb::Handle<MatrixBlock>>>();
@@ -148,7 +120,7 @@ int main(int argc, char* argv[]) {
         pdbClient.sendData<MatrixBlock>( "LA04_db", "LA_input_set1", storeMatrix1);
         PDB_COUT << total << " MatrixBlock data sent to dispatcher server~~" << std::endl;
         
-        // Substract Matrix 2
+        // Add Matrix 2
         total = 0;
         pdb::makeObjectAllocatorBlock(blockSize * 1024 * 1024, true);
         pdb::Handle<pdb::Vector<pdb::Handle<MatrixBlock>>> storeMatrix2 =
@@ -190,8 +162,6 @@ int main(int argc, char* argv[]) {
     pdbClient.registerType("libraries/libLAScanMatrixBlockSet.so");
     pdbClient.registerType("libraries/libLAWriteMatrixBlockSet.so");
 
-
-
     Handle<Computation> myMatrixSet1 = makeObject<LAScanMatrixBlockSet>("LA04_db", "LA_input_set1");
     Handle<Computation> myMatrixSet2 = makeObject<LAScanMatrixBlockSet>("LA04_db", "LA_input_set2");
 
@@ -212,13 +182,10 @@ int main(int argc, char* argv[]) {
     std::cout << std::endl;
 
     auto end = std::chrono::high_resolution_clock::now();
-    // std::cout << "Time Duration: " <<
-    //      std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin).count() << " ns." <<
-    //      std::endl;
 
     std::cout << std::endl;
-    // print the resuts
-    if (printResult == true) {
+    // print the results
+    if (printResult) {
         std::cout << "to print result..." << std::endl;
 
         auto input1_iter = pdbClient.getSetIterator<MatrixBlock>("LA04_db", "LA_input_set1");
@@ -244,7 +211,6 @@ int main(int argc, char* argv[]) {
             std::cout << std::endl;
         }
         std::cout << "Matrix input2 block nums:" << countIn2 << std::endl;
-
         
         auto output_iter = pdbClient.getSetIterator<MatrixBlock>("LA04_db", "LA_product_set");
         std::cout << "Multiply query results: " << std::endl;
@@ -257,7 +223,7 @@ int main(int argc, char* argv[]) {
 
             std::cout << std::endl;
         }
-        std::cout << "Diff output count:" << countOut << "\n";
+        std::cout << "Product output count:" << countOut << "\n";
     }
     
     pdbClient.removeSet("LA04_db", "LA_product_set");

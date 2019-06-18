@@ -15,12 +15,12 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
-#ifndef LA_SCALE_MULTIPLY_JOIN_CC
-#define LA_SCALE_MULTIPLY_JOIN_CC
+#ifndef LA_ELEMENTWISE_MULTIPLY_JOIN_CC
+#define LA_ELEMENTWISE_MULTIPLY_JOIN_CC
 
-#include "LAScaleMultiplyJoin.h"
+#include "LAElementwiseMultiplyJoin.h"
 #include "GetVTable.h"
 
-GET_V_TABLE(LAScaleMultiplyJoin)
+GET_V_TABLE(LAElementwiseMultiplyJoin)
 
 #endif

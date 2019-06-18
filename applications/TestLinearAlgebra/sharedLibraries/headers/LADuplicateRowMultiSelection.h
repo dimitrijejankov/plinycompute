@@ -69,8 +69,8 @@ private:
             int blockRowIndex = i;
             Handle<MatrixBlock> resultMatrixBlock = pdb::makeObject<MatrixBlock>(
                 blockRowIndex, blockColIndex, rowNums, colNums, totalRows, totalCols, rawData);
-            std::cout << "duplicateRow: blockRowIndex=" << blockRowIndex
-                      << ", blockColIndex=" << blockColIndex << std::endl;
+            //std::cout << "duplicateRow: blockRowIndex=" << blockRowIndex
+            //          << ", blockColIndex=" << blockColIndex << std::endl;
             result.push_back(resultMatrixBlock);
         }
         return result;
