@@ -41,16 +41,16 @@
 "ones"                    { if(LALEXPRINTFLAG){printf("ones token!\n");} return (TOKEN_ONES); }
 "identity"                { if(LALEXPRINTFLAG){printf("identity token!\n");} return (TOKEN_IDENTITY); }
 ","                       { if(LALEXPRINTFLAG){printf("comma token!\n");} return (TOKEN_COMMA); }
-"rowMax"                  { if(LALEXPRINTFLAG){printf("rowMax token!\n");} return (TOKEN_ROWMAX); }
-"rowMin"                  { if(LALEXPRINTFLAG){printf("rowMin token!\n");} return (TOKEN_ROWMIN); }
-"rowSum"                  { if(LALEXPRINTFLAG){printf("rowSum token!\n");} return (TOKEN_ROWSUM); }
-"colMax"                  { if(LALEXPRINTFLAG){printf("colMax token!\n");} return (TOKEN_COLMAX); }
-"colMin"                  { if(LALEXPRINTFLAG){printf("colMin token!\n");} return (TOKEN_COLMIN); }
-"colSum"                  { if(LALEXPRINTFLAG){printf("colSum token!\n");} return (TOKEN_COLSUM); }
+"rowMax"                  { if(LALEXPRINTFLAG){printf("rowMax token!\n");} return (TOKEN_ROW_MAX); }
+"rowMin"                  { if(LALEXPRINTFLAG){printf("rowMin token!\n");} return (TOKEN_ROW_MIN); }
+"rowSum"                  { if(LALEXPRINTFLAG){printf("rowSum token!\n");} return (TOKEN_ROW_SUM); }
+"colMax"                  { if(LALEXPRINTFLAG){printf("colMax token!\n");} return (TOKEN_COL_MAX); }
+"colMin"                  { if(LALEXPRINTFLAG){printf("colMin token!\n");} return (TOKEN_COL_MIN); }
+"colSum"                  { if(LALEXPRINTFLAG){printf("colSum token!\n");} return (TOKEN_COL_SUM); }
 "max"                     { if(LALEXPRINTFLAG){printf("max token!\n");} return (TOKEN_MAX); }
 "min"                     { if(LALEXPRINTFLAG){printf("min token!\n");} return (TOKEN_MIN); }
-"duplicateRow"            { if(LALEXPRINTFLAG){printf("duplicateRow token!\n");} return (TOKEN_DUPLICATEROW); }
-"duplicateCol"            { if(LALEXPRINTFLAG){printf("duplicateCol token!\n");} return (TOKEN_DUPLICATECOL); }
+"duplicateRow"            { if(LALEXPRINTFLAG){printf("duplicateRow token!\n");} return (TOKEN_DUPLICATE_ROW); }
+"duplicateCol"            { if(LALEXPRINTFLAG){printf("duplicateCol token!\n");} return (TOKEN_DUPLICATE_COL); }
 
 [0-9]+\.[0-9]+            { 
                             yylval->doubleVal = atof(yytext);
@@ -68,7 +68,7 @@
                             if(LALEXPRINTFLAG){printf("yytext: <%s>\n",yytext);}
                             yylval->stringVal = strdup (yytext);
                             if(LALEXPRINTFLAG){printf("identifier token! <%s>\n",yylval->stringVal);}
-                            return (IDENTIFIERLITERAL);
+                            return (IDENTIFIER_LITERAL);
                           }
 
 
@@ -77,8 +77,8 @@
 "="                       { if(LALEXPRINTFLAG){printf("assign token!\n");} return (TOKEN_ASSIGN); }
 "+"                       { if(LALEXPRINTFLAG){printf("add token!\n");} return (TOKEN_ADD); } 
 "-"                       { if(LALEXPRINTFLAG){printf("minus token!\n");} return (TOKEN_MINUS); }
-"'*"                      { if(LALEXPRINTFLAG){printf("transposemultiply token!\n");} return (TOKEN_TRANSPOSEMULTIPLY); }
-"*"                       { if(LALEXPRINTFLAG){printf("scalemultiply token!\n");} return (TOKEN_SCALEMULTIPLY); }
+"'*"                      { if(LALEXPRINTFLAG){printf("transpose_multiply token!\n");} return (TOKEN_TRANSPOSE_MULTIPLY); }
+"*"                       { if(LALEXPRINTFLAG){printf("elementwise_multiply token!\n");} return (TOKEN_ELEMENTWISE_MULTIPLY); }
 "%*%"                     { if(LALEXPRINTFLAG){printf("multiply token!\n");} return (TOKEN_MULTIPLY); }
 "^-1"                     { if(LALEXPRINTFLAG){printf("inv token!\n");} return (TOKEN_INV); }
 "^T"                      { if(LALEXPRINTFLAG){printf("transpose token!\n");} return (TOKEN_TRANSPOSE); }
@@ -90,7 +90,7 @@
                             if(LALEXPRINTFLAG){printf("yytext: <%s>\n",yytext);}
                             yylval->stringVal = strdup (yytext);
                             if(LALEXPRINTFLAG){printf("stringLiteral token! <%s>\n",yylval->stringVal);}
-                            return (STRINGLITERAL);
+                            return (STRING_LITERAL);
                           }
 
 .           ;
