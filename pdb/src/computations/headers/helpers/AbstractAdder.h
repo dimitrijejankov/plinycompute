@@ -16,7 +16,7 @@ namespace pdb {
 template<class In1, class In2=In1, class Out=In1>
 class AbstractAdder {
  public:
-  virtual Out& add(In1& in1, In2& in2) = 0;
+  virtual Out add(In1& in1, In2& in2) = 0;
 };
 
 }

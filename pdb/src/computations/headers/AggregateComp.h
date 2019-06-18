@@ -31,7 +31,7 @@ namespace pdb {
 template<class In1, class In2=In1, class Out=In1>
 class DefaultAdder : public AbstractAdder<In1, In2, Out> {
  public:
-  Out& add(In1& in1, In2& in2) override {
+  Out add(In1& in1, In2& in2) override {
     return in1 + in2;
   }
 };
