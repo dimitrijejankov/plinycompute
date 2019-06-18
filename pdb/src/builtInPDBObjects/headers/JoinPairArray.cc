@@ -74,8 +74,7 @@ void JoinPairArray<ValueType>::setUpAndCopyFrom(void *target, void *source) cons
   // to variables objSize and valueOffset... this.objSize and this.valueOffset are possibly
   // undefined here.  By having local variables that shadow these, we get around potential
   // problems
-  uint32_t
-  objSize = toMe.objSize;
+  uint32_t objSize = toMe.objSize;
 
   // loop through and do the deep copy
   for (int i = 0; i < toMe.numSlots; i++) {
@@ -241,6 +240,7 @@ ValueType &JoinPairArray<ValueType>::push(const size_t &me) {
   // figure out which pos he goes in
   size_t slot = hashVal % (numSlots - 1);
 
+  size_t objSize = this->objSize;
   // in the worst case, we can loop through the entire hash table looking.  :-(
   for (size_t slotsChecked = 0; slotsChecked < numSlots; slotsChecked++) {
 
@@ -248,6 +248,7 @@ ValueType &JoinPairArray<ValueType>::push(const size_t &me) {
     if (JM_GET_HASH(data, slot) == JM_UNUSED) {
 
       // construct the key and the value
+      new(JM_GET_VALUE_PTR(data, slot)) ValueType();
       new(JM_GET_VALUE_PTR(data, slot)) ValueType();
 
       // add the key
@@ -297,8 +298,7 @@ JoinPairArray<ValueType>::JoinPairArray(uint32_t numSlotsIn) : JoinPairArray() {
 
   // verify that we are a power of two
   bool gotIt = false;
-  uint32_t
-  val = 1;
+  uint32_t val = 1;
   for (unsigned int pow = 0; pow <= 31; pow++) {
     if (val >= numSlotsIn) {
       gotIt = true;
@@ -366,42 +366,39 @@ JoinPairArray<ValueType>::~JoinPairArray() {
   }
 }
 
-template<class ValueType>
+template <class ValueType>
 Handle<JoinPairArray<ValueType>> JoinPairArray<ValueType>::doubleArray() {
-  PDB_COUT << "bytes available in current allocator block: "
-           << getAllocator().getBytesAvailableInCurrentAllocatorBlock() << std::endl;
-  std::string out = getAllocator().printInactiveBlocks();
-  PDB_COUT << "inactive blocks: " << out << std::endl;
-  PDB_COUT << "usedSlots = " << usedSlots << ", maxSlots = " << maxSlots << std::endl;
-  uint32_t
-  howMany = numSlots * 2;
-  PDB_COUT << "doubleArray to " << howMany << std::endl;
-  // allocate the new Array
-  Handle<JoinPairArray<ValueType>> tempArray =
-      makeObjectWithExtraStorage<JoinPairArray<ValueType>>(objSize * howMany, howMany);
+    PDB_COUT << "bytes available in current allocator block: "
+             << getAllocator().getBytesAvailableInCurrentAllocatorBlock() << std::endl;
+    std::string out = getAllocator().printInactiveBlocks();
+    PDB_COUT << "inactive blocks: " << out << std::endl;
+    PDB_COUT << "usedSlots = " << usedSlots << ", maxSlots = " << maxSlots << std::endl;
+    uint32_t howMany = numSlots * 2;
+    PDB_COUT << "doubleArray to " << howMany << std::endl;
+    // allocate the new Array
+    Handle<JoinPairArray<ValueType>> tempArray =
+        makeObjectWithExtraStorage<JoinPairArray<ValueType>>(objSize * howMany, howMany);
 
-  // first, set everything to unused
-  // now, re-hash everything
-  JoinPairArray<ValueType> &newOne = *tempArray;
+    // first, set everything to unused
+    // now, re-hash everything
+    JoinPairArray<ValueType>& newOne = *tempArray;
 
-  for (uint32_t i = 0; i < numSlots; i++) {
+    for (uint32_t i = 0; i < numSlots; i++) {
 
-    if (JM_GET_HASH(data, i) != JM_UNUSED) {
+        if (JM_GET_HASH(data, i) != JM_UNUSED) {
 
-      // copy the dude over
-      ValueType *temp = &(newOne.push(JM_GET_HASH(data, i)));
-      *temp = JM_GET_VALUE(data, i, ValueType);
+            // copy the dude over
+            ValueType* temp = &(newOne.push(JM_GET_HASH(data, i)));
+            *temp = JM_GET_VALUE(data, i, ValueType);
 
-      char *whereNextIs = ((char *) temp) - sizeof(uint32_t);
-      *((uint32_t * )
-      whereNextIs) = JM_GET_NEXT(data, i);
-    }
-  }
+            char* whereNextIs = ((char*)temp) - sizeof(uint32_t);
+            *((uint32_t*)whereNextIs) = JM_GET_NEXT(data, i);
+        }
+      }
 
-  newOne.overflows = overflows;
-
-  // and return this guy
-  return tempArray;
+      newOne.overflows = overflows;
+      // and return this guy
+      return tempArray;
 }
 
 template<class ValueType>
@@ -428,17 +425,14 @@ JoinRecordList<ValueType>::JoinRecordList(uint32_t whichOne, JoinPairArray<Value
 
 template<class ValueType>
 size_t JoinRecordList<ValueType>::getHash() {
-  uint32_t
-  objSize = parent->objSize;
+  uint32_t objSize = parent->objSize;
   return JM_GET_HASH(parent->data, whichOne);
 }
 
 template<class ValueType>
 size_t JoinRecordList<ValueType>::size() {
 
-  // in the case where this guy is not in the list, we return a zero
-  uint32_t
-  objSize = parent->objSize;
+  uint32_t objSize = parent->objSize;
   if (JM_GET_HASH(parent->data, whichOne) == JM_UNUSED)
     return 0;
 
@@ -456,6 +450,9 @@ size_t JoinRecordList<ValueType>::size() {
 
 template<class ValueType>
 ValueType &JoinRecordList<ValueType>::operator[](const size_t i) {
+  if (parent == nullptr){
+    std::cout<<" parent is null! " << std::endl;
+  }
   uint32_t objSize = parent->objSize;
   return i == 0 ? JM_GET_VALUE(parent->data, whichOne, ValueType) : parent->overflows[JM_GET_NEXT(parent->data, whichOne)][i - 1];
 }

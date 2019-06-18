@@ -43,6 +43,9 @@ elif [[ "$OSTYPE" == "linux-gnu" ]]; then
     sudo apt-get -y install libboost-dev libboost-program-options-dev libboost-filesystem-dev libboost-system-dev
     sudo apt-get -y install bison flex
 
+    sudo apt-get -y install libgtest-dev
+
+    # todo:: remove this, unless you have to build it from scratch.
     # install google test
     cd /tmp
     cd googletest
@@ -50,6 +53,7 @@ elif [[ "$OSTYPE" == "linux-gnu" ]]; then
     make
     sudo make install
 
+    # todo:: remove this, unless you are actually using this.
     # install google benchmark
     cd /tmp
     cd benchmark

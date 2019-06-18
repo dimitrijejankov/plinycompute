@@ -15,7 +15,7 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
-#ifndef  JOINCOMPBASE_H
+#ifndef JOINCOMPBASE_H
 #define JOINCOMPBASE_H
 
 #include "Computation.h"
@@ -34,6 +34,9 @@ class JoinCompBase : public Computation {
                                          TupleSpec &pipelinedAttsToOperateOn,
                                          TupleSpec &pipelinedAttsToIncludeInOutput,
                                          JoinArgPtr &joinArg,
+                                         uint64_t numNodes,
+                                         uint64_t numProcessingThreads,
+                                         uint64_t workerID,
                                          ComputePlan &computePlan) = 0;
 
   virtual ComputeExecutorPtr getExecutor(bool needToSwapAtts,
@@ -67,6 +70,15 @@ class JoinCompBase : public Computation {
                                                    PDBBufferManagerInterfacePtr &bufferManager,
                                                    TupleSpec &recordSchema,
                                                    pdb::LogicalPlanPtr &plan) = 0;
+
+  virtual ComputeSinkPtr getComputeMerger(TupleSpec &consumeMe,
+                                          TupleSpec &attsToOpOn,
+                                          TupleSpec &projection,
+                                          uint64_t workerID,
+                                          uint64_t numThreads,
+                                          uint64_t numNodes,
+                                          pdb::LogicalPlanPtr &plan) = 0;
+
 };
 
 }

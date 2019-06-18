@@ -31,10 +31,14 @@
 #include "Lexer.h"
 #include "Parser.h"
 #include "StringIntPair.h"
+#include "JoinBroadcastPipeline.h"
+
 
 extern int yydebug;
 
+
 namespace pdb {
+
 
 inline LogicalPlanPtr ComputePlan::getPlan() {
 
@@ -72,9 +76,11 @@ inline LogicalPlanPtr ComputePlan::getPlan() {
   return myPlan;
 }
 
+
 inline void ComputePlan::nullifyPlanPointer() {
   myPlan = nullptr;
 }
+
 
 // this does a DFS, trying to find a list of computations that lead to the specified computation
 inline bool recurse(LogicalPlanPtr myPlan,
@@ -110,6 +116,7 @@ inline bool recurse(LogicalPlanPtr myPlan,
   // if we made it here, we could not find the target
   return false;
 }
+
 
 inline PageProcessorPtr ComputePlan::getProcessorForJoin(const std::string &tupleSetName,
                                                          size_t numNodes,
@@ -159,6 +166,7 @@ inline PageProcessorPtr ComputePlan::getProcessorForJoin(const std::string &tupl
                                                                                                                               targetProjection,
                                                                                                                               myPlan);
 }
+
 
 inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
                                               const std::string &targetTupleSetName,
@@ -223,7 +231,7 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
       auto rhsSource = ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getRHSShuffleJoinSource(rightAtomicComp->getOutput(),
                                                                                                                                             joinComputation->getRightInput(),
                                                                                                                                             joinComputation->getRightProjection(),
-                                                                                                                                            it->second->pageSet,
+                                                                                                                                            it->second->hashTablePageSet,
                                                                                                                                             myPlan,
                                                                                                                                             chunkSize,
                                                                                                                                             workerID);
@@ -257,7 +265,7 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
       auto rhsSource = ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getRHSShuffleJoinSource(rightAtomicComp->getOutput(),
                                                                                                                                             joinComputation->getInput(),
                                                                                                                                             joinComputation->getProjection(),
-                                                                                                                                            it->second->pageSet,
+                                                                                                                                            it->second->hashTablePageSet,
                                                                                                                                             myPlan,
                                                                                                                                             chunkSize,
                                                                                                                                             workerID);
@@ -451,24 +459,27 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
         throw runtime_error("Join pipeline run without hash tables!");
       }
 
-      // do we have the appropriate join arguments? if not throw an exception
-      auto it = joinArgs->hashTables.find(a->getOutput().getSetName());
-      if(it != joinArgs->hashTables.end()) {
-        throw runtime_error("Hash table for the output set," + a->getOutput().getSetName() +  "not found!");
-      }
-
       // check if we are pipelining the right input
       if (lastOne->getOutput().getSetName() == myJoin->getRightInput().getSetName()) {
 
+        // do we have the appropriate join arguments? if not throw an exception
+        auto it = joinArgs->hashTables.find(myJoin->getInput().getSetName());
+        if (it == joinArgs->hashTables.end()) {
+          throw runtime_error("Hash table for the output set," + a->getOutput().getSetName() + "not found!");
+        }
+
         // if we are pipelining the right input, then we don't need to switch left and right inputs
         std::cout << "We are pipelining the right input...\n";
-        returnVal->addStage(myComp.getExecutor(true, myJoin->getProjection(), lastOne->getOutput(), myJoin->getRightInput(), myJoin->getRightProjection(), it->second, *this));
-
+        returnVal->addStage(myComp.getExecutor(true, myJoin->getProjection(), lastOne->getOutput(), myJoin->getRightInput(), myJoin->getRightProjection(), it->second, numNodes, numProcessingThreads, workerID, *this));
       } else {
-
+        // do we have the appropriate join arguments? if not throw an exception
+        auto it = joinArgs->hashTables.find(myJoin->getRightInput().getSetName());
+        if (it == joinArgs->hashTables.end()) {
+          throw runtime_error("Hash table for the output set," + a->getOutput().getSetName() + "not found!");
+        }
         // if we are pipelining the right input, then we don't need to switch left and right inputs
         std::cout << "We are pipelining the left input...\n";
-        returnVal->addStage(myComp.getExecutor(false, myJoin->getRightProjection(), lastOne->getOutput(), myJoin->getInput(), myJoin->getProjection(), it->second, *this));
+        returnVal->addStage(myComp.getExecutor(false, myJoin->getRightProjection(), lastOne->getOutput(), myJoin->getInput(), myJoin->getProjection(), it->second, numNodes, numProcessingThreads, workerID, *this));
       }
 
     }
@@ -481,13 +492,13 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
       std::cout << "This is bad... found an unexpected computation type (" << a->getComputationName()
                 << ") inside of a pipeline.\n";
     }
-
     lastOne = a;
   }
 
   std::cout << "Sink: " << targetSpec << " [" << targetProjection << "]\n";
   return returnVal;
 }
+
 
 inline PipelinePtr ComputePlan::buildAggregationPipeline(const std::string &targetTupleSetName,
                                                          const PDBAbstractPageSetPtr &inputPageSet,
@@ -504,7 +515,7 @@ inline PipelinePtr ComputePlan::buildAggregationPipeline(const std::string &targ
   // find the target atomic computation
   auto targetAtomicComp = allComps.getProducingAtomicComputation(targetTupleSetName);
 
-  // find the target real PDBcomputation
+  // find the target real PDBComputation
   auto targetComputationName = targetAtomicComp->getComputationName();
 
   // grab the aggregation combiner
@@ -514,10 +525,86 @@ inline PipelinePtr ComputePlan::buildAggregationPipeline(const std::string &targ
   return std::make_shared<pdb::AggregationPipeline>(workerID, outputPageSet, inputPageSet, combiner);
 }
 
+
+inline PipelinePtr ComputePlan::buildBroadcastJoinPipeline(const string &targetTupleSetName,
+                                                           const PDBAbstractPageSetPtr &inputPageSet,
+                                                           const PDBAnonymousPageSetPtr &outputPageSet,
+                                                           uint64_t numThreads,
+                                                           uint64_t numNodes,
+                                                           uint64_t workerID) {
+
+  // build the plan if it is not already done
+  if (myPlan == nullptr)
+    getPlan();
+
+  // get all of the computations
+  AtomicComputationList &allComps = myPlan->getComputations();
+
+  // find the target atomic computation
+  auto targetAtomicComp = allComps.getProducingAtomicComputation(targetTupleSetName);
+
+  // find the target real PDBComputation
+  auto targetComputationName = targetAtomicComp->getComputationName();
+
+  // and get the schema for the output TupleSet objects that it is supposed to produce
+  TupleSpec &targetSpec = targetAtomicComp->getOutput();
+
+  // and get the projection for this guy
+  std::vector<AtomicComputationPtr> &consumers = allComps.getConsumingAtomicComputations(targetSpec.getSetName());
+
+  TupleSpec targetProjection;
+  TupleSpec targetAttsToOpOn;
+  for (auto &a : consumers) {
+    if (a->getComputationName() == targetComputationName) {
+
+      std::cout << "targetComputationName was " << targetComputationName << "\n";
+
+      // we found the consuming computation
+      if (targetSpec == a->getInput()) {
+        targetProjection = a->getProjection();
+
+        //added following to merge join code
+        if (targetComputationName.find("JoinComp") == std::string::npos) {
+          targetSpec = targetProjection;
+        }
+
+        targetAttsToOpOn = a->getInput();
+        break;
+      }
+
+      // the only way that the input to this guy does not match targetSpec is if he is a join, which has two inputs
+      if (a->getAtomicComputationType() != std::string("JoinSets")) {
+        std::cout << "This is bad... is the target computation name correct??";
+        std::cout << "Didn't find a JoinSets, target was " << targetSpec.getSetName() << "\n";
+        exit(1);
+      }
+
+      // get the join and make sure it matches
+      auto *myGuy = (ApplyJoin *) a.get();
+      if (!(myGuy->getRightInput() == targetSpec)) {
+        std::cout << "This is bad... is the target computation name correct??";
+        std::cout << "Find a JoinSets, target was " << targetSpec.getSetName() << "\n";
+        exit(1);
+      }
+
+      std::cout << "Building sink for: " << targetSpec << " " << myGuy->getRightProjection() << " "
+                << myGuy->getRightInput() << "\n";
+      targetProjection = myGuy->getRightProjection();
+      targetAttsToOpOn = myGuy->getRightInput();
+      std::cout << "Building sink for: " << targetSpec << " " << targetAttsToOpOn << " " << targetProjection << "\n";
+    }
+  }
+
+  Handle<JoinCompBase> joinComp = unsafeCast<JoinCompBase>(myPlan->getNode(targetComputationName).getComputationHandle());
+  auto merger = joinComp->getComputeMerger(targetSpec, targetAttsToOpOn, targetProjection, workerID, numThreads, numNodes, myPlan);
+
+  // build the JoinBroadcastPipeline, the nodeID = workerID / num of threads per node
+  return std::make_shared<pdb::JoinBroadcastPipeline>(workerID, outputPageSet, inputPageSet, merger);
+}
+
+
 inline ComputePlan::ComputePlan(String &TCAPComputation, Vector<Handle<Computation>> &allComputations) : TCAPComputation(TCAPComputation),
                                                                                                          allComputations(allComputations) {}
-
-
 }
 
 #endif

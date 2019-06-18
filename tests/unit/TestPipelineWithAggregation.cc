@@ -186,7 +186,7 @@ TEST(PipelineTest, TestAggregation) {
 
   // now we create the TCAP string
   String myTCAPString =
-      "inputData (in) <= SCAN ('mySet', 'myData', 'SetScanner_0', []) \n"
+      "inputData (in) <= SCAN ('myData', 'mySet', 'SetScanner_0', []) \n"
       "inputWithAtt (in, att) <= APPLY (inputData (in), inputData (in), 'SelectionComp_1', 'methodCall_0', []) \n"
       "inputWithAttAndMethod (in, att, method) <= APPLY (inputWithAtt (in), inputWithAtt (in, att), 'SelectionComp_1', 'attAccess_1', []) \n"
       "inputWithBool (in, bool) <= APPLY (inputWithAttAndMethod (att, method), inputWithAttAndMethod (in), 'SelectionComp_1', '==_2', []) \n"
@@ -327,7 +327,8 @@ TEST(PipelineTest, TestAggregation) {
   /// 4. Create the pre-aggregation and run it.
 
   // set the parameters
-  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<PreaggregationPageProcessor>(2, 2, pageQueues, myMgr) } };
+  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<PreaggregationPageProcessor>(2, 2, pageQueues, myMgr) },
+                                                       { ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("myData", "mySet", "", 0, PDB_CATALOG_SET_VECTOR_CONTAINER)) } };
 
   // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
   // a pipeline into the aggregation operation

@@ -211,7 +211,6 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
   /// 4. Set the parameters
 
   auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
-
   // figure out the join arguments
   auto joinArguments = getJoinArguments (storage);
 
