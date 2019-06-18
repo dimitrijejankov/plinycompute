@@ -62,38 +62,38 @@
 
 %token END                      0     "end of file"
 
-%token TOKEN_ZEROS              701
-%token TOKEN_ONES               702
-%token TOKEN_IDENTITY           703
-%token TOKEN_LOAD               704
-%token TOKEN_TRANSPOSE          711
-%token TOKEN_INV                712
-%token TOKEN_MULTIPLY           721
-%token TOKEN_TRANSPOSEMULTIPLY  722
-%token TOKEN_SCALEMULTIPLY      723
-%token TOKEN_ADD                731
-%token TOKEN_MINUS              732
-%token TOKEN_LEFT_BRACKET       741
-%token TOKEN_RIGHT_BRACKET      742
-%token TOKEN_COMMA              743
-%token TOKEN_ASSIGN             744
-%token TOKEN_MAX                751
-%token TOKEN_MIN                752
-%token TOKEN_ROWMAX             753
-%token TOKEN_ROWMIN             754
-%token TOKEN_ROWSUM             755
-%token TOKEN_COLMAX             756
-%token TOKEN_COLMIN             757
-%token TOKEN_COLSUM             758
-%token TOKEN_DUPLICATEROW       759
-%token TOKEN_DUPLICATECOL       760
+%token TOKEN_ZEROS                     701
+%token TOKEN_ONES                      702
+%token TOKEN_IDENTITY                  703
+%token TOKEN_LOAD                      704
+%token TOKEN_TRANSPOSE                 711
+%token TOKEN_INV                       712
+%token TOKEN_MULTIPLY                  721
+%token TOKEN_TRANSPOSE_MULTIPLY        722
+%token TOKEN_ELEMENTWISE_MULTIPLY      723
+%token TOKEN_ADD                       731
+%token TOKEN_MINUS                     732
+%token TOKEN_LEFT_BRACKET              741
+%token TOKEN_RIGHT_BRACKET             742
+%token TOKEN_COMMA                     743
+%token TOKEN_ASSIGN                    744
+%token TOKEN_MAX                       751
+%token TOKEN_MIN                       752
+%token TOKEN_ROW_MAX                    753
+%token TOKEN_ROW_MIN                    754
+%token TOKEN_ROW_SUM                    755
+%token TOKEN_COL_MAX                    756
+%token TOKEN_COL_MIN                    757
+%token TOKEN_COL_SUM                    758
+%token TOKEN_DUPLICATE_ROW              759
+%token TOKEN_DUPLICATE_COL              760
 
 %token <doubleVal>        DOUBLE                790
 %token <intVal>           INTEGER               791
-%token <stringVal>        IDENTIFIERLITERAL     792
-%token <stringVal>        STRINGLITERAL         793
+%token <stringVal>        IDENTIFIER_LITERAL     792
+%token <stringVal>        STRING_LITERAL         793
 
-%type <myIdentifier>       identifier
+%type <myIdentifier>      identifier
 %type <myInitializer>     initializer
 %type <myExp>             expression
 %type <myPrimaryExp>      primaryExpression
@@ -181,7 +181,7 @@ additiveExpression
     if(LAPARSEPRINTFLAG){
       printf("minus as additiveExpression\n");
     }
-    $$ = makeAdditiveExpressionFromMultiplicativeExpressionDouble("substract",$1,$3);
+    $$ = makeAdditiveExpressionFromMultiplicativeExpressionDouble("subtract",$1,$3);
   }
   ;
 
@@ -204,15 +204,15 @@ multiplicativeExpression
     $$ = makeMultiplicativeExpressionFromPostfixExpressionDouble("multiply", $1, $3);
   }
 
-  | multiplicativeExpression TOKEN_SCALEMULTIPLY postfixExpression
+  | multiplicativeExpression TOKEN_ELEMENTWISE_MULTIPLY postfixExpression
   {
     if(LAPARSEPRINTFLAG){
-      printf("scale multiply as multiplicativeExpression\n");
+      printf("elementwise multiply as multiplicativeExpression\n");
     }
-    $$ = makeMultiplicativeExpressionFromPostfixExpressionDouble("scale_multiply", $1, $3);
+    $$ = makeMultiplicativeExpressionFromPostfixExpressionDouble("elementwise_multiply", $1, $3);
   }
 
-  | multiplicativeExpression TOKEN_TRANSPOSEMULTIPLY postfixExpression
+  | multiplicativeExpression TOKEN_TRANSPOSE_MULTIPLY postfixExpression
   {
     if(LAPARSEPRINTFLAG){
       printf("transpose multiply as multiplicativeExpression\n");
@@ -301,7 +301,7 @@ primaryExpression
     $$ = makePrimaryExpressionFromExpression("min",$3);
   }
 
-  | TOKEN_ROWMAX TOKEN_LEFT_BRACKET expression TOKEN_RIGHT_BRACKET
+  | TOKEN_ROW_MAX TOKEN_LEFT_BRACKET expression TOKEN_RIGHT_BRACKET
   {
     if(LAPARSEPRINTFLAG){
       printf("rowMax function Expression\n");
@@ -309,7 +309,7 @@ primaryExpression
     $$ = makePrimaryExpressionFromExpression("rowMax",$3);
   }
 
-  | TOKEN_ROWMIN TOKEN_LEFT_BRACKET expression TOKEN_RIGHT_BRACKET
+  | TOKEN_ROW_MIN TOKEN_LEFT_BRACKET expression TOKEN_RIGHT_BRACKET
   {
     if(LAPARSEPRINTFLAG){
       printf("rowMin function Expression\n");
@@ -317,7 +317,7 @@ primaryExpression
     $$ = makePrimaryExpressionFromExpression("rowMin",$3);
   }
 
-  | TOKEN_ROWSUM TOKEN_LEFT_BRACKET expression TOKEN_RIGHT_BRACKET
+  | TOKEN_ROW_SUM TOKEN_LEFT_BRACKET expression TOKEN_RIGHT_BRACKET
   {
     if(LAPARSEPRINTFLAG){
       printf("rowSum function Expression\n");
@@ -325,7 +325,7 @@ primaryExpression
     $$ = makePrimaryExpressionFromExpression("rowSum",$3);
   }
 
-  | TOKEN_COLMAX TOKEN_LEFT_BRACKET expression TOKEN_RIGHT_BRACKET
+  | TOKEN_COL_MAX TOKEN_LEFT_BRACKET expression TOKEN_RIGHT_BRACKET
   {
     if(LAPARSEPRINTFLAG){
       printf("colMax function Expression\n");
@@ -333,7 +333,7 @@ primaryExpression
     $$ = makePrimaryExpressionFromExpression("colMax",$3);
   }
 
-  | TOKEN_COLMIN TOKEN_LEFT_BRACKET expression TOKEN_RIGHT_BRACKET
+  | TOKEN_COL_MIN TOKEN_LEFT_BRACKET expression TOKEN_RIGHT_BRACKET
   {
     if(LAPARSEPRINTFLAG){
       printf("colMin function Expression\n");
@@ -341,7 +341,7 @@ primaryExpression
     $$ = makePrimaryExpressionFromExpression("colMin",$3);
   }
 
-  | TOKEN_COLSUM TOKEN_LEFT_BRACKET expression TOKEN_RIGHT_BRACKET
+  | TOKEN_COL_SUM TOKEN_LEFT_BRACKET expression TOKEN_RIGHT_BRACKET
   {
     if(LAPARSEPRINTFLAG){
       printf("colSum function Expression\n");
@@ -349,7 +349,7 @@ primaryExpression
     $$ = makePrimaryExpressionFromExpression("colSum",$3);
   }
   // suppose expression is a row vector, duplicate to blockColSize, blockColNum
-  | TOKEN_DUPLICATEROW TOKEN_LEFT_BRACKET expression TOKEN_COMMA INTEGER TOKEN_COMMA INTEGER TOKEN_RIGHT_BRACKET
+  | TOKEN_DUPLICATE_ROW TOKEN_LEFT_BRACKET expression TOKEN_COMMA INTEGER TOKEN_COMMA INTEGER TOKEN_RIGHT_BRACKET
   {
     if(LAPARSEPRINTFLAG){
       printf("duplicateRow function Expression\n");
@@ -357,7 +357,7 @@ primaryExpression
     $$ = makePrimaryExpressionFromExpressionDuplicate("duplicateRow",$3,$5,$7);
   }
   // suppose experssion is a col vector, duplicate to blockRowSize, blockRowNum
-  | TOKEN_DUPLICATECOL TOKEN_LEFT_BRACKET expression TOKEN_COMMA INTEGER TOKEN_COMMA INTEGER TOKEN_RIGHT_BRACKET
+  | TOKEN_DUPLICATE_COL TOKEN_LEFT_BRACKET expression TOKEN_COMMA INTEGER TOKEN_COMMA INTEGER TOKEN_RIGHT_BRACKET
   {
     if(LAPARSEPRINTFLAG){
       printf("duplicateCol function Expression\n");
@@ -393,7 +393,7 @@ initializer
     $$ = makeIdentityInitializer($3,$5);
   }
 
-  | TOKEN_LOAD TOKEN_LEFT_BRACKET INTEGER TOKEN_COMMA INTEGER TOKEN_COMMA INTEGER TOKEN_COMMA INTEGER TOKEN_COMMA STRINGLITERAL TOKEN_RIGHT_BRACKET
+  | TOKEN_LOAD TOKEN_LEFT_BRACKET INTEGER TOKEN_COMMA INTEGER TOKEN_COMMA INTEGER TOKEN_COMMA INTEGER TOKEN_COMMA STRING_LITERAL TOKEN_RIGHT_BRACKET
   {
     if(LAPARSEPRINTFLAG){
       printf("load(%d, %d, %d, %d, %s)\n",$3,$5,$7,$9,$11);
@@ -405,7 +405,7 @@ initializer
 
 
 identifier
-  :IDENTIFIERLITERAL
+  :IDENTIFIER_LITERAL
   {
     if(LAPARSEPRINTFLAG){
       printf("Create identifier <%s>\n",$1);

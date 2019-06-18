@@ -50,7 +50,7 @@ public:
             return rightChild->toString();
         } else if (addOperator.compare("add") == 0) {
             return leftChild->toString() + " + " + rightChild->toString();
-        } else if (addOperator.compare("substract") == 0) {
+        } else if (addOperator.compare("subtract") == 0) {
             return leftChild->toString() + " - " + rightChild->toString();
         } else {
             return "AdditiveExpression invalid operator: " + addOperator;

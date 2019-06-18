@@ -15,14 +15,14 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
-#ifndef LA_SUBSTRACT_JOIN_CC
-#define LA_SUBSTRACT_JOIN_CC
+#ifndef LA_SUBTRACT_JOIN_CC
+#define LA_SUBTRACT_JOIN_CC
 
 // by Binhang, May 2017
 
-#include "LASubstractJoin.h"
+#include "LASubtractJoin.h"
 #include "GetVTable.h"
 
-GET_V_TABLE(LASubstractJoin)
+GET_V_TABLE(LASubtractJoin)
 
 #endif
