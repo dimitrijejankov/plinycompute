@@ -11,11 +11,12 @@
 
 namespace pdb {
 
-template<class KeyType, class ValueType>
+template<class KeyType, class ValueType, class VVAdder>
 class AggregationCombinerSink : public ComputeSink {
 public:
 
-  explicit AggregationCombinerSink(size_t workerID) : workerID(workerID) {}
+  // TODO: if VVAdder becomes a PDB Object type, need to instantiate it in the constructor
+  explicit AggregationCombinerSink(size_t workerID) : workerID(workerID), vvadder() {}
 
   Handle<Object> createNewOutputContainer() override {
 
@@ -71,12 +72,14 @@ public:
       } else {
 
         // get the value and a copy of it
+        // TODO: is there a way to do this without doing an extra copy?
         ValueType &temp = mergeToMe[(*it).key];
         ValueType copy = temp;
 
         // and add to the old value, producing a new one
         try {
-          temp = copy + (*it).value;
+          // TODO should there be a different definition when we just want to add numeric types without function overhead?
+          temp = vvadder.add(copy, (*it).value);
 
           // if we got here, then it means that we ram out of RAM when we were trying
           // to put the new value into the hash table
@@ -96,6 +99,11 @@ private:
    * The id of the worker
    */
   size_t workerID = 0;
+
+  /**
+   * This encapsulates the function used to add 2 ValueTypes.
+   */
+  VVAdder vvadder;
 };
 
 }

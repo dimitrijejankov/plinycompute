@@ -225,7 +225,7 @@ class AggregateComp : public AggregateCompBase {
   }
 
   ComputeSinkPtr getAggregationHashMapCombiner(uint64_t workerID) override {
-    return std::make_shared<pdb::AggregationCombinerSink<KeyClass, ValueClass>>(workerID);
+    return std::make_shared<pdb::AggregationCombinerSink<KeyClass, ValueClass, VVAdder>>(workerID);
   }
 
 };
