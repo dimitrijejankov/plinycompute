@@ -24,12 +24,10 @@
 namespace pdb {
 
 enum ComputeInfoType {
-
   PAGE_PROCESSOR,
   JOIN_ARGS,
   SHUFFLE_JOIN_ARG,
   SOURCE_SET_INFO
-
 };
 
 // this is the base class for parameters that are sent into a pipeline when it is built

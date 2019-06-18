@@ -62,7 +62,7 @@ class JoinRecordList {
   uint32_t whichOne;
 
   // the pair array
-  JoinPairArray<ValueType> *parent;
+  JoinPairArray<ValueType> * parent;
 
  public:
   // constructor
@@ -169,6 +169,9 @@ class JoinPairArray : public Object {
   // returns 0 if this entry is undefined; 1 if it is defined
   int count(const size_t &which);
 
+  uint32_t getobjSize(){
+    return objSize;
+  }
   // so this guy can look inside
   template<class ValueTwo>
   friend

@@ -12,6 +12,14 @@
 
 namespace pdb {
 
+/**
+ * This describes the access pattern of the page set
+ */
+enum class PDBAnonymousPageSetAccessPattern {
+
+  SEQUENTIAL, // gives pages in order so basically each page can only be assigned to one worker
+  CONCURRENT // pages assigned to multiple workers at the same time
+};
 
 // just make the ptr
 class PDBAnonymousPageSet;
@@ -56,27 +64,23 @@ public:
    */
   void resetPageSet() override;
 
+  /**
+   * Sets the access order for the page set
+   * @param pattern - the pattern of access
+   */
+  void setAccessOrder(PDBAnonymousPageSetAccessPattern pattern);
+
  private:
+
+  /**
+   * Defines the iterator for the pages
+   */
+  using pageIterator = std::map<uint64_t, PDBPageHandle>::iterator;
 
   /**
    * Keeps track of all anonymous pages so that we can quickly remove them
    */
   std::map<uint64_t, PDBPageHandle> pages;
-
-  /**
-   * The current page when iterating
-   */
-  std::map<uint64_t, PDBPageHandle>::iterator curPage;
-
-  /**
-   * Indicates whether we are done iterating
-   */
-  bool isDone;
-
-  /**
-   * Indicates whether we need to initialize the page set iterator
-   */
-  bool needsInitialization;
 
   /**
    * Mutex to sync the pages map
@@ -88,6 +92,15 @@ public:
    */
   PDBBufferManagerInterfacePtr bufferManager;
 
+  /**
+   * Tells us what is the next page we are supposed to give a worker
+   */
+   std::unordered_map<size_t, pageIterator> nextPageForWorker;
+
+  /**
+   * The order in which we serve the pages
+   */
+  PDBAnonymousPageSetAccessPattern accessPattern = PDBAnonymousPageSetAccessPattern::SEQUENTIAL;
 };
 
 

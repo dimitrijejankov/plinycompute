@@ -23,8 +23,14 @@
 #include "Pipeline.h"
 #include "NullProcessor.h"
 
-pdb::Pipeline::Pipeline(PDBAnonymousPageSetPtr outputPageSet, ComputeSourcePtr dataSource, ComputeSinkPtr tupleSink, PageProcessorPtr pageProcessor) :
-    outputPageSet(std::move(outputPageSet)), dataSource(std::move(dataSource)), dataSink(std::move(tupleSink)), pageProcessor(std::move(pageProcessor)) {}
+pdb::Pipeline::Pipeline(PDBAnonymousPageSetPtr outputPageSet,
+                        ComputeSourcePtr dataSource,
+                        ComputeSinkPtr tupleSink,
+                        PageProcessorPtr pageProcessor) :
+    outputPageSet(std::move(outputPageSet)),
+    dataSource(std::move(dataSource)),
+    dataSink(std::move(tupleSink)),
+    pageProcessor(std::move(pageProcessor)) {}
 
 pdb::Pipeline::~Pipeline() {
 
@@ -140,8 +146,7 @@ void pdb::Pipeline::run() {
 
           // we need to keep the page
           keepPage(ram, iteration);
-        }
-        else {
+        } else {
           dismissPage(ram, true);
         }
 
@@ -170,8 +175,7 @@ void pdb::Pipeline::run() {
 
         // we need to keep the page
         keepPage(ram, iteration);
-      }
-      else {
+      } else {
         dismissPage(ram, true);
       }
 
@@ -218,7 +222,7 @@ void pdb::Pipeline::dismissPage(pdb::MemoryHolderPtr ram, bool dismissLast) {
   PDB_COUT << "to empty out containing block" << std::endl;
   ram->outputSink.emptyOutContainingBlock();
 
-  if(dismissLast) {
+  if (dismissLast) {
     makeObjectAllocatorBlock(1024, true);
   }
 

@@ -13,6 +13,7 @@
 #include <RHSShuffleJoinSource.h>
 #include <JoinedShuffleJoinSource.h>
 #include <processors/ShuffleJoinProcessor.h>
+#include <BroadcastJoinCombinerSink.h>
 
 namespace pdb {
 
@@ -21,11 +22,14 @@ class JoinTupleSingleton {
 
  public:
 
-  virtual ComputeExecutorPtr getProber(void *hashTable,
+  virtual ComputeExecutorPtr getProber(PDBAbstractPageSetPtr &hashTable,
                                        std::vector<int> &positions,
                                        TupleSpec &inputSchema,
                                        TupleSpec &attsToOperateOn,
                                        TupleSpec &attsToIncludeInOutput,
+                                       uint64_t numNodes,
+                                       uint64_t numProcessingThreads,
+                                       uint64_t workerID,
                                        bool needToSwapLHSAndRhs) = 0;
 
   virtual ComputeSinkPtr getSink(TupleSpec &consumeMe,
@@ -33,6 +37,7 @@ class JoinTupleSingleton {
                                  TupleSpec &projection,
                                  std::vector<int> whereEveryoneGoes,
                                  uint64_t numPartitions) = 0;
+
 
   virtual RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
                                                               TupleSpec &hashSchema,
@@ -56,6 +61,8 @@ class JoinTupleSingleton {
                                             size_t numProcessingThreads,
                                             vector<PDBPageQueuePtr> &pageQueues,
                                             PDBBufferManagerInterfacePtr &bufferManager) = 0;
+
+  virtual ComputeSinkPtr getBroadcastJoinHashMapCombiner(uint64_t workerID, uint64_t numThreads, uint64_t numNodes) = 0;
 };
 
 // this is an actual class
@@ -68,13 +75,26 @@ class JoinSingleton : public JoinTupleSingleton {
  public:
 
   // gets a hash table prober
-  ComputeExecutorPtr getProber(void *hashTable,
+
+  ComputeExecutorPtr getProber(PDBAbstractPageSetPtr &hashTable,
                                std::vector<int> &positions,
                                TupleSpec &inputSchema,
                                TupleSpec &attsToOperateOn,
                                TupleSpec &attsToIncludeInOutput,
+                               uint64_t numNodes,
+                               uint64_t numProcessingThreads,
+                               uint64_t workerID,
                                bool needToSwapLHSAndRhs) override {
-    return std::make_shared<JoinProbeExecution<HoldMe>>(hashTable, positions, inputSchema, attsToOperateOn, attsToIncludeInOutput, needToSwapLHSAndRhs);
+
+    return std::make_shared<JoinProbeExecution<HoldMe>>(hashTable,
+                                                        positions,
+                                                        inputSchema,
+                                                        attsToOperateOn,
+                                                        attsToIncludeInOutput,
+                                                        numNodes,
+                                                        numProcessingThreads,
+                                                        workerID,
+                                                        needToSwapLHSAndRhs);
   }
 
   // creates a compute sink for this particular type
@@ -85,6 +105,7 @@ class JoinSingleton : public JoinTupleSingleton {
                          uint64_t numPartitions) override {
     return std::make_shared<JoinSink<HoldMe>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
   }
+
 
   RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
                                                       TupleSpec &hashSchema,
@@ -116,6 +137,10 @@ class JoinSingleton : public JoinTupleSingleton {
                                     vector<PDBPageQueuePtr> &pageQueues,
                                     PDBBufferManagerInterfacePtr &bufferManager) override {
     return std::make_shared<ShuffleJoinProcessor<HoldMe>>(numNodes, numProcessingThreads, pageQueues, bufferManager);
+  }
+
+  ComputeSinkPtr getBroadcastJoinHashMapCombiner(uint64_t workerID, uint64_t numThreads, uint64_t numNodes) override {
+    return std::make_shared<BroadcastJoinCombinerSink<HoldMe>>(workerID, numThreads, numNodes);
   }
 };
 
