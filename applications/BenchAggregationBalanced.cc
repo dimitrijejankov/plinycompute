@@ -71,21 +71,21 @@ BenchAggregationBalanced(const int numDepartments,
   }
   /// First is the setup code (won't be timed)
   // Start the server
-  std::cout << "Starting manager node" << std::endl;
-  if (!fork()) {
-    systemwrap("./bin/pdb-node -m");
-    exit(0);
-  }
-  // Wait 10 seconds
-  std::this_thread::sleep_for(std::chrono::seconds(10));
-  if (standalone) {
-    std::cout << "Starting 1 worker node" << std::endl;
-    if (!fork()) {
-      systemwrap("./bin/pdb-node -p 8109 -r ./pdbRootW1");
-      exit(0);
-    }
-    std::this_thread::sleep_for(std::chrono::seconds(10));
-  }
+//  std::cout << "Starting manager node" << std::endl;
+//  if (!fork()) {
+//    systemwrap("./bin/pdb-node -m");
+//    exit(0);
+//  }
+//  // Wait 10 seconds
+//  std::this_thread::sleep_for(std::chrono::seconds(10));
+//  if (standalone) {
+//    std::cout << "Starting 1 worker node" << std::endl;
+//    if (!fork()) {
+//      systemwrap("./bin/pdb-node -p 8109 -r ./pdbRootW1");
+//      exit(0);
+//    }
+//    std::this_thread::sleep_for(std::chrono::seconds(10));
+//  }
   // Set up client
 
   pdb::PDBClient pdbClient(managerPort, managerHostname);
@@ -272,21 +272,23 @@ int main(int argc, char *argv[]) {
   std::cout << "The rows are the time, in milliseconds, that it took to run the "
             << "Aggregation. The same Aggregation is run num_rows times on the same "
             << "instance of PDB, and the times are listed in order from top to bottom." << std::endl;
+  std::cout << "All whitespace should be ignored when parsing the table as a CSV." << std::endl;
   std::cout << std::endl;
   // Print header line
   std::cout << "idx";
   int colwidth = 30; // Width of each column, in characters
   for (auto elem : column_values) {
-    std::cout <<  ", " << std::setw(30) << std::setfill(' ') << elem.first << "/" << elem.second;
+    std::cout <<  "," << std::setw(30) << std::setfill(' ') << (std::to_string(elem.first) + std::string("/") + std::to_string(elem.second));
   }
   std::cout << std::endl;
   // Print the numbers
   for (int row = 0; row < numReps; ++row) {
-    std::cout << row+1;
+    std::cout << std::setw(3) << std::setfill(' ') << row+1; // This line is to insert spaces to ensure that the numbers in the first column are all
+                                                             // aligned with the column header, 'idx'
     for (int col = 0; col < numcols; ++col) {
-      std::cout << ", ";
+      std::cout << ",";
       // The below line is modified from https://stackoverflow.com/q/49295185
-      std::cout << std::scientific << std::setprecision(6) << std::setw(30) << std::setfill(' ') << table[row][col];
+      std::cout << std::setw(30) << std::setfill(' ') << std::scientific << std::setprecision(6) << table[row][col];
     }
     std::cout << std::endl;
   }
