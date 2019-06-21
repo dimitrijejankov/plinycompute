@@ -73,18 +73,22 @@ BenchAggregationBalanced(const int numDepartments,
   // Start the server
   std::cout << "Starting manager node" << std::endl;
   if (!fork()) {
-    systemwrap("./bin/pdb-node -m");
-    exit(0);
+    int result = execl("./bin/pdb-node", "-m", (char *)NULL);
+    assert(result == -1);
+    std::cout << "The first fork failed. errno is " << errno << std::endl;
+    exit(3);
   }
   // Wait 10 seconds
-  std::this_thread::sleep_for(std::chrono::seconds(10));
+  std::this_thread::sleep_for(std::chrono::seconds(20));
   if (standalone) {
     std::cout << "Starting 1 worker node" << std::endl;
     if (!fork()) {
-      systemwrap("./bin/pdb-node -p 8109 -r ./pdbRootW1");
-      exit(0);
+      int result = execl("./bin/pdb-node", "-p", "8109", "-r", "./pdbRootW1", (char *)NULL);
+      assert(result == -1);
+      std::cout << "The second fork failed. errno is " << errno << std::endl;
+      exit(4);
     }
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+    std::this_thread::sleep_for(std::chrono::seconds(30));
   }
   // Set up client
 
