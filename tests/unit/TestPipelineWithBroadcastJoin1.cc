@@ -5,10 +5,10 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include "BroadcastJoinProcessor.h"
-#include "SillyReadOfA.h"
-#include "SillyReadOfB.h"
 #include "SillyJoinIntString.h"
 #include "SillyWriteIntString.h"
+#include "ReadInt.h"
+#include "ReadStringIntPair.h"
 
 namespace pdb {
 
@@ -87,7 +87,7 @@ PDBPageHandle getSetBPageWithData(std::shared_ptr<PDBBufferManagerImpl> &myMgr) 
   return page;
 }
 
-TEST(PipelineTest, TestShuffleJoinSingle) {
+TEST(PipelineTest, TestBroadcastJoinSingle) {
 
   ///0. Number of nodes and number of threadsPerNode
   const uint64_t numNodes = 2;
@@ -210,8 +210,8 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
   Vector<Handle<Computation>> myComputations;
 
   // create all of the computation objects
-  Handle<Computation> readA = makeObject<SillyReadOfA>();
-  Handle<Computation> readB = makeObject<SillyReadOfB>();
+  Handle <Computation> readA = makeObject <ReadInt>();
+  Handle <Computation> readB = makeObject <ReadStringIntPair>();
   Handle<Computation> join = makeObject<SillyJoinIntString>();
   Handle<Computation> write = makeObject<SillyWriteIntString>();
 
@@ -221,8 +221,8 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
   myComputations.push_back(join);
   myComputations.push_back(write);
 
-  pdb::String tcapString = "A(a) <= SCAN ('mySetA', 'myData', 'SetScanner_0')\n"
-                           "B(b) <= SCAN ('mySetB', 'myData', 'SetScanner_1')\n"
+  pdb::String tcapString = "A(a) <= SCAN ('myData', 'mySetA', 'SetScanner_0')\n"
+                           "B(b) <= SCAN ('myData', 'mySetB', 'SetScanner_1')\n"
                            "A_extracted_value(a,self_0_2Extracted) <= APPLY (A(a), A(a), 'JoinComp_2', 'self_0', [('lambdaType', 'self')])\n"
                            "AHashed(a,a_value_for_hashed) <= HASHLEFT (A_extracted_value(self_0_2Extracted), A_extracted_value(a), 'JoinComp_2', '==_2', [])\n"
                            "B_extracted_value(b,b_value_for_hash) <= APPLY (B(b), B(b), 'JoinComp_2', 'attAccess_1', [('attName', 'myInt'), ('attTypeName', 'int'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
@@ -243,11 +243,8 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
   ComputePlan myPlan(tcapString, myComputations);
 
   /// 4. Process the left side of the join (set A)
-  std::map<ComputeInfoType, ComputeInfoPtr> params = {{ComputeInfoType::PAGE_PROCESSOR,
-                                                       std::make_shared<BroadcastJoinProcessor>(numNodes,
-                                                                                                threadsPerNode,
-                                                                                                pageQueuesForA,
-                                                                                                myMgr)}};
+  std::map<ComputeInfoType, ComputeInfoPtr> params = {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<BroadcastJoinProcessor>(numNodes,threadsPerNode,pageQueuesForA, myMgr)},
+                                                      {ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("myData", "mySetA", "", 0, PDB_CATALOG_SET_VECTOR_CONTAINER))}};
   PipelinePtr myPipeline = myPlan.buildPipeline(std::string("A"), /* this is the TupleSet the pipeline starts with */
                                                 std::string("AHashed"),     /* this is the TupleSet the pipeline ends with */
                                                 setAReader,
@@ -293,14 +290,15 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
       std::cout << "\nDONE RUNNING BROADCAST JOIN PIPELINE FOR SET A\n";
       myPipeline = nullptr;
   }
-  /// 6. Process the right side of the join (set B)
+  /// 6. Process the right side of the join (set B). Build the pipeline with the Join Argument from pages in Set A.
 
   BroadcastedAPageSetQueue.push(nullptr);
 
   unordered_map<string, JoinArgPtr> hashTables = {{"AHashed", std::make_shared<JoinArg>(BroadcastedAPageSet)}};
   // set the parameters
   params = {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<NullProcessor>()},
-            {ComputeInfoType::JOIN_ARGS, std::make_shared<JoinArguments>(hashTables)}};
+            {ComputeInfoType::JOIN_ARGS, std::make_shared<JoinArguments>(hashTables)},
+            {ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("myData", "mySetB", "", 0, PDB_CATALOG_SET_VECTOR_CONTAINER))}};
 
   myPipeline = myPlan.buildPipeline(std::string("B"), /* this is the TupleSet the pipeline starts with */
                                     std::string("out"),     /* this is the TupleSet the pipeline ends with */

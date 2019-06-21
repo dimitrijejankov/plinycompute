@@ -249,7 +249,6 @@ ValueType &JoinPairArray<ValueType>::push(const size_t &me) {
 
       // construct the key and the value
       new(JM_GET_VALUE_PTR(data, slot)) ValueType();
-      new(JM_GET_VALUE_PTR(data, slot)) ValueType();
 
       // add the key
       JM_GET_HASH(data, slot) = hashVal;
