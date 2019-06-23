@@ -25,6 +25,7 @@
 #include "PreaggregationSink.h"
 #include "AggregationCombinerSink.h"
 #include "AbstractAdder.h"
+#include "AbstractConverter.h"
 
 namespace pdb {
 
@@ -35,6 +36,11 @@ class DefaultAdder : public AbstractAdder<In1, In2, Out> {
     return in1 + in2;
   }
 };
+
+// The following are dummy classes which serve no purpose other than being types for template specialization.
+class VTDefault {};
+class VVDefault {};
+class ConvertDefault {};
 
 // this aggregates items of type InputClass.  To aggregate an item, the result of getKeyProjection () is
 // used to extract a key from on input, and the result of getValueProjection () is used to extract a
@@ -49,8 +55,9 @@ class DefaultAdder : public AbstractAdder<In1, In2, Out> {
 //
 template<class OutputClass, class InputClass, class KeyClass, class ValueClass,
     class TempValueClass = ValueClass,
-    class VTAdder = DefaultAdder<ValueClass, TempValueClass>,
-    class VVAdder = DefaultAdder<ValueClass>>
+    class VTAdder = VTDefault,
+    class VVAdder = VVDefault,
+    class Converter = ConvertDefault>
 class AggregateComp : public AggregateCompBase {
 
   // gets the operation tht extracts a key from an input object
@@ -217,7 +224,7 @@ class AggregateComp : public AggregateCompBase {
   }
 
   ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection, uint64_t numberOfPartitions) override {
-    return std::make_shared<pdb::PreaggregationSink<KeyClass, TempValueClass, ValueClass, VTAdder>>(consumeMe, projection, numberOfPartitions);
+    return std::make_shared<pdb::PreaggregationSink<KeyClass, TempValueClass, ValueClass, VTAdder, Converter>>(consumeMe, projection, numberOfPartitions);
   }
 
   ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID) override {

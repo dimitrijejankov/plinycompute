@@ -13,7 +13,8 @@ namespace pdb {
 //  But this raises an additional issue, because it needs to be a PDB Object and
 //  also a template class.
 /**
- * This is the interface for a class which has a single method, 'add'.
+ * This is the interface for a class which has a single method, 'add'. It is used
+ * by AggregateComp.
  * @tparam In1 Type of the first input.
  * @tparam In2 Type of the second input; defaults to In1.
  * @tparam Out Type of the object that results from adding In1 and In2. Defaults to In1.

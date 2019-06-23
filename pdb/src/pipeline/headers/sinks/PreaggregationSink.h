@@ -12,8 +12,24 @@
 
 namespace pdb {
 
+template<class KeyType, class TempValueType, class ValueType, class VTAdder, class Converter>
+class PreaggregationSink; // Forward definition for writeOutImpl
+
+/*
+ * This is a forward declaration for the implementation of method PreaggregationSink::writeOut.
+ * We need to write the implementation for this method as a separate function because we need
+ * to write different template specializations for the default VTAdder and Converter types.
+ * In C++ you're generally not allowed to specialize just a single method; you would need to
+ * specialize the entire class. See here: https://stackoverflow.com/a/16779361
+ */
+template<class KeyType, class TempValueType, class ValueType, class VTAdder, class Converter>
+void writeOutImpl(
+    PreaggregationSink<KeyType, TempValueType, ValueType, VTAdder, Converter>& thiss,
+    TupleSetPtr input,
+    Handle<Object> &writeToMe);
+
 // runs hashes all of the tuples
-template<class KeyType, class TempValueType, class ValueType, class VTAdder>
+template<class KeyType, class TempValueType, class ValueType, class VTAdder, class Converter>
 class PreaggregationSink : public ComputeSink {
 
  private:
@@ -26,10 +42,16 @@ class PreaggregationSink : public ComputeSink {
   size_t numPartitions;
 
   VTAdder vtadder; // Encapsulates function to add ValueType and TempValueType
+  Converter converter; // Encapsulates function to convert ValueType to TempValueType
 
  public:
 
-  PreaggregationSink(TupleSpec &inputSchema, TupleSpec &attsToOperateOn, size_t numPartitions) : numPartitions(numPartitions), vtadder() {
+  friend void writeOutImpl<KeyType, TempValueType, ValueType, VTAdder, Converter>(
+      PreaggregationSink<KeyType, TempValueType, ValueType, VTAdder, Converter>& thiss,
+      TupleSetPtr input,
+      Handle<Object> &writeToMe);
+
+  PreaggregationSink(TupleSpec &inputSchema, TupleSpec &attsToOperateOn, size_t numPartitions) : numPartitions(numPartitions), vtadder(), converter() {
     // TODO: if VTAdder becomes a PDB Object type, need to instantiate it here
     // to setup the output tuple set
     TupleSpec empty{};
@@ -60,6 +82,7 @@ class PreaggregationSink : public ComputeSink {
   }
 
   void writeOut(TupleSetPtr input, Handle<Object> &writeToMe) override {
+    writeOutImpl(*this, input, writeToMe);
 
     // cast the thing to the map of maps
     Handle<Vector<Handle<Map<KeyType, ValueType>>>> vectorOfMaps = unsafeCast<Vector<Handle<Map<KeyType, ValueType>>>>(writeToMe);
@@ -104,6 +127,8 @@ class PreaggregationSink : public ComputeSink {
           // Note: this will implicitly call ValueType's overloaded assignment operator to convert the
           // TempValueType to a ValueType
           *temp = tempValueColumn[i];
+          // OR:
+          converter.convert(tempValueColumn[i], temp);
 
           // if we could not fit the value...
         } catch (NotEnoughSpace &n) {
@@ -127,7 +152,6 @@ class PreaggregationSink : public ComputeSink {
 
         // and add to the old value, producing a new one
         try {
-          // TODO should there be a different definition when we just want to add numeric types without function overhead?
           temp = vtadder.add(copy, tempValueColumn[i]);
 
           // if we got here, then it means that we ram out of RAM when we were trying
