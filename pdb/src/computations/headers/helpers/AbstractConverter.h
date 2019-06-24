@@ -23,4 +23,7 @@ class AbstractConverter {
   virtual void convert(In& in, Out* out) = 0;
 };
 
+// This is a dummy class which serves no purpose other than being a type for template specialization.
+class ConvertDefault {};
+
 #endif //PDB_ABSTRACTCONVERTER_H

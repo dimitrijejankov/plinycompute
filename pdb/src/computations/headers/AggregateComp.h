@@ -37,11 +37,6 @@ class DefaultAdder : public AbstractAdder<In1, In2, Out> {
   }
 };
 
-// The following are dummy classes which serve no purpose other than being types for template specialization.
-class VTDefault {};
-class VVDefault {};
-class ConvertDefault {};
-
 // this aggregates items of type InputClass.  To aggregate an item, the result of getKeyProjection () is
 // used to extract a key from on input, and the result of getValueProjection () is used to extract a
 // value from an input.  Then, all values having the same key are aggregated using the += operation over values.

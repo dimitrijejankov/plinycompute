@@ -25,6 +25,11 @@ class AbstractAdder {
   virtual Out add(In1& in1, In2& in2) = 0;
 };
 
+
+// The following are dummy classes which serve no purpose other than being types for template specialization.
+class VTDefault {};
+class VVDefault {};
+
 }
 
 #endif //PDB_ABSTRACTADDER_H
