@@ -26,7 +26,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManag
   atomic_bool success;
   success = true;
 
-  /// 1. Run the aggregation pipeline, this runs after the preaggregation pipeline, but is started first.
+  /// 1. Run the broadcastjoin (merge) pipeline, this runs after the prebroadcastjoin pipelines, but is started first.
 
   // create the buzzer
   atomic_int joinCounter;
@@ -42,7 +42,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManag
     cnt++;
   });
 
-  // here we get a worker per pipeline and run all the broadcastjoinPipelines.
+  // here we get a worker per pipeline and run all the Broadcastjoin Pipelines.
   for (int workerID = 0; workerID < broadcastjoinPipelines->size(); ++workerID) {
 
     // get a worker from the server
@@ -62,7 +62,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManag
     worker->execute(myWork, joinBuzzer);
   }
 
-  /// 2. Run the self receiver so it can server pages to the aggregation pipeline
+  /// 2. Run the self receiver so it can server pages to the broadcastjoin pipeline
 
   // create the buzzer
   atomic_int selfRecDone;
@@ -80,7 +80,6 @@ bool pdb::PDBBroadcastForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManag
 
   // run the work
   {
-
     // make the work
     PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&selfRecDone, this](PDBBuzzerPtr callerBuzzer) {
 
@@ -138,12 +137,12 @@ bool pdb::PDBBroadcastForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManag
     storage->getWorker()->execute(myWork, sendersBuzzer);
   }
 
-  /// 4. Run the preaggregation, this step comes before the aggregation step
+  /// 4. Run the prebroadcastjoin, this step comes before the broadcastjoin (merge) step
 
   // create the buzzer
   atomic_int prejoinCounter;
   prejoinCounter = 0;
-  PDBBuzzerPtr preaggBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
+  PDBBuzzerPtr prejoinBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
 
     // did we fail?
     if (myAlarm == PDBAlarm::GenericError) {
@@ -154,7 +153,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManag
     cnt++;
   });
 
-  // here we get a worker per pipeline and run all the preaggregationPipelines.
+  // here we get a worker per pipeline and run all the prebroadcastjoinPipelines.
   for (int workerID = 0; workerID < prebroadcastjoinPipelines->size(); ++workerID) {
 
     // get a worker from the server
@@ -171,35 +170,33 @@ bool pdb::PDBBroadcastForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManag
     });
 
     // run the work
-    worker->execute(myWork, preaggBuzzer);
+    worker->execute(myWork, prejoinBuzzer);
   }
 
   /// 5. Do the waiting
 
-  // wait until all the preaggregationPipelines have completed
+  // wait until all the prebroadcastjoinpipelines have completed
   while (prejoinCounter < prebroadcastjoinPipelines->size()) {
-    preaggBuzzer->wait();
+    prejoinBuzzer->wait();
   }
-  std::cout<<"Running prejoinPipelines Done!"<< std::endl << std::endl << std::endl;
-  // ok they have finished now push a null page to each of the preagg queues
+
+  // ok they have finished now push a null page to each of the queues
   for (auto &queue : *pageQueues) { queue->enqueue(nullptr); }
 
   // wait while we are running the receiver
   while (selfRecDone == 0) {
     selfRefBuzzer->wait();
   }
-  std::cout << "Running selfRec Done!" << std::endl << std::endl << std::endl;
+
   // wait while we are running the senders
   while (sendersDone < senders->size()) {
     sendersBuzzer->wait();
   }
-  std::cout << "Running senders Done!" << std::endl << std::endl << std::endl;
-  // wait until all the aggregation pipelines have completed
+
+  // wait until all the broadcastjoin pipelines have completed
   while (joinCounter < broadcastjoinPipelines->size()) {
     joinBuzzer->wait();
   }
-
-  std::cout << "Running joinPipelines Done!" << std::endl << std::endl << std::endl;
 
   return true;
 }
@@ -213,7 +210,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
   logicalPlan = plan.getPlan();
 
   // init the logger
-  logger = make_shared<PDBLogger>("aggregationPipeAlgorithm" + std::to_string(job->computationID));
+  logger = make_shared<PDBLogger>("BroadcastJoinPipeAlgorithm" + std::to_string(job->computationID));
 
   /// 1. Figure out the source page set
 
@@ -228,8 +225,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
     return false;
   }
 
-  /// 2. Figure out the sink tuple set for the preaggregation (this will provide empty pages to the pipeline but we will
-  /// discard them since they will be processed by the PreaggregationPageProcessor and they won't stay around).
+  /// 2. Figure out the sink tuple set for the prebroadcastjoin.
 
   // get the sink page set
   auto intermediatePageSet = storage->createAnonymousPageSet(hashedToSend->pageSetIdentifier);
@@ -244,6 +240,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
   pageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
   for (int i = 0; i < job->numberOfNodes; ++i) { pageQueues->emplace_back(std::make_shared<PDBPageQueue>()); }
 
+  /// 4. Init the prebroadcastjoin pipeline parameters
   // figure out the join arguments
   auto joinArguments = getJoinArguments(storage);
 
@@ -262,6 +259,8 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
                                                       {ComputeInfoType::JOIN_ARGS, joinArguments},
                                                       {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)},
                                                       {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient)}};
+
+  /// 5. create the prebroadcastjoin pipelines
 
   // fill uo the vector for each thread
   prebroadcastjoinPipelines = std::make_shared<std::vector<PipelinePtr>>();
@@ -292,7 +291,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
   // set it to concurrent since each thread needs to use the same pages
   sinkPageSet->setAccessOrder(PDBAnonymousPageSetAccessPattern::CONCURRENT);
 
-  /// 6. Create the page set that contains the preaggregated pages for this node
+  /// 6. Create the page set that contains the prebroadcastjoin pages for this node
 
   // get the receive page set
   auto recvPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(hashedToRecv->pageSetIdentifier.first,
@@ -338,12 +337,12 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
     }
   }
 
-  /// 8. Create the aggregation pipeline
+  /// 8. Create the broadcastjoin pipeline
 
   broadcastjoinPipelines = std::make_shared<std::vector<PipelinePtr>>();
   for (uint64_t workerID = 0; workerID < job->numberOfProcessingThreads; ++workerID) {
 
-    // build the aggregation pipeline
+    // build the broadcastjoin pipeline
     auto joinbroadcastPipeline = plan.buildBroadcastJoinPipeline(finalTupleSet,
                                                                  recvPageSet,
                                                                  sinkPageSet,
@@ -351,7 +350,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
                                                                  job->numberOfNodes,
                                                                  workerID);
 
-    // store the aggregation pipeline
+    // store the broadcastjoin pipeline
     broadcastjoinPipelines->push_back(joinbroadcastPipeline);
   }
 

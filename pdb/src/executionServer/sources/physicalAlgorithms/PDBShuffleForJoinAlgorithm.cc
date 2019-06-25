@@ -178,7 +178,7 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
   logicalPlan = plan.getPlan();
 
   // init the logger
-  logger = make_shared<PDBLogger>("joinPipeAlgorithm" + std::to_string(job->computationID));
+  logger = make_shared<PDBLogger>("ShuffleJoinPipeAlgorithm" + std::to_string(job->computationID));
 
   /// 1. Figure out the source page set
 

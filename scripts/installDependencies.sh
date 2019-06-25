@@ -42,7 +42,7 @@ elif [[ "$OSTYPE" == "linux-gnu" ]]; then
     sudo apt-get -y install libsnappy1v5 libsnappy-dev
     sudo apt-get -y install libboost-dev libboost-program-options-dev libboost-filesystem-dev libboost-system-dev
     sudo apt-get -y install bison flex
-
+    sudo apt-get -y install clang
     sudo apt-get -y install libgtest-dev
 
     # todo:: remove this, unless you have to build it from scratch.

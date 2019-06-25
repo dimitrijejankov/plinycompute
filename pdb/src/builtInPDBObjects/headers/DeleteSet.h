@@ -19,6 +19,8 @@
 #ifndef DELETE_SET_H
 #define DELETE_SET_H
 
+#include "Object.h"
+#include "PDBString.h"
 #include <vector>
 #include <iostream>
 #include <memory>

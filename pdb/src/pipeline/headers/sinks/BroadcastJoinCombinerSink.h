@@ -22,7 +22,9 @@ class BroadcastJoinCombinerSink : public ComputeSink {
   //number of nodes
   uint64_t numNodes;
 
+  //number of threads on each node
   uint64_t numThreads;
+
   // the worker id
   uint64_t workerID;
 
@@ -59,6 +61,8 @@ class BroadcastJoinCombinerSink : public ComputeSink {
 
     for (int offset = 0; offset < numNodes; offset++) {
 
+      // calculate the JoinMap indexes.
+      // Combine all the JoinMaps with the same index. Index = NodeID(range from 0~numNodes-1) * numThreads + workerID
       auto joinMapIndex = offset * numThreads + workerID;
 
       auto &mergeMe = *(joinMapVector[joinMapIndex]);
