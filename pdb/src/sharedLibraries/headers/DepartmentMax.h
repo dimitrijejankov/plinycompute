@@ -10,6 +10,7 @@
 
 namespace pdb {
 class DepartmentMax : public Object {
+ public:
   int max;
   String departmentName;
 
