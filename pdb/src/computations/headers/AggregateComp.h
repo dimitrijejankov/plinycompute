@@ -66,7 +66,7 @@ class AggregateComp : public AggregateCompBase {
     int suffix = 0;
     Handle<InputClass> checkMe = nullptr;
     Lambda<KeyClass> keyLambda = getKeyProjection(checkMe);
-    Lambda<ValueClass> valueLambda = getValueProjection(checkMe);
+    Lambda<TempValueClass> valueLambda = getValueProjection(checkMe);
     keyLambda.toMap(returnVal, suffix);
     valueLambda.toMap(returnVal, suffix);
   }
@@ -162,7 +162,7 @@ class AggregateComp : public AggregateCompBase {
 
     PDB_COUT << "To GET TCAP STRING FOR AGGREGATE VALUE" << std::endl;
 
-    Lambda<ValueClass> valueLambda = getValueProjection(checkMe);
+    Lambda<TempValueClass> valueLambda = getValueProjection(checkMe);
     std::vector<std::string> columnsToKeep;
     columnsToKeep.push_back(addedColumnName);
 

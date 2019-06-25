@@ -8,6 +8,7 @@
 #include <Employee.h>
 #include <AggregateComp.h>
 #include <DepartmentMax.h>
+#include <LambdaCreationFunctions.h>
 #include <cmath>
 
 namespace pdb {
