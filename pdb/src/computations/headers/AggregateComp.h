@@ -29,14 +29,7 @@
 
 namespace pdb {
 
-template<class In1, class In2=In1, class Out=In1>
-class DefaultAdder : public AbstractAdder<In1, In2, Out> {
- public:
-  Out add(In1& in1, In2& in2) override {
-    return in1 + in2;
-  }
-};
-
+// TODO update this description with details of the new template params
 // this aggregates items of type InputClass.  To aggregate an item, the result of getKeyProjection () is
 // used to extract a key from on input, and the result of getValueProjection () is used to extract a
 // value from an input.  Then, all values having the same key are aggregated using the += operation over values.
