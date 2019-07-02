@@ -235,6 +235,9 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
                                                             job->numberOfProcessingThreads,
                                                             job->numberOfNodes);
 
+  // make sure we can use them all at the same time
+  recvPageSet->setUsagePolicy(PDBFeedingPageSetUsagePolicy::KEEP_AFTER_USED);
+
   // did we manage to get a page set where we receive this? if not the setup failed
   if(recvPageSet == nullptr) {
     return false;

@@ -2,6 +2,8 @@
 
 
 #include <assert.h>
+#include <PDBFeedingPageSet.h>
+
 #include "PDBFeedingPageSet.h"
 
 pdb::PDBFeedingPageInfo::PDBFeedingPageInfo(pdb::PDBPageHandle page, uint64_t numUsers, uint64_t timesServed)
@@ -33,8 +35,8 @@ pdb::PDBPageHandle pdb::PDBFeedingPageSet::getNextPage(size_t workerID) {
     return nullptr;
   }
 
-  // fix the last page
-  if(page != 0) {
+  // if the policy is that we remove them after they are being served then do just that
+  if(page != 0 && usagePolicy == PDBFeedingPageSetUsagePolicy::REMOVE_AFTER_USED) {
 
     // find the last page
     auto lastPage = pages.find(page - 1);
@@ -64,9 +66,13 @@ pdb::PDBPageHandle pdb::PDBFeedingPageSet::getNextPage(size_t workerID) {
   // this must always be true otherwise something is wrong
   assert(it != pages.end());
 
-  // update the stats for the served page
-  it->second.numUsers++;
-  it->second.timesServed++;
+  // we only need to update the stats iff we plan on removing them after they are used
+  if(usagePolicy == PDBFeedingPageSetUsagePolicy::REMOVE_AFTER_USED) {
+
+    // update the stats for the served page
+    it->second.numUsers++;
+    it->second.timesServed++;
+  }
 
   // repin and return the page
   it->second.page->repin();
@@ -112,4 +118,11 @@ void pdb::PDBFeedingPageSet::resetPageSet() {
   for_each(nextPageForWorker.begin(), nextPageForWorker.end(), [&](auto &page) {page = 0;});
 }
 
+void pdb::PDBFeedingPageSet::setUsagePolicy(pdb::PDBFeedingPageSetUsagePolicy policy) {
 
+  // lock the feeding page set
+  unique_lock<std::mutex> lck(m);
+
+  // set the policy
+  this->usagePolicy = policy;
+}
