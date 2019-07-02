@@ -202,8 +202,7 @@ int main(int argc, char *argv[]) {
       }
 
       /* Add the data for the dictionary. One wordID per entry. */
-      pdb::Handle<pdb::Vector<pdb::Handle<int>>> storeMeToo =
-          pdb::makeObject<pdb::Vector<pdb::Handle<int>>>();
+      pdb::Handle<pdb::Vector<pdb::Handle<int>>> storeMeToo = pdb::makeObject<pdb::Vector<pdb::Handle<int>>>();
       for (int i = 0; i < numWord; i++) {
         Handle<int> me = makeObject<int>(i);
         storeMeToo->push_back(me);

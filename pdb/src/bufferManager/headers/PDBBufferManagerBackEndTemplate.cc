@@ -373,7 +373,7 @@ void pdb::PDBBufferManagerBackEnd<T>::freeAnonymousPage(pdb::PDBPagePtr me) {
     unique_lock<std::mutex> lck(m);
 
     // remove if from all the pages
-    auto key = std::make_pair(me->whichSet, me->whichPage());
+    auto key = std::make_pair(std::make_shared<PDBSet>("", ""), me->whichPage());
 
     // just remove the page
     allPages.erase(key);
