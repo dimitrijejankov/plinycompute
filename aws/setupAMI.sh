@@ -1,5 +1,6 @@
 #!/bin/bash
 
+sudo apt-get update
 sudo apt install -y cmake
 
 # Python3 comes with Ubuntu Bionic: https://askubuntu.com/a/865569
