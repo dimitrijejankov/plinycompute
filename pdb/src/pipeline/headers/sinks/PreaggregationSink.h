@@ -35,20 +35,28 @@ class PreaggregationSink : public ComputeSink {
   // TODO document what's going on here
 
   // std::is_same<VTAdder, VTDefault>()
-  ValueType&& add(std::true_type, ValueType& v, TempValueType& t) {
+  template <class T = VTAdder>
+  typename std::enable_if<std::is_same<T, VTDefault>::value, ValueType&&>::type
+      add(ValueType& v, TempValueType& t) {
     return std::move(v + t);
   }
 
-  ValueType&& add(std::false_type, ValueType& v, TempValueType& t) {
+  template <class T = VTAdder>
+  typename std::enable_if<!std::is_same<T, VTDefault>::value, ValueType&&>::type
+      add(ValueType& v, TempValueType& t) {
     return std::move(vtadder.add(v, t));
   }
 
 //  std::is_same<Converter, ConvertDefault>()
-  void convert(std::true_type, TempValueType& in, ValueType* out) {
+  template <class T = Converter>
+  typename std::enable_if<std::is_same<T, ConvertDefault>::value, void>::type
+  convert(TempValueType& in, ValueType* out) {
     *out = in;
   }
 
-  void convert(std::false_type, TempValueType& in, ValueType* out) {
+  template <class T = Converter>
+  typename std::enable_if<!std::is_same<T, ConvertDefault>::value, void>::type
+  convert(TempValueType& in, ValueType* out) {
     converter.convert(in, out);
   }
 
@@ -130,7 +138,8 @@ class PreaggregationSink : public ComputeSink {
         // we were able to fit a new key/value pair, so copy over the value
         try {
           // Note: this is the first of only 2 lines that are changed.
-          convert(std::is_same<Converter, ConvertDefault>(), tempValueColumn[i], temp);
+//          convert(std::is_same<Converter, ConvertDefault>(), tempValueColumn[i], temp);
+          convert(tempValueColumn[i], temp);
 
           // if we could not fit the value...
         } catch (NotEnoughSpace &n) {
@@ -155,7 +164,8 @@ class PreaggregationSink : public ComputeSink {
         // and add to the old value, producing a new one
         try {
           // Note: this is the second of only 2 lines that are changed.
-          temp = add(std::is_same<VTAdder, VTDefault>(), copy, tempValueColumn[i]);
+//          temp = add(std::is_same<VTAdder, VTDefault>(), copy, tempValueColumn[i]);
+          temp = add(copy, tempValueColumn[i]);
 
           // if we got here, then it means that we ram out of RAM when we were trying
           // to put the new value into the hash table
