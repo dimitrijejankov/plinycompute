@@ -381,6 +381,11 @@ int main(int argc, char *argv[]) {
     myInitialScanSet = makeObject<ScanLDADocumentSet>("LDA_db", "LDA_input_set");
   }
 
+  // null this so that we can shutdown nicely
+  input1 = nullptr;
+  input2 = nullptr;
+  myInitialScanSet = nullptr;
+
   auto end = std::chrono::high_resolution_clock::now();
 
   /* Output the results as topic-word probability */
