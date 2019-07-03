@@ -29,6 +29,7 @@ foreach(file ${files})
     target_link_libraries(${fileName} pdb-tests-common)
     target_link_libraries(${fileName} ${GSL_LIBRARIES})
     target_link_libraries(${fileName} ${GTEST_BOTH_LIBRARIES} gmock ${CMAKE_THREAD_LIBS_INIT})
+    target_link_libraries(${fileName} ${Boost_LIBRARIES})
     target_compile_definitions(${fileName} PRIVATE -DGTEST_LINKED_AS_SHARED_LIBRARY )
 
     # add the test as a dependency of the unit test target

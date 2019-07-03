@@ -167,7 +167,7 @@ class PDBBufferManagerImpl : public PDBBufferManagerInterface {
    */
   void clearSet(const PDBSetPtr &set);
 
- protected:
+protected:
 
   /**
    * Checks if the file of the set is open if it is not then just open it, if it does not exist create it..

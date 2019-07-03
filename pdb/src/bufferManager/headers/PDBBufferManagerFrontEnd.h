@@ -88,7 +88,7 @@ public:
   // returns the backend
   PDBBufferManagerInterfacePtr getBackEnd();
 
-private:
+protected:
 
   // init the forwarding
   void initForwarding(pdb::PDBPageHandle &page);
