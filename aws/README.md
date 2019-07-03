@@ -1,5 +1,5 @@
 # AWS Setup
-This document exists to show what I have done to set up the AWS environment that I use for performance benchmarking. 
+This document exists to show what I have done to set up the AWS environment for performance benchmarking. It was written by Vicram Rajagopalan.
 ## VPC
 I set up a VPC using the steps [here](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/get-set-up-for-amazon-ec2.html#create-a-vpc). I first tried creating it in the N. Virginia region, but I got an error message saying "you've reached your limit of VPCs" or something like that, so I tried again with Ohio and it worked. **This means that you need to set your region to Ohio in order to use the VPC.**
 * I named the VPC "benchmarking".
@@ -22,5 +22,18 @@ It would be useful to have an AMI which has all of the necessary dependencies in
 * To minimize data storage costs, we need to ensure that the root EBS device for the AMI is as small as possible (we'll be using an ephemeral NVMe drive for the actual benchmarks; see section **Instance Type** below). But it needs to be big enough to store all the installed libraries we're using.
 * Should have the Plinycompute repo cloned already. However, note that because the AMI will be static, you should probably always do a `git pull` to make sure you're getting the most up-to-date version of the repo.
 * Also because the repo will likely be up-to-date, it's probably not worthwhile to build PDB before creating the AMI; users will likely have to rebuild everything.
+
+Given these constraints, I've created an AMI. Here are the steps I took to do this:
+1. Switched my region to Ohio and went to the EC2 Dashboard. (This is important because the AMI will only be available in the region you create it in, and you'll need to spend something like 2 cents per gigabyte to move it to a different region.)
+2. Selected the AMI: "Ubuntu Server 18.04 LTS (HVM), SSD Volume Type - ami-0c55b159cbfafe1f0 (64-bit x86)"
+3. Selected the t3.large instance type (2 cores, 8 GiB memory). This was mostly arbitrary, because the AMI will outlive the instance. I chose an instance that a) is cheap but probably has enough resources to install things quickly enough, and b) is EBS-only to ensure everything will be installed to the EBS disk.
+4. After clicking "Review and Launch" I clicked "Add Storage" and gave the root device 16 GiB to leave room for installed libraries and PDB binary files. This choice was fairly arbitrary.
+5. Ran the following commands:
+```
+git clone https://github.com/dimitrijejankov/plinycompute.git
+./plinycompute/aws/setupAMI.sh
+```
+6. Went to the EC2 Dashboard and created an AMI from the instance, naming it "PDB Benchmark Image". See [here](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/creating-an-ami-ebs.html) for details.
+7. Terminated the instance.
 
 ## Instance Type
