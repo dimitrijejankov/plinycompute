@@ -12,10 +12,11 @@ According to some of the documentation I've read, in order to use a VPC you may 
 ### Security Groups
 I'm under the impression that security groups are pretty important for setting up a cluster, because they determine what ports the instances are allowed to communicate on (among other things). Fortunately, this is set up by default: according to the documentation [here](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html#DefaultSecurityGroup), the VPC comes with a default security group that should allow instances to communicate with each other on any ports *as long as they are all in that security group*. 
 
-I have given the VPC's default security group the name "benchmarking-security-group".
+I have given the VPC's default security group the name "benchmarking-security-group", but when launching an instance the name will show up as "default".
 
 ## Launching an Instance
-See the documentation [here](https://docs.aws.amazon.com/vpc/latest/userguide/working-with-vpcs.html#VPC_Launch_Instance). I won't repeat the steps here because they're spelled out in the link, but basically to launch an EC2 instance into the VPC, you select the AMI/instance type as usual, then under "Configure Instance Details" you select the desired VPC, subnet, and security group.
+See the documentation [here](https://docs.aws.amazon.com/vpc/latest/userguide/working-with-vpcs.html#VPC_Launch_Instance). I won't repeat the steps here because they're spelled out in the link, but basically to launch an EC2 instance into the VPC, you select the AMI/instance type as usual, then under "Configure Instance Details" you select the desired VPC, subnet, and security group. However, you also have to override the "Auto-assign Public IP" setting and set it to "Enable".
+TODO mention # of instances
 
 ## Creating the AMI
 It would be useful to have an AMI which has all of the necessary dependencies installed, so we don't need to start from scratch every time we want to benchmark. Here are all the requirements/constraints I can think of for the AMI:
@@ -24,7 +25,7 @@ It would be useful to have an AMI which has all of the necessary dependencies in
 * Also because the repo will likely be up-to-date, it's probably not worthwhile to build PDB before creating the AMI; users will likely have to rebuild everything.
 
 Given these constraints, I've created an AMI. Here are the steps I took to do this:
-1. Switched my region to Ohio and went to the EC2 Dashboard. (This is important because the AMI will only be available in the region you create it in, and you'll need to spend something like 2 cents per gigabyte to move it to a different region.)
+1. Switched my region to Ohio and went to the EC2 Dashboard. (This is important because the AMI will only be available in the region you create it in, and you'll need to spend something like [2 cents per gigabyte](https://datapath.io/resources/blog/what-are-aws-data-transfer-costs-and-how-to-minimize-them/) to move it to a different region.)
 2. Selected the AMI: "Ubuntu Server 18.04 LTS (HVM), SSD Volume Type - ami-0c55b159cbfafe1f0 (64-bit x86)"
 3. Selected the t3.large instance type (2 cores, 8 GiB memory). This was mostly arbitrary, because the AMI will outlive the instance. I chose an instance that a) is cheap but probably has enough resources to install things quickly enough, and b) is EBS-only to ensure everything will be installed to the EBS disk.
 4. After clicking "Review and Launch" I clicked "Add Storage" and gave the root device 16 GiB to leave room for installed libraries and PDB binary files. This choice was fairly arbitrary.
