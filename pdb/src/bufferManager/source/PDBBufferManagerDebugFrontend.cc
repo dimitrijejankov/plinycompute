@@ -38,34 +38,49 @@ void PDBBufferManagerDebugFrontend::logTimeline() {
   // write out the tick
   write(debugTimelineFile, &tick, sizeof(tick));
 
-  // write out the number of pages and the number of empty slots
-  uint64_t numPages = allPages.size();
+  // write out the number of pages
+  uint64_t numPages = 0;
+  for(const auto &pages : constituentPages) { numPages += pages.second.size(); }
   write(debugTimelineFile, &numPages, sizeof(numPages));
 
   // write out the page info
-  for(const auto &page : allPages) {
+  for(const auto &pages : constituentPages) {
 
-    // write out the database name
-    tmp = page.first.first->getDBName().size();
-    write(debugTimelineFile, &tmp, sizeof(tmp));
-    write(debugTimelineFile, page.first.first->getDBName().c_str(), tmp);
+    // write out all the mini pages
+    for(const auto &page : pages.second) {
 
-    // write out the set name
-    tmp = page.first.first->getSetName().size();
-    write(debugTimelineFile, &tmp, sizeof(tmp));
-    write(debugTimelineFile, page.first.first->getSetName().c_str(), tmp);
+      // if this is an not anonmous page
+      if(page->getSet() != nullptr) {
 
-    // write out the page number
-    tmp = page.first.second;
-    write(debugTimelineFile, &tmp, sizeof(tmp));
+        // write out the database name
+        tmp = page->getSet()->getDBName().size();
+        write(debugTimelineFile, &tmp, sizeof(tmp));
+        write(debugTimelineFile, page->getSet()->getDBName().c_str(), tmp);
 
-    // grab the offset
-    int64_t offset = page.second->getBytes() != nullptr ? (int64_t)page.second->getBytes() - (int64_t)sharedMemory.memory : -1;
-    write(debugTimelineFile, &offset, sizeof(offset));
+        // write out the set name
+        tmp = page->getSet()->getSetName().size();
+        write(debugTimelineFile, &tmp, sizeof(tmp));
+        write(debugTimelineFile, page->getSet()->getSetName().c_str(), tmp);
+      } else {
 
-    // grab the page size
-    tmp = page.second->getSize();
-    write(debugTimelineFile, &tmp, sizeof(tmp));
+        // write out zeros twice, meaning both strings are empty
+        tmp = 0;
+        write(debugTimelineFile, &tmp, sizeof(tmp));
+        write(debugTimelineFile, &tmp, sizeof(tmp));
+      }
+
+      // write out the page number
+      tmp = page->whichPage();
+      write(debugTimelineFile, &tmp, sizeof(tmp));
+
+      // grab the offset
+      uint64_t offset = (uint64_t) page->getBytes() - (uint64_t)sharedMemory.memory;
+      write(debugTimelineFile, &offset, sizeof(offset));
+
+      // grab the page size
+      tmp = page->getSize();
+      write(debugTimelineFile, &tmp, sizeof(tmp));
+    }
   }
 
   // write out the number of empty mini pages
@@ -83,7 +98,7 @@ void PDBBufferManagerDebugFrontend::logTimeline() {
     for(const auto &emptyPage : emptyMiniPages[i]) {
 
       // figure out the offset
-      int64_t offset = (int64_t)emptyPage - (int64_t)sharedMemory.memory;
+      uint64_t offset = (uint64_t)emptyPage - (uint64_t)sharedMemory.memory;
       write(debugTimelineFile, &offset, sizeof(offset));
 
       // empty full page has the maximum page size
