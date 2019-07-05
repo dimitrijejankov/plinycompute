@@ -38,28 +38,18 @@ public:
     initDebug((dataPath / "debug.dt").string());
   }
 
-private:
+protected:
 
-  void initDebug(const std::string &timelineDebugFile) {
+  void logGetPage(const PDBSetPtr &whichSet, uint64_t i) override;
+  void logGetPage(size_t minBytes) override;
+  void logFreezeSize(const PDBPagePtr &me, size_t numBytes) override;
+  void logUnpin(const PDBPagePtr &me) override;
+  void logRepin(const PDBPagePtr &me) override;
+  void logFreeAnonymousPage(const PDBPagePtr &me) override;
+  void logDownToZeroReferences(const PDBPagePtr &me) override;
+  void logClearSet(const PDBSetPtr &set) override;
 
-
-    // open debug file
-    debugTimelineFile = open(timelineDebugFile.c_str(), O_CREAT | O_RDWR, 0666);
-
-    // check if we actually opened the file
-    if (debugTimelineFile == 0) {
-      exit(-1);
-    }
-
-    // write out the magic number
-    write(debugTimelineFile, &DEBUG_MAGIC_NUMBER, sizeof(DEBUG_MAGIC_NUMBER));
-
-    // write out the number of pages
-    write(debugTimelineFile, &sharedMemory.numPages, sizeof(sharedMemory.numPages));
-
-    // write out the page size
-    write(debugTimelineFile, &sharedMemory.pageSize, sizeof(sharedMemory.pageSize));
-  }
+  void initDebug(const std::string &timelineDebugFile);
 
   /**
    * Writes out the state of the buffer manager at this time
@@ -79,50 +69,13 @@ private:
    * offset is 8 bytes signed, it is -1 if the page is not loaded, otherwise it is the offset from the start of the memory
    * page size is 8 bytes, indicates the size of the page
    *
-   * 8 bytes as "numUnused" - the number of unused mini pages.
+   * 8 bytes as "numUnused" - the number of unused mini pages
+   *
+   * every page that is not listed here or in the previous allocated pages  is not used.
    * numUnused times ( 8 bytes signed for the offset of the unused page |  8 bytes for the size of the page)
    *
    */
-  void logTimeline() {
-
-    // lock the timeline file
-    std::unique_lock<std::mutex> lck(m);
-
-    // increment the debug tick
-    uint64_t tick = debugTick++;
-
-    // write out the tick
-    write(debugTimelineFile, &tick, sizeof(tick));
-
-    // write out the number of pages and the number of empty slots
-    uint64_t numPages = allPages.size();
-    write(debugTimelineFile, &numPages, sizeof(numPages));
-
-    // write out the page info
-    for(const auto &page : allPages) {
-
-      uint64_t tmp;
-
-      // write out the database name
-      tmp = page.first.first->getDBName().size();
-      write(debugTimelineFile, &tmp, sizeof(tmp));
-      write(debugTimelineFile, page.first.first->getDBName().c_str(), tmp);
-
-      // write out the set name
-      tmp = page.first.first->getSetName().size();
-      write(debugTimelineFile, &tmp, sizeof(tmp));
-      write(debugTimelineFile, page.first.first->getSetName().c_str(), tmp);
-
-      // write out the page number
-      tmp = page.first.second;
-      write(debugTimelineFile, &tmp, sizeof(tmp));
-
-      // grab the offset
-      int64_t offset = page.second->getBytes() != nullptr ? (int64_t)page.second->getBytes() - (int64_t)sharedMemory.memory : -1;
-      write(debugTimelineFile, &offset, sizeof(offset));
-    }
-
-  }
+  void logTimeline();
 
   /**
    * The lock we made
@@ -132,7 +85,7 @@ private:
   /**
    * The tick so we can order events
    */
-  atomic_uint64_t debugTick;
+  uint64_t debugTick = 0;
 
   /**
    * The file we are going to write all the debug timeline files

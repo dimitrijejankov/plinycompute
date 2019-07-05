@@ -95,6 +95,9 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
 
+  // log the clear set
+  logClearSet(set);
+
   // close the file if open
   auto fd = fds.find(set);
   if(fd != fds.end()) {
@@ -410,6 +413,9 @@ void PDBBufferManagerImpl::freeAnonymousPage(PDBPagePtr me) {
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
 
+  // log free anonymous page set
+  logFreeAnonymousPage(me);
+
   // is this removal still valid if it is not we do nothing
   if (!isRemovalStillValid(me)) {
     return;
@@ -461,6 +467,9 @@ void PDBBufferManagerImpl::downToZeroReferences(PDBPagePtr me) {
   if (!isRemovalStillValid(me)) {
     return;
   }
+
+  // log the down to zero
+  logDownToZeroReferences(me);
 
   // first, see whether we are actually buffered in RAM
   if (me->getBytes() == nullptr) {
@@ -657,21 +666,26 @@ void PDBBufferManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes) {
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
 
+  // log the freeze size
+  logFreezeSize(me, numBytes);
+
   // do the actual freezing
   freezeSize(me, numBytes, lock);
 }
 
 void PDBBufferManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes, unique_lock<mutex> &lock) {
 
+  // if the page is frozen
   if (me->sizeIsFrozen()) {
     std::cerr << "You cannot freeze the size of a page twice.\n";
     exit(1);
   }
 
+  // set the indicator of the page to frozen
   me->freezeSize();
 
+  // figure out the size and set it
   size_t bytesRequired = getLogPageSize(numBytes);
-
   me->getLocation().numBytes = bytesRequired;
 }
 
@@ -680,12 +694,16 @@ void PDBBufferManagerImpl::unpin(PDBPagePtr me) {
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
 
+  // log the unpin
+  logUnpin(me);
+
   // unlock the page
   unpin(me, lock);
 }
 
 void PDBBufferManagerImpl::unpin(PDBPagePtr me, unique_lock<mutex> &lock) {
 
+  // if it is not pinned no need to unpin it..
   if (!me->isPinned()) {
     return;
   }
@@ -766,6 +784,9 @@ void PDBBufferManagerImpl::repin(PDBPagePtr me) {
 
   // wait while the page is loading
   pagesCV.wait(lock, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_UNLOADING); });
+
+  // log the repin
+  logRepin(me);
 
   // call the actual repin function
   repin(me, lock);
@@ -854,6 +875,9 @@ PDBPageHandle PDBBufferManagerImpl::getPage(size_t maxBytes) {
 
   // lock the buffer manager
   unique_lock<mutex> lock(m);
+
+  // log the get page
+  logGetPage(maxBytes);
 
   // figure out the size of the page that we need
   size_t bytesRequired = getLogPageSize(maxBytes);
@@ -962,6 +986,9 @@ PDBPageHandle PDBBufferManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
       // mark the page as loaded
       page->status = PDB_PAGE_LOADED;
 
+      // log the get page
+      logGetPage(whichSet, i);
+
       // notify all waiting conditional variables
       lock.unlock();
       pagesCV.notify_all();
@@ -1017,12 +1044,14 @@ PDBPageHandle PDBBufferManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
         exit(1);
       }
 
-
       // finished working on the thing lock it
       lock.lock();
 
       // mark the page as loaded
       page->status = PDB_PAGE_LOADED;
+
+      // log the get page
+      logGetPage(whichSet, i);
 
       // notify all waiting conditional variables
       lock.unlock();
@@ -1042,6 +1071,9 @@ PDBPageHandle PDBBufferManagerImpl::getPage(PDBSetPtr whichSet, uint64_t i) {
 
   // wait while the page is loading
   pagesCV.wait(lock, [&] { return !(page->status == PDB_PAGE_LOADING || page->status == PDB_PAGE_UNLOADING); });
+
+  // log the get page
+  logGetPage(whichSet, i);
 
   // it is there, so return it
   repin(page, lock);
