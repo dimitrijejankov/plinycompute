@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# NOTE: This script assumes that the current working directory is the top-level plinycompute directory.
+
 sudo apt-get update
 sudo apt install -y cmake
 
