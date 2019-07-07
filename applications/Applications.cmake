@@ -20,10 +20,4 @@ endfunction(add_pdb_application)
 include(${PROJECT_SOURCE_DIR}/applications/TestLDA/CMakeLists.txt)
 include(${PROJECT_SOURCE_DIR}/applications/TestGMM/CMakeLists.txt)
 include(${PROJECT_SOURCE_DIR}/applications/TestLinearAlgebra/CMakeLists.txt)
-
-# Add BenchAggregationBalanced and its shared libraries
-add_pdb_application(BenchAggregationBalanced)
-# Note: these shared libraries are in pdb/src/sharedLibraries
-add_dependencies(BenchAggregationBalanced SillyAgg)
-add_dependencies(BenchAggregationBalanced ScanEmployeeSet)
-add_dependencies(BenchAggregationBalanced WriteDepartmentTotal)
+include(${PROJECT_SOURCE_DIR}/applications/BenchAggregationBalanced/CMakeLists.txt)
