@@ -13,6 +13,12 @@
 
 namespace pdb {
 
+enum class PDBFeedingPageSetUsagePolicy {
+
+  REMOVE_AFTER_USED,
+  KEEP_AFTER_USED
+};
+
 class PDBFeedingPageSet;
 using PDBFeedingPageSetPtr = std::shared_ptr<pdb::PDBFeedingPageSet>;
 
@@ -47,7 +53,7 @@ struct PDBFeedingPageInfo {
  */
 class PDBFeedingPageSet : public PDBAbstractPageSet {
 
-public:
+ public:
 
   /**
    * Initializes the feeding page set
@@ -55,6 +61,12 @@ public:
    * @param numFeeders - how many threads are going to feed pages into it
    */
   PDBFeedingPageSet(uint64_t numReaders, uint64_t numFeeders);
+
+  /**
+   * Specifies what to do we do with the pages once all the readers are done accessing?
+   * @param policy
+   */
+  void setUsagePolicy(PDBFeedingPageSetUsagePolicy policy);
 
   /**
    * Returns the next page for are particular worker. This is a blocking method, and it will stall until we get a page,
@@ -94,6 +106,11 @@ public:
   void resetPageSet() override;
 
  private:
+
+  /**
+   * What do we do with the pages once all the readers are done accessing?
+   */
+  PDBFeedingPageSetUsagePolicy usagePolicy = PDBFeedingPageSetUsagePolicy::REMOVE_AFTER_USED;
 
   /**
    * Keeps track of all anonymous pages so that we can quickly remove them

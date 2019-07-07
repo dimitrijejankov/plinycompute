@@ -160,6 +160,9 @@ class VectorTupleSetIterator : public ComputeSource {
         return nullptr;
       }
 
+      // repin the page
+      curPage->repin();
+
       // extract the vector from the first page if there is no page just set it to null
       curRec = (Record<Vector<Handle<Object>>> *) curPage->getBytes();
 
