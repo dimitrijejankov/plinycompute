@@ -10,6 +10,10 @@
  *
  * We measure time using wall-clock time in order to accurately capture the latency of
  * the cluster.
+ *
+ * It is important to note that the benchmarks are done sequentially on the same cluster
+ * without restarting any of the nodes. This means that earlier tests could potentially
+ * alter the performance of later tests.
  */
 
 #include <cstdlib>
@@ -40,56 +44,19 @@
 static const std::string managerHostname("localhost");
 static const int managerPort = 8108;
 
-/**
- * Wraps the Linux system(3) built-in function: https://linux.die.net/man/3/system
- * If the command exits with nonzero status, this function terminates the program.
- * Otherwise it will return silently.
- * @param command Command to be executed
- */
-static void systemwrap(const char *command) {
-  int status = system(command);
-  if (status) {
-    std::cout << "Command '" << command << "' exited with status " << status << "!" << std::endl;
-    std::cout << "Now exiting" << std::endl;
-    exit(1);
-  }
-}
-
-
 static std::unique_ptr<std::vector<std::chrono::duration<double, std::milli>>>
 BenchAggregationBalanced(const int numDepartments,
                          const int totalNumEmployees,
                          const int numReps,
-                         const bool validate,
-                         const bool standalone) {
+                         const bool validate) {
   assert(numDepartments > 0);
   assert(totalNumEmployees > 0);
   assert(numReps > 0);
-  if (!standalone) {
-    std::cout << "Only standalone mode works at this time. Please call with standalone=true" << std::endl;
-    exit(1);
-  }
+
+  std::cout << "Now beginning benchmark of " << numReps << " reps for " << numDepartments << " departments and " << totalNumEmployees << " employees." << std::endl;
+
   /// First is the setup code (won't be timed)
-  // Start the server
-  std::cout << "Starting manager node" << std::endl;
-  if (!fork()) {
-    int result = execl("./bin/pdb-node", "-m", (char *)NULL);
-    assert(result == -1);
-    std::cout << "The first fork failed. errno is " << errno << std::endl;
-    exit(3);
-  }
-  // Wait 10 seconds
-  std::this_thread::sleep_for(std::chrono::seconds(20));
-  if (standalone) {
-    std::cout << "Starting 1 worker node" << std::endl;
-    if (!fork()) {
-      int result = execl("./bin/pdb-node", "-p", "8109", "-r", "./pdbRootW1", (char *)NULL);
-      assert(result == -1);
-      std::cout << "The second fork failed. errno is " << errno << std::endl;
-      exit(4);
-    }
-    std::this_thread::sleep_for(std::chrono::seconds(30));
-  }
+
   // Set up client
 
   pdb::PDBClient pdbClient(managerPort, managerHostname);
@@ -100,9 +67,10 @@ BenchAggregationBalanced(const int numDepartments,
   pdbClient.registerType("libraries/libWriteDepartmentTotal.so");
 
   // Create DB and sets
-  const std::string dbname("BenchAggregationBalancedDB");
-  const std::string inputSet("BenchAggregationBalancedInputSet");
-  const std::string outputSet("BenchAggregationBalancedOutputSet");
+  const std::string suffix = std::to_string(numDepartments) + std::string("_") + std::to_string(totalNumEmployees);
+  const std::string dbname = std::string("BenchAggregationBalancedDB") + suffix;
+  const std::string inputSet = std::string("BenchAggregationBalancedInputSet") + suffix;
+  const std::string outputSet = std::string("BenchAggregationBalancedOutputSet") + suffix;
   pdbClient.createDatabase(dbname);
   pdbClient.createSet<pdb::Employee>(dbname, inputSet);
   pdbClient.createSet<pdb::DepartmentTotal>(dbname, outputSet);
@@ -144,7 +112,6 @@ BenchAggregationBalanced(const int numDepartments,
       pdb::makeObjectAllocatorBlock(1024 * 1024, true);
     }
   }
-//  pdbClient.flushData();
 
   /// Finally, run the work loop
   // Here we're allocating the vector that will be returned
@@ -224,9 +191,9 @@ BenchAggregationBalanced(const int numDepartments,
     pdbClient.clearSet(dbname, outputSet);
 
   }
-  /// Finally, shut down server.
-  std::cout << "Finished the work loop. Now shutting down server." << std::endl;
-  pdbClient.shutDownServer();
+  pdbClient.removeSet(dbname, inputSet);
+  pdbClient.removeSet(dbname, outputSet);
+
   return times;
 }
 
@@ -237,7 +204,6 @@ int main(int argc, char *argv[]) {
   // http://www.radmangames.com/programming/how-to-use-boost-program_options
   int numReps;
   bool validate;
-  bool standalone ;
   try {
     /** Define and parse the program options
      */
@@ -246,8 +212,7 @@ int main(int argc, char *argv[]) {
     desc.add_options()
         ("help,h", "Prints usage information")
         ("numreps,n", po::value<int>(&numReps)->default_value(5), "Number of times the Aggregation is repeated for each numDepartments/totalNumEmployees combination")
-        ("validate,v", po::bool_switch(&validate), "Every rep, iterate over the aggregated output and check whether it looks correct")
-        ("standalone,s", po::bool_switch(&standalone), "Run the cluster in standalone mode");
+        ("validate,v", po::bool_switch(&validate), "Every rep, iterate over the aggregated output and check whether it looks correct");
 
     po::variables_map vm;
     try {
@@ -271,8 +236,23 @@ int main(int argc, char *argv[]) {
 
   std::vector<std::pair<int, int>> column_values; // Contains pairs of (numDepartments, totalNumEmployees)
 #define ADDPAIR(x,y) column_values.push_back(std::make_pair<int,int>((x), (y)))
+  // NOTE: modify combinations here if desired
   ADDPAIR(100, 10000);
   ADDPAIR(50, 50000);
+  ADDPAIR(1000, 100000);
+  ADDPAIR(1000, 1000000);
+  ADDPAIR(1000, 10000000);
+  ADDPAIR(1000, 100000000);
+  ADDPAIR(1000, 1000000000);
+  ADDPAIR(2000, 1000000000);
+  ADDPAIR(10000, 1000000000);
+  ADDPAIR(100000, 1000000000);
+  ADDPAIR(1000000, 1000000000);
+
+  std::cout << "Combinations that will be benchmarked:" << std::endl;
+  for (auto elem : column_values) {
+    std::cout << elem.first << " departments and " << elem.second << "employees" << std::endl;
+  }
 
   auto numcols = column_values.size();
   double table[numReps][numcols];
@@ -281,7 +261,7 @@ int main(int argc, char *argv[]) {
 
   for(int col = 0; col < numcols; ++col) {
     std::pair<int,int> elem = column_values[col];
-    auto vectorOfDurations = BenchAggregationBalanced(elem.first, elem.second, numReps, validate, standalone);
+    auto vectorOfDurations = BenchAggregationBalanced(elem.first, elem.second, numReps, validate);
     for(int row = 0; row < numReps; ++row) {
       std::chrono::duration<double, std::milli> d = (*vectorOfDurations)[row];
       double ms = d.count();
