@@ -24,8 +24,8 @@ lsblk
 
 cd ..
 mkdir nvme
-sudo mkfs.ext3 /dev/nvme1n1 # about 20-30 seconds. Note: shouldn't be asking for permission, if it does then nvme1n1 is the wrong argument
-sudo mount /dev/nvme1n1 nvme
+sudo mkfs.ext3 /dev/$1 # about 20-30 seconds. Note: shouldn't be asking for permission, if it does then nvme1n1 is the wrong argument
+sudo mount /dev/$1 nvme
 cd nvme
 sudo chmod 777 -R .
 
