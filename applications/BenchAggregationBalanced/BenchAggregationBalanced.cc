@@ -44,7 +44,7 @@
 static const std::string managerHostname("localhost");
 static const int managerPort = 8108;
 
-static std::unique_ptr<std::vector<std::chrono::duration<double, std::milli>>>
+static std::unique_ptr<std::vector<std::chrono::duration<double>>>
 BenchAggregationBalanced(const int numDepartments,
                          const int totalNumEmployees,
                          const int numReps,
@@ -115,8 +115,8 @@ BenchAggregationBalanced(const int numDepartments,
 
   /// Finally, run the work loop
   // Here we're allocating the vector that will be returned
-  std::unique_ptr<std::vector<std::chrono::duration<double, std::milli>>>
-      times = std::make_unique<std::vector<std::chrono::duration<double, std::milli>>>(numReps);
+  std::unique_ptr<std::vector<std::chrono::duration<double>>>
+      times = std::make_unique<std::vector<std::chrono::duration<double>>>(numReps);
   std::cout << "Now starting the work loop!" << std::endl;
   for(int rep = 0; rep < numReps; ++rep) {
     // We don't want to measure setup time here, only time to execute the computations
@@ -138,13 +138,12 @@ BenchAggregationBalanced(const int numDepartments,
     pdbClient.executeComputations({writeComp});
     auto end = std::chrono::system_clock::now();
 
-    // The type parameters here are: the numerical type used to store the
-    // duration, and the period (in seconds) of this duration's unit.
-    // Because std::milli represents 1/1000, this number is in units of
-    // 1/1000 seconds, or milliseconds.
+    // The type parameters for std::chrono::duration are: the numerical type used to store the
+    // duration, and the period (in seconds) of this duration's unit. The default period is 1,
+    // so to get a duration in seconds we only need to specify the type.
     // https://en.cppreference.com/w/cpp/chrono/duration
-    std::chrono::duration<double, std::milli> millis = end - start;
-    (*times)[rep] = millis;
+    std::chrono::duration<double> seconds = end - start;
+    (*times)[rep] = seconds;
 
     if (validate) {
       // Because the employees were distributed round-robin to departments,
@@ -251,21 +250,21 @@ int main(int argc, char *argv[]) {
 
   std::cout << "Combinations that will be benchmarked:" << std::endl;
   for (auto elem : column_values) {
-    std::cout << elem.first << " departments and " << elem.second << "employees" << std::endl;
+    std::cout << elem.first << " departments and " << elem.second << " employees" << std::endl;
   }
 
   auto numcols = column_values.size();
   double table[numReps][numcols];
-  // Each column in table holds numReps doubles, which are the times (in milliseconds)
+  // Each column in table holds numReps doubles, which are the times (in seconds)
   // of all the reps for that column's numDepartments and totalNumEmployees values.
 
   for(int col = 0; col < numcols; ++col) {
     std::pair<int,int> elem = column_values[col];
     auto vectorOfDurations = BenchAggregationBalanced(elem.first, elem.second, numReps, validate);
     for(int row = 0; row < numReps; ++row) {
-      std::chrono::duration<double, std::milli> d = (*vectorOfDurations)[row];
-      double ms = d.count();
-      table[row][col] = ms;
+      std::chrono::duration<double> d = (*vectorOfDurations)[row];
+      double secs = d.count();
+      table[row][col] = secs;
     }
   }
 
@@ -275,7 +274,7 @@ int main(int argc, char *argv[]) {
             << "the number of departments, and the second number is the "
             << "total number of employees in all departments. Each department "
             << "has the same number of employees." << std::endl;
-  std::cout << "The rows are the time, in milliseconds, that it took to run the "
+  std::cout << "The rows are the time, in seconds, that it took to run the "
             << "Aggregation. The same Aggregation is run num_rows times on the same "
             << "instance of PDB, and the times are listed in order from top to bottom." << std::endl;
   std::cout << "All whitespace should be ignored when parsing the table as a CSV." << std::endl;
