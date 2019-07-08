@@ -23,21 +23,22 @@ elseif (UNIX AND NOT APPLE)
     set(CMAKE_CXX_FLAGS "-fPIC -Wno-deprecated-declarations")
 endif ()
 
+
 # if we are compiling for debug add the debug flags
-if(CMAKE_BUILD_TYPE MATCHES DEBUG)
+if(CMAKE_BUILD_TYPE MATCHES Debug)
 
     # this is to make the standard lib object readable in the debugger, this will require a boost library compiled for that
     # you can provide it with -DUSE_CUSTOM_BOOST=ON and -DCUSTOM_BOOST_LOCATION=/path/to/boost
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -D_GLIBCXX_DEBUG") #TODO write a proper script that gets boost 1.7 and compiles it with these flags
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG_BUFFER_MANAGER -g")
+    set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS}")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS}")
 
 # if we are compiling for release
 elseif(CMAKE_BUILD_TYPE MATCHES RELEASE)
 
     # do -O3 and set the instruction set to the native one for this machine
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
-    set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -rdynamic")
-    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -rdynamic")
 
 # if we are compiling the unit tests
 elseif(CMAKE_BUILD_TYPE MATCHES UNIT_TESTS)

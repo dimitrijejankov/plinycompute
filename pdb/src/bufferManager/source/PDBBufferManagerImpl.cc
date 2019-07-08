@@ -684,8 +684,14 @@ void PDBBufferManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes, unique_loc
   // set the indicator of the page to frozen
   me->freezeSize();
 
-  // figure out the size and set it
+  // figure out the size
   size_t bytesRequired = getLogPageSize(numBytes);
+  if(bytesRequired > me->getLocation().numBytes) {
+    std::cerr << "You cannot freeze to a size of a page grater than the size you requested!\n";
+    exit(-1);
+  }
+
+  // set the page size
   me->getLocation().numBytes = bytesRequired;
 }
 
