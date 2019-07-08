@@ -91,7 +91,7 @@ BenchAggregationBalanced(const int numDepartments,
   }
 
   // Next, allocate the Employees and send them to storage.
-  pdb::makeObjectAllocatorBlock(1024 * 1024, true); // 1 MiB
+  pdb::makeObjectAllocatorBlock(1024 * 1024 * 1024, true); // 1 GiB
   int employeesSent = 0;
   while(employeesSent < totalNumEmployees) {
     pdb::Handle<pdb::Vector<pdb::Handle<pdb::Employee>>> toSend =
@@ -109,7 +109,7 @@ BenchAggregationBalanced(const int numDepartments,
       pdbClient.sendData<pdb::Employee>(dbname, inputSet, toSend);
     } catch (pdb::NotEnoughSpace& e) {
       pdbClient.sendData<pdb::Employee>(dbname, inputSet, toSend);
-      pdb::makeObjectAllocatorBlock(1024 * 1024, true);
+      pdb::makeObjectAllocatorBlock(1024 * 1024 * 1024, true);
     }
   }
 
