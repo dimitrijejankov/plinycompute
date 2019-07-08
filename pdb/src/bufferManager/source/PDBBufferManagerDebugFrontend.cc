@@ -1,3 +1,5 @@
+#ifdef DEBUG_BUFFER_MANAGER
+
 #include "PDBBufferManagerDebugFrontend.h"
 
 namespace pdb {
@@ -7,7 +9,7 @@ const uint64_t PDBBufferManagerDebugFrontend::DEBUG_MAGIC_NUMBER = 10202026;
 void PDBBufferManagerDebugFrontend::initDebug(const std::string &timelineDebugFile) {
 
   // open debug file
-  debugTimelineFile = open(timelineDebugFile.c_str(), O_CREAT | O_RDWR, 0666);
+  debugTimelineFile = open(timelineDebugFile.c_str(), O_CREAT | O_TRUNC | O_RDWR, 0666);
 
   // check if we actually opened the file
   if (debugTimelineFile == 0) {
@@ -83,12 +85,23 @@ void PDBBufferManagerDebugFrontend::logTimeline() {
     }
   }
 
-  // write out the number of empty mini pages
-  uint64_t numEmptyPages = 0;
+  // write out the number of empty pages
+  uint64_t numEmptyPages = emptyFullPages.size();
   for(const auto &miniPages : emptyMiniPages) { numEmptyPages += miniPages.size();}
   write(debugTimelineFile, &numEmptyPages, sizeof(numEmptyPages));
 
   // write out the empty full pages
+  for(const auto &emptyFullPage : emptyFullPages) {
+
+    // figure out the offset
+    uint64_t offset = (uint64_t)emptyFullPage - (uint64_t)sharedMemory.memory;
+    write(debugTimelineFile, &offset, sizeof(offset));
+
+    // empty full page has the maximum page size
+    write(debugTimelineFile, &sharedMemory.pageSize, sizeof(sharedMemory.pageSize));
+  }
+
+  // write out the empty mini pages
   for(auto i = 0; i < emptyMiniPages.size(); ++i) {
 
     // figure out the size of the page
@@ -102,7 +115,7 @@ void PDBBufferManagerDebugFrontend::logTimeline() {
       write(debugTimelineFile, &offset, sizeof(offset));
 
       // empty full page has the maximum page size
-      write(debugTimelineFile, &sharedMemory.pageSize, sizeof(sharedMemory.pageSize));
+      write(debugTimelineFile, &pageSize, sizeof(pageSize));
     }
   }
 }
@@ -156,3 +169,5 @@ void PDBBufferManagerDebugFrontend::logClearSet(const PDBSetPtr &set) {
 }
 
 }
+
+#endif

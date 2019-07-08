@@ -70,95 +70,15 @@ TEST(BufferManagerTest, Test1) {
   // create the buffer manager
   pdb::PDBBufferManagerDebugFrontend myMgr("tempDSFSD", pageSize, 10, "metadata", ".");
 
-  // parameters
-  const int numPages = 1000;
-  const int numThreads = 4;
+  // grab a page
+  auto page = myMgr.getPage(8);
 
-  // used to sync
-  std::atomic<std::int32_t> sync;
-  sync = 0;
+  page->unpin();
 
-  // the page sizes we are testing
-  std::vector<size_t> pageSizes {8, 16, 32};
+  page->repin();
 
-  // run multiple threads
-  std::vector<std::thread> threads;
-  threads.reserve(numThreads);
-  for(int t = 0; t < numThreads; ++t) {
+  auto page2 = myMgr.getPage(8);
 
-    threads.emplace_back(std::thread([&](int tmp) {
-
-      // sync the threads to make sure there is more overlapping
-      sync++;
-      while (sync != numThreads) {}
-
-      int offset = 0;
-
-      std::vector<PDBPageHandle> pageHandles;
-
-      // grab anon pages
-      for(int i = 0; i < numPages; ++i) {
-
-        // use a different page size
-        size_t pageSize = pageSizes[i % 3];
-
-        // grab the page
-        auto page = myMgr.getPage(pageSize);
-
-        // grab the page and fill it in
-        char* bytes = (char*) page->getBytes();
-        for(char j = 0; j < pageSize; ++j) {
-          bytes[j] = static_cast<char>((j + offset + tmp) % 128);
-        }
-
-        // store page
-        pageHandles.push_back(page);
-
-        // unpin the page
-        page->unpin();
-
-        // increment the offset
-        offset++;
-      }
-
-      // sync the threads to make sure there is more overlapping
-      sync++;
-      while (sync != 2 * numThreads) {}
-
-      offset = 0;
-      for(int i = 0; i < numPages; ++i) {
-
-        // use a different page size
-        size_t pageSize = pageSizes[i % 3];
-
-        // grab the page
-        auto page = pageHandles[i];
-
-        // repin the page
-        page->repin();
-
-        // grab the page and fill it in
-        char* bytes = (char*) page->getBytes();
-        for(char j = 0; j < pageSize; ++j) {
-          EXPECT_EQ(bytes[j], static_cast<char>((j + offset + tmp) % 128));
-        }
-
-        // unpin the page
-        page->unpin();
-
-        // increment the offset
-        offset++;
-      }
-
-      // remove all the page handles
-      pageHandles.clear();
-
-    }, t));
-  }
-
-  for(auto &t : threads) {
-    t.join();
-  }
 }
 
 int main(int argc, char **argv) {

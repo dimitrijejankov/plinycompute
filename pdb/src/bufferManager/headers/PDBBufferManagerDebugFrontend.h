@@ -1,7 +1,8 @@
 #pragma once
 
-#include "PDBBufferManagerFrontEnd.h"
+#ifdef DEBUG_BUFFER_MANAGER
 
+#include "PDBBufferManagerFrontEnd.h"
 #include <boost/filesystem/path.hpp>
 #include <fcntl.h>
 
@@ -99,3 +100,5 @@ protected:
 };
 
 }
+
+#endif

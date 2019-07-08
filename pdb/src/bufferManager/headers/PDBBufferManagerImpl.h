@@ -251,8 +251,9 @@ protected:
    * pinned, we remove it from the LRU queue (its current LRU number is the negative of the
    * number of pinned pages in this case)
    * @param me - the page whose parent page (physical page) we want to pin
+   * that were removed out of use when the parent was, inserted into the LRU.
    */
-  void pinParent(PDBPagePtr me);
+  void pinParent(const PDBPagePtr& me);
 
   /**
    * repins a page (it is called "repin" because by definition, each page is pinned upon

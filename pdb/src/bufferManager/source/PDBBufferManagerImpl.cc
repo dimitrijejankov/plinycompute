@@ -761,7 +761,7 @@ void PDBBufferManagerImpl::unpin(PDBPagePtr me, unique_lock<mutex> &lock) {
   }
 }
 
-void PDBBufferManagerImpl::pinParent(PDBPagePtr me) {
+void PDBBufferManagerImpl::pinParent(const PDBPagePtr &me) {
 
   // first, we determine the parent of this guy
   void *whichPage = (char *) sharedMemory.memory
