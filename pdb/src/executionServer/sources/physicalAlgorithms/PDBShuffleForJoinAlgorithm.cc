@@ -252,7 +252,7 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
     if(job->nodes[i]->port == job->thisNode->port && job->nodes[i]->address == job->thisNode->address) {
 
       // make the self receiver
-      selfReceiver = std::make_shared<pdb::PDBPageSelfReceiver>(pageQueues->at(i), recvPageSet);
+      selfReceiver = std::make_shared<pdb::PDBPageSelfReceiver>(pageQueues->at(i), recvPageSet, myMgr);
     }
     else {
 
