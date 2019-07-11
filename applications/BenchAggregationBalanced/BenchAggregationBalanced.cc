@@ -241,12 +241,8 @@ int main(int argc, char *argv[]) {
   ADDPAIR(1000, 100000);
   ADDPAIR(1000, 1000000);
   ADDPAIR(1000, 10000000);
-  ADDPAIR(1000, 100000000);
-  ADDPAIR(1000, 1000000000);
-  ADDPAIR(2000, 1000000000);
-  ADDPAIR(10000, 1000000000);
-  ADDPAIR(100000, 1000000000);
-  ADDPAIR(1000000, 1000000000);
+  ADDPAIR(2000, 10000000);
+  ADDPAIR(10000, 10000000);
 
   std::cout << "Combinations that will be benchmarked:" << std::endl;
   for (auto elem : column_values) {
