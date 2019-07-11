@@ -17,30 +17,37 @@ set(CMAKE_CXX_STANDARD 14)
 
 # check the operating system and add the appropriate flags
 if (APPLE)
-    SET(CMAKE_CXX_FLAGS "-g -fPIC -Wno-deprecated-declarations -O3")
-    SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -undefined dynamic_lookup")
+    set(CMAKE_CXX_FLAGS "-g -fPIC -Wno-deprecated-declarations -O3")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -undefined dynamic_lookup")
 elseif (UNIX AND NOT APPLE)
-    SET(CMAKE_CXX_FLAGS "-fPIC -Wno-deprecated-declarations")
+    set(CMAKE_CXX_FLAGS "-fPIC -Wno-deprecated-declarations")
 endif ()
 
+
 # if we are compiling for debug add the debug flags
-if(CMAKE_BUILD_TYPE MATCHES DEBUG)
+if(CMAKE_BUILD_TYPE MATCHES Debug)
 
     # this is to make the standard lib object readable in the debugger, this will require a boost library compiled for that
     # you can provide it with -DUSE_CUSTOM_BOOST=ON and -DCUSTOM_BOOST_LOCATION=/path/to/boost
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -D_GLIBCXX_DEBUG") #TODO write a proper script that gets boost 1.7 and compiles it with these flags
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG_BUFFER_MANAGER -g")
+    set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS}")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS}")
 
 # if we are compiling for release
 elseif(CMAKE_BUILD_TYPE MATCHES RELEASE)
 
     # do -O3 and set the instruction set to the native one for this machine
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
 
 # if we are compiling the unit tests
 elseif(CMAKE_BUILD_TYPE MATCHES UNIT_TESTS)
 
     # the unit test have the same stuff enabled as the regular tests
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g") #TODO make this work with D_GLIBCXX_DEBUG
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG_BUFFER_MANAGER -g")
+    set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -rdynamic")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -rdynamic")
 
     # in the unit tests the minimum page size will be set to 8 bytes so that they can execute fast
     add_definitions(-DMIN_PAGE_SIZE=8)
@@ -147,19 +154,19 @@ add_custom_target(HEADER_ONLY_TARGET SOURCES "${PDB_HEADERS}" "${THIRD_PARTY_HEA
 FIND_PACKAGE(FLEX REQUIRED)
 
 # set the output paths
-SET(LogicalPlanFlexOutput ${CMAKE_SOURCE_DIR}/pdb/src/logicalPlan/source/Lexer.c)
+set(LogicalPlanFlexOutput ${CMAKE_SOURCE_DIR}/pdb/src/logicalPlan/source/Lexer.c)
 
 # if you want to use a custom version of boost set -DUSE_CUSTOM_BOOST=ON and -DCUSTOM_BOOST_LOCATION=/path/to/boost
 IF(USE_CUSTOM_BOOST)
 
    # set the custom location
-   SET(Boost_INCLUDE_DIRS ${CUSTOM_BOOST_LOCATION}/include)
-   SET(Boost_LIBRARY_DIRS ${CUSTOM_BOOST_LOCATION}/lib)
+   set(Boost_INCLUDE_DIRS ${CUSTOM_BOOST_LOCATION}/include)
+   set(Boost_LIBRARY_DIRS ${CUSTOM_BOOST_LOCATION}/lib)
 ENDIF()
 
 # find the boost package
-SET(Boost_NO_BOOST_CMAKE ON)
-FIND_PACKAGE(Boost COMPONENTS program_options filesystem system REQUIRED)
+set(Boost_NO_BOOST_CMAKE ON)
+FIND_PACKAGE(Boost COMPONENTS program_options filesystem system stacktrace_addr2line REQUIRED)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
 
 # setup the commands
@@ -179,7 +186,7 @@ ENDIF ()
 FIND_PACKAGE(BISON REQUIRED)
 
 # set the output paths
-SET(LogicalPlanParserOutput ${CMAKE_SOURCE_DIR}/pdb/src/logicalPlan/source/Parser.c)
+set(LogicalPlanParserOutput ${CMAKE_SOURCE_DIR}/pdb/src/logicalPlan/source/Parser.c)
 
 # setup the commands
 IF (BISON_FOUND)
@@ -202,9 +209,9 @@ include_directories(${GSL_INCLUDE_DIRS} ${GSLCBLAS_INCLUDE_DIRS})
 FIND_PACKAGE(Snappy REQUIRED)
 
 # the files generated from the type codes
-SET(BUILT_IN_OBJECT_TYPE_ID        ${CMAKE_SOURCE_DIR}/pdb/src/objectModel/headers/BuiltInObjectTypeIDs.h)
-SET(BUILT_IN_PDB_OBJECTS           ${CMAKE_SOURCE_DIR}/pdb/src/objectModel/headers/BuiltinPDBObjects.h)
-SET(BUILT_IN_PDB_OBJECTS_GENERATED ${CMAKE_SOURCE_DIR}/pdb/src/objectModel/headers/BuiltinPDBObjects.h
+set(BUILT_IN_OBJECT_TYPE_ID        ${CMAKE_SOURCE_DIR}/pdb/src/objectModel/headers/BuiltInObjectTypeIDs.h)
+set(BUILT_IN_PDB_OBJECTS           ${CMAKE_SOURCE_DIR}/pdb/src/objectModel/headers/BuiltinPDBObjects.h)
+set(BUILT_IN_PDB_OBJECTS_GENERATED ${CMAKE_SOURCE_DIR}/pdb/src/objectModel/headers/BuiltinPDBObjects.h
                                    ${CMAKE_SOURCE_DIR}/pdb/src/objectModel/headers/BuiltinPDBObjects.cc)
 
 # mark the files as generated
@@ -339,6 +346,7 @@ else()
     add_executable(pdb-node ${SOURCE_FILES_PDB_CLUSTER})
     target_link_libraries(pdb-node pdb-server-common)
     target_link_libraries(pdb-node ${GSL_LIBRARIES})
+    target_link_libraries(pdb-node ${Boost_LIBRARIES})
 
     # set dependencies for pdb-main
     add_custom_target(pdb-main)

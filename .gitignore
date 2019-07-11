@@ -32,5 +32,7 @@ applications/TestLA/linearAlgebraDSL/source/LALexer.c
 applications/TestLA/linearAlgebraDSL/source/LAParser.c
 applications/TestLA/tests/Benchmark/*.pdml
 applications/TestLA/tests/Benchmark/*.data
+applications/TestLinearAlgebra/linearAlgebraDSL/source/LALexer.c
+applications/TestLinearAlgebra/linearAlgebraDSL/source/LAParser.c
 /.autotools
 /.project

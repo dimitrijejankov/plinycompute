@@ -104,7 +104,7 @@ public:
   // simply loop through and write back any dirty pages.  
   virtual ~PDBBufferManagerInterface () = default;
 
-private:
+protected:
 
   // note that these methods are all going to be called by the PDBPage object when
   // an application programmer perfoms operations on the object.
@@ -137,6 +137,32 @@ private:
   // is located on top of him, so he can't be kicked out while the mini-page is pinned), and
   // then note that this guy is now pinned
   virtual void repin (PDBPagePtr me) = 0;
+
+#ifndef DEBUG_BUFFER_MANAGER
+
+  // all of these are going to be optimized out
+  static void logGetPage(const PDBSetPtr& whichSet, uint64_t i) {};
+  static void logGetPage(size_t minBytes) {};
+  static void logFreezeSize(const PDBPagePtr& me, size_t numBytes) {};
+  static void logUnpin(const PDBPagePtr& me) {};
+  static void logRepin(const PDBPagePtr& me) {};
+  static void logFreeAnonymousPage(const PDBPagePtr& me) {};
+  static void logDownToZeroReferences(const PDBPagePtr& me) {};
+  static void logClearSet(const PDBSetPtr &set) {};
+
+#else
+
+  // these are virtual so we can hijack the page methods
+  virtual void logGetPage(const PDBSetPtr &whichSet, uint64_t i) {};
+  virtual void logGetPage(size_t minBytes) {};
+  virtual void logFreezeSize(const PDBPagePtr &me, size_t numBytes) {};
+  virtual void logUnpin(const PDBPagePtr &me) {};
+  virtual void logRepin(const PDBPagePtr &me) {};
+  virtual void logFreeAnonymousPage(const PDBPagePtr &me) {};
+  virtual void logDownToZeroReferences(const PDBPagePtr &me) {};
+  virtual void logClearSet(const PDBSetPtr &set) {};
+
+#endif
 
   // so that the PDBPage can access the above methods
   friend class PDBPage;

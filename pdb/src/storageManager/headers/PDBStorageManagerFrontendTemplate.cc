@@ -231,15 +231,10 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
    return false;
   });
 
-  /// 6. Freeze the page since it is safe to do now and mark that we are done writing to it
-
-  // freeze the page
-  page->freezeSize(uncompressedSize);
-
   // finish writing to the set
   endWritingToPage(std::make_shared<PDBSet>(request->databaseName, request->setName), pageNum);
 
-  /// 7. Send the response that we are done
+  /// 6. Send the response that we are done
 
   // create an allocation block to hold the response
   Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(success, error);

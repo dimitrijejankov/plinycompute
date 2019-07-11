@@ -31,6 +31,7 @@
 #include <PDBComputationServerFrontend.h>
 #include <ExecutionServerFrontend.h>
 #include <PDBStorageManagerBackend.h>
+#include <PDBBufferManagerDebugFrontend.h>
 #include <ExecutionServerBackend.h>
 #include <random>
 
@@ -98,9 +99,10 @@ int main(int argc, char *argv[]) {
   desc.add_options()("isManager,m", po::bool_switch(&config->isManager), "Start manager");
   desc.add_options()("address,i", po::value<std::string>(&config->address)->default_value("localhost"), "IP of the node");
   desc.add_options()("port,p", po::value<int32_t>(&config->port)->default_value(8108), "Port of the node");
+  desc.add_options()("debugBufferManager", po::bool_switch(&config->debugBufferManager), "Whether we want to debug the buffer manager or not. (has to be compiled for that)");
   desc.add_options()("managerAddress,d", po::value<std::string>(&config->managerAddress)->default_value("localhost"), "IP of the manager");
   desc.add_options()("managerPort,o", po::value<int32_t>(&config->managerPort)->default_value(8108), "Port of the manager");
-  desc.add_options()("sharedMemSize,s", po::value<size_t>(&config->sharedMemSize)->default_value(2048 * 4), "The size of the shared memory (MB)");
+  desc.add_options()("sharedMemSize,s", po::value<size_t>(&config->sharedMemSize)->default_value(2048), "The size of the shared memory (MB)");
   desc.add_options()("pageSize,e", po::value<size_t>(&config->pageSize)->default_value(1024 * 1024 * 128), "The size of a page (bytes)");
   desc.add_options()("numThreads,t", po::value<int32_t>(&config->numThreads)->default_value(2), "The number of threads we want to use");
   desc.add_options()("rootDirectory,r", po::value<std::string>(&config->rootDirectory)->default_value("./pdbRoot"), "The root directory we want to use.");
@@ -129,7 +131,20 @@ int main(int argc, char *argv[]) {
   config->maxConnections = 100;
 
   // init the storage manager, this has to be done before the fork!
-  auto bufferManager = std::make_shared<pdb::PDBBufferManagerFrontEnd>(config);
+  std::shared_ptr<pdb::PDBBufferManagerFrontEnd> bufferManager;
+  if(!config->debugBufferManager) {
+    bufferManager = std::make_shared<pdb::PDBBufferManagerFrontEnd>(config);
+  }
+  else {
+
+    // if we have compiled with the appropriate flag we can use the debug buffer manager otherwise quit
+    #ifdef DEBUG_BUFFER_MANAGER
+      bufferManager = std::make_shared<pdb::PDBBufferManagerDebugFrontend>(config);
+    #else
+      std::cerr << "In order to use the debugBufferManager you have to compile with the flag -DDEBUG_BUFFER_MANAGER";
+      exit(0);
+    #endif
+  }
 
   // fork this to split into a frontend and backend
   pid_t pid = fork();
