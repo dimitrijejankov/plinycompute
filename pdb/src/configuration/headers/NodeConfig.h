@@ -29,6 +29,11 @@ struct NodeConfig {
   int32_t port = -1;
 
   /**
+   * Whether we want to debug the buffer manager or not
+   */
+  bool debugBufferManager = false;
+
+  /**
    * The ip address of the manager
    */
   std::string managerAddress = "";

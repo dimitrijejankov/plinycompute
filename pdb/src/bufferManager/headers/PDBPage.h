@@ -70,6 +70,11 @@ class PDBPage {
   // first time that the page is unpinned
   void freezeSize (size_t numBytes);
 
+  // return the size of the page
+  size_t getSize() {
+    return MIN_PAGE_SIZE << location.numBytes;
+  }
+
   // pins a page.  At creation (when they are created by the buffer manager) all pages are
   // pinned.  If a page is unpinned, it can be pinned again later via a call to ths method.
   // Note that after re-pinning, getBytes () must be called as the location of the page in
