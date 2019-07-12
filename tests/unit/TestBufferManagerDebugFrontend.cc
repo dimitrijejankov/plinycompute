@@ -68,17 +68,44 @@ TEST(BufferManagerTest, Test1) {
   const int pageSize = 64;
 
   // create the buffer manager
-  pdb::PDBBufferManagerDebugFrontend myMgr("tempDSFSD", pageSize, 10, "metadata", ".");
+  pdb::PDBBufferManagerDebugFrontend myMgr("tempDSFSD", pageSize, 2, "metadata", ".");
 
-  // grab a page
-  auto page = myMgr.getPage(8);
+  // create the three sets
+  vector<PDBSetPtr> mySets;
+  vector<unsigned> myEnds;
+  vector<vector<size_t>> lens;
+  for (int i = 0; i < 1; i++) {
+    PDBSetPtr set = make_shared<PDBSet>("DB" + to_string(i), "set");
+    mySets.push_back(set);
+    myEnds.push_back(0);
+    lens.emplace_back(vector<size_t>());
+  }
 
-  page->unpin();
+  // now, we create a bunch of data and write it to the files, unpinning it
+  for (int i = 0; i < 10; i++) {
+    PDBPageHandle temp = createRandomPage(myMgr, mySets, myEnds, lens);
+    temp->unpin();
+  }
 
-  page->repin();
+  // the buffer
+  char buffer[1024];
 
-  auto page2 = myMgr.getPage(8);
+  // for each set
+  for (int i = 0; i < 1; i++) {
 
+    // for each page
+    for (int j = 0; j < myEnds[i]; j++) {
+
+      // grab the page
+      PDBPageHandle temp = myMgr.getPage(mySets[i], (uint64_t) j);
+
+      // generate the right string
+      writeBytes(i, j, (int) lens[i][j], (char *) buffer);
+
+      // check the string
+      EXPECT_EQ(strcmp(buffer, (char*) temp->getBytes()), 0);
+    }
+  }
 }
 
 int main(int argc, char **argv) {
