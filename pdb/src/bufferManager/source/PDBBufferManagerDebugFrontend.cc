@@ -42,7 +42,17 @@ void PDBBufferManagerDebugFrontend::logTimeline() {
 
   // write out the number of pages
   uint64_t numPages = 0;
-  for(const auto &pages : constituentPages) { numPages += pages.second.size(); }
+  for(const auto &pages : constituentPages) {
+
+    // go through the mini pages on the page
+    for(const auto &page : pages.second) {
+
+      // if it is not unloading add it
+      if(page->getBytes() != nullptr) {
+        numPages++;
+      }
+    }
+  }
   write(debugTimelineFile, &numPages, sizeof(numPages));
 
   // write out the page info
@@ -50,6 +60,11 @@ void PDBBufferManagerDebugFrontend::logTimeline() {
 
     // write out all the mini pages
     for(const auto &page : pages.second) {
+
+      // if the page is not unloading we skip it
+      if(page->getBytes() == nullptr) {
+        continue;
+      }
 
       // if this is an not anonmous page
       if(page->getSet() != nullptr) {
@@ -75,7 +90,6 @@ void PDBBufferManagerDebugFrontend::logTimeline() {
       tmp = page->whichPage();
       write(debugTimelineFile, &tmp, sizeof(tmp));
 
-      // grab the offset
       uint64_t offset = (uint64_t) page->getBytes() - (uint64_t)sharedMemory.memory;
       write(debugTimelineFile, &offset, sizeof(offset));
 

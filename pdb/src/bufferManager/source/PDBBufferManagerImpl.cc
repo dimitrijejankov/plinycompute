@@ -733,7 +733,13 @@ void PDBBufferManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes) {
 
 void PDBBufferManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes, unique_lock<mutex> &lock) {
 
-  // if the page is frozen
+  // you cannot freeze an unpinned page
+  if(!me->isPinned()) {
+    std::cerr << "You cannot freeze an unpinned page.\n";
+    exit(1);
+  }
+
+  // you cannot freeze the size of a page twice
   if (me->sizeIsFrozen()) {
     std::cerr << "You cannot freeze the size of a page twice.\n";
     exit(1);
@@ -751,6 +757,20 @@ void PDBBufferManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes, unique_loc
 
   // set the page size
   me->getLocation().numBytes = bytesRequired;
+
+  // since we are freezing we need to break up the large page into smaller pages, so we can use the space
+  size_t inc = MIN_PAGE_SIZE << bytesRequired;
+  auto &unused = unusedMiniPages[me->bytes];
+  unused.second = bytesRequired;
+
+  for (size_t offset = inc; offset < sharedMemory.pageSize; offset += inc) {
+
+    // store the empty mini page as a mini page of that size
+    emptyMiniPages[bytesRequired].push_back(((char *) me->bytes) + offset);
+
+    // store the mini page as unused
+    unused.first.emplace_back(((char *) me->bytes) + offset);
+  }
 }
 
 void PDBBufferManagerImpl::unpin(PDBPagePtr me) {
