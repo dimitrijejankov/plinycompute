@@ -1,18 +1,40 @@
 #ifdef DEBUG_BUFFER_MANAGER
 
 #include "PDBBufferManagerDebugFrontend.h"
+#include <boost/stacktrace.hpp>
 
 namespace pdb {
 
 const uint64_t PDBBufferManagerDebugFrontend::DEBUG_MAGIC_NUMBER = 10202026;
 
-void PDBBufferManagerDebugFrontend::initDebug(const std::string &timelineDebugFile) {
+namespace bs = boost::stacktrace;
+
+
+void PDBBufferManagerDebugFrontend::initDebug(const std::string &timelineDebugFile,
+                                              const std::string &debugSymbols,
+                                              const std::string &stackTraces) {
 
   // open debug file
   debugTimelineFile = open(timelineDebugFile.c_str(), O_CREAT | O_TRUNC | O_RDWR, 0666);
 
   // check if we actually opened the file
   if (debugTimelineFile == 0) {
+    exit(-1);
+  }
+
+  // open symbol file
+  debugSymbolTableFile = open(debugSymbols.c_str(), O_CREAT | O_TRUNC | O_RDWR, 0666);
+
+  // check if we actually opened the file
+  if (debugSymbolTableFile == 0) {
+    exit(-1);
+  }
+
+  // open stackTraces file
+  stackTracesTableFile = open(stackTraces.c_str(), O_CREAT | O_TRUNC | O_RDWR, 0666);
+
+  // check if we actually opened the file
+  if (stackTracesTableFile == 0) {
     exit(-1);
   }
 
@@ -26,16 +48,10 @@ void PDBBufferManagerDebugFrontend::initDebug(const std::string &timelineDebugFi
   write(debugTimelineFile, &sharedMemory.pageSize, sizeof(sharedMemory.pageSize));
 }
 
-void PDBBufferManagerDebugFrontend::logTimeline() {
+void PDBBufferManagerDebugFrontend::logTimeline(const uint64_t &tick) {
 
   // just a temp value
   uint64_t tmp;
-
-  // lock the timeline file
-  std::unique_lock<std::mutex> lck(m);
-
-  // increment the debug tick
-  uint64_t tick = debugTick++;
 
   // write out the tick
   write(debugTimelineFile, &tick, sizeof(tick));
@@ -136,50 +152,219 @@ void PDBBufferManagerDebugFrontend::logTimeline() {
 
 void PDBBufferManagerDebugFrontend::logGetPage(const PDBSetPtr &whichSet, uint64_t i) {
 
+  // lock the timeline file
+  std::unique_lock<std::mutex> lck(m);
+
+  // increment the debug tick
+  uint64_t tick = debugTick++;
+
+  // log the get page operation
+  logOperation(tick, BufferManagerOperationType::GET_PAGE, whichSet->getDBName(), whichSet->getSetName(), i, 0);
+
   // log the timeline
-  logTimeline();
+  logTimeline(tick);
 }
 
-void PDBBufferManagerDebugFrontend::logGetPage(size_t minBytes) {
+void PDBBufferManagerDebugFrontend::logGetPage(size_t minBytes, uint64_t pageNumber) {
+
+  // lock the timeline file
+  std::unique_lock<std::mutex> lck(m);
+
+  // increment the debug tick
+  uint64_t tick = debugTick++;
+
+  // log the get page operation
+  logOperation(tick, BufferManagerOperationType::GET_PAGE, "", "", pageNumber, minBytes);
 
   // log the timeline
-  logTimeline();
+  logTimeline(tick);
 }
 
 void PDBBufferManagerDebugFrontend::logFreezeSize(const PDBPagePtr &me, size_t numBytes) {
 
+  // lock the timeline file
+  std::unique_lock<std::mutex> lck(m);
+
+  // increment the debug tick
+  uint64_t tick = debugTick++;
+
+  // get the database and set name
+  std::string db = me->getSet() == nullptr ? "" : me->getSet()->getDBName();
+  std::string set = me->getSet() == nullptr ? "" : me->getSet()->getSetName();
+
+  // log the freeze operation
+  logOperation(tick, BufferManagerOperationType::FREEZE, db, set, me->whichPage(), numBytes);
+
   // log the timeline
-  logTimeline();
+  logTimeline(tick);
 }
 
 void PDBBufferManagerDebugFrontend::logUnpin(const PDBPagePtr &me) {
 
+  // lock the timeline file
+  std::unique_lock<std::mutex> lck(m);
+
+  // increment the debug tick
+  uint64_t tick = debugTick++;
+
+  // get the database and set name
+  std::string db = me->getSet() == nullptr ? "" : me->getSet()->getDBName();
+  std::string set = me->getSet() == nullptr ? "" : me->getSet()->getSetName();
+
+  // log the operation
+  logOperation(tick, BufferManagerOperationType::UNPIN, db, set, me->whichPage(), 0);
+
   // log the timeline
-  logTimeline();
+  logTimeline(tick);
 }
 
 void PDBBufferManagerDebugFrontend::logRepin(const PDBPagePtr &me) {
 
+  // lock the timeline file
+  std::unique_lock<std::mutex> lck(m);
+
+  // increment the debug tick
+  uint64_t tick = debugTick++;
+
+  // get the database and set name
+  std::string db = me->getSet() == nullptr ? "" : me->getSet()->getDBName();
+  std::string set = me->getSet() == nullptr ? "" : me->getSet()->getSetName();
+
+  // log the operation
+  logOperation(tick, BufferManagerOperationType::REPIN, db, set, me->whichPage(), 0);
+
   // log the timeline
-  logTimeline();
+  logTimeline(tick);
 }
 
 void PDBBufferManagerDebugFrontend::logFreeAnonymousPage(const PDBPagePtr &me) {
 
+  // lock the timeline file
+  std::unique_lock<std::mutex> lck(m);
+
+  // increment the debug tick
+  uint64_t tick = debugTick++;
+
+  // log the operation
+  logOperation(tick, BufferManagerOperationType::FREE, "", "", me->whichPage(), 0);
+
   // log the timeline
-  logTimeline();
+  logTimeline(tick);
 }
 
 void PDBBufferManagerDebugFrontend::logDownToZeroReferences(const PDBPagePtr &me) {
 
+  // lock the timeline file
+  std::unique_lock<std::mutex> lck(m);
+
+  // increment the debug tick
+  uint64_t tick = debugTick++;
+
+  // log the operation
+  logOperation(tick, BufferManagerOperationType::FREE, me->getSet()->getDBName(), me->getSet()->getSetName(), me->whichPage(), 0);
+
   // log the timeline
-  logTimeline();
+  logTimeline(tick);
 }
 
 void PDBBufferManagerDebugFrontend::logClearSet(const PDBSetPtr &set) {
 
+  // lock the timeline file
+  std::unique_lock<std::mutex> lck(m);
+
+  // increment the debug tick
+  uint64_t tick = debugTick++;
+
   // log the timeline
-  logTimeline();
+  logTimeline(tick);
+}
+
+void PDBBufferManagerDebugFrontend::logOperation(uint64_t timestamp,
+                                                 PDBBufferManagerDebugFrontend::BufferManagerOperationType operation,
+                                                 const string &dbName,
+                                                 const string &setName,
+                                                 uint64_t pageNumber,
+                                                 uint64_t value) {
+
+  // store the track if needed
+  auto trace = bs::stacktrace();
+
+  // preallocate the memory
+  std::vector<size_t> address;
+  address.reserve(trace.size());
+
+  // store the trace addresses
+  for (bs::frame frame: trace) {
+    address.emplace_back((size_t) frame.address());
+  }
+
+  // store the stack trace
+  auto it = stackTraces.find(address);
+  if(it == stackTraces.end()) {
+
+    // insert the stack trace since we don't have it
+    it = stackTraces.insert(it, std::make_pair(address, stackTraces.size()));
+
+    // log the ID
+    write(debugSymbolTableFile, &it->second, sizeof(it->second));
+
+    // log the size of the bytes of the trace
+    uint64_t tmp = it->first.size();
+    write(debugSymbolTableFile, &tmp, sizeof(tmp));
+
+    // log the address
+    write(debugSymbolTableFile, address.data(), sizeof(size_t) * address.size());
+
+    // convert trace to string
+    std::stringstream ss;
+    ss << trace;
+    std::string s = ss.str();
+
+    // write out the size of the string
+    auto size = s.size();
+    write(debugSymbolTableFile, &size, sizeof(size));
+
+    // write out the string
+    write(debugSymbolTableFile, s.c_str(), sizeof(char) * size);
+  }
+
+  // write out the timestamp
+  write(stackTracesTableFile, &timestamp, sizeof(timestamp));
+
+  // write out the trace id
+  write(stackTracesTableFile, &it->second, sizeof(it->second));
+
+  // write out the operation
+  uint64_t tmp;
+  switch (operation) {
+    case BufferManagerOperationType::GET_PAGE : { tmp = 0; break; }
+    case BufferManagerOperationType::FREEZE : { tmp = 1; break; }
+    case BufferManagerOperationType::UNPIN : { tmp = 2; break; }
+    case BufferManagerOperationType::REPIN : { tmp = 3; break; }
+    case BufferManagerOperationType::FREE : { tmp = 4; break; }
+    case BufferManagerOperationType::CLEAR : { tmp = 5; break; }
+  }
+  write(stackTracesTableFile, &tmp, sizeof(tmp));
+
+  // write out the database name
+  tmp = dbName.size();
+  write(stackTracesTableFile, &tmp, sizeof(tmp));
+
+  // write out the string
+  write(stackTracesTableFile, dbName.c_str(), sizeof(char) * dbName.size());
+
+  // write out the set name
+  tmp = setName.size();
+  write(stackTracesTableFile, &tmp, sizeof(tmp));
+
+  // write out the string
+  write(stackTracesTableFile, setName.c_str(), sizeof(char) * setName.size());
+
+  // write out the page number
+  write(stackTracesTableFile, &pageNumber, sizeof(pageNumber));
+
+  // write out the special value
+  write(stackTracesTableFile, &value, sizeof(value));
 }
 
 }

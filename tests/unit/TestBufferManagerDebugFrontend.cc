@@ -74,7 +74,7 @@ TEST(BufferManagerTest, Test1) {
   vector<PDBSetPtr> mySets;
   vector<unsigned> myEnds;
   vector<vector<size_t>> lens;
-  for (int i = 0; i < 1; i++) {
+  for (int i = 0; i < 6; i++) {
     PDBSetPtr set = make_shared<PDBSet>("DB" + to_string(i), "set");
     mySets.push_back(set);
     myEnds.push_back(0);
@@ -91,7 +91,7 @@ TEST(BufferManagerTest, Test1) {
   char buffer[1024];
 
   // for each set
-  for (int i = 0; i < 1; i++) {
+  for (int i = 0; i < 6; i++) {
 
     // for each page
     for (int j = 0; j < myEnds[i]; j++) {

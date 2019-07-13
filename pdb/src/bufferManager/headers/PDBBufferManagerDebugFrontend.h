@@ -10,6 +10,18 @@ namespace pdb {
 
 namespace fs = boost::filesystem;
 
+struct traceHasher {
+  std::size_t operator()(std::vector<size_t> const& c) const  {
+
+    std::size_t seed = 0;
+    for(const auto &value : c) {
+      seed ^= value + 0x9e3779b9 + (seed<< 6) + (seed>>2);
+    }
+
+    return seed;
+  }
+};
+
 class PDBBufferManagerDebugFrontend : public PDBBufferManagerFrontEnd {
 public:
 
@@ -22,11 +34,8 @@ public:
                                                                                        numPagesIn,
                                                                                        metaFile,
                                                                                        storageLocIn) {
-    // the location of the debug file
-    string fileLoc = storageLoc + "/debug.dt";
-
     // init the debug file
-    initDebug(fileLoc);
+    initDebug(storageLoc + "/debug.dt", storageLoc + "/debugSymbols.ds", storageLoc + "/stackTraces.dst");
   }
 
   explicit PDBBufferManagerDebugFrontend(const NodeConfigPtr &config) : PDBBufferManagerFrontEnd(config) {
@@ -35,14 +44,30 @@ public:
     fs::path dataPath(config->rootDirectory);
     dataPath.append("/data");
 
-    // init the debug file
-    initDebug((dataPath / "debug.dt").string());
+    // init the debug stuff
+    initDebug((dataPath / "debug.dt").string(), (dataPath / "debugSymbols.ds").string(), (dataPath / "stackTraces.dst").string());
   }
 
 protected:
 
+  enum class BufferManagerOperationType {
+    GET_PAGE,
+    FREEZE,
+    UNPIN,
+    REPIN,
+    FREE,
+    CLEAR
+  };
+
+  void logOperation(uint64_t timestamp,
+                    BufferManagerOperationType operation,
+                    const std::string &dbName,
+                    const std::string &setName,
+                    uint64_t pageNumber,
+                    uint64_t value);
+
   void logGetPage(const PDBSetPtr &whichSet, uint64_t i) override;
-  void logGetPage(size_t minBytes) override;
+  void logGetPage(size_t minBytes, uint64_t pageNumber) override;
   void logFreezeSize(const PDBPagePtr &me, size_t numBytes) override;
   void logUnpin(const PDBPagePtr &me) override;
   void logRepin(const PDBPagePtr &me) override;
@@ -50,7 +75,9 @@ protected:
   void logDownToZeroReferences(const PDBPagePtr &me) override;
   void logClearSet(const PDBSetPtr &set) override;
 
-  void initDebug(const std::string &timelineDebugFile);
+  void initDebug(const std::string &timelineDebugFile,
+                 const std::string &debugSymbols,
+                 const std::string &stackTraces);
 
   /**
    * Writes out the state of the buffer manager at this time
@@ -76,7 +103,7 @@ protected:
    * numUnused times ( 8 bytes signed for the offset of the unused page |  8 bytes for the size of the page)
    *
    */
-  void logTimeline();
+  void logTimeline(const uint64_t &tick);
 
   /**
    * The lock we made
@@ -92,6 +119,21 @@ protected:
    * The file we are going to write all the debug timeline files
    */
   int debugTimelineFile = 0;
+
+  /**
+   * The file we are going to write all the debug symbols for the stack trace
+   */
+  int debugSymbolTableFile = 0;
+
+  /**
+   * The file where we are going to write all the stack traces
+   */
+  int stackTracesTableFile = 0;
+
+  /**
+   * The set of stack traces
+   */
+  std::unordered_map<std::vector<size_t>, size_t, traceHasher> stackTraces;
 
   /**
    * The magic number the debug files start with

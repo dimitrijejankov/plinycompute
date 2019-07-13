@@ -309,9 +309,6 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
 
-  // log the clear set
-  logClearSet(set);
-
   // close the file if open
   auto fd = fds.find(set);
   if(fd != fds.end()) {
@@ -411,6 +408,9 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
 
   // remove the end of files
   endOfFiles.erase(set);
+
+  // log the clear set
+  logClearSet(set);
 }
 
 void PDBBufferManagerImpl::registerMiniPage(const PDBPagePtr& registerMe) {
@@ -432,9 +432,6 @@ void PDBBufferManagerImpl::freeAnonymousPage(PDBPagePtr me) {
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
 
-  // log free anonymous page set
-  logFreeAnonymousPage(me);
-
   // is this removal still valid if it is not we do nothing
   if (!isRemovalStillValid(me)) {
     return;
@@ -450,8 +447,14 @@ void PDBBufferManagerImpl::freeAnonymousPage(PDBPagePtr me) {
   freeAnonPageNumbers.emplace_back(me->whichPage());
 
   // if this guy as no associated memory, get outta here
-  if (me->getBytes() == nullptr)
+  if (me->getBytes() == nullptr) {
+
+    // log free anonymous page set
+    logFreeAnonymousPage(me);
+
+    // get out of here
     return;
+  }
 
   // now, remove him from the set of constituent pages
   void *parent = (char *) sharedMemory.memory + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
@@ -491,6 +494,9 @@ void PDBBufferManagerImpl::freeAnonymousPage(PDBPagePtr me) {
     // add back the empty full page
     emptyFullPages.push_back(parent);
 
+    // log free anonymous page set
+    logFreeAnonymousPage(me);
+
     // finish this
     return;
   }
@@ -498,6 +504,9 @@ void PDBBufferManagerImpl::freeAnonymousPage(PDBPagePtr me) {
   // otherwise just add back
   unusedMiniPages[parent].first.emplace_back(me->getBytes());
   emptyMiniPages[unusedMiniPages[parent].second].emplace_back(me->getBytes());
+
+  // log free anonymous page set
+  logFreeAnonymousPage(me);
 
   // notify that we have created space
   spaceCV.notify_all();
@@ -513,9 +522,6 @@ void PDBBufferManagerImpl::downToZeroReferences(PDBPagePtr me) {
     return;
   }
 
-  // log the down to zero
-  logDownToZeroReferences(me);
-
   // first, see whether we are actually buffered in RAM
   if (me->getBytes() == nullptr) {
 
@@ -526,6 +532,9 @@ void PDBBufferManagerImpl::downToZeroReferences(PDBPagePtr me) {
   } else {
     unpin(me, lock);
   }
+
+  // log the down to zero
+  logDownToZeroReferences(me);
 }
 
 bool PDBBufferManagerImpl::isRemovalStillValid(PDBPagePtr me) {
@@ -724,11 +733,11 @@ void PDBBufferManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes) {
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
 
-  // log the freeze size
-  logFreezeSize(me, numBytes);
-
   // do the actual freezing
   freezeSize(me, numBytes, lock);
+
+  // log the freeze size
+  logFreezeSize(me, numBytes);
 }
 
 void PDBBufferManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes, unique_lock<mutex> &lock) {
@@ -778,11 +787,11 @@ void PDBBufferManagerImpl::unpin(PDBPagePtr me) {
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
 
-  // log the unpin
-  logUnpin(me);
-
   // unlock the page
   unpin(me, lock);
+
+  // log the unpin
+  logUnpin(me);
 }
 
 void PDBBufferManagerImpl::unpin(PDBPagePtr me, unique_lock<mutex> &lock) {
@@ -860,9 +869,6 @@ void PDBBufferManagerImpl::repin(PDBPagePtr me) {
   // wait while the page is loading
   pagesCV.wait(lock, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_UNLOADING); });
 
-  // log the repin
-  logRepin(me);
-
   // call the actual repin function
   repin(me, lock);
 }
@@ -928,6 +934,9 @@ void PDBBufferManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
   // set the page to loaded
   me->status = PDB_PAGE_LOADED;
 
+  // log the repin
+  logRepin(me);
+
   // notify all waiting conditional variables
   lock.unlock();
   pagesCV.notify_all();
@@ -950,9 +959,6 @@ PDBPageHandle PDBBufferManagerImpl::getPage(size_t maxBytes) {
 
   // lock the buffer manager
   unique_lock<mutex> lock(m);
-
-  // log the get page
-  logGetPage(maxBytes);
 
   // figure out the size of the page that we need
   size_t bytesRequired = getLogPageSize(maxBytes);
@@ -997,6 +1003,10 @@ PDBPageHandle PDBBufferManagerImpl::getPage(size_t maxBytes) {
   returnVal->status = PDB_PAGE_LOADED;
   registerMiniPage(returnVal);
 
+  // log the get page
+  logGetPage(maxBytes, returnVal->whichPage());
+
+  // return
   return make_shared<PDBPageHandleBase>(returnVal);
 }
 

@@ -142,7 +142,7 @@ protected:
 
   // all of these are going to be optimized out
   static void logGetPage(const PDBSetPtr& whichSet, uint64_t i) {};
-  static void logGetPage(size_t minBytes) {};
+  static void logGetPage(size_t minBytes, uint64_t pageNumber) {};
   static void logFreezeSize(const PDBPagePtr& me, size_t numBytes) {};
   static void logUnpin(const PDBPagePtr& me) {};
   static void logRepin(const PDBPagePtr& me) {};
@@ -154,7 +154,7 @@ protected:
 
   // these are virtual so we can hijack the page methods
   virtual void logGetPage(const PDBSetPtr &whichSet, uint64_t i) {};
-  virtual void logGetPage(size_t minBytes) {};
+  virtual void logGetPage(size_t minBytes, uint64_t pageNumber) {};
   virtual void logFreezeSize(const PDBPagePtr &me, size_t numBytes) {};
   virtual void logUnpin(const PDBPagePtr &me) {};
   virtual void logRepin(const PDBPagePtr &me) {};

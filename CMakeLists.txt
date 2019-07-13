@@ -45,9 +45,9 @@ elseif(CMAKE_BUILD_TYPE MATCHES UNIT_TESTS)
 
     # the unit test have the same stuff enabled as the regular tests
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG_BUFFER_MANAGER -g3")
-    set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS}")
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
-    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS}")
+    set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -rdynamic")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -rdynamic")
 
     # in the unit tests the minimum page size will be set to 8 bytes so that they can execute fast
     add_definitions(-DMIN_PAGE_SIZE=8)
@@ -166,7 +166,7 @@ ENDIF()
 
 # find the boost package
 set(Boost_NO_BOOST_CMAKE ON)
-FIND_PACKAGE(Boost COMPONENTS program_options filesystem system stacktrace_addr2line REQUIRED)
+FIND_PACKAGE(Boost COMPONENTS program_options filesystem system stacktrace_basic REQUIRED)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
 
 # setup the commands
