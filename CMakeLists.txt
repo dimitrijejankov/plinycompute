@@ -167,7 +167,7 @@ ENDIF()
 
 # find the boost package
 set(Boost_NO_BOOST_CMAKE ON)
-FIND_PACKAGE(Boost COMPONENTS program_options filesystem system stacktrace_addr2line REQUIRED)
+FIND_PACKAGE(Boost COMPONENTS program_options filesystem system REQUIRED)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
 
 # setup the commands
