@@ -91,8 +91,12 @@ BenchAggregationBalanced(const int numDepartments,
   }
 
   // Next, allocate the Employees and send them to storage.
-  pdb::makeObjectAllocatorBlock(1024 * 1024 * 1024, true); // 1 GiB
+  // Here we count up the number of allocation blocks in order to estimate
+  // the number of bytes per Employee.
+  unsigned int numbytes = 1024 * 1024 * 64; // 64 MiB
+  pdb::makeObjectAllocatorBlock(numbytes, true);
   int employeesSent = 0;
+  int blocksSent = 0;
   while(employeesSent < totalNumEmployees) {
     pdb::Handle<pdb::Vector<pdb::Handle<pdb::Employee>>> toSend =
         pdb::makeObject<pdb::Vector<pdb::Handle<pdb::Employee>>>();
@@ -107,11 +111,16 @@ BenchAggregationBalanced(const int numDepartments,
       }
       // If we make it to the end without an exception, send and exit the loop
       pdbClient.sendData<pdb::Employee>(dbname, inputSet, toSend);
+      ++blocksSent;
     } catch (pdb::NotEnoughSpace& e) {
       pdbClient.sendData<pdb::Employee>(dbname, inputSet, toSend);
-      pdb::makeObjectAllocatorBlock(1024 * 1024 * 1024, true);
+      ++blocksSent;
+      pdb::makeObjectAllocatorBlock(numbytes, true);
     }
   }
+  double totalBytes = (double)(numbytes * blocksSent);
+  double bytesPerEmp = totalBytes / totalNumEmployees;
+  std::cout << "Each Employee takes up approximately " << bytesPerEmp << " bytes." << std::endl;
 
   /// Finally, run the work loop
   // Here we're allocating the vector that will be returned
@@ -232,6 +241,18 @@ int main(int argc, char *argv[]) {
     std::cerr << "This program will now exit." << std::endl;
     return 2;
   }
+
+  // Before running the benchmark, we will test that the timing code is correct
+  // and returns the time taken in the correct unit (seconds).
+  std::cout << "Testing timing code. Will sleep for 3 seconds." << std::endl;
+  auto start = std::chrono::system_clock::now(); // system_clock is the "real" (wall-clock) system time
+  std::this_thread::sleep_for(std::chrono::seconds(3)); // Sleep for at least 3 seconds
+  auto end = std::chrono::system_clock::now();
+
+  std::chrono::duration<double> durationInSeconds = end - start;
+  double numSeconds = durationInSeconds.count();
+  std::cout << "The duration slept is " << numSeconds << " seconds. It should've been a little over 3 seconds." << std::endl;
+
 
   std::vector<std::pair<int, int>> column_values; // Contains pairs of (numDepartments, totalNumEmployees)
 #define ADDPAIR(x,y) column_values.push_back(std::make_pair<int,int>((x), (y)))
