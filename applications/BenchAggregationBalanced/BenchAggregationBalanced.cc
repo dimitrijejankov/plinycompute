@@ -260,11 +260,13 @@ int main(int argc, char *argv[]) {
   // NOTE: modify combinations here if desired
   ADDPAIR(100, 10000);
   ADDPAIR(50, 50000);
-  ADDPAIR(1000, 100000);
-  ADDPAIR(1000, 1000000);
-  ADDPAIR(1000, 10000000);
-  ADDPAIR(2000, 10000000);
-  ADDPAIR(10000, 10000000);
+  ADDPAIR(1000, 100000); // 100k employees
+  ADDPAIR(1000, 1000000); // 1 million employees
+  ADDPAIR(1000, 10000000); // 10 million employees
+  ADDPAIR(2000, 10000000); // 10 million employees
+  ADDPAIR(10000, 10000000); // 10 million employees
+  ADDPAIR(10000, 100000000); // 100 million employees
+  ADDPAIR(10000, 1000000000); // 1 billion employees
 
   std::cout << "Combinations that will be benchmarked:" << std::endl;
   for (auto elem : column_values) {
