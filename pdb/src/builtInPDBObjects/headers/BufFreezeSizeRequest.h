@@ -9,11 +9,12 @@
 
 #include "PDBString.h"
 #include "PDBSet.h"
+#include "BufManagerRequestBase.h"
 
 namespace pdb {
 
 // request to get an anonymous page
-class BufFreezeSizeRequest : public Object {
+class BufFreezeSizeRequest : public BufManagerRequestBase {
 
  public:
 

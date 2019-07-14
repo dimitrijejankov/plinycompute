@@ -22,13 +22,14 @@
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
+#include "BufManagerRequestBase.h"
 
 // PRELOAD %BufReturnAnonPageRequest%
 
 namespace pdb {
 
 // request to get an anonymous page
-class BufReturnAnonPageRequest : public Object {
+class BufReturnAnonPageRequest : public BufManagerRequestBase {
 
 public:
 

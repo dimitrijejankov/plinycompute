@@ -23,13 +23,14 @@
 #include "Handle.h"
 #include "PDBString.h"
 #include "PDBSet.h"
+#include "BufManagerRequestBase.h"
 
 // PRELOAD %BufGetPageRequest%
 
 namespace pdb {
 
 // encapsulates a request to obtain a type name from the catalog
-class BufGetPageRequest : public Object {
+class BufGetPageRequest : public BufManagerRequestBase {
 
 public:
 
@@ -74,7 +75,7 @@ public:
   /**
    * Is this an anonymous page
    */
-  bool isAnon;
+  bool isAnon = false;
 };
 }
 

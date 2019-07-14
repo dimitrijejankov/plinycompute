@@ -22,6 +22,7 @@
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
+#include "BufManagerRequestBase.h"
 #include "../../objectModel/headers/PDBString.h"
 
 // PRELOAD %BufReturnPageRequest%
@@ -29,7 +30,7 @@
 namespace pdb {
 
 // request to get an anonymous page
-class BufReturnPageRequest : public Object {
+class BufReturnPageRequest : public BufManagerRequestBase {
 
 public:
 
