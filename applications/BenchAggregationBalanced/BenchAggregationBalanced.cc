@@ -121,6 +121,7 @@ BenchAggregationBalanced(const int numDepartments,
   double totalBytes = (double)(numbytes * blocksSent);
   double bytesPerEmp = totalBytes / totalNumEmployees;
   std::cout << "Each Employee takes up approximately " << bytesPerEmp << " bytes." << std::endl;
+  std::cout << "NOTE: this approximation is only meaningful if a significant number of allocation blocks had to be created and sent." << std::endl;
 
   /// Finally, run the work loop
   // Here we're allocating the vector that will be returned
