@@ -48,7 +48,9 @@ public:
     initDebug((dataPath / "debug.dt").string(), (dataPath / "debugSymbols.ds").string(), (dataPath / "stackTraces.dst").string());
   }
 
-protected:
+  PDBBufferManagerInterfacePtr getBackEnd() override;
+
+ protected:
 
   enum class BufferManagerOperationType {
     GET_PAGE,

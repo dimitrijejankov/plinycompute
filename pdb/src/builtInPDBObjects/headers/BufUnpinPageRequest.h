@@ -30,6 +30,16 @@ public:
 
   BufUnpinPageRequest() = default;
 
+  explicit BufUnpinPageRequest(const pdb::Handle<BufUnpinPageRequest>& copyMe) : BufManagerRequestBase(*copyMe) {
+
+    // copy stuff
+    isAnonymous = copyMe->isAnonymous;
+    isDirty = copyMe->isDirty;
+    databaseName = copyMe->databaseName;
+    setName = copyMe->setName;
+    pageNumber = copyMe->pageNumber;
+  }
+
   ~BufUnpinPageRequest() = default;
 
   ENABLE_DEEP_COPY;

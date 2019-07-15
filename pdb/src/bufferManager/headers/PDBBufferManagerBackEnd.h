@@ -36,14 +36,47 @@ namespace pdb {
  * anything; all of the buffering happens in the front end.  It basically just forwards
  * requests from the pages to the front end.
  */
+
+
+#ifdef DEBUG_BUFFER_MANAGER
+
+// the interface now has an expect page that is a virtual function
+class PDBBufferManagerBackEndInterface : public PDBBufferManagerInterface {
+public:
+
+/**
+ *
+ * @param communicator
+ * @return
+ */
+virtual PDBPageHandle expectPage(std::shared_ptr<PDBCommunicator> &communicator) = 0;
+
+};
+
+// we have debugging enabled therefore we need to use both the debug version and the real version
+class PDBBufferManagerDebugBackEnd;
+using PDBBufferManagerBackEndPtr = std::shared_ptr<PDBBufferManagerBackEndInterface>;
+using PDBBufferManagerBackEndImpl = PDBBufferManagerBackEndInterface;
+
+// we need to mark the expect page as override so we make it like that
+#define PDB_BACKEND_EXPECT_POSTFIX override
+
+#else
+
+// all regular
 template <class T>
 class PDBBufferManagerBackEnd;
 using PDBBufferManagerBackEndPtr = std::shared_ptr<PDBBufferManagerBackEnd<RequestFactory>>;
 using PDBBufferManagerBackEndImpl = PDBBufferManagerBackEnd<RequestFactory>;
+using PDBBufferManagerBackEndInterface = PDBBufferManagerInterface;
 
+// we should not mark expectPage as override since it is not virtual
+#define PDB_BACKEND_EXPECT_POSTFIX
+
+#endif
 
 template <class T>
-class PDBBufferManagerBackEnd : public PDBBufferManagerInterface {
+class PDBBufferManagerBackEnd : public PDBBufferManagerBackEndInterface {
 
 public:
 
@@ -79,7 +112,8 @@ public:
    * @param communicator
    * @return
    */
-  PDBPageHandle expectPage(std::shared_ptr<PDBCommunicator> &communicator);
+  PDBPageHandle expectPage(std::shared_ptr<PDBCommunicator> &communicator) PDB_BACKEND_EXPECT_POSTFIX;
+
 
   /**
    * Returns the maximum page size as set in the configuration

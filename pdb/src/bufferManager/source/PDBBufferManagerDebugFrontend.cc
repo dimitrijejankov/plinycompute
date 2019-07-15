@@ -1,6 +1,7 @@
 #ifdef DEBUG_BUFFER_MANAGER
 
 #include "PDBBufferManagerDebugFrontend.h"
+#include "PDBBufferManagerDebugBackEnd.h"
 #include <boost/stacktrace.hpp>
 
 namespace pdb {
@@ -365,6 +366,12 @@ void PDBBufferManagerDebugFrontend::logOperation(uint64_t timestamp,
 
   // write out the special value
   write(stackTracesTableFile, &value, sizeof(value));
+}
+
+PDBBufferManagerInterfacePtr PDBBufferManagerDebugFrontend::getBackEnd() {
+
+  // init the backend storage manager with the shared memory
+  return std::make_shared<PDBBufferManagerDebugBackEnd>(sharedMemory);
 }
 
 }

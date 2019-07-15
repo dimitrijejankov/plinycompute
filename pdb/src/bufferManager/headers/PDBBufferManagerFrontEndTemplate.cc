@@ -15,8 +15,6 @@
 template <class T>
 std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleGetPageRequest(pdb::Handle<pdb::BufGetPageRequest> &request, std::shared_ptr<T> &sendUsingMe) {
 
-  std::cout << "The current request id is : " <<  request->currentID << std::endl;
-
   // grab the page
   auto page = this->getPage(make_shared<pdb::PDBSet>(request->dbName, request->setName), request->pageNumber);
 

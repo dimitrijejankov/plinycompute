@@ -30,6 +30,15 @@ class BufPinPageRequest : public BufManagerRequestBase {
 
   BufPinPageRequest() = default;
 
+  explicit BufPinPageRequest(const pdb::Handle<BufPinPageRequest>& copyMe) : BufManagerRequestBase(*copyMe) {
+
+    // copy stuff
+    isAnonymous = copyMe->isAnonymous;
+    databaseName = copyMe->databaseName;
+    setName = copyMe->setName;
+    pageNumber = copyMe->pageNumber;
+  }
+
   ~BufPinPageRequest() = default;
 
   ENABLE_DEEP_COPY;

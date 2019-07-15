@@ -16,13 +16,7 @@ set(CTEST_BINARY_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 set(CMAKE_CXX_STANDARD 14)
 
 # check the operating system and add the appropriate flags
-if (APPLE)
-    set(CMAKE_CXX_FLAGS "-g -fPIC -Wno-deprecated-declarations -O3")
-    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -undefined dynamic_lookup")
-elseif (UNIX AND NOT APPLE)
-    set(CMAKE_CXX_FLAGS "-fPIC -Wno-deprecated-declarations")
-endif ()
-
+set(CMAKE_CXX_FLAGS "-fPIC -Wno-deprecated-declarations")
 
 # if we are compiling for debug add the debug flags
 if(CMAKE_BUILD_TYPE MATCHES Debug)
@@ -35,10 +29,13 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
     set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -rdynamic -ldl")
 
 # if we are compiling for release
-elseif(CMAKE_BUILD_TYPE MATCHES RELEASE)
+elseif(CMAKE_BUILD_TYPE MATCHES Release)
 
     # do -O3 and set the instruction set to the native one for this machine
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
+    set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -rdynamic -ldl" )
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -rdynamic -ldl")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -rdynamic -ldl")
 
 # if we are compiling the unit tests
 elseif(CMAKE_BUILD_TYPE MATCHES UNIT_TESTS)

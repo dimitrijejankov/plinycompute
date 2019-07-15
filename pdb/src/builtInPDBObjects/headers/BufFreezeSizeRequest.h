@@ -35,6 +35,16 @@ class BufFreezeSizeRequest : public BufManagerRequestBase {
     this->databaseName = pdb::makeObject<pdb::String>(dbName);
   }
 
+  explicit BufFreezeSizeRequest(const pdb::Handle<BufFreezeSizeRequest>& copyMe) : BufManagerRequestBase(*copyMe){
+
+    // copy stuff
+    isAnonymous = copyMe->isAnonymous;
+    databaseName = copyMe->databaseName;
+    setName = copyMe->setName;
+    pageNumber = copyMe->pageNumber;
+    freezeSize = copyMe->freezeSize;
+  }
+
   BufFreezeSizeRequest() = default;
 
   ~BufFreezeSizeRequest() = default;

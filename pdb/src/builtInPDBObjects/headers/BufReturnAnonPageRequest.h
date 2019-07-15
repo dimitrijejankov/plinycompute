@@ -37,6 +37,13 @@ public:
 
   BufReturnAnonPageRequest() = default;
 
+  explicit BufReturnAnonPageRequest(const pdb::Handle<BufReturnAnonPageRequest>& copyMe) : BufManagerRequestBase(*copyMe) {
+
+    // copy stuff
+    pageNumber = copyMe->pageNumber;
+    isDirty = copyMe->isDirty;
+  }
+
   ~BufReturnAnonPageRequest() = default;
 
   ENABLE_DEEP_COPY;

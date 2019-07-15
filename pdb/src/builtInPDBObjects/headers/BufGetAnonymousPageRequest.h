@@ -37,6 +37,12 @@ public:
 
   explicit BufGetAnonymousPageRequest(size_t size) : size(size) {};
 
+  explicit BufGetAnonymousPageRequest(const pdb::Handle<BufGetAnonymousPageRequest> & copyMe) : BufManagerRequestBase(*copyMe) {
+
+    // copy stuff
+    size = copyMe->size;
+  }
+
   ~BufGetAnonymousPageRequest() = default;
 
   ENABLE_DEEP_COPY;

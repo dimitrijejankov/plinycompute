@@ -39,6 +39,15 @@ public:
 
   BufReturnPageRequest() = default;
 
+  explicit BufReturnPageRequest(const pdb::Handle<BufReturnPageRequest>& copyMe) : BufManagerRequestBase(*copyMe) {
+
+    // copy stuff
+    databaseName = copyMe->databaseName;
+    setName = copyMe->setName;
+    pageNumber = copyMe->pageNumber;
+    isDirty = copyMe->isDirty;
+  }
+
   ~BufReturnPageRequest() = default;
 
   ENABLE_DEEP_COPY;

@@ -54,6 +54,15 @@ public:
     }
   }
 
+  explicit BufGetPageRequest(const pdb::Handle<BufGetPageRequest>& copyMe) : BufManagerRequestBase(*copyMe) {
+
+    // copy stuff
+    setName = copyMe->setName;
+    dbName = copyMe->dbName;
+    pageNumber = copyMe->pageNumber;
+    isAnon = copyMe->isAnon;
+  }
+
 
   ENABLE_DEEP_COPY
 
