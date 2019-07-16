@@ -123,7 +123,7 @@ public:
 
   void registerHandlers(PDBServer &forMe) override;
 
-private:
+protected:
 
 
   /**

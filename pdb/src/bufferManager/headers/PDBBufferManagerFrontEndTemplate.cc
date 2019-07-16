@@ -321,6 +321,9 @@ bool pdb::PDBBufferManagerFrontEnd::handleForwardPage(pdb::PDBPageHandle &page, 
   // forward the page
   Handle<pdb::BufForwardPageRequest> objectToSend = pdb::makeObject<BufForwardPageRequest>(offset, pageNum, isAnon, sizeFrozen, startPos, numBytes, setName, dbName);
 
+  // log the forward
+  logForward(objectToSend);
+
   // send the object
   std::string errMsg;
   if (!communicator->sendObject(objectToSend, errMsg)) {

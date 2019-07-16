@@ -450,7 +450,7 @@ void PDBBufferManagerImpl::freeAnonymousPage(PDBPagePtr me) {
   if (me->getBytes() == nullptr) {
 
     // log free anonymous page set
-    logFreeAnonymousPage(me);
+    logFreeAnonymousPage(me->whichPage());
 
     // get out of here
     return;
@@ -495,7 +495,7 @@ void PDBBufferManagerImpl::freeAnonymousPage(PDBPagePtr me) {
     emptyFullPages.push_back(parent);
 
     // log free anonymous page set
-    logFreeAnonymousPage(me);
+    logFreeAnonymousPage(me->whichPage());
 
     // finish this
     return;
@@ -506,7 +506,7 @@ void PDBBufferManagerImpl::freeAnonymousPage(PDBPagePtr me) {
   emptyMiniPages[unusedMiniPages[parent].second].emplace_back(me->getBytes());
 
   // log free anonymous page set
-  logFreeAnonymousPage(me);
+  logFreeAnonymousPage(me->whichPage());
 
   // notify that we have created space
   spaceCV.notify_all();
@@ -534,7 +534,7 @@ void PDBBufferManagerImpl::downToZeroReferences(PDBPagePtr me) {
   }
 
   // log the down to zero
-  logDownToZeroReferences(me);
+  logDownToZeroReferences(me->whichSet, me->whichPage());
 }
 
 bool PDBBufferManagerImpl::isRemovalStillValid(PDBPagePtr me) {
@@ -737,7 +737,7 @@ void PDBBufferManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes) {
   freezeSize(me, numBytes, lock);
 
   // log the freeze size
-  logFreezeSize(me, numBytes);
+  logFreezeSize(me->whichSet, me->whichPage(), numBytes);
 }
 
 void PDBBufferManagerImpl::freezeSize(PDBPagePtr me, size_t numBytes, unique_lock<mutex> &lock) {
@@ -791,7 +791,7 @@ void PDBBufferManagerImpl::unpin(PDBPagePtr me) {
   unpin(me, lock);
 
   // log the unpin
-  logUnpin(me);
+  logUnpin(me->whichSet, me->whichPage());
 }
 
 void PDBBufferManagerImpl::unpin(PDBPagePtr me, unique_lock<mutex> &lock) {
@@ -935,7 +935,7 @@ void PDBBufferManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
   me->status = PDB_PAGE_LOADED;
 
   // log the repin
-  logRepin(me);
+  logRepin(me->whichSet, me->whichPage());
 
   // notify all waiting conditional variables
   lock.unlock();

@@ -3,6 +3,7 @@
 #ifndef STORAGE_MGR_IFC_H
 #define STORAGE_MGR_IFC_H
 
+#include <BufForwardPageRequest.h>
 #include "PDBPage.h"
 #include "PDBPageHandle.h"
 #include "PDBSet.h"
@@ -138,29 +139,46 @@ protected:
   // then note that this guy is now pinned
   virtual void repin (PDBPagePtr me) = 0;
 
-#ifndef DEBUG_BUFFER_MANAGER
+#ifdef DEBUG_BUFFER_MANAGER
+public:
 
-  // all of these are going to be optimized out
-  static void logGetPage(const PDBSetPtr& whichSet, uint64_t i) {};
-  static void logGetPage(size_t minBytes, uint64_t pageNumber) {};
-  static void logFreezeSize(const PDBPagePtr& me, size_t numBytes) {};
-  static void logUnpin(const PDBPagePtr& me) {};
-  static void logRepin(const PDBPagePtr& me) {};
-  static void logFreeAnonymousPage(const PDBPagePtr& me) {};
-  static void logDownToZeroReferences(const PDBPagePtr& me) {};
-  static void logClearSet(const PDBSetPtr &set) {};
+  // we can supply the timestamp with these
+  virtual void logGetPage(const PDBSetPtr &whichSet, uint64_t i, uint64_t timestamp) { logGetPage(whichSet, i); };
+  virtual void logGetPage(size_t minBytes, uint64_t pageNumber, uint64_t timestamp) { logGetPage(minBytes, pageNumber); };
+  virtual void logFreezeSize(const PDBSetPtr &setPtr, size_t pageNum, size_t numBytes, uint64_t timestamp) { logFreezeSize(setPtr, pageNum, numBytes); };
+  virtual void logUnpin(const PDBSetPtr &setPtr, size_t pageNum, uint64_t timestamp) { logUnpin(setPtr, pageNum); };
+  virtual void logRepin(const PDBSetPtr &setPtr, size_t pageNum, uint64_t timestamp) { logRepin(setPtr, pageNum); };
+  virtual void logFreeAnonymousPage(uint64_t pageNumber, uint64_t timestamp) { logFreeAnonymousPage(pageNumber); };
+  virtual void logDownToZeroReferences(const PDBSetPtr &setPtr, size_t pageNum, uint64_t timestamp) { logDownToZeroReferences(setPtr, pageNum); };
+  virtual void logClearSet(const PDBSetPtr &set, uint64_t timestamp) { logClearSet(set); };
 
-#else
 
   // these are virtual so we can hijack the page methods
   virtual void logGetPage(const PDBSetPtr &whichSet, uint64_t i) {};
   virtual void logGetPage(size_t minBytes, uint64_t pageNumber) {};
-  virtual void logFreezeSize(const PDBPagePtr &me, size_t numBytes) {};
-  virtual void logUnpin(const PDBPagePtr &me) {};
-  virtual void logRepin(const PDBPagePtr &me) {};
-  virtual void logFreeAnonymousPage(const PDBPagePtr &me) {};
-  virtual void logDownToZeroReferences(const PDBPagePtr &me) {};
+  virtual void logFreezeSize(const PDBSetPtr &setPtr, size_t pageNum, size_t numBytes) {};
+  virtual void logUnpin(const PDBSetPtr &setPtr, size_t pageNum) {};
+  virtual void logRepin(const PDBSetPtr &setPtr, size_t pageNum) {};
+  virtual void logFreeAnonymousPage(uint64_t pageNumber) {};
+  virtual void logDownToZeroReferences(const PDBSetPtr &setPtr, size_t pageNum) {};
   virtual void logClearSet(const PDBSetPtr &set) {};
+  virtual void logExpect(const Handle<BufForwardPageRequest> &result) {};
+  virtual void logForward(const Handle<pdb::BufForwardPageRequest> &request) {};
+
+#else
+protected:
+
+  // all of these are going to be optimized out
+  static void logGetPage(const PDBSetPtr& whichSet, uint64_t i) {};
+  static void logGetPage(size_t minBytes, uint64_t pageNumber) {};
+  static void logFreezeSize(const PDBSetPtr &setPtr, size_t pageNum, size_t numBytes) {};
+  static void logUnpin(const PDBSetPtr &setPtr, size_t pageNum) {};
+  static void logRepin(const PDBSetPtr &setPtr, size_t pageNum) {};
+  static void logFreeAnonymousPage(uint64_t pageNumber) {};
+  static void logDownToZeroReferences(const PDBSetPtr &setPtr, size_t pageNum) {};
+  static void logClearSet(const PDBSetPtr &set) {};
+  static void logExpect(const Handle<BufForwardPageRequest> &result) {};
+  static void logForward(const Handle<pdb::BufForwardPageRequest> &request) {};
 
 #endif
 

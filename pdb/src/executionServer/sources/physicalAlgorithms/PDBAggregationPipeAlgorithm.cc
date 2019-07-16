@@ -190,7 +190,7 @@ bool pdb::PDBAggregationPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManage
     cnt++;
   });
 
-  // here we get a worker per pipeline and run all the preaggregationPipelines.
+  // here we get a worker per pipeline and run all the preaggregation Pipelines.
   for (int workerID = 0; workerID < aggregationPipelines->size(); ++workerID) {
 
     // get a worker from the server

@@ -10,18 +10,6 @@ namespace pdb {
 
 namespace fs = boost::filesystem;
 
-struct traceHasher {
-  std::size_t operator()(std::vector<size_t> const& c) const  {
-
-    std::size_t seed = 0;
-    for(const auto &value : c) {
-      seed ^= value + 0x9e3779b9 + (seed<< 6) + (seed>>2);
-    }
-
-    return seed;
-  }
-};
-
 class PDBBufferManagerDebugFrontend : public PDBBufferManagerFrontEnd {
 public:
 
@@ -48,9 +36,11 @@ public:
     initDebug((dataPath / "debug.dt").string(), (dataPath / "debugSymbols.ds").string(), (dataPath / "stackTraces.dst").string());
   }
 
+  void registerHandlers(PDBServer &forMe) override;
+
   PDBBufferManagerInterfacePtr getBackEnd() override;
 
- protected:
+protected:
 
   enum class BufferManagerOperationType {
     GET_PAGE,
@@ -58,7 +48,25 @@ public:
     UNPIN,
     REPIN,
     FREE,
-    CLEAR
+    CLEAR,
+    FORWARD,
+    HANDLE_GET_PAGE,
+    HANDLE_RETURN_PAGE,
+    HANDLE_FREEZE_SIZE,
+    HANDLE_PIN_PAGE,
+    HANDLE_UNPIN_PAGE
+  };
+
+  struct traceHasher {
+    std::size_t operator()(std::vector<size_t> const& c) const  {
+
+      std::size_t seed = 0;
+      for(const auto &value : c) {
+        seed ^= value + 0x9e3779b9 + (seed<< 6) + (seed>>2);
+      }
+
+      return seed;
+    }
   };
 
   void logOperation(uint64_t timestamp,
@@ -66,16 +74,20 @@ public:
                     const std::string &dbName,
                     const std::string &setName,
                     uint64_t pageNumber,
-                    uint64_t value);
+                    uint64_t value,
+                    uint64_t backendID);
 
   void logGetPage(const PDBSetPtr &whichSet, uint64_t i) override;
   void logGetPage(size_t minBytes, uint64_t pageNumber) override;
-  void logFreezeSize(const PDBPagePtr &me, size_t numBytes) override;
-  void logUnpin(const PDBPagePtr &me) override;
-  void logRepin(const PDBPagePtr &me) override;
-  void logFreeAnonymousPage(const PDBPagePtr &me) override;
-  void logDownToZeroReferences(const PDBPagePtr &me) override;
+  void logFreezeSize(const PDBSetPtr &setPtr, size_t pageNum, size_t numBytes) override;
+  void logUnpin(const PDBSetPtr &setPtr, size_t pageNum) override;
+  void logRepin(const PDBSetPtr &setPtr, size_t pageNum) override;
+  void logFreeAnonymousPage(uint64_t pageNumber) override;
+  void logDownToZeroReferences(const PDBSetPtr &setPtr, size_t pageNum) override;
   void logClearSet(const PDBSetPtr &set) override;
+  void logForward(const Handle<pdb::BufForwardPageRequest> &request) override;
+
+ protected:
 
   void initDebug(const std::string &timelineDebugFile,
                  const std::string &debugSymbols,
