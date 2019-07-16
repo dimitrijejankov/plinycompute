@@ -40,10 +40,37 @@
 #include <ScanEmployeeSet.h>
 #include <WriteDepartmentTotal.h>
 
-// Global constants (these are the input params to the benchmark)
+// Global constants
 static const std::string managerHostname("localhost");
 static const int managerPort = 8108;
 
+/**
+ * This function creates a connection to the cluster, creates and sends some test
+ * data, and runs the same Aggregation multiple times, returning the time taken for each
+ * repetition.
+ *
+ * The Aggregation being run takes Employees and aggregates them by department. Each department
+ * will have the same number of Employees. If the number of Employees is not divisible by the
+ * number of departments, then some departments will have one more Employee than some other
+ * departments.
+ *
+ * This function will also print out an estimate for the number of bytes per Employee. This estimate
+ * is computed by counting up the number of allocation blocks created, and multiplying that by the
+ * number of bytes per allocation block. Because the last allocation block is likely not entirely
+ * full when it is sent, this is a slight overestimate. Therefore, you should only trust the estimate
+ * if there are more than, say, 10 allocation blocks sent.
+ *
+ * @param numDepartments Number of departments to distribute the Employees among. This is equivalent to the
+ * number of unique aggregation keys.
+ * @param totalNumEmployees Total number of employees among all departments.
+ * @param numReps Number of times to run the Aggregation query on this data size.
+ * @param validate If this is true, then after each Aggregation query, this function will
+ * iterate over every Department in the output set and ensure that the results are correct,
+ * or otherwise print an error message and return immediately.
+ * @return A vector containing the time duration it took to run each query, in seconds.
+ * This only times the query itself; it does not time the creation of the input data set or
+ * the validation step.
+ */
 static std::unique_ptr<std::vector<std::chrono::duration<double>>>
 BenchAggregationBalanced(const int numDepartments,
                          const int totalNumEmployees,
@@ -265,8 +292,9 @@ int main(int argc, char *argv[]) {
   ADDPAIR(1000, 10000000); // 10 million employees
   ADDPAIR(2000, 10000000); // 10 million employees
   ADDPAIR(10000, 10000000); // 10 million employees
-  ADDPAIR(10000, 100000000); // 100 million employees
-  ADDPAIR(10000, 1000000000); // 1 billion employees
+//  ADDPAIR(10000, 100000000); // 100 million employees
+//  ADDPAIR(10000, 1000000000); // 1 billion employees
+  // TODO: try uncommenting the two lines above
 
   std::cout << "Combinations that will be benchmarked:" << std::endl;
   for (auto elem : column_values) {
