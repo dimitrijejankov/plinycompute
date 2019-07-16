@@ -10,4 +10,4 @@
 
 ./aws/mountAndBuild.sh $1
 cd ../nvme # This way, the worker's data will be stored on the mounted NVME drive
-../plinycompute/bin/pdb-node -p 8109 -r ./pdbWorker1 -t 4 -i $2 -d $3
+../plinycompute/bin/pdb-node -p 8109 -r ./pdbWorker$2 -t 4 -i $2 -d $3
