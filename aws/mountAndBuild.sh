@@ -16,15 +16,9 @@
 
 
 # Mount the SSD to directory 'nvme'
-echo "lsblk:"
-lsblk
-# NOTE: lsblk is only run so that you can double check that everything is working correctly.
-# Make sure that the row with name "nvme1n1" has the largest size; for the r5d.xlarge it should be
-# around 140 GB.
-
 cd ..
 mkdir nvme
-sudo mkfs.ext3 /dev/$1 # about 20-30 seconds. Note: shouldn't be asking for permission, if it does then nvme1n1 is the wrong argument
+sudo mkfs.ext3 /dev/$1 # about 20-30 seconds. Note: shouldn't be asking for permission, if it does then the input arg is wrong
 sudo mount /dev/$1 nvme
 cd nvme
 sudo chmod 777 -R .
