@@ -1,20 +1,3 @@
-#ifndef BE_STORAGE_MGR_H
-#define BE_STORAGE_MGR_H
-
-#include <PDBCommunicator.h>
-#include <PDBServer.h>
-#include "PDBSharedMemory.h"
-#include <HeapRequest.h>
-#include <condition_variable>
-#include "PDBBufferManagerInterface.h"
-#include "PDBPageCompare.h"
-
-// this is needed so we can declare friend tests here
-#include <gtest/gtest_prod.h>
-
-namespace pdb {
-
-
 /**
  * This is the part of the storage manager that is running in the back end.
  * There are two storage managers running on each machine: one on the front
@@ -37,46 +20,34 @@ namespace pdb {
  * requests from the pages to the front end.
  */
 
+#ifndef BE_STORAGE_MGR_H
+#define BE_STORAGE_MGR_H
 
-#ifdef DEBUG_BUFFER_MANAGER
+#include <PDBCommunicator.h>
+#include <PDBServer.h>
+#include "PDBSharedMemory.h"
+#include <HeapRequest.h>
+#include <condition_variable>
+#include "PDBBufferManagerInterface.h"
+#include "PDBPageCompare.h"
 
-// the interface now has an expect page that is a virtual function
-class PDBBufferManagerBackEndInterface : public PDBBufferManagerInterface {
-public:
+// this is needed so we can declare friend tests here
+#include <gtest/gtest_prod.h>
 
-/**
- *
- * @param communicator
- * @return
- */
-virtual PDBPageHandle expectPage(std::shared_ptr<PDBCommunicator> &communicator) = 0;
+namespace pdb {
 
-};
-
-// we have debugging enabled therefore we need to use both the debug version and the real version
-class PDBBufferManagerDebugBackEnd;
-using PDBBufferManagerBackEndPtr = std::shared_ptr<PDBBufferManagerBackEndInterface>;
-using PDBBufferManagerBackEndImpl = PDBBufferManagerBackEndInterface;
-
-// we need to mark the expect page as override so we make it like that
-#define PDB_BACKEND_EXPECT_POSTFIX override
-
-#else
+#ifndef DEBUG_BUFFER_MANAGER
 
 // all regular
 template <class T>
 class PDBBufferManagerBackEnd;
 using PDBBufferManagerBackEndPtr = std::shared_ptr<PDBBufferManagerBackEnd<RequestFactory>>;
 using PDBBufferManagerBackEndImpl = PDBBufferManagerBackEnd<RequestFactory>;
-using PDBBufferManagerBackEndInterface = PDBBufferManagerInterface;
-
-// we should not mark expectPage as override since it is not virtual
-#define PDB_BACKEND_EXPECT_POSTFIX
 
 #endif
 
 template <class T>
-class PDBBufferManagerBackEnd : public PDBBufferManagerBackEndInterface {
+class PDBBufferManagerBackEnd : public PDBBufferManagerInterface {
 
 public:
 

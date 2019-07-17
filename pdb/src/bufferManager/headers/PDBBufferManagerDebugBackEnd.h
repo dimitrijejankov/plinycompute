@@ -14,6 +14,11 @@
 
 namespace pdb {
 
+// we have debugging enabled therefore we need to use both the debug version and the real version
+class PDBBufferManagerDebugBackEnd;
+using PDBBufferManagerBackEndPtr = std::shared_ptr<PDBBufferManagerInterface>;
+using PDBBufferManagerBackEndImpl = PDBBufferManagerInterface;
+
 class PDBBufferManagerDebugBackendFactory {
 
 public:
