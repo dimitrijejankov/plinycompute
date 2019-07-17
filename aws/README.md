@@ -1,7 +1,7 @@
 # AWS Setup
 This document exists to show what I have done to set up the AWS environment for performance benchmarking. It was written by Vicram Rajagopalan.
 
-The layout of this document is as follows. If all you want to do is launch a cluster using the configurations I've already set up, you only need to read the **Running the Cluster** section. The rest of the document details how and why I set everything up that way, with sufficient detail that you would be able to replicate the process yourself.
+The layout of this document is as follows. If all you want to do is launch a cluster using the configurations I've already set up, you only need to read the **Running the Cluster** section. The rest of the document goes over how and why I set everything up that way, with sufficient detail that you would be able to replicate the process yourself.
 
 ## Running the Cluster
 Note: this uses On-Demand Instances. If you want to use Spot Instances, you'll have to configure it yourself.
@@ -39,6 +39,7 @@ nvme1n1     259:1    0    16G  0 disk
 └─nvme1n1p1 259:2    0    16G  0 part /
 ```
 Note that the above numbers correspond to an r5d.xlarge instance. You need to find the name of the NVMe drive. This is the name of the drive with the largest size. In my experience, the name is usually `nvme0n1` but it's sometimes `nvme1n1`. Either way, note this down for each instance. There does not appear to be a way to predict which it will be, and it can vary from instance to instance.
+
 17. On the manager node, run `./aws/startManager.sh diskName`, where `diskName` is either `nvme0n1` or `nvme1n1`, whichever you noted down for the manager.
 18. Allow the manager to start up. You know that the manager has finished starting when you see it output these lines:
 ```
