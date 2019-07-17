@@ -134,6 +134,7 @@ class PDBPage {
 
   template <class T>
   friend class PDBBufferManagerBackEnd;
+  friend class PDBBufferManagerDebugBackEnd;
 };
 
 }

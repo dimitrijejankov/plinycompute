@@ -13,6 +13,7 @@
 
 #include <PDBBufferManagerFrontEnd.h>
 #include <GenericWork.h>
+#include <PDBBufferManagerDebugFrontend.h>
 
 namespace pdb {
 

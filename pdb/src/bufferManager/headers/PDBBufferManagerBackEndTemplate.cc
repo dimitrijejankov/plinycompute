@@ -291,6 +291,9 @@ PDBPageHandle PDBBufferManagerBackEnd<T>::expectPage(std::shared_ptr<PDBCommunic
         returnVal->bytes = (void *) (((uint64_t) this->sharedMemory.memory) + (uint64_t) result->offset);
         returnVal->status = PDB_PAGE_LOADED;
 
+        // log the expect
+        logExpect(result);
+
         // insert the page
         allPages[key] = returnVal;
 

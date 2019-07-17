@@ -9,11 +9,12 @@
 
 #include "PDBString.h"
 #include "PDBSet.h"
+#include "BufManagerRequestBase.h"
 
 namespace pdb {
 
 // request to get an anonymous page
-class BufPinPageRequest : public Object {
+class BufPinPageRequest : public BufManagerRequestBase {
 
  public:
 
@@ -28,6 +29,15 @@ class BufPinPageRequest : public Object {
   }
 
   BufPinPageRequest() = default;
+
+  explicit BufPinPageRequest(const pdb::Handle<BufPinPageRequest>& copyMe) : BufManagerRequestBase(*copyMe) {
+
+    // copy stuff
+    isAnonymous = copyMe->isAnonymous;
+    databaseName = copyMe->databaseName;
+    setName = copyMe->setName;
+    pageNumber = copyMe->pageNumber;
+  }
 
   ~BufPinPageRequest() = default;
 

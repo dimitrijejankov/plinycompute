@@ -196,7 +196,7 @@ protected:
    * written out
    * @param registerMe - the page we want to register
    */
-  void registerMiniPage(PDBPagePtr registerMe);
+  void registerMiniPage(const PDBPagePtr& registerMe);
 
   /**
    * this creates additional mini-pages of size MIN_PAGE_SIZE * 2^whichSize.  To do this, it
@@ -324,7 +324,7 @@ protected:
   map<PDBSetPtr, size_t, PDBSetCompare> endOfFiles;
 
   /**
-   * tells us the LRU number of each of the memory pages
+   * this keeps the LRU numbers sorted so that we can quickly evict a parent page
    */
   set<pair<void *, size_t>, PDBBufferManagerCheckLRU> lastUsed;
 

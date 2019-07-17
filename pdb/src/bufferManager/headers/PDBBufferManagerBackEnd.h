@@ -1,20 +1,3 @@
-#ifndef BE_STORAGE_MGR_H
-#define BE_STORAGE_MGR_H
-
-#include <PDBCommunicator.h>
-#include <PDBServer.h>
-#include "PDBSharedMemory.h"
-#include <HeapRequest.h>
-#include <condition_variable>
-#include "PDBBufferManagerInterface.h"
-#include "PDBPageCompare.h"
-
-// this is needed so we can declare friend tests here
-#include <gtest/gtest_prod.h>
-
-namespace pdb {
-
-
 /**
  * This is the part of the storage manager that is running in the back end.
  * There are two storage managers running on each machine: one on the front
@@ -36,11 +19,32 @@ namespace pdb {
  * anything; all of the buffering happens in the front end.  It basically just forwards
  * requests from the pages to the front end.
  */
+
+#ifndef BE_STORAGE_MGR_H
+#define BE_STORAGE_MGR_H
+
+#include <PDBCommunicator.h>
+#include <PDBServer.h>
+#include "PDBSharedMemory.h"
+#include <HeapRequest.h>
+#include <condition_variable>
+#include "PDBBufferManagerInterface.h"
+#include "PDBPageCompare.h"
+
+// this is needed so we can declare friend tests here
+#include <gtest/gtest_prod.h>
+
+namespace pdb {
+
+#ifndef DEBUG_BUFFER_MANAGER
+
+// all regular
 template <class T>
 class PDBBufferManagerBackEnd;
 using PDBBufferManagerBackEndPtr = std::shared_ptr<PDBBufferManagerBackEnd<RequestFactory>>;
 using PDBBufferManagerBackEndImpl = PDBBufferManagerBackEnd<RequestFactory>;
 
+#endif
 
 template <class T>
 class PDBBufferManagerBackEnd : public PDBBufferManagerInterface {
@@ -79,7 +83,8 @@ public:
    * @param communicator
    * @return
    */
-  PDBPageHandle expectPage(std::shared_ptr<PDBCommunicator> &communicator);
+  PDBPageHandle expectPage(std::shared_ptr<PDBCommunicator> &communicator) PDB_BACKEND_EXPECT_POSTFIX;
+
 
   /**
    * Returns the maximum page size as set in the configuration
@@ -89,7 +94,7 @@ public:
 
   void registerHandlers(PDBServer &forMe) override;
 
-private:
+protected:
 
 
   /**

@@ -129,7 +129,7 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
     if(job->nodes[i]->port == job->thisNode->port && job->nodes[i]->address == job->thisNode->address) {
 
       // make the self receiver
-      selfReceiver = std::make_shared<pdb::PDBPageSelfReceiver>(pageQueues->at(i), recvPageSet);
+      selfReceiver = std::make_shared<pdb::PDBPageSelfReceiver>(pageQueues->at(i), recvPageSet, myMgr);
     }
     else {
 
@@ -190,7 +190,7 @@ bool pdb::PDBAggregationPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManage
     cnt++;
   });
 
-  // here we get a worker per pipeline and run all the preaggregationPipelines.
+  // here we get a worker per pipeline and run all the preaggregation Pipelines.
   for (int workerID = 0; workerID < aggregationPipelines->size(); ++workerID) {
 
     // get a worker from the server
