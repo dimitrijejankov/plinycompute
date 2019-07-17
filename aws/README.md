@@ -49,7 +49,7 @@ Waiting for the server to start accepting requests.
 Distributed storage manager server started!
 Distributed storage manager server started!
 ```
-19. On each worker node, run `./aws/startWorker.sh diskName workerPrivateIP managerPrivateIP`, where `diskName` is the noted NVMe drive name for that worker, `workerPrivateIP` is the private IP for that worker (from step 13), and `managerPrivateIP` is the private IP for the manager instance. NOTE: I have hard-coded the number of threads for each worker to correspond to the number of cores in the r5d.xlarge instance type (4) See **Instance Type**, below, for more.
+19. On each worker node, run `./aws/startWorker.sh diskName workerPrivateIP managerPrivateIP`, where `diskName` is the noted NVMe drive name for that worker, `workerPrivateIP` is the private IP for that worker (from step 13), and `managerPrivateIP` is the private IP for the manager instance. NOTE: I have hard-coded the number of threads for each worker to correspond to the number of cores in the r5d.xlarge instance type (4). See **Instance Type**, below, for more.
 20. Wait until you see the printouts from step 18 for each worker. Congrats! You have successfully started a distributed Plinycompute cluster.
 
 To remember all the commands to run and all the info for each instance, I open up the following template in a text editor and edit the parts that change. This is what the entries looked like for one of my runs:
