@@ -36,15 +36,15 @@ class PreaggregationSink : public ComputeSink {
 
   // std::is_same<VTAdder, VTDefault>()
   template <class T = VTAdder>
-  typename std::enable_if<std::is_same<T, VTDefault>::value, ValueType&&>::type
+  typename std::enable_if<std::is_same<T, VTDefault>::value, ValueType>::type
       add(ValueType& v, TempValueType& t) {
-    return std::move(v + t);
+    return v + t; //std::move(v + t);
   }
 
   template <class T = VTAdder>
-  typename std::enable_if<!std::is_same<T, VTDefault>::value, ValueType&&>::type
+  typename std::enable_if<!std::is_same<T, VTDefault>::value, ValueType>::type
       add(ValueType& v, TempValueType& t) {
-    return std::move(vtadder.add(v, t));
+    return vtadder.add(v, t); //std::move(vtadder.add(v, t));
   }
 
 //  std::is_same<Converter, ConvertDefault>()

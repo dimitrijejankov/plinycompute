@@ -29,12 +29,12 @@ class AggregationCombinerSink : public ComputeSink {
 
   // Below are the 'add' methods for tag dispatching.
   // TODO document what's going on here.
-  ValueType&& add(std::true_type, ValueType& in1, ValueType& in2) {
-    return std::move(in1 + in2);
+  ValueType add(std::true_type, ValueType& in1, ValueType& in2) {
+    return in1 + in2; //std::move(in1 + in2);
   }
 
-  ValueType&& add(std::false_type, ValueType& in1, ValueType& in2) {
-    return std::move(vvadder.add(in1, in2));
+  ValueType add(std::false_type, ValueType& in1, ValueType& in2) {
+    return vvadder.add(in1, in2); //std::move(vvadder.add(in1, in2));
   }
 
 public:
