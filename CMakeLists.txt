@@ -16,13 +16,7 @@ set(CTEST_BINARY_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 set(CMAKE_CXX_STANDARD 14)
 
 # check the operating system and add the appropriate flags
-if (APPLE)
-    set(CMAKE_CXX_FLAGS "-g -fPIC -Wno-deprecated-declarations -O3")
-    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -undefined dynamic_lookup")
-elseif (UNIX AND NOT APPLE)
-    set(CMAKE_CXX_FLAGS "-fPIC -Wno-deprecated-declarations")
-endif ()
-
+set(CMAKE_CXX_FLAGS "-fPIC -Wno-deprecated-declarations")
 
 # if we are compiling for debug add the debug flags
 if(CMAKE_BUILD_TYPE MATCHES Debug)
@@ -30,21 +24,24 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
     # this is to make the standard lib object readable in the debugger, this will require a boost library compiled for that
     # you can provide it with -DUSE_CUSTOM_BOOST=ON and -DCUSTOM_BOOST_LOCATION=/path/to/boost
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG_BUFFER_MANAGER -g")
-    set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS}")
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
-    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS}")
+    set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -rdynamic -ldl" )
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -rdynamic -ldl")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -rdynamic -ldl")
 
 # if we are compiling for release
-elseif(CMAKE_BUILD_TYPE MATCHES RELEASE)
+elseif(CMAKE_BUILD_TYPE MATCHES Release)
 
     # do -O3 and set the instruction set to the native one for this machine
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
+    set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -rdynamic -ldl" )
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -rdynamic -ldl")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -rdynamic -ldl")
 
 # if we are compiling the unit tests
 elseif(CMAKE_BUILD_TYPE MATCHES UNIT_TESTS)
 
     # the unit test have the same stuff enabled as the regular tests
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG_BUFFER_MANAGER -g")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG_BUFFER_MANAGER -g3")
     set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -rdynamic")
     set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -rdynamic")
@@ -125,6 +122,7 @@ file(GLOB SERVER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/server/source/*.cc")
 file(GLOB OBJECT_MODEL_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/objectModel/source/*.cc")
 file(GLOB WORK_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/work/source/*.cc")
 file(GLOB STORAGE_MANAGER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/storageManager/source/*.cc")
+file(GLOB BUILT_OBJECTS_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/builtInPDBObjects/source/*.cc")
 
 file(GLOB PIPELINE_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/pipeline/source/*.cc" "${PROJECT_SOURCE_DIR}/pdb/src/pipeline/source/pipeline/*.cc")
 
@@ -248,7 +246,7 @@ add_library(server OBJECT ${SERVER_SOURCE})
 add_library(work OBJECT ${WORK_SOURCE})
 add_library(storageManager OBJECT ${STORAGE_MANAGER_SOURCE})
 add_library(pipeline OBJECT ${PIPELINE_SOURCE})
-
+add_library(built-in-objects OBJECT ${BUILT_OBJECTS_SOURCE})
 add_library(logical-plan OBJECT ${LOGICAL_PLAN_SOURCE})
 add_library(client OBJECT ${CLIENT_SOURCE})
 add_library(object-model OBJECT ${OBJECT_MODEL_SOURCE})
@@ -278,6 +276,7 @@ add_library(pdb-server-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:server-functionalities>
         $<TARGET_OBJECTS:storageManager>
         $<TARGET_OBJECTS:pipeline>
+        $<TARGET_OBJECTS:built-in-objects>
         $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:computation-server>
         $<TARGET_OBJECTS:execution-server>
@@ -290,7 +289,6 @@ add_library(pdb-shared-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:logical-plan>
         $<TARGET_OBJECTS:server>
         $<TARGET_OBJECTS:client>
-        $<TARGET_OBJECTS:object-model>
         $<TARGET_OBJECTS:sql-lite>
         $<TARGET_OBJECTS:server-functionalities>
         $<TARGET_OBJECTS:storageManager>
@@ -312,6 +310,7 @@ add_library(pdb-tests-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:server-functionalities>
         $<TARGET_OBJECTS:storageManager>
         $<TARGET_OBJECTS:pipeline>
+        $<TARGET_OBJECTS:built-in-objects>
         $<TARGET_OBJECTS:buffer-manager>
         $<TARGET_OBJECTS:computation-server>
         $<TARGET_OBJECTS:execution-server>

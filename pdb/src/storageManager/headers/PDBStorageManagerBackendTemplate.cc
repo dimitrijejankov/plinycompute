@@ -7,6 +7,7 @@
 #include <PDBStorageManagerBackend.h>
 #include <PDBBufferManagerBackEnd.h>
 #include <StoFeedPageRequest.h>
+#include <PDBBufferManagerDebugBackEnd.h>
 
 template <class Communicator>
 std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStoreOnPage(const pdb::Handle<pdb::StoStoreOnPageRequest> &request,

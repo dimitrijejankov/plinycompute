@@ -22,6 +22,7 @@
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
+#include "BufManagerRequestBase.h"
 #include "../../objectModel/headers/PDBString.h"
 
 // PRELOAD %BufReturnPageRequest%
@@ -29,7 +30,7 @@
 namespace pdb {
 
 // request to get an anonymous page
-class BufReturnPageRequest : public Object {
+class BufReturnPageRequest : public BufManagerRequestBase {
 
 public:
 
@@ -37,6 +38,15 @@ public:
       : databaseName(databaseName), setName(setName), pageNumber(pageNumber), isDirty(isDirty) {}
 
   BufReturnPageRequest() = default;
+
+  explicit BufReturnPageRequest(const pdb::Handle<BufReturnPageRequest>& copyMe) : BufManagerRequestBase(*copyMe) {
+
+    // copy stuff
+    databaseName = copyMe->databaseName;
+    setName = copyMe->setName;
+    pageNumber = copyMe->pageNumber;
+    isDirty = copyMe->isDirty;
+  }
 
   ~BufReturnPageRequest() = default;
 

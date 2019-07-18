@@ -22,13 +22,14 @@
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
+#include "BufManagerRequestBase.h"
 
 // PRELOAD %BufForwardPageRequest%
 
 namespace pdb {
 
 // encapsulates a request to forward the page
-class BufForwardPageRequest : public Object {
+class BufForwardPageRequest : public BufManagerRequestBase {
 
 public:
 
@@ -46,7 +47,7 @@ public:
   ENABLE_DEEP_COPY
 
   // a pointer to the raw bytes
-  uint64_t offset;
+  uint64_t offset = 0;
 
   // the page number
   uint64_t pageNum = 0;

@@ -22,11 +22,8 @@ public:
                                                                                        numPagesIn,
                                                                                        metaFile,
                                                                                        storageLocIn) {
-    // the location of the debug file
-    string fileLoc = storageLoc + "/debug.dt";
-
     // init the debug file
-    initDebug(fileLoc);
+    initDebug(storageLoc + "/debug.dt", storageLoc + "/debugSymbols.ds", storageLoc + "/stackTraces.dst");
   }
 
   explicit PDBBufferManagerDebugFrontend(const NodeConfigPtr &config) : PDBBufferManagerFrontEnd(config) {
@@ -35,22 +32,66 @@ public:
     fs::path dataPath(config->rootDirectory);
     dataPath.append("/data");
 
-    // init the debug file
-    initDebug((dataPath / "debug.dt").string());
+    // init the debug stuff
+    initDebug((dataPath / "debug.dt").string(), (dataPath / "debugSymbols.ds").string(), (dataPath / "stackTraces.dst").string());
   }
+
+  void registerHandlers(PDBServer &forMe) override;
+
+  PDBBufferManagerInterfacePtr getBackEnd() override;
 
 protected:
 
-  void logGetPage(const PDBSetPtr &whichSet, uint64_t i) override;
-  void logGetPage(size_t minBytes) override;
-  void logFreezeSize(const PDBPagePtr &me, size_t numBytes) override;
-  void logUnpin(const PDBPagePtr &me) override;
-  void logRepin(const PDBPagePtr &me) override;
-  void logFreeAnonymousPage(const PDBPagePtr &me) override;
-  void logDownToZeroReferences(const PDBPagePtr &me) override;
-  void logClearSet(const PDBSetPtr &set) override;
+  enum class BufferManagerOperationType {
+    GET_PAGE,
+    FREEZE,
+    UNPIN,
+    REPIN,
+    FREE,
+    CLEAR,
+    FORWARD,
+    HANDLE_GET_PAGE,
+    HANDLE_RETURN_PAGE,
+    HANDLE_FREEZE_SIZE,
+    HANDLE_PIN_PAGE,
+    HANDLE_UNPIN_PAGE
+  };
 
-  void initDebug(const std::string &timelineDebugFile);
+  struct traceHasher {
+    std::size_t operator()(std::vector<size_t> const& c) const  {
+
+      std::size_t seed = 0;
+      for(const auto &value : c) {
+        seed ^= value + 0x9e3779b9 + (seed<< 6) + (seed>>2);
+      }
+
+      return seed;
+    }
+  };
+
+  void logOperation(uint64_t timestamp,
+                    BufferManagerOperationType operation,
+                    const std::string &dbName,
+                    const std::string &setName,
+                    uint64_t pageNumber,
+                    uint64_t value,
+                    uint64_t backendID);
+
+  void logGetPage(const PDBSetPtr &whichSet, uint64_t i) override;
+  void logGetPage(size_t minBytes, uint64_t pageNumber) override;
+  void logFreezeSize(const PDBSetPtr &setPtr, size_t pageNum, size_t numBytes) override;
+  void logUnpin(const PDBSetPtr &setPtr, size_t pageNum) override;
+  void logRepin(const PDBSetPtr &setPtr, size_t pageNum) override;
+  void logFreeAnonymousPage(uint64_t pageNumber) override;
+  void logDownToZeroReferences(const PDBSetPtr &setPtr, size_t pageNum) override;
+  void logClearSet(const PDBSetPtr &set) override;
+  void logForward(const Handle<pdb::BufForwardPageRequest> &request) override;
+
+ protected:
+
+  void initDebug(const std::string &timelineDebugFile,
+                 const std::string &debugSymbols,
+                 const std::string &stackTraces);
 
   /**
    * Writes out the state of the buffer manager at this time
@@ -76,7 +117,7 @@ protected:
    * numUnused times ( 8 bytes signed for the offset of the unused page |  8 bytes for the size of the page)
    *
    */
-  void logTimeline();
+  void logTimeline(const uint64_t &tick);
 
   /**
    * The lock we made
@@ -92,6 +133,21 @@ protected:
    * The file we are going to write all the debug timeline files
    */
   int debugTimelineFile = 0;
+
+  /**
+   * The file we are going to write all the debug symbols for the stack trace
+   */
+  int debugSymbolTableFile = 0;
+
+  /**
+   * The file where we are going to write all the stack traces
+   */
+  int stackTracesTableFile = 0;
+
+  /**
+   * The set of stack traces
+   */
+  std::unordered_map<std::vector<size_t>, size_t, traceHasher> stackTraces;
 
   /**
    * The magic number the debug files start with

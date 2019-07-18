@@ -9,11 +9,12 @@
 
 #include "PDBString.h"
 #include "PDBSet.h"
+#include "BufManagerRequestBase.h"
 
 namespace pdb {
 
 // request to get an anonymous page
-class BufFreezeSizeRequest : public Object {
+class BufFreezeSizeRequest : public BufManagerRequestBase {
 
  public:
 
@@ -32,6 +33,16 @@ class BufFreezeSizeRequest : public Object {
 
     this->setName = pdb::makeObject<pdb::String>(setName);
     this->databaseName = pdb::makeObject<pdb::String>(dbName);
+  }
+
+  explicit BufFreezeSizeRequest(const pdb::Handle<BufFreezeSizeRequest>& copyMe) : BufManagerRequestBase(*copyMe){
+
+    // copy stuff
+    isAnonymous = copyMe->isAnonymous;
+    databaseName = copyMe->databaseName;
+    setName = copyMe->setName;
+    pageNumber = copyMe->pageNumber;
+    freezeSize = copyMe->freezeSize;
   }
 
   BufFreezeSizeRequest() = default;

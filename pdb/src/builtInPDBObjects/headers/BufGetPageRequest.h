@@ -23,13 +23,14 @@
 #include "Handle.h"
 #include "PDBString.h"
 #include "PDBSet.h"
+#include "BufManagerRequestBase.h"
 
 // PRELOAD %BufGetPageRequest%
 
 namespace pdb {
 
 // encapsulates a request to obtain a type name from the catalog
-class BufGetPageRequest : public Object {
+class BufGetPageRequest : public BufManagerRequestBase {
 
 public:
 
@@ -53,6 +54,15 @@ public:
     }
   }
 
+  explicit BufGetPageRequest(const pdb::Handle<BufGetPageRequest>& copyMe) : BufManagerRequestBase(*copyMe) {
+
+    // copy stuff
+    setName = copyMe->setName;
+    dbName = copyMe->dbName;
+    pageNumber = copyMe->pageNumber;
+    isAnon = copyMe->isAnon;
+  }
+
 
   ENABLE_DEEP_COPY
 
@@ -74,7 +84,7 @@ public:
   /**
    * Is this an anonymous page
    */
-  bool isAnon;
+  bool isAnon = false;
 };
 }
 

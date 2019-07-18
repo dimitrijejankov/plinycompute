@@ -22,19 +22,27 @@
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
+#include "BufManagerRequestBase.h"
 
 // PRELOAD %BufReturnAnonPageRequest%
 
 namespace pdb {
 
 // request to get an anonymous page
-class BufReturnAnonPageRequest : public Object {
+class BufReturnAnonPageRequest : public BufManagerRequestBase {
 
 public:
 
   explicit BufReturnAnonPageRequest(const size_t &pageNumber, bool isDirty) : pageNumber(pageNumber), isDirty(isDirty) {}
 
   BufReturnAnonPageRequest() = default;
+
+  explicit BufReturnAnonPageRequest(const pdb::Handle<BufReturnAnonPageRequest>& copyMe) : BufManagerRequestBase(*copyMe) {
+
+    // copy stuff
+    pageNumber = copyMe->pageNumber;
+    isDirty = copyMe->isDirty;
+  }
 
   ~BufReturnAnonPageRequest() = default;
 
