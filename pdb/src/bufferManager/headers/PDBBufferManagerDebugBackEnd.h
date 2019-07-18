@@ -232,7 +232,7 @@ public:
   void logClearSet(const PDBSetPtr &set, uint64_t timestamp) override;
   void logExpect(const Handle<BufForwardPageRequest> &result) override;
 
- private:
+private:
 
   enum class BufferManagerOperationType {
     GET_PAGE,
