@@ -28,13 +28,15 @@ class AggregationCombinerSink : public ComputeSink {
   VVAdder vvadder;
 
   // Below are the 'add' methods for tag dispatching.
-  // TODO document what's going on here.
+  // For more information on what's going on here, please see the writeup in
+  // PreaggregationSink.h.
   ValueType add(std::true_type, ValueType& in1, ValueType& in2) {
-    return in1 + in2; //std::move(in1 + in2);
+    return in1 + in2;
   }
-
+  // TODO: ValueType can potentially have a large memory footprint. Would it be worthwhile to
+  //  do a move in the add methods in order to minimize copies?
   ValueType add(std::false_type, ValueType& in1, ValueType& in2) {
-    return vvadder.add(in1, in2); //std::move(vvadder.add(in1, in2));
+    return vvadder.add(in1, in2);
   }
 
 public:

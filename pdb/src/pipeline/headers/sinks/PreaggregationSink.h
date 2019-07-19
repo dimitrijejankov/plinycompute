@@ -31,32 +31,37 @@ class PreaggregationSink : public ComputeSink {
   VTAdder vtadder; // Encapsulates function to add ValueType and TempValueType
   Converter converter; // Encapsulates function to convert TempValueType to ValueType
 
-  // Below are the 'add' and 'convert' methods for tag dispatching.
-  // TODO document what's going on here
 
-  // std::is_same<VTAdder, VTDefault>()
-  template <class T = VTAdder>
-  typename std::enable_if<std::is_same<T, VTDefault>::value, ValueType>::type
-      add(ValueType& v, TempValueType& t) {
-    return v + t; //std::move(v + t);
+  // Here we define the default and specialized add/convert methods.
+  // In the following 4 method definitions, we are using tag dispatching to decide
+  // at compile-time whether to use the default or specialized versions.
+  // Tag dispatching is a technique that adds an extra dummy argument to a function.
+  // As long as the type of the dummy argument can be determined at compile-time, it
+  // can be used to select which function overload will be used.
+  // For the add method here, the dummy argument should be 'std::is_same<VTAdder, VTDefault>()'.
+  // For convert, it should be 'std::is_same<Converter, ConvertDefault>()'.
+  //
+  // The idea to use tag dispatching came from these stackoverflow posts:
+  // https://stackoverflow.com/questions/15598939/how-do-i-use-stdis-integral-to-select-an-implementation
+  // https://stackoverflow.com/a/6627748
+  //
+  // For more info on how tag dispatching works, see here:
+  // https://crazycpp.wordpress.com/2014/12/15/tutorial-on-tag-dispatching/
+
+  ValueType add(std::true_type, ValueType& v, TempValueType& t) {
+    return v + t;
+  }
+  // TODO: ValueType can potentially have a large memory footprint. Would it be worthwhile to
+  //  do a move in the add methods in order to minimize copies?
+  ValueType add(std::false_type, ValueType& v, TempValueType& t) {
+    return vtadder.add(v, t);
   }
 
-  template <class T = VTAdder>
-  typename std::enable_if<!std::is_same<T, VTDefault>::value, ValueType>::type
-      add(ValueType& v, TempValueType& t) {
-    return vtadder.add(v, t); //std::move(vtadder.add(v, t));
-  }
-
-//  std::is_same<Converter, ConvertDefault>()
-  template <class T = Converter>
-  typename std::enable_if<std::is_same<T, ConvertDefault>::value, void>::type
-  convert(TempValueType& in, ValueType* out) {
+  void convert(std::true_type, TempValueType& in, ValueType* out) {
     *out = in;
   }
 
-  template <class T = Converter>
-  typename std::enable_if<!std::is_same<T, ConvertDefault>::value, void>::type
-  convert(TempValueType& in, ValueType* out) {
+  void convert(std::false_type, TempValueType& in, ValueType* out) {
     converter.convert(in, out);
   }
 
@@ -138,8 +143,7 @@ class PreaggregationSink : public ComputeSink {
         // we were able to fit a new key/value pair, so copy over the value
         try {
           // Note: this is the first of only 2 lines that are changed.
-//          convert(std::is_same<Converter, ConvertDefault>(), tempValueColumn[i], temp);
-          convert(tempValueColumn[i], temp);
+          convert(std::is_same<Converter, ConvertDefault>(), tempValueColumn[i], temp);
 
           // if we could not fit the value...
         } catch (NotEnoughSpace &n) {
@@ -164,8 +168,7 @@ class PreaggregationSink : public ComputeSink {
         // and add to the old value, producing a new one
         try {
           // Note: this is the second of only 2 lines that are changed.
-//          temp = add(std::is_same<VTAdder, VTDefault>(), copy, tempValueColumn[i]);
-          temp = add(copy, tempValueColumn[i]);
+          temp = add(std::is_same<VTAdder, VTDefault>(), copy, tempValueColumn[i]);
 
           // if we got here, then it means that we ram out of RAM when we were trying
           // to put the new value into the hash table

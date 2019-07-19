@@ -6,12 +6,6 @@
 #define PDB_ABSTRACTADDER_H
 
 namespace pdb {
-// TODO: This probably needs to inherit from Object. This isn't because it needs
-//  to be sent over the network or deep-copied or anything, it's only because
-//  the subclass that the user defines needs to be visible as a shared library
-//  to all the worker nodes.
-//  But this raises an additional issue, because it needs to be a PDB Object and
-//  also a template class.
 /**
  * This is the interface for a class which has a single method, 'add'. It is used
  * by AggregateComp.

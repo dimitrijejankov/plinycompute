@@ -79,6 +79,9 @@ int main(int argc, char* argv[]) {
 
   /// 5. Iterate over set and print out the results
 
+  std::cout << "Now printing out results. They should be:" << std::endl;
+  std::cout << "Department 1: Max salary 5;    Department 2: Max salary 10;    Department 3: Max salary 15" << std::endl;
+
   // grab the iterator
   auto it = pdbClient.getSetIterator<DepartmentMax>(dbname, outputname);
   while(it->hasNextRecord()) {
