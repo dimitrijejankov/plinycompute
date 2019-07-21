@@ -18,8 +18,12 @@
 # Mount the SSD to directory 'nvme'
 cd ..
 mkdir nvme
-sudo mkfs.ext3 /dev/$1 # about 20-30 seconds. Note: shouldn't be asking for permission, if it does then the input arg is wrong
-sudo mount /dev/$1 nvme
+# Create a single partition on the disk
+sudo fdisk /dev/$1 # Interactive. Press: 'n', nothing, nothing, nothing, nothing, 'w'
+# Reformat the partition with a new filesystem
+sudo mkfs.ext3 /dev/$1p1 # about 20-30 seconds. Note: shouldn't be asking for permission, if it does then the input arg is wrong
+# Mount the partition to directory nvme
+sudo mount -t ext3 /dev/$1p1 nvme # This is how the mount(8) man page recommends calling mount
 cd nvme
 sudo chmod 777 -R .
 
