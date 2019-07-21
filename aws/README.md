@@ -41,7 +41,7 @@ Given these constraints, I've created an AMI. Here are the steps I took to do th
 4. Selected the t3.large instance type (2 cores, 8 GiB memory). This was mostly arbitrary, because the AMI will outlive the instance. I chose an instance that a) is cheap but probably has enough resources to install things quickly enough, and b) is EBS-only to ensure everything will be installed to the EBS disk.
 5. I configured the network settings as explained in **Launching an Instance**, above.
 6. Under "Add Storage", I gave the root device 16 GiB to leave room for installed libraries and PDB binary files. This choice was fairly arbitrary.
-7. Waited until the status checks completed (you can see this on the EC2 Dashboard).
+7. Waited until the status checks completed before SSHing into the instance. (You can see this on the EC2 Dashboard.)
 8. Ran the following commands:
 ```
 git clone https://github.com/dimitrijejankov/plinycompute.git
