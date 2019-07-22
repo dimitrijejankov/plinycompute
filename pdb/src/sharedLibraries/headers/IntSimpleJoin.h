@@ -28,18 +28,18 @@
 
 using namespace pdb;
 
-class IntSimpleJoin : public JoinComp<int, int, StringIntPair, String> {
+class IntSimpleJoin : public JoinComp<IntSimpleJoin, int, int, StringIntPair, String> {
 
  public:
   ENABLE_DEEP_COPY
 
   IntSimpleJoin() = default;
 
-  Lambda<bool> getSelection(Handle<int> in1, Handle<StringIntPair> in2, Handle<String> in3) override {
+  Lambda<bool> getSelection(Handle<int> in1, Handle<StringIntPair> in2, Handle<String> in3) {
     return (makeLambdaFromSelf(in1) == makeLambdaFromMember(in2, myInt)) && (makeLambdaFromMember(in2, myString) == makeLambdaFromSelf(in3));
   }
 
-  Lambda<Handle<int>> getProjection(Handle<int> in1, Handle<StringIntPair> in2, Handle<String> in3) override {
+  Lambda<Handle<int>> getProjection(Handle<int> in1, Handle<StringIntPair> in2, Handle<String> in3) {
     return makeLambda(in1, [](Handle<int>& in1) { return in1; });
   }
 };

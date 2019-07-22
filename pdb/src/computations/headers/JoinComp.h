@@ -31,7 +31,7 @@
 
 namespace pdb {
 
-template<typename Out, typename In1, typename In2, typename ...Rest>
+template<typename Derived, typename Out, typename In1, typename In2, typename ...Rest>
 class JoinComp : public JoinCompBase {
 
 private:
@@ -46,17 +46,11 @@ private:
     }
   }
 
-  // the computation returned by this method is called to see if a data item should be returned in the output set
-  virtual Lambda<bool> getSelection(Handle<In1> in1, Handle<In2> in2, Handle<Rest> ...otherArgs) = 0;
-
-  // the computation returned by this method is called to produce output tuples from this method
-  virtual Lambda<Handle<Out>> getProjection(Handle<In1> in1, Handle<In2> in2, Handle<Rest> ...otherArgs) = 0;
-
   // calls getProjection and getSelection to extract the lambdas
   void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
     int suffix = 0;
-    Lambda<bool> selectionLambda = callGetSelection(*this);
-    Lambda<Handle<Out>> projectionLambda = callGetProjection(*this);
+    Lambda<bool> selectionLambda = callGetSelection(*static_cast<Derived*>(this));
+    Lambda<Handle<Out>> projectionLambda = callGetProjection(*static_cast<Derived*>(this));
     selectionLambda.toMap(returnVal, suffix);
     projectionLambda.toMap(returnVal, suffix);
   }
@@ -294,7 +288,7 @@ private:
       }
 
       analyzeInputSets(inputNames);
-      Lambda<bool> selectionLambda = callGetSelection(*this);
+      Lambda<bool> selectionLambda = callGetSelection(*static_cast<Derived*>(this));
       std::string inputTupleSetName;
       std::vector<std::string> inputColumnNames;
       std::vector<std::string> inputColumnsToApply;
@@ -323,7 +317,7 @@ private:
         tcapString += " " + inputsInProjection[i];
       }
       tcapString += " )*/\n";
-      Lambda<Handle<Out>> projectionLambda = callGetProjection(*this);
+      Lambda<Handle<Out>> projectionLambda = callGetProjection(*static_cast<Derived*>(this));
       inputTupleSetName = outputTupleSetName;
       inputColumnNames.clear();
       inputColumnsToApply.clear();
@@ -449,14 +443,14 @@ private:
     }
 
     // Step 2. analyze selectionLambda to find all inputs in predicates
-    Lambda<bool> selectionLambda = callGetSelection(*this);
+    Lambda<bool> selectionLambda = callGetSelection(*static_cast<Derived*>(this));
     std::vector<std::string> inputsInPredicates =
         selectionLambda.getAllInputs(this->multiInputsBase);
     for (auto &inputsInPredicate : inputsInPredicates) {
       this->multiInputsBase->addInputNameToPredicates(inputsInPredicate);
     }
     // Step 3. analyze projectionLambda to find all inputs in projection
-    Lambda<Handle<Out>> projectionLambda = callGetProjection(*this);
+    Lambda<Handle<Out>> projectionLambda = callGetProjection(*static_cast<Derived*>(this));
     std::vector<std::string> inputsInProjection =
         projectionLambda.getAllInputs(this->multiInputsBase);
     for (auto &i : inputsInProjection) {

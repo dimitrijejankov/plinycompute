@@ -8,16 +8,16 @@ namespace pdb {
 
 namespace matrix {
 
-class MatrixMultiplyJoin : public JoinComp <MatrixBlock, MatrixBlock, MatrixBlock> {
+class MatrixMultiplyJoin : public JoinComp <MatrixMultiplyJoin, MatrixBlock, MatrixBlock, MatrixBlock> {
 public:
 
   ENABLE_DEEP_COPY
 
-  Lambda <bool> getSelection (Handle <MatrixBlock> in1, Handle <MatrixBlock> in2) override {
+  Lambda <bool> getSelection (Handle <MatrixBlock> in1, Handle <MatrixBlock> in2) {
     return (makeLambdaFromMethod (in1, getColID) == makeLambdaFromMethod (in2, getRowID));
   }
 
-  Lambda <Handle <MatrixBlock>> getProjection (Handle <MatrixBlock> in1, Handle <MatrixBlock> in2) override {
+  Lambda <Handle <MatrixBlock>> getProjection (Handle <MatrixBlock> in1, Handle <MatrixBlock> in2) {
     return makeLambda (in1, in2, [] (Handle <MatrixBlock> &in1, Handle <MatrixBlock> &in2) {
 
       // get the sizes

@@ -86,7 +86,9 @@ TEST(SetScannerTest, Test1) {
   auto ptr = std::dynamic_pointer_cast<pdb::PDBAbstractPageSet>(pageSet);
 
   // get the compute source
-  auto dataSource = scanner.getComputeSource(ptr, 15, 0);
+  std::map<ComputeInfoType, ComputeInfoPtr> params = {{ ComputeInfoType::SOURCE_SET_INFO,
+                                                        std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("", "", "", 0, PDBCatalogSetContainerType::PDB_CATALOG_SET_VECTOR_CONTAINER))}};
+  auto dataSource = scanner.getComputeSource(ptr, 15, 0, params);
 
   // and here is the chunk
   TupleSetPtr curChunk;

@@ -37,7 +37,8 @@
 /* This class implements the join between documents, doc-topic probability and word-topic probability */
 using namespace pdb;
 
-class LDADocWordTopicJoin : public JoinComp<LDADocWordTopicAssignment,
+class LDADocWordTopicJoin : public JoinComp<LDADocWordTopicJoin,
+                                            LDADocWordTopicAssignment,
                                             LDADocument,
                                             IntDoubleVectorPair,
                                             LDATopicWordProb> {
@@ -74,17 +75,16 @@ public:
     /* Join condition */
     Lambda<bool> getSelection(Handle<LDADocument> doc,
                               Handle<IntDoubleVectorPair> DocTopicProb,
-                              Handle<LDATopicWordProb> WordTopicProb) override {
+                              Handle<LDATopicWordProb> WordTopicProb) {
         return (makeLambdaFromMember(doc, docID) ==
                 makeLambdaFromMember(DocTopicProb, myInt)) &&
                (makeLambdaFromMember(doc, wordID) ==
                 makeLambdaFromMember(WordTopicProb, whichWord));
     }
 
-    Lambda<Handle<LDADocWordTopicAssignment>> getProjection(
-        Handle<LDADocument> doc,
-        Handle<IntDoubleVectorPair> DocTopicProb,
-        Handle<LDATopicWordProb> WordTopicProb) override {
+    Lambda<Handle<LDADocWordTopicAssignment>> getProjection(Handle<LDADocument> doc,
+                                                            Handle<IntDoubleVectorPair> DocTopicProb,
+                                                            Handle<LDATopicWordProb> WordTopicProb) {
 
         return makeLambda(
             doc,

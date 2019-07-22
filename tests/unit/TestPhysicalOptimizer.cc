@@ -360,12 +360,6 @@ TEST(TestPhysicalOptimizer, TestJoin1) {
   EXPECT_EQ((std::string)algorithmBroadcastA->getSetToScan()->database, "myData");
   EXPECT_EQ((std::string)algorithmBroadcastA->getSetToScan()->set, "mySetA");
 
-  // check the intermediate set
-  EXPECT_EQ(algorithmBroadcastA->intermediate->sinkType, BroadcastIntermediateJoinSink);
-  EXPECT_EQ((std::string) algorithmBroadcastA->finalTupleSet, "AHashed");
-  EXPECT_EQ((std::string) algorithmBroadcastA->intermediate->pageSetIdentifier.second, "AHashed_to_broadcast");
-  EXPECT_EQ(algorithmBroadcastA->intermediate->pageSetIdentifier.first, compID);
-
   // check the sink
   EXPECT_EQ(algorithmBroadcastA->sink->sinkType, BroadcastJoinSink);
   EXPECT_EQ((std::string) algorithmBroadcastA->finalTupleSet, "AHashed");
@@ -657,12 +651,6 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
   EXPECT_EQ(algorithmBroadcastC->source->pageSetIdentifier.first, compID);
   EXPECT_EQ((std::string)algorithmBroadcastC->getSetToScan()->database, "myData");
   EXPECT_EQ((std::string)algorithmBroadcastC->getSetToScan()->set, "mySetC");
-
-  // check the intermediate set
-  EXPECT_EQ(algorithmBroadcastC->intermediate->sinkType, BroadcastIntermediateJoinSink);
-  EXPECT_EQ((std::string) algorithmBroadcastC->finalTupleSet, "CHashedOnC");
-  EXPECT_EQ((std::string) algorithmBroadcastC->intermediate->pageSetIdentifier.second, "CHashedOnC_to_broadcast");
-  EXPECT_EQ(algorithmBroadcastC->intermediate->pageSetIdentifier.first, compID);
 
   // check the sink
   EXPECT_EQ(algorithmBroadcastC->sink->sinkType, BroadcastJoinSink);
