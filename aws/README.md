@@ -41,7 +41,8 @@ nvme1n1     259:1    0    16G  0 disk
 Note that the above numbers correspond to an r5d.xlarge instance. You need to find the name of the NVMe drive. This is the name of the drive with the largest size. In my experience, the name is usually `nvme0n1` but it's sometimes `nvme1n1`. Either way, note this down for each instance. There does not appear to be a way to predict which it will be, and it can vary from instance to instance.
 
 17. On the manager node, run `./aws/startManager.sh diskName`, where `diskName` is either `nvme0n1` or `nvme1n1`, whichever you noted down for the manager.
-18. Allow the manager to start up. You know that the manager has finished starting when you see it output these lines:
+18. This script runs `fdisk`, which is an interactive command to create a new partition on a disk. To interact with `fdisk`, you run commands by typing a letter (or typing nothing, which will select the default command) then pressing 'Enter'. Here you will need to run 6 `fdisk` commands: **n, default, default, default, default, w**. 
+19. Allow the manager to start up. You know that the manager has finished starting when you see it output these lines:
 ```
 Starting a new storage!
 Waiting for the server to start accepting requests.
@@ -49,8 +50,8 @@ Waiting for the server to start accepting requests.
 Distributed storage manager server started!
 Distributed storage manager server started!
 ```
-19. On each worker node, run `./aws/startWorker.sh diskName workerPrivateIP managerPrivateIP`, where `diskName` is the noted NVMe drive name for that worker, `workerPrivateIP` is the private IP for that worker (from step 13), and `managerPrivateIP` is the private IP for the manager instance. NOTE: I have hard-coded the number of threads for each worker to correspond to the number of cores in the r5d.xlarge instance type (4). See **Instance Type**, below, for more.
-20. Wait until you see the printouts from step 18 for each worker. Congrats! You have successfully started a distributed Plinycompute cluster.
+20. On each worker node, run `./aws/startWorker.sh diskName workerPrivateIP managerPrivateIP`, where `diskName` is the noted NVMe drive name for that worker, `workerPrivateIP` is the private IP for that worker (from step 13), and `managerPrivateIP` is the private IP for the manager instance. **This will require typing the same fdisk commands as in step 18.** NOTE: I have hard-coded the number of threads for each worker to correspond to the number of cores in the r5d.xlarge instance type (4). See **Instance Type**, below, for more.
+21. Wait until you see the printouts from step 19 for each worker. Congrats! You have successfully started a distributed Plinycompute cluster.
 
 To remember all the commands to run and all the info for each instance, I open up the following template in a text editor and edit the parts that change. This is what the entries looked like for one of my runs:
 ```
@@ -65,7 +66,7 @@ cd plinycompute
 # If necessary, check out a branch
 git pull
 lsblk
-./aws/startManager.sh nvme0n1
+./aws/startManager.sh nvme0n1 
 
 # Or, for a worker:
 # ./aws/startWorker.sh nvme0n1 workerPrivateIP managerPrivateIP
@@ -74,6 +75,9 @@ lsblk
 ./aws/startWorker.sh nvme0n1 10.0.0.171 10.0.0.82
 ./aws/startWorker.sh nvme1n1 10.0.0.92 10.0.0.82
 ./aws/startWorker.sh nvme0n1 10.0.0.65 10.0.0.82
+
+# For startManager/startWorker:
+# n, default, default, default, default, w
 ```
 Of course, this is optional, but I find it helpful.
 
