@@ -102,10 +102,7 @@ class MultiSelectionComp : public Computation {
    * @return
    */
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
-                           int computationLabel,
-                           std::string &outputTupleSetName,
-                           std::vector<std::string> &outputColumnNames,
-                           std::string &addedOutputColumnName) override {
+                           int computationLabel) override {
 
     if (inputTupleSets.empty()) {
       return "";
@@ -119,9 +116,6 @@ class MultiSelectionComp : public Computation {
                         inputTupleSet.getColumnNamesToApply(),
                         childrenLambdaNames,
                         computationLabel,
-                        outputTupleSetName,
-                        outputColumnNames,
-                        addedOutputColumnName,
                         myLambdaName);
   }
 
@@ -131,9 +125,6 @@ class MultiSelectionComp : public Computation {
                            std::vector<std::string> &inputColumnsToApply,
                            std::vector<std::string> &childrenLambdaNames,
                            int computationLabel,
-                           std::string &outputTupleSetName,
-                           std::vector<std::string> &outputColumnNames,
-                           std::string &addedOutputColumnName,
                            std::string &myLambdaName) {
     PDB_COUT << "To GET TCAP STRING FOR SELECTION" << std::endl;
 
@@ -199,6 +190,12 @@ class MultiSelectionComp : public Computation {
     PDB_COUT << "tcapString after adding filter operation: " << tcapString << std::endl;
     PDB_COUT << "TO GET TCAP STRING FOR PROJECTION LAMBDA" << std::endl;
     PDB_COUT << "lambdaLabel=" << lambdaLabel << std::endl;
+
+
+    // TODO make this nicer
+    std::string outputTupleSetName;
+    std::vector<std::string> outputColumnNames;
+    std::string addedOutputColumnName;
 
     Lambda<Vector<Handle<Out>>> projectionLambda = getProjection(checkMe);
     tcapString += "\n/* Apply MultiSelection projection */\n";

@@ -62,11 +62,7 @@ class SetWriter : public Computation {
   }
 
   // below function implements the interface for parsing computation into a TCAP string
-  std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
-                           int computationLabel,
-                           std::string &outputTupleSetName,
-                           std::vector<std::string> &outputColumnNames,
-                           std::string &addedOutputColumnName) override {
+  std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets, int computationLabel) override {
 
     if (inputTupleSets.empty()) {
       return "";
@@ -76,24 +72,18 @@ class SetWriter : public Computation {
     return toTCAPString(inputTupleSet.getTupleSetName(),
                         inputTupleSet.getColumnNamesToKeep(),
                         inputTupleSet.getColumnNamesToApply(),
-                        computationLabel,
-                        outputTupleSetName,
-                        outputColumnNames,
-                        addedOutputColumnName);
+                        computationLabel);
   }
 
   std::string toTCAPString(std::string inputTupleSetName,
                            std::vector<std::string> &inputColumnNames,
                            std::vector<std::string> &inputColumnsToApply,
-                           int computationLabel,
-                           std::string &outputTupleSetName,
-                           std::vector<std::string> &outputColumnNames,
-                           std::string &addedOutputColumnName) {
+                           int computationLabel) {
 
     //Names for output stuff
-    outputTupleSetName = inputTupleSetName + "_out";
-    outputColumnNames.emplace_back("");
-    addedOutputColumnName = "";
+    std::string outputTupleSetName = inputTupleSetName + "_out";
+    std::vector<std::string> outputColumnNames = {""};
+    std::string addedOutputColumnName;
 
     // the template we are going to use to create the TCAP string for this ScanUserSet
     mustache::mustache writeSetTemplate{"{{outputTupleSetName}}( {{outputColumnNames}}) <= "

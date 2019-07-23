@@ -88,10 +88,7 @@ class Computation : public Object {
 
   //JiaNote: below function returns a TCAP string for this Computation
   virtual std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
-                                   int computationLabel,
-                                   std::string &outputTupleSetName,
-                                   std::vector<std::string> &outputColumnNames,
-                                   std::string &addedOutputColumnName) = 0;
+                                   int computationLabel) = 0;
 
   //JiaNote: below functions are added to construct a query graph
   //Those functions are borrowed from Chris' QueryBase class

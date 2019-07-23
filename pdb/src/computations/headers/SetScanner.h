@@ -59,10 +59,7 @@ class SetScanner : public Computation {
 
   // below function implements the interface for parsing computation into a TCAP string
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
-                           int computationLabel,
-                           std::string &outputTupleSetName,
-                           std::vector<std::string> &outputColumnNames,
-                           std::string &addedOutputColumnName) override {
+                           int computationLabel) override {
 
     InputTupleSetSpecifier inputTupleSet;
     if (!inputTupleSets.empty()) {
@@ -71,10 +68,7 @@ class SetScanner : public Computation {
     return toTCAPString(inputTupleSet.getTupleSetName(),
                         inputTupleSet.getColumnNamesToKeep(),
                         inputTupleSet.getColumnNamesToApply(),
-                        computationLabel,
-                        outputTupleSetName,
-                        outputColumnNames,
-                        addedOutputColumnName);
+                        computationLabel);
   }
 
   /**
@@ -91,10 +85,7 @@ class SetScanner : public Computation {
   std::string toTCAPString(std::string inputTupleSetName,
                            std::vector<std::string> &inputColumnNames,
                            std::vector<std::string> &inputColumnsToApply,
-                           int computationLabel,
-                           std::string &outputTupleSetName,
-                           std::vector<std::string> &outputColumnNames,
-                           std::string &addedOutputColumnName) {
+                           int computationLabel) {
 
     // the template we are going to use to create the TCAP string for this ScanUserSet
     mustache::mustache scanSetTemplate{"inputDataFor{{computationType}}_{{computationLabel}}(in{{computationLabel}})"
@@ -111,12 +102,12 @@ class SetScanner : public Computation {
     mustache::mustache outputColumnNameTemplate{"in{{computationLabel}}"};
 
     //  set the output column name
-    addedOutputColumnName = outputColumnNameTemplate.render(scanSetData);
-    outputColumnNames.push_back(addedOutputColumnName);
+    std::string addedOutputColumnName = outputColumnNameTemplate.render(scanSetData);
+    std::vector<std::string> outputColumnNames = { addedOutputColumnName };
 
     // output tuple set name template
     mustache::mustache outputTupleSetTemplate{"inputDataFor{{computationType}}_{{computationLabel}}"};
-    outputTupleSetName = outputTupleSetTemplate.render(scanSetData);
+    std::string outputTupleSetName = outputTupleSetTemplate.render(scanSetData);
 
     // update the state of the computation
     this->setTraversed(true);

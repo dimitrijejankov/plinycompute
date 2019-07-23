@@ -49,8 +49,8 @@ private:
   // calls getProjection and getSelection to extract the lambdas
   void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
     int suffix = 0;
-    Lambda<bool> selectionLambda = callGetSelection(*static_cast<Derived*>(this));
-    Lambda<Handle<Out>> projectionLambda = callGetProjection(*static_cast<Derived*>(this));
+    Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
+    Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
     selectionLambda.toMap(returnVal, suffix);
     projectionLambda.toMap(returnVal, suffix);
   }
@@ -267,10 +267,7 @@ private:
 
   //JiaNote: Returning a TCAP string for this Join computation
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
-                           int computationLabel,
-                           std::string &outputTupleSetName,
-                           std::vector<std::string> &outputColumnNames,
-                           std::string &addedOutputColumnName) override {
+                           int computationLabel) override {
     if (inputTupleSets.size() == getNumInputs()) {
       std::string tcapString;
       if (multiInputsBase == nullptr) {
@@ -288,13 +285,19 @@ private:
       }
 
       analyzeInputSets(inputNames);
-      Lambda<bool> selectionLambda = callGetSelection(*static_cast<Derived*>(this));
+      Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
       std::string inputTupleSetName;
       std::vector<std::string> inputColumnNames;
       std::vector<std::string> inputColumnsToApply;
       std::vector<std::string> childrenLambdaNames;
       int lambdaLabel = 0;
       std::string myLambdaName;
+
+      // TODO
+      std::string outputTupleSetName;
+      std::vector<std::string> outputColumnNames;
+      std::string addedOutputColumnName;
+
       MultiInputsBase *multiInputsComp = this->getMultiInputsBase();
       tcapString += selectionLambda.toTCAPString(inputTupleSetName,
                                                  inputColumnNames,
@@ -317,7 +320,7 @@ private:
         tcapString += " " + inputsInProjection[i];
       }
       tcapString += " )*/\n";
-      Lambda<Handle<Out>> projectionLambda = callGetProjection(*static_cast<Derived*>(this));
+      Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
       inputTupleSetName = outputTupleSetName;
       inputColumnNames.clear();
       inputColumnsToApply.clear();
@@ -443,14 +446,14 @@ private:
     }
 
     // Step 2. analyze selectionLambda to find all inputs in predicates
-    Lambda<bool> selectionLambda = callGetSelection(*static_cast<Derived*>(this));
+    Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
     std::vector<std::string> inputsInPredicates =
         selectionLambda.getAllInputs(this->multiInputsBase);
-    for (auto &inputsInPredicate : inputsInPredicates) {
+     for (auto &inputsInPredicate : inputsInPredicates) {
       this->multiInputsBase->addInputNameToPredicates(inputsInPredicate);
     }
     // Step 3. analyze projectionLambda to find all inputs in projection
-    Lambda<Handle<Out>> projectionLambda = callGetProjection(*static_cast<Derived*>(this));
+    Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
     std::vector<std::string> inputsInProjection =
         projectionLambda.getAllInputs(this->multiInputsBase);
     for (auto &i : inputsInProjection) {

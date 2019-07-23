@@ -82,10 +82,7 @@ class AggregateComp : public AggregateCompBase {
 
   // below function implements the interface for parsing computation into a TCAP string
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
-                           int computationLabel,
-                           std::string &outputTupleSetName,
-                           std::vector<std::string> &outputColumnNames,
-                           std::string &addedOutputColumnName) override {
+                           int computationLabel) override {
 
     if (inputTupleSets.empty()) {
       return "";
@@ -99,9 +96,6 @@ class AggregateComp : public AggregateCompBase {
                         inputTupleSet.getColumnNamesToApply(),
                         childrenLambdaNames,
                         computationLabel,
-                        outputTupleSetName,
-                        outputColumnNames,
-                        addedOutputColumnName,
                         myLambdaName);
 
   }
@@ -112,9 +106,6 @@ class AggregateComp : public AggregateCompBase {
                            std::vector<std::string> inputColumnsToApply,
                            std::vector<std::string> &childrenLambdaNames,
                            int computationLabel,
-                           std::string &outputTupleSetName,
-                           std::vector<std::string> &outputColumnNames,
-                           std::string &addedOutputColumnName,
                            std::string &myLambdaName) {
     PDB_COUT << "To GET TCAP STRING FOR CLUSTER AGGREGATE COMP" << std::endl;
 
@@ -151,6 +142,11 @@ class AggregateComp : public AggregateCompBase {
     Lambda<ValueClass> valueLambda = getValueProjection(checkMe);
     std::vector<std::string> columnsToKeep;
     columnsToKeep.push_back(addedColumnName);
+
+    // TODO make this nicer
+    std::string outputTupleSetName;
+    std::vector<std::string> outputColumnNames;
+    std::string addedOutputColumnName;
 
     tcapString += "\n/* Extract value for aggregation */\n";
     tcapString += valueLambda.toTCAPString(tupleSetName,

@@ -67,8 +67,8 @@ public:
   void parseComputations(Vector<Handle<Computation>> &computations);
 
   // to traverse from a graph sink recursively
-  void traverse(std::vector<std::string> &tcapStrings, Handle<Computation> sink,
-                std::vector<InputTupleSetSpecifier> inputTupleSets,
+  void traverse(std::vector<std::string> &tcapStrings, const Handle<Computation>& comp,
+                const std::vector<InputTupleSetSpecifier>& inputTupleSets,
                 int &computationLabel, std::string &outputTupleSetName,
                 std::vector<std::string> &outputColumnNames,
                 std::string &addedOutputColumnName);

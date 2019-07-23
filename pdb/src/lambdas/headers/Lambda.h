@@ -312,16 +312,19 @@ class Lambda {
     inputTupleSetNames.push_back(inputTupleSetName);
     std::vector<std::string> columnNames;
 
+    columnNames.reserve(inputColumnNames.size());
     for (const auto &inputColumnName : inputColumnNames) {
       columnNames.push_back(inputColumnName);
     }
 
     std::vector<std::string> columnsToApply;
+    columnsToApply.reserve(inputColumnsToApply.size());
     for (const auto &i : inputColumnsToApply) {
       columnsToApply.push_back(i);
     }
 
     std::vector<std::string> childrenLambdas;
+    childrenLambdas.reserve(childrenLambdaNames.size());
     for (const auto &childrenLambdaName : childrenLambdaNames) {
       childrenLambdas.push_back(childrenLambdaName);
     }

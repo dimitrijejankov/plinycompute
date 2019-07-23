@@ -27,99 +27,99 @@ namespace pdb {
 extern GenericHandle foofoo;
 
 struct HasTwoArgs {
-    template <typename U>
-    static auto test (U *x) -> decltype (x->getSelection (foofoo, foofoo)) {
-        return x->getSelection (foofoo, foofoo);
-    }
+  template <typename U>
+  static auto test (U *x) -> std::pair<decltype (x->getSelection (foofoo, foofoo)), decltype(x->getProjection (foofoo, foofoo))> {
+    return std::make_pair(x->getSelection (foofoo, foofoo), x->getProjection (foofoo, foofoo));
+  }
 };
 
 struct HasThreeArgs {
-    template <typename U>
-    static auto test (U *x) -> decltype (x->getSelection (foofoo, foofoo, foofoo)) {
-        return x->getSelection (foofoo, foofoo, foofoo);
-    }
+  template <typename U>
+  static auto test (U *x) -> std::pair<decltype (x->getSelection (foofoo, foofoo, foofoo)), decltype(x->getProjection (foofoo, foofoo, foofoo))> {
+    return std::make_pair(x->getSelection (foofoo, foofoo, foofoo), x->getProjection (foofoo, foofoo, foofoo));
+  }
 };
 
 struct HasFourArgs {
-    template <typename U>
-    static auto test (U *x) -> decltype (x->getSelection (foofoo, foofoo, foofoo, foofoo)) {
-        return x->getSelection (foofoo, foofoo, foofoo, foofoo);
-    }
+  template <typename U>
+  static auto test (U *x) -> std::pair<decltype (x->getSelection (foofoo, foofoo, foofoo, foofoo)), decltype(x->getProjection (foofoo, foofoo, foofoo, foofoo))> {
+    return std::make_pair(x->getSelection (foofoo, foofoo, foofoo, foofoo), x->getProjection (foofoo, foofoo, foofoo, foofoo));
+  }
 };
 
 struct HasFiveArgs {
-    template <typename U>
-    static auto test (U *x) -> decltype (x->getSelection (foofoo, foofoo, foofoo, foofoo, foofoo)) {
-        return x->getSelection (foofoo, foofoo, foofoo, foofoo, foofoo);
-    }
+  template <typename U>
+  static auto test (U *x) -> std::pair<decltype (x->getSelection (foofoo, foofoo, foofoo, foofoo, foofoo)), decltype(x->getProjection (foofoo, foofoo, foofoo, foofoo, foofoo))> {
+    return std::make_pair(x->getSelection (foofoo, foofoo, foofoo, foofoo, foofoo), x->getProjection (foofoo, foofoo, foofoo, foofoo, foofoo));
+  }
 };
 
-template <typename TypeToCallMethodOn>
+template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
 auto callGetSelection (TypeToCallMethodOn &a, decltype (HasTwoArgs::test (&a)) *arg = nullptr) {
-	GenericHandle first (1);
-	GenericHandle second (2);
-        return a.getSelection (first, second);
+  GenericHandle first (1);
+  GenericHandle second (2);
+  return a.getSelection (first, second);
 }
 
-template <typename TypeToCallMethodOn>
+template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
 auto callGetSelection (TypeToCallMethodOn &a, decltype (HasThreeArgs::test (&a)) *arg = nullptr) {
-	GenericHandle first (1);
-	GenericHandle second (2);
-	GenericHandle third (3);
-        return a.getSelection (first, second, third);
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+  return a.getSelection (first, second, third);
 }
 
-template <typename TypeToCallMethodOn>
+template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
 auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFourArgs::test (&a)) *arg = nullptr) {
-	GenericHandle first (1);
-	GenericHandle second (2);
-	GenericHandle third (3);
-	GenericHandle fourth (4);
-        return a.getSelection (first, second, third, fourth);
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+  GenericHandle fourth (4);
+  return a.getSelection (first, second, third, fourth);
 }
 
-template <typename TypeToCallMethodOn>
+template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
 auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFiveArgs::test (&a)) *arg = nullptr) {
-	GenericHandle first (1);
-	GenericHandle second (2);
-	GenericHandle third (3);
-	GenericHandle fourth (4);
-	GenericHandle fifth (5);
-        return a.getSelection (first, second, third, fourth, fifth);
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+  GenericHandle fourth (4);
+  GenericHandle fifth (5);
+  return a.getSelection (first, second, third, fourth, fifth);
 }
 
-template <typename TypeToCallMethodOn>
+template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
 auto callGetProjection (TypeToCallMethodOn &a, decltype (HasTwoArgs::test (&a)) *arg = nullptr) {
-	GenericHandle first (1);
-	GenericHandle second (2);
-        return a.getProjection (first, second);
+  GenericHandle first (1);
+  GenericHandle second (2);
+  return a.getProjection (first, second);
 }
 
-template <typename TypeToCallMethodOn>
+template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
 auto callGetProjection (TypeToCallMethodOn &a, decltype (HasThreeArgs::test (&a)) *arg = nullptr) {
-	GenericHandle first (1);
-	GenericHandle second (2);
-	GenericHandle third (3);
-        return a.getProjection (first, second, third);
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+  return a.getProjection (first, second, third);
 }
 
-template <typename TypeToCallMethodOn>
+template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
 auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFourArgs::test (&a)) *arg = nullptr) {
-	GenericHandle first (1);
-	GenericHandle second (2);
-	GenericHandle third (3);
-	GenericHandle fourth (4);
-        return a.getProjection (first, second, third, fourth);
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+  GenericHandle fourth (4);
+  return a.getProjection (first, second, third, fourth);
 }
 
-template <typename TypeToCallMethodOn>
+template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
 auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFiveArgs::test (&a)) *arg = nullptr) {
-	GenericHandle first (1);
-	GenericHandle second (2);
-	GenericHandle third (3);
-	GenericHandle fourth (4);
-	GenericHandle fifth (5);
-        return a.getProjection (first, second, third, fourth, fifth);
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+  GenericHandle fourth (4);
+  GenericHandle fifth (5);
+  return a.getProjection (first, second, third, fourth, fifth);
 }
 
 }

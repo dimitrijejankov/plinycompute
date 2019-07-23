@@ -13,11 +13,11 @@ public:
 
   ENABLE_DEEP_COPY
 
-  Lambda <bool> getSelection (Handle <MatrixBlock> in1, Handle <MatrixBlock> in2) {
-    return (makeLambdaFromMethod (in1, getColID) == makeLambdaFromMethod (in2, getRowID));
+  static Lambda <bool> getSelection (Handle <MatrixBlockMeta> in1, Handle <MatrixBlockMeta> in2) {
+    return (makeLambdaFromMember (in1, colID) == makeLambdaFromMember (in2, rowID));
   }
 
-  Lambda <Handle <MatrixBlock>> getProjection (Handle <MatrixBlock> in1, Handle <MatrixBlock> in2) {
+  static Lambda <Handle <MatrixBlock>> getProjection (Handle <MatrixBlock> in1, Handle <MatrixBlock> in2) {
     return makeLambda (in1, in2, [] (Handle <MatrixBlock> &in1, Handle <MatrixBlock> &in2) {
 
       // get the sizes

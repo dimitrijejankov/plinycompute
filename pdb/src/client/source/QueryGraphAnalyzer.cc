@@ -42,6 +42,8 @@ std::string QueryGraphAnalyzer::parseTCAPString() {
   Handle<Computation> curSink;
   int computationLabel = 0;
   std::vector<std::string> tcapStrings;
+
+  // go through each sink
   for (int i = 0; i < this->queryGraph.size(); i++) {
 
     std::vector<InputTupleSetSpecifier> inputTupleSets;
@@ -51,79 +53,97 @@ std::string QueryGraphAnalyzer::parseTCAPString() {
     std::string outputTupleSetName;
     std::vector<std::string> outputColumnNames;
     std::string addedOutputColumnName;
+
+    // traverse the graph
     traverse(tcapStrings, curSink, inputTupleSets, computationLabel,
              outputTupleSetName, outputColumnNames, addedOutputColumnName);
   }
+
 
   std::string tcapStringToReturn;
   for (const auto &tcapString : tcapStrings) {
     tcapStringToReturn += tcapString;
   }
+
   std::cout << tcapStringToReturn << std::endl;
   return tcapStringToReturn;
 }
 
-void QueryGraphAnalyzer::traverse(
-    std::vector<std::string> &tcapStrings, Handle<Computation> sink,
-    std::vector<InputTupleSetSpecifier> inputTupleSets, int &computationLabel,
-    std::string &outputTupleSetName,
-    std::vector<std::string> &outputColumnNames,
-    std::string &addedOutputColumnName) {
+void QueryGraphAnalyzer::traverse(std::vector<std::string> &tcapStrings,
+                                  const Handle<Computation>& comp,
+                                  const std::vector<InputTupleSetSpecifier>& inputTupleSets,
+                                  int &computationLabel,
+                                  std::string &outputTupleSetName,
+                                  std::vector<std::string> &outputColumnNames,
+                                  std::string &addedOutputColumnName) {
 
-  int numInputs = sink->getNumInputs();
-  std::string computationName = sink->getComputationType();
-  if (numInputs > 0) {
-    std::vector<InputTupleSetSpecifier> inputTupleSetsForMe;
-    for (int i = 0; i < numInputs; i++) {
-      Handle<Computation> curSink = sink->getIthInput(i);
-      if (curSink->isTraversed() == false) {
-        traverse(tcapStrings, curSink, inputTupleSets, computationLabel,
-                 outputTupleSetName, outputColumnNames, addedOutputColumnName);
-        curSink->setTraversed(true);
-      } else {
-        // we met a materialized node
-        outputTupleSetName = curSink->getOutputTupleSetName();
-        addedOutputColumnName = curSink->getOutputColumnToApply();
-        int j = 0;
-        outputColumnNames.clear();
-        for (; j < outputColumnNames.size(); j++) {
-          if (addedOutputColumnName == outputColumnNames[j]) {
-            break;
-          }
-        }
-        if (j == outputColumnNames.size()) {
-          outputColumnNames.push_back(addedOutputColumnName);
-        }
-      }
-      std::vector<std::string> addedOutputColumns;
-      addedOutputColumns.push_back(addedOutputColumnName);
-      InputTupleSetSpecifier curOutput(outputTupleSetName, outputColumnNames,
-                                       addedOutputColumns);
-      inputTupleSetsForMe.push_back(curOutput);
-    }
-    outputColumnNames.clear();
-    addedOutputColumnName = "";
-    std::string curTcapString = sink->toTCAPString(
-        inputTupleSetsForMe, computationLabel, outputTupleSetName,
-        outputColumnNames, addedOutputColumnName);
-    tcapStrings.push_back(curTcapString);
-    computationLabel++;
-  } else {
-    if (sink->isTraversed() == false) {
+  // if there are not inputs to computation, we just process it here
+  if(comp->getNumInputs() == 0) {
+
+    // this is a scan set do stuff...
+    if (!comp->isTraversed()) {
+
       outputColumnNames.clear();
       addedOutputColumnName = "";
-      std::string curTcapString = sink->toTCAPString(
-          inputTupleSets, computationLabel, outputTupleSetName,
-          outputColumnNames, addedOutputColumnName);
-      tcapStrings.push_back(curTcapString);
+      std::string curTCAPString = comp->toTCAPString(inputTupleSets, computationLabel);
+      tcapStrings.push_back(curTCAPString);
       computationLabel++;
-    } else {
-      outputTupleSetName = sink->getOutputTupleSetName();
-      addedOutputColumnName = sink->getOutputColumnToApply();
-      outputColumnNames.clear();
-      outputColumnNames.push_back(addedOutputColumnName);
     }
+
+    // get the output tuple set and the column
+    outputTupleSetName = comp->getOutputTupleSetName();
+    addedOutputColumnName = comp->getOutputColumnToApply();
+    outputColumnNames = { addedOutputColumnName };
+
+    // we are out of here
+    return;
   }
+
+  // so if the computation is not a scan set, meaning it has at least one input process the children first
+  // go through each child and traverse them
+  std::vector<InputTupleSetSpecifier> inputTupleSetsForMe;
+  for (int i = 0; i < comp->getNumInputs(); i++) {
+
+    // get the child computation
+    Handle<Computation> childComp = comp->getIthInput(i);
+
+    // if we have not visited this computation visit it
+    if (!childComp->isTraversed()) {
+
+      // go traverse the child computation
+      traverse(tcapStrings,
+               childComp,
+               inputTupleSets,
+               computationLabel,
+               outputTupleSetName,
+               outputColumnNames,
+               addedOutputColumnName);
+
+      // mark the computation as transversed
+      childComp->setTraversed(true);
+    }
+
+    // we met a computation that we have visited just grab the name of the output tuple set and the columns it has
+    outputTupleSetName = childComp->getOutputTupleSetName();
+    addedOutputColumnName = childComp->getOutputColumnToApply();
+    outputColumnNames = { addedOutputColumnName };
+
+    InputTupleSetSpecifier curOutput(outputTupleSetName, outputColumnNames, { addedOutputColumnName });
+    inputTupleSetsForMe.push_back(curOutput);
+  }
+
+  outputColumnNames.clear();
+  addedOutputColumnName.clear();
+  outputTupleSetName.clear();
+
+  // generate the TCAP string for this computation
+  std::string curTCAPString = comp->toTCAPString(inputTupleSetsForMe, computationLabel);
+
+  // store the TCAP string generated
+  tcapStrings.push_back(curTCAPString);
+
+  // go to the next computation
+  computationLabel++;
 }
 
 void QueryGraphAnalyzer::clearGraphMarks(Handle<Computation> sink) {
