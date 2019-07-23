@@ -292,7 +292,7 @@ int main(int argc, char *argv[]) {
   ADDPAIR(1000, 10000000); // 10 million employees
   ADDPAIR(2000, 10000000); // 10 million employees
   ADDPAIR(10000, 10000000); // 10 million employees
-//  ADDPAIR(10000, 100000000); // 100 million employees
+  ADDPAIR(10000, 100000000); // 100 million employees
 //  ADDPAIR(10000, 1000000000); // 1 billion employees
   // TODO: try uncommenting the two lines above
 
