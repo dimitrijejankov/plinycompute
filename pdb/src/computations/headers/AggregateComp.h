@@ -29,7 +29,6 @@
 
 namespace pdb {
 
-// TODO update this description with details of the new template params
 // this aggregates items of type InputClass.  To aggregate an item, the result of getKeyProjection () is
 // used to extract a key from on input, and the result of getValueProjection () is used to extract a
 // value from an input.  Then, all values having the same key are aggregated using the += operation over values.
@@ -40,6 +39,36 @@ namespace pdb {
 // of type OutputClass must have two methods defined: KeyClass &getKey (), as well as ValueClass &getValue ().
 // To convert a key-value pair into an OutputClass object, the result of getKey () is set to the desired key,
 // and the result of getValue () is set to the desired value.
+// 
+// There are also 4 optional template params: TempValueClass, VTAdder, VVAdder, and Converter. 
+// 
+// TempValueClass: this should be used if elements of type ValueClass are particularly resource-intensive to
+// create. By default, each item will have a ValueClass extracted from it at the beginning of the Aggregation.
+// If TempValueClass is specified, then instead each item will have a TempValueClass extracted from it, and these
+// will later be converted to ValueClass using the conversion rules defined by VTAdder, VVAdder, and Converter, if
+// applicable. A common use case is to make TempValueClass a simple wrapper for the input, with all the actual
+// work happening in the conversions to ValueClass.
+//
+// VTAdder and VVAdder are used to define addition functions for ValueClass and TempValueClass. By default, the
+// + operator is used to add items, which requires that the ValueClass and TempValueClass are either simple
+// numeric types or have overloaded + operators. These parameters can be used to customize the functions used.
+// If you choose to give a custom VTAdder or VVAdder type, your type MUST inherit from AbstractAdder. See
+// AbstractAdder.h for the AbstractAdder interface.
+// VTAdder is an adder which adds ValueClass + TempValueClass and returns ValueClass. Thus, it must inherit
+// from AbstractAdder<ValueClass, TempValueClass>.
+// VVAdder is an adder which adds ValueClass + ValueClass and returns ValueClass. Thus, it must inherit
+// from AbstractAdder<ValueClass>.
+//
+// Converter is used to convert directly from a TempValueClass to a ValueClass. By default, the conversion
+// will be done using the assignment constructor to ValueClass from TempValueClass (if one exists).
+// If given, Converter must inherit from AbstractConverter<TempValueClass, ValueClass>. See AbstractConverter.h
+// for the interface.
+//
+// For an example of an Aggregation which makes use of all these parameters, see MaxEmployeeAgg.h in sharedLibraries/headers.
+// NOTE: because the VTAdder, VVAdder, and Converter all don't inherit from PDB Object, we have to ensure that they will
+// be saved into a shared library so that they can be shared among the worker nodes. To ensure this, define your
+// VTAdder/VVAdder/Converter classes in the same file as the Aggregation.
+// TODO: Is this actually sufficient?
 //
 template<class OutputClass, class InputClass, class KeyClass, class ValueClass,
     class TempValueClass = ValueClass,
