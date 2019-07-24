@@ -42,13 +42,9 @@ std::string QueryGraphAnalyzer::parseTCAPString() {
   // go through each sink
   for (int i = 0; i < this->queryGraph.size(); i++) {
 
-    std::vector<InputTupleSetSpecifier> inputTupleSets;
-    InputTupleSetSpecifier inputTupleSet;
-    inputTupleSets.push_back(inputTupleSet);
-    curSink = queryGraph[i];
-
     // traverse the graph
-    curSink->traverse(tcapStrings, inputTupleSets, computationLabel);
+    std::vector<InputTupleSetSpecifier> inputTupleSets;
+    queryGraph[i]->traverse(tcapStrings, inputTupleSets, computationLabel);
   }
 
   std::string tcapStringToReturn;

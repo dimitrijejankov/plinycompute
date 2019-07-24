@@ -194,8 +194,8 @@ class AggregateComp : public AggregateCompBase {
     outputColumnNames.push_back(addedOutputColumnName1);
 
     this->setTraversed(true);
-    this->setOutputTupleSetName(outputTupleSetName);
-    this->setOutputColumnToApply(addedOutputColumnName1);
+    this->outputTupleSetName = outputTupleSetName;
+    this->outputColumnToApply = addedOutputColumnName1;
     addedOutputColumnName = addedOutputColumnName1;
     return tcapString;
   }

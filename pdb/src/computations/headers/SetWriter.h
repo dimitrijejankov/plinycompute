@@ -99,8 +99,8 @@ class SetWriter : public Computation {
 
     // update the state of the computation
     this->setTraversed(true);
-    this->setOutputTupleSetName(outputTupleSetName);
-    this->setOutputColumnToApply(addedOutputColumnName);
+    this->outputTupleSetName = outputTupleSetName;
+    this->outputColumnToApply = addedOutputColumnName;
 
     // return the TCAP string
     return writeSetTemplate.render(writeSetData);
@@ -111,11 +111,11 @@ class SetWriter : public Computation {
    * @param dbName - the name of the database the set belongs to
    * @param setName - the name of the set
    */
-  void setOutputSet(std::string dbName, std::string setName) override {
+  void setOutputSet(const std::string &db, const std::string &set) {
 
     // set the set identifier
-    this->dbName = dbName;
-    this->setName = setName;
+    this->dbName = db;
+    this->setName = set;
   }
 
   pdb::ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection, uint64_t numberOfPartitions) override {

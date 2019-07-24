@@ -206,8 +206,8 @@ class SelectionComp : public Computation {
 
     // update the state of the computation
     this->setTraversed(true);
-    this->setOutputTupleSetName(outputTupleSetName);
-    this->setOutputColumnToApply(addedOutputColumnName);
+    this->outputTupleSetName = outputTupleSetName;
+    this->outputColumnToApply = addedOutputColumnName;
 
     // return the TCAP string
     return tcapString;

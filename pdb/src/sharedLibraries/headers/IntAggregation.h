@@ -34,13 +34,6 @@ public:
 
   IntAggregation() = default;
 
-  // the below constructor is NOT REQUIRED
-  // user can also set output later by invoking the setOutputSet (std :: string dbName, std :: string
-  // setName)  method
-  IntAggregation(std::string dbName, std::string setName) {
-    this->setOutputSet(std::move(dbName), std::move(setName));
-  }
-
   // the key type must have == and size_t hash () defined
   Lambda<int> getKeyProjection(Handle<int> aggMe) override {
     return makeLambda(aggMe, [](Handle<int>& aggMe) { return 0; });

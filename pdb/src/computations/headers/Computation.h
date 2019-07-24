@@ -90,15 +90,8 @@ class Computation : public Object {
   virtual std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
                                    int computationLabel) = 0;
 
-  //JiaNote: below functions are added to construct a query graph
-  //Those functions are borrowed from Chris' QueryBase class
-
   // gets the name of the i^th input type...
   virtual std::string getIthInputType(int i) = 0;
-
-  bool hasInput() {
-    return !inputs.isNullPtr();
-  }
 
   // get a handle to the i^th input to this query, which is also a query
   Handle<Computation> &getIthInput(int i) const {
@@ -112,13 +105,13 @@ class Computation : public Object {
   virtual std::string getOutputType() = 0;
 
   // set the first pos, by default
-  bool setInput(Handle<Computation> toMe) {
+  bool setInput(const Handle<Computation>& toMe) {
     return setInput(0, toMe);
   }
 
   // sets the i^th input to be the output of a specific query... returns
   // true if this is OK, false if it is not
-  bool setInput(int whichSlot, Handle<Computation> toMe) {
+  bool setInput(int whichSlot, const Handle<Computation>& toMe) {
 
     // set the array of inputs if it is a nullptr
     if (inputs == nullptr) {
@@ -157,42 +150,7 @@ class Computation : public Object {
   void setTraversed(bool traversed) {
 
     this->traversed = traversed;
-
   }
-
-  //get output TupleSet name if the node has been traversed already
-  std::string getOutputTupleSetName() {
-
-    if (traversed) {
-      return outputTupleSetName;
-    }
-    return "";
-  }
-
-  //set output TupleSet name. This method should be invoked by the TCAP string generation method
-  void setOutputTupleSetName(std::string outputTupleSetName) {
-    this->outputTupleSetName = outputTupleSetName;
-  }
-
-  //get output column name to apply if the node has been traversed already
-  std::string getOutputColumnToApply() {
-
-    if (traversed) {
-      return outputColumnToApply;
-    }
-    return "";
-  }
-
-  //set output column name to apply. This method should be invoked by the TCAP string generation method
-  void setOutputColumnToApply(std::string outputColumnToApply) {
-    this->outputColumnToApply = outputColumnToApply;
-  }
-
-  //set user set for output when necessary (e.g. results need to be materialized)
-  //by default it do nothing, subclasses shall override this function to handle the case when results need to be materialized.
-  virtual void setOutputSet(std::string dbName, std::string setName) {}
-
-  virtual void setBatchSize(int batchSize) {}
 
   // to traverse from a graph sink recursively and generate TCAP
   virtual void traverse(std::vector<std::string> &tcapStrings,
@@ -218,7 +176,7 @@ class Computation : public Object {
       }
 
       // we met a computation that we have visited just grab the name of the output tuple set and the columns it has
-      InputTupleSetSpecifier curOutput(childComp->getOutputTupleSetName(), { childComp->getOutputColumnToApply() }, { childComp->getOutputColumnToApply() });
+      InputTupleSetSpecifier curOutput(childComp->outputTupleSetName, { childComp->outputColumnToApply }, { childComp->outputColumnToApply });
       inputTupleSetsForMe.push_back(curOutput);
     }
 
@@ -232,16 +190,23 @@ class Computation : public Object {
     computationLabel++;
   }
 
- private:
+protected:
 
-  //JiaNote: added to construct query graph
-
+  /**
+   * The computations that are inputs to this computation
+   */
   Handle<Vector<Handle<Computation>>> inputs = nullptr;
 
   bool traversed = false;
 
+  /**
+   *
+   */
   String outputTupleSetName = "";
 
+  /**
+   *
+   */
   String outputColumnToApply = "";
 
 };

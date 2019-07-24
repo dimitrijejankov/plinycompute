@@ -57,32 +57,6 @@ class SetScanner : public Computation {
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
                            int computationLabel) override {
 
-    InputTupleSetSpecifier inputTupleSet;
-    if (!inputTupleSets.empty()) {
-      inputTupleSet = inputTupleSets[0];
-    }
-    return toTCAPString(inputTupleSet.getTupleSetName(),
-                        inputTupleSet.getColumnNamesToKeep(),
-                        inputTupleSet.getColumnNamesToApply(),
-                        computationLabel);
-  }
-
-  /**
-   * Below function returns a TCAP string for this Computation
-   * @param inputTupleSetName
-   * @param inputColumnNames
-   * @param inputColumnsToApply
-   * @param computationLabel
-   * @param outputTupleSetName
-   * @param outputColumnNames
-   * @param addedOutputColumnName
-   * @return
-   */
-  std::string toTCAPString(std::string inputTupleSetName,
-                           std::vector<std::string> &inputColumnNames,
-                           std::vector<std::string> &inputColumnsToApply,
-                           int computationLabel) {
-
     // the template we are going to use to create the TCAP string for this ScanUserSet
     mustache::mustache scanSetTemplate{"inputDataFor{{computationType}}_{{computationLabel}}(in{{computationLabel}})"
                                        " <= SCAN ('{{dbName}}', '{{setName}}', '{{computationType}}_{{computationLabel}}')\n"};
@@ -107,8 +81,8 @@ class SetScanner : public Computation {
 
     // update the state of the computation
     this->setTraversed(true);
-    this->setOutputTupleSetName(outputTupleSetName);
-    this->setOutputColumnToApply(addedOutputColumnName);
+    this->outputTupleSetName = outputTupleSetName;
+    this->outputColumnToApply = addedOutputColumnName;
 
     // return the TCAP string
     return scanSetTemplate.render(scanSetData);
@@ -143,8 +117,8 @@ class SetScanner : public Computation {
     }
 
     // get the output tuple set and the column
-    std::string outputTupleSetName = this->getOutputTupleSetName();
-    std::string addedOutputColumnName = this->getOutputColumnToApply();
+    std::string outputTupleSetName = this->outputTupleSetName;
+    std::string addedOutputColumnName = this->outputColumnToApply;
     std::vector<std::string> outputColumnNames = { addedOutputColumnName };
   }
 

@@ -33,12 +33,7 @@ namespace pdb {
 
 template<typename Derived, typename Out, typename In1, typename In2, typename ...Rest>
 class JoinComp : public JoinCompBase {
-
-private:
-
-  MultiInputsBase *multiInputsBase = nullptr;
-
- public:
+public:
 
   virtual ~JoinComp() {
     if (multiInputsBase == nullptr) {
@@ -344,8 +339,8 @@ private:
                                                   multiInputsComp,
                                                   false);
 
-      this->setOutputTupleSetName(outputTupleSetName);
-      this->setOutputColumnToApply(addedOutputColumnName);
+      this->outputTupleSetName = outputTupleSetName;
+      this->outputColumnToApply = addedOutputColumnName;
       setMultiInputsBaseToNull();
       return tcapString;
 
@@ -468,6 +463,9 @@ private:
     multiInputsBase = nullptr;
   }
 
+private:
+
+  MultiInputsBase *multiInputsBase = nullptr;
 };
 
 }

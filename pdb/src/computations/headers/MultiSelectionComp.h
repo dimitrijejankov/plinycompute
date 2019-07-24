@@ -234,9 +234,9 @@ class MultiSelectionComp : public Computation {
     tcapString += flattenTemplate.render(selectionCompData);
 
     this->setTraversed(true);
-    this->setOutputTupleSetName(newTupleSetName);
-    outputTupleSetName = newTupleSetName;
-    this->setOutputColumnToApply(newOutputColumnName);
+    this->outputTupleSetName = newTupleSetName;
+    this->outputTupleSetName = newTupleSetName;
+    this->outputColumnToApply = newOutputColumnName;
     addedOutputColumnName = newOutputColumnName;
     outputColumnNames.clear();
     outputColumnNames.push_back(addedOutputColumnName);
