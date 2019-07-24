@@ -33,65 +33,46 @@ QueryGraphAnalyzer::QueryGraphAnalyzer(const vector<Handle<Computation>> &queryG
   }
 }
 
-std::string QueryGraphAnalyzer::parseTCAPString() {
+std::string QueryGraphAnalyzer::parseTCAPString(Vector<Handle<Computation>> &computations) {
 
-  Handle<Computation> curSink;
+  // clear all the markers
+  clearGraph();
+
+  // we start with the label 0 for the computation
   int computationLabel = 0;
-  std::vector<std::string> tcapStrings;
+
+  // we pull al the partial TCAP strings here
+  std::vector<std::string> TCAPStrings;
 
   // go through each sink
   for (int i = 0; i < this->queryGraph.size(); i++) {
 
     // traverse the graph
     std::vector<InputTupleSetSpecifier> inputTupleSets;
-    queryGraph[i]->traverse(tcapStrings, inputTupleSets, computationLabel);
+    queryGraph[i]->traverse(TCAPStrings, computations, inputTupleSets, computationLabel);
+
+    // add the root computation
+    computations.push_back(queryGraph[i]);
   }
 
-  std::string tcapStringToReturn;
-  for (const auto &tcapString : tcapStrings) {
-    tcapStringToReturn += tcapString;
+  // merge all the strings
+  std::string TCAPStringToReturn;
+  for (const auto &tcapString : TCAPStrings) {
+    TCAPStringToReturn += tcapString;
   }
 
-  std::cout << tcapStringToReturn << std::endl;
-  return tcapStringToReturn;
+  // return the TCAP string
+  return TCAPStringToReturn;
 }
 
-void QueryGraphAnalyzer::clearGraphMarks(Handle<Computation> sink) {
+void QueryGraphAnalyzer::clearGraph() {
 
-  sink->setTraversed(false);
-  int numInputs = sink->getNumInputs();
-  for (int i = 0; i < numInputs; i++) {
-    Handle<Computation> curNode = sink->getIthInput(i);
-    clearGraphMarks(curNode);
-  }
-}
-
-void QueryGraphAnalyzer::clearGraphMarks() {
-
+  // go through each sink and clear
   for (const auto &sink : this->queryGraph) {
-    clearGraphMarks(sink);
+    sink->clearGraph();
   }
 }
 
-void QueryGraphAnalyzer::parseComputations(Vector<Handle<Computation>> &computations, Handle<Computation> sink) {
-
-  int numInputs = sink->getNumInputs();
-  for (int i = 0; i < numInputs; i++) {
-    Handle<Computation> curNode = sink->getIthInput(i);
-    parseComputations(computations, curNode);
-  }
-  if (!sink->isTraversed()) {
-    computations.push_back(sink);
-    sink->setTraversed(true);
-  }
-}
-
-void QueryGraphAnalyzer::parseComputations(Vector<Handle<Computation>> &computations) {
-  this->clearGraphMarks();
-  for (const auto &sink : this->queryGraph) {
-    parseComputations(computations, sink);
-  }
-}
 }
 
 #endif

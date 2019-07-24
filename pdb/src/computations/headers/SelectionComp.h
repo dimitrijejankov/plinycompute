@@ -207,7 +207,7 @@ class SelectionComp : public Computation {
                                                 true);
 
     // update the state of the computation
-    this->setTraversed(true);
+    this->traversed = true;
     this->outputTupleSetName = outputTupleSetName;
     this->outputColumnToApply = addedOutputColumnName;
 

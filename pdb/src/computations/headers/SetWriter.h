@@ -98,7 +98,7 @@ class SetWriter : public Computation {
     writeSetData.set("dbName", std::string(dbName));
 
     // update the state of the computation
-    this->setTraversed(true);
+    this->traversed = true;
     this->outputTupleSetName = outputTupleSetName;
     this->outputColumnToApply = addedOutputColumnName;
 

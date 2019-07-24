@@ -52,25 +52,13 @@ public:
   explicit QueryGraphAnalyzer(const vector<Handle < Computation>> &queryGraph);
 
   // to convert user query to a tcap string
-  std::string parseTCAPString();
-
-  // to traverse the sub-tree and put each traversed computation to a vector
-  void parseComputations(Vector<Handle<Computation>> &computations,
-                         Handle<Computation> sink);
-
-  // to convert user query to a pdb::Vector of computations
-  // this method will invoke makeObject, but will not allocate allocation blocks
-  // you must ensure current allocation block has sufficient memory before
-  // invoking this method
-  void parseComputations(Vector<Handle<Computation>> &computations);
-
-  // to clear traversal marks on the subtree rooted at sink
-  void clearGraphMarks(Handle<Computation> sink);
-
-  // to clear all traversal marks
-  void clearGraphMarks();
+  std::string parseTCAPString(Vector<Handle<Computation>> &computations);
 
 private:
+
+  // to clear all traversal marks
+  void clearGraph();
+
   // user query graph
   std::vector<Handle<Computation>> queryGraph;
 };

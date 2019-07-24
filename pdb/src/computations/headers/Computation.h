@@ -84,11 +84,6 @@ class Computation : public Object {
   // gets the name of the i^th input type...
   virtual std::string getIthInputType(int i) = 0;
 
-  // get a handle to the i^th input to this query, which is also a query
-  Handle<Computation> &getIthInput(int i) const {
-    return (*inputs)[i];
-  }
-
   // get the number of inputs to this query type
   virtual int getNumInputs() = 0;
 
@@ -132,19 +127,9 @@ class Computation : public Object {
     return true;
   }
 
-  //whether the node has been traversed or not
-  bool isTraversed() {
-    return traversed;
-  }
-
-  //set the node to have been traversed
-  void setTraversed(bool traversed) {
-
-    this->traversed = traversed;
-  }
-
   // to traverse from a graph sink recursively and generate TCAP
   virtual void traverse(std::vector<std::string> &tcapStrings,
+                        Vector<Handle<Computation>> &computations,
                         const std::vector<InputTupleSetSpecifier>& inputTupleSets,
                         int &computationLabel) {
 
@@ -157,13 +142,16 @@ class Computation : public Object {
       Handle<Computation> childComp = (*inputs)[i];
 
       // if we have not visited this computation visit it
-      if (!childComp->isTraversed()) {
+      if (!childComp->traversed) {
 
         // go traverse the child computation
-        childComp->traverse(tcapStrings, inputTupleSets, computationLabel);
+        childComp->traverse(tcapStrings, computations, inputTupleSets, computationLabel);
 
         // mark the computation as transversed
-        childComp->setTraversed(true);
+        childComp->traversed = true;
+
+        // add the child computation
+        computations.push_back(childComp);
       }
 
       // we met a computation that we have visited just grab the name of the output tuple set and the columns it has
@@ -179,6 +167,17 @@ class Computation : public Object {
 
     // go to the next computation
     computationLabel++;
+  }
+
+  void clearGraph() {
+
+    // mark the we are not traversed
+    traversed = false;
+
+    // clear all children
+    for (int i = 0; i < getNumInputs(); i++) {
+      (*inputs)[i]->clearGraph();
+    }
   }
 
 protected:

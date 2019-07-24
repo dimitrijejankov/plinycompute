@@ -151,17 +151,14 @@ bool PDBClient::executeComputations(const std::vector<Handle<Computation>> &sink
   // create the graph analyzer
   pdb::QueryGraphAnalyzer queryAnalyzer(sinks);
 
-  // parse the TCAP string
-  std::string tcapString = queryAnalyzer.parseTCAPString();
-
   // here is the list of computations
   Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
 
-  // grab the computations
-  queryAnalyzer.parseComputations(*myComputations);
+  // parse the TCAP string
+  std::string TCAPString = queryAnalyzer.parseTCAPString(*myComputations);
 
   // execute the computations
-  return computationClient->executeComputations(myComputations, tcapString, errorMsg);
+  return computationClient->executeComputations(myComputations, TCAPString, errorMsg);
 }
 
 void PDBClient::listAllRegisteredMetadata() {

@@ -190,8 +190,11 @@ TEST(TestTcapGeneration, Test5) {
   // create the graph analyzer
   pdb::QueryGraphAnalyzer queryAnalyzer(queryGraph);
 
+  // here is the list of computations
+  Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
+
   // parse the tcap string
-  std::string tcapString = queryAnalyzer.parseTCAPString();
+  std::string tcapString = queryAnalyzer.parseTCAPString(*myComputations);
 
   std::cout << tcapString << std::endl;
 }

@@ -80,7 +80,7 @@ class SetScanner : public Computation {
     std::string outputTupleSetName = outputTupleSetTemplate.render(scanSetData);
 
     // update the state of the computation
-    this->setTraversed(true);
+    this->traversed = true;
     this->outputTupleSetName = outputTupleSetName;
     this->outputColumnToApply = addedOutputColumnName;
 
@@ -104,12 +104,16 @@ class SetScanner : public Computation {
     return _getComputeSource(pageSet, chunkSize, workerID, params);
   }
 
+  /**
+   *
+   */
   void traverse(std::vector<std::string> &tcapStrings,
+                Vector<Handle<Computation>> &computations,
                 const std::vector<InputTupleSetSpecifier>& inputTupleSets,
                 int &computationLabel) override {
 
     // this is a scan set do stuff...
-    if (!this->isTraversed()) {
+    if (!this->traversed) {
 
       std::string curTCAPString = this->toTCAPString(inputTupleSets, computationLabel);
       tcapStrings.push_back(curTCAPString);
@@ -128,7 +132,7 @@ class SetScanner : public Computation {
    * This is the method that is going to be instantiate if the OutputClass can be a result of an aggregation.
    * This means that it has getValue and getKey methods defined.
    * If checks the type of the set to see if it is a vector set or a set that is a result of an aggregation.
-   * based on that it returns the approprate source
+   * based on that it returns the appropriate source
    * @tparam T - alias for the output type
    * @param pageSet - the page set we are scanning
    * @param chunkSize - the size of the chunk each tuple set is going to be
