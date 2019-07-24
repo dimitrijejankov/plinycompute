@@ -44,12 +44,7 @@ class ComputePlan;
 
 // all nodes in a user-supplied computation are descended from this
 class Computation : public Object {
-
- public:
-
-  // this is implemented by the actual computation object... as the name implies, it is used
-  // to extract the lambdas from the computation
-  virtual void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) {}
+public:
 
   // if this particular computation can be used as a compute source in a pipeline, this
   // method will return the compute source object associated with the computation...
@@ -82,21 +77,33 @@ class Computation : public Object {
                                    int computationLabel) = 0;
 
   // gets the name of the i^th input type...
-  virtual std::string getIthInputType(int i) = 0;
+  virtual std::string getInputType(int i) = 0;
 
   // get the number of inputs to this query type
   virtual int getNumInputs() = 0;
 
-  // gets the output type of this query as a string
+  /**
+   * gets the output type of this query as a string
+   * @return
+   */
   virtual std::string getOutputType() = 0;
 
-  // set the first pos, by default
+  /**
+   * set the first pos, by default
+   * @param toMe
+   * @return
+   */
   bool setInput(const Handle<Computation>& toMe) {
     return setInput(0, toMe);
   }
 
-  // sets the i^th input to be the output of a specific query... returns
-  // true if this is OK, false if it is not
+  /**
+   * sets the i^th input to be the output of a specific query... returns
+   * true if this is OK, false if it is not
+   * @param whichSlot
+   * @param toMe
+   * @return
+   */
   bool setInput(int whichSlot, const Handle<Computation>& toMe) {
 
     // set the array of inputs if it is a nullptr
@@ -111,10 +118,10 @@ class Computation : public Object {
     if (whichSlot < getNumInputs()) {
 
       //make sure the output type of the guy we are accepting meets the input type
-      if (getIthInputType(whichSlot) != toMe->getOutputType()) {
+      if (getInputType(whichSlot) != toMe->getOutputType()) {
         std::cout << "Cannot set output of query node with output of type " << toMe->getOutputType()
                   << " to be the input";
-        std::cout << " of a query with input type " << getIthInputType(whichSlot) << ".\n";
+        std::cout << " of a query with input type " << getInputType(whichSlot) << ".\n";
         return false;
       }
       (*inputs)[whichSlot] = toMe;
@@ -127,7 +134,20 @@ class Computation : public Object {
     return true;
   }
 
-  // to traverse from a graph sink recursively and generate TCAP
+  /**
+   * this is implemented by the actual computation object... as the name implies, it is used
+   * to extract the lambdas from the computation
+   * @param returnVal
+   */
+  virtual void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) {}
+
+  /**
+   * to traverse from a graph sink recursively and generate TCAP
+   * @param tcapStrings
+   * @param computations
+   * @param inputTupleSets
+   * @param computationLabel
+   */
   virtual void traverse(std::vector<std::string> &tcapStrings,
                         Vector<Handle<Computation>> &computations,
                         const std::vector<InputTupleSetSpecifier>& inputTupleSets,
@@ -169,6 +189,9 @@ class Computation : public Object {
     computationLabel++;
   }
 
+  /**
+   *
+   */
   void clearGraph() {
 
     // mark the we are not traversed

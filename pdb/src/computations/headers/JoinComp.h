@@ -69,7 +69,7 @@ public:
   }
 
   template<typename First, typename ...Others>
-  typename std::enable_if<sizeof ...(Others) == 0, std::string>::type getIthInputType(int i) {
+  typename std::enable_if<sizeof ...(Others) == 0, std::string>::type getInputType(int i) {
     if (i == 0) {
       return getTypeName<First>();
     } else {
@@ -80,17 +80,17 @@ public:
 
   // helper function to get a particular intput type
   template<typename First, typename ...Others>
-  typename std::enable_if<sizeof ...(Others) != 0, std::string>::type getIthInputType(int i) {
+  typename std::enable_if<sizeof ...(Others) != 0, std::string>::type getInputType(int i) {
     if (i == 0) {
       return getTypeName<First>();
     } else {
-      return getIthInputType<Others...>(i - 1);
+      return getInputType<Others...>(i - 1);
     }
   }
 
   // from the interface: get the i^th input type
-  std::string getIthInputType(int i) final {
-    return getIthInputType<In1, In2, Rest...>(i);
+  std::string getInputType(int i) final {
+    return getInputType<In1, In2, Rest...>(i);
   }
 
   // this gets a compute sink
@@ -136,18 +136,9 @@ public:
       }
     }
 
-    for (auto &aa : typeList) {
-      std::cout << "Got type " << aa << "\n";
-    }
-
     // now we get the correct join tuple, that will allow us to pack tuples from the join in a hash table
     std::vector<int> whereEveryoneGoes;
     JoinTuplePtr correctJoinTuple = findCorrectJoinTuple<In1, In2, Rest...>(typeList, whereEveryoneGoes);
-
-    for (auto &aa : whereEveryoneGoes) {
-      std::cout << aa << " ";
-    }
-    std::cout << "\n";
 
     // return the merger
     return correctJoinTuple->getBroadcastJoinHashMapCombiner(workerID, numThreads, numNodes);
@@ -180,12 +171,6 @@ public:
     std::vector<int> whereEveryoneGoes;
     JoinTuplePtr correctJoinTuple = findJoinTuple(recordSchema, plan, whereEveryoneGoes);
 
-    // for debug
-    for (auto &aa : whereEveryoneGoes) {
-      std::cout << aa << " ";
-    }
-    std::cout << "\n";
-
     // return the lhs join source
     return correctJoinTuple->getRHSShuffleJoinSource(inputSchema,
                                                      hashSchema,
@@ -210,12 +195,6 @@ public:
     // figure out the right join tuple
     std::vector<int> whereEveryoneGoes;
     JoinTuplePtr correctJoinTuple = findJoinTuple(recordSchemaLHS, plan, whereEveryoneGoes);
-
-    // for debug
-    for (auto &aa : whereEveryoneGoes) {
-      std::cout << aa << " ";
-    }
-    std::cout << "\n";
 
     // return the lhs join source
     return correctJoinTuple->getJoinedSource(inputSchemaRHS, hashSchemaRHS, recordSchemaRHS, leftSource, rightInputPageSet, whereEveryoneGoes, needToSwapLHSAndRhs, chunkSize, workerID);
@@ -261,94 +240,94 @@ public:
   }
 
   //JiaNote: Returning a TCAP string for this Join computation
-  std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
-                           int computationLabel) override {
-    if (inputTupleSets.size() == getNumInputs()) {
-      std::string tcapString;
-      if (multiInputsBase == nullptr) {
-        multiInputsBase = new MultiInputsBase();
-      }
-      multiInputsBase->setNumInputs(this->getNumInputs());
-      std::vector<std::string> inputNames;
+  std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets, int computationLabel) override {
 
-      // update tupleset name for input sets
-      for (unsigned int i = 0; i < inputTupleSets.size(); i++) {
-        this->multiInputsBase->setTupleSetNameForIthInput(i, inputTupleSets[i].getTupleSetName());
-        this->multiInputsBase->setInputColumnsForIthInput(i, inputTupleSets[i].getColumnNamesToKeep());
-        this->multiInputsBase->setInputColumnsToApplyForIthInput(i, inputTupleSets[i].getColumnNamesToApply());
-        inputNames.push_back(inputTupleSets[i].getColumnNamesToApply()[0]);
-      }
-
-      analyzeInputSets(inputNames);
-      Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
-      std::string inputTupleSetName;
-      std::vector<std::string> inputColumnNames;
-      std::vector<std::string> inputColumnsToApply;
-      std::vector<std::string> childrenLambdaNames;
-      int lambdaLabel = 0;
-      std::string myLambdaName;
-
-      // TODO
-      std::string outputTupleSetName;
-      std::vector<std::string> outputColumnNames;
-      std::string addedOutputColumnName;
-
-      MultiInputsBase *multiInputsComp = this->getMultiInputsBase();
-      tcapString += selectionLambda.toTCAPString(inputTupleSetName,
-                                                 inputColumnNames,
-                                                 inputColumnsToApply,
-                                                 childrenLambdaNames,
-                                                 lambdaLabel,
-                                                 "JoinComp",
-                                                 computationLabel,
-                                                 outputTupleSetName,
-                                                 outputColumnNames,
-                                                 addedOutputColumnName,
-                                                 myLambdaName,
-                                                 false,
-                                                 multiInputsComp,
-                                                 true);
-
-      std::vector<std::string> inputsInProjection = multiInputsComp->getInputsInProjection();
-      tcapString += "\n/* run Join projection on ( " + inputsInProjection[0];
-      for (unsigned int i = 1; i < inputsInProjection.size(); i++) {
-        tcapString += " " + inputsInProjection[i];
-      }
-      tcapString += " )*/\n";
-      Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
-      inputTupleSetName = outputTupleSetName;
-      inputColumnNames.clear();
-      inputColumnsToApply.clear();
-      childrenLambdaNames.clear();
-      for (unsigned int index = 0; index < multiInputsComp->getNumInputs(); index++) {
-        multiInputsComp->setInputColumnsForIthInput(index, inputColumnNames);
-      }
-
-      tcapString += projectionLambda.toTCAPString(inputTupleSetName,
-                                                  inputColumnNames,
-                                                  inputColumnsToApply,
-                                                  childrenLambdaNames,
-                                                  lambdaLabel,
-                                                  "JoinComp",
-                                                  computationLabel,
-                                                  outputTupleSetName,
-                                                  outputColumnNames,
-                                                  addedOutputColumnName,
-                                                  myLambdaName,
-                                                  true,
-                                                  multiInputsComp,
-                                                  false);
-
-      this->outputTupleSetName = outputTupleSetName;
-      this->outputColumnToApply = addedOutputColumnName;
-      setMultiInputsBaseToNull();
-      return tcapString;
-
-    } else {
+    if (inputTupleSets.size() != getNumInputs()) {
       std::cout << "ERROR: inputTupleSet size is " << inputTupleSets.size()
                 << " and not equivalent with Join's inputs " << getNumInputs() << std::endl;
       return "";
     }
+
+    std::string tcapString;
+    if (multiInputsBase == nullptr) {
+      multiInputsBase = new MultiInputsBase();
+    }
+    multiInputsBase->setNumInputs(this->getNumInputs());
+    std::vector<std::string> inputNames;
+
+    // update tupleset name for input sets
+    for (unsigned int i = 0; i < inputTupleSets.size(); i++) {
+      this->multiInputsBase->setTupleSetNameForIthInput(i, inputTupleSets[i].getTupleSetName());
+      this->multiInputsBase->setInputColumnsForIthInput(i, inputTupleSets[i].getColumnNamesToKeep());
+      this->multiInputsBase->setInputColumnsToApplyForIthInput(i, inputTupleSets[i].getColumnNamesToApply());
+      inputNames.push_back(inputTupleSets[i].getColumnNamesToApply()[0]);
+    }
+
+    analyzeInputSets(inputNames);
+    Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
+    std::string inputTupleSetName;
+    std::vector<std::string> inputColumnNames;
+    std::vector<std::string> inputColumnsToApply;
+    std::vector<std::string> childrenLambdaNames;
+    int lambdaLabel = 0;
+    std::string myLambdaName;
+
+    // TODO
+    std::string outputTupleSetName;
+    std::vector<std::string> outputColumnNames;
+    std::string addedOutputColumnName;
+
+    MultiInputsBase *multiInputsComp = this->getMultiInputsBase();
+    tcapString += selectionLambda.toTCAPString(inputTupleSetName,
+                                               inputColumnNames,
+                                               inputColumnsToApply,
+                                               childrenLambdaNames,
+                                               lambdaLabel,
+                                               "JoinComp",
+                                               computationLabel,
+                                               outputTupleSetName,
+                                               outputColumnNames,
+                                               addedOutputColumnName,
+                                               myLambdaName,
+                                               false,
+                                               multiInputsComp,
+                                               true);
+
+    std::vector<std::string> inputsInProjection = multiInputsComp->getInputsInProjection();
+    tcapString += "\n/* run Join projection on ( " + inputsInProjection[0];
+    for (unsigned int i = 1; i < inputsInProjection.size(); i++) {
+      tcapString += " " + inputsInProjection[i];
+    }
+    tcapString += " )*/\n";
+    Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
+    inputTupleSetName = outputTupleSetName;
+    inputColumnNames.clear();
+    inputColumnsToApply.clear();
+    childrenLambdaNames.clear();
+    for (unsigned int index = 0; index < multiInputsComp->getNumInputs(); index++) {
+      multiInputsComp->setInputColumnsForIthInput(index, inputColumnNames);
+    }
+
+    tcapString += projectionLambda.toTCAPString(inputTupleSetName,
+                                                inputColumnNames,
+                                                inputColumnsToApply,
+                                                childrenLambdaNames,
+                                                lambdaLabel,
+                                                "JoinComp",
+                                                computationLabel,
+                                                outputTupleSetName,
+                                                outputColumnNames,
+                                                addedOutputColumnName,
+                                                myLambdaName,
+                                                true,
+                                                multiInputsComp,
+                                                false);
+
+    this->outputTupleSetName = outputTupleSetName;
+    this->outputColumnToApply = addedOutputColumnName;
+    setMultiInputsBaseToNull();
+    return tcapString;
+
   }
 
   // gets an execute that can run a scan join... needToSwapAtts is true if the atts that are currently stored in the hash table need to
@@ -442,15 +421,13 @@ public:
 
     // Step 2. analyze selectionLambda to find all inputs in predicates
     Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
-    std::vector<std::string> inputsInPredicates =
-        selectionLambda.getAllInputs(this->multiInputsBase);
-     for (auto &inputsInPredicate : inputsInPredicates) {
+    std::vector<std::string> inputsInPredicates = selectionLambda.getAllInputs(this->multiInputsBase);
+    for (auto &inputsInPredicate : inputsInPredicates) {
       this->multiInputsBase->addInputNameToPredicates(inputsInPredicate);
     }
     // Step 3. analyze projectionLambda to find all inputs in projection
     Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
-    std::vector<std::string> inputsInProjection =
-        projectionLambda.getAllInputs(this->multiInputsBase);
+    std::vector<std::string> inputsInProjection = projectionLambda.getAllInputs(this->multiInputsBase);
     for (auto &i : inputsInProjection) {
       this->multiInputsBase->addInputNameToProjection(i);
     }

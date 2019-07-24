@@ -52,7 +52,7 @@ class SelectionComp : public Computation {
   }
 
   // gets the name of the i^th input type...
-  std::string getIthInputType(int i) override {
+  std::string getInputType(int i) override {
     if (i == 0) {
       return getTypeName<InputClass>();
     } else {

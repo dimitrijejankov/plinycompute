@@ -67,7 +67,7 @@ class AggregateComp : public AggregateCompBase {
   }
 
   // gets the name of the i^th input type...
-  std::string getIthInputType(int i) override {
+  std::string getInputType(int i) override {
     if (i == 0) {
       return getTypeName<InputClass>();
     } else {
@@ -107,9 +107,7 @@ class AggregateComp : public AggregateCompBase {
                            std::vector<std::string> &childrenLambdaNames,
                            int computationLabel,
                            std::string &myLambdaName) {
-    PDB_COUT << "To GET TCAP STRING FOR CLUSTER AGGREGATE COMP" << std::endl;
 
-    PDB_COUT << "To GET TCAP STRING FOR AGGREGATE KEY" << std::endl;
     Handle<InputClass> checkMe = nullptr;
     Lambda<KeyClass> keyLambda = getKeyProjection(checkMe);
     std::string tupleSetName;

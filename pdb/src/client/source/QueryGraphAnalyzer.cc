@@ -47,7 +47,8 @@ std::string QueryGraphAnalyzer::parseTCAPString(Vector<Handle<Computation>> &com
   // go through each sink
   for (int i = 0; i < this->queryGraph.size(); i++) {
 
-    // traverse the graph
+    // traverse the graph, this basically adds all the visited child computations of the graph in the order they are labeled
+    // and gives us the partial TCAP strings
     std::vector<InputTupleSetSpecifier> inputTupleSets;
     queryGraph[i]->traverse(TCAPStrings, computations, inputTupleSets, computationLabel);
 

@@ -58,7 +58,7 @@ class MultiSelectionComp : public Computation {
    * @param i
    * @return
    */
-  std::string getIthInputType(int i) override {
+  std::string getInputType(int i) override {
     if (i == 0) {
       return getTypeName<Input>();
     } else {

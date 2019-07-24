@@ -39,7 +39,7 @@ class SetScanner : public Computation {
   }
 
   // gets the name of the i^th input type...
-  std::string getIthInputType(int i) override {
+  std::string getInputType(int i) override {
     return "";
   }
 
