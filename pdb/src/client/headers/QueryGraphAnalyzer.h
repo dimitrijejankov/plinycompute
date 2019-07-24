@@ -47,11 +47,9 @@ namespace pdb {
 class QueryGraphAnalyzer {
 
 public:
-  // constructor
-  QueryGraphAnalyzer(const vector<Handle < Computation>> &queryGraph);
 
   // constructor
-  QueryGraphAnalyzer(Handle<Vector<Handle<Computation>>> queryGraph);
+  explicit QueryGraphAnalyzer(const vector<Handle < Computation>> &queryGraph);
 
   // to convert user query to a tcap string
   std::string parseTCAPString();
@@ -65,13 +63,6 @@ public:
   // you must ensure current allocation block has sufficient memory before
   // invoking this method
   void parseComputations(Vector<Handle<Computation>> &computations);
-
-  // to traverse from a graph sink recursively
-  void traverse(std::vector<std::string> &tcapStrings, const Handle<Computation>& comp,
-                const std::vector<InputTupleSetSpecifier>& inputTupleSets,
-                int &computationLabel, std::string &outputTupleSetName,
-                std::vector<std::string> &outputColumnNames,
-                std::string &addedOutputColumnName);
 
   // to clear traversal marks on the subtree rooted at sink
   void clearGraphMarks(Handle<Computation> sink);

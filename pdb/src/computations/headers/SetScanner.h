@@ -53,10 +53,6 @@ class SetScanner : public Computation {
     return getTypeName<OutputClass>();
   }
 
-  bool needsMaterializeOutput() override {
-    return false;
-  }
-
   // below function implements the interface for parsing computation into a TCAP string
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
                            int computationLabel) override {
@@ -132,6 +128,24 @@ class SetScanner : public Computation {
                                          std::map<ComputeInfoType, ComputeInfoPtr> &params) override {
 
     return _getComputeSource(pageSet, chunkSize, workerID, params);
+  }
+
+  void traverse(std::vector<std::string> &tcapStrings,
+                const std::vector<InputTupleSetSpecifier>& inputTupleSets,
+                int &computationLabel) override {
+
+    // this is a scan set do stuff...
+    if (!this->isTraversed()) {
+
+      std::string curTCAPString = this->toTCAPString(inputTupleSets, computationLabel);
+      tcapStrings.push_back(curTCAPString);
+      computationLabel++;
+    }
+
+    // get the output tuple set and the column
+    std::string outputTupleSetName = this->getOutputTupleSetName();
+    std::string addedOutputColumnName = this->getOutputColumnToApply();
+    std::vector<std::string> outputColumnNames = { addedOutputColumnName };
   }
 
  private:

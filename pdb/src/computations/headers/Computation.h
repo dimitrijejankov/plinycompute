@@ -148,15 +148,9 @@ class Computation : public Object {
     return true;
   }
 
-
-  //JiaNote: below methods are added to facilitate analyzing the query graph
-
-
   //whether the node has been traversed or not
   bool isTraversed() {
-
     return traversed;
-
   }
 
   //set the node to have been traversed
@@ -169,7 +163,7 @@ class Computation : public Object {
   //get output TupleSet name if the node has been traversed already
   std::string getOutputTupleSetName() {
 
-    if (traversed == true) {
+    if (traversed) {
       return outputTupleSetName;
     }
     return "";
@@ -183,7 +177,7 @@ class Computation : public Object {
   //get output column name to apply if the node has been traversed already
   std::string getOutputColumnToApply() {
 
-    if (traversed == true) {
+    if (traversed) {
       return outputColumnToApply;
     }
     return "";
@@ -198,13 +192,45 @@ class Computation : public Object {
   //by default it do nothing, subclasses shall override this function to handle the case when results need to be materialized.
   virtual void setOutputSet(std::string dbName, std::string setName) {}
 
-  virtual std::string getDatabaseName() { return ""; }
-
-  virtual std::string getSetName() { return ""; }
-
-  virtual bool needsMaterializeOutput() { return false; }
-
   virtual void setBatchSize(int batchSize) {}
+
+  // to traverse from a graph sink recursively and generate TCAP
+  virtual void traverse(std::vector<std::string> &tcapStrings,
+                        const std::vector<InputTupleSetSpecifier>& inputTupleSets,
+                        int &computationLabel) {
+
+    // so if the computation is not a scan set, meaning it has at least one input process the children first
+    // go through each child and traverse them
+    std::vector<InputTupleSetSpecifier> inputTupleSetsForMe;
+    for (int i = 0; i < this->getNumInputs(); i++) {
+
+      // get the child computation
+      Handle<Computation> childComp = getIthInput(i);
+
+      // if we have not visited this computation visit it
+      if (!childComp->isTraversed()) {
+
+        // go traverse the child computation
+        childComp->traverse(tcapStrings, inputTupleSets, computationLabel);
+
+        // mark the computation as transversed
+        childComp->setTraversed(true);
+      }
+
+      // we met a computation that we have visited just grab the name of the output tuple set and the columns it has
+      InputTupleSetSpecifier curOutput(childComp->getOutputTupleSetName(), { childComp->getOutputColumnToApply() }, { childComp->getOutputColumnToApply() });
+      inputTupleSetsForMe.push_back(curOutput);
+    }
+
+    // generate the TCAP string for this computation
+    std::string curTCAPString = this->toTCAPString(inputTupleSetsForMe, computationLabel);
+
+    // store the TCAP string generated
+    tcapStrings.push_back(curTCAPString);
+
+    // go to the next computation
+    computationLabel++;
+  }
 
  private:
 
