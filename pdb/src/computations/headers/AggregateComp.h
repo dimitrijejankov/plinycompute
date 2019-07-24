@@ -200,11 +200,12 @@ class AggregateComp : public AggregateCompBase {
     return tcapString;
   }
 
-  ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection, uint64_t numberOfPartitions) override {
+  ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &, TupleSpec &projection, uint64_t numberOfPartitions,
+                                std::map<ComputeInfoType, ComputeInfoPtr> &, pdb::LogicalPlanPtr &) override {
     return std::make_shared<pdb::PreaggregationSink<KeyClass, ValueClass>>(consumeMe, projection, numberOfPartitions);
   }
 
-  ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID) override {
+  ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID, std::map<ComputeInfoType, ComputeInfoPtr> &) override {
     return std::make_shared<pdb::MapTupleSetIterator<KeyClass, ValueClass, OutputClass>> (pageSet, workerID, chunkSize);
   }
 

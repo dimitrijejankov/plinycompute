@@ -62,11 +62,13 @@ class SelectionComp : public Computation {
 
   pdb::ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet,
                                          size_t chunkSize,
-                                         uint64_t workerID) override {
+                                         uint64_t workerID,
+                                         std::map<ComputeInfoType, ComputeInfoPtr> &) override {
     return std::make_shared<pdb::VectorTupleSetIterator>(pageSet, chunkSize, workerID);
   }
 
-  pdb::ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection, uint64_t numberOfPartitions) override {
+  pdb::ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &, TupleSpec &projection, uint64_t,
+                                     std::map<ComputeInfoType, ComputeInfoPtr> &, pdb::LogicalPlanPtr &) override {
     return std::make_shared<pdb::VectorSink<OutputClass>>(consumeMe, projection);
   }
 

@@ -58,30 +58,21 @@ class Computation : public Object {
   // as well as the actual TupleSpec that this guy is supposed to produce, and then returns
   // a pointer to a ComputeSource object that can actually produce TupleSet objects corresponding
   // to that particular TupleSpec
-  virtual ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID) { return nullptr; }
-
-  // this one is basically the same as compute @see getComputeSource except it takes in the pipeline parameters
   virtual ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet,
                                             size_t chunkSize,
                                             uint64_t workerID,
-                                            std::map<ComputeInfoType, ComputeInfoPtr> &params) { return getComputeSource(pageSet, chunkSize, workerID); }
+                                            std::map<ComputeInfoType, ComputeInfoPtr> &params) { return nullptr; }
 
   // likewise, if this particular computation can be used as a compute sink in a pipeline, this
   // method will return the compute sink object associated with the computation.  It requires the
   // TupleSpec that should be processed, as well as the projection of that TupleSpec that will
   // be put into the sink
-  virtual ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection, uint64_t numberOfPartitions) {
-    return nullptr;
-  }
-
   virtual ComputeSinkPtr getComputeSink(TupleSpec &consumeMe,
                                         TupleSpec &whichAttsToOpOn,
                                         TupleSpec &projection,
                                         uint64_t numberOfPartitions,
                                         std::map<ComputeInfoType, ComputeInfoPtr> &params,
-                                        pdb::LogicalPlanPtr &plan) {
-    return getComputeSink(consumeMe, projection, numberOfPartitions);
-  }
+                                        pdb::LogicalPlanPtr &plan) { return nullptr; }
 
   // returns the type of this Computation
   virtual std::string getComputationType() = 0;
@@ -136,8 +127,8 @@ class Computation : public Object {
     } else {
 
       return false;
-
     }
+
     return true;
   }
 
@@ -163,7 +154,7 @@ class Computation : public Object {
     for (int i = 0; i < this->getNumInputs(); i++) {
 
       // get the child computation
-      Handle<Computation> childComp = getIthInput(i);
+      Handle<Computation> childComp = (*inputs)[i];
 
       // if we have not visited this computation visit it
       if (!childComp->isTraversed()) {
@@ -197,6 +188,9 @@ protected:
    */
   Handle<Vector<Handle<Computation>>> inputs = nullptr;
 
+  /**
+   *
+   */
   bool traversed = false;
 
   /**

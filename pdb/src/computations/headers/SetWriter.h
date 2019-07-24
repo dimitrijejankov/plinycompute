@@ -118,7 +118,8 @@ class SetWriter : public Computation {
     this->setName = set;
   }
 
-  pdb::ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &projection, uint64_t numberOfPartitions) override {
+  pdb::ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &, TupleSpec &projection, uint64_t ,
+                                     std::map<ComputeInfoType, ComputeInfoPtr> &, pdb::LogicalPlanPtr &) override {
     return std::make_shared<pdb::VectorSink<OutputClass>>(consumeMe, projection);
   }
 
