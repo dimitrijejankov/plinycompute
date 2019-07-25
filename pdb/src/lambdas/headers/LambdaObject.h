@@ -200,18 +200,6 @@ class LambdaObject {
     return outputTupleSetNameTemplate.render(lambdaData);
   }
 
-  /**
-   * // TODO missing description
-   * @param lambdaLabel - // TODO missing description
-   * @param computationName - // TODO missing description
-   * @param computationLabel - // TODO missing description
-   * @param outputTupleSetName - // TODO missing description
-   * @param outputColumns - // TODO missing description
-   * @param outputColumnName - // TODO missing description
-   * @param myLambdaName - // TODO missing description
-   * @param multiInputsComp - // TODO missing description
-   * @return - // TODO missing description
-   */
   virtual std::string toTCAPStringForCartesianJoin(int lambdaLabel,
                                                    std::string computationName,
                                                    int computationLabel,
@@ -224,32 +212,6 @@ class LambdaObject {
     exit(1);
   }
 
-  /**
-   * This gets TCAP string corresponding to this Lambda
-   * JiaNote: below is just a default implementation for Lambdas to "Apply"
-   * you can override this implementation in your subclasses
-   *
-   * // TODO this method has been glued and tied together multiple times and should be completely rewritten and refactored
-   *
-   * @param inputTupleSetNames - // TODO add proper descriptions of the parameter
-   * @param inputColumnNames - // TODO add proper descriptions of the parameter
-   * @param inputColumnsToApply - // TODO add proper descriptions of the parameter
-   * @param childrenLambdaNames - // TODO add proper descriptions of the parameter
-   * @param lambdaLabel - // TODO add proper descriptions of the parameter
-   * @param computationName - // TODO add proper descriptions of the parameter
-   * @param computationLabel - // TODO add proper descriptions of the parameter
-   * @param outputTupleSetName - // TODO add proper descriptions of the parameter
-   * @param outputColumns - // TODO add proper descriptions of the parameter
-   * @param outputColumnName - // TODO add proper descriptions of the parameter
-   * @param myLambdaName - // TODO add proper descriptions of the parameter
-   * @param multiInputsComp - // TODO add proper descriptions of the parameter
-   * @param amIPartOfJoinPredicate - // TODO add proper descriptions of the parameter
-   * @param amILeftChildOfEqualLambda - // TODO add proper descriptions of the parameter
-   * @param amIRightChildOfEqualLambda - // TODO add proper descriptions of the parameter
-   * @param parentLambdaName - // TODO add proper descriptions of the parameter
-   * @param isSelfJoin - // TODO add proper descriptions of the parameter
-   * @return - // TODO add proper descriptions of the return value
-   */
   virtual std::string toTCAPString(std::vector<std::string> &inputTupleSetNames,
                                    std::vector<std::string> &inputColumnNames,
                                    std::vector<std::string> &inputColumnsToApply,
@@ -429,6 +391,177 @@ class LambdaObject {
       }
     }
     return tcapString;
+  }
+
+  void toTCAPString(std::vector<std::string> &tcapStrings,
+                    std::vector<std::string> &inputTupleSetNames,
+                    std::vector<std::string> &inputColumnNames,
+                    std::vector<std::string> &inputColumnsToApply,
+                    std::vector<std::string> &childrenLambdaNames,
+                    int &lambdaLabel,
+                    const std::string& computationName,
+                    int computationLabel,
+                    std::string &addedOutputColumnName,
+                    std::string &myLambdaName,
+                    std::string &outputTupleSetName,
+                    MultiInputsBase *multiInputsComp = nullptr,
+                    bool amIPartOfJoinPredicate = false,
+                    bool amILeftChildOfEqualLambda = false,
+                    bool amIRightChildOfEqualLambda = false,
+                    std::string parentLambdaName = "",
+                    bool isSelfJoin = false) {
+
+    std::vector<std::string> columnsToApply;
+    std::vector<std::string> childrenLambdas;
+    std::vector<std::string> inputNames;
+    std::vector<std::string> inputColumns;
+
+    if (this->getNumChildren() > 0) {
+
+      // move the input columns to apply
+      columnsToApply.swap(inputColumnsToApply);
+
+      // move the children lambdas
+      childrenLambdas.swap(childrenLambdaNames);
+
+      for (const auto &inputTupleSetName : inputTupleSetNames) {
+        auto iter = std::find(inputNames.begin(), inputNames.end(), inputTupleSetName);
+        if (iter == inputNames.end()) {
+          inputNames.push_back(inputTupleSetName);
+        }
+        else {
+          std::cout << "This is interesting" << std::endl;
+        }
+      }
+
+      // move the input tuple set names
+      inputTupleSetNames.clear();
+
+      // move the input columns
+      inputColumns.swap(inputColumnNames);
+    }
+
+    std::string myTypeName = this->getTypeOfLambda();
+    PDB_COUT << "\tExtracted lambda named: " << myTypeName << "\n";
+    std::string myName = myTypeName + "_" + std::to_string(lambdaLabel + this->getNumChildren());
+
+    bool isLeftChildOfEqualLambda = false;
+    bool isRightChildOfEqualLambda = false;
+    bool isChildSelfJoin = false;
+
+    LambdaObjectPtr nextChild = nullptr;
+    for (int i = 0; i < this->getNumChildren(); i++) {
+      LambdaObjectPtr child = this->getChild(i);
+
+      if ((i + 1) < this->getNumChildren()) {
+        nextChild = this->getChild(i + 1);
+      }
+
+      if (myTypeName == "==") {
+
+        if (i == 0) {
+          isLeftChildOfEqualLambda = true;
+        }
+
+        if (i == 1) {
+          isRightChildOfEqualLambda = true;
+        }
+
+      }
+
+      if ((isLeftChildOfEqualLambda || isRightChildOfEqualLambda) && (multiInputsComp != nullptr)) {
+
+        std::string nextInputName;
+
+        if (nextChild != nullptr) {
+          nextInputName = multiInputsComp->getNameForIthInput(nextChild->getInputIndex(0));
+        }
+
+        std::string myInputName = multiInputsComp->getNameForIthInput(child->getInputIndex(0));
+        if (nextInputName == myInputName) {
+          isChildSelfJoin = true;
+        }
+      }
+
+      child->toTCAPString(tcapStrings,
+                          inputNames,
+                          inputColumns,
+                          columnsToApply,
+                          childrenLambdas,
+                          lambdaLabel,
+                          computationName,
+                          computationLabel,
+                          addedOutputColumnName,
+                          myLambdaName,
+                          outputTupleSetName,
+                          multiInputsComp,
+                          amIPartOfJoinPredicate,
+                          isLeftChildOfEqualLambda,
+                          isRightChildOfEqualLambda,
+                          myName,
+                          isChildSelfJoin);
+
+      inputColumnsToApply.push_back(addedOutputColumnName);
+      childrenLambdaNames.push_back(myLambdaName);
+
+      if (multiInputsComp != nullptr) {
+        auto iter = std::find(inputTupleSetNames.begin(), inputTupleSetNames.end(), outputTupleSetName);
+
+        if (iter == inputTupleSetNames.end()) {
+          inputTupleSetNames.push_back(outputTupleSetName);
+        }
+
+      } else {
+
+        inputTupleSetNames.clear();
+        inputTupleSetNames.push_back(outputTupleSetName);
+        inputColumnNames.clear();
+      }
+
+      for (const auto &inputColumn : inputColumns) {
+        auto iter = std::find(inputColumnNames.begin(), inputColumnNames.end(), inputColumn);
+        if (iter == inputColumnNames.end()) {
+          inputColumnNames.push_back(inputColumn);
+        }
+      }
+
+      isLeftChildOfEqualLambda = false;
+      isRightChildOfEqualLambda = false;
+      isChildSelfJoin = false;
+      nextChild = nullptr;
+    }
+
+    std::vector<std::string> outputColumns;
+    std::string tcapString = this->toTCAPString(inputTupleSetNames,
+                                                inputColumnNames,
+                                                inputColumnsToApply,
+                                                childrenLambdaNames,
+                                                lambdaLabel,
+                                                computationName,
+                                                computationLabel,
+                                                outputTupleSetName,
+                                                outputColumns,
+                                                addedOutputColumnName,
+                                                myLambdaName,
+                                                multiInputsComp,
+                                                amIPartOfJoinPredicate,
+                                                amILeftChildOfEqualLambda,
+                                                amIRightChildOfEqualLambda,
+                                                parentLambdaName,
+                                                isSelfJoin);
+
+    tcapStrings.push_back(tcapString);
+    lambdaLabel++;
+
+    if (multiInputsComp == nullptr) {
+      inputTupleSetNames.clear();
+      inputTupleSetNames.push_back(outputTupleSetName);
+    }
+
+    inputColumnNames.clear();
+    for (const auto &outputColumn : outputColumns) {
+      inputColumnNames.push_back(outputColumn);
+    }
   }
 
   virtual std::map<std::string, std::string> getInfo() = 0;
