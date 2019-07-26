@@ -251,20 +251,20 @@ public:
                       PDB_COUT << "MultiInputBase for index=" << i << " is updated" << std::endl;
                       multiInputsComp->setTupleSetNameForIthInput(i, outputTupleSetName);
                       multiInputsComp->setInputColumnsForIthInput(i, outputColumns);
-                      multiInputsComp->setInputColumnsToApplyForIthInput(i, outputColumnName);
+                      multiInputsComp->addColumnToInputColumnsToApplyForIthInput(i, outputColumnName);
                   }
                   if (originalInputColumnToApply == curInput) {
                       PDB_COUT << "MultiInputBase for index=" << i << " is updated" << std::endl;
                       multiInputsComp->setTupleSetNameForIthInput(i, outputTupleSetName);
                       multiInputsComp->setInputColumnsForIthInput(i, outputColumns);
-                      multiInputsComp->setInputColumnsToApplyForIthInput(i, outputColumnName);
+                      multiInputsComp->addColumnToInputColumnsToApplyForIthInput(i, outputColumnName);
                   }
               }
           } else {
               // only update myIndex
               multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
               multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
-              multiInputsComp->setInputColumnsToApplyForIthInput(index, outputColumnName);
+              multiInputsComp->addColumnToInputColumnsToApplyForIthInput(index, outputColumnName);
           }
       }
       return tcapString;

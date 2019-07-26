@@ -236,33 +236,33 @@ public:
       return "";
     }
 
+    // this is going to have info about the inputs
     MultiInputsBase multiInputsBase;
     multiInputsBase.setNumInputs(this->getNumInputs());
 
-    // update tupleset name for input sets
+    // update tuple set name for input sets
     for (unsigned int i = 0; i < inputTupleSets.size(); i++) {
 
-      //
+      // set the name of the tuple set for the i-th position
       multiInputsBase.setTupleSetNameForIthInput(i, inputTupleSets[i].getTupleSetName());
 
-      //
+      // set the columns for the i-th position
       multiInputsBase.setInputColumnsForIthInput(i, inputTupleSets[i].getColumnNamesToKeep());
 
-      //
+      // the the columns to apply for the i-th position
       multiInputsBase.setInputColumnsToApplyForIthInput(i, inputTupleSets[i].getColumnNamesToApply());
 
       // setup all input names (the column name corresponding to input in tuple set)
       multiInputsBase.setNameForIthInput(i, inputTupleSets[i].getColumnNamesToApply()[0]);
     }
 
+    // stuff that is needed
     std::string inputTupleSetName;
     std::vector<std::string> inputColumnNames;
     std::vector<std::string> inputColumnsToApply;
     std::vector<std::string> childrenLambdaNames;
     int lambdaLabel = 0;
     std::string myLambdaName;
-
-    // TODO
     std::string outputTupleSetName;
     std::vector<std::string> outputColumnNames;
     std::string addedOutputColumnName;

@@ -225,20 +225,20 @@ class MethodCallLambda : public TypedLambdaObject<Out> {
           PDB_COUT << "MultiInputBase for index=" << index << " is updated" << std::endl;
           multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
           multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
-          multiInputsComp->setInputColumnsToApplyForIthInput(index, outputColumnName);
+          multiInputsComp->addColumnToInputColumnsToApplyForIthInput(index, outputColumnName);
         }
         if (originalInputColumnToApply == curInput) {
           PDB_COUT << "MultiInputBase for index=" << index << " is updated" << std::endl;
           multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
           multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
-          multiInputsComp->setInputColumnsToApplyForIthInput(index, outputColumnName);
+          multiInputsComp->addColumnToInputColumnsToApplyForIthInput(index, outputColumnName);
         }
       }
     } else {
       // only update myIndex, I am a self-join
       multiInputsComp->setTupleSetNameForIthInput(myIndex, outputTupleSetName);
       multiInputsComp->setInputColumnsForIthInput(myIndex, outputColumns);
-      multiInputsComp->setInputColumnsToApplyForIthInput(myIndex, outputColumnName);
+      multiInputsComp->addColumnToInputColumnsToApplyForIthInput(myIndex, outputColumnName);
     }
 
     return tcapString;

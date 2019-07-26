@@ -355,7 +355,7 @@ class LambdaObject {
           PDB_COUT << "MultiInputsBase with index=" << index << " is updated." << std::endl;
           multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
           multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
-          multiInputsComp->setInputColumnsToApplyForIthInput(index, outputColumnName);
+          multiInputsComp->addColumnToInputColumnsToApplyForIthInput(index, outputColumnName);
         }
 
         PDB_COUT << std::endl;
@@ -365,7 +365,7 @@ class LambdaObject {
           PDB_COUT << "MultiInputsBase with index=" << index << " is updated." << std::endl;
           multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
           multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
-          multiInputsComp->setInputColumnsToApplyForIthInput(index, outputColumnName);
+          multiInputsComp->addColumnToInputColumnsToApplyForIthInput(index, outputColumnName);
         }
       }
 
@@ -374,7 +374,7 @@ class LambdaObject {
       // only update myIndex
       multiInputsComp->setTupleSetNameForIthInput(myIndex, outputTupleSetName);
       multiInputsComp->setInputColumnsForIthInput(myIndex, outputColumns);
-      multiInputsComp->setInputColumnsToApplyForIthInput(myIndex, outputColumnName);
+      multiInputsComp->addColumnToInputColumnsToApplyForIthInput(myIndex, outputColumnName);
     }
 
     return tcapString;

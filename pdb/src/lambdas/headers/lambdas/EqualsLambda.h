@@ -449,7 +449,7 @@ public:
           if (iter != outputColumns.end()) {
             multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
             multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
-            multiInputsComp->setInputColumnsToApplyForIthInput(index, outputColumnName);
+            multiInputsComp->addColumnToInputColumnsToApplyForIthInput(index, outputColumnName);
           }
         }
       }
