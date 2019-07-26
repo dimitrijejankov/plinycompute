@@ -106,7 +106,6 @@ public:
     return nullptr;
   }
 
-  //TODO: add comment here and refractor the code
   std::string toTCAPString(std::vector<std::string> &inputTupleSetNames,
                            std::vector<std::string> &inputColumnNames,
                            std::vector<std::string> &inputColumnsToApply,
@@ -297,6 +296,7 @@ public:
 
     return tcapString;
   }
+
   std::map<std::string, std::string> getInfo() override {
 
     // fill in the info

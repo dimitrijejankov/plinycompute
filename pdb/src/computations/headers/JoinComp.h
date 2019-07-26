@@ -263,8 +263,22 @@ public:
       inputNames.push_back(inputTupleSets[i].getColumnNamesToApply()[0]);
     }
 
-    analyzeInputSets(inputNames);
+    if (multiInputsBase == nullptr) {
+      multiInputsBase = new MultiInputsBase();
+    }
+
+    // Step 1. setup all input names (the column name corresponding to input in tuple set)
+    for (int i = 0; i < inputNames.size(); i++) {
+      this->multiInputsBase->setNameForIthInput(i, inputNames[i]);
+    }
+
+    // get the selection lambda
     Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
+
+    // get the projection lambda and it's inputs
+    Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
+    std::vector<std::string> inputsInProjection = projectionLambda.getAllInputs(this->multiInputsBase);
+
     std::string inputTupleSetName;
     std::vector<std::string> inputColumnNames;
     std::vector<std::string> inputColumnsToApply;
@@ -293,13 +307,12 @@ public:
                                                multiInputsComp,
                                                true);
 
-    std::vector<std::string> inputsInProjection = multiInputsComp->getInputsInProjection();
     tcapString += "\n/* run Join projection on ( " + inputsInProjection[0];
     for (unsigned int i = 1; i < inputsInProjection.size(); i++) {
       tcapString += " " + inputsInProjection[i];
     }
     tcapString += " )*/\n";
-    Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
+
     inputTupleSetName = outputTupleSetName;
     inputColumnNames.clear();
     inputColumnsToApply.clear();
@@ -327,7 +340,6 @@ public:
     this->outputColumnToApply = addedOutputColumnName;
     setMultiInputsBaseToNull();
     return tcapString;
-
   }
 
   // gets an execute that can run a scan join... needToSwapAtts is true if the atts that are currently stored in the hash table need to
@@ -411,26 +423,7 @@ public:
   }
 
   void analyzeInputSets(std::vector<std::string> &inputNames) {
-    if (multiInputsBase == nullptr) {
-      multiInputsBase = new MultiInputsBase();
-    }
-    // Step 1. setup all input names (the column name corresponding to input in tuple set)
-    for (int i = 0; i < inputNames.size(); i++) {
-      this->multiInputsBase->setNameForIthInput(i, inputNames[i]);
-    }
 
-    // Step 2. analyze selectionLambda to find all inputs in predicates
-    Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
-    std::vector<std::string> inputsInPredicates = selectionLambda.getAllInputs(this->multiInputsBase);
-    for (auto &inputsInPredicate : inputsInPredicates) {
-      this->multiInputsBase->addInputNameToPredicates(inputsInPredicate);
-    }
-    // Step 3. analyze projectionLambda to find all inputs in projection
-    Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
-    std::vector<std::string> inputsInProjection = projectionLambda.getAllInputs(this->multiInputsBase);
-    for (auto &i : inputsInProjection) {
-      this->multiInputsBase->addInputNameToProjection(i);
-    }
   }
 
   void setMultiInputsBaseToNull() {

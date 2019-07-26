@@ -135,15 +135,13 @@ class MethodCallLambda : public TypedLambdaObject<Out> {
       inputTupleSetName = inputTupleSetNames[0];
     } else {
       tupleSetMidTag = "ExtractedFor_";
+
       myIndex = this->getInputIndex(0);
-      PDB_COUT << lambdaName << ": myIndex=" << myIndex << std::endl;
       inputTupleSetName = multiInputsComp->getTupleSetNameForIthInput(myIndex);
-      PDB_COUT << "inputTupleSetName=" << inputTupleSetName << std::endl;
       inputColumnNames = multiInputsComp->getInputColumnsForIthInput(myIndex);
       inputColumnsToApply.clear();
       inputColumnsToApply.push_back(multiInputsComp->getNameForIthInput(myIndex));
       originalInputColumnToApply = multiInputsComp->getNameForIthInput(myIndex);
-      PDB_COUT << "originalInputColumnToApply=" << originalInputColumnToApply << std::endl;
     }
 
     // set the lambda data
@@ -218,6 +216,7 @@ class MethodCallLambda : public TypedLambdaObject<Out> {
                                         parentLambdaName,
                                         std::map<std::string, std::string>());
     }
+
     if (!isSelfJoin) {
       for (unsigned int index = 0; index < multiInputsComp->getNumInputs(); index++) {
         std::string curInput = multiInputsComp->getNameForIthInput(index);

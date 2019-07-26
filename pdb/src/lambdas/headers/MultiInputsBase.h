@@ -45,14 +45,6 @@ class MultiInputsBase {
   // input names for this join operation
   std::vector<std::string> inputNames;
 
-  // input names show up in join predicates
-  std::vector<std::string> inputNamesInPredicates;
-
-  // input names show up in join projection
-  std::vector<std::string> inputNamesInProjection;
-
-  int numPredicates;
-
   int numInputs;
 
  public:
@@ -62,14 +54,6 @@ class MultiInputsBase {
 
   int getNumInputs() {
     return this->numInputs;
-  }
-
-  void setNumPredicates(int numPredicates) {
-    this->numPredicates = numPredicates;
-  }
-
-  int getNumPredicates() {
-    return this->numPredicates;
   }
 
   // returns the latest tuple set name that contains the i-th input
@@ -181,70 +165,6 @@ class MultiInputsBase {
     }
     if (i < numInputs) {
       inputNames[i] = name;
-    }
-  }
-
-  // get the input names in predicates
-  std::vector<std::string> getInputsInPredicates() {
-    return this->inputNamesInPredicates;
-  }
-
-  // add name to names in predicates
-  void addInputNameToPredicates(std::string name) {
-
-    auto iter = std::find(inputNamesInPredicates.begin(), inputNamesInPredicates.end(), name);
-    if (iter == inputNamesInPredicates.end()) {
-      inputNamesInPredicates.push_back(name);
-    }
-  }
-
-  // get the input names in projection
-  std::vector<std::string> getInputsInProjection() {
-    return inputNamesInProjection;
-  }
-
-  // set the name for the i-th input
-  void addInputNameToProjection(std::string name) {
-
-    auto iter = std::find(inputNamesInProjection.begin(), inputNamesInProjection.end(), name);
-    if (iter == inputNamesInProjection.end()) {
-      inputNamesInProjection.push_back(name);
-    }
-  }
-
-  // get a vector of inputs that are not in join predicates
-  std::vector<std::string> getNamesNotInPredicates() {
-    std::vector<std::string> ret;
-    for (int i = 0; i < inputNames.size(); i++) {
-      auto iter = std::find(
-          inputNamesInPredicates.begin(), inputNamesInPredicates.end(), inputNames[i]);
-      if (iter == inputNamesInPredicates.end()) {
-        ret.push_back(inputNames[i]);
-      }
-    }
-    return ret;
-  }
-
-  // get a vector of inputs that are not in projection
-  std::vector<std::string> getNamesNotInProjection() {
-    std::vector<std::string> ret;
-    for (int i = 0; i < inputNames.size(); i++) {
-      auto iter = std::find(
-          inputNamesInProjection.begin(), inputNamesInProjection.end(), inputNames[i]);
-      if (iter == inputNamesInProjection.end()) {
-        ret.push_back(inputNames[i]);
-      }
-    }
-    return ret;
-  }
-
-  // check whether an input name is in projection
-  bool isInputInProjection(std::string name) {
-    auto iter = std::find(inputNamesInProjection.begin(), inputNamesInProjection.end(), name);
-    if (iter != inputNamesInProjection.end()) {
-      return true;
-    } else {
-      return false;
     }
   }
 };

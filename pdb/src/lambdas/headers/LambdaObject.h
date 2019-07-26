@@ -231,11 +231,6 @@ class LambdaObject {
                                    bool isSelfJoin = false) {
     std::string tcapString;
     std::string lambdaType = getTypeOfLambda();
-    if ((lambdaType.find("==") != std::string::npos) ||
-        (lambdaType.find("&&") != std::string::npos)) {
-      return "";
-    }
-
     if ((lambdaType.find("native_lambda") != std::string::npos) && (multiInputsComp != nullptr)
         && amIPartOfJoinPredicate &&
         !amIRightChildOfEqualLambda
@@ -258,15 +253,14 @@ class LambdaObject {
 
     std::vector<std::string> originalInputColumnsToApply;
 
-    int myIndex;
+    int myIndex = this->getInputIndex(0);
     if (multiInputsComp != nullptr) {
+
       if (amILeftChildOfEqualLambda || amIRightChildOfEqualLambda) {
         tupleSetMidTag = "Extracted";
       }
-      myIndex = this->getInputIndex(0);
-      PDB_COUT << myLambdaName + ": myIndex=" << myIndex << std::endl;
+
       inputTupleSetName = multiInputsComp->getTupleSetNameForIthInput(myIndex);
-      PDB_COUT << "inputTupleSetName=" << inputTupleSetName << std::endl;
       inputColumnNames = multiInputsComp->getInputColumnsForIthInput(myIndex);
 
       inputColumnsToApply.clear();
@@ -278,24 +272,16 @@ class LambdaObject {
         for (int i = 0; i < this->getNumInputs(); i++) {
           int index = this->getInputIndex(i);
           inputColumnsToApply.push_back(multiInputsComp->getNameForIthInput(index));
-          originalInputColumnsToApply.push_back(
-              multiInputsComp->getNameForIthInput(myIndex));
+          originalInputColumnsToApply.push_back(multiInputsComp->getNameForIthInput(myIndex));
         }
       }
-      multiInputsComp->setLambdasForIthInputAndPredicate(
-          myIndex, parentLambdaName, myLambdaName);
+
+      multiInputsComp->setLambdasForIthInputAndPredicate(myIndex, parentLambdaName, myLambdaName);
     }
 
-    PDB_COUT << "input columns to apply: " << std::endl;
-    for (const auto &i : originalInputColumnsToApply) {
-      PDB_COUT << i << std::endl;
-    }
 
-    outputTupleSetName = lambdaType.substr(0, 5) + "_" + std::to_string(lambdaLabel) + tupleSetMidTag + computationName
-        + std::to_string(computationLabel);
-    outputColumnName =
-        lambdaType.substr(0, 5) + "_" + std::to_string(lambdaLabel) + "_" + std::to_string(computationLabel)
-            + tupleSetMidTag;
+    outputTupleSetName = lambdaType.substr(0, 5) + "_" + std::to_string(lambdaLabel) + tupleSetMidTag + computationName + std::to_string(computationLabel);
+    outputColumnName = lambdaType.substr(0, 5) + "_" + std::to_string(lambdaLabel) + "_" + std::to_string(computationLabel) + tupleSetMidTag;
 
     outputColumns.clear();
     for (const auto &inputColumnName : inputColumnNames) {
@@ -308,7 +294,6 @@ class LambdaObject {
 
     // fill in the info
     info["lambdaType"] = getTypeOfLambda();
-
     tcapString += getTCAPString(inputTupleSetName,
                                 inputColumnNames,
                                 inputColumnsToApply,
@@ -320,76 +305,78 @@ class LambdaObject {
                                 myLambdaName,
                                 info);
 
-    if (multiInputsComp != nullptr) {
-      if (amILeftChildOfEqualLambda || amIRightChildOfEqualLambda) {
-        inputTupleSetName = outputTupleSetName;
-        inputColumnNames.clear();
-        for (const auto &outputColumn : outputColumns) {
-          // we want to remove the extracted value column from here
-          if (outputColumn != outputColumnName) {
-            inputColumnNames.push_back(outputColumn);
-          }
-        }
-        inputColumnsToApply.clear();
-        inputColumnsToApply.push_back(outputColumnName);
-
-        std::string hashOperator;
-        if (amILeftChildOfEqualLambda) {
-          hashOperator = "HASHLEFT";
-        } else {
-          hashOperator = "HASHRIGHT";
-        }
-        outputTupleSetName = outputTupleSetName + "_hashed";
-        outputColumnName = outputColumnName + "_hash";
-        outputColumns.clear();
-
-        for (const auto &inputColumnName : inputColumnNames) {
-          outputColumns.push_back(inputColumnName);
-        }
-        outputColumns.push_back(outputColumnName);
-
-        tcapString += getTCAPString(inputTupleSetName,
-                                    inputColumnNames,
-                                    inputColumnsToApply,
-                                    outputTupleSetName,
-                                    outputColumns,
-                                    outputColumnName,
-                                    hashOperator,
-                                    computationNameWithLabel,
-                                    parentLambdaName,
-                                    std::map<std::string, std::string>());
-      }
-      if (!isSelfJoin) {
-        for (unsigned int index = 0; index < multiInputsComp->getNumInputs(); index++) {
-          std::string curInput = multiInputsComp->getNameForIthInput(index);
-          PDB_COUT << "curInput is " << curInput << std::endl;
-          auto iter = std::find(outputColumns.begin(), outputColumns.end(), curInput);
-          if (iter != outputColumns.end()) {
-            PDB_COUT << "MultiInputsBase with index=" << index << " is updated."
-                     << std::endl;
-            multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
-            multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
-            multiInputsComp->setInputColumnsToApplyForIthInput(index, outputColumnName);
-          }
-          PDB_COUT << std::endl;
-          auto iter1 = std::find(originalInputColumnsToApply.begin(),
-                                 originalInputColumnsToApply.end(),
-                                 curInput);
-          if (iter1 != originalInputColumnsToApply.end()) {
-            PDB_COUT << "MultiInputsBase with index=" << index << " is updated."
-                     << std::endl;
-            multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
-            multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
-            multiInputsComp->setInputColumnsToApplyForIthInput(index, outputColumnName);
-          }
-        }
-      } else {
-        // only update myIndex
-        multiInputsComp->setTupleSetNameForIthInput(myIndex, outputTupleSetName);
-        multiInputsComp->setInputColumnsForIthInput(myIndex, outputColumns);
-        multiInputsComp->setInputColumnsToApplyForIthInput(myIndex, outputColumnName);
-      }
+    if (multiInputsComp == nullptr) {
+      return tcapString;
     }
+
+    if (amILeftChildOfEqualLambda || amIRightChildOfEqualLambda) {
+      inputTupleSetName = outputTupleSetName;
+      inputColumnNames.clear();
+      for (const auto &outputColumn : outputColumns) {
+        // we want to remove the extracted value column from here
+        if (outputColumn != outputColumnName) {
+          inputColumnNames.push_back(outputColumn);
+        }
+      }
+
+      inputColumnsToApply.clear();
+      inputColumnsToApply.push_back(outputColumnName);
+
+      std::string hashOperator = amILeftChildOfEqualLambda ? "HASHLEFT" : "HASHRIGHT";
+      outputTupleSetName = outputTupleSetName + "_hashed";
+      outputColumnName = outputColumnName + "_hash";
+      outputColumns.clear();
+
+      std::copy(inputColumnNames.begin(), inputColumnNames.end(), std::back_inserter(outputColumns));
+      outputColumns.push_back(outputColumnName);
+
+      tcapString += getTCAPString(inputTupleSetName,
+                                  inputColumnNames,
+                                  inputColumnsToApply,
+                                  outputTupleSetName,
+                                  outputColumns,
+                                  outputColumnName,
+                                  hashOperator,
+                                  computationNameWithLabel,
+                                  parentLambdaName,
+                                  std::map<std::string, std::string>());
+    }
+
+    if (!isSelfJoin) {
+
+      for (unsigned int index = 0; index < multiInputsComp->getNumInputs(); index++) {
+
+        std::string curInput = multiInputsComp->getNameForIthInput(index);
+        PDB_COUT << "curInput is " << curInput << std::endl;
+
+        auto iter = std::find(outputColumns.begin(), outputColumns.end(), curInput);
+        if (iter != outputColumns.end()) {
+
+          PDB_COUT << "MultiInputsBase with index=" << index << " is updated." << std::endl;
+          multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
+          multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
+          multiInputsComp->setInputColumnsToApplyForIthInput(index, outputColumnName);
+        }
+
+        PDB_COUT << std::endl;
+
+        auto iter1 = std::find(originalInputColumnsToApply.begin(), originalInputColumnsToApply.end(), curInput);
+        if (iter1 != originalInputColumnsToApply.end()) {
+          PDB_COUT << "MultiInputsBase with index=" << index << " is updated." << std::endl;
+          multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
+          multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
+          multiInputsComp->setInputColumnsToApplyForIthInput(index, outputColumnName);
+        }
+      }
+
+    } else {
+
+      // only update myIndex
+      multiInputsComp->setTupleSetNameForIthInput(myIndex, outputTupleSetName);
+      multiInputsComp->setInputColumnsForIthInput(myIndex, outputColumns);
+      multiInputsComp->setInputColumnsToApplyForIthInput(myIndex, outputColumnName);
+    }
+
     return tcapString;
   }
 
@@ -458,15 +445,12 @@ class LambdaObject {
       }
 
       if (myTypeName == "==") {
-
         if (i == 0) {
           isLeftChildOfEqualLambda = true;
         }
-
         if (i == 1) {
           isRightChildOfEqualLambda = true;
         }
-
       }
 
       if ((isLeftChildOfEqualLambda || isRightChildOfEqualLambda) && (multiInputsComp != nullptr)) {
@@ -567,6 +551,7 @@ class LambdaObject {
   virtual std::map<std::string, std::string> getInfo() = 0;
 
  private:
+
   /**
    * input index in a multi-input computation
    */
