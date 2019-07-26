@@ -229,7 +229,7 @@ class LambdaObject {
                                    bool amIRightChildOfEqualLambda = false,
                                    std::string parentLambdaName = "",
                                    bool isSelfJoin = false) {
-    std::string tcapString;
+
     std::string lambdaType = getTypeOfLambda();
     if ((lambdaType.find("native_lambda") != std::string::npos) && (multiInputsComp != nullptr)
         && amIPartOfJoinPredicate &&
@@ -246,13 +246,25 @@ class LambdaObject {
                                           multiInputsComp);
     }
 
-    std::string computationNameWithLabel = computationName + "_" + std::to_string(computationLabel);
-    myLambdaName = getTypeOfLambda() + "_" + std::to_string(lambdaLabel);
-    std::string inputTupleSetName = inputTupleSetNames[0];
-    std::string tupleSetMidTag = "OutFor";
+    // create the data for the lambda
+    mustache::data lambdaData;
+    lambdaData.set("computationName", computationName);
+    lambdaData.set("computationLabel", std::to_string(computationLabel));
+    lambdaData.set("typeOfLambda", getTypeOfLambda());
+    lambdaData.set("lambdaLabel", std::to_string(lambdaLabel));
 
+    // create the computation name with label
+    mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
+    std::string computationNameWithLabel = computationNameWithLabelTemplate.render(lambdaData);
+
+    // create the lambda name
+    mustache::mustache lambdaNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}"};
+    myLambdaName = lambdaNameTemplate.render(lambdaData);
+
+    std::string inputTupleSetName = inputTupleSetNames[0];
     std::vector<std::string> originalInputColumnsToApply;
 
+    std::string tupleSetMidTag = "OutFor";
     int myIndex = this->getInputIndex(0);
     if (multiInputsComp != nullptr) {
 
@@ -264,24 +276,25 @@ class LambdaObject {
       inputColumnNames = multiInputsComp->getInputColumnsForIthInput(myIndex);
 
       inputColumnsToApply.clear();
-
-      if (this->getNumInputs() == 1) {
-        inputColumnsToApply.push_back(multiInputsComp->getNameForIthInput(myIndex));
+      for (int i = 0; i < this->getNumInputs(); i++) {
+        int index = this->getInputIndex(i);
+        inputColumnsToApply.push_back(multiInputsComp->getNameForIthInput(index));
         originalInputColumnsToApply.push_back(multiInputsComp->getNameForIthInput(myIndex));
-      } else {
-        for (int i = 0; i < this->getNumInputs(); i++) {
-          int index = this->getInputIndex(i);
-          inputColumnsToApply.push_back(multiInputsComp->getNameForIthInput(index));
-          originalInputColumnsToApply.push_back(multiInputsComp->getNameForIthInput(myIndex));
-        }
       }
 
       multiInputsComp->setLambdasForIthInputAndPredicate(myIndex, parentLambdaName, myLambdaName);
     }
 
+    // set the lambda data
+    lambdaData.set("tupleSetMidTag", tupleSetMidTag);
 
-    outputTupleSetName = lambdaType.substr(0, 5) + "_" + std::to_string(lambdaLabel) + tupleSetMidTag + computationName + std::to_string(computationLabel);
-    outputColumnName = lambdaType.substr(0, 5) + "_" + std::to_string(lambdaLabel) + "_" + std::to_string(computationLabel) + tupleSetMidTag;
+    // create the output tuple set name
+    mustache::mustache outputTupleSetNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}{{tupleSetMidTag}}{{computationName}}{{computationLabel}}"};
+    outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
+
+    // create the output column name
+    mustache::mustache outputColumnNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}_{{computationLabel}}_{{tupleSetMidTag}}"};
+    outputColumnName = outputColumnNameTemplate.render(lambdaData);
 
     outputColumns.clear();
     for (const auto &inputColumnName : inputColumnNames) {
@@ -289,11 +302,8 @@ class LambdaObject {
     }
     outputColumns.push_back(outputColumnName);
 
-    // the additional info about this attribute access lambda
-    std::map<std::string, std::string> info;
-
-    // fill in the info
-    info["lambdaType"] = getTypeOfLambda();
+    // generate the TCAP string for the lambda
+    std::string tcapString;
     tcapString += getTCAPString(inputTupleSetName,
                                 inputColumnNames,
                                 inputColumnsToApply,
@@ -303,7 +313,7 @@ class LambdaObject {
                                 "APPLY",
                                 computationNameWithLabel,
                                 myLambdaName,
-                                info);
+                                getInfo());
 
     if (multiInputsComp == nullptr) {
       return tcapString;
@@ -343,23 +353,15 @@ class LambdaObject {
     }
 
     if (!isSelfJoin) {
-
       for (unsigned int index = 0; index < multiInputsComp->getNumInputs(); index++) {
-
         std::string curInput = multiInputsComp->getNameForIthInput(index);
-        PDB_COUT << "curInput is " << curInput << std::endl;
-
         auto iter = std::find(outputColumns.begin(), outputColumns.end(), curInput);
         if (iter != outputColumns.end()) {
-
           PDB_COUT << "MultiInputsBase with index=" << index << " is updated." << std::endl;
           multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
           multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
           multiInputsComp->addColumnToInputColumnsToApplyForIthInput(index, outputColumnName);
         }
-
-        PDB_COUT << std::endl;
-
         auto iter1 = std::find(originalInputColumnsToApply.begin(), originalInputColumnsToApply.end(), curInput);
         if (iter1 != originalInputColumnsToApply.end()) {
           PDB_COUT << "MultiInputsBase with index=" << index << " is updated." << std::endl;
@@ -371,7 +373,7 @@ class LambdaObject {
 
     } else {
 
-      // only update myIndex
+      // only update myIndex, I am a self-join
       multiInputsComp->setTupleSetNameForIthInput(myIndex, outputTupleSetName);
       multiInputsComp->setInputColumnsForIthInput(myIndex, outputColumns);
       multiInputsComp->addColumnToInputColumnsToApplyForIthInput(myIndex, outputColumnName);

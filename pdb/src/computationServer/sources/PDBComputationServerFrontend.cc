@@ -299,6 +299,9 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
             // we start from job 0
             uint64_t jobID = 0;
 
+            std::cout << "Got TCAP : \n";
+            std::cout << request->tcapString << "\n\n";
+
             /// 2. Run job while the optimizer can spit out an algorithm
 
             // while we still have jobs to execute
