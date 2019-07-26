@@ -184,13 +184,13 @@ public:
     lambdaData.set("computationName", computationName);
     lambdaData.set("computationLabel", std::to_string(computationLabel));
 
-    // create the lambda name
-    mustache::mustache lambdaNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}"};
-    lambdaName = lambdaNameTemplate.render(lambdaData);
-
     // create the computation name with label
     mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
     std::string computationNameWithLabel = computationNameWithLabelTemplate.render(lambdaData);
+
+    // create the lambda name
+    mustache::mustache lambdaNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}"};
+    lambdaName = lambdaNameTemplate.render(lambdaData);
 
     std::string inputTupleSetName;
     std::string tupleSetMidTag;
@@ -214,13 +214,14 @@ public:
     mustache::mustache outputTupleSetNameTemplate{"deref_{{lambdaLabel}}{{tupleSetMidTag}}{{computationName}}{{computationLabel}}"};
     outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
 
-    // set the output column name
-    outputColumnName = inputColumnsToApply[0];
+      // create the output column name
+      mustache::mustache outputColumnNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}_{{computationLabel}}_{{tupleSetMidTag}}"};
+      outputColumnName = outputColumnNameTemplate.render(lambdaData);
 
     // fill up the output columns and setup the data
     outputColumns.clear();
     for (const auto &inputColumnName : inputColumnNames) {
-      if (inputColumnName != outputColumnName) {
+      if (inputColumnName != inputColumnsToApply[0]) {
         outputColumns.push_back(inputColumnName);
       }
     }
@@ -272,7 +273,6 @@ public:
         outputColumns.push_back(inputColumnName);
       }
       outputColumns.push_back(outputColumnName);
-      std::string computationNameWithLabel = computationName + std::to_string(computationLabel);
 
       tcapString += this->getTCAPString(inputTupleSetName,
                                         inputColumnNames,

@@ -299,13 +299,6 @@ public:
           multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
           multiInputsComp->addColumnToInputColumnsToApplyForIthInput(index, outputColumnName);
         }
-        auto iter1 = std::find(originalInputColumnsToApply.begin(), originalInputColumnsToApply.end(), curInput);
-        if (iter1 != originalInputColumnsToApply.end()) {
-          PDB_COUT << "MultiInputsBase with index=" << index << " is updated." << std::endl;
-          multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
-          multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
-          multiInputsComp->addColumnToInputColumnsToApplyForIthInput(index, outputColumnName);
-        }
       }
 
     } else {
