@@ -197,8 +197,6 @@ public:
     myLambdaName = lambdaNameTemplate.render(lambdaData);
 
     std::string inputTupleSetName = inputTupleSetNames[0];
-    std::vector<std::string> originalInputColumnsToApply;
-
     std::string tupleSetMidTag = "OutFor";
     if (multiInputsComp != nullptr) {
 
@@ -214,9 +212,7 @@ public:
 
       inputColumnsToApply.clear();
       for (int i = 0; i < this->getNumInputs(); i++) {
-        int index = this->getInputIndex(i);
-        inputColumnsToApply.push_back(multiInputsComp->getNameForIthInput(index));
-        originalInputColumnsToApply.push_back(multiInputsComp->getNameForIthInput(myIndex));
+        inputColumnsToApply.push_back(multiInputsComp->getNameForIthInput(this->getInputIndex(i)));
       }
 
       multiInputsComp->setLambdasForIthInputAndPredicate(myIndex, parentLambdaName, myLambdaName);
@@ -233,6 +229,14 @@ public:
     mustache::mustache outputColumnNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}_{{computationLabel}}_{{tupleSetMidTag}}"};
     outputColumnName = outputColumnNameTemplate.render(lambdaData);
 
+    // remove the the applied columns if needed
+    if(!keepAppliedColumns) {
+      inputColumnNames.erase(std::remove_if(inputColumnNames.begin(), inputColumnNames.end(), [&](const auto &i) {
+        return find(inputColumnsToApply.begin(), inputColumnsToApply.end(), i) !=  inputColumnsToApply.end();
+      }), inputColumnNames.end());
+    }
+
+    // figure out the output columns
     outputColumns.clear();
     for (const auto &inputColumnName : inputColumnNames) {
       outputColumns.push_back(inputColumnName);
@@ -485,12 +489,18 @@ public:
 
   virtual std::map<std::string, std::string> getInfo() = 0;
 
- private:
+protected:
 
   /**
    * input index in a multi-input computation
    */
   std::vector<unsigned int> inputIndexes;
+
+
+  /**
+   * Whether we want to keep the applied column in the output
+   */
+   bool keepAppliedColumns = true;
 
 };
 }

@@ -14,7 +14,7 @@ namespace pdb {
 template<typename Out>
 class TypedLambdaObject : public LambdaObject {
 
- public:
+public:
 
   ~TypedLambdaObject() override = default;
 

@@ -28,8 +28,9 @@
 #include "TupleSpec.h"
 #include "ComputeExecutor.h"
 #include "LambdaTree.h"
-#include <DereferenceLambda.h>
 #include <LambdaObject.h>
+#include <DereferenceLambda.h>
+
 
 namespace pdb {
 
