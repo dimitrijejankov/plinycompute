@@ -271,16 +271,16 @@ public:
 
       tcapString +=
           "\n/* Apply selection predicate on " + inputColumnsToApply[0] + " and " + inputColumnsToApply[1] + "*/\n";
-      tcapString += this->getTCAPString(inputTupleSetName,
-                                        inputColumnNames,
-                                        inputColumnsToApply,
-                                        outputTupleSetName,
-                                        outputColumns,
-                                        outputColumnName,
-                                        "APPLY",
-                                        computationNameWithLabel,
-                                        myLambdaName,
-                                        getInfo());
+      tcapString += formatAtomicComputation(inputTupleSetName,
+                                            inputColumnNames,
+                                            inputColumnsToApply,
+                                            outputTupleSetName,
+                                            outputColumns,
+                                            outputColumnName,
+                                            "APPLY",
+                                            computationNameWithLabel,
+                                            myLambdaName,
+                                            getInfo());
 
     } else {
 
@@ -370,16 +370,16 @@ public:
       // the additional info about this attribute access lambda
       std::map<std::string, std::string> info;
 
-      tcapString += this->getTCAPString(inputTupleSetName,
-                                        inputColumnNames,
-                                        inputColumnsToApply,
-                                        outputTupleSetName,
-                                        outputColumns,
-                                        outputColumnName,
-                                        "APPLY",
-                                        computationNameWithLabel,
-                                        childrenLambdaNames[0],
-                                        getChild(0)->getInfo());
+      tcapString += formatAtomicComputation(inputTupleSetName,
+                                            inputColumnNames,
+                                            inputColumnsToApply,
+                                            outputTupleSetName,
+                                            outputColumns,
+                                            outputColumnName,
+                                            "APPLY",
+                                            computationNameWithLabel,
+                                            childrenLambdaNames[0],
+                                            getChild(0)->getInfo());
 
       inputTupleSetName = outputTupleSetName;
       inputColumnNames.push_back(outputColumnName);
@@ -390,16 +390,16 @@ public:
       outputColumns.push_back(outputColumnName);
 
       // add the tcap string
-      tcapString += this->getTCAPString(inputTupleSetName,
-                                        inputColumnNames,
-                                        inputColumnsToApply,
-                                        outputTupleSetName,
-                                        outputColumns,
-                                        outputColumnName,
-                                        "APPLY",
-                                        computationNameWithLabel,
-                                        childrenLambdaNames[1],
-                                        getChild(1)->getInfo());
+      tcapString += formatAtomicComputation(inputTupleSetName,
+                                            inputColumnNames,
+                                            inputColumnsToApply,
+                                            outputTupleSetName,
+                                            outputColumns,
+                                            outputColumnName,
+                                            "APPLY",
+                                            computationNameWithLabel,
+                                            childrenLambdaNames[1],
+                                            getChild(1)->getInfo());
 
       inputTupleSetName = outputTupleSetName;
       inputColumnsToApply.clear();
@@ -415,16 +415,16 @@ public:
       outputColumns.push_back(outputColumnName);
       outputTupleSetName = tupleSetNamePrefix + "_BOOL";
 
-      tcapString += this->getTCAPString(inputTupleSetName,
-                                        inputColumnNames,
-                                        inputColumnsToApply,
-                                        outputTupleSetName,
-                                        outputColumns,
-                                        outputColumnName,
-                                        "APPLY",
-                                        computationNameWithLabel,
-                                        myLambdaName,
-                                        getInfo());
+      tcapString += formatAtomicComputation(inputTupleSetName,
+                                            inputColumnNames,
+                                            inputColumnsToApply,
+                                            outputTupleSetName,
+                                            outputColumns,
+                                            outputColumnName,
+                                            "APPLY",
+                                            computationNameWithLabel,
+                                            myLambdaName,
+                                            getInfo());
 
       inputTupleSetName = outputTupleSetName;
       outputColumnName = "";

@@ -199,16 +199,16 @@ public:
        // the additional info about this attribute access lambda
       std::map<std::string, std::string> info;
 
-       tcapString += this->getTCAPString(inputTupleSetName,
-                                        inputColumnNames,
-                                        inputColumnsToApply,
-                                        outputTupleSetName,
-                                        outputColumns,
-                                        outputColumnName,
-                                        "APPLY",
-                                        computationNameWithLabel,
-                                        lambdaName,
-                                        getInfo());
+       tcapString += formatAtomicComputation(inputTupleSetName,
+                                             inputColumnNames,
+                                             inputColumnsToApply,
+                                             outputTupleSetName,
+                                             outputColumns,
+                                             outputColumnName,
+                                             "APPLY",
+                                             computationNameWithLabel,
+                                             lambdaName,
+                                             getInfo());
 
        if (multiInputsComp != nullptr) {
           if (amILeftChildOfEqualLambda || amIRightChildOfEqualLambda) {
@@ -231,16 +231,16 @@ public:
                std::copy(inputColumnNames.begin(), inputColumnNames.end(), std::back_inserter(outputColumns));
               outputColumns.push_back(outputColumnName);
 
-               tcapString += this->getTCAPString(inputTupleSetName,
-                                                inputColumnNames,
-                                                inputColumnsToApply,
-                                                outputTupleSetName,
-                                                outputColumns,
-                                                outputColumnName,
-                                                hashOperator,
-                                                computationNameWithLabel,
-                                                parentLambdaName,
-                                                std::map<std::string, std::string>());
+               tcapString += formatAtomicComputation(inputTupleSetName,
+                                                     inputColumnNames,
+                                                     inputColumnsToApply,
+                                                     outputTupleSetName,
+                                                     outputColumns,
+                                                     outputColumnName,
+                                                     hashOperator,
+                                                     computationNameWithLabel,
+                                                     parentLambdaName,
+                                                     std::map<std::string, std::string>());
           }
 
            if (!isSelfJoin) {

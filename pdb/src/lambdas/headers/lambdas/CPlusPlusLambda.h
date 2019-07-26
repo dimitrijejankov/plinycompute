@@ -296,16 +296,16 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
             curOutputColumnNames.push_back(j);
           }
           curOutputColumnNames.push_back(curLeftHashColumnName);
-          tcapString += this->getTCAPString(curLeftInputTupleSetName,
-                                            curLeftColumnsToKeep,
-                                            curInputColumnsToApply,
-                                            curLeftTupleSetName,
-                                            curOutputColumnNames,
-                                            curLeftHashColumnName,
-                                            "HASHONE",
-                                            myComputationName,
-                                            "",
-                                            std::map<std::string, std::string>());
+          tcapString += formatAtomicComputation(curLeftInputTupleSetName,
+                                                curLeftColumnsToKeep,
+                                                curInputColumnsToApply,
+                                                curLeftTupleSetName,
+                                                curOutputColumnNames,
+                                                curLeftHashColumnName,
+                                                "HASHONE",
+                                                myComputationName,
+                                                "",
+                                                std::map<std::string, std::string>());
         }
 
         // HashOne for the (i+1)-th table
@@ -331,16 +331,16 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
           curOutputColumnNames.push_back(curInputColumnName);
         }
         curOutputColumnNames.push_back(curOutputColumnName);
-        tcapString += this->getTCAPString(curInputTupleSetName,
-                                          curInputColumnNames,
-                                          curInputColumnsToApply,
-                                          curOutputTupleSetName,
-                                          curOutputColumnNames,
-                                          curOutputColumnName,
-                                          "HASHONE",
-                                          myComputationName,
-                                          "",
-                                          std::map<std::string, std::string>());
+        tcapString += formatAtomicComputation(curInputTupleSetName,
+                                              curInputColumnNames,
+                                              curInputColumnsToApply,
+                                              curOutputTupleSetName,
+                                              curOutputColumnNames,
+                                              curOutputColumnName,
+                                              "HASHONE",
+                                              myComputationName,
+                                              "",
+                                              std::map<std::string, std::string>());
 
 
         // Join the two tables
@@ -421,16 +421,16 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
     }
     curOutputColumnNames.push_back(curOutputColumnName);
 
-    tcapString += this->getTCAPString(curLeftTupleSetName,
-                                      curLeftColumnsToKeep,
-                                      curInputColumnsToApply,
-                                      curOutputTupleSetName,
-                                      curOutputColumnNames,
-                                      curOutputColumnName,
-                                      "APPLY",
-                                      myComputationName,
-                                      myLambdaName,
-                                      getInfo());
+    tcapString += formatAtomicComputation(curLeftTupleSetName,
+                                          curLeftColumnsToKeep,
+                                          curInputColumnsToApply,
+                                          curOutputTupleSetName,
+                                          curOutputColumnNames,
+                                          curOutputColumnName,
+                                          "APPLY",
+                                          myComputationName,
+                                          myLambdaName,
+                                          getInfo());
 
     // Step 4. do a filter to remove false rows
     outputColumns.clear();

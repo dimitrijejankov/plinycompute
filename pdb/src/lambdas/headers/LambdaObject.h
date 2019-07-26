@@ -19,6 +19,7 @@
 #include "MultiInputsBase.h"
 #include "TupleSetMachine.h"
 #include "LambdaTree.h"
+#include "LambdaFormatFunctions.h"
 
 namespace pdb {
 
@@ -28,7 +29,7 @@ typedef std::shared_ptr<LambdaObject> LambdaObjectPtr;
 // this is the base class from which all pdb :: Lambdas derive
 class LambdaObject {
 
- public:
+public:
 
   virtual ~LambdaObject() = default;
 
@@ -134,72 +135,6 @@ class LambdaObject {
   // returns a string containing the type that is returned when this lambda is executed
   virtual std::string getOutputType() = 0;
 
-  /**
-   * takes inputTupleSetName, inputColumnNames, inputColumnsToApply, outputTupleSetName,
-   * outputColumnName, outputColumns, TCAP operation name as inputs, and outputs a TCAP string
-   * with one TCAP operation.
-   *
-   * @param inputTupleSetName - // TODO add proper descriptions of the parameter
-   * @param inputColumnNames - // TODO add proper descriptions of the parameter
-   * @param inputColumnsToApply - // TODO add proper descriptions of the parameter
-   * @param outputTupleSetName - // TODO add proper descriptions of the parameters
-   * @param outputColumns - // TODO add proper descriptions of the parameters
-   * @param outputColumnName - // TODO add proper descriptions of the parameters
-   * @param tcapOperation - // TODO add proper descriptions of the parameters
-   * @param computationNameAndLabel - // TODO add proper descriptions of the parameters
-   * @param lambdaNameAndLabel - // TODO add proper descriptions of the parameters
-   * @return the generated tcap string - // TODO add proper descriptions of the parameters
-   */
-  std::string getTCAPString(const std::string &inputTupleSetName,
-                            const std::vector<std::string> &inputColumnNames,
-                            const std::vector<std::string> &inputColumnsToApply,
-                            const std::string &outputTupleSetName,
-                            const std::vector<std::string> &outputColumns,
-                            const std::string &outputColumnName,
-                            const std::string &tcapOperation,
-                            const std::string &computationNameAndLabel,
-                            const std::string &lambdaNameAndLabel,
-                            const std::map<std::string, std::string> &info) {
-
-    mustache::mustache outputTupleSetNameTemplate
-        {"{{outputTupleSetName}}({{#outputColumns}}{{value}}{{^isLast}},{{/isLast}}{{/outputColumns}}) <= "
-         "{{tcapOperation}} ({{inputTupleSetName}}({{#inputColumnsToApply}}{{value}}{{^isLast}},{{/isLast}}{{/inputColumnsToApply}}), "
-         "{{inputTupleSetName}}({{#hasColumnNames}}{{#inputColumnNames}}{{value}}{{^isLast}},{{/isLast}}{{/inputColumnNames}}{{/hasColumnNames}}), "
-         "'{{computationNameAndLabel}}', "
-         "{{#hasLambdaNameAndLabel}}'{{lambdaNameAndLabel}}', {{/hasLambdaNameAndLabel}}"
-         "[{{#info}}('{{key}}', '{{value}}'){{^isLast}}, {{/isLast}}{{/info}}])\n"};
-
-    // create the data for the output columns
-    mustache::data outputColumnData = mustache::from_vector<std::string>(outputColumns);
-
-    // create the data for the input columns to apply
-    mustache::data inputColumnsToApplyData = mustache::from_vector<std::string>(inputColumnsToApply);
-
-    // create the data for the input columns to apply
-    mustache::data inputColumnNamesData = mustache::from_vector<std::string>(inputColumnNames);
-
-    // create the info data
-    mustache::data infoData = mustache::from_map(info);
-
-    // create the data for the lambda
-    mustache::data lambdaData;
-
-    lambdaData.set("outputTupleSetName", outputTupleSetName);
-    lambdaData.set("outputColumns", outputColumnData);
-    lambdaData.set("tcapOperation", tcapOperation);
-    lambdaData.set("inputTupleSetName", inputTupleSetName);
-    lambdaData.set("inputColumnsToApply", inputColumnsToApplyData);
-    lambdaData.set("hasColumnNames", !inputColumnNames.empty());
-    lambdaData.set("inputColumnNames", inputColumnNamesData);
-    lambdaData.set("inputTupleSetName", inputTupleSetName);
-    lambdaData.set("computationNameAndLabel", computationNameAndLabel);
-    lambdaData.set("hasLambdaNameAndLabel", !lambdaNameAndLabel.empty());
-    lambdaData.set("lambdaNameAndLabel", lambdaNameAndLabel);
-    lambdaData.set("info", infoData);
-
-    return outputTupleSetNameTemplate.render(lambdaData);
-  }
-
   virtual std::string toTCAPStringForCartesianJoin(int lambdaLabel,
                                                    std::string computationName,
                                                    int computationLabel,
@@ -265,8 +200,10 @@ class LambdaObject {
     std::vector<std::string> originalInputColumnsToApply;
 
     std::string tupleSetMidTag = "OutFor";
-    int myIndex = this->getInputIndex(0);
     if (multiInputsComp != nullptr) {
+
+      // get the input index
+      int myIndex = this->getInputIndex(0);
 
       if (amILeftChildOfEqualLambda || amIRightChildOfEqualLambda) {
         tupleSetMidTag = "Extracted";
@@ -304,16 +241,16 @@ class LambdaObject {
 
     // generate the TCAP string for the lambda
     std::string tcapString;
-    tcapString += getTCAPString(inputTupleSetName,
-                                inputColumnNames,
-                                inputColumnsToApply,
-                                outputTupleSetName,
-                                outputColumns,
-                                outputColumnName,
-                                "APPLY",
-                                computationNameWithLabel,
-                                myLambdaName,
-                                getInfo());
+    tcapString += formatAtomicComputation(inputTupleSetName,
+                                          inputColumnNames,
+                                          inputColumnsToApply,
+                                          outputTupleSetName,
+                                          outputColumns,
+                                          outputColumnName,
+                                          "APPLY",
+                                          computationNameWithLabel,
+                                          myLambdaName,
+                                          getInfo());
 
     if (multiInputsComp == nullptr) {
       return tcapString;
@@ -340,16 +277,16 @@ class LambdaObject {
       std::copy(inputColumnNames.begin(), inputColumnNames.end(), std::back_inserter(outputColumns));
       outputColumns.push_back(outputColumnName);
 
-      tcapString += getTCAPString(inputTupleSetName,
-                                  inputColumnNames,
-                                  inputColumnsToApply,
-                                  outputTupleSetName,
-                                  outputColumns,
-                                  outputColumnName,
-                                  hashOperator,
-                                  computationNameWithLabel,
-                                  parentLambdaName,
-                                  std::map<std::string, std::string>());
+      tcapString += formatAtomicComputation(inputTupleSetName,
+                                            inputColumnNames,
+                                            inputColumnsToApply,
+                                            outputTupleSetName,
+                                            outputColumns,
+                                            outputColumnName,
+                                            hashOperator,
+                                            computationNameWithLabel,
+                                            parentLambdaName,
+                                            std::map<std::string, std::string>());
     }
 
     if (!isSelfJoin) {
@@ -372,6 +309,9 @@ class LambdaObject {
       }
 
     } else {
+
+      // get the input index
+      int myIndex = this->getInputIndex(0);
 
       // only update myIndex, I am a self-join
       multiInputsComp->setTupleSetNameForIthInput(myIndex, outputTupleSetName);

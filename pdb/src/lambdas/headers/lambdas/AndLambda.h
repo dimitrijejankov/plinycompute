@@ -220,16 +220,16 @@ class AndLambda : public TypedLambdaObject<bool> {
           leftOutputColumns.push_back(lhsColumnName);
         }
         leftOutputColumns.push_back(leftOutputColumnName);
-        tcapString += this->getTCAPString(leftTupleSetName,
-                                          lhsColumnNames,
-                                          leftColumnsToApply,
-                                          leftOutputTupleSetName,
-                                          leftOutputColumns,
-                                          leftOutputColumnName,
-                                          "HASHONE",
-                                          myComputationName,
-                                          "",
-                                          std::map<std::string, std::string>());
+        tcapString += formatAtomicComputation(leftTupleSetName,
+                                              lhsColumnNames,
+                                              leftColumnsToApply,
+                                              leftOutputTupleSetName,
+                                              leftOutputColumns,
+                                              leftOutputColumnName,
+                                              "HASHONE",
+                                              myComputationName,
+                                              "",
+                                              std::map<std::string, std::string>());
 
         // hashone for rhs
         std::string rightTupleSetName = multiInputsComp->getTupleSetNameForIthInput(rightIndex);
@@ -246,16 +246,16 @@ class AndLambda : public TypedLambdaObject<bool> {
           rightOutputColumns.push_back(rhsColumnName);
         }
         rightOutputColumns.push_back(rightOutputColumnName);
-        tcapString += this->getTCAPString(rightTupleSetName,
-                                          rhsColumnNames,
-                                          rightColumnsToApply,
-                                          rightOutputTupleSetName,
-                                          rightOutputColumns,
-                                          rightOutputColumnName,
-                                          "HASHONE",
-                                          myComputationName,
-                                          "",
-                                          std::map<std::string, std::string>());
+        tcapString += formatAtomicComputation(rightTupleSetName,
+                                              rhsColumnNames,
+                                              rightColumnsToApply,
+                                              rightOutputTupleSetName,
+                                              rightOutputColumns,
+                                              rightOutputColumnName,
+                                              "HASHONE",
+                                              myComputationName,
+                                              "",
+                                              std::map<std::string, std::string>());
 
         // cartesian join lhs and rhs
         tcapString += "\n/* CartesianJoin ( " + lhsInputNames[0];
