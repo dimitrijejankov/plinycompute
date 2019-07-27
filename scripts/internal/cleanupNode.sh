@@ -111,5 +111,6 @@ fi
 # kill all the processes
 pkill -9 pdb-worker || true
 pkill -9 pdb-manager || true
+pkill -9 pdb-node || true
 
 echo -e "All stored data in this node were deleted, and PlinyCompute processes were killed!."
