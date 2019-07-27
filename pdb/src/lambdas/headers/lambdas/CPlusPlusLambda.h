@@ -249,13 +249,11 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
     for (unsigned int i = 0; i < numInputs; i++) {
       unsigned int index = this->getInputIndex(i);
       std::string curTupleSetName = multiInputsComp->getTupleSetNameForIthInput(index);
-      auto iter =
-          std::find(inputTupleSetNames.begin(), inputTupleSetNames.end(), curTupleSetName);
+      auto iter = std::find(inputTupleSetNames.begin(), inputTupleSetNames.end(), curTupleSetName);
       if (iter == inputTupleSetNames.end()) {
         inputTupleSetNames.push_back(curTupleSetName);
         inputColumnNames.push_back(multiInputsComp->getInputColumnsForIthInput(index));
-        inputColumnsToApply.push_back(
-            multiInputsComp->getInputColumnsToApplyForIthInput(index));
+        inputColumnsToApply.push_back(multiInputsComp->getInputColumnsToApplyForIthInput(index));
       }
       inputPartitions[curTupleSetName].push_back(index);
     }
@@ -296,7 +294,7 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
             curOutputColumnNames.push_back(j);
           }
           curOutputColumnNames.push_back(curLeftHashColumnName);
-          tcapString += formatAtomicComputation(curLeftInputTupleSetName,
+          tcapString += formatLambdaComputation(curLeftInputTupleSetName,
                                                 curLeftColumnsToKeep,
                                                 curInputColumnsToApply,
                                                 curLeftTupleSetName,
@@ -331,7 +329,7 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
           curOutputColumnNames.push_back(curInputColumnName);
         }
         curOutputColumnNames.push_back(curOutputColumnName);
-        tcapString += formatAtomicComputation(curInputTupleSetName,
+        tcapString += formatLambdaComputation(curInputTupleSetName,
                                               curInputColumnNames,
                                               curInputColumnsToApply,
                                               curOutputTupleSetName,
@@ -421,7 +419,7 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
     }
     curOutputColumnNames.push_back(curOutputColumnName);
 
-    tcapString += formatAtomicComputation(curLeftTupleSetName,
+    tcapString += formatLambdaComputation(curLeftTupleSetName,
                                           curLeftColumnsToKeep,
                                           curInputColumnsToApply,
                                           curOutputTupleSetName,

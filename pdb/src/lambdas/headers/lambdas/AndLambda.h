@@ -220,7 +220,7 @@ class AndLambda : public TypedLambdaObject<bool> {
           leftOutputColumns.push_back(lhsColumnName);
         }
         leftOutputColumns.push_back(leftOutputColumnName);
-        tcapString += formatAtomicComputation(leftTupleSetName,
+        tcapString += formatLambdaComputation(leftTupleSetName,
                                               lhsColumnNames,
                                               leftColumnsToApply,
                                               leftOutputTupleSetName,
@@ -246,7 +246,7 @@ class AndLambda : public TypedLambdaObject<bool> {
           rightOutputColumns.push_back(rhsColumnName);
         }
         rightOutputColumns.push_back(rightOutputColumnName);
-        tcapString += formatAtomicComputation(rightTupleSetName,
+        tcapString += formatLambdaComputation(rightTupleSetName,
                                               rhsColumnNames,
                                               rightColumnsToApply,
                                               rightOutputTupleSetName,

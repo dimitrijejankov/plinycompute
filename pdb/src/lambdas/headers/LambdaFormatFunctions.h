@@ -2,16 +2,16 @@
 
 namespace pdb {
 
-inline std::string formatAtomicComputation(const std::string &inputTupleSetName,
-                                    const std::vector<std::string> &inputColumnNames,
-                                    const std::vector<std::string> &inputColumnsToApply,
-                                    const std::string &outputTupleSetName,
-                                    const std::vector<std::string> &outputColumns,
-                                    const std::string &outputColumnName,
-                                    const std::string &tcapOperation,
-                                    const std::string &computationNameAndLabel,
-                                    const std::string &lambdaNameAndLabel,
-                                    const std::map<std::string, std::string> &info) {
+inline std::string formatLambdaComputation(const std::string &inputTupleSetName,
+                                           const std::vector<std::string> &inputColumnNames,
+                                           const std::vector<std::string> &inputColumnsToApply,
+                                           const std::string &outputTupleSetName,
+                                           const std::vector<std::string> &outputColumns,
+                                           const std::string &outputColumnName,
+                                           const std::string &tcapOperation,
+                                           const std::string &computationNameAndLabel,
+                                           const std::string &lambdaNameAndLabel,
+                                           const std::map<std::string, std::string> &info) {
 
   mustache::mustache outputTupleSetNameTemplate
       {"{{outputTupleSetName}}({{#outputColumns}}{{value}}{{^isLast}},{{/isLast}}{{/outputColumns}}) <= "
@@ -49,6 +49,57 @@ inline std::string formatAtomicComputation(const std::string &inputTupleSetName,
   lambdaData.set("lambdaNameAndLabel", lambdaNameAndLabel);
   lambdaData.set("info", infoData);
 
+  return outputTupleSetNameTemplate.render(lambdaData);
+}
+
+inline std::string formatJoinComputation(const std::string &outputTupleSetName,
+                                         const std::vector<std::string> &outputColumns,
+                                         const std::string &lhsInputTupleSetName,
+                                         const std::vector<std::string> &lhsInputColumnsToApply,
+                                         const std::vector<std::string> &lhsInputColumnNames,
+                                         const std::string &rhsInputTupleSetName,
+                                         const std::vector<std::string> &rhsInputColumnsToApply,
+                                         const std::vector<std::string> &rhsInputColumnNames,
+                                         const std::string &computationNameAndLabel) {
+
+  mustache::mustache outputTupleSetNameTemplate
+  {"{{outputTupleSetName}}({{#outputColumns}}{{value}}{{^isLast}},{{/isLast}}{{/outputColumns}}) <= "
+   "JOIN ({{lhsInputTupleSetName}}({{#lhsInputColumnsToApply}}{{value}}{{^isLast}},{{/isLast}}{{/lhsInputColumnsToApply}}), "
+         "{{lhsInputTupleSetName}}({{#lhsInputColumnNames}}{{value}}{{^isLast}},{{/isLast}}{{/lhsInputColumnNames}}), "
+         "{{rhsInputTupleSetName}}({{#rhsInputColumnsToApply}}{{value}}{{^isLast}},{{/isLast}}{{/rhsInputColumnsToApply}}), "
+         "{{rhsInputTupleSetName}}({{#rhsInputColumnNames}}{{value}}{{^isLast}},{{/isLast}}{{/rhsInputColumnNames}}), "
+         "'{{computationNameAndLabel}}')\n"};
+
+  // create the data for the output columns
+  mustache::data outputColumnData = mustache::from_vector<std::string>(outputColumns);
+
+  // create the data for the input columns to apply
+  mustache::data lhsInputColumnsToApplyData = mustache::from_vector<std::string>(lhsInputColumnsToApply);
+
+  // create the data for the input columns to apply
+  mustache::data lhsInputColumnNamesData = mustache::from_vector<std::string>(lhsInputColumnNames);
+
+  // create the data for the input columns to apply
+  mustache::data rhsInputColumnsToApplyData = mustache::from_vector<std::string>(rhsInputColumnsToApply);
+
+  // create the data for the input columns to apply
+  mustache::data rhsInputColumnNamesData = mustache::from_vector<std::string>(rhsInputColumnNames);
+
+  // create the data for the lambda
+  mustache::data lambdaData;
+
+  // set the lambda data
+  lambdaData.set("outputTupleSetName", outputTupleSetName);
+  lambdaData.set("outputColumns", outputColumnData);
+  lambdaData.set("lhsInputTupleSetName", lhsInputTupleSetName);
+  lambdaData.set("lhsInputColumnNames", lhsInputColumnNamesData);
+  lambdaData.set("lhsInputColumnsToApply", lhsInputColumnsToApplyData);
+  lambdaData.set("rhsInputTupleSetName", rhsInputTupleSetName);
+  lambdaData.set("rhsInputColumnNames", rhsInputColumnNamesData);
+  lambdaData.set("rhsInputColumnsToApply", rhsInputColumnsToApplyData);
+  lambdaData.set("computationNameAndLabel", computationNameAndLabel);
+
+  // render it
   return outputTupleSetNameTemplate.render(lambdaData);
 }
 

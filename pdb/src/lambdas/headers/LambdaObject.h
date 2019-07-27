@@ -245,7 +245,7 @@ public:
 
     // generate the TCAP string for the lambda
     std::string tcapString;
-    tcapString += formatAtomicComputation(inputTupleSetName,
+    tcapString += formatLambdaComputation(inputTupleSetName,
                                           inputColumnNames,
                                           inputColumnsToApply,
                                           outputTupleSetName,
@@ -281,7 +281,7 @@ public:
       std::copy(inputColumnNames.begin(), inputColumnNames.end(), std::back_inserter(outputColumns));
       outputColumns.push_back(outputColumnName);
 
-      tcapString += formatAtomicComputation(inputTupleSetName,
+      tcapString += formatLambdaComputation(inputTupleSetName,
                                             inputColumnNames,
                                             inputColumnsToApply,
                                             outputTupleSetName,

@@ -115,6 +115,22 @@ public:
     }
   }
 
+  std::vector<std::string> getNotAppliedInputColumnsForIthInput(int i) {
+
+    // the return value
+    std::vector<std::string> ret;
+    for(const auto &it : inputColumnsForInputs[i]) {
+
+      // check if it is in input columns to apply
+      if(std::find(inputColumnsToApplyForInputs[i].begin(), inputColumnsToApplyForInputs[i].end(), it) == inputColumnsToApplyForInputs[i].end()) {
+        ret.emplace_back(it);
+      }
+    }
+
+    // return the input columns
+    return std::move(ret);
+  }
+
   // set latest input column to apply for the tupleset for the i-th input
   void addColumnToInputColumnsToApplyForIthInput(int i, std::string columnToApply) {
     if (inputColumnsToApplyForInputs.size() != numInputs) {

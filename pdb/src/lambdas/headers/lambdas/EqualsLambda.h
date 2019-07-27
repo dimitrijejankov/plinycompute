@@ -254,24 +254,40 @@ public:
                            bool amIRightChildOfEqualLambda = false,
                            std::string parentLambdaName = "",
                            bool isSelfJoin = false) override {
+
+    // create the data for the lambda
+    mustache::data lambdaData;
+    lambdaData.set("computationName", computationName);
+    lambdaData.set("computationLabel", std::to_string(computationLabel));
+    lambdaData.set("typeOfLambda", getTypeOfLambda());
+    lambdaData.set("lambdaLabel", std::to_string(lambdaLabel));
+
+    // create the lambda name
+    mustache::mustache lambdaNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}"};
+    myLambdaName = lambdaNameTemplate.render(lambdaData);
+
+    // create the computation name with label
+    mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
+    std::string computationNameWithLabel = computationNameWithLabelTemplate.render(lambdaData);
+
     std::string tcapString;
-    myLambdaName = getTypeOfLambda() + "_" + std::to_string(lambdaLabel);
-    std::string computationNameWithLabel = computationName + "_" + std::to_string(computationLabel);
-    std::string inputTupleSetName;
     if (multiInputsComp == nullptr) {
-      inputTupleSetName = inputTupleSetNames[0];
-      outputTupleSetName =
-          "equals_" + std::to_string(lambdaLabel) + "OutFor" + computationName + std::to_string(computationLabel);
-      outputColumnName = "bool_" + std::to_string(lambdaLabel) + "_" + std::to_string(computationLabel);
-      outputColumns.clear();
-      for (const auto &inputColumnName : inputColumnNames) {
-        outputColumns.push_back(inputColumnName);
-      }
+
+      std::string inputTupleSetName = inputTupleSetNames[0];
+
+      // create the output tuple set name
+      mustache::mustache outputTupleSetNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}{{tupleSetMidTag}}{{computationName}}{{computationLabel}}"};
+      outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
+
+      // create the output column name
+      mustache::mustache outputColumnNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}_{{computationLabel}}_{{tupleSetMidTag}}"};
+      outputColumnName = outputColumnNameTemplate.render(lambdaData);
+
+      // forward the input columns to the output and add the new output column to it
+      outputColumns = inputColumnNames;
       outputColumns.push_back(outputColumnName);
 
-      tcapString +=
-          "\n/* Apply selection predicate on " + inputColumnsToApply[0] + " and " + inputColumnsToApply[1] + "*/\n";
-      tcapString += formatAtomicComputation(inputTupleSetName,
+      tcapString += formatLambdaComputation(inputTupleSetName,
                                             inputColumnNames,
                                             inputColumnsToApply,
                                             outputTupleSetName,
@@ -284,79 +300,34 @@ public:
 
     } else {
 
-      if (inputColumnNames[inputColumnNames.size() - 2] == inputColumnsToApply[0]) {
-        if (inputColumnNames.size() == 4) {
-          inputColumnNames[2] = inputColumnNames[1];
-          inputColumnNames[1] = inputColumnsToApply[0];
-        } else if (inputColumnNames.size() == 3) {
-          inputColumnNames.push_back(inputColumnNames[2]);
-          inputColumnNames[2] = inputColumnNames[0];
-        } else {
-          std::cout << "Error: right now we can't support such complex join selection "
-                       "conditions"
-                    << std::endl;
-          exit(1);
-        }
-      }
-      tcapString += "\n/* Join ( " + inputColumnNames[0];
-      for (unsigned int i = 1; i < inputColumnNames.size() - 1; i++) {
-        if (inputColumnNames[i] == inputColumnsToApply[0]) {
-          tcapString += " ) and (";
-        } else {
-          tcapString += " " + inputColumnNames[i];
-        }
-      }
-
-      tcapString += " ) */\n";
-      outputTupleSetName = "JoinedFor_equals" + std::to_string(lambdaLabel) +
-          computationName + std::to_string(computationLabel);
+      outputTupleSetName = "JoinedFor_equals" + std::to_string(lambdaLabel) + computationName + std::to_string(computationLabel);
       std::string tupleSetNamePrefix = outputTupleSetName;
       outputColumns.clear();
 
       // TODO: push down projection here
       for (const auto &inputColumnName : inputColumnNames) {
-        auto iter = std::find(
-            inputColumnsToApply.begin(), inputColumnsToApply.end(), inputColumnName);
+        auto iter = std::find(inputColumnsToApply.begin(), inputColumnsToApply.end(), inputColumnName);
         if (iter == inputColumnsToApply.end()) {
           outputColumns.push_back(inputColumnName);
         }
       }
-      outputColumnName = "";
 
-      tcapString += outputTupleSetName + "(" + outputColumns[0];
-      for (int i = 1; i < outputColumns.size(); i++) {
-        tcapString += ", " + outputColumns[i];
-      }
-      tcapString += ") <= JOIN (" + inputTupleSetNames[0] + "(" + inputColumnsToApply[0] + "), ";
-      tcapString += inputTupleSetNames[0] + "(" + inputColumnNames[0];
-      int end1 = -1;
-      for (int i = 1; i < inputColumnNames.size(); i++) {
-        auto iter = std::find(
-            inputColumnsToApply.begin(), inputColumnsToApply.end(), inputColumnNames[i]);
-        if (iter != inputColumnsToApply.end()) {
-          end1 = i;
-          break;
-        }
-        tcapString += ", " + inputColumnNames[i];
-      }
-      if (end1 + 1 >= inputColumnNames.size()) {
-        std::cout << "Can't generate TCAP for this query graph" << std::endl;
-        exit(1);
-      }
-      tcapString += "), " + inputTupleSetNames[1] + "(" + inputColumnsToApply[1] + "), " +
-          inputTupleSetNames[1] + "(" + inputColumnNames[end1 + 1];
-      for (int i = end1 + 2; i < inputColumnNames.size(); i++) {
-        auto iter = std::find(
-            inputColumnsToApply.begin(), inputColumnsToApply.end(), inputColumnNames[i]);
-        if (iter != inputColumnsToApply.end()) {
-          break;
-        }
-        tcapString += ", " + inputColumnNames[i];
-      }
+      // grab the lhs and rhs input indices
+      auto lhsInput = getInputIndex(0);
+      auto rhsInput = getInputIndex(1);
 
-      tcapString += "), '" + computationNameWithLabel + "')\n";
+      // generate the join computation
+      tcapString += formatJoinComputation(outputTupleSetName,
+                                          outputColumns,
+                                          multiInputsComp->getTupleSetNameForIthInput(lhsInput),
+                                          multiInputsComp->getInputColumnsToApplyForIthInput(lhsInput),
+                                          multiInputsComp->getNotAppliedInputColumnsForIthInput(lhsInput),
+                                          multiInputsComp->getTupleSetNameForIthInput(rhsInput),
+                                          multiInputsComp->getInputColumnsToApplyForIthInput(rhsInput),
+                                          multiInputsComp->getNotAppliedInputColumnsForIthInput(rhsInput),
+                                          computationNameWithLabel);
 
-      inputTupleSetName = outputTupleSetName;
+      std::string inputTupleSetName = outputTupleSetName;
       inputColumnNames.clear();
       for (const auto &outputColumn : outputColumns) {
         inputColumnNames.push_back(outputColumn);
@@ -370,7 +341,7 @@ public:
       // the additional info about this attribute access lambda
       std::map<std::string, std::string> info;
 
-      tcapString += formatAtomicComputation(inputTupleSetName,
+      tcapString += formatLambdaComputation(inputTupleSetName,
                                             inputColumnNames,
                                             inputColumnsToApply,
                                             outputTupleSetName,
@@ -390,7 +361,7 @@ public:
       outputColumns.push_back(outputColumnName);
 
       // add the tcap string
-      tcapString += formatAtomicComputation(inputTupleSetName,
+      tcapString += formatLambdaComputation(inputTupleSetName,
                                             inputColumnNames,
                                             inputColumnsToApply,
                                             outputTupleSetName,
@@ -415,7 +386,7 @@ public:
       outputColumns.push_back(outputColumnName);
       outputTupleSetName = tupleSetNamePrefix + "_BOOL";
 
-      tcapString += formatAtomicComputation(inputTupleSetName,
+      tcapString += formatLambdaComputation(inputTupleSetName,
                                             inputColumnNames,
                                             inputColumnsToApply,
                                             outputTupleSetName,
@@ -454,6 +425,7 @@ public:
         }
       }
     }
+
     return tcapString;
   }
   unsigned int getNumInputs() override {
