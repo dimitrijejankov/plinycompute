@@ -84,6 +84,9 @@ struct MaintenanceFuncs {
   // this replicates instances of a column to run a join
   std::function<void *(void *, std::vector<uint32_t> &)> replicate;
 
+  // JiaNote: this gets count for a particular column
+  std::function<size_t(void*)> getCount;
+
   // this is a function that creates and returns a pdb :: Vector for a column
   std::function<Handle<Vector<Handle<Object>>>()> createPDBVector;
 
@@ -115,6 +118,7 @@ struct MaintenanceFuncs {
   MaintenanceFuncs(std::function<void(void *)> deleter,
                    std::function<void *(void *, std::vector<bool> &)> filter,
                    std::function<void *(void *, std::vector<uint32_t> &)> replicate,
+                   std::function<size_t(void*)> getCount,
                    std::function<Handle<Vector<Handle<Object>>>()> createPDBVector,
                    std::function<void(Handle<Vector<Handle<Object>>> &, void *, size_t &)> writeToVector,
                    std::function<void(void *, std::vector<void *> &, size_t)> serialize,
@@ -125,6 +129,7 @@ struct MaintenanceFuncs {
       deleter(deleter),
       filter(filter),
       replicate(replicate),
+      getCount(getCount),
       createPDBVector(createPDBVector),
       writeToVector(writeToVector),
       deSerialize(deSerialize),
@@ -302,6 +307,13 @@ class TupleSet {
     columns[whichColToCopyTo] = std::make_pair(newCol, temp);
   }
 
+  int getNumRows(int whichColumn) {
+    if (hasColumn(whichColumn) == false) {
+      return -1;
+    }
+    return columns[whichColumn].second.getCount(columns[whichColumn].first);
+  }
+
   // copies a column from another TupleSet, deleting the target, if necessary
   void copyColumn(TupleSetPtr fromMe, int whichColInFromMe, int whichColToCopyTo) {
 
@@ -394,6 +406,12 @@ class TupleSet {
       return (void *) newVec;
     };
 
+    // add getCount to get number of rows for a particular column at runtime
+    std::function<size_t(void*)> getCount;
+    getCount = [](void* countMe) {
+      std::vector<ColType>* toCountRowsOfMe = (std::vector<ColType>*)countMe;
+      return toCountRowsOfMe->size();
+    };
 
     // the third lambda is responsible for writing this column to an output vector
     std::function<void(Handle<Vector<Handle<Object>>> &, void *, size_t &)> writeToVector;
@@ -487,6 +505,7 @@ class TupleSet {
     MaintenanceFuncs myFuncs(deleter,
                              filter,
                              replicate,
+                             getCount,
                              createPDBVector,
                              writeToVector,
                              serialize,

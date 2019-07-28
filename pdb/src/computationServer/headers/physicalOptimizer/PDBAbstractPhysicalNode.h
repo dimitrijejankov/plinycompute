@@ -211,9 +211,8 @@ public:
     auto &leftSide = second->second < first->second ? secondProducer : firstProducer;
     auto &rightSide = second->second >= first->second ? secondProducer : firstProducer;
 
-    // should we swap the lhs and rhs side
-    bool shouldSwap = leftSide.pipeline.back()->getAtomicComputationTypeID() != HashLeftTypeID;
-
+    // should we swap the lhs and rhs side, if it is not a hash one or a hash left
+    bool shouldSwap = leftSide.pipeline.back()->getAtomicComputationTypeID() == HashRightTypeID;
     // create the source
     pdb::Handle<PDBSourcePageSetSpec> leftSource = pdb::makeObject<PDBSourcePageSetSpec>();
     leftSource->sourceType = getSourceTypeForSinkType(leftSide.getSinkPageSet()->sinkType);

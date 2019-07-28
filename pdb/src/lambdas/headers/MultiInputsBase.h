@@ -132,7 +132,7 @@ public:
   }
 
   // set latest input column to apply for the tupleset for the i-th input
-  void addColumnToInputColumnsToApplyForIthInput(int i, std::string columnToApply) {
+  void setColumnToApplyForIthInput(int i, std::string columnToApply) {
     if (inputColumnsToApplyForInputs.size() != numInputs) {
       inputColumnsToApplyForInputs.resize(numInputs);
     }

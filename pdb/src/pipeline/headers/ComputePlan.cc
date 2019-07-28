@@ -22,6 +22,7 @@
 #include "ComputePlan.h"
 #include "executors/FilterExecutor.h"
 #include "executors/FlattenExecutor.h"
+#include "executors/HashOneExecutor.h"
 #include "AtomicComputationClasses.h"
 #include "lambdas/EqualsLambda.h"
 #include "JoinCompBase.h"
@@ -440,6 +441,11 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
           getLambda(((HashLeft *) a.get())->getLambdaToApply())->getRightHasher(lastOne->getOutput(), a->getInput(), a->getProjection()));
 
 
+    } else if (a->getAtomicComputationType() == "HashOne") {
+
+      std::cout << "Adding: " << a->getProjection() << " + hashone [" << a->getInput() << "] => " << a->getOutput() << "\n";
+      returnVal->addStage(std::make_shared<HashOneExecutor>(lastOne->getOutput(), a->getInput(), a->getProjection()));
+
     } else if (a->getAtomicComputationType() == "Flatten") {
 
       std::cout << "Adding: " << a->getProjection() << " + flatten [" << a->getInput() << "] => " << a->getOutput() << "\n";
@@ -489,7 +495,7 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
       std::cout << "We are skipping a write set this is essentially a NOOP\n";
     }
     else {
-      std::cout << "This is bad... found an unexpected computation type (" << a->getComputationName()
+      std::cout << "This is bad... found an unexpected computation type (" << a->getAtomicComputationType()
                 << ") inside of a pipeline.\n";
     }
     lastOne = a;

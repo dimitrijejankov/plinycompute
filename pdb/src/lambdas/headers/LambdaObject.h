@@ -301,7 +301,7 @@ public:
           PDB_COUT << "MultiInputsBase with index=" << index << " is updated." << std::endl;
           multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
           multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
-          multiInputsComp->addColumnToInputColumnsToApplyForIthInput(index, outputColumnName);
+          multiInputsComp->setColumnToApplyForIthInput(index, outputColumnName);
         }
       }
 
@@ -313,7 +313,7 @@ public:
       // only update myIndex, I am a self-join
       multiInputsComp->setTupleSetNameForIthInput(myIndex, outputTupleSetName);
       multiInputsComp->setInputColumnsForIthInput(myIndex, outputColumns);
-      multiInputsComp->addColumnToInputColumnsToApplyForIthInput(myIndex, outputColumnName);
+      multiInputsComp->setColumnToApplyForIthInput(myIndex, outputColumnName);
     }
 
     return tcapString;

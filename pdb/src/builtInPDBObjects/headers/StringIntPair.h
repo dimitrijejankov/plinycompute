@@ -34,6 +34,10 @@ class StringIntPair : public Object {
   Handle<String> myString;
   int myInt;
 
+  bool getBoolean() {
+    return true;
+  }
+
   ENABLE_DEEP_COPY
 
   ~StringIntPair() {}
