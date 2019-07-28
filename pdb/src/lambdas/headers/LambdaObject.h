@@ -260,39 +260,6 @@ public:
       return tcapString;
     }
 
-    if (amILeftChildOfEqualLambda || amIRightChildOfEqualLambda) {
-      inputTupleSetName = outputTupleSetName;
-      inputColumnNames.clear();
-      for (const auto &outputColumn : outputColumns) {
-        // we want to remove the extracted value column from here
-        if (outputColumn != outputColumnName) {
-          inputColumnNames.push_back(outputColumn);
-        }
-      }
-
-      inputColumnsToApply.clear();
-      inputColumnsToApply.push_back(outputColumnName);
-
-      std::string hashOperator = amILeftChildOfEqualLambda ? "HASHLEFT" : "HASHRIGHT";
-      outputTupleSetName = outputTupleSetName + "_hashed";
-      outputColumnName = outputColumnName + "_hash";
-      outputColumns.clear();
-
-      std::copy(inputColumnNames.begin(), inputColumnNames.end(), std::back_inserter(outputColumns));
-      outputColumns.push_back(outputColumnName);
-
-      tcapString += formatLambdaComputation(inputTupleSetName,
-                                            inputColumnNames,
-                                            inputColumnsToApply,
-                                            outputTupleSetName,
-                                            outputColumns,
-                                            outputColumnName,
-                                            hashOperator,
-                                            computationNameWithLabel,
-                                            parentLambdaName,
-                                            std::map<std::string, std::string>());
-    }
-
     if (!isSelfJoin) {
       for (unsigned int index = 0; index < multiInputsComp->getNumInputs(); index++) {
         std::string curInput = multiInputsComp->getNameForIthInput(index);

@@ -305,9 +305,86 @@ public:
 
     } else {
 
+      /**
+       * 1.1 Form the left hasher
+       */
+
+      // grab the lhs indices
+      auto lhsInput = getInputIndex(0);
+
+      // the name of the lhs input tuple set
+      auto lhsInputTupleSet = multiInputsComp->getTupleSetNameForIthInput(lhsInput);
+
+      // the input columns that we are going to forward
+      auto lhsInputColumns = multiInputsComp->getNotAppliedInputColumnsForIthInput(lhsInput);
+
+      // the input to the hash can only be one column
+      auto lhsInputColumnsToApply = multiInputsComp->getInputColumnsToApplyForIthInput(lhsInput);
+      assert(lhsInputColumnsToApply.size() == 1);
+
+      // form the output tuple set name
+      std::string lhsOutputTupleSetName = lhsInputTupleSet + "_hashed";
+
+      // the hash column
+      auto lhsOutputColumnName = lhsInputColumnsToApply[0] + "_hash";
+
+      // add the hashed column
+      auto lhsOutputColumns = lhsInputColumns;
+      lhsOutputColumns.emplace_back(lhsOutputColumnName);
+
+      // add the tcap string
+      tcapString += formatLambdaComputation(lhsInputTupleSet,
+                                            lhsInputColumns,
+                                            lhsInputColumnsToApply,
+                                            lhsOutputTupleSetName,
+                                            lhsOutputColumns,
+                                            lhsOutputColumnName,
+                                            "HASHLEFT",
+                                            computationNameWithLabel,
+                                            myLambdaName,
+                                            {});
 
       /**
-       * 1. First we form a join computation that joins based on the hash columns
+       * 1.2 Form the left hasher
+       */
+
+      auto rhsInput = getInputIndex(1);
+
+      // the name of the lhs input tuple set
+      auto rhsInputTupleSet = multiInputsComp->getTupleSetNameForIthInput(rhsInput);
+
+      // the input columns that we are going to forward
+      auto rhsInputColumns = multiInputsComp->getNotAppliedInputColumnsForIthInput(rhsInput);
+
+      // the input to the hash can only be one column
+      auto rhsInputColumnsToApply = multiInputsComp->getInputColumnsToApplyForIthInput(rhsInput);
+      assert(rhsInputColumnsToApply.size() == 1);
+
+      // form the output tuple set name
+      std::string rhsOutputTupleSetName = rhsInputTupleSet + "_hashed";
+
+      // the hash column
+      auto rhsOutputColumnName = rhsInputColumnsToApply[0] + "_hash";
+
+      // add the hashed column
+      auto rhsOutputColumns = rhsInputColumns;
+      rhsOutputColumns.emplace_back(rhsOutputColumnName);
+
+      // add the tcap string
+      tcapString += formatLambdaComputation(rhsInputTupleSet,
+                                            rhsInputColumns,
+                                            rhsInputColumnsToApply,
+                                            rhsOutputTupleSetName,
+                                            rhsOutputColumns,
+                                            rhsOutputColumnName,
+                                            "HASHRIGHT",
+                                            computationNameWithLabel,
+                                            myLambdaName,
+                                            {});
+
+
+      /**
+       * 2. First we form a join computation that joins based on the hash columns
        */
 
       outputTupleSetName = "JoinedFor_equals" + std::to_string(lambdaLabel) + computationName + std::to_string(computationLabel);
@@ -315,31 +392,23 @@ public:
       // set the prefix
       lambdaData.set("tupleSetNamePrefix", outputTupleSetName);
 
-      // grab the lhs and rhs input indices
-      auto lhsInput = getInputIndex(0);
-      auto rhsInput = getInputIndex(1);
-
-      // figure out the output columns basically all the columns that are not hash columns
-      auto lhsInputColumns = multiInputsComp->getNotAppliedInputColumnsForIthInput(lhsInput);
-      auto rhsInputColumns = multiInputsComp->getNotAppliedInputColumnsForIthInput(rhsInput);
-
-      // figure out the output columns
+      // figure out the output columns, so basically everything that does not have the hash from the hashed lhs and rhs
       outputColumns = lhsInputColumns;
       outputColumns.insert(outputColumns.end(), rhsInputColumns.begin(), rhsInputColumns.end());
 
       // generate the join computation
       tcapString += formatJoinComputation(outputTupleSetName,
                                           outputColumns,
-                                          multiInputsComp->getTupleSetNameForIthInput(lhsInput),
-                                          multiInputsComp->getInputColumnsToApplyForIthInput(lhsInput),
+                                          lhsOutputTupleSetName,
+                                          { lhsOutputColumnName },
                                           lhsInputColumns,
-                                          multiInputsComp->getTupleSetNameForIthInput(rhsInput),
-                                          multiInputsComp->getInputColumnsToApplyForIthInput(rhsInput),
+                                          rhsOutputTupleSetName,
+                                          { rhsOutputColumnName },
                                           rhsInputColumns,
                                           computationNameWithLabel);
 
       /**
-       * 2. Next we extract the LHS column of the join from the lhs input
+       * 3.1 Next we extract the LHS column of the join from the lhs input
        */
 
       // the output of the join is the input to the lambda that extracts the LHS
@@ -373,7 +442,7 @@ public:
                                             getChild(0)->getInfo());
 
       /**
-       * 3. Next we extract the RHS column of the join from the rhs input
+       * 3.2 Next we extract the RHS column of the join from the rhs input
        */
 
       // the input to RHS extraction is the output of the extracted LHS
