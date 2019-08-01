@@ -79,6 +79,16 @@ public:
     return getRightHasher(inputSchema, attsToOperateOn, attsToIncludeInOutput);
   }
 
+  virtual unsigned int getNumInputs() = 0;
+
+  virtual unsigned int getInputIndex(int i) {
+    if (i >= this->getNumInputs()) {
+      return (unsigned int) (-1);
+    }
+    return inputIndexes[i];
+  }
+
+  // returns all the inputs in the lambda tree
   void getAllInputs(std::set<int32_t> &inputs) {
 
     // go through all the children
@@ -96,15 +106,6 @@ public:
         inputs.insert(in);
       }
     }
-  }
-
-  virtual unsigned int getNumInputs() = 0;
-
-  virtual unsigned int getInputIndex(int i) {
-    if (i >= this->getNumInputs()) {
-      return (unsigned int) (-1);
-    }
-    return inputIndexes[i];
   }
 
   /**
@@ -218,8 +219,7 @@ public:
                                    std::string &myLambdaName,
                                    MultiInputsBase *multiInputsComp,
                                    bool shouldFilter,
-                                   const std::string &parentLambdaName,
-                                   bool isSelfJoin) {
+                                   const std::string &parentLambdaName) {
 
     // create the data for the lambda so we can generate the strings
     mustache::data lambdaData;
@@ -384,15 +384,13 @@ public:
   }
 
   void getTCAPStrings(std::vector<std::string> &tcapStrings,
-                      std::vector<std::string> &childrenLambdaNames,
                       int &lambdaLabel,
                       const std::string &computationName,
                       int computationLabel,
                       std::string &myLambdaName,
                       MultiInputsBase *multiInputsComp = nullptr,
                       bool shouldFilter = false,
-                      const std::string &parentLambdaName = "",
-                      bool isSelfJoin = false) {
+                      const std::string &parentLambdaName = "") {
 
     //  and empty parent lambda name means that this is the root of a lambda tree
     isRoot = parentLambdaName.empty();
@@ -407,20 +405,11 @@ public:
       shouldFilterChild = shouldFilter;
     }
 
-    // TODO give a good reason why this is like this
+    // the names of the child lambda we need that for the equal lambda etc..
     std::vector<std::string> childrenLambdas;
-    if (this->getNumChildren() > 0) {
-
-      // move the children lambdas
-      childrenLambdas.swap(childrenLambdaNames);
-    }
 
     LambdaObjectPtr nextChild = nullptr;
     for (int i = 0; i < this->getNumChildren(); i++) {
-
-      // this is telling us stuff
-
-      bool isChildSelfJoin = false;
 
       // get the child lambda
       LambdaObjectPtr child = this->getChild(i);
@@ -430,33 +419,29 @@ public:
         nextChild = this->getChild(i + 1);
       }
 
-
       // recurse to generate the TCAP string
       child->getTCAPStrings(tcapStrings,
-                            childrenLambdas,
                             lambdaLabel,
                             computationName,
                             computationLabel,
                             myLambdaName,
                             multiInputsComp,
                             shouldFilterChild,
-                            myName,
-                            isChildSelfJoin);
+                            myName);
 
-      childrenLambdaNames.push_back(myLambdaName);
+      childrenLambdas.push_back(myLambdaName);
       nextChild = nullptr;
     }
 
     // generate the TCAP string for the current lambda
-    std::string tcapString = this->toTCAPString(childrenLambdaNames,
+    std::string tcapString = this->toTCAPString(childrenLambdas,
                                                 lambdaLabel,
                                                 computationName,
                                                 computationLabel,
                                                 myLambdaName,
                                                 multiInputsComp,
                                                 shouldFilter,
-                                                parentLambdaName,
-                                                isSelfJoin);
+                                                parentLambdaName);
 
     tcapStrings.push_back(tcapString);
     lambdaLabel++;

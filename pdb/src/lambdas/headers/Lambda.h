@@ -122,7 +122,6 @@ class Lambda {
     // generate the tcap strings for atomic computations
     std::vector<std::string> tcapStrings;
     tree->getTCAPStrings(tcapStrings,
-                         childrenLambdas,
                          lambdaLabel,
                          computationName,
                          computationLabel,

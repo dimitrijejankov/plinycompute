@@ -41,7 +41,7 @@ public:
     ENABLE_DEEP_COPY
 
     LDAInitialTopicProbSelection() {}
-    LDAInitialTopicProbSelection(Vector<double>& fromPrior) {
+    LDAInitialTopicProbSelection(Vector<double> fromPrior) {
 
         this->prior = fromPrior;
 
@@ -63,11 +63,11 @@ public:
         gsl_rng_free(src);
     }
 
-    Lambda<bool> getSelection(Handle<SumResult> &checkMe) override {
+    Lambda<bool> getSelection(Handle<SumResult> checkMe) override {
         return makeLambda(checkMe, [](Handle<SumResult>& checkMe) { return true; });
     }
 
-    Lambda<Handle<IntDoubleVectorPair>> getProjection(Handle<SumResult> &checkMe) override {
+    Lambda<Handle<IntDoubleVectorPair>> getProjection(Handle<SumResult> checkMe) override {
         return makeLambda(checkMe, [&](Handle<SumResult>& checkMe) {
 
             gsl_rng* rng = getRng();

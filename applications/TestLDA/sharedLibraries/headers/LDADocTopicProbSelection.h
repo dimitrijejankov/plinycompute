@@ -65,11 +65,11 @@ public:
         gsl_rng_free(src);
     }
 
-    Lambda<bool> getSelection(Handle<DocAssignment> &checkMe) override {
+    Lambda<bool> getSelection(Handle<DocAssignment> checkMe) override {
         return makeLambda(checkMe, [](Handle<DocAssignment>& checkMe) { return true; });
     }
 
-    Lambda<Handle<IntDoubleVectorPair>> getProjection(Handle<DocAssignment> &checkMe) override {
+    Lambda<Handle<IntDoubleVectorPair>> getProjection(Handle<DocAssignment> checkMe) override {
         return makeLambda(checkMe, [&](Handle<DocAssignment>& checkMe) {
 
             gsl_rng* rng = getRng();

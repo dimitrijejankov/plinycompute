@@ -148,8 +148,7 @@ class AndLambda : public TypedLambdaObject<bool> {
                            std::string &myLambdaName,
                            MultiInputsBase *multiInputsComp,
                            bool shouldFilter,
-                           const std::string &parentLambdaName,
-                           bool isSelfJoin) override {
+                           const std::string &parentLambdaName) override {
 
     // create the data for the lambda
     mustache::data lambdaData;
@@ -171,14 +170,14 @@ class AndLambda : public TypedLambdaObject<bool> {
     auto rhsPtr = rhs.getPtr().get();
 
     // is the lhs and rhs joined
-    bool joined = isJoined(lhsPtr->joinedInputs, rhsPtr->joinedInputs);
+    bool joined = lhsPtr->joinGroup == rhsPtr->joinGroup;
 
     /**
      * 1. If this is an expression and not a predicated, throw an exception since we don't support this currently
      */
 
     if(!lhsPtr->isFiltered || !rhsPtr->isFiltered) {
-      throw runtime_error("We only currently support && predicates, expressions are not supported. ");
+      throw std::runtime_error("We only currently support && predicates, expressions are not supported. ");
     }
 
     /**
@@ -367,7 +366,8 @@ class AndLambda : public TypedLambdaObject<bool> {
     // update the join group
     joinGroup = multiInputsComp->joinGroupForInput[lhsIndex];
 
-    return tcapString;
+    // return the string
+    return std::move(tcapString);
   }
 
   /**

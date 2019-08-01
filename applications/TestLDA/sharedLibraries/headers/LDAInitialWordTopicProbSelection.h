@@ -40,13 +40,13 @@ public:
         this->numTopic = numTopicIn;
     }
 
-    Lambda<bool> getSelection(Handle<int> &checkMe) override {
+    Lambda<bool> getSelection(Handle<int> checkMe) override {
         return makeLambda(checkMe, [](Handle<int>& checkMe) { return true; });
     }
 
-    Lambda<Handle<LDATopicWordProb>> getProjection(Handle<int> &checkMe) override {
+    Lambda<Handle<LDATopicWordProb>> getProjection(Handle<int> checkMe) override {
 
-        return makeLambda(checkMe, [&](Handle<int>& checkMe) {
+        return makeLambda(checkMe, [&](Handle<int> checkMe) {
 
             int numWord = *checkMe;
             srand48(numWord);

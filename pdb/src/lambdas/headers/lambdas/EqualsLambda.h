@@ -239,8 +239,7 @@ public:
                            std::string &myLambdaName,
                            MultiInputsBase *multiInputsComp,
                            bool shouldFilter,
-                           const std::string &parentLambdaName,
-                           bool isSelfJoin) override {
+                           const std::string &parentLambdaName) override {
 
     // create the data for the lambda
     mustache::data lambdaData;
@@ -388,7 +387,7 @@ public:
         // so we don't support stuff like (a == b) == (c == d) since this would make us generate
         // a cartasian join for subexpressions (a == b) and (c == d), this can be done though it would just be
         // anoying to write the code to do that
-        throw runtime_error("We currently do not support a query that complicated!");
+        throw std::runtime_error("We currently do not support a query that complicated!");
       }
 
       // the name of the lhs input tuple set

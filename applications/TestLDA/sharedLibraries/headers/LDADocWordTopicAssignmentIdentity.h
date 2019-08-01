@@ -32,11 +32,11 @@ public:
 
     LDADocWordTopicAssignmentIdentity() {}
 
-    Lambda<bool> getSelection(Handle<LDADocWordTopicAssignment> &in) override {
+    Lambda<bool> getSelection(Handle<LDADocWordTopicAssignment> in) override {
         return makeLambda(in, [&](Handle<LDADocWordTopicAssignment>& in) { return true; });
     }
 
-    Lambda<Handle<LDADocWordTopicAssignment>> getProjection(Handle<LDADocWordTopicAssignment> &in) override {
+    Lambda<Handle<LDADocWordTopicAssignment>> getProjection(Handle<LDADocWordTopicAssignment> in) override {
         return makeLambda(in, [&](Handle<LDADocWordTopicAssignment>& in) { return in; });
     }
 };
