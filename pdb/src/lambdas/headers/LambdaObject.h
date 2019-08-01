@@ -206,12 +206,6 @@ public:
     return std::distance(inputs.begin(), it);
   }
 
-  static bool isJoined(const std::set<int32_t> &a, const std::set<int32_t> &b) {
-    return std::any_of(a.begin(), a.end(), [&](const auto inputIndex) {
-      return b.find(inputIndex) != b.end();
-    });
-  }
-
   virtual std::string toTCAPString(std::vector<std::string> &childrenLambdaNames,
                                    int lambdaLabel,
                                    const std::string &computationName,
@@ -376,10 +370,167 @@ public:
     return std::move(tcapString);
   }
 
-  void getJoinedInputs(std::vector<std::string> &tcapStrings,
+  void getJoinedInputs(const std::string &computationName,
+                       int32_t computationLabel,
+                       int32_t lambdaLabel,
+                       std::vector<std::string> &tcapStrings,
                        const std::set<int32_t> &inputs,
                        MultiInputsBase *multiInputsComp) {
 
+    // make sure we actually have inputs
+    if(inputs.empty()) {
+      return;
+    }
+
+    // grab the index of the first input
+    int32_t firstInput = *inputs.begin();
+
+    // go through all the inputs
+    int32_t idx = 0;
+    for(int in : inputs) {
+
+      // create the data for the lambda
+      mustache::data lambdaData;
+      lambdaData.set("computationName", computationName);
+      lambdaData.set("computationLabel", std::to_string(computationLabel));
+      lambdaData.set("typeOfLambda", getTypeOfLambda());
+      lambdaData.set("lambdaLabel", std::to_string(lambdaLabel));
+      lambdaData.set("idx", std::to_string(idx));
+
+      // create the computation name with label
+      mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
+      std::string computationNameWithLabel = computationNameWithLabelTemplate.render(lambdaData);
+
+      // skip if joined
+      if(multiInputsComp->joinGroupForInput[in] == multiInputsComp->joinGroupForInput[firstInput]) {
+        continue;
+      }
+
+      /**
+       * 1.1 Create a hash one for the LHS side
+       */
+
+      // get the index of the left input, any will do since all joined tuple sets are the same
+      auto lhsIndex = firstInput;
+      auto lhsColumnNames = multiInputsComp->inputColumnsForInputs[lhsIndex];
+
+      // added the lhs attribute
+      lambdaData.set("LHSApplyAttribute", lhsColumnNames[0]);
+
+      // we need a cartesian join hash-one for lhs
+      const std::string &leftTupleSetName = multiInputsComp->tupleSetNamesForInputs[lhsIndex];
+
+      // the lhs column can be any column we only need it to get the number of rows
+      std::vector<std::string> leftColumnsToApply = { lhsColumnNames[0] };
+
+      // make the output tuple set
+      mustache::mustache leftOutputTupleTemplate{"hashOneFor_{{LHSApplyAttribute}}_{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
+      std::string leftOutputTupleSetName = leftOutputTupleTemplate.render(lambdaData);
+
+      // make the column name
+      mustache::mustache leftOutputColumnNameTemplate{"OneFor_left_{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
+      std::string leftOutputColumnName = leftOutputColumnNameTemplate.render(lambdaData);
+
+      // make the columns
+      std::vector<std::string> leftOutputColumns = lhsColumnNames;
+      leftOutputColumns.push_back(leftOutputColumnName);
+
+      // make the lambda
+      std::string tcapString = formatLambdaComputation(leftTupleSetName,
+                                                       lhsColumnNames,
+                                                       leftColumnsToApply,
+                                                       leftOutputTupleSetName,
+                                                       leftOutputColumns,
+                                                       "HASHONE",
+                                                       computationNameWithLabel,
+                                                       "",
+                                                       {});
+
+      /**
+       * 1.2 Create a hash one for the RHS side
+       */
+
+      // get the index of the right input, any will do since all joined tuple sets are the same
+      auto rhsIndex = in;
+      auto rhsColumnNames = multiInputsComp->inputColumnsForInputs[rhsIndex];
+
+      lambdaData.set("RHSApplyAttribute", rhsColumnNames[0]);
+
+      // we need a cartesian join hash-one for rhs
+      std::string rightTupleSetName = multiInputsComp->tupleSetNamesForInputs[rhsIndex];
+
+      // the rhs column can be any column we only need it to get the number of rows
+      std::vector<std::string> rightColumnsToApply = { rhsColumnNames[0] };
+
+      // make the output tuple set
+      mustache::mustache rightOutputTupleSetNameTemplate{"hashOneFor_{{RHSApplyAttribute}}_{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
+      std::string rightOutputTupleSetName = rightOutputTupleSetNameTemplate.render(lambdaData);
+
+      // make the column name
+      mustache::mustache rightOutputColumnNameTemplate{"OneFor_right_{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
+      std::string rightOutputColumnName = rightOutputColumnNameTemplate.render(lambdaData);
+
+      // make the columns
+      std::vector<std::string> rightOutputColumns = rhsColumnNames;
+      rightOutputColumns.push_back(rightOutputColumnName);
+
+      // make the lambda
+      tcapString += formatLambdaComputation(rightTupleSetName,
+                                            rhsColumnNames,
+                                            rightColumnsToApply,
+                                            rightOutputTupleSetName,
+                                            rightOutputColumns,
+                                            "HASHONE",
+                                            computationNameWithLabel,
+                                            "",
+                                            {});
+
+
+      /**
+       * 1.3 Make the cartasian join
+       */
+
+      mustache::mustache outputTupleSetTemplate{"CartesianJoined__{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
+      outputTupleSetName = outputTupleSetTemplate.render(lambdaData);
+
+      // copy the output columns
+      outputColumns = lhsColumnNames;
+      outputColumns.insert(outputColumns.end(), rhsColumnNames.begin(), rhsColumnNames.end());
+
+      // generate the join computation
+      tcapString += formatJoinComputation(outputTupleSetName,
+                                          outputColumns,
+                                          leftOutputTupleSetName,
+                                          { leftOutputColumnName },
+                                          lhsColumnNames,
+                                          rightOutputTupleSetName,
+                                          {rightOutputColumnName},
+                                          rhsColumnNames,
+                                          computationNameWithLabel);
+
+      // insert the string
+      tcapStrings.emplace_back(std::move(tcapString));
+
+      // go through each tuple set and update stuff
+      for(int i = 0; i < multiInputsComp->tupleSetNamesForInputs.size(); ++i) {
+
+        // check if this tuple set is the same index
+        if (multiInputsComp->joinGroupForInput[i] == multiInputsComp->joinGroupForInput[lhsIndex] ||
+            multiInputsComp->joinGroupForInput[i] == multiInputsComp->joinGroupForInput[rhsIndex] ) {
+
+          // the output tuple set is the new set with these columns
+          multiInputsComp->tupleSetNamesForInputs[i] = outputTupleSetName;
+          multiInputsComp->inputColumnsForInputs[i] = outputColumns;
+          multiInputsComp->inputColumnsToApplyForInputs[i] = generatedColumns;
+
+          // update the join group so that rhs has the same group as lhs
+          multiInputsComp->joinGroupForInput[i] = multiInputsComp->joinGroupForInput[lhsIndex];
+        }
+      }
+
+      // go to the next join
+      idx++;
+    }
 
   }
 
@@ -403,6 +554,18 @@ public:
     bool shouldFilterChild = false;
     if(myTypeName == "and" || myTypeName == "deref") {
       shouldFilterChild = shouldFilter;
+    }
+
+    // is the parent is a predicated but the children are expressions make sure that we have all the inputs
+    // joined so that the have the inputs in a single tuple set
+    if(shouldFilter && !shouldFilterChild) {
+
+      // get all the inputs of this lambda tree
+      std::set<int32_t> inputs;
+      getAllInputs(inputs);
+
+      // perform the cartasian joining if necessary
+      getJoinedInputs(computationName, computationLabel, lambdaLabel, tcapStrings, inputs, multiInputsComp);
     }
 
     // the names of the child lambda we need that for the equal lambda etc..
