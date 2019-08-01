@@ -11,8 +11,9 @@
 #include <VectorTupleSetIterator.h>
 
 class ScanEmployeeSet : public pdb::SetScanner<pdb::Employee> {
+public:
 
- public:
+  ScanEmployeeSet(const std::string &db, const std::string &set) : SetScanner(db, set) {}
 
   ENABLE_DEEP_COPY
 

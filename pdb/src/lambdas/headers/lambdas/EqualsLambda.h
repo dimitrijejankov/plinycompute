@@ -237,10 +237,10 @@ public:
                            const std::string &computationName,
                            int computationLabel,
                            std::string &myLambdaName,
-                           MultiInputsBase *multiInputsComp = nullptr,
-                           bool shouldFilter = false,
-                           const std::string &parentLambdaName = "",
-                           bool isSelfJoin = false) override {
+                           MultiInputsBase *multiInputsComp,
+                           bool shouldFilter,
+                           const std::string &parentLambdaName,
+                           bool isSelfJoin) override {
 
     // create the data for the lambda
     mustache::data lambdaData;
@@ -263,22 +263,20 @@ public:
 
     // get the columns of the lhs and where they are generated
     auto &lhsColumns = lhs.getPtr()->getGeneratedColumns();
-    auto lhsIndex = getInputIndexForColumns(multiInputsComp, lhsColumns);
-    auto lhsTupleSet = multiInputsComp->tupleSetNamesForInputs[lhsIndex];
-    assert(lhsIndex != -1);
-    assert(lhsColumns.size() == 1);
+    assert(!lhs.getPtr()->joinedInputs.empty());
+    auto lhsIndex = *lhs.getPtr()->joinedInputs.begin();
+    auto lhsGroup = multiInputsComp->joinGroupForInput[lhsIndex];
 
     // get the columns of the rhs and where they are generated
-    auto &rhsColumns = rhs.getPtr().get()->getGeneratedColumns();
-    auto rhsIndex = getInputIndexForColumns(multiInputsComp, rhsColumns);
-    auto rhsTupleSet = multiInputsComp->tupleSetNamesForInputs[rhsIndex];
-    assert(rhsIndex != -1);
-    assert(rhsColumns.size() == 1);
+    auto &rhsColumns = rhs.getPtr()->getGeneratedColumns();
+    assert(!rhs.getPtr()->joinedInputs.empty());
+    auto rhsIndex = *rhs.getPtr()->joinedInputs.begin();
+    auto rhsGroup = multiInputsComp->joinGroupForInput[rhsIndex];
 
     std::string tcapString;
 
     // check if all the columns are in the same tuple set, in that case we apply the equals lambda directly onto that tuple set
-    if (lhsTupleSet == rhsTupleSet) {
+    if (lhsGroup == rhsGroup) {
 
       /**
        * 1. This is not a join where the equals lambda is applied therefore we simply need to generate a atomic computation
@@ -286,7 +284,7 @@ public:
        */
 
       // the input tuple set is the lhs tuple set
-      std::string &inputTupleSetName = lhsTupleSet;
+      std::string inputTupleSetName = multiInputsComp->tupleSetNamesForInputs[lhsIndex];
 
       // create the output tuple set name
       mustache::mustache outputTupleSetNameTemplate{"equal_{{lambdaLabel}}{{tupleSetMidTag}}{{computationName}}{{computationLabel}}"};
@@ -334,6 +332,9 @@ public:
         // mark as filtered
         isFiltered = true;
 
+        // set the input tuple set name
+        inputTupleSetName = outputTupleSetName;
+
         // create the output tuple set name for the filter
         outputTupleSetNameTemplate = {"filtered_out{{lambdaLabel}}{{tupleSetMidTag}}{{computationName}}{{computationLabel}}"};
         outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
@@ -357,13 +358,14 @@ public:
         generatedColumns.clear();
       }
 
+      // update the join group
+      joinGroup = multiInputsComp->joinGroupForInput[lhsIndex];
+
       // go through each tuple set and update stuff
       for(int i = 0; i < multiInputsComp->tupleSetNamesForInputs.size(); ++i) {
 
-        auto &tupleSetToUpdate = multiInputsComp->tupleSetNamesForInputs[i];
-
-        // check if
-        if(tupleSetToUpdate == inputTupleSetName) {
+        // check if this tuple set is the same index
+        if(multiInputsComp->joinGroupForInput[i] == joinGroup) {
 
           // the output tuple set is the new set with these columns
           multiInputsComp->tupleSetNamesForInputs[i] = outputTupleSetName;
@@ -390,7 +392,7 @@ public:
       }
 
       // the name of the lhs input tuple set
-      auto &lhsInputTupleSet = lhsTupleSet;
+      auto &lhsInputTupleSet = multiInputsComp->tupleSetNamesForInputs[lhsIndex];
 
       // the input columns that we are going to forward
       auto lhsInputColumns = multiInputsComp->getNotAppliedInputColumnsForIthInput(lhsIndex);
@@ -425,7 +427,7 @@ public:
        */
 
       // the name of the lhs input tuple set
-      auto &rhsInputTupleSet = rhsTupleSet;
+      auto &rhsInputTupleSet = multiInputsComp->tupleSetNamesForInputs[rhsIndex];
 
       // the input columns that we are going to forward
       auto rhsInputColumns = multiInputsComp->getNotAppliedInputColumnsForIthInput(rhsIndex);
@@ -618,11 +620,8 @@ public:
       // go through each tuple set and update stuff
       for(int i = 0; i < multiInputsComp->tupleSetNamesForInputs.size(); ++i) {
 
-        // get the tuple set name
-        auto &tupleSetToUpdate = multiInputsComp->tupleSetNamesForInputs[i];
-
-        // check if we need to update this
-        if(tupleSetToUpdate == lhsInputTupleSet || tupleSetToUpdate == rhsInputTupleSet) {
+        // check if this tuple set is the same index
+        if (multiInputsComp->joinGroupForInput[i] == rhsGroup || multiInputsComp->joinGroupForInput[i] == lhsGroup) {
 
           // the output tuple set is the new set with these columns
           multiInputsComp->tupleSetNamesForInputs[i] = outputTupleSetName;
@@ -631,8 +630,14 @@ public:
 
           // this input was joined
           joinedInputs.insert(i);
+
+          // update the join group so that rhs has the same group as lhs
+          multiInputsComp->joinGroupForInput[i] = lhsGroup;
         }
       }
+
+      // update the join group
+      joinGroup = multiInputsComp->joinGroupForInput[lhsIndex];
     }
 
     return tcapString;

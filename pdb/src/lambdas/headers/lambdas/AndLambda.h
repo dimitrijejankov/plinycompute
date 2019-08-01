@@ -146,10 +146,10 @@ class AndLambda : public TypedLambdaObject<bool> {
                            const std::string &computationName,
                            int computationLabel,
                            std::string &myLambdaName,
-                           MultiInputsBase *multiInputsComp = nullptr,
-                           bool shouldFilter = false,
-                           const std::string &parentLambdaName = "",
-                           bool isSelfJoin = false) override {
+                           MultiInputsBase *multiInputsComp,
+                           bool shouldFilter,
+                           const std::string &parentLambdaName,
+                           bool isSelfJoin) override {
 
     // create the data for the lambda
     mustache::data lambdaData;
@@ -205,6 +205,28 @@ class AndLambda : public TypedLambdaObject<bool> {
 
       // we are not generating
       generatedColumns.clear();
+
+      // mark as filtered
+      isFiltered = true;
+
+      // update the join group
+      joinGroup = multiInputsComp->joinGroupForInput[inputIndex];
+
+      // go through each tuple set and update stuff
+      for(int i = 0; i < multiInputsComp->tupleSetNamesForInputs.size(); ++i) {
+
+        // check if this tuple set is the same index
+        if(multiInputsComp->joinGroupForInput[i] == joinGroup) {
+
+          // the output tuple set is the new set with these columns
+          multiInputsComp->tupleSetNamesForInputs[i] = outputTupleSetName;
+          multiInputsComp->inputColumnsForInputs[i] = outputColumns;
+          multiInputsComp->inputColumnsToApplyForInputs[i] = generatedColumns;
+
+          // this input was joined
+          joinedInputs.insert(i);
+        }
+      }
 
       // not TCAP is generated
       return "";
@@ -325,11 +347,9 @@ class AndLambda : public TypedLambdaObject<bool> {
     // go through each tuple set and update stuff
     for(int i = 0; i < multiInputsComp->tupleSetNamesForInputs.size(); ++i) {
 
-      // get the tuple set name
-      auto &tupleSetToUpdate = multiInputsComp->tupleSetNamesForInputs[i];
-
-      // check if we need to update this
-      if(tupleSetToUpdate == leftTupleSetName || tupleSetToUpdate == rightTupleSetName) {
+      // check if this tuple set is the same index
+      if (multiInputsComp->joinGroupForInput[i] == multiInputsComp->joinGroupForInput[lhsIndex] ||
+          multiInputsComp->joinGroupForInput[i] == multiInputsComp->joinGroupForInput[rhsIndex] ) {
 
         // the output tuple set is the new set with these columns
         multiInputsComp->tupleSetNamesForInputs[i] = outputTupleSetName;
@@ -338,8 +358,14 @@ class AndLambda : public TypedLambdaObject<bool> {
 
         // this input was joined
         joinedInputs.insert(i);
+
+        // update the join group so that rhs has the same group as lhs
+        multiInputsComp->joinGroupForInput[i] = multiInputsComp->joinGroupForInput[lhsIndex];
       }
     }
+
+    // update the join group
+    joinGroup = multiInputsComp->joinGroupForInput[lhsIndex];
 
     return tcapString;
   }

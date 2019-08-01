@@ -33,13 +33,13 @@ class StringSelectionOfStringIntPair : public SelectionComp<String, StringIntPai
 
   StringSelectionOfStringIntPair() = default;
 
-  Lambda<bool> getSelection(Handle<StringIntPair> &checkMe) override {
+  Lambda<bool> getSelection(Handle<StringIntPair> checkMe) override {
     return makeLambda(checkMe, [](Handle<StringIntPair>& checkMe) {
       return ((*checkMe).myInt % 3 == 0) && ((*checkMe).myInt < 1000);
     });
   }
 
-  Lambda<Handle<String>> getProjection(Handle<StringIntPair> &checkMe) override {
+  Lambda<Handle<String>> getProjection(Handle<StringIntPair> checkMe) override {
     return makeLambdaFromMember(checkMe, myString);
   }
 };

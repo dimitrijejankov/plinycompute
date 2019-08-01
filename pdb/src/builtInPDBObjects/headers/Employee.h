@@ -29,11 +29,10 @@
 namespace pdb {
 
 class Employee : public Object {
-
+public:
     Handle<String> name;
     int age;
 
-public:
     double salary;
     String department;
 

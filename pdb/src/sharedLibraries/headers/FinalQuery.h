@@ -19,11 +19,11 @@ public:
 
  public:
 
-  Lambda<bool> getSelection(Handle<DepartmentTotal> &checkMe) override {
+  Lambda<bool> getSelection(Handle<DepartmentTotal> checkMe) override {
     return makeLambdaFromMethod (checkMe, checkSales);
   }
 
-  Lambda<Handle<double>> getProjection(Handle<DepartmentTotal> &checkMe) override {
+  Lambda<Handle<double>> getProjection(Handle<DepartmentTotal> checkMe) override {
     return makeLambdaFromMethod (checkMe, getTotSales);
   }
 

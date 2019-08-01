@@ -15,6 +15,8 @@ public:
 
   ENABLE_DEEP_COPY
 
+  ScanSupervisorSet(const std::string &db, const std::string &set) : SetScanner(db, set) {}
+
   ScanSupervisorSet() = default;
 };
 

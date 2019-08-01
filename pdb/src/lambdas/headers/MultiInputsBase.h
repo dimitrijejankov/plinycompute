@@ -52,6 +52,9 @@ class MultiInputsBase {
   // input names for this join operation
   std::vector<std::string> inputNames;
 
+  // this basically tells us what inputs are joined
+  std::vector<int32_t> joinGroupForInput;
+
   explicit MultiInputsBase(int numInputs) {
 
     // make the vectors the appropriate size
@@ -60,6 +63,10 @@ class MultiInputsBase {
     inputColumnsToApplyForInputs.resize(numInputs);
     lambdaNamesForInputs.resize(numInputs);
     inputNames.resize(numInputs);
+
+    // label each join group
+    joinGroupForInput.resize(numInputs);
+    for(int i = 0; i < numInputs; ++i) { joinGroupForInput[i] = i; }
   }
 
   // resizes the multi input
