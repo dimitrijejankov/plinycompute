@@ -299,7 +299,6 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
                                                 curInputColumnsToApply,
                                                 curLeftTupleSetName,
                                                 curOutputColumnNames,
-                                                curLeftHashColumnName,
                                                 "HASHONE",
                                                 myComputationName,
                                                 "",
@@ -334,7 +333,6 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
                                               curInputColumnsToApply,
                                               curOutputTupleSetName,
                                               curOutputColumnNames,
-                                              curOutputColumnName,
                                               "HASHONE",
                                               myComputationName,
                                               "",
@@ -424,7 +422,6 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
                                           curInputColumnsToApply,
                                           curOutputTupleSetName,
                                           curOutputColumnNames,
-                                          curOutputColumnName,
                                           "APPLY",
                                           myComputationName,
                                           myLambdaName,
@@ -447,7 +444,7 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
     tcapString += "), '" + myComputationName + "')\n";
 
     // Step 5. update tupleset names, columns and columns to apply in multiInputsComp
-    for (unsigned int i = 0; i < multiInputsComp->getNumInputs(); i++) {
+    for (unsigned int i = 0; i < multiInputsComp->inputNames.size(); i++) {
       std::string curInput = multiInputsComp->getNameForIthInput(i);
       auto iter =
           std::find(curLeftColumnsToKeep.begin(), curLeftColumnsToKeep.end(), curInput);

@@ -40,7 +40,11 @@ class DereferenceLambda : public TypedLambdaObject<OutType> {
 
 public:
 
-  explicit DereferenceLambda(LambdaTree<Ptr<OutType>> &input) : input(input) { this->keepAppliedColumns = false; }
+  explicit DereferenceLambda(LambdaTree<Ptr<OutType>> &input) : input(input) {
+
+    // copy the input index
+    this->setInputIndex(0, input.getPtr().get()->getInputIndex(0));
+  }
 
   ComputeExecutorPtr getExecutor(TupleSpec &inputSchema,
                                  TupleSpec &attsToOperateOn,

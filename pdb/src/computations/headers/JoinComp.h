@@ -236,81 +236,74 @@ public:
       return "";
     }
 
+    /**
+     * 1. Generate the TCAP for the join predicate
+     */
+
     // this is going to have info about the inputs
-    MultiInputsBase multiInputsBase;
-    multiInputsBase.setNumInputs(this->getNumInputs());
+    MultiInputsBase multiInputsBase(this->getNumInputs());
 
     // update tuple set name for input sets
     for (unsigned int i = 0; i < inputTupleSets.size(); i++) {
 
       // set the name of the tuple set for the i-th position
-      multiInputsBase.setTupleSetNameForIthInput(i, inputTupleSets[i].getTupleSetName());
+      multiInputsBase.tupleSetNamesForInputs[i] = inputTupleSets[i].getTupleSetName();
 
       // set the columns for the i-th position
-      multiInputsBase.setInputColumnsForIthInput(i, inputTupleSets[i].getColumnNamesToKeep());
+      multiInputsBase.inputColumnsForInputs[i] = inputTupleSets[i].getColumnNamesToKeep();
 
       // the the columns to apply for the i-th position
-      multiInputsBase.setInputColumnsToApplyForIthInput(i, inputTupleSets[i].getColumnNamesToApply());
+      multiInputsBase.inputColumnsToApplyForInputs[i] = inputTupleSets[i].getColumnNamesToApply();
 
       // setup all input names (the column name corresponding to input in tuple set)
-      multiInputsBase.setNameForIthInput(i, inputTupleSets[i].getColumnNamesToApply()[0]);
+      multiInputsBase.inputNames[i] = inputTupleSets[i].getColumnNamesToApply()[0];
+
+      // we are keeping all the inputs
+      multiInputsBase.inputColumnsToKeep.insert(multiInputsBase.inputNames[i]);
     }
+
+    // we label the lambdas from zero
+    int lambdaLabel = 0;
 
     // stuff that is needed
-    std::string inputTupleSetName;
-    std::vector<std::string> inputColumnNames;
-    std::vector<std::string> inputColumnsToApply;
     std::vector<std::string> childrenLambdaNames;
-    int lambdaLabel = 0;
     std::string myLambdaName;
-    std::string outputTupleSetName;
-    std::vector<std::string> outputColumnNames;
-    std::string addedOutputColumnName;
 
     // get the selection lambda
+    std::string tcapString = "\n/* Apply join selection */\n";
     Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
-    std::string tcapString = selectionLambda.toTCAPString(inputTupleSetName,
-                                                          inputColumnNames,
-                                                          inputColumnsToApply,
-                                                          childrenLambdaNames,
-                                                          lambdaLabel,
-                                                          "JoinComp",
-                                                          computationLabel,
-                                                          outputTupleSetName,
-                                                          outputColumnNames,
-                                                          addedOutputColumnName,
-                                                          myLambdaName,
-                                                          false,
-                                                          &multiInputsBase,
-                                                          true);
+    tcapString += selectionLambda.toTCAPString(childrenLambdaNames,
+                                               lambdaLabel,
+                                               "JoinComp",
+                                               computationLabel,
+                                               myLambdaName,
+                                               false,
+                                               &multiInputsBase,
+                                               true);
 
-    inputTupleSetName = outputTupleSetName;
-    inputColumnNames.clear();
-    inputColumnsToApply.clear();
-    childrenLambdaNames.clear();
-    for (unsigned int index = 0; index < multiInputsBase.getNumInputs(); index++) {
-      multiInputsBase.setInputColumnsForIthInput(index, inputColumnNames);
-    }
+    /**
+     * 2. Generate the TCAP for the join projection
+     */
 
     // get the projection lambda and it's inputs
+    tcapString += "\n/* Apply join projection*/\n";
     Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
-    tcapString += projectionLambda.toTCAPString(inputTupleSetName,
-                                                inputColumnNames,
-                                                inputColumnsToApply,
-                                                childrenLambdaNames,
+    tcapString += projectionLambda.toTCAPString(childrenLambdaNames,
                                                 lambdaLabel,
                                                 "JoinComp",
                                                 computationLabel,
-                                                outputTupleSetName,
-                                                outputColumnNames,
-                                                addedOutputColumnName,
                                                 myLambdaName,
                                                 true,
                                                 &multiInputsBase,
                                                 false);
 
-    this->outputTupleSetName = outputTupleSetName;
-    this->outputColumnToApply = addedOutputColumnName;
+    //  get the output columns
+    auto outputColumns = multiInputsBase.getInputColumnsToApplyForIthInput(0);
+    assert(outputColumns.size() == 1);
+    this->outputColumnToApply = outputColumns[0];
+
+    // update the tuple set
+    this->outputTupleSetName = multiInputsBase.getTupleSetNameForIthInput(0);
 
     return tcapString;
   }

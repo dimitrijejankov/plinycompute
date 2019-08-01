@@ -147,46 +147,71 @@ public:
     exit(1);
   }
 
-  virtual std::string toTCAPString(std::vector<std::string> &inputTupleSetNames,
-                                   std::vector<std::string> &inputColumnNames,
-                                   std::vector<std::string> &inputColumnsToApply,
-                                   std::vector<std::string> &childrenLambdaNames,
-                                   int lambdaLabel,
-                                   std::string computationName,
-                                   int computationLabel,
-                                   std::string &outputTupleSetName,
-                                   std::vector<std::string> &outputColumns,
-                                   std::string &outputColumnName,
-                                   std::string &myLambdaName,
-                                   MultiInputsBase *multiInputsComp = nullptr,
-                                   bool amIPartOfJoinPredicate = false,
-                                   bool amILeftChildOfEqualLambda = false,
-                                   bool amIRightChildOfEqualLambda = false,
-                                   std::string parentLambdaName = "",
-                                   bool isSelfJoin = false) {
+  const std::string &getOutputTupleSetName() const {
+    return outputTupleSetName;
+  }
 
-    std::string lambdaType = getTypeOfLambda();
-    if ((lambdaType.find("native_lambda") != std::string::npos) && (multiInputsComp != nullptr)
-        && amIPartOfJoinPredicate &&
-        !amIRightChildOfEqualLambda
-        && ((parentLambdaName.empty()) || (parentLambdaName.find("&&") != std::string::npos))) {
+  const std::vector<std::string> &getOutputColumns() const {
+    return outputColumns;
+  }
 
-      return toTCAPStringForCartesianJoin(lambdaLabel,
-                                          computationName,
-                                          computationLabel,
-                                          outputTupleSetName,
-                                          outputColumns,
-                                          outputColumnName,
-                                          myLambdaName,
-                                          multiInputsComp);
+  const std::vector<std::string> &getAppliedColumns() const {
+    return appliedColumns;
+  }
+
+  const std::vector<std::string> &getGeneratedColumns() const {
+    return generatedColumns;
+  }
+
+  static int32_t getInputIndexForColumns(MultiInputsBase *multiInputsComp, const std::vector<std::string> &requiredColumns) {
+
+    // grab the inputs
+    auto &inputs = multiInputsComp->inputColumnsForInputs;
+
+    // try to find the columns in one of the inputs
+    auto it = std::find_if(inputs.begin(), inputs.end(), [&](auto &columns) {
+
+      // check if all the columns are here
+      return std::all_of(requiredColumns.begin(), requiredColumns.end(), [&](auto &column) {
+        return std::find(columns.begin(), columns.end(), column) != columns.end();
+      });
+    });
+
+    // this must always find something or something has gone wrong
+    if(it == inputs.end()) {
+      return -1;
     }
 
-    // create the data for the lambda
+    // set the index
+    return std::distance(inputs.begin(), it);
+  }
+
+  static bool isJoined(const std::set<int32_t> &a, const std::set<int32_t> &b) {
+    return std::any_of(a.begin(), a.end(), [&](const auto inputIndex) {
+      return b.find(inputIndex) != b.end();
+    });
+  }
+
+  virtual std::string toTCAPString(std::vector<std::string> &childrenLambdaNames,
+                                   int lambdaLabel,
+                                   const std::string &computationName,
+                                   int computationLabel,
+                                   std::string &myLambdaName,
+                                   MultiInputsBase *multiInputsComp = nullptr,
+                                   bool shouldFilter = false,
+                                   const std::string &parentLambdaName = "",
+                                   bool isSelfJoin = false) {
+
+    // get the input index this will tell us what input this lambda is using
+    int myIndex = this->getInputIndex(0);
+
+    // create the data for the lambda so we can generate the strings
     mustache::data lambdaData;
     lambdaData.set("computationName", computationName);
     lambdaData.set("computationLabel", std::to_string(computationLabel));
     lambdaData.set("typeOfLambda", getTypeOfLambda());
     lambdaData.set("lambdaLabel", std::to_string(lambdaLabel));
+    lambdaData.set("tupleSetMidTag", "OutFor");
 
     // create the computation name with label
     mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
@@ -195,280 +220,257 @@ public:
     // create the lambda name
     mustache::mustache lambdaNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}"};
     myLambdaName = lambdaNameTemplate.render(lambdaData);
-
-    std::string inputTupleSetName = inputTupleSetNames[0];
-    std::string tupleSetMidTag = "OutFor";
-    if (multiInputsComp != nullptr) {
-
-      // get the input index
-      int myIndex = this->getInputIndex(0);
-
-      if (amILeftChildOfEqualLambda || amIRightChildOfEqualLambda) {
-        tupleSetMidTag = "Extracted";
-      }
-
-      inputTupleSetName = multiInputsComp->getTupleSetNameForIthInput(myIndex);
-      inputColumnNames = multiInputsComp->getInputColumnsForIthInput(myIndex);
-
-      inputColumnsToApply.clear();
-      for (int i = 0; i < this->getNumInputs(); i++) {
-        inputColumnsToApply.push_back(multiInputsComp->getNameForIthInput(this->getInputIndex(i)));
-      }
-
-      multiInputsComp->setLambdasForIthInputAndPredicate(myIndex, parentLambdaName, myLambdaName);
-    }
-
-    // set the lambda data
-    lambdaData.set("tupleSetMidTag", tupleSetMidTag);
+    multiInputsComp->setLambdasForIthInputAndPredicate(myIndex, parentLambdaName, myLambdaName);
 
     // create the output tuple set name
     mustache::mustache outputTupleSetNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}{{tupleSetMidTag}}{{computationName}}{{computationLabel}}"};
     outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
 
-    // create the output column name
+    // create the output columns
     mustache::mustache outputColumnNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}_{{computationLabel}}_{{tupleSetMidTag}}"};
-    outputColumnName = outputColumnNameTemplate.render(lambdaData);
+    generatedColumns = { outputColumnNameTemplate.render(lambdaData) };
 
-    // remove the the applied columns if needed
-    if(!keepAppliedColumns) {
-      inputColumnNames.erase(std::remove_if(inputColumnNames.begin(), inputColumnNames.end(), [&](const auto &i) {
-        return find(inputColumnsToApply.begin(), inputColumnsToApply.end(), i) !=  inputColumnsToApply.end();
-      }), inputColumnNames.end());
+    // the input tuple set
+    std::string inputTupleSet;
+
+    // we are preparing the input columns and the columns we want to apply
+    std::vector<std::string> inputColumnNames;
+    appliedColumns.clear();
+
+    // if this lambda has no children that means it gets the input columns directly from the input tuple set
+    // we need to figure out where this column currently is. Otherwise it is getting it from the child lambda
+    // therefore we need to find where these columns are
+    int currIndex;
+    if(getNumChildren() != 0) {
+
+      // this lambda generation is designed for only one input
+      assert(this->getNumChildren() == 1);
+
+      // get the child lambda
+      LambdaObjectPtr child = this->getChild(0);
+
+      // grab what columns we require
+      appliedColumns = child->generatedColumns;
+
+      // get the index
+      currIndex = getInputIndexForColumns(multiInputsComp, appliedColumns);
+      assert(currIndex != -1);
+    }
+    else {
+
+      // get the index
+      currIndex = this->getInputIndex(0);
+
+      // we are applying an original input column
+      appliedColumns = { multiInputsComp->inputNames[currIndex] };
     }
 
-    // figure out the output columns
-    outputColumns.clear();
-    for (const auto &inputColumnName : inputColumnNames) {
-      outputColumns.push_back(inputColumnName);
-    }
-    outputColumns.push_back(outputColumnName);
+    // get the name of the input tuple set
+    inputTupleSet = multiInputsComp->tupleSetNamesForInputs[currIndex];
+
+    // the inputs that that are forwarded
+    auto &inputs = multiInputsComp->inputColumnsForInputs[currIndex];
+    std::for_each(inputs.begin(), inputs.end(), [&](const auto &column) {
+
+      // check if we are supposed to keep this input column, we keep it either if we are not a root, since it may be used later
+      // or if it is a root and it is requested to be kept at the output
+      if(!isRoot || multiInputsComp->inputColumnsToKeep.find(column) != multiInputsComp->inputColumnsToKeep.end()) {
+
+        // if we are supposed to keep this column add it to the input columns
+        inputColumnNames.emplace_back(column);
+      }
+    });
+
+    // the output columns are basically the input columns we are keeping from the input tuple set, with the output column of this lambda
+    outputColumns = inputColumnNames;
+    outputColumns.emplace_back(generatedColumns[0]);
 
     // generate the TCAP string for the lambda
     std::string tcapString;
-    tcapString += formatLambdaComputation(inputTupleSetName,
+    tcapString += formatLambdaComputation(inputTupleSet,
                                           inputColumnNames,
-                                          inputColumnsToApply,
+                                          appliedColumns,
                                           outputTupleSetName,
                                           outputColumns,
-                                          outputColumnName,
                                           "APPLY",
                                           computationNameWithLabel,
                                           myLambdaName,
                                           getInfo());
 
-    if (multiInputsComp == nullptr) {
-      return tcapString;
+    // if we are a part of the join predicate
+    if(shouldFilter) {
+
+      // mark as filtered
+      isFiltered = true;
+
+      // the previous lambda that created the boolean column is the input to the filter
+      std::string inputTupleSetName = outputTupleSetName;
+
+      // this basically removes "_BOOL" column from the output columns since we are done with it after the filter
+      outputColumns.pop_back();
+
+      // make the name for the new tuple set that is the output of the filter
+      outputTupleSetNameTemplate = {"FILTERED_{{lambdaLabel}}{{tupleSetMidTag}}{{computationName}}{{computationLabel}}"};
+      outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
+
+      // we are applying the filtering on the boolean column
+      appliedColumns = { generatedColumns[0] };
+
+      // we are not generating any columns after the filter
+      generatedColumns = {};
+
+      // make the filter
+      tcapString += formatFilterComputation(outputTupleSetName,
+                                            outputColumns,
+                                            inputTupleSetName,
+                                            appliedColumns,
+                                            inputColumnNames,
+                                            computationNameWithLabel);
     }
 
-    if (!isSelfJoin) {
-      for (unsigned int index = 0; index < multiInputsComp->getNumInputs(); index++) {
-        std::string curInput = multiInputsComp->getNameForIthInput(index);
-        auto iter = std::find(outputColumns.begin(), outputColumns.end(), curInput);
-        if (iter != outputColumns.end()) {
-          PDB_COUT << "MultiInputsBase with index=" << index << " is updated." << std::endl;
-          multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
-          multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
-          multiInputsComp->setColumnToApplyForIthInput(index, outputColumnName);
-        }
+    // go through each tuple set and update stuff
+    for(int i = 0; i < multiInputsComp->tupleSetNamesForInputs.size(); ++i) {
+
+      auto &tupleSetToUpdate = multiInputsComp->tupleSetNamesForInputs[i];
+
+      // check if
+      if(tupleSetToUpdate == inputTupleSet) {
+
+        // the output tuple set is the new set with these columns
+        multiInputsComp->tupleSetNamesForInputs[i] = outputTupleSetName;
+        multiInputsComp->inputColumnsForInputs[i] = outputColumns;
+        multiInputsComp->inputColumnsToApplyForInputs[i] = generatedColumns;
+
+        // this input was joined
+        joinedInputs.insert(i);
       }
-
-    } else {
-
-      // get the input index
-      int myIndex = this->getInputIndex(0);
-
-      // only update myIndex, I am a self-join
-      multiInputsComp->setTupleSetNameForIthInput(myIndex, outputTupleSetName);
-      multiInputsComp->setInputColumnsForIthInput(myIndex, outputColumns);
-      multiInputsComp->setColumnToApplyForIthInput(myIndex, outputColumnName);
     }
 
     return tcapString;
   }
 
-  void toTCAPString(std::vector<std::string> &tcapStrings,
-                    std::vector<std::string> &inputTupleSetNames,
-                    std::vector<std::string> &inputColumnNames,
-                    std::vector<std::string> &inputColumnsToApply,
-                    std::vector<std::string> &childrenLambdaNames,
-                    int &lambdaLabel,
-                    const std::string& computationName,
-                    int computationLabel,
-                    std::string &addedOutputColumnName,
-                    std::string &myLambdaName,
-                    std::string &outputTupleSetName,
-                    MultiInputsBase *multiInputsComp = nullptr,
-                    bool amIPartOfJoinPredicate = false,
-                    bool amILeftChildOfEqualLambda = false,
-                    bool amIRightChildOfEqualLambda = false,
-                    std::string parentLambdaName = "",
-                    bool isSelfJoin = false) {
+  void getTCAPStrings(std::vector<std::string> &tcapStrings,
+                      std::vector<std::string> &childrenLambdaNames,
+                      int &lambdaLabel,
+                      const std::string &computationName,
+                      int computationLabel,
+                      std::string &myLambdaName,
+                      MultiInputsBase *multiInputsComp = nullptr,
+                      bool shouldFilter = false,
+                      const std::string &parentLambdaName = "",
+                      bool isSelfJoin = false) {
 
-    std::vector<std::string> columnsToApply;
+    //  and empty parent lambda name means that this is the root of a lambda tree
+    isRoot = parentLambdaName.empty();
+
+    // if this is an expression and not a predicate
+
+
     std::vector<std::string> childrenLambdas;
-    std::vector<std::string> inputNames;
-    std::vector<std::string> inputColumns;
-
     if (this->getNumChildren() > 0) {
-
-      // move the input columns to apply
-      columnsToApply.swap(inputColumnsToApply);
 
       // move the children lambdas
       childrenLambdas.swap(childrenLambdaNames);
-
-      for (const auto &inputTupleSetName : inputTupleSetNames) {
-        auto iter = std::find(inputNames.begin(), inputNames.end(), inputTupleSetName);
-        if (iter == inputNames.end()) {
-          inputNames.push_back(inputTupleSetName);
-        }
-        else {
-          std::cout << "This is interesting" << std::endl;
-        }
-      }
-
-      // move the input tuple set names
-      inputTupleSetNames.clear();
-
-      // move the input columns
-      inputColumns.swap(inputColumnNames);
     }
 
+    // make the name for this lambda object
     std::string myTypeName = this->getTypeOfLambda();
-    PDB_COUT << "\tExtracted lambda named: " << myTypeName << "\n";
     std::string myName = myTypeName + "_" + std::to_string(lambdaLabel + this->getNumChildren());
-
-    bool isLeftChildOfEqualLambda = false;
-    bool isRightChildOfEqualLambda = false;
-    bool isChildSelfJoin = false;
 
     LambdaObjectPtr nextChild = nullptr;
     for (int i = 0; i < this->getNumChildren(); i++) {
+
+      // this is telling us stuff
+      bool shouldFilterChild = false;
+      bool isChildSelfJoin = false;
+
+      // get the child lambda
       LambdaObjectPtr child = this->getChild(i);
 
+      // get the next child if it exists
       if ((i + 1) < this->getNumChildren()) {
         nextChild = this->getChild(i + 1);
       }
 
-      if (myTypeName == "==") {
-        if (i == 0) {
-          isLeftChildOfEqualLambda = true;
-        }
-        if (i == 1) {
-          isRightChildOfEqualLambda = true;
-        }
+      // can we forward the filtering
+      if(myTypeName == "and" || myTypeName == "deref") {
+
+        // if this is a selection
+        shouldFilterChild = shouldFilter;
       }
 
-      if ((isLeftChildOfEqualLambda || isRightChildOfEqualLambda) && (multiInputsComp != nullptr)) {
+      // recurse to generate the TCAP string
+      child->getTCAPStrings(tcapStrings,
+                            childrenLambdas,
+                            lambdaLabel,
+                            computationName,
+                            computationLabel,
+                            myLambdaName,
+                            multiInputsComp,
+                            shouldFilterChild,
+                            myName,
+                            isChildSelfJoin);
 
-        std::string nextInputName;
-
-        if (nextChild != nullptr) {
-          nextInputName = multiInputsComp->getNameForIthInput(nextChild->getInputIndex(0));
-        }
-
-        std::string myInputName = multiInputsComp->getNameForIthInput(child->getInputIndex(0));
-        if (nextInputName == myInputName) {
-          isChildSelfJoin = true;
-        }
-      }
-
-      child->toTCAPString(tcapStrings,
-                          inputNames,
-                          inputColumns,
-                          columnsToApply,
-                          childrenLambdas,
-                          lambdaLabel,
-                          computationName,
-                          computationLabel,
-                          addedOutputColumnName,
-                          myLambdaName,
-                          outputTupleSetName,
-                          multiInputsComp,
-                          amIPartOfJoinPredicate,
-                          isLeftChildOfEqualLambda,
-                          isRightChildOfEqualLambda,
-                          myName,
-                          isChildSelfJoin);
-
-      inputColumnsToApply.push_back(addedOutputColumnName);
       childrenLambdaNames.push_back(myLambdaName);
-
-      if (multiInputsComp != nullptr) {
-        auto iter = std::find(inputTupleSetNames.begin(), inputTupleSetNames.end(), outputTupleSetName);
-
-        if (iter == inputTupleSetNames.end()) {
-          inputTupleSetNames.push_back(outputTupleSetName);
-        }
-
-      } else {
-
-        inputTupleSetNames.clear();
-        inputTupleSetNames.push_back(outputTupleSetName);
-        inputColumnNames.clear();
-      }
-
-      for (const auto &inputColumn : inputColumns) {
-        auto iter = std::find(inputColumnNames.begin(), inputColumnNames.end(), inputColumn);
-        if (iter == inputColumnNames.end()) {
-          inputColumnNames.push_back(inputColumn);
-        }
-      }
-
-      isLeftChildOfEqualLambda = false;
-      isRightChildOfEqualLambda = false;
-      isChildSelfJoin = false;
       nextChild = nullptr;
     }
 
-    std::vector<std::string> outputColumns;
-    std::string tcapString = this->toTCAPString(inputTupleSetNames,
-                                                inputColumnNames,
-                                                inputColumnsToApply,
-                                                childrenLambdaNames,
+    // generate the TCAP string for the current lambda
+    std::string tcapString = this->toTCAPString(childrenLambdaNames,
                                                 lambdaLabel,
                                                 computationName,
                                                 computationLabel,
-                                                outputTupleSetName,
-                                                outputColumns,
-                                                addedOutputColumnName,
                                                 myLambdaName,
                                                 multiInputsComp,
-                                                amIPartOfJoinPredicate,
-                                                amILeftChildOfEqualLambda,
-                                                amIRightChildOfEqualLambda,
+                                                shouldFilter,
                                                 parentLambdaName,
                                                 isSelfJoin);
 
     tcapStrings.push_back(tcapString);
     lambdaLabel++;
-
-    if (multiInputsComp == nullptr) {
-      inputTupleSetNames.clear();
-      inputTupleSetNames.push_back(outputTupleSetName);
-    }
-
-    inputColumnNames.clear();
-    for (const auto &outputColumn : outputColumns) {
-      inputColumnNames.push_back(outputColumn);
-    }
   }
 
   virtual std::map<std::string, std::string> getInfo() = 0;
-
-protected:
 
   /**
    * input index in a multi-input computation
    */
   std::vector<unsigned int> inputIndexes;
 
+   /**
+    * Is the lambda object the root of the lambda tree
+    */
+   bool isRoot = false;
 
-  /**
-   * Whether we want to keep the applied column in the output
-   */
-   bool keepAppliedColumns = true;
+   /**
+    * Has this lambda been followed by a filter
+    */
+   bool isFiltered = false;
 
+   /**
+    * This is telling us what inputs were joined at the time this lambda was processed
+    */
+   std::set<int32_t> joinedInputs;
+
+   /**
+    * The name of the generated tuple set
+    */
+   std::string outputTupleSetName;
+
+   /**
+    * The output columns of this lambda
+    */
+   std::vector<std::string> outputColumns;
+
+   /**
+    * The columns this lambda has applied to generate the output
+    */
+   std::vector<std::string> appliedColumns;
+
+   /**
+    * The columns this lambda has generated
+    */
+   std::vector<std::string> generatedColumns;
 };
 }
 

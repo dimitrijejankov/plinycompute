@@ -22,6 +22,7 @@
 
 #include <iostream>
 #include <vector>
+#include <set>
 #include <map>
 #include <algorithm>
 
@@ -31,7 +32,8 @@ namespace pdb {
 // this is used in query graph analysis
 class MultiInputsBase {
 
- private:
+ public:
+
   // tuple set names for each input
   std::vector<std::string> tupleSetNamesForInputs;
 
@@ -44,75 +46,67 @@ class MultiInputsBase {
   // lambda names to extract for each input and each predicate
   std::vector<std::map<std::string, std::vector<std::string>>> lambdaNamesForInputs;
 
+  // a list of columns we want from the output of the lambda
+  std::set<std::string> inputColumnsToKeep;
+
   // input names for this join operation
   std::vector<std::string> inputNames;
 
-  int numInputs;
+  explicit MultiInputsBase(int numInputs) {
 
-public:
-
-  void setNumInputs(int value) {
-    this->numInputs = value;
+    // make the vectors the appropriate size
+    tupleSetNamesForInputs.resize(numInputs);
+    inputColumnsForInputs.resize(numInputs);
+    inputColumnsToApplyForInputs.resize(numInputs);
+    lambdaNamesForInputs.resize(numInputs);
+    inputNames.resize(numInputs);
   }
 
-  int getNumInputs() {
-    return this->numInputs;
+  // resizes the multi input
+  void resize(int numInputs) {
+
+    // clear all
+    inputNames.clear();
+    inputColumnsToKeep.clear();
+    inputColumnsForInputs.clear();
+    inputColumnsToApplyForInputs.clear();
+
+    // make the vectors the appropriate size
+    tupleSetNamesForInputs.resize(numInputs);
+    inputColumnsForInputs.resize(numInputs);
+    inputColumnsToApplyForInputs.resize(numInputs);
+    lambdaNamesForInputs.resize(numInputs);
+    inputNames.resize(numInputs);
   }
 
   // returns the latest tuple set name that contains the i-th input
   std::string getTupleSetNameForIthInput(int i) {
-    if (i >= this->getNumInputs()) {
-      return "";
-    }
     return tupleSetNamesForInputs[i];
   }
 
   // set the latest tuple set name that contains the i-th input
   void setTupleSetNameForIthInput(int i, std::string name) {
-    if (tupleSetNamesForInputs.size() != numInputs) {
-      tupleSetNamesForInputs.resize(numInputs);
-    }
-    if (i < numInputs) {
-      tupleSetNamesForInputs[i] = std::move(name);
-    }
+    tupleSetNamesForInputs[i] = std::move(name);
   }
 
   // get latest input columns for the tupleset for the i-th input
   std::vector<std::string> getInputColumnsForIthInput(int i) {
-    if (i >= this->getNumInputs()) {
-      std::vector<std::string> ret;
-      return ret;
-    }
     return inputColumnsForInputs[i];
   }
 
   // set latest input columns for the tupleset for the i-th input
-  void setInputColumnsForIthInput(int i, std::vector<std::string> &columns) {
-    if (inputColumnsForInputs.size() != numInputs) {
-      inputColumnsForInputs.resize(numInputs);
-    }
-    if (i < numInputs) {
-      inputColumnsForInputs[i] = columns;
-    }
+  void setInputColumnsForIthInput(int i, const std::vector<std::string> &columns) {
+    inputColumnsForInputs[i] = columns;
   }
 
   // get latest input column to apply for the tupleset for the i-th input
   std::vector<std::string> getInputColumnsToApplyForIthInput(int i) {
-    if (i >= this->getNumInputs()) {
-      std::vector<std::string> ret;
-      return ret;
-    }
     return inputColumnsToApplyForInputs[i];
   }
 
   // set latest input column to apply for the tupleset for the i-th input
   void setInputColumnsToApplyForIthInput(int i, std::vector<std::string> &columnsToApply) {
-    if (inputColumnsToApplyForInputs.size() != numInputs) {
-      inputColumnsToApplyForInputs.resize(numInputs);
-    }
-    if (i < numInputs) {
-      inputColumnsToApplyForInputs[i] = columnsToApply;
-    }
+    inputColumnsToApplyForInputs[i] = columnsToApply;
   }
 
   std::vector<std::string> getNotAppliedInputColumnsForIthInput(int i) {
@@ -133,44 +127,28 @@ public:
 
   // set latest input column to apply for the tupleset for the i-th input
   void setColumnToApplyForIthInput(int i, std::string columnToApply) {
-    if (inputColumnsToApplyForInputs.size() != numInputs) {
-      inputColumnsToApplyForInputs.resize(numInputs);
-    }
-    if (i < numInputs) {
-      inputColumnsToApplyForInputs[i].clear();
-      inputColumnsToApplyForInputs[i].emplace_back(columnToApply);
-    }
+    inputColumnsToApplyForInputs[i].clear();
+    inputColumnsToApplyForInputs[i].emplace_back(columnToApply);
   }
 
   // set lambdas for the i-th input, and j-th predicate
   void setLambdasForIthInputAndPredicate(int i,
                                          std::string predicateLambda,
                                          std::string lambdaName) {
-    if (lambdaNamesForInputs.size() != numInputs) {
-      lambdaNamesForInputs.resize(numInputs);
-    }
-    if (i < numInputs) {
-      lambdaNamesForInputs[i][predicateLambda].push_back(lambdaName);
-    }
+
+    lambdaNamesForInputs[i][predicateLambda].push_back(lambdaName);
   }
 
   // get the name for the i-th input
   std::string getNameForIthInput(int i) {
-    if (i >= this->getNumInputs()) {
-      return "";
-    }
     return inputNames[i];
   }
 
   // set the name for the i-th input
   void setNameForIthInput(int i, std::string name) {
-    if (inputNames.size() != numInputs) {
-      inputNames.resize(numInputs);
-    }
-    if (i < numInputs) {
-      inputNames[i] = std::move(name);
-    }
+    inputNames[i] = std::move(name);
   }
+
 };
 }
 

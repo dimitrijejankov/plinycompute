@@ -30,42 +30,37 @@
 
 namespace pdb {
 
-// only one of these two versions is going to work... used to automatically hash on the underlying type
+// only one of these three versions is going to work... used to automatically hash on the underlying type
 // in the case of a Ptr<> type
 template<class MyType>
-std::enable_if_t<std::is_base_of<PtrBase, MyType>::value, size_t> hashHim(MyType &him) {
+std::enable_if_t<std::is_base_of<PtrBase, MyType>::value, size_t> hashHim(const MyType &him) {
   return Hasher<decltype(*him)>::hash(*him);
 }
 
 template<class MyType>
-std::enable_if_t<!std::is_base_of<PtrBase, MyType>::value, size_t> hashHim(MyType &him) {
+std::enable_if_t<!std::is_base_of<PtrBase, MyType>::value, size_t> hashHim(const MyType &him) {
   return Hasher<MyType>::hash(him);
 }
 
-// only one of these four versions is going to work... used to automatically dereference a Ptr<blah>
+// only one of these five versions is going to work... used to automatically dereference a Ptr<blah>
 // type on either the LHS or RHS of an equality check
 template<class LHS, class RHS>
-std::enable_if_t<std::is_base_of<PtrBase, LHS>::value && std::is_base_of<PtrBase, RHS>::value,
-                 bool> checkEquals(LHS &lhs, RHS &rhs) {
+std::enable_if_t<std::is_base_of<PtrBase, LHS>::value && std::is_base_of<PtrBase, RHS>::value, bool> checkEquals(const LHS &lhs, const RHS &rhs) {
   return *lhs == *rhs;
 }
 
 template<class LHS, class RHS>
-std::enable_if_t<std::is_base_of<PtrBase, LHS>::value && !(std::is_base_of<PtrBase, RHS>::value),
-                 bool> checkEquals(LHS &lhs, RHS &rhs) {
+std::enable_if_t<std::is_base_of<PtrBase, LHS>::value && !(std::is_base_of<PtrBase, RHS>::value), bool> checkEquals(const LHS &lhs, const RHS &rhs) {
   return *lhs == rhs;
 }
 
 template<class LHS, class RHS>
-std::enable_if_t<!(std::is_base_of<PtrBase, LHS>::value) && std::is_base_of<PtrBase, RHS>::value,
-                 bool> checkEquals(LHS &lhs, RHS &rhs) {
+std::enable_if_t<!(std::is_base_of<PtrBase, LHS>::value) && std::is_base_of<PtrBase, RHS>::value, bool> checkEquals(const LHS &lhs, const RHS &rhs) {
   return lhs == *rhs;
 }
 
 template<class LHS, class RHS>
-std::enable_if_t<!(std::is_base_of<PtrBase, LHS>::value) && !(std::is_base_of<PtrBase, RHS>::value), bool> checkEquals(
-    LHS &lhs,
-    RHS &rhs) {
+std::enable_if_t<!(std::is_base_of<PtrBase, LHS>::value) && !(std::is_base_of<PtrBase, RHS>::value), bool> checkEquals(const LHS &lhs, const RHS &rhs) {
   return lhs == rhs;
 }
 
@@ -237,22 +232,14 @@ public:
     return nullptr;
   }
 
-  std::string toTCAPString(std::vector<std::string> &inputTupleSetNames,
-                           std::vector<std::string> &inputColumnNames,
-                           std::vector<std::string> &inputColumnsToApply,
-                           std::vector<std::string> &childrenLambdaNames,
+  std::string toTCAPString(std::vector<std::string> &childrenLambdaNames,
                            int lambdaLabel,
-                           std::string computationName,
+                           const std::string &computationName,
                            int computationLabel,
-                           std::string &outputTupleSetName,
-                           std::vector<std::string> &outputColumns,
-                           std::string &outputColumnName,
                            std::string &myLambdaName,
                            MultiInputsBase *multiInputsComp = nullptr,
-                           bool amIPartOfJoinPredicate = false,
-                           bool amILeftChildOfEqualLambda = false,
-                           bool amIRightChildOfEqualLambda = false,
-                           std::string parentLambdaName = "",
+                           bool shouldFilter = false,
+                           const std::string &parentLambdaName = "",
                            bool isSelfJoin = false) override {
 
     // create the data for the lambda
@@ -270,38 +257,123 @@ public:
     mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
     std::string computationNameWithLabel = computationNameWithLabelTemplate.render(lambdaData);
 
+    /**
+     * 0. Check if we need to perform a join to get the value of this lamda
+     */
+
+    // get the columns of the lhs and where they are generated
+    auto &lhsColumns = lhs.getPtr()->getGeneratedColumns();
+    auto lhsIndex = getInputIndexForColumns(multiInputsComp, lhsColumns);
+    auto lhsTupleSet = multiInputsComp->tupleSetNamesForInputs[lhsIndex];
+    assert(lhsIndex != -1);
+    assert(lhsColumns.size() == 1);
+
+    // get the columns of the rhs and where they are generated
+    auto &rhsColumns = rhs.getPtr().get()->getGeneratedColumns();
+    auto rhsIndex = getInputIndexForColumns(multiInputsComp, rhsColumns);
+    auto rhsTupleSet = multiInputsComp->tupleSetNamesForInputs[rhsIndex];
+    assert(rhsIndex != -1);
+    assert(rhsColumns.size() == 1);
+
     std::string tcapString;
-    if (multiInputsComp == nullptr) {
+
+    // check if all the columns are in the same tuple set, in that case we apply the equals lambda directly onto that tuple set
+    if (lhsTupleSet == rhsTupleSet) {
 
       /**
        * 1. This is not a join where the equals lambda is applied therefore we simply need to generate a atomic computation
-       *    for the boolean lambda
+       *    for the boolean lambda and a possible filter if this is a join predicate
        */
 
-      std::string inputTupleSetName = inputTupleSetNames[0];
+      // the input tuple set is the lhs tuple set
+      std::string &inputTupleSetName = lhsTupleSet;
 
       // create the output tuple set name
-      mustache::mustache outputTupleSetNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}{{tupleSetMidTag}}{{computationName}}{{computationLabel}}"};
+      mustache::mustache outputTupleSetNameTemplate{"equal_{{lambdaLabel}}{{tupleSetMidTag}}{{computationName}}{{computationLabel}}"};
       outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
 
       // create the output column name
-      mustache::mustache outputColumnNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}_{{computationLabel}}_{{tupleSetMidTag}}"};
-      outputColumnName = outputColumnNameTemplate.render(lambdaData);
+      mustache::mustache outputColumnNameTemplate{"equal_{{lambdaLabel}}_{{computationLabel}}_{{tupleSetMidTag}}"};
+      std::string outputColumnName = outputColumnNameTemplate.render(lambdaData);
 
-      // forward the input columns to the output and add the new output column to it
-      outputColumns = inputColumnNames;
+      // remove the lhs input if it is not the original input column
+      auto inputs = multiInputsComp->inputColumnsForInputs[lhsIndex];
+      if(std::find(multiInputsComp->inputNames.begin(), multiInputsComp->inputNames.end(), lhsColumns[0]) == multiInputsComp->inputNames.end()) {
+        inputs.erase(std::remove(inputs.begin(), inputs.end(), lhsColumns[0]), inputs.end());
+      }
+
+      // remove the rhs input if it is not in the original input colum
+      if(std::find(multiInputsComp->inputNames.begin(), multiInputsComp->inputNames.end(), rhsColumns[0]) == multiInputsComp->inputNames.end()) {
+        inputs.erase(std::remove(inputs.begin(), inputs.end(), rhsColumns[0]), inputs.end());
+      }
+
+      // the output are the forwarded inputs with the generated column
+      outputColumns = inputs;
       outputColumns.push_back(outputColumnName);
 
+      // the the columns we have applied in this lambda
+      appliedColumns = { lhsColumns[0], rhsColumns[0] };
+
+      // generate the boolean lambda
       tcapString += formatLambdaComputation(inputTupleSetName,
-                                            inputColumnNames,
-                                            inputColumnsToApply,
+                                            inputs,
+                                            appliedColumns,
                                             outputTupleSetName,
                                             outputColumns,
-                                            outputColumnName,
                                             "APPLY",
                                             computationNameWithLabel,
                                             myLambdaName,
                                             getInfo());
+
+      // we are going to be applying the generated boolean column
+      generatedColumns = { outputColumnName };
+
+      // if we are a part of the join predicate we need to apply a filter
+      if(shouldFilter) {
+
+        // mark as filtered
+        isFiltered = true;
+
+        // create the output tuple set name for the filter
+        outputTupleSetNameTemplate = {"filtered_out{{lambdaLabel}}{{tupleSetMidTag}}{{computationName}}{{computationLabel}}"};
+        outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
+
+        // remove the boolean column since we are using it in the filter
+        outputColumns.pop_back();
+
+        // the input columns are the same as the output columns
+        auto &inputColumns = outputColumns;
+
+        // make the filter
+        tcapString += formatFilterComputation(outputTupleSetName,
+                                              outputColumns,
+                                              inputTupleSetName,
+                                              generatedColumns,
+                                              inputColumns,
+                                              computationNameWithLabel);
+
+        // clear the columns to apply since we are not generating anything
+        std::swap(appliedColumns, generatedColumns);
+        generatedColumns.clear();
+      }
+
+      // go through each tuple set and update stuff
+      for(int i = 0; i < multiInputsComp->tupleSetNamesForInputs.size(); ++i) {
+
+        auto &tupleSetToUpdate = multiInputsComp->tupleSetNamesForInputs[i];
+
+        // check if
+        if(tupleSetToUpdate == inputTupleSetName) {
+
+          // the output tuple set is the new set with these columns
+          multiInputsComp->tupleSetNamesForInputs[i] = outputTupleSetName;
+          multiInputsComp->inputColumnsForInputs[i] = outputColumns;
+          multiInputsComp->inputColumnsToApplyForInputs[i] = generatedColumns;
+
+          // this input was joined
+          joinedInputs.insert(i);
+        }
+      }
 
     } else {
 
@@ -309,17 +381,22 @@ public:
        * 1.1 Form the left hasher
        */
 
-      // grab the lhs indices
-      auto lhsInput = getInputIndex(0);
+      if(!shouldFilter) {
+
+        // so we don't support stuff like (a == b) == (c == d) since this would make us generate
+        // a cartasian join for subexpressions (a == b) and (c == d), this can be done though it would just be
+        // anoying to write the code to do that
+        throw runtime_error("We currently do not support a query that complicated!");
+      }
 
       // the name of the lhs input tuple set
-      auto lhsInputTupleSet = multiInputsComp->getTupleSetNameForIthInput(lhsInput);
+      auto &lhsInputTupleSet = lhsTupleSet;
 
       // the input columns that we are going to forward
-      auto lhsInputColumns = multiInputsComp->getNotAppliedInputColumnsForIthInput(lhsInput);
+      auto lhsInputColumns = multiInputsComp->getNotAppliedInputColumnsForIthInput(lhsIndex);
 
       // the input to the hash can only be one column
-      auto lhsInputColumnsToApply = multiInputsComp->getInputColumnsToApplyForIthInput(lhsInput);
+      auto &lhsInputColumnsToApply = lhsColumns;
       assert(lhsInputColumnsToApply.size() == 1);
 
       // form the output tuple set name
@@ -338,26 +415,23 @@ public:
                                             lhsInputColumnsToApply,
                                             lhsOutputTupleSetName,
                                             lhsOutputColumns,
-                                            lhsOutputColumnName,
                                             "HASHLEFT",
                                             computationNameWithLabel,
                                             myLambdaName,
                                             {});
 
       /**
-       * 1.2 Form the left hasher
+       * 1.2 Form the right hasher
        */
 
-      auto rhsInput = getInputIndex(1);
-
       // the name of the lhs input tuple set
-      auto rhsInputTupleSet = multiInputsComp->getTupleSetNameForIthInput(rhsInput);
+      auto &rhsInputTupleSet = rhsTupleSet;
 
       // the input columns that we are going to forward
-      auto rhsInputColumns = multiInputsComp->getNotAppliedInputColumnsForIthInput(rhsInput);
+      auto rhsInputColumns = multiInputsComp->getNotAppliedInputColumnsForIthInput(rhsIndex);
 
       // the input to the hash can only be one column
-      auto rhsInputColumnsToApply = multiInputsComp->getInputColumnsToApplyForIthInput(rhsInput);
+      auto &rhsInputColumnsToApply = rhsColumns;
       assert(rhsInputColumnsToApply.size() == 1);
 
       // form the output tuple set name
@@ -376,7 +450,6 @@ public:
                                             rhsInputColumnsToApply,
                                             rhsOutputTupleSetName,
                                             rhsOutputColumns,
-                                            rhsOutputColumnName,
                                             "HASHRIGHT",
                                             computationNameWithLabel,
                                             myLambdaName,
@@ -415,10 +488,10 @@ public:
       std::string inputTupleSetName = outputTupleSetName;
 
       // the input to the lambda is the output
-      inputColumnNames = outputColumns;
+      auto inputColumnNames = outputColumns;
 
       // get the column that the child is applying
-      inputColumnsToApply = { multiInputsComp->getNameForIthInput(lhs.getInputIndex(0)) };
+      std::vector<std::string> inputColumnsToApply = { multiInputsComp->getNameForIthInput(lhs.getInputIndex(0)) };
 
       // make the name for the column we are going to create
       mustache::mustache outputColumnNameTemplate{"LHSExtractedFor_{{lambdaLabel}}_{{computationLabel}}"};
@@ -435,7 +508,6 @@ public:
                                             inputColumnsToApply,
                                             outputTupleSetName,
                                             outputColumns,
-                                            outputColumnName,
                                             "APPLY",
                                             computationNameWithLabel,
                                             childrenLambdaNames[0],
@@ -469,7 +541,6 @@ public:
                                             inputColumnsToApply,
                                             outputTupleSetName,
                                             outputColumns,
-                                            outputColumnName,
                                             "APPLY",
                                             computationNameWithLabel,
                                             childrenLambdaNames[1],
@@ -483,7 +554,7 @@ public:
       inputTupleSetName = outputTupleSetName;
 
       // the boolean lambda is applied on the lhs and rhs extracted column
-      inputColumnsToApply = { lhsColumn , rhsColumn };
+      appliedColumns = { lhsColumn , rhsColumn };
 
       // input columns are basically the input columns that are not the hash from the lhs and rhs side
       inputColumnNames = lhsInputColumns;
@@ -499,13 +570,15 @@ public:
       outputTupleSetNameTemplate = {"{{tupleSetNamePrefix}}_BOOL"};
       outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
 
+      // set the generated columns
+      generatedColumns = { booleanColumn };
+
       // make the comparison lambda
       tcapString += formatLambdaComputation(inputTupleSetName,
                                             inputColumnNames,
-                                            inputColumnsToApply,
+                                            appliedColumns,
                                             outputTupleSetName,
                                             outputColumns,
-                                            outputColumnName,
                                             "APPLY",
                                             computationNameWithLabel,
                                             myLambdaName,
@@ -515,39 +588,49 @@ public:
        * 5. With the boolean expression we preform a filter, that is going to remove all the ones that are false.
        */
 
+      // mark as filtered
+      isFiltered = true;
+
       // the previous lambda that created the boolean column is the input to the filter
       inputTupleSetName = outputTupleSetName;
 
       // this basically removes "_BOOL" column from the output columns since we are done with it after the filter
       outputColumns.pop_back();
 
-
       // make the name for the new tuple set that is the output of the filter
       outputTupleSetNameTemplate = {"{{tupleSetNamePrefix}}_FILTERED"};
       outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
+
+      // we are applying the filtering on the boolean column
+      appliedColumns = { booleanColumn };
+
+      // we are not generating any columns after the filter
+      generatedColumns = {};
 
       // make the filter
       tcapString += formatFilterComputation(outputTupleSetName,
                                             outputColumns,
                                             inputTupleSetName,
-                                            { booleanColumn },
+                                            appliedColumns,
                                             inputColumnNames,
                                             computationNameWithLabel);
 
-      // there is no output column here for some reason TODO figure this out
-      outputColumnName = "";
+      // go through each tuple set and update stuff
+      for(int i = 0; i < multiInputsComp->tupleSetNamesForInputs.size(); ++i) {
 
-      if (!isSelfJoin) {
+        // get the tuple set name
+        auto &tupleSetToUpdate = multiInputsComp->tupleSetNamesForInputs[i];
 
-        // update all the inputs
-        for (unsigned int index = 0; index < multiInputsComp->getNumInputs(); index++) {
-          std::string curInput = multiInputsComp->getNameForIthInput(index);
-          auto iter = std::find(outputColumns.begin(), outputColumns.end(), curInput);
-          if (iter != outputColumns.end()) {
-            multiInputsComp->setTupleSetNameForIthInput(index, outputTupleSetName);
-            multiInputsComp->setInputColumnsForIthInput(index, outputColumns);
-            multiInputsComp->setColumnToApplyForIthInput(index, outputColumnName);
-          }
+        // check if we need to update this
+        if(tupleSetToUpdate == lhsInputTupleSet || tupleSetToUpdate == rhsInputTupleSet) {
+
+          // the output tuple set is the new set with these columns
+          multiInputsComp->tupleSetNamesForInputs[i] = outputTupleSetName;
+          multiInputsComp->inputColumnsForInputs[i] = outputColumns;
+          multiInputsComp->inputColumnsToApplyForInputs[i] = generatedColumns;
+
+          // this input was joined
+          joinedInputs.insert(i);
         }
       }
     }

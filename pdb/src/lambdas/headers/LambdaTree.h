@@ -54,12 +54,11 @@ class TypedLambdaObject;
 // can override operations on these guys (if we used raw shared pointers, we could not)
 template<typename ReturnType>
 class LambdaTree {
-
- private:
+protected:
 
   std::shared_ptr<TypedLambdaObject<ReturnType>> me;
 
- public:
+public:
 
   LambdaTree() = default;
 

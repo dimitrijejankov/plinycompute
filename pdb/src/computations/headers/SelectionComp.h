@@ -30,11 +30,11 @@ template<class OutputClass, class InputClass>
 class SelectionComp : public Computation {
 
   // the computation returned by this method is called to see if a data item should be returned in the output set
-  virtual Lambda<bool> getSelection(Handle<InputClass> &checkMe) = 0;
+  virtual Lambda<bool> getSelection(Handle<InputClass> checkMe) = 0;
 
   // the computation returned by this method is called to perfom a transformation on the input item before it
   // is inserted into the output set
-  virtual Lambda<Handle<OutputClass>> getProjection(Handle<InputClass> &checkMe) = 0;
+  virtual Lambda<Handle<OutputClass>> getProjection(Handle<InputClass> checkMe) = 0;
 
   // calls getProjection and getSelection to extract the lambdas
   void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
@@ -89,90 +89,82 @@ class SelectionComp : public Computation {
     if (inputTupleSets.empty()) {
       return "";
     }
+
     InputTupleSetSpecifier inputTupleSet = inputTupleSets[0];
     std::vector<std::string> childrenLambdaNames;
     std::string myLambdaName;
-    return toTCAPString(inputTupleSet.getTupleSetName(),
-                        inputTupleSet.getColumnNamesToKeep(),
-                        inputTupleSet.getColumnNamesToApply(),
-                        childrenLambdaNames,
-                        computationLabel,
-                        myLambdaName);
-  }
 
-  /**
-   * to return Selection tcap string
-   * @param inputTupleSetName
-   * @param inputColumnNames
-   * @param inputColumnsToApply
-   * @param childrenLambdaNames
-   * @param computationLabel
-   * @param outputTupleSetName
-   * @param outputColumnNames
-   * @param addedOutputColumnName
-   * @param myLambdaName
-   * @return
-   */
-  std::string toTCAPString(std::string inputTupleSetName,
-                           std::vector<std::string> &inputColumnNames,
-                           std::vector<std::string> &inputColumnsToApply,
-                           std::vector<std::string> &childrenLambdaNames,
-                           int computationLabel,
-                           std::string &myLambdaName) {
+    // make the inputs
+    std::string inputTupleSetName = inputTupleSet.getTupleSetName();
+    std::vector<std::string> inputColumnNames = inputTupleSet.getColumnNamesToKeep();
+    std::vector<std::string> inputColumnsToApply = inputTupleSet.getColumnNamesToApply();
 
-    PDB_COUT << "ABOUT TO GET TCAP STRING FOR SELECTION" << std::endl;
-    Handle<InputClass> checkMe = nullptr;
-    std::string tupleSetName;
-    std::vector<std::string> columnNames;
-    std::string addedColumnName;
+    /**
+     * 1. Generate the TCAP for the selection predicate
+     */
+
+    // this is going to have info about the input
+    assert(inputTupleSets.size() == 1);
+    MultiInputsBase multiInputsBase(1);
+
+    // set the name of the tuple set for the i-th position
+    multiInputsBase.setTupleSetNameForIthInput(0, inputTupleSets[0].getTupleSetName());
+
+    // set the columns for the i-th position
+    multiInputsBase.setInputColumnsForIthInput(0, inputTupleSets[0].getColumnNamesToKeep());
+
+    // the the columns to apply for the i-th position
+    multiInputsBase.setInputColumnsToApplyForIthInput(0, inputTupleSets[0].getColumnNamesToApply());
+
+    // setup all input names (the column name corresponding to input in tuple set) has to be one
+    assert(inputTupleSets[0].getColumnNamesToApply().size() == 1);
+    multiInputsBase.setNameForIthInput(0, inputTupleSets[0].getColumnNamesToApply()[0]);
+
+    // we want to keep the input, so that it can be used by the projection
+    multiInputsBase.inputColumnsToKeep = { inputTupleSets[0].getColumnNamesToKeep()[0] };
+
+    // we label the lambdas within this computation from zero
     int lambdaLabel = 0;
 
-    PDB_COUT << "ABOUT TO GET TCAP STRING FOR SELECTION LAMBDA" << std::endl;
+    // call the selection
+    GenericHandle checkMe (1);
     Lambda<bool> selectionLambda = getSelection(checkMe);
 
     std::string tcapString;
     tcapString += "\n/* Apply selection filtering */\n";
-    tcapString += selectionLambda.toTCAPString(inputTupleSetName,
-                                               inputColumnNames,
-                                               inputColumnsToApply,
-                                               childrenLambdaNames,
+    tcapString += selectionLambda.toTCAPString(childrenLambdaNames,
                                                lambdaLabel,
                                                getComputationType(),
                                                computationLabel,
-                                               tupleSetName,
-                                               columnNames,
-                                               addedColumnName,
                                                myLambdaName,
-                                               false);
+                                               false,
+                                               &multiInputsBase);
 
-    PDB_COUT << "The tcapString after parsing selection lambda: " << tcapString << "\n";
-    PDB_COUT << "lambdaLabel=" << lambdaLabel << "\n";
+    // get the columns for the TCAP
+    auto appliedColumns = multiInputsBase.getInputColumnsToApplyForIthInput(0);
+    auto outputColumns = multiInputsBase.getNotAppliedInputColumnsForIthInput(0);
+    auto tupleSetName = multiInputsBase.getTupleSetNameForIthInput(0);
+
+    // make sure there is only one output column
+    assert(outputColumns.size() == 1);
 
     // create the data for the column names
-    mustache::data inputColumnData = mustache::data::type::list;
-    for (int i = 0; i < inputColumnNames.size(); i++) {
-
-      mustache::data columnData;
-
-      // fill in the column data
-      columnData.set("columnName", inputColumnNames[i]);
-      columnData.set("isLast", i == inputColumnNames.size() - 1);
-
-      inputColumnData.push_back(columnData);
-    }
+    mustache::data inputColumnsToApplyData = mustache::from_vector<std::string>(multiInputsBase.getInputColumnsToApplyForIthInput(0));
+    mustache::data outputColumnsData = mustache::from_vector<std::string>(multiInputsBase.getNotAppliedInputColumnsForIthInput(0));
 
     // create the data for the filter
     mustache::data selectionCompData;
     selectionCompData.set("computationType", getComputationType());
     selectionCompData.set("computationLabel", std::to_string(computationLabel));
-    selectionCompData.set("inputColumns", inputColumnData);
+    selectionCompData.set("inputColumns", inputColumnsToApplyData);
+    selectionCompData.set("outputColumns", outputColumnsData);
     selectionCompData.set("tupleSetName", tupleSetName);
-    selectionCompData.set("addedColumnName", addedColumnName);
 
     // tupleSetName1(att1, att2, ...) <= FILTER (tupleSetName(methodCall_0OutFor_isFrank), methodCall_0OutFor_SelectionComp1(in0), 'SelectionComp_1')
     mustache::mustache scanSetTemplate
-        {"filteredInputFor{{computationType}}{{computationLabel}}({{#inputColumns}}{{columnName}}{{^isLast}}, {{/isLast}}{{/inputColumns}}) "
-         "<= FILTER ({{tupleSetName}}({{addedColumnName}}), {{tupleSetName}}({{#inputColumns}}{{columnName}}{{^isLast}}, {{/isLast}}{{/inputColumns}}), '{{computationType}}_{{computationLabel}}')\n"};
+        {"filteredInputFor{{computationType}}{{computationLabel}}({{#outputColumns}}{{value}}{{^isLast}},{{/isLast}}{{/outputColumns}}) "
+         "<= FILTER ({{tupleSetName}}({{#inputColumns}}{{value}}{{^isLast}},{{/isLast}}{{/inputColumns}}), "
+                    "{{tupleSetName}}({{#outputColumns}}{{value}}{{^isLast}},{{/isLast}}{{/outputColumns}}), '{{computationType}}_{{computationLabel}}')\n"};
 
     // generate the TCAP string for the FILTER
     tcapString += scanSetTemplate.render(selectionCompData);
@@ -180,36 +172,46 @@ class SelectionComp : public Computation {
     // template for the new tuple set name
     mustache::mustache newTupleSetNameTemplate{"filteredInputFor{{computationType}}{{computationLabel}}"};
 
-    // generate the new tuple set name
-    std::string newTupleSetName = newTupleSetNameTemplate.render(selectionCompData);
+    /**
+     * 2. Generate the TCAP for the projection
+     */
 
-    PDB_COUT << "TO GET TCAP STRING FOR PROJECTION LAMBDA\n";
+    // set the columns
+    multiInputsBase.setTupleSetNameForIthInput(0, newTupleSetNameTemplate.render(selectionCompData));
+    multiInputsBase.setInputColumnsForIthInput(0, outputColumns);
+    multiInputsBase.setInputColumnsToApplyForIthInput(0, outputColumns);
+    multiInputsBase.inputColumnsToKeep.clear();
+
+    // get the projection
     Lambda<Handle<OutputClass>> projectionLambda = getProjection(checkMe);
 
     //TODO this needs to be made nicer
     std::string outputTupleSetName;
     std::vector<std::string> outputColumnNames;
     std::string addedOutputColumnName;
+    std::string newTupleSetName;
 
     // generate the TCAP string for the FILTER
     tcapString += "\n/* Apply selection projection */\n";
-    tcapString += projectionLambda.toTCAPString(newTupleSetName,
-                                                inputColumnNames,
-                                                inputColumnsToApply,
-                                                childrenLambdaNames,
+    tcapString += projectionLambda.toTCAPString(childrenLambdaNames,
                                                 lambdaLabel,
                                                 getComputationType(),
                                                 computationLabel,
-                                                outputTupleSetName,
-                                                outputColumnNames,
-                                                addedOutputColumnName,
                                                 myLambdaName,
-                                                true);
+                                                true,
+                                                &multiInputsBase);
+    tcapString += '\n';
+
+    //  get the output columns
+    outputColumns = multiInputsBase.getInputColumnsToApplyForIthInput(0);
+    assert(outputColumns.size() == 1);
+    this->outputColumnToApply = outputColumns[0];
+
+    // update the tuple set
+    this->outputTupleSetName = multiInputsBase.getTupleSetNameForIthInput(0);
 
     // update the state of the computation
     this->traversed = true;
-    this->outputTupleSetName = outputTupleSetName;
-    this->outputColumnToApply = addedOutputColumnName;
 
     // return the TCAP string
     return tcapString;

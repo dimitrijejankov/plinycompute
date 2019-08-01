@@ -91,8 +91,7 @@ class Lambda {
 
     // a problem is that consumers of this lambda will not be able to deal with a Ptr<ReturnType>...
     // so we need to add an additional operation that dereferences the pointer
-    std::shared_ptr<DereferenceLambda<ReturnType>>
-        newRoot = std::make_shared<DereferenceLambda<ReturnType>>(treeWithPointer);
+    std::shared_ptr<DereferenceLambda<ReturnType>> newRoot = std::make_shared<DereferenceLambda<ReturnType>>(treeWithPointer);
     tree = newRoot;
   }
 
@@ -111,85 +110,34 @@ class Lambda {
   }
 
   //This is to get the TCAPString for this lambda tree
-  std::string toTCAPString(std::string inputTupleSetName,
-                           std::vector<std::string> &columnNames,
-                           std::vector<std::string> &columnsToApply,
-                           std::vector<std::string> &childrenLambdas,
+  std::string toTCAPString(std::vector<std::string> &childrenLambdas,
                            int &lambdaLabel,
                            const std::string& computationName,
                            int computationLabel,
-                           std::string &outputTupleSetName,
-                           std::vector<std::string> &outputColumnNames,
-                           std::string &addedOutputColumnName,
                            std::string &myLambdaName,
                            bool whetherToRemoveUnusedOutputColumns,
-                           MultiInputsBase *multiInputsComp = nullptr,
-                           bool amIPartOfJoinPredicate = false) {
+                           MultiInputsBase *multiInputsComp,
+                           bool shouldFilter = false) {
 
+    // generate the tcap strings for atomic computations
     std::vector<std::string> tcapStrings;
-    std::vector<std::string> inputTupleSetNames = { std::move(inputTupleSetName) };
-    tree->toTCAPString(tcapStrings,
-                       inputTupleSetNames,
-                       columnNames,
-                       columnsToApply,
-                       childrenLambdas,
-                       lambdaLabel,
-                       computationName,
-                       computationLabel,
-                       addedOutputColumnName,
-                       myLambdaName,
-                       outputTupleSetName,
-                       multiInputsComp,
-                       amIPartOfJoinPredicate);
+    tree->getTCAPStrings(tcapStrings,
+                         childrenLambdas,
+                         lambdaLabel,
+                         computationName,
+                         computationLabel,
+                         myLambdaName,
+                         multiInputsComp,
+                         shouldFilter);
 
-    // TODO need figure out what is happening here
-    bool isOutputInInput = false;
-    outputColumnNames.clear();
-    if (!whetherToRemoveUnusedOutputColumns) {
+    // clear the input the output is all in a single tuple set now
+    multiInputsComp->resize(1);
 
-      for (const auto &columnName : columnNames) {
-        outputColumnNames.push_back(columnName);
-        if (addedOutputColumnName == columnName) {
-          isOutputInInput = true;
-        }
-      }
-
-      if (!isOutputInInput) {
-        outputColumnNames.push_back(addedOutputColumnName);
-      }
-
-    } else {
-      outputColumnNames.push_back(addedOutputColumnName);
-    }
-
-    // TODO this is very dirty and should not be done like that! For now I'm going to patch it!
-    if (whetherToRemoveUnusedOutputColumns) {
-
-      // get the last tcap string
-      unsigned long last = tcapStrings.size() - 1;
-
-      PDB_COUT << "tcapStrings[" << last << "]=" << tcapStrings[last] << std::endl;
-      std::string right = tcapStrings[last].substr(tcapStrings[last].find("<="));
-
-      // by default the end is an empty string
-      std::string end;
-
-      // check if we have an info dictionary if we have chop off the end and store it in the end variable
-      if (right.find('[') != std::string::npos) {
-        end = right.substr(right.find('['));
-        right = right.substr(0, right.find('['));
-      }
-
-      // find the positions of the last brackets ()
-      unsigned long pos1 = right.find_last_of('(');
-      unsigned long pos2 = right.rfind("),");
-
-      // empty out anything between the brackets
-      right.replace(pos1 + 1, pos2 - 1 - (pos1 + 1) + 1, "");
-
-      // combine the string and replace it
-      tcapStrings[last] = outputTupleSetName + " (" + addedOutputColumnName + ") " + right + end;
-    }
+    // set the inputs
+    multiInputsComp->tupleSetNamesForInputs[0] = tree->getOutputTupleSetName();
+    multiInputsComp->inputNames = tree->getOutputColumns();
+    multiInputsComp->inputColumnsToApplyForInputs[0] = tree->getGeneratedColumns();
+    multiInputsComp->inputColumnsForInputs[0] = tree->getOutputColumns();
 
     // combine all the tcap strings
     std::string outputTCAPString;

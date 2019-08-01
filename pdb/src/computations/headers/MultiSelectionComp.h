@@ -113,24 +113,34 @@ class MultiSelectionComp : public Computation {
     InputTupleSetSpecifier inputTupleSet = inputTupleSets[0];
     std::vector<std::string> childrenLambdaNames;
     std::string myLambdaName;
-    return toTCAPString(inputTupleSet.getTupleSetName(),
-                        inputTupleSet.getColumnNamesToKeep(),
-                        inputTupleSet.getColumnNamesToApply(),
-                        childrenLambdaNames,
-                        computationLabel,
-                        myLambdaName);
-  }
 
-  // to return Selection tcap string
-  std::string toTCAPString(const std::string &inputTupleSetName,
-                           std::vector<std::string> &inputColumnNames,
-                           std::vector<std::string> &inputColumnsToApply,
-                           std::vector<std::string> &childrenLambdaNames,
-                           int computationLabel,
-                           std::string &myLambdaName) {
+    // make the inputs
+    std::string inputTupleSetName = inputTupleSet.getTupleSetName();
+    std::vector<std::string> inputColumnNames = inputTupleSet.getColumnNamesToKeep();
+    std::vector<std::string> inputColumnsToApply = inputTupleSet.getColumnNamesToApply();
+
+    // this is going to have info about the inputs
+    MultiInputsBase multiInputsBase(this->getNumInputs());
+
+    // update tuple set name for input sets
+    for (unsigned int i = 0; i < inputTupleSets.size(); i++) {
+
+      // set the name of the tuple set for the i-th position
+      multiInputsBase.setTupleSetNameForIthInput(i, inputTupleSets[i].getTupleSetName());
+
+      // set the columns for the i-th position
+      multiInputsBase.setInputColumnsForIthInput(i, inputTupleSets[i].getColumnNamesToKeep());
+
+      // the the columns to apply for the i-th position
+      multiInputsBase.setInputColumnsToApplyForIthInput(i, inputTupleSets[i].getColumnNamesToApply());
+
+      // setup all input names (the column name corresponding to input in tuple set)
+      multiInputsBase.setNameForIthInput(i, inputTupleSets[i].getColumnNamesToApply()[0]);
+    }
+
     PDB_COUT << "To GET TCAP STRING FOR SELECTION" << std::endl;
 
-    Handle<Input> checkMe = nullptr;
+    GenericHandle checkMe (1);
     PDB_COUT << "TO GET TCAP STRING FOR SELECTION LAMBDA" << std::endl;
     Lambda<bool> selectionLambda = getSelection(checkMe);
     std::string tupleSetName;
@@ -140,31 +150,26 @@ class MultiSelectionComp : public Computation {
 
     std::string tcapString;
     tcapString += "\n/* Apply MultiSelection filtering */\n";
-    tcapString += selectionLambda.toTCAPString(inputTupleSetName,
-                                               inputColumnNames,
-                                               inputColumnsToApply,
-                                               childrenLambdaNames,
+    tcapString += selectionLambda.toTCAPString(childrenLambdaNames,
                                                lambdaLabel,
                                                getComputationType(),
                                                computationLabel,
-                                               tupleSetName,
-                                               columnNames,
-                                               addedColumnName,
                                                myLambdaName,
-                                               false);
+                                               false,
+                                               &multiInputsBase);
 
     PDB_COUT << "tcapString after parsing selection lambda: " << tcapString << std::endl;
     PDB_COUT << "lambdaLabel=" << lambdaLabel << std::endl;
 
     // create the data for the column names
     mustache::data inputColumnData = mustache::data::type::list;
-    for(int i = 0; i < inputColumnNames.size(); i++) {
+    for (int i = 0; i < multiInputsBase.getInputColumnsForIthInput(0).size(); i++) {
 
       mustache::data columnData;
 
       // fill in the column data
-      columnData.set("columnName", inputColumnNames[i]);
-      columnData.set("isLast", i == inputColumnNames.size()-1);
+      columnData.set("columnName", multiInputsBase.getInputColumnsForIthInput(0)[i]);
+      columnData.set("isLast", i == multiInputsBase.getInputColumnsForIthInput(0).size() - 1);
 
       inputColumnData.push_back(columnData);
     }
@@ -179,7 +184,6 @@ class MultiSelectionComp : public Computation {
 
     // set the new tuple set name
     mustache::mustache newTupleSetNameTemplate{"filteredInputFor{{computationType}}{{computationLabel}}"};
-    std::string newTupleSetName = newTupleSetNameTemplate.render(selectionCompData);
 
     mustache::mustache filterTemplate{"filteredInputFor{{computationType}}{{computationLabel}}"
                                       "({{#inputColumns}}{{columnName}}{{^isLast}}, {{/isLast}}{{/inputColumns}}) "
@@ -193,26 +197,25 @@ class MultiSelectionComp : public Computation {
     PDB_COUT << "TO GET TCAP STRING FOR PROJECTION LAMBDA" << std::endl;
     PDB_COUT << "lambdaLabel=" << lambdaLabel << std::endl;
 
+    // generate the new tuple set name
+    multiInputsBase.setTupleSetNameForIthInput(0, newTupleSetNameTemplate.render(selectionCompData));
 
     // TODO make this nicer
     std::string outputTupleSetName;
     std::vector<std::string> outputColumnNames;
     std::string addedOutputColumnName;
 
+    std::string newTupleSetName;
+
     Lambda<Vector<Handle<Out>>> projectionLambda = getProjection(checkMe);
     tcapString += "\n/* Apply MultiSelection projection */\n";
-    tcapString += projectionLambda.toTCAPString(newTupleSetName,
-                                                inputColumnNames,
-                                                inputColumnsToApply,
-                                                childrenLambdaNames,
+    tcapString += projectionLambda.toTCAPString(childrenLambdaNames,
                                                 lambdaLabel,
                                                 getComputationType(),
                                                 computationLabel,
-                                                outputTupleSetName,
-                                                outputColumnNames,
-                                                addedOutputColumnName,
                                                 myLambdaName,
-                                                true);
+                                                true,
+                                                &multiInputsBase);
 
     // add the new data
     selectionCompData.set("addedOutputColumnName", addedOutputColumnName);
@@ -236,7 +239,6 @@ class MultiSelectionComp : public Computation {
     tcapString += flattenTemplate.render(selectionCompData);
 
     this->traversed = true;
-    this->outputTupleSetName = newTupleSetName;
     this->outputTupleSetName = newTupleSetName;
     this->outputColumnToApply = newOutputColumnName;
     addedOutputColumnName = newOutputColumnName;

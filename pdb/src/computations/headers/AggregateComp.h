@@ -88,113 +88,122 @@ class AggregateComp : public AggregateCompBase {
       return "";
     }
 
+    /**
+     * 1. Generate the TCAP for the key extraction
+     */
+
+    // we label the lambdas from zero
+    int lambdaLabel = 0;
+
     InputTupleSetSpecifier inputTupleSet = inputTupleSets[0];
     std::vector<std::string> childrenLambdaNames;
     std::string myLambdaName;
-    return toTCAPString(inputTupleSet.getTupleSetName(),
-                        inputTupleSet.getColumnNamesToKeep(),
-                        inputTupleSet.getColumnNamesToApply(),
-                        childrenLambdaNames,
-                        computationLabel,
-                        myLambdaName);
 
-  }
+    auto inputTupleSetName = inputTupleSet.getTupleSetName();
+    auto inputColumnNames = inputTupleSet.getColumnNamesToKeep();
+    auto inputColumnsToApply = inputTupleSet.getColumnNamesToApply();
 
-  // to return Aggregate tcap string
-  std::string toTCAPString(std::string inputTupleSetName,
-                           std::vector<std::string> inputColumnNames,
-                           std::vector<std::string> inputColumnsToApply,
-                           std::vector<std::string> &childrenLambdaNames,
-                           int computationLabel,
-                           std::string &myLambdaName) {
+    // this is going to have info about the inputs
+    MultiInputsBase multiInputsBase(1);
 
-    Handle<InputClass> checkMe = nullptr;
+    // set the name of the tuple set for the i-th position
+    multiInputsBase.tupleSetNamesForInputs[0] = inputTupleSets[0].getTupleSetName();
+
+    // set the columns for the i-th position
+    multiInputsBase.inputColumnsForInputs[0] = inputTupleSets[0].getColumnNamesToKeep();
+
+    // the the columns to apply for the i-th position
+    multiInputsBase.inputColumnsToApplyForInputs[0] = inputTupleSets[0].getColumnNamesToApply();
+
+    // setup all input names (the column name corresponding to input in tuple set)
+    multiInputsBase.inputNames[0] = inputTupleSets[0].getColumnNamesToApply()[0];
+
+    // we want to keep the input, so that it can be used by the projection
+    multiInputsBase.inputColumnsToKeep = { inputTupleSets[0].getColumnNamesToKeep()[0] };
+
+    //  get the projection lambda
+    GenericHandle checkMe (1);
     Lambda<KeyClass> keyLambda = getKeyProjection(checkMe);
-    std::string tupleSetName;
-    std::vector<std::string> columnNames;
-    std::string addedColumnName;
-    int lambdaLabel = 0;
-
-    std::vector<std::string> columnsToApply;
-    for (const auto &i : inputColumnsToApply) {
-      columnsToApply.push_back(i);
-    }
 
     std::string tcapString;
     tcapString += "\n/* Extract key for aggregation */\n";
-    tcapString += keyLambda.toTCAPString(inputTupleSetName,
-                                         inputColumnNames,
-                                         inputColumnsToApply,
-                                         childrenLambdaNames,
+    tcapString += keyLambda.toTCAPString(childrenLambdaNames,
                                          lambdaLabel,
                                          getComputationType(),
                                          computationLabel,
-                                         tupleSetName,
-                                         columnNames,
-                                         addedColumnName,
                                          myLambdaName,
-                                         false);
+                                         false,
+                                         &multiInputsBase);
 
-    PDB_COUT << "To GET TCAP STRING FOR AGGREGATE VALUE" << std::endl;
+    // get the key column
+    assert(multiInputsBase.getInputColumnsToApplyForIthInput(0).size() == 1);
+    auto keyColumn = multiInputsBase.getInputColumnsToApplyForIthInput(0)[0];
 
+    /**
+     * 2. Generate the TCAP for the value extraction
+     */
+
+    // get the value lambda
     Lambda<ValueClass> valueLambda = getValueProjection(checkMe);
-    std::vector<std::string> columnsToKeep;
-    columnsToKeep.push_back(addedColumnName);
 
-    // TODO make this nicer
-    std::string outputTupleSetName;
-    std::vector<std::string> outputColumnNames;
-    std::string addedOutputColumnName;
+    // the the columns to apply for the i-th position
+    multiInputsBase.setInputColumnsToApplyForIthInput(0, inputTupleSets[0].getColumnNamesToApply());
+
+    // we are ditching the input, keeping only the extracted value
+    multiInputsBase.inputColumnsToKeep = { keyColumn };
 
     tcapString += "\n/* Extract value for aggregation */\n";
-    tcapString += valueLambda.toTCAPString(tupleSetName,
-                                           columnsToKeep,
-                                           columnsToApply,
-                                           childrenLambdaNames,
+    tcapString += valueLambda.toTCAPString(childrenLambdaNames,
                                            lambdaLabel,
                                            getComputationType(),
                                            computationLabel,
-                                           outputTupleSetName,
-                                           outputColumnNames,
-                                           addedOutputColumnName,
                                            myLambdaName,
-                                           false);
+                                           false,
+                                           &multiInputsBase);
+
+    // get the value column
+    assert(multiInputsBase.getInputColumnsToApplyForIthInput(0).size() == 1);
+    auto valueColumn = multiInputsBase.getInputColumnsToApplyForIthInput(0)[0];
+
+    /**
+     * 3. Generate the TCAP for the aggregation
+     */
+
+    // set the output tuple set
+    inputTupleSetName = multiInputsBase.getTupleSetNameForIthInput(0);
 
     // create the data for the filter
     mustache::data clusterAggCompData;
     clusterAggCompData.set("computationType", getComputationType());
     clusterAggCompData.set("computationLabel", std::to_string(computationLabel));
-    clusterAggCompData.set("outputTupleSetName", outputTupleSetName);
-    clusterAggCompData.set("addedColumnName", addedColumnName);
-    clusterAggCompData.set("addedOutputColumnName", addedOutputColumnName);
+    clusterAggCompData.set("inputTupleSetName", inputTupleSetName);
 
-    // set the new tuple set name
-    mustache::mustache newTupleSetNameTemplate{"aggOutFor{{computationType}}{{computationLabel}}"};
-    std::string newTupleSetName = newTupleSetNameTemplate.render(clusterAggCompData);
-
-    // set new added output columnName 1
+    // set the output columns
     mustache::mustache newAddedOutputColumnName1Template{"aggOutFor{{computationLabel}}"};
-    std::string addedOutputColumnName1 = newAddedOutputColumnName1Template.render(clusterAggCompData);
+    std::string outputColumn = newAddedOutputColumnName1Template.render(clusterAggCompData);
+    clusterAggCompData.set("outputColumn", outputColumn);
 
-    clusterAggCompData.set("addedOutputColumnName1", addedOutputColumnName1);
+    // set the input columns
+    mustache::data inputColumnsToApplyData = mustache::from_vector<std::string>({ keyColumn, valueColumn });
+    clusterAggCompData.set("inputColumns", inputColumnsToApplyData);
 
     tcapString += "\n/* Apply aggregation */\n";
-
-    mustache::mustache aggregateTemplate{"aggOutFor{{computationType}}{{computationLabel}} ({{addedOutputColumnName1}})"
-                                         "<= AGGREGATE ({{outputTupleSetName}}({{addedColumnName}}, {{addedOutputColumnName}}),"
+    mustache::mustache aggregateTemplate{"aggOutFor{{computationType}}{{computationLabel}} ({{outputColumn}})"
+                                         "<= AGGREGATE ({{inputTupleSetName}}({{#inputColumns}}{{value}}{{^isLast}},{{/isLast}}{{/inputColumns}}),"
                                          "'{{computationType}}_{{computationLabel}}')\n"};
 
     tcapString += aggregateTemplate.render(clusterAggCompData);
 
     // update the state of the computation
-    outputTupleSetName = newTupleSetName;
-    outputColumnNames.clear();
-    outputColumnNames.push_back(addedOutputColumnName1);
+    mustache::mustache newTupleSetNameTemplate{"aggOutFor{{computationType}}{{computationLabel}}"};
+    outputTupleSetName = newTupleSetNameTemplate.render(clusterAggCompData);
 
+    // set the output column
+    this->outputColumnToApply = outputColumn;
+
+    // update marker
     this->traversed = true;
-    this->outputTupleSetName = outputTupleSetName;
-    this->outputColumnToApply = addedOutputColumnName1;
-    addedOutputColumnName = addedOutputColumnName1;
+
     return tcapString;
   }
 
