@@ -203,12 +203,12 @@ class SelectionComp : public Computation {
     tcapString += '\n';
 
     //  get the output columns
-    outputColumns = multiInputsBase.getInputColumnsToApplyForIthInput(0);
+    outputColumns = multiInputsBase.inputColumnsToApplyForInputs[0];
     assert(outputColumns.size() == 1);
     this->outputColumnToApply = outputColumns[0];
 
     // update the tuple set
-    this->outputTupleSetName = multiInputsBase.getTupleSetNameForIthInput(0);
+    this->outputTupleSetName = multiInputsBase.tupleSetNamesForInputs[0];
 
     // update the state of the computation
     this->traversed = true;

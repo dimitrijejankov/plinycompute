@@ -556,9 +556,8 @@ public:
       shouldFilterChild = shouldFilter;
     }
 
-    // is the parent is a predicated but the children are expressions make sure that we have all the inputs
-    // joined so that the have the inputs in a single tuple set
-    if(shouldFilter && !shouldFilterChild) {
+    // if this is an expressions subtree make sure all the inputs are joined
+    if(isExpressionRoot) {
 
       // get all the inputs of this lambda tree
       std::set<int32_t> inputs;
@@ -581,6 +580,9 @@ public:
       if ((i + 1) < this->getNumChildren()) {
         nextChild = this->getChild(i + 1);
       }
+
+      // if this is a predicated but the child is not the child is an expression root
+      child->isExpressionRoot = shouldFilter && !shouldFilterChild;
 
       // recurse to generate the TCAP string
       child->getTCAPStrings(tcapStrings,
@@ -621,6 +623,11 @@ public:
     * Is the lambda object the root of the lambda tree
     */
    bool isRoot = false;
+
+   /**
+    * True if this is an expression subtree
+    */
+   bool isExpressionRoot = false;
 
    /**
     * Has this lambda been followed by a filter
