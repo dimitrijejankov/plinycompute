@@ -216,7 +216,7 @@ public:
     );
   }
 
-  std::string getTypeOfLambda() override {
+  std::string getTypeOfLambda() const override {
     return std::string("==");
   }
 
@@ -257,10 +257,6 @@ public:
     lambdaData.set("computationLabel", std::to_string(computationLabel));
     lambdaData.set("typeOfLambda", getTypeOfLambda());
     lambdaData.set("lambdaLabel", std::to_string(lambdaLabel));
-
-    // create the lambda name
-    mustache::mustache lambdaNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}"};
-    myLambdaName = lambdaNameTemplate.render(lambdaData);
 
     // create the computation name with label
     mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
@@ -329,7 +325,7 @@ public:
                                             outputColumns,
                                             "APPLY",
                                             computationNameWithLabel,
-                                            myLambdaName,
+                                            getLambdaName(),
                                             getInfo());
 
       // we are going to be applying the generated boolean column
@@ -428,7 +424,7 @@ public:
                                             lhsOutputColumns,
                                             "HASHLEFT",
                                             computationNameWithLabel,
-                                            myLambdaName,
+                                            getLambdaName(),
                                             {});
 
       /**
@@ -463,7 +459,7 @@ public:
                                             rhsOutputColumns,
                                             "HASHRIGHT",
                                             computationNameWithLabel,
-                                            myLambdaName,
+                                            getLambdaName(),
                                             {});
 
 
@@ -592,7 +588,7 @@ public:
                                             outputColumns,
                                             "APPLY",
                                             computationNameWithLabel,
-                                            myLambdaName,
+                                            getLambdaName(),
                                             getInfo());
 
       /**

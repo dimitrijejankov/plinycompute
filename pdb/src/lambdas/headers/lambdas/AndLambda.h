@@ -120,7 +120,7 @@ class AndLambda : public TypedLambdaObject<bool> {
         });
   }
 
-  std::string getTypeOfLambda() override {
+  std::string getTypeOfLambda() const override {
     return std::string("and");
   }
 
@@ -166,10 +166,6 @@ class AndLambda : public TypedLambdaObject<bool> {
     lambdaData.set("computationLabel", std::to_string(computationLabel));
     lambdaData.set("typeOfLambda", getTypeOfLambda());
     lambdaData.set("lambdaLabel", std::to_string(lambdaLabel));
-
-    // create the lambda name
-    mustache::mustache lambdaNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}"};
-    myLambdaName = lambdaNameTemplate.render(lambdaData);
 
     // create the computation name with label
     mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
@@ -241,7 +237,7 @@ class AndLambda : public TypedLambdaObject<bool> {
                                                        outputColumns,
                                                        "APPLY",
                                                        computationNameWithLabel,
-                                                       myLambdaName,
+                                                       getLambdaName(),
                                                        getInfo());
 
       // go through each tuple set and update stuff

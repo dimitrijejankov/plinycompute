@@ -93,7 +93,7 @@ public:
 
   }
 
-  std::string getTypeOfLambda() override {
+  std::string getTypeOfLambda() const override {
     return std::string("deref");
   }
 

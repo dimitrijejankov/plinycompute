@@ -154,7 +154,7 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
 
   ~CPlusPlusLambda() = default;
 
-  std::string getTypeOfLambda() override {
+  std::string getTypeOfLambda() const override {
     return std::string("native_lambda");
   }
 
