@@ -227,19 +227,13 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
    * it calls first a method to join all the inputs if necessary. We do that because a native lambda can have
    * multiple inputs and they can be in different tuple sets.
    *
-   * @param computationLabel - the index of the computation the lambda belongs to.
-   * @param lambdaLabel - the label of the labda (just an integer identifier)
-   * @param computationName - so this is how we named the computation, usually type with the identifier,
-   *                          we need that to generate the TCAP
    * @param parentLambdaName - the name of the parent lambda to this one, if there is not any it is an empty string
    * @param childrenLambdaNames - the names of the child lambdas
    * @param multiInputsComp - all the inputs sets that are currently there
    * @param isPredicate - is this a predicate and we need to generate a filter?
    * @return - the TCAP string
    */
-  std::string generateTCAPString(int computationLabel,
-                                 int lambdaLabel,
-                                 const std::string &parentLambdaName,
+  std::string generateTCAPString(const std::string &parentLambdaName,
                                  std::vector<std::string> &childrenLambdaNames,
                                  MultiInputsBase *multiInputsComp,
                                  bool isPredicate) override {
@@ -253,8 +247,7 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
 
     // perform the cartesian joining if necessary
     std::vector<std::string> tcapStrings;
-    LambdaObject::generateJoinedInputs(computationLabel,
-                                       lambdaLabel,
+    LambdaObject::generateJoinedInputs(this->myLambdaLabel,
                                        tcapStrings,
                                        inputs,
                                        multiInputsComp);
@@ -263,9 +256,7 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
     std::for_each(tcapStrings.begin(), tcapStrings.end(), [&](const auto& val) { tcapString += val; });
 
     // return the TCAP string
-    tcapString += LambdaObject::generateTCAPString(computationLabel,
-                                                   lambdaLabel,
-                                                   parentLambdaName,
+    tcapString += LambdaObject::generateTCAPString(parentLambdaName,
                                                    childrenLambdaNames,
                                                    multiInputsComp,
                                                    isPredicate);

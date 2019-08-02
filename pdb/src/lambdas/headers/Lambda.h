@@ -44,18 +44,21 @@ class Lambda {
 
   // does the actual tree traversal
   // JiaNote: I changed below method from pre-order traversing to post-order traversing, so that it follows the lambda execution ordering
-  static void traverse(std::map<std::string, LambdaObjectPtr> &fillMe,
-                       LambdaObjectPtr root, int &startLabel) {
+  static void traverse(std::map<std::string,
+                       LambdaObjectPtr> &fillMe,
+                       LambdaObjectPtr root,
+                       int &startLabel) {
+
+    std::string myName = root->getTypeOfLambda();
+    myName = myName + "_" + std::to_string(startLabel);
+    fillMe[myName] = root;
 
     for (int i = 0; i < root->getNumChildren(); i++) {
       LambdaObjectPtr child = root->getChild(i);
       traverse(fillMe, child, startLabel);
     }
-    std::string myName = root->getTypeOfLambda();
-    myName = myName + "_" + std::to_string(startLabel);
-    std::cout << "\tExtracted lambda named: " << myName << "\n";
+
     startLabel++;
-    fillMe[myName] = root;
   }
 
   /**

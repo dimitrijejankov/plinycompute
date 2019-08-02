@@ -244,9 +244,7 @@ public:
    * @param isPredicate - is this a predicate and we need to generate a filter?
    * @return - the TCAP string
    */
-  std::string generateTCAPString(int computationLabel,
-                                 int lambdaLabel,
-                                 const std::string &parentLambdaName,
+  std::string generateTCAPString(const std::string &parentLambdaName,
                                  std::vector<std::string> &childrenLambdaNames,
                                  MultiInputsBase *multiInputsComp,
                                  bool isPredicate) override {
@@ -254,9 +252,9 @@ public:
     // create the data for the lambda
     mustache::data lambdaData;
     lambdaData.set("computationName", myComputationName);
-    lambdaData.set("computationLabel", std::to_string(computationLabel));
+    lambdaData.set("computationLabel", std::to_string(myComputationLabel));
     lambdaData.set("typeOfLambda", getTypeOfLambda());
-    lambdaData.set("lambdaLabel", std::to_string(lambdaLabel));
+    lambdaData.set("lambdaLabel", std::to_string(myLambdaLabel));
 
     // create the computation name with label
     mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
@@ -467,7 +465,7 @@ public:
        * 2. First we form a join computation that joins based on the hash columns
        */
 
-      outputTupleSetName = "JoinedFor_equals" + std::to_string(lambdaLabel) + myComputationName + std::to_string(computationLabel);
+      outputTupleSetName = "JoinedFor_equals" + std::to_string(myLambdaLabel) + myComputationName + std::to_string(myComputationLabel);
 
       // set the prefix
       lambdaData.set("tupleSetNamePrefix", outputTupleSetName);
