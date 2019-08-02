@@ -207,12 +207,19 @@ public:
     auto second = pageSetCosts.find(secondProducerPageSet->pageSetIdentifier);
     if(second == pageSetCosts.end()) { throw std::runtime_error(std::string("Did not find the page set : ") + (std::string) secondProducerPageSet->pageSetIdentifier.second); }
 
+    // get the join computation
+    auto applyJoin = (ApplyJoin *) pipeline.front().get();
+
     // figure out which side
     auto &leftSide = second->second < first->second ? secondProducer : firstProducer;
     auto &rightSide = second->second >= first->second ? secondProducer : firstProducer;
 
+    // get the tuple set identifier corresponding to the right input of the join
+    auto rhsInput = applyJoin->getRightInput();
+
     // should we swap the lhs and rhs side, if it is not a hash one or a hash left
-    bool shouldSwap = leftSide.pipeline.back()->getAtomicComputationTypeID() == HashRightTypeID;
+    bool shouldSwap = leftSide.pipeline.back()->getOutput().getSetName() == rhsInput.getSetName();
+
     // create the source
     pdb::Handle<PDBSourcePageSetSpec> leftSource = pdb::makeObject<PDBSourcePageSetSpec>();
     leftSource->sourceType = getSourceTypeForSinkType(leftSide.getSinkPageSet()->sinkType);

@@ -183,15 +183,89 @@ class AndLambda : public TypedLambdaObject<bool> {
     bool joined = lhsPtr->joinGroup == rhsPtr->joinGroup;
 
     /**
-     * 1. If this is an expression and not a predicated, throw an exception since we don't support this currently
+     * 0. If this is an expression
      */
 
-    if(!lhsPtr->isFiltered || !rhsPtr->isFiltered) {
-      throw std::runtime_error("We only currently support && predicates, expressions are not supported. ");
+    // if this and lambda is not a predicate but an expression that means that we need to apply and equals lambda on it.
+    if(!isPredicate) {
+
+      // must be an expression if lhs and rhs are expressions and they must be in the same tuple set (as all expressions must be)
+      assert(!lhsPtr->isFiltered);
+      assert(!rhsPtr->isFiltered);
+      assert(joined);
+
+      // must have exactly one generated column in both rhs and lhs
+      assert(lhsPtr->generatedColumns.size() == 1);
+      assert(rhsPtr->generatedColumns.size() == 1);
+
+      // get the input index any will do
+      auto inputIndex =*lhsPtr->joinedInputs.begin();
+
+      // generate output tupleset name
+      mustache::mustache outputTupleSetNameTemplate{"and_{{lambdaLabel}}_bool_{{computationName}}{{computationLabel}}"};
+      outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
+
+      // create the output column name
+      mustache::mustache outputColumnNameTemplate{"and_{{lambdaLabel}}_{{computationLabel}}_bool"};
+      std::string outputColumnName = outputColumnNameTemplate.render(lambdaData);
+
+      // remove the lhs input if it is not the original input column
+      auto inputs = multiInputsComp->inputColumnsForInputs[inputIndex];
+      if(std::find(multiInputsComp->inputNames.begin(), multiInputsComp->inputNames.end(), lhsPtr->generatedColumns[0]) == multiInputsComp->inputNames.end()) {
+        inputs.erase(std::remove(inputs.begin(), inputs.end(), lhsPtr->generatedColumns[0]), inputs.end());
+      }
+
+      // remove the rhs input if it is not in the original input colum
+      if(std::find(multiInputsComp->inputNames.begin(), multiInputsComp->inputNames.end(), rhsPtr->generatedColumns[0]) == multiInputsComp->inputNames.end()) {
+        inputs.erase(std::remove(inputs.begin(), inputs.end(), rhsPtr->generatedColumns[0]), inputs.end());
+      }
+
+      // the output are the forwarded inputs with the generated column
+      outputColumns = inputs;
+      outputColumns.push_back(outputColumnName);
+
+      // the the columns we have applied in this lambda
+      appliedColumns = { lhsPtr->generatedColumns[0], rhsPtr->generatedColumns[0] };
+
+      // we are going to be applying the generated boolean column
+      generatedColumns = { outputColumnName };
+
+      // update the join group
+      joinGroup = multiInputsComp->joinGroupForInput[inputIndex];
+
+      // generate the and lambda
+      std::string tcapString = formatLambdaComputation(multiInputsComp->tupleSetNamesForInputs[inputIndex],
+                                                       inputs,
+                                                       appliedColumns,
+                                                       outputTupleSetName,
+                                                       outputColumns,
+                                                       "APPLY",
+                                                       computationNameWithLabel,
+                                                       myLambdaName,
+                                                       getInfo());
+
+      // go through each tuple set and update stuff
+      for(int i = 0; i < multiInputsComp->tupleSetNamesForInputs.size(); ++i) {
+
+        // check if this tuple set is the same index
+        if(multiInputsComp->joinGroupForInput[i] == joinGroup) {
+
+          // the output tuple set is the new set with these columns
+          multiInputsComp->tupleSetNamesForInputs[i] = outputTupleSetName;
+          multiInputsComp->inputColumnsForInputs[i] = outputColumns;
+          multiInputsComp->inputColumnsToApplyForInputs[i] = generatedColumns;
+
+          // this input was joined
+          joinedInputs.insert(i);
+        }
+      }
+
+      // return the generated tcap
+      return std::move(tcapString);
     }
 
     /**
-     * 2. Check if this is already joined and filtered if it is, we don't need to do anything
+     * 1. Check if this is already joined and filtered if it is, we don't need to do anything
      */
 
     // check if all the columns are in the same tuple set, in that case we apply the equals lambda directly onto that tuple set
@@ -242,13 +316,13 @@ class AndLambda : public TypedLambdaObject<bool> {
     }
 
     /**
-     * 3. This is a predicate but it is not joined therefore we need to do a cartasian join there is no need to do a
+     * 2. This is a predicate but it is not joined therefore we need to do a cartasian join there is no need to do a
      * filter after this since the inputs are already filtered and this is an and predicate.
      */
 
 
     /**
-     * 3.1. Create a hash one for the LHS side
+     * 2.1. Create a hash one for the LHS side
      */
 
     // get the index of the left input, any will do since all joined tuple sets are the same
@@ -288,7 +362,7 @@ class AndLambda : public TypedLambdaObject<bool> {
                                                      {});
 
     /**
-     * 3.2 Create a hash one for the RHS side
+     * 2.2 Create a hash one for the RHS side
      */
 
     // get the index of the left input, any will do since all joined tuple sets are the same
@@ -327,7 +401,7 @@ class AndLambda : public TypedLambdaObject<bool> {
                                           {});
 
     /**
-     * 3.3 Make the cartasian join
+     * 2.3 Make the cartasian join
      */
 
     mustache::mustache outputTupleSetTemplate{"CartesianJoined__{{computationLabel}}_{{lambdaLabel}}"};
