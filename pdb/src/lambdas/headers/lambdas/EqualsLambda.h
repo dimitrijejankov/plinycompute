@@ -255,6 +255,7 @@ public:
     lambdaData.set("computationLabel", std::to_string(myComputationLabel));
     lambdaData.set("typeOfLambda", getTypeOfLambda());
     lambdaData.set("lambdaLabel", std::to_string(myLambdaLabel));
+    lambdaData.set("tupleSetMidTag", prefix);
 
     // create the computation name with label
     mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
@@ -465,7 +466,7 @@ public:
        * 2. First we form a join computation that joins based on the hash columns
        */
 
-      outputTupleSetName = "JoinedFor_equals" + std::to_string(myLambdaLabel) + myComputationName + std::to_string(myComputationLabel);
+      outputTupleSetName = "JoinedFor_equals_" + prefix + std::to_string(myLambdaLabel) + myComputationName + std::to_string(myComputationLabel);
 
       // set the prefix
       lambdaData.set("tupleSetNamePrefix", outputTupleSetName);
@@ -486,93 +487,67 @@ public:
                                           computationNameWithLabel);
 
       /**
+       * 3.0 Update the inputs so that we can reapply the lhs and rhs expressions
+       */
+
+      // go through each tuple set and update stuff
+      for(int i = 0; i < multiInputsComp->tupleSetNamesForInputs.size(); ++i) {
+
+        // check if this tuple set is the same index
+        if (multiInputsComp->joinGroupForInput[i] == rhsGroup || multiInputsComp->joinGroupForInput[i] == lhsGroup) {
+
+          // the output tuple set is the new set with these columns
+          multiInputsComp->tupleSetNamesForInputs[i] = outputTupleSetName;
+          multiInputsComp->inputColumnsForInputs[i] = outputColumns;
+          multiInputsComp->inputColumnsToApplyForInputs[i] = {};
+
+          // this input was joined
+          joinedInputs.insert(i);
+
+          // update the join group so that rhs has the same group as lhs
+          multiInputsComp->joinGroupForInput[i] = lhsGroup;
+        }
+      }
+
+      /**
        * 3.1 Next we extract the LHS column of the join from the lhs input
        */
 
-      // the output of the join is the input to the lambda that extracts the LHS
-      std::string inputTupleSetName = outputTupleSetName;
-
-      // the input to the lambda is the output
-      auto inputColumnNames = outputColumns;
-
-      // get the column that the child is applying
-      std::vector<std::string> inputColumnsToApply = { multiInputsComp->getNameForIthInput(lhs.getInputIndex(0)) };
-
-      // make the name for the column we are going to create
-      mustache::mustache outputColumnNameTemplate{"LHSExtractedFor_{{lambdaLabel}}_{{computationLabel}}"};
-      std::string lhsColumn = outputColumnNameTemplate.render(lambdaData);
-      outputColumns.push_back(lhsColumn);
-
-      // make the name for tuple set created
-      mustache::mustache outputTupleSetNameTemplate{"{{tupleSetNamePrefix}}_WithLHSExtracted"};
-      outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
-
-      // the additional info about this attribute access lambda
-      tcapString += formatLambdaComputation(inputTupleSetName,
-                                            inputColumnNames,
-                                            inputColumnsToApply,
-                                            outputTupleSetName,
-                                            outputColumns,
-                                            "APPLY",
-                                            computationNameWithLabel,
-                                            childrenLambdaNames[0],
-                                            getChild(0)->getInfo());
+      std::vector<std::string> tcapStrings;
+      lhs.getPtr()->generateExpressionTCAP("LExtractedFor" + std::to_string(myLambdaLabel), getLambdaName(), multiInputsComp, tcapStrings);
 
       /**
        * 3.2 Next we extract the RHS column of the join from the rhs input
        */
 
-      // the input to RHS extraction is the output of the extracted LHS
-      inputTupleSetName = outputTupleSetName;
+      rhs.getPtr()->generateExpressionTCAP("LExtractedFor" + std::to_string(myLambdaLabel), getLambdaName(), multiInputsComp, tcapStrings);
+      for_each(tcapStrings.begin(), tcapStrings.end(), [&](auto &value) {
+        tcapString += value;
+      });
 
-      // same goes for the output columns
-      inputColumnNames = outputColumns;
-
-      // get the column that the child is applying to get the RHS
-      inputColumnsToApply = { multiInputsComp->getNameForIthInput(rhs.getInputIndex(0)) };
-
-      // make the name for tuple set created
-      outputTupleSetNameTemplate = {"{{tupleSetNamePrefix}}_WithBOTHExtracted"};
-      outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
-
-      // make the name for the column we are going to create
-      outputColumnNameTemplate = {"RHSExtractedFor_{{lambdaLabel}}_{{computationLabel}}"};
-      std::string rhsColumn = outputColumnNameTemplate.render(lambdaData);
-      outputColumns.push_back(rhsColumn);
-
-      // add the tcap string
-      tcapString += formatLambdaComputation(inputTupleSetName,
-                                            inputColumnNames,
-                                            inputColumnsToApply,
-                                            outputTupleSetName,
-                                            outputColumns,
-                                            "APPLY",
-                                            computationNameWithLabel,
-                                            childrenLambdaNames[1],
-                                            getChild(1)->getInfo());
 
       /**
        * 4. Now with both sides extracted we perform the boolean expression that check if we should keep the joined rows
        */
 
       // the input to the boolean lambda is the output tuple set from the previous lambda
-      inputTupleSetName = outputTupleSetName;
+      auto inputTupleSetName = multiInputsComp->tupleSetNamesForInputs[*lhs.getPtr()->joinedInputs.begin()];
 
       // the boolean lambda is applied on the lhs and rhs extracted column
-      appliedColumns = { lhsColumn , rhsColumn };
+      appliedColumns = { lhs.getPtr()->generatedColumns.front() , rhs.getPtr()->generatedColumns.front() };
 
       // input columns are basically the input columns that are not the hash from the lhs and rhs side
-      inputColumnNames = lhsInputColumns;
+      auto inputColumnNames = lhsInputColumns;
       inputColumnNames.insert(inputColumnNames.end(), rhsInputColumns.begin(), rhsInputColumns.end());
 
       // the output columns are the input columns with the additional new column we created to store the comparison result
       outputColumns = inputColumnNames;
-      outputColumnNameTemplate = {"bool_{{lambdaLabel}}_{{computationLabel}}"};
+      mustache::mustache outputColumnNameTemplate = {"bool_{{lambdaLabel}}_{{computationLabel}}"};
       std::string booleanColumn = outputColumnNameTemplate.render(lambdaData);
       outputColumns.emplace_back(booleanColumn);
 
       // we make a new tupleset name
-      outputTupleSetNameTemplate = {"{{tupleSetNamePrefix}}_BOOL"};
+      mustache::mustache outputTupleSetNameTemplate = {"{{tupleSetNamePrefix}}_{{tupleSetMidTag}}_BOOL"};
       outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
 
       // set the generated columns
@@ -603,7 +578,7 @@ public:
       outputColumns.pop_back();
 
       // make the name for the new tuple set that is the output of the filter
-      outputTupleSetNameTemplate = {"{{tupleSetNamePrefix}}_FILTERED"};
+      outputTupleSetNameTemplate = {"{{tupleSetNamePrefix}}_{{tupleSetMidTag}}_FILTERED"};
       outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
 
       // we are applying the filtering on the boolean column

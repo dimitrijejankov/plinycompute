@@ -201,10 +201,6 @@ public:
    * It basically creates an apply atomic computation for the lambda. In order for it to do it it needs to have all
    * the inputs in the same tuple set, meaning it can not work on two tuple sets at once.
    *
-   * @param computationLabel - the index of the computation the lambda belongs to.
-   * @param lambdaLabel - the label of the labda (just an integer identifier)
-   * @param computationName - so this is how we named the computation, usually type with the identifier,
-   *                          we need that to generate the TCAP
    * @param parentLambdaName - the name of the parent lambda to this one, if there is not any it is an empty string
    * @param childrenLambdaNames - the names of the child lambdas
    * @param multiInputsComp - all the inputs sets that are currently there
@@ -222,7 +218,7 @@ public:
     lambdaData.set("computationLabel", std::to_string(myComputationLabel));
     lambdaData.set("typeOfLambda", getTypeOfLambda());
     lambdaData.set("lambdaLabel", std::to_string(myLambdaLabel));
-    lambdaData.set("tupleSetMidTag", "OutFor");
+    lambdaData.set("tupleSetMidTag", prefix);
 
     // create the computation name with label
     mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
@@ -620,6 +616,40 @@ public:
     lambdaLabel++;
   }
 
+  void generateExpressionTCAP(const std::string &prefix,
+                              const std::string &parentLambdaName,
+                              MultiInputsBase *multiInputsComp,
+                              std::vector<std::string> &tcapStrings) {
+
+    // it is not the root
+    this->isRoot = false;
+
+    // the prefix to be added to all atomic computations
+    this->prefix = prefix;
+
+    // the names of the child lambda we need that for the equal lambda etc..
+    std::vector<std::string> childrenLambdas;
+    for (int i = 0; i < this->getNumChildren(); i++) {
+
+      // get the child lambda
+      LambdaObjectPtr child = this->getChild(i);
+
+      // recurse to generate the TCAP string
+      child->generateExpressionTCAP(prefix, getLambdaName(), multiInputsComp, tcapStrings);
+
+      // add the lambda
+      childrenLambdas.push_back(child->getLambdaName());
+    }
+
+    // generate the TCAP string for the current lambda
+    std::string tcapString = this->generateTCAPString(parentLambdaName,
+                                                      childrenLambdas,
+                                                      multiInputsComp,
+                                                      false);
+
+    tcapStrings.push_back(tcapString);
+  }
+
   virtual std::map<std::string, std::string> getInfo() = 0;
 
   /**
@@ -671,6 +701,11 @@ public:
     * The columns this lambda has generated
     */
    std::vector<std::string> generatedColumns;
+
+   /**
+    * Prefix we add to the tuple sets of this lambda
+    */
+    std::string prefix = "OutFor";
 
    /**
     * The name of the lambda

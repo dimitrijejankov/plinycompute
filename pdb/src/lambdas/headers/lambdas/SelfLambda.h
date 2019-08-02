@@ -42,7 +42,7 @@ class SelfLambda : public TypedLambdaObject<pdb::Ptr<ClassType>> {
     this->setInputIndex(0, -((input.getExactTypeInfoValue() + 1)));
   }
 
-  std::string   getTypeOfLambda() const override {
+  std::string getTypeOfLambda() const override {
     return std::string("self");
   }
 
