@@ -111,8 +111,6 @@ class MultiSelectionComp : public Computation {
     }
 
     InputTupleSetSpecifier inputTupleSet = inputTupleSets[0];
-    std::vector<std::string> childrenLambdaNames;
-    std::string myLambdaName;
 
     // make the inputs
     std::string inputTupleSetName = inputTupleSet.getTupleSetName();
@@ -153,11 +151,9 @@ class MultiSelectionComp : public Computation {
     // create multi selection
     std::string tcapString;
     tcapString += "\n/* Apply MultiSelection filtering */\n";
-    tcapString += selectionLambda.toTCAPString(childrenLambdaNames,
-                                               lambdaLabel,
+    tcapString += selectionLambda.toTCAPString(lambdaLabel,
                                                getComputationType(),
                                                computationLabel,
-                                               myLambdaName,
                                                false,
                                                &multiInputsBase);
 
@@ -200,11 +196,9 @@ class MultiSelectionComp : public Computation {
 
     Lambda<Vector<Handle<Out>>> projectionLambda = getProjection(checkMe);
     tcapString += "\n/* Apply MultiSelection projection */\n";
-    tcapString += projectionLambda.toTCAPString(childrenLambdaNames,
-                                                lambdaLabel,
+    tcapString += projectionLambda.toTCAPString(lambdaLabel,
                                                 getComputationType(),
                                                 computationLabel,
-                                                myLambdaName,
                                                 true,
                                                 &multiInputsBase);
 

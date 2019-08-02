@@ -232,18 +232,28 @@ public:
     return nullptr;
   }
 
-  std::string toTCAPString(std::vector<std::string> &childrenLambdaNames,
-                           int lambdaLabel,
-                           const std::string &computationName,
-                           int computationLabel,
-                           std::string &myLambdaName,
-                           MultiInputsBase *multiInputsComp,
-                           bool shouldFilter,
-                           const std::string &parentLambdaName) override {
+  /**
+   *
+   * @param computationLabel - the index of the computation the lambda belongs to.
+   * @param lambdaLabel - the label of the labda (just an integer identifier)
+   * @param computationName - so this is how we named the computation, usually type with the identifier,
+   *                          we need that to generate the TCAP
+   * @param parentLambdaName - the name of the parent lambda to this one, if there is not any it is an empty string
+   * @param childrenLambdaNames - the names of the child lambdas
+   * @param multiInputsComp - all the inputs sets that are currently there
+   * @param isPredicate - is this a predicate and we need to generate a filter?
+   * @return - the TCAP string
+   */
+  std::string generateTCAPString(int computationLabel,
+                                 int lambdaLabel,
+                                 const std::string &parentLambdaName,
+                                 std::vector<std::string> &childrenLambdaNames,
+                                 MultiInputsBase *multiInputsComp,
+                                 bool isPredicate) override {
 
     // create the data for the lambda
     mustache::data lambdaData;
-    lambdaData.set("computationName", computationName);
+    lambdaData.set("computationName", myComputationName);
     lambdaData.set("computationLabel", std::to_string(computationLabel));
     lambdaData.set("typeOfLambda", getTypeOfLambda());
     lambdaData.set("lambdaLabel", std::to_string(lambdaLabel));
@@ -326,7 +336,7 @@ public:
       generatedColumns = { outputColumnName };
 
       // if we are a part of the join predicate we need to apply a filter
-      if(shouldFilter) {
+      if(isPredicate) {
 
         // mark as filtered
         isFiltered = true;
@@ -382,7 +392,7 @@ public:
        * 1.1 Form the left hasher
        */
 
-      if(!shouldFilter) {
+      if(!isPredicate) {
 
         // so we don't support stuff like (a == b) == (c == d) since this would make us generate
         // a cartasian join for subexpressions (a == b) and (c == d), this can be done though it would just be
@@ -461,7 +471,7 @@ public:
        * 2. First we form a join computation that joins based on the hash columns
        */
 
-      outputTupleSetName = "JoinedFor_equals" + std::to_string(lambdaLabel) + computationName + std::to_string(computationLabel);
+      outputTupleSetName = "JoinedFor_equals" + std::to_string(lambdaLabel) + myComputationName + std::to_string(computationLabel);
 
       // set the prefix
       lambdaData.set("tupleSetNamePrefix", outputTupleSetName);

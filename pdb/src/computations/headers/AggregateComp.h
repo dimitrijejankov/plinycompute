@@ -96,8 +96,6 @@ class AggregateComp : public AggregateCompBase {
     int lambdaLabel = 0;
 
     InputTupleSetSpecifier inputTupleSet = inputTupleSets[0];
-    std::vector<std::string> childrenLambdaNames;
-    std::string myLambdaName;
 
     auto inputTupleSetName = inputTupleSet.getTupleSetName();
     auto inputColumnNames = inputTupleSet.getColumnNamesToKeep();
@@ -127,11 +125,9 @@ class AggregateComp : public AggregateCompBase {
 
     std::string tcapString;
     tcapString += "\n/* Extract key for aggregation */\n";
-    tcapString += keyLambda.toTCAPString(childrenLambdaNames,
-                                         lambdaLabel,
+    tcapString += keyLambda.toTCAPString(lambdaLabel,
                                          getComputationType(),
                                          computationLabel,
-                                         myLambdaName,
                                          false,
                                          &multiInputsBase);
 
@@ -153,11 +149,9 @@ class AggregateComp : public AggregateCompBase {
     multiInputsBase.inputColumnsToKeep = { keyColumn };
 
     tcapString += "\n/* Extract value for aggregation */\n";
-    tcapString += valueLambda.toTCAPString(childrenLambdaNames,
-                                           lambdaLabel,
+    tcapString += valueLambda.toTCAPString(lambdaLabel,
                                            getComputationType(),
                                            computationLabel,
-                                           myLambdaName,
                                            false,
                                            &multiInputsBase);
 

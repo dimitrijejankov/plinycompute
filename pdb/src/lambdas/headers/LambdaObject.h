@@ -108,11 +108,7 @@ public:
     }
   }
 
-  /**
-  * Used to set the index of this lambda's input in the corresponding computation
-  * @param i - the index of the input
-  * @param index - the index of the input in the corresponding computation
-  */
+  // Used to set the index of this lambda's input in the corresponding computation
   void setInputIndex(int i, unsigned int index) {
     size_t numInputs = this->getNumInputs();
     if (numInputs == 0) {
@@ -144,7 +140,6 @@ public:
   // the tuple set to build, the tuple set to add the column to, and the position where the
   // column will be added.  If the LambdaObject cannot build the column (it has no knowledge
   // of that type) a false is returned.  Otherwise, a true is returned.
-  //virtual bool addColumnToTupleSet (std :: string &typeToMatch, TupleSetPtr addToMe, int posToAddTo) = 0;
 
   // returns the number of children of this Lambda type
   virtual int getNumChildren() = 0;
@@ -206,18 +201,37 @@ public:
     return std::distance(inputs.begin(), it);
   }
 
-  virtual std::string toTCAPString(std::vector<std::string> &childrenLambdaNames,
-                                   int lambdaLabel,
-                                   const std::string &computationName,
-                                   int computationLabel,
-                                   std::string &myLambdaName,
-                                   MultiInputsBase *multiInputsComp,
-                                   bool shouldFilter,
-                                   const std::string &parentLambdaName) {
+  /**
+   * This method is used to generate TCAP for the :
+   * - AttAccessLambda
+   * - CPlusPlusLambda (it is called from it, there is extra code to join stuff if needed)
+   * - DereferenceLambda
+   * - MethodCallLambda
+   * - SelfLambda
+   *
+   * It basically creates an apply atomic computation for the lambda. In order for it to do it it needs to have all
+   * the inputs in the same tuple set, meaning it can not work on two tuple sets at once.
+   *
+   * @param computationLabel - the index of the computation the lambda belongs to.
+   * @param lambdaLabel - the label of the labda (just an integer identifier)
+   * @param computationName - so this is how we named the computation, usually type with the identifier,
+   *                          we need that to generate the TCAP
+   * @param parentLambdaName - the name of the parent lambda to this one, if there is not any it is an empty string
+   * @param childrenLambdaNames - the names of the child lambdas
+   * @param multiInputsComp - all the inputs sets that are currently there
+   * @param isPredicate - is this a predicate and we need to generate a filter?
+   * @return - the TCAP string
+   */
+  virtual std::string generateTCAPString(int computationLabel,
+                                         int lambdaLabel,
+                                         const std::string &parentLambdaName,
+                                         std::vector<std::string> &childrenLambdaNames,
+                                         MultiInputsBase *multiInputsComp,
+                                         bool isPredicate) {
 
     // create the data for the lambda so we can generate the strings
     mustache::data lambdaData;
-    lambdaData.set("computationName", computationName);
+    lambdaData.set("computationName", myComputationName);
     lambdaData.set("computationLabel", std::to_string(computationLabel));
     lambdaData.set("typeOfLambda", getTypeOfLambda());
     lambdaData.set("lambdaLabel", std::to_string(lambdaLabel));
@@ -262,8 +276,8 @@ public:
       appliedColumns = child->generatedColumns;
 
       // get the index
-      currIndex = getInputIndexForColumns(multiInputsComp, appliedColumns);
-      assert(currIndex != -1);
+      assert(!child->joinedInputs.empty());
+      currIndex = *child->joinedInputs.begin();
     }
     else {
 
@@ -317,7 +331,7 @@ public:
                                           getInfo());
 
     // if we are a part of the join predicate
-    if(shouldFilter) {
+    if(isPredicate) {
 
       // mark as filtered
       isFiltered = true;
@@ -370,12 +384,20 @@ public:
     return std::move(tcapString);
   }
 
-  void getJoinedInputs(const std::string &computationName,
-                       int32_t computationLabel,
-                       int32_t lambdaLabel,
-                       std::vector<std::string> &tcapStrings,
-                       const std::set<int32_t> &inputs,
-                       MultiInputsBase *multiInputsComp) {
+  /**
+   * This creates a bunch of cartesian joins to make sure all inputs are in the same tuple set.
+   *
+   * @param computationLabel - the identifier of the computation
+   * @param lambdaLabel - the identifier of the lambda
+   * @param tcapStrings - the list of generated tcap strings
+   * @param inputs - the inputs we have to make sure are joined
+   * @param multiInputsComp - the current input tuple sets
+   */
+  void generateJoinedInputs(int32_t computationLabel,
+                            int32_t lambdaLabel,
+                            std::vector<std::string> &tcapStrings,
+                            const std::set<int32_t> &inputs,
+                            MultiInputsBase *multiInputsComp) {
 
     // make sure we actually have inputs
     if(inputs.empty()) {
@@ -391,7 +413,7 @@ public:
 
       // create the data for the lambda
       mustache::data lambdaData;
-      lambdaData.set("computationName", computationName);
+      lambdaData.set("computationName", myComputationName);
       lambdaData.set("computationLabel", std::to_string(computationLabel));
       lambdaData.set("typeOfLambda", getTypeOfLambda());
       lambdaData.set("lambdaLabel", std::to_string(lambdaLabel));
@@ -534,17 +556,30 @@ public:
 
   }
 
-  void getTCAPStrings(std::vector<std::string> &tcapStrings,
+  /**
+   * This method recursively goes through the entire lambda tree and generate the appropriate TCAP string for it
+   *
+   * @param computationLabel - the identifier of the computation
+   * @param lambdaLabel - the identifier of the lambda
+   * @param computationName - the name of the computation this lambda tree belongs to
+   * @param parentLambdaName - the
+   * @param multiInputsComp - the current input tuple sets
+   * @param joinPredicate - is this a predicate or an expression
+   * @param tcapStrings - the list of tcap strings generated
+   */
+  void getTCAPStrings(int computationLabel,
                       int &lambdaLabel,
                       const std::string &computationName,
-                      int computationLabel,
-                      std::string &myLambdaName,
-                      MultiInputsBase *multiInputsComp = nullptr,
-                      bool shouldFilter = false,
-                      const std::string &parentLambdaName = "") {
+                      const std::string &parentLambdaName,
+                      MultiInputsBase *multiInputsComp,
+                      bool joinPredicate,
+                      std::vector<std::string> &tcapStrings) {
 
     //  and empty parent lambda name means that this is the root of a lambda tree
     isRoot = parentLambdaName.empty();
+
+    // set the name of the computation
+    myComputationName = computationName;
 
     // make the name for this lambda object
     std::string myTypeName = this->getTypeOfLambda();
@@ -553,7 +588,7 @@ public:
     // should the child filter or not
     bool shouldFilterChild = false;
     if(myTypeName == "and" || myTypeName == "deref") {
-      shouldFilterChild = shouldFilter;
+      shouldFilterChild = joinPredicate;
     }
 
     // if this is an expressions subtree make sure all the inputs are joined
@@ -564,49 +599,39 @@ public:
       getAllInputs(inputs);
 
       // perform the cartasian joining if necessary
-      getJoinedInputs(computationName, computationLabel, lambdaLabel, tcapStrings, inputs, multiInputsComp);
+      generateJoinedInputs(computationLabel, lambdaLabel, tcapStrings, inputs, multiInputsComp);
     }
 
     // the names of the child lambda we need that for the equal lambda etc..
     std::vector<std::string> childrenLambdas;
 
-    LambdaObjectPtr nextChild = nullptr;
     for (int i = 0; i < this->getNumChildren(); i++) {
 
       // get the child lambda
       LambdaObjectPtr child = this->getChild(i);
 
-      // get the next child if it exists
-      if ((i + 1) < this->getNumChildren()) {
-        nextChild = this->getChild(i + 1);
-      }
-
       // if this is a predicated but the child is not the child is an expression root
-      child->isExpressionRoot = shouldFilter && !shouldFilterChild;
+      child->isExpressionRoot = joinPredicate && !shouldFilterChild;
 
       // recurse to generate the TCAP string
-      child->getTCAPStrings(tcapStrings,
-                            lambdaLabel,
-                            computationName,
-                            computationLabel,
-                            myLambdaName,
-                            multiInputsComp,
-                            shouldFilterChild,
-                            myName);
+      child->getTCAPStrings(
+          computationLabel,
+          lambdaLabel,
+          computationName,
+          myName,
+          multiInputsComp,
+          shouldFilterChild, tcapStrings);
 
-      childrenLambdas.push_back(myLambdaName);
-      nextChild = nullptr;
+      childrenLambdas.push_back(child->myLambdaName);
     }
 
     // generate the TCAP string for the current lambda
-    std::string tcapString = this->toTCAPString(childrenLambdas,
-                                                lambdaLabel,
-                                                computationName,
-                                                computationLabel,
-                                                myLambdaName,
-                                                multiInputsComp,
-                                                shouldFilter,
-                                                parentLambdaName);
+    std::string tcapString = this->generateTCAPString(computationLabel,
+                                                      lambdaLabel,
+                                                      parentLambdaName,
+                                                      childrenLambdas,
+                                                      multiInputsComp,
+                                                      joinPredicate);
 
     tcapStrings.push_back(tcapString);
     lambdaLabel++;
@@ -663,6 +688,16 @@ public:
     * The columns this lambda has generated
     */
    std::vector<std::string> generatedColumns;
+
+   /**
+    * The name of the lambda
+    */
+   std::string myLambdaName;
+
+   /**
+    * The name of the computations
+    */
+   std::string myComputationName;
 };
 }
 

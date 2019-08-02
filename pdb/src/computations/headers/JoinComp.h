@@ -265,18 +265,12 @@ public:
     // we label the lambdas from zero
     int lambdaLabel = 0;
 
-    // stuff that is needed
-    std::vector<std::string> childrenLambdaNames;
-    std::string myLambdaName;
-
     // get the selection lambda
     std::string tcapString = "\n/* Apply join selection */\n";
     Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
-    tcapString += selectionLambda.toTCAPString(childrenLambdaNames,
-                                               lambdaLabel,
+    tcapString += selectionLambda.toTCAPString(lambdaLabel,
                                                "JoinComp",
                                                computationLabel,
-                                               myLambdaName,
                                                false,
                                                &multiInputsBase,
                                                true);
@@ -288,11 +282,9 @@ public:
     // get the projection lambda and it's inputs
     tcapString += "\n/* Apply join projection*/\n";
     Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
-    tcapString += projectionLambda.toTCAPString(childrenLambdaNames,
-                                                lambdaLabel,
+    tcapString += projectionLambda.toTCAPString(lambdaLabel,
                                                 "JoinComp",
                                                 computationLabel,
-                                                myLambdaName,
                                                 true,
                                                 &multiInputsBase,
                                                 false);

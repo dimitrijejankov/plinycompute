@@ -140,19 +140,29 @@ class AndLambda : public TypedLambdaObject<bool> {
     return nullptr;
   }
 
-  //TODO: add comment here and refractor the code
-  std::string toTCAPString(std::vector<std::string> &childrenLambdaNames,
-                           int lambdaLabel,
-                           const std::string &computationName,
-                           int computationLabel,
-                           std::string &myLambdaName,
-                           MultiInputsBase *multiInputsComp,
-                           bool shouldFilter,
-                           const std::string &parentLambdaName) override {
+  /**
+   * Generates the TCAP string for the && (and) lambda.
+   *
+   * @param computationLabel - the index of the computation the lambda belongs to.
+   * @param lambdaLabel - the label of the labda (just an integer identifier)
+   * @param computationName - so this is how we named the computation, usually type with the identifier,
+   *                          we need that to generate the TCAP
+   * @param parentLambdaName - the name of the parent lambda to this one, if there is not any it is an empty string
+   * @param childrenLambdaNames - the names of the child lambdas
+   * @param multiInputsComp - all the inputs sets that are currently there
+   * @param isPredicate - is this a predicate and we need to generate a filter?
+   * @return - the TCAP string
+   */
+  std::string generateTCAPString(int computationLabel,
+                                 int lambdaLabel,
+                                 const std::string &parentLambdaName,
+                                 std::vector<std::string> &childrenLambdaNames,
+                                 MultiInputsBase *multiInputsComp,
+                                 bool isPredicate) override {
 
     // create the data for the lambda
     mustache::data lambdaData;
-    lambdaData.set("computationName", computationName);
+    lambdaData.set("computationName", myComputationName);
     lambdaData.set("computationLabel", std::to_string(computationLabel));
     lambdaData.set("typeOfLambda", getTypeOfLambda());
     lambdaData.set("lambdaLabel", std::to_string(lambdaLabel));

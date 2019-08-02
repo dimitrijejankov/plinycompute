@@ -109,25 +109,25 @@ class Lambda {
     traverse(returnVal, tree, suffix);
   }
 
-  //This is to get the TCAPString for this lambda tree
-  std::string toTCAPString(std::vector<std::string> &childrenLambdas,
-                           int &lambdaLabel,
+  std::string toTCAPString(int &lambdaLabel,
                            const std::string& computationName,
                            int computationLabel,
-                           std::string &myLambdaName,
                            bool whetherToRemoveUnusedOutputColumns,
                            MultiInputsBase *multiInputsComp,
                            bool shouldFilter = false) {
 
+    // lambda name of the root, we just need it
+    std::string rootLambdaName;
+
     // generate the tcap strings for atomic computations
     std::vector<std::string> tcapStrings;
-    tree->getTCAPStrings(tcapStrings,
-                         lambdaLabel,
-                         computationName,
-                         computationLabel,
-                         myLambdaName,
-                         multiInputsComp,
-                         shouldFilter);
+    tree->getTCAPStrings(
+        computationLabel,
+        lambdaLabel,
+        computationName,
+        "",
+        multiInputsComp,
+        shouldFilter, tcapStrings);
 
     // clear the input the output is all in a single tuple set now
     multiInputsComp->resize(1);

@@ -91,8 +91,6 @@ class SelectionComp : public Computation {
     }
 
     InputTupleSetSpecifier inputTupleSet = inputTupleSets[0];
-    std::vector<std::string> childrenLambdaNames;
-    std::string myLambdaName;
 
     // make the inputs
     std::string inputTupleSetName = inputTupleSet.getTupleSetName();
@@ -132,11 +130,9 @@ class SelectionComp : public Computation {
 
     std::string tcapString;
     tcapString += "\n/* Apply selection filtering */\n";
-    tcapString += selectionLambda.toTCAPString(childrenLambdaNames,
-                                               lambdaLabel,
+    tcapString += selectionLambda.toTCAPString(lambdaLabel,
                                                getComputationType(),
                                                computationLabel,
-                                               myLambdaName,
                                                false,
                                                &multiInputsBase);
 
@@ -193,11 +189,9 @@ class SelectionComp : public Computation {
 
     // generate the TCAP string for the FILTER
     tcapString += "\n/* Apply selection projection */\n";
-    tcapString += projectionLambda.toTCAPString(childrenLambdaNames,
-                                                lambdaLabel,
+    tcapString += projectionLambda.toTCAPString(lambdaLabel,
                                                 getComputationType(),
                                                 computationLabel,
-                                                myLambdaName,
                                                 true,
                                                 &multiInputsBase);
     tcapString += '\n';
