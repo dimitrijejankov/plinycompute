@@ -1,9 +1,5 @@
-//
-// Created by dimitrije on 2/19/19.
-//
 
-#ifndef PDB_GENERICLAMBDAOBJECT_H
-#define PDB_GENERICLAMBDAOBJECT_H
+#pragma once
 
 #include <memory>
 #include <vector>
@@ -88,7 +84,29 @@ public:
     return inputIndexes[i];
   }
 
-  // returns all the inputs in the lambda tree
+  /**
+   * This method labels all the lambdas in the lambda tree with an unique identifier
+   * @param label - the label we start labeling the tree
+   */
+  void labelTree(int32_t &label) {
+
+    // set my label
+    myLambdaLabel = label;
+
+    // set the label of the children
+    for (int i = 0; i < getNumChildren(); i++) {
+      LambdaObjectPtr child = getChild(i);
+      child->labelTree(label);
+    }
+
+    // increment the label
+    label++;
+  }
+
+  /**
+   * Returns all the inputs in the lambda tree
+   * @param inputs - all the inputs
+   */
   void getAllInputs(std::set<int32_t> &inputs) {
 
     // go through all the children
@@ -201,16 +219,11 @@ public:
    * It basically creates an apply atomic computation for the lambda. In order for it to do it it needs to have all
    * the inputs in the same tuple set, meaning it can not work on two tuple sets at once.
    *
-   * @param parentLambdaName - the name of the parent lambda to this one, if there is not any it is an empty string
-   * @param childrenLambdaNames - the names of the child lambdas
    * @param multiInputsComp - all the inputs sets that are currently there
    * @param isPredicate - is this a predicate and we need to generate a filter?
    * @return - the TCAP string
    */
-  virtual std::string generateTCAPString(const std::string &parentLambdaName,
-                                         std::vector<std::string> &childrenLambdaNames,
-                                         MultiInputsBase *multiInputsComp,
-                                         bool isPredicate) {
+  virtual std::string generateTCAPString(MultiInputsBase *multiInputsComp, bool isPredicate) {
 
     // create the data for the lambda so we can generate the strings
     mustache::data lambdaData;
@@ -218,18 +231,18 @@ public:
     lambdaData.set("computationLabel", std::to_string(myComputationLabel));
     lambdaData.set("typeOfLambda", getTypeOfLambda());
     lambdaData.set("lambdaLabel", std::to_string(myLambdaLabel));
-    lambdaData.set("tupleSetMidTag", prefix);
+    lambdaData.set("tupleSetMidTag", myPrefix);
 
     // create the computation name with label
     mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
     std::string computationNameWithLabel = computationNameWithLabelTemplate.render(lambdaData);
 
     // create the output tuple set name
-    mustache::mustache outputTupleSetNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}{{tupleSetMidTag}}{{computationName}}{{computationLabel}}"};
+    mustache::mustache outputTupleSetNameTemplate{"{{tupleSetMidTag}}_{{typeOfLambda}}_{{lambdaLabel}}{{computationName}}{{computationLabel}}"};
     outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
 
     // create the output columns
-    mustache::mustache outputColumnNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}_{{computationLabel}}_{{tupleSetMidTag}}"};
+    mustache::mustache outputColumnNameTemplate{"{{tupleSetMidTag}}_{{typeOfLambda}}_{{lambdaLabel}}_{{computationLabel}}"};
     generatedColumns = { outputColumnNameTemplate.render(lambdaData) };
 
     // the input tuple set
@@ -321,7 +334,7 @@ public:
       outputColumns.pop_back();
 
       // make the name for the new tuple set that is the output of the filter
-      outputTupleSetNameTemplate = {"FILTERED_{{lambdaLabel}}{{tupleSetMidTag}}{{computationName}}{{computationLabel}}"};
+      outputTupleSetNameTemplate = {"{{tupleSetMidTag}}_FILTERED_{{lambdaLabel}}{{computationName}}{{computationLabel}}"};
       outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
 
       // we are applying the filtering on the boolean column
@@ -365,14 +378,11 @@ public:
   /**
    * This creates a bunch of cartesian joins to make sure all inputs are in the same tuple set.
    *
-   * @param computationLabel - the identifier of the computation
-   * @param lambdaLabel - the identifier of the lambda
    * @param tcapStrings - the list of generated tcap strings
    * @param inputs - the inputs we have to make sure are joined
    * @param multiInputsComp - the current input tuple sets
    */
-  void generateJoinedInputs(int32_t lambdaLabel,
-                            std::vector<std::string> &tcapStrings,
+  void generateJoinedInputs(std::vector<std::string> &tcapStrings,
                             const std::set<int32_t> &inputs,
                             MultiInputsBase *multiInputsComp) {
 
@@ -393,8 +403,9 @@ public:
       lambdaData.set("computationName", myComputationName);
       lambdaData.set("computationLabel", std::to_string(myComputationLabel));
       lambdaData.set("typeOfLambda", getTypeOfLambda());
-      lambdaData.set("lambdaLabel", std::to_string(lambdaLabel));
+      lambdaData.set("lambdaLabel", std::to_string(myLambdaLabel));
       lambdaData.set("idx", std::to_string(idx));
+      lambdaData.set("tupleSetMidTag", myPrefix);
 
       // create the computation name with label
       mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
@@ -423,7 +434,7 @@ public:
       std::vector<std::string> leftColumnsToApply = { lhsColumnNames[0] };
 
       // make the output tuple set
-      mustache::mustache leftOutputTupleTemplate{"hashOneFor_{{LHSApplyAttribute}}_{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
+      mustache::mustache leftOutputTupleTemplate{"{{tupleSetMidTag}}_hashOneFor_{{LHSApplyAttribute}}_{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
       std::string leftOutputTupleSetName = leftOutputTupleTemplate.render(lambdaData);
 
       // make the column name
@@ -462,7 +473,7 @@ public:
       std::vector<std::string> rightColumnsToApply = { rhsColumnNames[0] };
 
       // make the output tuple set
-      mustache::mustache rightOutputTupleSetNameTemplate{"hashOneFor_{{RHSApplyAttribute}}_{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
+      mustache::mustache rightOutputTupleSetNameTemplate{"{{tupleSetMidTag}}_hashOneFor_{{RHSApplyAttribute}}_{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
       std::string rightOutputTupleSetName = rightOutputTupleSetNameTemplate.render(lambdaData);
 
       // make the column name
@@ -489,7 +500,7 @@ public:
        * 1.3 Make the cartasian join
        */
 
-      mustache::mustache outputTupleSetTemplate{"CartesianJoined__{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
+      mustache::mustache outputTupleSetTemplate{"{{tupleSetMidTag}}_CartesianJoined__{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
       outputTupleSetName = outputTupleSetTemplate.render(lambdaData);
 
       // copy the output columns
@@ -537,34 +548,29 @@ public:
    * This method recursively goes through the entire lambda tree and generate the appropriate TCAP string for it
    *
    * @param computationLabel - the identifier of the computation
-   * @param lambdaLabel - the identifier of the lambda
    * @param computationName - the name of the computation this lambda tree belongs to
-   * @param parentLambdaName - the
+   * @param isRootLambda - true if this is the root of a lambda tree false otherwise
    * @param multiInputsComp - the current input tuple sets
    * @param joinPredicate - is this a predicate or an expression
    * @param tcapStrings - the list of tcap strings generated
    */
   void getTCAPStrings(int computationLabel,
-                      int &lambdaLabel,
                       const std::string &computationName,
-                      const std::string &parentLambdaName,
+                      bool isRootLambda,
                       MultiInputsBase *multiInputsComp,
                       bool joinPredicate,
                       std::vector<std::string> &tcapStrings) {
 
     //  and empty parent lambda name means that this is the root of a lambda tree
-    isRoot = parentLambdaName.empty();
+    isRoot = isRootLambda;
 
     // set the computation label and name
     myComputationLabel = computationLabel;
     myComputationName = computationName;
 
-    // set the lambda label
-    myLambdaLabel = lambdaLabel;
-
     // make the name for this lambda object
     std::string myTypeName = this->getTypeOfLambda();
-    std::string myName = myTypeName + "_" + std::to_string(lambdaLabel + this->getNumChildren());
+    std::string myName = myTypeName + "_" + std::to_string(myLambdaLabel + this->getNumChildren());
 
     // should the child filter or not
     bool shouldFilterChild = false;
@@ -580,7 +586,7 @@ public:
       getAllInputs(inputs);
 
       // perform the cartasian joining if necessary
-      generateJoinedInputs(lambdaLabel, tcapStrings, inputs, multiInputsComp);
+      generateJoinedInputs(tcapStrings, inputs, multiInputsComp);
     }
 
     // the names of the child lambda we need that for the equal lambda etc..
@@ -596,9 +602,8 @@ public:
 
       // recurse to generate the TCAP string
       child->getTCAPStrings(computationLabel,
-                            lambdaLabel,
                             computationName,
-                            myName,
+                            false,
                             multiInputsComp,
                             shouldFilterChild,
                             tcapStrings);
@@ -607,46 +612,40 @@ public:
     }
 
     // generate the TCAP string for the current lambda
-    std::string tcapString = this->generateTCAPString(parentLambdaName,
-                                                      childrenLambdas,
-                                                      multiInputsComp,
-                                                      joinPredicate);
+    std::string tcapString = this->generateTCAPString(multiInputsComp, joinPredicate);
 
     tcapStrings.push_back(tcapString);
-    lambdaLabel++;
   }
 
-  void generateExpressionTCAP(const std::string &prefix,
-                              const std::string &parentLambdaName,
-                              MultiInputsBase *multiInputsComp,
-                              std::vector<std::string> &tcapStrings) {
+  /**
+   * Generates the expression for the subtree of the lambda tree. We use this method usually to extract back the
+   * columns missing after a join
+   * @param prefix - the prefix added to the new tuple sets
+   * @param multiInputsComp - the current input tuple sets
+   * @param tcapStrings - the list of tcap strings generated
+   */
+  void generateExpressionTCAP(const std::string &prefix, MultiInputsBase *multiInputsComp, std::vector<std::string> &tcapStrings) {
 
     // it is not the root
     this->isRoot = false;
 
     // the prefix to be added to all atomic computations
-    this->prefix = prefix;
+    this->myPrefix = prefix;
 
     // the names of the child lambda we need that for the equal lambda etc..
-    std::vector<std::string> childrenLambdas;
     for (int i = 0; i < this->getNumChildren(); i++) {
 
       // get the child lambda
       LambdaObjectPtr child = this->getChild(i);
 
       // recurse to generate the TCAP string
-      child->generateExpressionTCAP(prefix, getLambdaName(), multiInputsComp, tcapStrings);
-
-      // add the lambda
-      childrenLambdas.push_back(child->getLambdaName());
+      child->generateExpressionTCAP(prefix, multiInputsComp, tcapStrings);
     }
 
     // generate the TCAP string for the current lambda
-    std::string tcapString = this->generateTCAPString(parentLambdaName,
-                                                      childrenLambdas,
-                                                      multiInputsComp,
-                                                      false);
+    std::string tcapString = this->generateTCAPString(multiInputsComp, false);
 
+    // store the tcap
     tcapStrings.push_back(tcapString);
   }
 
@@ -705,12 +704,7 @@ public:
    /**
     * Prefix we add to the tuple sets of this lambda
     */
-    std::string prefix = "OutFor";
-
-   /**
-    * The name of the lambda
-    */
-   int32_t myLambdaLabel;
+    std::string myPrefix = "OutFor";
 
    /**
     * The name of the computations
@@ -720,8 +714,11 @@ public:
    /**
     * The label associated with the computation
     */
-    int32_t myComputationLabel;
+   int32_t myComputationLabel;
+
+   /**
+    * The name of the lambda
+    */
+   int32_t myLambdaLabel;
 };
 }
-
-#endif //PDB_GENERICLAMBDAOBJECT_H

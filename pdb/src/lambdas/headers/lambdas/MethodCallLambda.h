@@ -18,8 +18,7 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef METHOD_CALL_LAM_H
-#define METHOD_CALL_LAM_H
+#pragma once
 
 #include <vector>
 #include "Lambda.h"
@@ -106,5 +105,3 @@ class MethodCallLambda : public TypedLambdaObject<Out> {
 };
 
 }
-
-#endif

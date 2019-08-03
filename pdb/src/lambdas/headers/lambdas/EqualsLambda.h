@@ -16,8 +16,7 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef EQUALS_LAM_H
-#define EQUALS_LAM_H
+#pragma once
 
 #include <vector>
 #include "Lambda.h"
@@ -244,9 +243,7 @@ public:
    * @param isPredicate - is this a predicate and we need to generate a filter?
    * @return - the TCAP string
    */
-  std::string generateTCAPString(const std::string &parentLambdaName,
-                                 std::vector<std::string> &childrenLambdaNames,
-                                 MultiInputsBase *multiInputsComp,
+  std::string generateTCAPString(MultiInputsBase *multiInputsComp,
                                  bool isPredicate) override {
 
     // create the data for the lambda
@@ -255,7 +252,7 @@ public:
     lambdaData.set("computationLabel", std::to_string(myComputationLabel));
     lambdaData.set("typeOfLambda", getTypeOfLambda());
     lambdaData.set("lambdaLabel", std::to_string(myLambdaLabel));
-    lambdaData.set("tupleSetMidTag", prefix);
+    lambdaData.set("tupleSetMidTag", myPrefix);
 
     // create the computation name with label
     mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
@@ -409,7 +406,7 @@ public:
       std::string lhsOutputTupleSetName = lhsInputTupleSet + "_hashed";
 
       // the hash column
-      auto lhsOutputColumnName = lhsInputColumnsToApply[0] + "_hash";
+      auto lhsOutputColumnName = myPrefix + lhsInputColumnsToApply[0] + "_hash";
 
       // add the hashed column
       auto lhsOutputColumns = lhsInputColumns;
@@ -444,7 +441,7 @@ public:
       std::string rhsOutputTupleSetName = rhsInputTupleSet + "_hashed";
 
       // the hash column
-      auto rhsOutputColumnName = rhsInputColumnsToApply[0] + "_hash";
+      auto rhsOutputColumnName = myPrefix + rhsInputColumnsToApply[0] + "_hash";
 
       // add the hashed column
       auto rhsOutputColumns = rhsInputColumns;
@@ -466,7 +463,7 @@ public:
        * 2. First we form a join computation that joins based on the hash columns
        */
 
-      outputTupleSetName = "JoinedFor_equals_" + prefix + std::to_string(myLambdaLabel) + myComputationName + std::to_string(myComputationLabel);
+      outputTupleSetName = myPrefix + "JoinedFor_equals_" + std::to_string(myLambdaLabel) + myComputationName + std::to_string(myComputationLabel);
 
       // set the prefix
       lambdaData.set("tupleSetNamePrefix", outputTupleSetName);
@@ -514,13 +511,13 @@ public:
        */
 
       std::vector<std::string> tcapStrings;
-      lhs.getPtr()->generateExpressionTCAP("LExtractedFor" + std::to_string(myLambdaLabel), getLambdaName(), multiInputsComp, tcapStrings);
+      lhs.getPtr()->generateExpressionTCAP("LExtractedFor" + std::to_string(myLambdaLabel), multiInputsComp, tcapStrings);
 
       /**
        * 3.2 Next we extract the RHS column of the join from the rhs input
        */
 
-      rhs.getPtr()->generateExpressionTCAP("LExtractedFor" + std::to_string(myLambdaLabel), getLambdaName(), multiInputsComp, tcapStrings);
+      rhs.getPtr()->generateExpressionTCAP("RExtractedFor" + std::to_string(myLambdaLabel), multiInputsComp, tcapStrings);
       for_each(tcapStrings.begin(), tcapStrings.end(), [&](auto &value) {
         tcapString += value;
       });
@@ -547,7 +544,7 @@ public:
       outputColumns.emplace_back(booleanColumn);
 
       // we make a new tupleset name
-      mustache::mustache outputTupleSetNameTemplate = {"{{tupleSetNamePrefix}}_{{tupleSetMidTag}}_BOOL"};
+      mustache::mustache outputTupleSetNameTemplate = {"{{tupleSetMidTag}}_{{tupleSetNamePrefix}}_BOOL"};
       outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
 
       // set the generated columns
@@ -578,7 +575,7 @@ public:
       outputColumns.pop_back();
 
       // make the name for the new tuple set that is the output of the filter
-      outputTupleSetNameTemplate = {"{{tupleSetNamePrefix}}_{{tupleSetMidTag}}_FILTERED"};
+      outputTupleSetNameTemplate = {"{{tupleSetMidTag}}_{{tupleSetNamePrefix}}_FILTERED"};
       outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
 
       // we are applying the filtering on the boolean column
@@ -646,5 +643,3 @@ private:
 };
 
 }
-
-#endif

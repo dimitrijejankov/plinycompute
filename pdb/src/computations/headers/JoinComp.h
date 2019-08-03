@@ -39,11 +39,15 @@ public:
 
   // calls getProjection and getSelection to extract the lambdas
   void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
-    int suffix = 0;
     Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
     Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
-    selectionLambda.toMap(returnVal, suffix);
-    projectionLambda.toMap(returnVal, suffix);
+
+    // the label we are started labeling
+    int32_t startLabel = 0;
+
+    // extract the lambdas
+    selectionLambda.extractLambdas(returnVal, startLabel);
+    projectionLambda.extractLambdas(returnVal, startLabel);
   }
 
   // return the output type

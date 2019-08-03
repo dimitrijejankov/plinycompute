@@ -16,8 +16,7 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef C_PLUS_PLUS_LAM_CC
-#define C_PLUS_PLUS_LAM_CC
+#pragma once
 
 #include <memory>
 #include <iostream>
@@ -233,10 +232,7 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
    * @param isPredicate - is this a predicate and we need to generate a filter?
    * @return - the TCAP string
    */
-  std::string generateTCAPString(const std::string &parentLambdaName,
-                                 std::vector<std::string> &childrenLambdaNames,
-                                 MultiInputsBase *multiInputsComp,
-                                 bool isPredicate) override {
+  std::string generateTCAPString(MultiInputsBase *multiInputsComp, bool isPredicate) override {
 
     // the return value
     std::string tcapString;
@@ -247,19 +243,13 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
 
     // perform the cartesian joining if necessary
     std::vector<std::string> tcapStrings;
-    LambdaObject::generateJoinedInputs(this->myLambdaLabel,
-                                       tcapStrings,
-                                       inputs,
-                                       multiInputsComp);
+    LambdaObject::generateJoinedInputs(tcapStrings, inputs, multiInputsComp);
 
     // copy all strings
     std::for_each(tcapStrings.begin(), tcapStrings.end(), [&](const auto& val) { tcapString += val; });
 
     // return the TCAP string
-    tcapString += LambdaObject::generateTCAPString(parentLambdaName,
-                                                   childrenLambdaNames,
-                                                   multiInputsComp,
-                                                   isPredicate);
+    tcapString += LambdaObject::generateTCAPString(multiInputsComp, isPredicate);
 
     // return the tcap string
     return std::move(tcapString);
@@ -285,5 +275,3 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
 };
 
 }
-
-#endif

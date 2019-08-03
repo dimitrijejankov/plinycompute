@@ -16,8 +16,7 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef SELF_LAM_H
-#define SELF_LAM_H
+#pragma once
 
 #include "Handle.h"
 #include <string>
@@ -128,5 +127,3 @@ class SelfLambda : public TypedLambdaObject<pdb::Ptr<ClassType>> {
   }
 };
 }
-
-#endif

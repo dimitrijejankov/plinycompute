@@ -37,57 +37,30 @@ namespace pdb {
 template<class ReturnType>
 class Lambda {
 
- private:
+private:
 
   // in case we wrap up a non-pointer type
   std::shared_ptr<TypedLambdaObject<ReturnType>> tree;
 
+  // is labeled
+  bool isLabeled = false;
+
   // does the actual tree traversal
-  // JiaNote: I changed below method from pre-order traversing to post-order traversing, so that it follows the lambda execution ordering
-  static void traverse(std::map<std::string,
-                       LambdaObjectPtr> &fillMe,
-                       LambdaObjectPtr root,
-                       int &startLabel) {
+  static void extractLambdas(std::map<std::string, LambdaObjectPtr> &fillMe,
+                             const LambdaObjectPtr& root,
+                             int &startLabel) {
 
-    std::string myName = root->getTypeOfLambda();
-    myName = myName + "_" + std::to_string(startLabel);
-    fillMe[myName] = root;
+    // set the lambda
+    fillMe[root->getLambdaName()] = root;
 
+    // traverse the child lambdas
     for (int i = 0; i < root->getNumChildren(); i++) {
       LambdaObjectPtr child = root->getChild(i);
-      traverse(fillMe, child, startLabel);
-    }
-
-    startLabel++;
-  }
-
-  /**
- *
- * @param allInputs
- * @param root
- * @param multiInputsBase
- */
-  void getInputs(std::vector<std::string> &allInputs, LambdaObjectPtr root, MultiInputsBase *multiInputsBase) {
-
-    for (int i = 0; i < root->getNumChildren(); i++) {
-
-      LambdaObjectPtr child = root->getChild(i);
-      getInputs(allInputs, child, multiInputsBase);
-    }
-
-    if (root->getNumChildren() == 0) {
-      for (int i = 0; i < root->getNumInputs(); i++) {
-        std::string myName = multiInputsBase->getNameForIthInput(root->getInputIndex(i));
-        auto iter = std::find(allInputs.begin(), allInputs.end(), myName);
-
-        if (iter == allInputs.end()) {
-          allInputs.push_back(myName);
-        }
-      }
+      extractLambdas(fillMe, child, startLabel);
     }
   }
 
- public:
+public:
 
   // create a lambda tree that returns a pointer
   Lambda(LambdaTree<Ptr<ReturnType>> treeWithPointer) {
@@ -101,36 +74,38 @@ class Lambda {
   // create a lambda tree that returns a non-pointer
   Lambda(LambdaTree<ReturnType> tree) : tree(tree.getPtr()) {}
 
-  std::vector<std::string> getAllInputs(MultiInputsBase *multiInputsBase) {
-    std::vector<std::string> ret;
-    this->getInputs(ret, tree, multiInputsBase);
-    return ret;
+  // extracts the lambdas from the lambda tree
+  void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal, int32_t &startLabel) {
+
+    // if the lambda tree is not labeled, label it
+    if(!isLabeled) {
+      tree->labelTree(startLabel);
+    }
+
+    // extract the lambdas from this lambda tree and
+    extractLambdas(returnVal, tree, startLabel);
   }
 
-  // convert one of these guys to a map
-  void toMap(std::map<std::string, LambdaObjectPtr> &returnVal, int &suffix) {
-    traverse(returnVal, tree, suffix);
-  }
-
-  std::string toTCAPString(int &lambdaLabel,
+  std::string toTCAPString(int &startLabel,
                            const std::string& computationName,
                            int computationLabel,
                            bool whetherToRemoveUnusedOutputColumns,
                            MultiInputsBase *multiInputsComp,
                            bool shouldFilter = false) {
 
-    // lambda name of the root, we just need it
-    std::string rootLambdaName;
+    // if the lambda tree is not labeled, label it
+    if(!isLabeled) {
+      tree->labelTree(startLabel);
+    }
 
     // generate the tcap strings for atomic computations
     std::vector<std::string> tcapStrings;
-    tree->getTCAPStrings(
-        computationLabel,
-        lambdaLabel,
-        computationName,
-        "",
-        multiInputsComp,
-        shouldFilter, tcapStrings);
+    tree->getTCAPStrings(computationLabel,
+                         computationName,
+                         true,
+                         multiInputsComp,
+                         shouldFilter,
+                         tcapStrings);
 
     // clear the input the output is all in a single tuple set now
     multiInputsComp->resize(1);

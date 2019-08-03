@@ -49,12 +49,16 @@ class AggregateComp : public AggregateCompBase {
 
   // extract the key projection and value projection
   void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
-    int suffix = 0;
     Handle<InputClass> checkMe = nullptr;
     Lambda<KeyClass> keyLambda = getKeyProjection(checkMe);
     Lambda<ValueClass> valueLambda = getValueProjection(checkMe);
-    keyLambda.toMap(returnVal, suffix);
-    valueLambda.toMap(returnVal, suffix);
+
+    // the label we are started labeling
+    int32_t startLabel = 0;
+
+    // extract the lambdas
+    keyLambda.extractLambdas(returnVal, startLabel);
+    valueLambda.extractLambdas(returnVal, startLabel);
   }
 
   // this is an aggregation comp

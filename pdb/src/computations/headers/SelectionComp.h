@@ -38,12 +38,16 @@ class SelectionComp : public Computation {
 
   // calls getProjection and getSelection to extract the lambdas
   void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
-    int suffix = 0;
     Handle<InputClass> checkMe = nullptr;
     Lambda<bool> selectionLambda = getSelection(checkMe);
     Lambda<Handle<OutputClass>> projectionLambda = getProjection(checkMe);
-    selectionLambda.toMap(returnVal, suffix);
-    projectionLambda.toMap(returnVal, suffix);
+
+    // the label we are started labeling
+    int32_t startLabel = 0;
+
+    // extract the lambdas
+    selectionLambda.extractLambdas(returnVal, startLabel);
+    projectionLambda.extractLambdas(returnVal, startLabel);
   }
 
   // this is a selection computation

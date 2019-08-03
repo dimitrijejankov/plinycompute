@@ -16,8 +16,7 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef AND_LAM_H
-#define AND_LAM_H
+#pragma once
 
 #include <vector>
 #include "Lambda.h"
@@ -153,9 +152,7 @@ class AndLambda : public TypedLambdaObject<bool> {
    * @param isPredicate - is this a predicate and we need to generate a filter?
    * @return - the TCAP string
    */
-  std::string generateTCAPString(const std::string &parentLambdaName,
-                                 std::vector<std::string> &childrenLambdaNames,
-                                 MultiInputsBase *multiInputsComp,
+  std::string generateTCAPString(MultiInputsBase *multiInputsComp,
                                  bool isPredicate) override {
 
     // create the data for the lambda
@@ -165,7 +162,7 @@ class AndLambda : public TypedLambdaObject<bool> {
     lambdaData.set("typeOfLambda", getTypeOfLambda());
     lambdaData.set("lambdaLabel", std::to_string(myLambdaLabel));
     lambdaData.set("lambdaLabel", std::to_string(myLambdaLabel));
-    lambdaData.set("tupleSetMidTag", prefix);
+    lambdaData.set("tupleSetMidTag", myPrefix);
 
     // create the computation name with label
     mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
@@ -198,7 +195,7 @@ class AndLambda : public TypedLambdaObject<bool> {
       auto inputIndex =*lhsPtr->joinedInputs.begin();
 
       // generate output tupleset name
-      mustache::mustache outputTupleSetNameTemplate{"and{{tupleSetMidTag}}_{{lambdaLabel}}_bool_{{computationName}}{{computationLabel}}"};
+      mustache::mustache outputTupleSetNameTemplate{"{{tupleSetMidTag}}_and{{lambdaLabel}}_bool_{{computationName}}{{computationLabel}}"};
       outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
 
       // create the output column name
@@ -335,7 +332,7 @@ class AndLambda : public TypedLambdaObject<bool> {
     std::vector<std::string> leftColumnsToApply = { lhsColumnNames[0] };
 
     // make the output tuple set
-    mustache::mustache leftOutputTupleTemplate{"hashOneFor{{tupleSetMidTag}}_{{LHSApplyAttribute}}_{{computationLabel}}_{{lambdaLabel}}"};
+    mustache::mustache leftOutputTupleTemplate{"{{tupleSetMidTag}}_hashOneFor{{LHSApplyAttribute}}_{{computationLabel}}_{{lambdaLabel}}"};
     std::string leftOutputTupleSetName = leftOutputTupleTemplate.render(lambdaData);
 
     // make the column name
@@ -374,7 +371,7 @@ class AndLambda : public TypedLambdaObject<bool> {
     std::vector<std::string> rightColumnsToApply = { rhsColumnNames[0] };
 
     // make the output tuple set
-    mustache::mustache rightOutputTupleSetNameTemplate{"hashOneFor{{tupleSetMidTag}}_{{RHSApplyAttribute}}_{{computationLabel}}_{{lambdaLabel}}"};
+    mustache::mustache rightOutputTupleSetNameTemplate{"{{tupleSetMidTag}}_hashOneFor{{RHSApplyAttribute}}_{{computationLabel}}_{{lambdaLabel}}"};
     std::string rightOutputTupleSetName = rightOutputTupleSetNameTemplate.render(lambdaData);
 
     // make the column name
@@ -400,7 +397,7 @@ class AndLambda : public TypedLambdaObject<bool> {
      * 2.3 Make the cartasian join
      */
 
-    mustache::mustache outputTupleSetTemplate{"CartesianJoined{{tupleSetMidTag}}__{{computationLabel}}_{{lambdaLabel}}"};
+    mustache::mustache outputTupleSetTemplate{"{{tupleSetMidTag}}_CartesianJoined{{computationLabel}}_{{lambdaLabel}}"};
     outputTupleSetName = outputTupleSetTemplate.render(lambdaData);
 
     // copy the output columns
@@ -465,5 +462,3 @@ class AndLambda : public TypedLambdaObject<bool> {
 };
 
 }
-
-#endif

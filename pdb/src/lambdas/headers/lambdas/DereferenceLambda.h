@@ -16,8 +16,7 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef DEREF_LAM_H
-#define DEREF_LAM_H
+#pragma once
 
 #include <string>
 #include <utility>
@@ -127,5 +126,3 @@ public:
 };
 
 }
-
-#endif

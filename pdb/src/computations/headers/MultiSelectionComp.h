@@ -37,12 +37,16 @@ class MultiSelectionComp : public Computation {
    * @param returnVal
    */
   void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
-    int suffix = 0;
     Handle<Input> checkMe = nullptr;
     Lambda<bool> selectionLambda = getSelection(checkMe);
     Lambda<Vector<Handle<Out>>> projectionLambda = getProjection(checkMe);
-    selectionLambda.toMap(returnVal, suffix);
-    projectionLambda.toMap(returnVal, suffix);
+
+    // the label we are started labeling
+    int32_t startLabel = 0;
+
+    // extract the lambdas
+    selectionLambda.extractLambdas(returnVal, startLabel);
+    projectionLambda.extractLambdas(returnVal, startLabel);
   }
 
   /**
