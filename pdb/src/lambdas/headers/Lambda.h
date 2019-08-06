@@ -37,7 +37,7 @@ namespace pdb {
 template<class ReturnType>
 class Lambda {
 
-private:
+public:
 
   // in case we wrap up a non-pointer type
   std::shared_ptr<TypedLambdaObject<ReturnType>> tree;
@@ -47,16 +47,14 @@ private:
 
   // does the actual tree traversal
   static void extractLambdas(std::map<std::string, LambdaObjectPtr> &fillMe,
-                             const LambdaObjectPtr& root,
-                             int &startLabel) {
+                             const LambdaObjectPtr& root) {
 
     // set the lambda
     fillMe[root->getLambdaName()] = root;
 
     // traverse the child lambdas
-    for (int i = 0; i < root->getNumChildren(); i++) {
-      LambdaObjectPtr child = root->getChild(i);
-      extractLambdas(fillMe, child, startLabel);
+    for (const auto &child : root->children) {
+      extractLambdas(fillMe, child.second);
     }
   }
 
@@ -74,6 +72,18 @@ public:
   // create a lambda tree that returns a non-pointer
   Lambda(LambdaTree<ReturnType> tree) : tree(tree.getPtr()) {}
 
+  template<class LambdaTree>
+  void inject(int32_t inputIndex, LambdaTree inTree) {
+
+    // check if it is labled if it is throw an exception we can not do that
+    if(isLabeled) {
+      throw std::runtime_error("Can not inject into a labeled tree");
+    }
+
+    // inject
+    tree->inject(inputIndex, inTree.getPtr());
+  }
+
   // extracts the lambdas from the lambda tree
   void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal, int32_t &startLabel) {
 
@@ -83,7 +93,7 @@ public:
     }
 
     // extract the lambdas from this lambda tree and
-    extractLambdas(returnVal, tree, startLabel);
+    extractLambdas(returnVal, tree);
   }
 
   std::string toTCAPString(int &startLabel,
@@ -108,13 +118,15 @@ public:
                          tcapStrings);
 
     // clear the input the output is all in a single tuple set now
-    multiInputsComp->resize(1);
+    multiInputsComp->resize((int) tree->getOutputColumns().size());
 
     // set the inputs
-    multiInputsComp->tupleSetNamesForInputs[0] = tree->getOutputTupleSetName();
     multiInputsComp->inputNames = tree->getOutputColumns();
-    multiInputsComp->inputColumnsToApplyForInputs[0] = tree->getGeneratedColumns();
-    multiInputsComp->inputColumnsForInputs[0] = tree->getOutputColumns();
+    for(int i = 0; i < tree->getOutputColumns().size(); ++i) {
+      multiInputsComp->tupleSetNamesForInputs[i] = tree->getOutputTupleSetName();
+      multiInputsComp->inputColumnsToApplyForInputs[i] = tree->getGeneratedColumns();
+      multiInputsComp->inputColumnsForInputs[i] = tree->getOutputColumns();
+    }
 
     // combine all the tcap strings
     std::string outputTCAPString;

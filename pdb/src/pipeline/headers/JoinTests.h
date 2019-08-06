@@ -27,42 +27,119 @@ namespace pdb {
 extern GenericHandle foofoo;
 
 struct HasTwoArgs {
+
   template <typename U>
-  static auto test (U *x) -> std::pair<decltype (x->getSelection (foofoo, foofoo)), decltype(x->getProjection (foofoo, foofoo))> {
-    return std::make_pair(x->getSelection (foofoo, foofoo), x->getProjection (foofoo, foofoo));
+  static auto testSelection (U *x) -> decltype (x->getSelection (foofoo, foofoo)) {
+    return x->getSelection (foofoo, foofoo);
+  }
+
+  template <typename U>
+  static auto testKeySelection (U *x) -> decltype (x->getKeySelection (foofoo, foofoo)) {
+    return x->getKeySelection (foofoo, foofoo);
+  }
+
+  template <typename U>
+  static auto testProjection (U *x) -> decltype (x->getProjection (foofoo, foofoo)) {
+    return x->getProjection (foofoo, foofoo);
   }
 };
 
 struct HasThreeArgs {
+
   template <typename U>
-  static auto test (U *x) -> std::pair<decltype (x->getSelection (foofoo, foofoo, foofoo)), decltype(x->getProjection (foofoo, foofoo, foofoo))> {
-    return std::make_pair(x->getSelection (foofoo, foofoo, foofoo), x->getProjection (foofoo, foofoo, foofoo));
+  static auto testSelection (U *x) -> decltype (x->getSelection (foofoo, foofoo, foofoo)) {
+    return x->getSelection (foofoo, foofoo, foofoo);
+  }
+
+  template <typename U>
+  static auto testKeySelection (U *x) -> decltype (x->getKeySelection (foofoo, foofoo, foofoo)) {
+    return x->getKeySelection (foofoo, foofoo, foofoo);
+  }
+
+  template <typename U>
+  static auto testProjection (U *x) -> decltype (x->getProjection (foofoo, foofoo, foofoo)) {
+    return x->getProjection (foofoo, foofoo, foofoo);
   }
 };
 
 struct HasFourArgs {
+
   template <typename U>
-  static auto test (U *x) -> std::pair<decltype (x->getSelection (foofoo, foofoo, foofoo, foofoo)), decltype(x->getProjection (foofoo, foofoo, foofoo, foofoo))> {
-    return std::make_pair(x->getSelection (foofoo, foofoo, foofoo, foofoo), x->getProjection (foofoo, foofoo, foofoo, foofoo));
+  static auto testSelection (U *x) -> decltype (x->getSelection (foofoo, foofoo, foofoo, foofoo)) {
+    return x->getSelection (foofoo, foofoo, foofoo, foofoo);
+  }
+
+  template <typename U>
+  static auto testKeySelection (U *x) -> decltype (x->getKeySelection (foofoo, foofoo, foofoo, foofoo)) {
+    return x->getKeySelection (foofoo, foofoo, foofoo, foofoo);
+  }
+
+  template <typename U>
+  static auto testProjection (U *x) -> decltype (x->getProjection (foofoo, foofoo, foofoo, foofoo)) {
+    return x->getProjection (foofoo, foofoo, foofoo, foofoo);
   }
 };
 
 struct HasFiveArgs {
+
   template <typename U>
-  static auto test (U *x) -> std::pair<decltype (x->getSelection (foofoo, foofoo, foofoo, foofoo, foofoo)), decltype(x->getProjection (foofoo, foofoo, foofoo, foofoo, foofoo))> {
-    return std::make_pair(x->getSelection (foofoo, foofoo, foofoo, foofoo, foofoo), x->getProjection (foofoo, foofoo, foofoo, foofoo, foofoo));
+  static auto testSelection (U *x) -> decltype (x->getSelection (foofoo, foofoo, foofoo, foofoo, foofoo)) {
+    return x->getSelection (foofoo, foofoo, foofoo, foofoo, foofoo);
+  }
+
+  template <typename U>
+  static auto testKeySelection (U *x) -> decltype (x->getKeySelection (foofoo, foofoo, foofoo, foofoo, foofoo)) {
+    return x->getKeySelection (foofoo, foofoo, foofoo, foofoo, foofoo);
+  }
+
+  template <typename U>
+  static auto testProjection (U *x) -> decltype (x->getProjection (foofoo, foofoo, foofoo, foofoo, foofoo)) {
+    return x->getProjection (foofoo, foofoo, foofoo, foofoo, foofoo);
   }
 };
 
+/**
+ *
+ */
+
+template <typename LambdaType, typename In1, typename ...Rest>
+typename std::enable_if<sizeof ...(Rest) != 0, void>::type
+injectIntoSelection(LambdaType predicate, int input) {
+
+  injectIntoSelection<LambdaType, Rest...>(predicate, input + 1);
+
+  // prepare the input
+  GenericHandle tmp(input + 1);
+  Handle<In1> in = tmp;
+
+  // inject the key lambda
+  predicate.inject(input, LambdaTree<Ptr<In1>>(std::make_shared<KeyExtractionLambda<In1>>(in)));
+}
+
+template <typename LambdaType, typename In1>
+void injectIntoSelection(LambdaType predicate, int input) {
+
+  // prepare the input
+  GenericHandle tmp(input + 1);
+  Handle<In1> in = tmp;
+
+  // inject the key lambda
+  predicate.inject(input, LambdaTree<Ptr<In1>>(std::make_shared<KeyExtractionLambda<In1>>(in)));
+}
+
+/**
+ *
+ */
+
 template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
-auto callGetSelection (TypeToCallMethodOn &a, decltype (HasTwoArgs::test (&a)) *arg = nullptr) {
+auto callGetSelection (TypeToCallMethodOn &a, decltype (HasTwoArgs::testSelection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
   return a.getSelection (first, second);
 }
 
 template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
-auto callGetSelection (TypeToCallMethodOn &a, decltype (HasThreeArgs::test (&a)) *arg = nullptr) {
+auto callGetSelection (TypeToCallMethodOn &a, decltype (HasThreeArgs::testSelection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
   GenericHandle third (3);
@@ -70,7 +147,7 @@ auto callGetSelection (TypeToCallMethodOn &a, decltype (HasThreeArgs::test (&a))
 }
 
 template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
-auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFourArgs::test (&a)) *arg = nullptr) {
+auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFourArgs::testSelection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
   GenericHandle third (3);
@@ -79,7 +156,7 @@ auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFourArgs::test (&a)) 
 }
 
 template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
-auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFiveArgs::test (&a)) *arg = nullptr) {
+auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFiveArgs::testSelection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
   GenericHandle third (3);
@@ -88,15 +165,97 @@ auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFiveArgs::test (&a)) 
   return a.getSelection (first, second, third, fourth, fifth);
 }
 
+/**
+ *
+ */
+
 template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
-auto callGetProjection (TypeToCallMethodOn &a, decltype (HasTwoArgs::test (&a)) *arg = nullptr) {
+auto callGetSelection (TypeToCallMethodOn &a, decltype (HasTwoArgs::testKeySelection (&a)) *arg = nullptr) {
+
+  // the arguments
+  GenericHandle first (1);
+  GenericHandle second (2);
+
+  // call the selection
+  auto predicate = a.getKeySelection (first, second);
+
+  // inject the key extraction into the predicate
+  injectIntoSelection<decltype(predicate), In1, In2, Rest...> (predicate, 0);
+
+  // return the predicate
+  return predicate;
+}
+
+template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
+auto callGetSelection (TypeToCallMethodOn &a, decltype (HasThreeArgs::testKeySelection (&a)) *arg = nullptr) {
+
+  // the arguments
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+
+  // call the selection
+  auto predicate = a.getKeySelection (first, second);
+
+  // inject the key extraction into the predicate
+  injectIntoSelection<decltype(predicate), In1, In2, Rest...> (predicate, 0);
+
+  // return the predicate
+  return predicate;
+}
+
+template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
+auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFourArgs::testKeySelection (&a)) *arg = nullptr) {
+
+  // the arguments
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+  GenericHandle fourth (4);
+
+  // call the selection
+  auto predicate = a.getKeySelection (first, second);
+
+  // inject the key extraction into the predicate
+  injectIntoSelection<decltype(predicate), In1, In2, Rest...> (predicate, 0);
+
+  // return the predicate
+  return predicate;
+}
+
+template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
+auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFiveArgs::testKeySelection (&a)) *arg = nullptr) {
+
+  // the arguments
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+  GenericHandle fourth (4);
+  GenericHandle fifth (5);
+
+  // call the selection
+  auto predicate = a.getKeySelection (first, second);
+
+  // inject the key extraction into the predicate
+  injectIntoSelection<decltype(predicate), In1, In2, Rest...> (predicate, 0);
+
+  // return the predicate
+  return predicate;
+}
+
+/**
+ *
+ */
+
+template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
+auto callGetProjection (TypeToCallMethodOn &a, decltype (HasTwoArgs::testProjection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
   return a.getProjection (first, second);
 }
 
 template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
-auto callGetProjection (TypeToCallMethodOn &a, decltype (HasThreeArgs::test (&a)) *arg = nullptr) {
+auto callGetProjection (TypeToCallMethodOn &a, decltype (HasThreeArgs::testProjection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
   GenericHandle third (3);
@@ -104,7 +263,7 @@ auto callGetProjection (TypeToCallMethodOn &a, decltype (HasThreeArgs::test (&a)
 }
 
 template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
-auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFourArgs::test (&a)) *arg = nullptr) {
+auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFourArgs::testProjection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
   GenericHandle third (3);
@@ -113,7 +272,7 @@ auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFourArgs::test (&a))
 }
 
 template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
-auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFiveArgs::test (&a)) *arg = nullptr) {
+auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFiveArgs::testProjection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
   GenericHandle third (3);

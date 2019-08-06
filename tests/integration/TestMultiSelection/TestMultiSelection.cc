@@ -86,16 +86,6 @@ int main(int argc, char* argv[]) {
   // for allocations
   const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
-  String TCAPString = "inputData(in0) <= SCAN ('chris_db', 'chris_set', 'SetScanner_0')\n"
-                      "inputDataWithfFilterBool(in0,nativ_0_1OutFor) <= APPLY (inputData(in0), inputData(in0), 'MultiSelectionComp_1', 'native_lambda_0', [('lambdaType', 'native_lambda')])\n"
-                      "filteredInputData(in0) <= FILTER (inputDataWithfFilterBool(nativ_0_1OutFor), inputDataWithfFilterBool(in0), 'MultiSelectionComp_1')\n"
-                      "applyProjection (nativ_1_1OutFor) <= APPLY (filteredInputData(in0), filteredInputData(), 'MultiSelectionComp_1', 'native_lambda_1', [('lambdaType', 'native_lambda')])\n"
-                      "flattenedOutput(flattened_nativ_1_1OutFor) <= FLATTEN (applyProjection(nativ_1_1OutFor), applyProjection(), 'MultiSelectionComp_1')\n"
-                      "flattenedOutput_out( ) <= OUTPUT ( flattenedOutput ( flattened_nativ_1_1OutFor ), 'chris_db', 'output_set', 'SetWriter_2')\n";
-
-  // here is the list of computations
-  Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
-
   /// 5. create all of the computation objects and run the query
 
   Handle <Computation> readStringIntPair = pdb::makeObject <ReadStringIntPair>();
@@ -104,13 +94,8 @@ int main(int argc, char* argv[]) {
   Handle <Computation> writeStringIntPair = pdb::makeObject <WriteStringIntPair>();
   writeStringIntPair->setInput(0, multiSelection);
 
-  // put them in the list of computations
-  myComputations->push_back(readStringIntPair);
-  myComputations->push_back(multiSelection);
-  myComputations->push_back(writeStringIntPair);
-
-  //TODO this is just a preliminary version of the execute computation before we add back the TCAP generation
-  pdbClient.executeComputations(myComputations, TCAPString);
+  // run computations
+  pdbClient.executeComputations({ writeStringIntPair });
 
   /// 6. Get the set from the
 

@@ -120,27 +120,6 @@ int main(int argc, char* argv[]) {
   // for allocations
   const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
-  pdb::String tcapString = "A(a) <= SCAN ('myData', 'mySetA', 'SetScanner_0')\n"
-                           "B(b) <= SCAN ('myData', 'mySetB', 'SetScanner_1')\n"
-                           "A_extracted_value(a,self_0_2Extracted) <= APPLY (A(a), A(a), 'JoinComp_2', 'self_0', [('lambdaType', 'self')])\n"
-                           "AHashed(a,a_value_for_hashed) <= HASHLEFT (A_extracted_value(self_0_2Extracted), A_extracted_value(a), 'JoinComp_2', '==_2', [])\n"
-                           "B_extracted_value(b,b_value_for_hash) <= APPLY (B(b), B(b), 'JoinComp_2', 'attAccess_1', [('attName', 'myInt'), ('attTypeName', 'int'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
-                           "BHashedOnA(b,b_value_for_hashed) <= HASHRIGHT (B_extracted_value(b_value_for_hash), B_extracted_value(b), 'JoinComp_2', '==_2', [])\n"
-                           "\n"
-                           "/* Join ( a ) and ( b ) */\n"
-                           "AandBJoined(a, b) <= JOIN (AHashed(a_value_for_hashed), AHashed(a), BHashedOnA(b_value_for_hashed), BHashedOnA(b), 'JoinComp_2')\n"
-                           "AandBJoined_WithLHSExtracted(a,b,LHSExtractedFor_2_2) <= APPLY (AandBJoined(a), AandBJoined(a,b), 'JoinComp_2', 'self_0', [('lambdaType', 'self')])\n"
-                           "AandBJoined_WithBOTHExtracted(a,b,LHSExtractedFor_2_2,RHSExtractedFor_2_2) <= APPLY (AandBJoined_WithLHSExtracted(b), AandBJoined_WithLHSExtracted(a,b,LHSExtractedFor_2_2), 'JoinComp_2', 'attAccess_1', [('attName', 'myInt'), ('attTypeName', 'int'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
-                           "AandBJoined_BOOL(a,b,bool_2_2) <= APPLY (AandBJoined_WithBOTHExtracted(LHSExtractedFor_2_2,RHSExtractedFor_2_2), AandBJoined_WithBOTHExtracted(a,b), 'JoinComp_2', '==_2', [('lambdaType', '==')])\n"
-                           "AandBJoined_FILTERED(a, b) <= FILTER (AandBJoined_BOOL(bool_2_2), AandBJoined_BOOL(a, b), 'JoinComp_2')\n"
-                           "\n"
-                           "/* run Join projection on ( a b )*/\n"
-                           "AandBJoined_Projection (nativ_3_2OutFor) <= APPLY (AandBJoined_FILTERED(a,b), AandBJoined_FILTERED(), 'JoinComp_2', 'native_lambda_3', [('lambdaType', 'native_lambda')])\n"
-                           "out( ) <= OUTPUT ( AandBJoined_Projection ( nativ_3_2OutFor ), 'myData', 'outSet', 'SetWriter_3')";
-
-  // here is the list of computations
-  Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
-
   // here is the list of computations
   Handle <Computation> readA = makeObject <ReadInt>();
   Handle <Computation> readB = makeObject <ReadStringIntPair>();
@@ -150,14 +129,8 @@ int main(int argc, char* argv[]) {
   Handle <Computation> write = makeObject <SillyWriteIntString>();
   write->setInput(0, join);
 
-  // put them in the list of computations
-  myComputations->push_back(readA);
-  myComputations->push_back(readB);
-  myComputations->push_back(join);
-  myComputations->push_back(write);
-
-  //TODO this is just a preliminary version of the execute computation before we add back the TCAP generation
-  pdbClient.executeComputations(myComputations, tcapString);
+  // run computations
+  pdbClient.executeComputations({ write });
 
   /// 5. Get the set from the
 

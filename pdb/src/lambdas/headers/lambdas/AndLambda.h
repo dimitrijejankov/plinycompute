@@ -56,19 +56,13 @@ std::enable_if_t<!(std::is_base_of<PtrBase, LHS>::value) && !(std::is_base_of<Pt
 
 template<class LeftType, class RightType>
 class AndLambda : public TypedLambdaObject<bool> {
-
- public:
-
-  LambdaTree<LeftType> lhs;
-  LambdaTree<RightType> rhs;
-
- public:
+public:
 
   AndLambda(LambdaTree<LeftType> lhsIn, LambdaTree<RightType> rhsIn) {
-    lhs = lhsIn;
-    rhs = rhsIn;
-    this->setInputIndex(0, lhs.getInputIndex(0));
-    this->setInputIndex(1, rhs.getInputIndex(0));
+
+    // add the children
+    children[0] = lhsIn.getPtr();
+    children[1] = rhsIn.getPtr();
   }
 
   ComputeExecutorPtr getExecutor(TupleSpec& inputSchema,
@@ -123,20 +117,8 @@ class AndLambda : public TypedLambdaObject<bool> {
     return std::string("and");
   }
 
-  int getNumChildren() override {
-    return 2;
-  }
-
   unsigned int getNumInputs() override {
     return 2;
-  }
-
-  LambdaObjectPtr getChild(int which) override {
-    if (which == 0)
-      return lhs.getPtr();
-    if (which == 1)
-      return rhs.getPtr();
-    return nullptr;
   }
 
   /**
@@ -169,8 +151,8 @@ class AndLambda : public TypedLambdaObject<bool> {
     std::string computationNameWithLabel = computationNameWithLabelTemplate.render(lambdaData);
 
     // grab the pointer to the lhs and rhs
-    auto lhsPtr = lhs.getPtr().get();
-    auto rhsPtr = rhs.getPtr().get();
+    auto lhsPtr = children[0];
+    auto rhsPtr = children[1];
 
     // is the lhs and rhs joined
     bool joined = lhsPtr->joinGroup == rhsPtr->joinGroup;

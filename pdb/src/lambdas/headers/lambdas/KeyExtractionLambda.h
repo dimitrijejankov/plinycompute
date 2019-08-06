@@ -23,23 +23,30 @@
 #include "Ptr.h"
 #include "TupleSet.h"
 #include <vector>
+#include <executors/ApplyComputeExecutor.h>
+#include <LambdaObject.h>
 #include "TupleSetMachine.h"
 
 namespace pdb {
 
 template<class ClassType>
-class SelfLambda : public TypedLambdaObject<pdb::Ptr<ClassType>> {
+class KeyExtractionLambda : public TypedLambdaObject<pdb::Ptr<ClassType>> {
 public:
+
+  //
+  using KeyType = std::remove_reference_t<decltype(((ClassType*) nullptr)->getKey())>;
+
+  std::string inputTypeName;
 
   // create an att access lambda; offset is the position in the input object where we are going to
   // find the input att
-  SelfLambda(Handle<ClassType> &input) {
+  KeyExtractionLambda(Handle<ClassType> &input) {
     inputTypeName = getTypeName<ClassType>();
     this->setInputIndex(0, -((input.getExactTypeInfoValue() + 1)));
   }
 
   std::string getTypeOfLambda() const override {
-    return std::string("self");
+    return std::string("key");
   }
 
   std::string typeOfAtt() {
@@ -52,6 +59,10 @@ public:
 
   unsigned int getNumInputs() override {
     return 1;
+  }
+
+  std::string generateTCAPString(MultiInputsBase *multiInputsComp, bool isPredicate) override {
+    return LambdaObject::generateTCAPString(multiInputsComp, isPredicate);
   }
 
   /**
@@ -96,24 +107,23 @@ public:
 
           // setup the output column, if it is not already set up
           if (!output->hasColumn(outAtt)) {
-            auto *outputCol = new std::vector<Ptr<ClassType>>;
-            output->addColumn(outAtt, outputCol, true);
+            output->addColumn(outAtt, new std::vector<Handle<KeyType>>, true);
           }
 
           // get the output column
-          std::vector<Ptr<ClassType>> &outColumn = output->getColumn<Ptr<ClassType>>(outAtt);
+          std::vector<Handle<KeyType>> &outColumn = output->getColumn<Handle<KeyType>>(outAtt);
 
           // loop down the columns, setting the output
-          auto numTuples = inputColumn.size();
+          unsigned long numTuples = inputColumn.size();
           outColumn.resize(numTuples);
           for (int i = 0; i < numTuples; i++) {
-            outColumn[i] = (ClassType *) &(*(inputColumn[i]));
+            outColumn[i] = makeObject<KeyType>();
+            *outColumn[i] = inputColumn[i]->getKey();
           }
 
           return output;
         });
   }
-
-  std::string inputTypeName;
 };
+
 }

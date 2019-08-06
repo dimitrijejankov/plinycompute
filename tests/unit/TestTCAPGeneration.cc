@@ -16,37 +16,15 @@
  *                                                                           *
  *****************************************************************************/
 
-#include "PDBDebug.h"
-#include "PDBString.h"
-#include "Lambda.h"
-#include "ScanEmployeeSet.h"
-#include "SharedEmployee.h"
-#include <ctime>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <chrono>
-#include <fcntl.h>
-#include <EmployeeBuiltInIdentitySelection.h>
-#include <WriteBuiltinEmployeeSet.h>
-#include <ComputePlan.h>
+
+#include <gtest/gtest.h>
+#include <QueryGraphAnalyzer.h>
 #include <ReadInt.h>
 #include <ReadStringIntPair.h>
-#include <SillyJoinIntString.h>
-#include <SillyWriteIntString.h>
-#include <QueryGraphAnalyzer.h>
-#include <ScanSupervisorSet.h>
-#include <SillyQuery.h>
-#include <SillyAgg.h>
-#include <WriteSalaries.h>
-#include <FinalQuery.h>
-#include <gtest/gtest.h>
-#include <StringIntPairMultiSelection.h>
-#include <WriteStringIntPair.h>
 #include <StringSelectionOfStringIntPair.h>
 #include <IntSimpleJoin.h>
-#include <IntAggregation.h>
 #include <WriteSumResult.h>
+#include <IntAggregation.h>
 
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlock.h"
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixScanner.h"
@@ -174,14 +152,18 @@ TEST(TestTcapGeneration, Test5) {
 
   const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
 
-  Handle <Computation> readA = makeObject <MatrixScanner>("myData", "A");
-  Handle <Computation> readB = makeObject <MatrixScanner>("myData", "B");
-  Handle <Computation> join = makeObject <MatrixMultiplyJoin>();
-  join->setInput(0, readA);
-  join->setInput(1, readB);
-  Handle<Computation> myAggregation = makeObject<MatrixMultiplyAggregation>();
-  myAggregation->setInput(join);
-  Handle<Computation> myWriter = makeObject<MatrixWriter>("myData", "C");
+  // create all of the computation objects
+  Handle<Computation> myScanSet1 = makeObject<ReadInt>("test78_db", "test78_set1");
+  Handle<Computation> myScanSet2 = makeObject<ReadStringIntPair>("test78_db", "test78_set2");
+  Handle<Computation> mySelection = makeObject<StringSelectionOfStringIntPair>();
+  mySelection->setInput(myScanSet2);
+  Handle<Computation> myJoin = makeObject<IntSimpleJoin>();
+  myJoin->setInput(0, myScanSet1);
+  myJoin->setInput(1, myScanSet2);
+  myJoin->setInput(2, mySelection);
+  Handle<Computation> myAggregation = makeObject<IntAggregation>();
+  myAggregation->setInput(myJoin);
+  Handle<Computation> myWriter = makeObject<WriteSumResult>("test78_db", "output_set1");
   myWriter->setInput(myAggregation);
 
   // the query graph has only the aggregation

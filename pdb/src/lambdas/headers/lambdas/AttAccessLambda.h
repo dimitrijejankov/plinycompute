@@ -110,14 +110,6 @@ public:
       return 1;
   }
 
-  int getNumChildren () override {
-      return 0;
-  }
-
-  LambdaObjectPtr getChild (int which) override {
-      return nullptr;
-  }
-
   std::map<std::string, std::string> getInfo() override {
 
     // fill in the info

@@ -91,30 +91,6 @@ int main(int argc, char* argv[]) {
   // for allocations
   const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
-  String myTCAPString =
-      "inputData(in0) <= SCAN ('chris_db', 'chris_set', 'SetScanner_0')\n"
-      "methodCall_0OutFor_SelectionComp1(in0,methodCall_0OutFor__getSteve) <= APPLY (inputData(in0), inputData(in0), 'SelectionComp_1', 'methodCall_0', [('inputTypeName', 'pdb::Supervisor'), ('lambdaType', 'methodCall'), ('methodName', 'getSteve'), ('returnTypeName', 'pdb::Supervisor')])\n"
-      "attAccess_1OutForSelectionComp1(in0,methodCall_0OutFor__getSteve,att_1OutFor_me) <= APPLY (methodCall_0OutFor_SelectionComp1(in0), methodCall_0OutFor_SelectionComp1(in0,methodCall_0OutFor__getSteve), 'SelectionComp_1', 'attAccess_1', [('attName', 'me'), ('attTypeName', 'pdb::Handle&lt;pdb::Employee&gt;'), ('inputTypeName', 'pdb::Supervisor'), ('lambdaType', 'attAccess')])\n"
-      "equals_2OutForSelectionComp1(in0,methodCall_0OutFor__getSteve,att_1OutFor_me,bool_2_1) <= APPLY (attAccess_1OutForSelectionComp1(methodCall_0OutFor__getSteve,att_1OutFor_me), attAccess_1OutForSelectionComp1(in0,methodCall_0OutFor__getSteve,att_1OutFor_me), 'SelectionComp_1', '==_2', [('lambdaType', '==')])\n"
-      "filteredInputForSelectionComp1(in0) <= FILTER (equals_2OutForSelectionComp1(bool_2_1), equals_2OutForSelectionComp1(in0), 'SelectionComp_1')\n"
-      "methodCall_3OutFor_SelectionComp1(in0,methodCall_3OutFor__getMe) <= APPLY (filteredInputForSelectionComp1(in0), filteredInputForSelectionComp1(in0), 'SelectionComp_1', 'methodCall_3', [('inputTypeName', 'pdb::Supervisor'), ('lambdaType', 'methodCall'), ('methodName', 'getMe'), ('returnTypeName', 'pdb::Supervisor')])\n"
-      "deref_4OutForSelectionComp1 (methodCall_3OutFor__getMe) <= APPLY (methodCall_3OutFor_SelectionComp1(methodCall_3OutFor__getMe), methodCall_3OutFor_SelectionComp1(), 'SelectionComp_1', 'deref_4')\n"
-      "attAccess_0OutForAggregationComp2(methodCall_3OutFor__getMe,att_0OutFor_department) <= APPLY (deref_4OutForSelectionComp1(methodCall_3OutFor__getMe), deref_4OutForSelectionComp1(methodCall_3OutFor__getMe), 'AggregationComp_2', 'attAccess_0', [('attName', 'department'), ('attTypeName', 'pdb::String'), ('inputTypeName', 'pdb::Employee'), ('lambdaType', 'attAccess')])\n"
-      "deref_1OutForAggregationComp2(methodCall_3OutFor__getMe, att_0OutFor_department) <= APPLY (attAccess_0OutForAggregationComp2(att_0OutFor_department), attAccess_0OutForAggregationComp2(methodCall_3OutFor__getMe), 'AggregationComp_2', 'deref_1')\n"
-      "aggWithValue(att_0OutFor_department,methodCall_2OutFor__getSalary) <= APPLY (deref_1OutForAggregationComp2(methodCall_3OutFor__getMe), deref_1OutForAggregationComp2(att_0OutFor_department), 'AggregationComp_2', 'methodCall_2', [('inputTypeName', 'pdb::Employee'), ('lambdaType', 'methodCall'), ('methodName', 'getSalary'), ('returnTypeName', 'pdb::Employee')])\n"
-      "agg (aggOutFor2)<= AGGREGATE (aggWithValue(att_0OutFor_department, methodCall_2OutFor__getSalary),'AggregationComp_2')\n"
-      "selectionOne(aggOutFor2,methodCall_0OutFor__checkSales) <= APPLY (agg(aggOutFor2), agg(aggOutFor2), 'SelectionComp_3', 'methodCall_0', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'checkSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
-      "selectionOneFilter(aggOutFor2) <= FILTER (selectionOne(methodCall_0OutFor__checkSales), selectionOne(aggOutFor2), 'SelectionComp_3')\n"
-      "selectionOneFilterRemoved (methodCall_1OutFor__getTotSales) <= APPLY (selectionOneFilter(aggOutFor2), selectionOneFilter(), 'SelectionComp_3', 'methodCall_1', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'getTotSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
-      "selectionOneFilterRemoved_out( ) <= OUTPUT ( selectionOneFilterRemoved ( methodCall_1OutFor__getTotSales ), 'chris_db', 'output_set1', 'SetWriter_4')\n"
-      "selectionTwo(aggOutFor2,methodCall_0OutFor__checkSales) <= APPLY (agg(aggOutFor2), agg(aggOutFor2), 'SelectionComp_5', 'methodCall_0', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'checkSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
-      "selectionTwoFilter(aggOutFor2) <= FILTER (selectionTwo(methodCall_0OutFor__checkSales), selectionTwo(aggOutFor2), 'SelectionComp_5')\n"
-      "selectionTwoFilterRemoved (methodCall_1OutFor__getTotSales) <= APPLY (selectionTwoFilter(aggOutFor2), selectionTwoFilter(), 'SelectionComp_5', 'methodCall_1', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'getTotSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
-      "selectionTwoFilterRemoved_out( ) <= OUTPUT ( selectionTwoFilterRemoved ( methodCall_1OutFor__getTotSales ), 'chris_db', 'output_set2', 'SetWriter_6')\n";
-
-  // here is the list of computations
-  Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
-
   /// 5. create all of the computation objects and run the query
 
   // make the scan set
@@ -144,17 +120,8 @@ int main(int argc, char* argv[]) {
   Handle<Computation> myWrite2 = makeObject<WriteSalaries>();
   myWrite2->setInput(myFinalFilter2);
 
-  // put them in the list of computations
-  myComputations->push_back(myScanSet);
-  myComputations->push_back(myFilter);
-  myComputations->push_back(myAgg);
-  myComputations->push_back(myFinalFilter1);
-  myComputations->push_back(myWrite1);
-  myComputations->push_back(myFinalFilter2);
-  myComputations->push_back(myWrite2);
-
-  //TODO this is just a preliminary version of the execute computation before we add back the TCAP generation
-  pdbClient.executeComputations(myComputations, myTCAPString);
+  // run computations
+  pdbClient.executeComputations({myWrite1, myWrite2});
 
   /// 5. Get the set from the
 

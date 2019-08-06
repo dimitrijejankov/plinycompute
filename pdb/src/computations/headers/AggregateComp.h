@@ -136,8 +136,8 @@ class AggregateComp : public AggregateCompBase {
                                          &multiInputsBase);
 
     // get the key column
-    assert(multiInputsBase.getInputColumnsToApplyForIthInput(0).size() == 1);
-    auto keyColumn = multiInputsBase.getInputColumnsToApplyForIthInput(0)[0];
+    assert(multiInputsBase.inputColumnsToApplyForInputs[0].size() == 1);
+    auto keyColumn = multiInputsBase.inputColumnsToApplyForInputs[0][0];
 
     /**
      * 2. Generate the TCAP for the value extraction
@@ -147,7 +147,7 @@ class AggregateComp : public AggregateCompBase {
     Lambda<ValueClass> valueLambda = getValueProjection(checkMe);
 
     // the the columns to apply for the i-th position
-    multiInputsBase.setInputColumnsToApplyForIthInput(0, inputTupleSets[0].getColumnNamesToApply());
+    multiInputsBase.inputColumnsToApplyForInputs[0] = inputTupleSets[0].getColumnNamesToApply();
 
     // we are ditching the input, keeping only the extracted value
     multiInputsBase.inputColumnsToKeep = { keyColumn };
@@ -160,15 +160,15 @@ class AggregateComp : public AggregateCompBase {
                                            &multiInputsBase);
 
     // get the value column
-    assert(multiInputsBase.getInputColumnsToApplyForIthInput(0).size() == 1);
-    auto valueColumn = multiInputsBase.getInputColumnsToApplyForIthInput(0)[0];
+    assert(multiInputsBase.inputColumnsToApplyForInputs[0].size() == 1);
+    auto valueColumn = multiInputsBase.inputColumnsToApplyForInputs[0][0];
 
     /**
      * 3. Generate the TCAP for the aggregation
      */
 
     // set the output tuple set
-    inputTupleSetName = multiInputsBase.getTupleSetNameForIthInput(0);
+    inputTupleSetName = multiInputsBase.tupleSetNamesForInputs[0];
 
     // create the data for the filter
     mustache::data clusterAggCompData;

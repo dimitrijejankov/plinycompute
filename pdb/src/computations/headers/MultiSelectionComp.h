@@ -130,17 +130,17 @@ class MultiSelectionComp : public Computation {
     MultiInputsBase multiInputsBase(1);
 
     // set the name of the tuple set for the i-th position
-    multiInputsBase.setTupleSetNameForIthInput(0, inputTupleSets[0].getTupleSetName());
+    multiInputsBase.tupleSetNamesForInputs[0] = inputTupleSets[0].getTupleSetName();
 
     // set the columns for the i-th position
-    multiInputsBase.setInputColumnsForIthInput(0, inputTupleSets[0].getColumnNamesToKeep());
+    multiInputsBase.inputColumnsForInputs[0] = inputTupleSets[0].getColumnNamesToKeep();
 
     // the the columns to apply for the i-th position
-    multiInputsBase.setInputColumnsToApplyForIthInput(0, inputTupleSets[0].getColumnNamesToApply());
+    multiInputsBase.inputColumnsToApplyForInputs[0] = inputTupleSets[0].getColumnNamesToApply();
 
     // setup all input names (the column name corresponding to input in tuple set) has to be one
     assert(inputTupleSets[0].getColumnNamesToApply().size() == 1);
-    multiInputsBase.setNameForIthInput(0, inputTupleSets[0].getColumnNamesToApply()[0]);
+    multiInputsBase.inputNames[0] = inputTupleSets[0].getColumnNamesToApply()[0];
 
     // we want to keep the input, so that it can be used by the projection
     multiInputsBase.inputColumnsToKeep = { inputTupleSets[0].getColumnNamesToKeep()[0] };
@@ -162,15 +162,15 @@ class MultiSelectionComp : public Computation {
                                                &multiInputsBase);
 
     // get the columns for the TCAP
-    auto appliedColumns = multiInputsBase.getInputColumnsToApplyForIthInput(0);
+    auto appliedColumns = multiInputsBase.inputColumnsToApplyForInputs[0];
     auto outputColumns = multiInputsBase.getNotAppliedInputColumnsForIthInput(0);
-    auto tupleSetName = multiInputsBase.getTupleSetNameForIthInput(0);
+    auto tupleSetName = multiInputsBase.tupleSetNamesForInputs[0];
 
     // make sure there is only one output column
     assert(outputColumns.size() == 1);
 
     // create the data for the column names
-    mustache::data inputColumnsToApplyData = mustache::from_vector<std::string>(multiInputsBase.getInputColumnsToApplyForIthInput(0));
+    mustache::data inputColumnsToApplyData = mustache::from_vector<std::string>(multiInputsBase.inputColumnsToApplyForInputs[0]);
     mustache::data outputColumnsData = mustache::from_vector<std::string>(multiInputsBase.getNotAppliedInputColumnsForIthInput(0));
 
     // create the data for the filter
@@ -196,7 +196,7 @@ class MultiSelectionComp : public Computation {
 
     // generate the new tuple set name
     mustache::mustache newTupleSetNameTemplate{"filteredInputFor{{computationType}}{{computationLabel}}"};
-    multiInputsBase.setTupleSetNameForIthInput(0, newTupleSetNameTemplate.render(selectionCompData));
+    multiInputsBase.tupleSetNamesForInputs[0] = newTupleSetNameTemplate.render(selectionCompData);
 
     Lambda<Vector<Handle<Out>>> projectionLambda = getProjection(checkMe);
     tcapString += "\n/* Apply MultiSelection projection */\n";

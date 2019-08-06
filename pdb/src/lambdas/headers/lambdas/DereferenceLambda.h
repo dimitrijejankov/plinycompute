@@ -39,10 +39,10 @@ class DereferenceLambda : public TypedLambdaObject<OutType> {
 
 public:
 
-  explicit DereferenceLambda(LambdaTree<Ptr<OutType>> &input) : input(input) {
+  explicit DereferenceLambda(LambdaTree<Ptr<OutType>> &input) {
 
-    // copy the input index
-    this->setInputIndex(0, input.getPtr().get()->getInputIndex(0));
+    // insert the child
+    this->children[0] = input.getPtr();
   }
 
   ComputeExecutorPtr getExecutor(TupleSpec &inputSchema,
@@ -100,18 +100,6 @@ public:
     return 1;
   }
 
-  int getNumChildren() override {
-    return 1;
-  }
-
-  LambdaObjectPtr getChild(int which) override {
-    if (which == 0) {
-      return input.getPtr();
-    }
-
-    return nullptr;
-  }
-
   std::map<std::string, std::string> getInfo() override {
 
     // fill in the info
@@ -119,10 +107,6 @@ public:
         std::make_pair("lambdaType", getTypeOfLambda()),
     };
   };
-
- private:
-
-  LambdaTree<Ptr<OutType>> input;
 };
 
 }

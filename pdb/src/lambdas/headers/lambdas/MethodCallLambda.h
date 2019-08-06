@@ -49,7 +49,6 @@ class MethodCallLambda : public TypedLambdaObject<Out> {
       getExecutorFunc(std::move(getExecutorFunc)), columnBuilder(std::move(columnBuilder)), inputTypeName(std::move(inputTypeName)),
       methodName(std::move(methodName)), returnTypeName(std::move(returnTypeName)) {
 
-    std::cout << "MethodCallLambda: input type code is " << input.getExactTypeInfoValue() << std::endl;
     this->setInputIndex(0, -(input.getExactTypeInfoValue() + 1));
   }
 
@@ -67,14 +66,6 @@ class MethodCallLambda : public TypedLambdaObject<Out> {
 
   std::string getOutputType() override {
     return returnTypeName;
-  }
-
-  int getNumChildren() override {
-    return 0;
-  }
-
-  LambdaObjectPtr getChild(int which) override {
-    return nullptr;
   }
 
   ComputeExecutorPtr getExecutor(TupleSpec &inputSchema,

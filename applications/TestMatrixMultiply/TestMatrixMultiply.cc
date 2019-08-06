@@ -1,19 +1,10 @@
 #include <PDBClient.h>
-#include <SharedEmployee.h>
 #include <GenericWork.h>
-#include <ReadInt.h>
-#include <ReadStringIntPair.h>
-#include <SillyJoinIntString.h>
-#include <SillyWriteIntString.h>
 #include "sharedLibraries/headers/MatrixBlock.h"
 #include "sharedLibraries/headers/MatrixScanner.h"
 #include "sharedLibraries/headers/MatrixMultiplyJoin.h"
 #include "sharedLibraries/headers/MatrixMultiplyAggregation.h"
 #include "sharedLibraries/headers/MatrixWriter.h"
-#include "StringIntPair.h"
-#include "ScanEmployeeSet.h"
-#include "EmployeeBuiltInIdentitySelection.h"
-#include "WriteBuiltinEmployeeSet.h"
 
 using namespace pdb;
 using namespace pdb::matrix;

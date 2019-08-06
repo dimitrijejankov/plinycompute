@@ -69,10 +69,10 @@ class EqualsLambda : public TypedLambdaObject<bool> {
 public:
 
   EqualsLambda(LambdaTree<LeftType> lhsIn, LambdaTree<RightType> rhsIn) {
-    lhs = lhsIn;
-    rhs = rhsIn;
-    this->setInputIndex(0, lhs.getInputIndex(0));
-    this->setInputIndex(1, rhs.getInputIndex(0));
+
+    // add the children
+    children[0] = lhsIn.getPtr();
+    children[1] = rhsIn.getPtr();
   }
 
   ComputeExecutorPtr getExecutor(TupleSpec &inputSchema,
@@ -219,18 +219,6 @@ public:
     return std::string("==");
   }
 
-  int getNumChildren() override {
-    return 2;
-  }
-
-  LambdaObjectPtr getChild(int which) override {
-    if (which == 0)
-      return lhs.getPtr();
-    if (which == 1)
-      return rhs.getPtr();
-    return nullptr;
-  }
-
   /**
    *
    * @param computationLabel - the index of the computation the lambda belongs to.
@@ -262,16 +250,20 @@ public:
      * 0. Check if we need to perform a join to get the value of this lamda
      */
 
+    // get the left and right child
+    auto lhs = children[0];
+    auto rhs = children[1];
+
     // get the columns of the lhs and where they are generated
-    auto &lhsColumns = lhs.getPtr()->getGeneratedColumns();
-    assert(!lhs.getPtr()->joinedInputs.empty());
-    auto lhsIndex = *lhs.getPtr()->joinedInputs.begin();
+    auto &lhsColumns = lhs->getGeneratedColumns();
+    assert(!lhs->joinedInputs.empty());
+    auto lhsIndex = *lhs->joinedInputs.begin();
     auto lhsGroup = multiInputsComp->joinGroupForInput[lhsIndex];
 
     // get the columns of the rhs and where they are generated
-    auto &rhsColumns = rhs.getPtr()->getGeneratedColumns();
-    assert(!rhs.getPtr()->joinedInputs.empty());
-    auto rhsIndex = *rhs.getPtr()->joinedInputs.begin();
+    auto &rhsColumns = rhs->getGeneratedColumns();
+    assert(!rhs->joinedInputs.empty());
+    auto rhsIndex = *rhs->joinedInputs.begin();
     auto rhsGroup = multiInputsComp->joinGroupForInput[rhsIndex];
 
     std::string tcapString;
@@ -395,8 +387,13 @@ public:
       // the name of the lhs input tuple set
       auto &lhsInputTupleSet = multiInputsComp->tupleSetNamesForInputs[lhsIndex];
 
-      // the input columns that we are going to forward
-      auto lhsInputColumns = multiInputsComp->getNotAppliedInputColumnsForIthInput(lhsIndex);
+      // the input columns that we are going to forward (we only keep the real inputs)
+      std::vector<std::string> lhsInputColumns;
+      for(auto c : multiInputsComp->getNotAppliedInputColumnsForIthInput(lhsIndex)) {
+        if(std::find(multiInputsComp->inputNames.begin(), multiInputsComp->inputNames.end(), c) != multiInputsComp->inputNames.end()){
+          lhsInputColumns.emplace_back(c);
+        }
+      }
 
       // the input to the hash can only be one column
       auto &lhsInputColumnsToApply = lhsColumns;
@@ -406,7 +403,7 @@ public:
       std::string lhsOutputTupleSetName = lhsInputTupleSet + "_hashed";
 
       // the hash column
-      auto lhsOutputColumnName = myPrefix + lhsInputColumnsToApply[0] + "_hash";
+      auto lhsOutputColumnName = lhsInputColumnsToApply[0] + "_hash";
 
       // add the hashed column
       auto lhsOutputColumns = lhsInputColumns;
@@ -431,7 +428,12 @@ public:
       auto &rhsInputTupleSet = multiInputsComp->tupleSetNamesForInputs[rhsIndex];
 
       // the input columns that we are going to forward
-      auto rhsInputColumns = multiInputsComp->getNotAppliedInputColumnsForIthInput(rhsIndex);
+      std::vector<std::string> rhsInputColumns;
+      for(auto c : multiInputsComp->getNotAppliedInputColumnsForIthInput(rhsIndex)) {
+        if(std::find(multiInputsComp->inputNames.begin(), multiInputsComp->inputNames.end(), c) != multiInputsComp->inputNames.end()){
+          rhsInputColumns.emplace_back(c);
+        }
+      }
 
       // the input to the hash can only be one column
       auto &rhsInputColumnsToApply = rhsColumns;
@@ -441,11 +443,12 @@ public:
       std::string rhsOutputTupleSetName = rhsInputTupleSet + "_hashed";
 
       // the hash column
-      auto rhsOutputColumnName = myPrefix + rhsInputColumnsToApply[0] + "_hash";
+      auto rhsOutputColumnName = rhsInputColumnsToApply[0] + "_hash";
 
       // add the hashed column
       auto rhsOutputColumns = rhsInputColumns;
       rhsOutputColumns.emplace_back(rhsOutputColumnName);
+
 
       // add the tcap string
       tcapString += formatLambdaComputation(rhsInputTupleSet,
@@ -511,13 +514,13 @@ public:
        */
 
       std::vector<std::string> tcapStrings;
-      lhs.getPtr()->generateExpressionTCAP("LExtractedFor" + std::to_string(myLambdaLabel), multiInputsComp, tcapStrings);
+      lhs->generateExpressionTCAP("LExtractedFor" + std::to_string(myLambdaLabel), multiInputsComp, tcapStrings);
 
       /**
        * 3.2 Next we extract the RHS column of the join from the rhs input
        */
 
-      rhs.getPtr()->generateExpressionTCAP("RExtractedFor" + std::to_string(myLambdaLabel), multiInputsComp, tcapStrings);
+      rhs->generateExpressionTCAP("RExtractedFor" + std::to_string(myLambdaLabel), multiInputsComp, tcapStrings);
       for_each(tcapStrings.begin(), tcapStrings.end(), [&](auto &value) {
         tcapString += value;
       });
@@ -528,10 +531,10 @@ public:
        */
 
       // the input to the boolean lambda is the output tuple set from the previous lambda
-      auto inputTupleSetName = multiInputsComp->tupleSetNamesForInputs[*lhs.getPtr()->joinedInputs.begin()];
+      auto inputTupleSetName = multiInputsComp->tupleSetNamesForInputs[*lhs->joinedInputs.begin()];
 
       // the boolean lambda is applied on the lhs and rhs extracted column
-      appliedColumns = { lhs.getPtr()->generatedColumns.front() , rhs.getPtr()->generatedColumns.front() };
+      appliedColumns = { lhs->generatedColumns.front() , rhs->generatedColumns.front() };
 
       // input columns are basically the input columns that are not the hash from the lhs and rhs side
       auto inputColumnNames = lhsInputColumns;
@@ -622,7 +625,7 @@ public:
     return 2;
   }
 
- private:
+private:
 
   /**
    * Returns the additional information about this lambda currently just the lambda type
@@ -636,10 +639,6 @@ public:
     };
   };
 
-private:
-
-  LambdaTree<LeftType> lhs;
-  LambdaTree<RightType> rhs;
 };
 
 }

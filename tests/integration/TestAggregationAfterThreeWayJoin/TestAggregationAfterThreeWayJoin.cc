@@ -139,54 +139,6 @@ int main(int argc, char* argv[]) {
   // this is the object allocation block where all of this stuff will reside
   const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
-  // the TCAP we are about to run
-  String tcap = "inputDataForSetScanner_0(in0) <= SCAN ('test78_db', 'test78_set1', 'SetScanner_0')\n"
-                "inputDataForSetScanner_1(in1) <= SCAN ('test78_db', 'test78_set2', 'SetScanner_1')\n"
-                "\n"
-                "/* Apply selection filtering */\n"
-                "nativ_0OutForSelectionComp2(in1,nativ_0_2OutFor) <= APPLY (inputDataForSetScanner_1(in1), inputDataForSetScanner_1(in1), 'SelectionComp_2', 'native_lambda_0', [('lambdaType', 'native_lambda')])\n"
-                "filteredInputForSelectionComp2(in1) <= FILTER (nativ_0OutForSelectionComp2(nativ_0_2OutFor), nativ_0OutForSelectionComp2(in1), 'SelectionComp_2')\n"
-                "\n"
-                "/* Apply selection projection */\n"
-                "attAccess_1OutForSelectionComp2(in1,att_1OutFor_myString) <= APPLY (filteredInputForSelectionComp2(in1), filteredInputForSelectionComp2(in1), 'SelectionComp_2', 'attAccess_1', [('attName', 'myString'), ('attTypeName', 'pdb::Handle&lt;pdb::String&gt;'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
-                "deref_2OutForSelectionComp2 (att_1OutFor_myString) <= APPLY (attAccess_1OutForSelectionComp2(att_1OutFor_myString), attAccess_1OutForSelectionComp2(), 'SelectionComp_2', 'deref_2')\n"
-                "self_0ExtractedJoinComp3(in0,self_0_3Extracted) <= APPLY (inputDataForSetScanner_0(in0), inputDataForSetScanner_0(in0), 'JoinComp_3', 'self_0', [('lambdaType', 'self')])\n"
-                "self_0ExtractedJoinComp3_hashed(in0,self_0_3Extracted_hash) <= HASHLEFT (self_0ExtractedJoinComp3(self_0_3Extracted), self_0ExtractedJoinComp3(in0), 'JoinComp_3', '==_2', [])\n"
-                "attAccess_1ExtractedForJoinComp3(in1,att_1ExtractedFor_myInt) <= APPLY (inputDataForSetScanner_1(in1), inputDataForSetScanner_1(in1), 'JoinComp_3', 'attAccess_1', [('attName', 'myInt'), ('attTypeName', 'int'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
-                "attAccess_1ExtractedForJoinComp3_hashed(in1,att_1ExtractedFor_myInt_hash) <= HASHRIGHT (attAccess_1ExtractedForJoinComp3(att_1ExtractedFor_myInt), attAccess_1ExtractedForJoinComp3(in1), 'JoinComp_3', '==_2', [])\n"
-                "\n"
-                "/* Join ( in0 ) and ( in1 ) */\n"
-                "JoinedFor_equals2JoinComp3(in0, in1) <= JOIN (self_0ExtractedJoinComp3_hashed(self_0_3Extracted_hash), self_0ExtractedJoinComp3_hashed(in0), attAccess_1ExtractedForJoinComp3_hashed(att_1ExtractedFor_myInt_hash), attAccess_1ExtractedForJoinComp3_hashed(in1), 'JoinComp_3')\n"
-                "JoinedFor_equals2JoinComp3_WithLHSExtracted(in0,in1,LHSExtractedFor_2_3) <= APPLY (JoinedFor_equals2JoinComp3(in0), JoinedFor_equals2JoinComp3(in0,in1), 'JoinComp_3', 'self_0', [('lambdaType', 'self')])\n"
-                "JoinedFor_equals2JoinComp3_WithBOTHExtracted(in0,in1,LHSExtractedFor_2_3,RHSExtractedFor_2_3) <= APPLY (JoinedFor_equals2JoinComp3_WithLHSExtracted(in1), JoinedFor_equals2JoinComp3_WithLHSExtracted(in0,in1,LHSExtractedFor_2_3), 'JoinComp_3', 'attAccess_1', [('attName', 'myInt'), ('attTypeName', 'int'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
-                "JoinedFor_equals2JoinComp3_BOOL(in0,in1,bool_2_3) <= APPLY (JoinedFor_equals2JoinComp3_WithBOTHExtracted(LHSExtractedFor_2_3,RHSExtractedFor_2_3), JoinedFor_equals2JoinComp3_WithBOTHExtracted(in0,in1), 'JoinComp_3', '==_2', [('lambdaType', '==')])\n"
-                "JoinedFor_equals2JoinComp3_FILTERED(in0, in1) <= FILTER (JoinedFor_equals2JoinComp3_BOOL(bool_2_3), JoinedFor_equals2JoinComp3_BOOL(in0, in1), 'JoinComp_3')\n"
-                "attAccess_3ExtractedForJoinComp3(in0,in1,att_3ExtractedFor_myString) <= APPLY (JoinedFor_equals2JoinComp3_FILTERED(in1), JoinedFor_equals2JoinComp3_FILTERED(in0,in1), 'JoinComp_3', 'attAccess_3', [('attName', 'myString'), ('attTypeName', 'pdb::Handle&lt;pdb::String&gt;'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
-                "attAccess_3ExtractedForJoinComp3_hashed(in0,in1,att_3ExtractedFor_myString_hash) <= HASHLEFT (attAccess_3ExtractedForJoinComp3(att_3ExtractedFor_myString), attAccess_3ExtractedForJoinComp3(in0,in1), 'JoinComp_3', '==_5', [])\n"
-                "self_4ExtractedJoinComp3(att_1OutFor_myString,self_4_3Extracted) <= APPLY (deref_2OutForSelectionComp2(att_1OutFor_myString), deref_2OutForSelectionComp2(att_1OutFor_myString), 'JoinComp_3', 'self_4', [('lambdaType', 'self')])\n"
-                "self_4ExtractedJoinComp3_hashed(att_1OutFor_myString,self_4_3Extracted_hash) <= HASHRIGHT (self_4ExtractedJoinComp3(self_4_3Extracted), self_4ExtractedJoinComp3(att_1OutFor_myString), 'JoinComp_3', '==_5', [])\n"
-                "\n"
-                "/* Join ( in0 in1 ) and ( att_1OutFor_myString ) */\n"
-                "JoinedFor_equals5JoinComp3(in0, in1, att_1OutFor_myString) <= JOIN (attAccess_3ExtractedForJoinComp3_hashed(att_3ExtractedFor_myString_hash), attAccess_3ExtractedForJoinComp3_hashed(in0, in1), self_4ExtractedJoinComp3_hashed(self_4_3Extracted_hash), self_4ExtractedJoinComp3_hashed(att_1OutFor_myString), 'JoinComp_3')\n"
-                "JoinedFor_equals5JoinComp3_WithLHSExtracted(in0,in1,att_1OutFor_myString,LHSExtractedFor_5_3) <= APPLY (JoinedFor_equals5JoinComp3(in1), JoinedFor_equals5JoinComp3(in0,in1,att_1OutFor_myString), 'JoinComp_3', 'attAccess_3', [('attName', 'myString'), ('attTypeName', 'pdb::Handle&lt;pdb::String&gt;'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
-                "JoinedFor_equals5JoinComp3_WithBOTHExtracted(in0,in1,att_1OutFor_myString,LHSExtractedFor_5_3,RHSExtractedFor_5_3) <= APPLY (JoinedFor_equals5JoinComp3_WithLHSExtracted(att_1OutFor_myString), JoinedFor_equals5JoinComp3_WithLHSExtracted(in0,in1,att_1OutFor_myString,LHSExtractedFor_5_3), 'JoinComp_3', 'self_4', [('lambdaType', 'self')])\n"
-                "JoinedFor_equals5JoinComp3_BOOL(in0,in1,att_1OutFor_myString,bool_5_3) <= APPLY (JoinedFor_equals5JoinComp3_WithBOTHExtracted(LHSExtractedFor_5_3,RHSExtractedFor_5_3), JoinedFor_equals5JoinComp3_WithBOTHExtracted(in0,in1,att_1OutFor_myString), 'JoinComp_3', '==_5', [('lambdaType', '==')])\n"
-                "JoinedFor_equals5JoinComp3_FILTERED(in0, in1, att_1OutFor_myString) <= FILTER (JoinedFor_equals5JoinComp3_BOOL(bool_5_3), JoinedFor_equals5JoinComp3_BOOL(in0, in1, att_1OutFor_myString), 'JoinComp_3')\n"
-                "\n"
-                "/* run Join projection on ( in0 )*/\n"
-                "nativ_7OutForJoinComp3 (nativ_7_3OutFor) <= APPLY (JoinedFor_equals5JoinComp3_FILTERED(in0), JoinedFor_equals5JoinComp3_FILTERED(), 'JoinComp_3', 'native_lambda_7', [('lambdaType', 'native_lambda')])\n"
-                "\n"
-                "/* Extract key for aggregation */\n"
-                "nativ_0OutForAggregationComp4(nativ_7_3OutFor,nativ_0_4OutFor) <= APPLY (nativ_7OutForJoinComp3(nativ_7_3OutFor), nativ_7OutForJoinComp3(nativ_7_3OutFor), 'AggregationComp_4', 'native_lambda_0', [('lambdaType', 'native_lambda')])\n"
-                "\n"
-                "/* Extract value for aggregation */\n"
-                "nativ_1OutForAggregationComp4(nativ_0_4OutFor,nativ_1_4OutFor) <= APPLY (nativ_0OutForAggregationComp4(nativ_7_3OutFor), nativ_0OutForAggregationComp4(nativ_0_4OutFor), 'AggregationComp_4', 'native_lambda_1', [('lambdaType', 'native_lambda')])\n"
-                "\n"
-                "/* Apply aggregation */\n"
-                "aggOutForAggregationComp4 (aggOutFor4)<= AGGREGATE (nativ_1OutForAggregationComp4(nativ_0_4OutFor, nativ_1_4OutFor),'AggregationComp_4')\n"
-                "aggOutForAggregationComp4_out( ) <= OUTPUT ( aggOutForAggregationComp4 ( aggOutFor4 ), 'test78_db', 'output_set1', 'SetWriter_5')";
-
-
   // here is the list of computations
   Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
 
@@ -212,8 +164,8 @@ int main(int argc, char* argv[]) {
   myComputations->push_back(myAggregation);
   myComputations->push_back(myWriter);
 
-  // TODO this is just a preliminary version of the execute computation before we add back the TCAP generation
-  pdbClient.executeComputations(myComputations, tcap);
+  // execute the computation
+  pdbClient.executeComputations({ myWriter });
 
   /// 5. Evaluate the results
 

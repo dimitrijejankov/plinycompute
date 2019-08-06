@@ -20,10 +20,12 @@
 #define JOIN_COMP
 
 #include <JoinTupleSingleton.h>
+#include <lambdas/KeyExtractionLambda.h>
 #include "Computation.h"
 #include "JoinTests.h"
 #include "ComputePlan.h"
 #include "JoinTuple.h"
+#include "SelfLambda.h"
 #include "JoinCompBase.h"
 #include "LogicalPlan.h"
 #include "MultiInputsBase.h"
@@ -39,6 +41,8 @@ public:
 
   // calls getProjection and getSelection to extract the lambdas
   void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
+
+    // get the selection lambda
     Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
     Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
 
@@ -106,15 +110,11 @@ public:
     // loop through each of the attributes that we are supposed to accept, and for each of them, find the type
     std::vector<std::string> typeList;
     AtomicComputationPtr producer = plan->getComputations().getProducingAtomicComputation(consumeMe.getSetName());
-    std::cout << "consumeMe was: " << consumeMe << "\n";
-    std::cout << "attsToOpOn was: " << attsToOpOn << "\n";
-    std::cout << "projection was: " << projection << "\n";
+
     for (auto &a : projection.getAtts()) {
 
       // find the identity of the producing computation
-      std::cout << "finding the source of " << projection.getSetName() << "." << a << "\n";
       std::pair<std::string, std::string> res = producer->findSource(a, plan->getComputations());
-      std::cout << "got " << res.first << " " << res.second << "\n";
 
       // and find its type... in the first case, there is not a particular lambda that we need to ask for
       if (res.second.empty()) {
@@ -203,9 +203,7 @@ public:
     for (auto &a : recordSchema.getAtts()) {
 
       // find the identity of the producing computation
-      cout << "finding the source of " << recordSchema.getSetName() << "." << a << "\n";
       pair<string, string> res = producer->findSource(a, plan->getComputations());
-      cout << "got " << res.first << " " << res.second << "\n";
 
       if (res.second.empty()) {
         typeList.push_back("pdb::Handle<" + plan->getNode(res.first).getComputation().getOutputType() + ">");
@@ -279,6 +277,8 @@ public:
                                                &multiInputsBase,
                                                true);
 
+
+
     /**
      * 2. Generate the TCAP for the join projection
      */
@@ -294,12 +294,12 @@ public:
                                                 false);
 
     //  get the output columns
-    auto outputColumns = multiInputsBase.getInputColumnsToApplyForIthInput(0);
+    auto outputColumns = multiInputsBase.inputColumnsToApplyForInputs[0];
     assert(outputColumns.size() == 1);
     this->outputColumnToApply = outputColumns[0];
 
     // update the tuple set
-    this->outputTupleSetName = multiInputsBase.getTupleSetNameForIthInput(0);
+    this->outputTupleSetName = multiInputsBase.tupleSetNamesForInputs[0];
 
     return tcapString;
   }
@@ -320,11 +320,6 @@ public:
                                  uint64_t workerID,
                                  ComputePlan &computePlan) override {
 
-    std::cout << "pipelinedInputSchema is " << pipelinedInputSchema << "\n";
-    std::cout << "pipelinedAttsToOperateOn is " << pipelinedAttsToOperateOn << "\n";
-    std::cout << "pipelinedAttsToIncludeInOutput is " << pipelinedAttsToIncludeInOutput << "\n";
-    //std::cout << "From the join arg, got " << joinArg->hashTablePageSet->getNumPages() << "\n";
-
     // loop through each of the attributes that we are supposed to accept, and for each of them, find the type
     std::vector<std::string> typeList;
     AtomicComputationPtr producer =
@@ -332,13 +327,11 @@ public:
     for (auto &a : (hashedInputSchema.getAtts())) {
 
       // find the identity of the producing computation
-      std::cout << "finding the source of " << hashedInputSchema.getSetName() << "." << a << "\n";
       std::pair<std::string, std::string> res = producer->findSource(a, computePlan.getPlan()->getComputations());
 
       // and find its type... in the first case, there is not a particular lambda that we need to ask for
       if (res.second.empty()) {
-        typeList.push_back(
-            "pdb::Handle<" + computePlan.getPlan()->getNode(res.first).getComputation().getOutputType() + ">");
+        typeList.push_back("pdb::Handle<" + computePlan.getPlan()->getNode(res.first).getComputation().getOutputType() + ">");
       } else {
         std::string myType = computePlan.getPlan()->getNode(res.first).getLambda(res.second)->getOutputType();
         if (myType.find_first_of("pdb::Handle<") == 0) {
@@ -349,19 +342,9 @@ public:
       }
     }
 
-    for (auto &aa : typeList) {
-      std::cout << "Got type " << aa << "\n";
-    }
-
     // now we get the correct join tuple, that will allow us to pack tuples from the join in a hash table
     std::vector<int> whereEveryoneGoes;
     JoinTuplePtr correctJoinTuple = findCorrectJoinTuple<In1, In2, Rest...>(typeList, whereEveryoneGoes);
-
-    std::cout << "whereEveryoneGoes was: ";
-    for (auto &a : whereEveryoneGoes) {
-      std::cout << a << " ";
-    }
-    std::cout << "\n";
 
     // and return the correct probing code
     return correctJoinTuple->getProber(joinArg->hashTablePageSet,

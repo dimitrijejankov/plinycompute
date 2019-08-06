@@ -27,6 +27,8 @@ class LambdaObject {
 
 public:
 
+
+
   virtual ~LambdaObject() = default;
 
   // this gets an executor that appends the result of running this lambda to the end of each tuple
@@ -77,13 +79,6 @@ public:
 
   virtual unsigned int getNumInputs() = 0;
 
-  virtual unsigned int getInputIndex(int i) {
-    if (i >= this->getNumInputs()) {
-      return (unsigned int) (-1);
-    }
-    return inputIndexes[i];
-  }
-
   /**
    * This method labels all the lambdas in the lambda tree with an unique identifier
    * @param label - the label we start labeling the tree
@@ -94,13 +89,19 @@ public:
     myLambdaLabel = label;
 
     // set the label of the children
-    for (int i = 0; i < getNumChildren(); i++) {
-      LambdaObjectPtr child = getChild(i);
-      child->labelTree(label);
+    for (const auto &child : children) {
+      child.second->labelTree(label);
     }
 
     // increment the label
     label++;
+  }
+
+  virtual unsigned int getInputIndex(int i) {
+    if (i >= this->getNumInputs()) {
+      return (unsigned int) (-1);
+    }
+    return inputIndexes[i];
   }
 
   /**
@@ -110,18 +111,18 @@ public:
   void getAllInputs(std::set<int32_t> &inputs) {
 
     // go through all the children
-    for (int i = 0; i < this->getNumChildren(); i++) {
+    for (const auto &child : children) {
 
       // get the inputs from the children
-      this->getChild(i)->getAllInputs(inputs);
+      child.second->getAllInputs(inputs);
     }
 
     // if we have no children that means we are getting the inputs
-    if(this->getNumChildren() == 0) {
+    if (this->children.empty()) {
 
       // copy the input indices
-      for(const auto &in : inputIndexes) {
-        inputs.insert(in);
+      for (const auto &in : inputIndexes) {
+        inputs.insert(in.second);
       }
     }
   }
@@ -132,12 +133,8 @@ public:
     if (numInputs == 0) {
       numInputs = 1;
     }
-    if (inputIndexes.size() != numInputs) {
-      inputIndexes.resize(numInputs);
-    }
-    if (i < numInputs) {
-      this->inputIndexes[i] = index;
-    }
+
+    this->inputIndexes[i] = index;
   }
 
   // returns the name of this LambdaBase type, as a string
@@ -159,11 +156,20 @@ public:
   // column will be added.  If the LambdaObject cannot build the column (it has no knowledge
   // of that type) a false is returned.  Otherwise, a true is returned.
 
-  // returns the number of children of this Lambda type
-  virtual int getNumChildren() = 0;
+  void inject(int32_t inputIndex, const LambdaObjectPtr &lambdaToInject) {
 
-  // gets a particular child of this Lambda
-  virtual LambdaObjectPtr getChild(int which) = 0;
+    // set the label of the children
+    for (const auto &child : children) {
+      child.second->inject(inputIndex, lambdaToInject);
+    }
+
+    // mark this lambda tree
+    auto idx = std::find_if (inputIndexes.begin(), inputIndexes.end(), [&](auto idx) { return idx.second == inputIndex; });
+    if(idx != inputIndexes.end()) {
+      children[idx->first] = lambdaToInject;
+      inputIndexes.erase(idx);
+    }
+  }
 
   // returns a string containing the type that is returned when this lambda is executed
   virtual std::string getOutputType() = 0;
@@ -238,12 +244,13 @@ public:
     std::string computationNameWithLabel = computationNameWithLabelTemplate.render(lambdaData);
 
     // create the output tuple set name
-    mustache::mustache outputTupleSetNameTemplate{"{{tupleSetMidTag}}_{{typeOfLambda}}_{{lambdaLabel}}{{computationName}}{{computationLabel}}"};
+    mustache::mustache outputTupleSetNameTemplate
+        {"{{tupleSetMidTag}}_{{typeOfLambda}}_{{lambdaLabel}}{{computationName}}{{computationLabel}}"};
     outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
 
     // create the output columns
     mustache::mustache outputColumnNameTemplate{"{{tupleSetMidTag}}_{{typeOfLambda}}_{{lambdaLabel}}_{{computationLabel}}"};
-    generatedColumns = { outputColumnNameTemplate.render(lambdaData) };
+    generatedColumns = {outputColumnNameTemplate.render(lambdaData)};
 
     // the input tuple set
     std::string inputTupleSet;
@@ -252,41 +259,49 @@ public:
     std::vector<std::string> inputColumnNames;
     appliedColumns.clear();
 
-    // if this lambda has no children that means it gets the input columns directly from the input tuple set,
-    // otherwise it is getting it from the child lambda.
-    int currIndex;
-    if(getNumChildren() != 0) {
+    // go through the inputs
+    int currIndex = -1;
+    for(int i = 0; i < getNumInputs(); ++i) {
 
-      // this lambda generation is designed for only one input
-      assert(this->getNumChildren() == 1);
+      // check if we have a child
+      auto it = children.find(i);
+      if(it != children.end()) {
 
-      // get the child lambda
-      LambdaObjectPtr child = this->getChild(0);
+        // get the child lambda
+        LambdaObjectPtr child = it->second;
 
-      // grab what columns we require
-      appliedColumns = child->generatedColumns;
+        // grab what columns we require
+        appliedColumns = child->generatedColumns;
 
-      // get the index
-      assert(!child->joinedInputs.empty());
-      currIndex = *child->joinedInputs.begin();
-    }
-    else {
+        // get the index
+        assert(!child->joinedInputs.empty());
+        assert(i == 0 || multiInputsComp->joinGroupForInput[currIndex] == multiInputsComp->joinGroupForInput[*child->joinedInputs.begin()]);
 
-      // make sure that all of the inputs are in the same tuple set
-      currIndex = this->getInputIndex(0);
-      bool isJoined = std::all_of(inputIndexes.begin(), inputIndexes.end(), [&](auto in) {
-        return multiInputsComp->joinGroupForInput[currIndex] == multiInputsComp->joinGroupForInput[in];
-      });
+        // set the current index
+        currIndex = *child->joinedInputs.begin();
 
-      // this has to be true you can not have multiple tuple sets as an input to this lambda
-      assert(isJoined);
+        // go to the next input
+        continue;
+      }
 
-      // go through all the inputs
-      for(int i = 0; i < getNumInputs(); ++i) {
+      // check if we have an input if we don't have a child
+      auto jt = inputIndexes.find(i);
+      if(jt != inputIndexes.end()) {
+
+        assert(i == 0 || multiInputsComp->joinGroupForInput[currIndex] == multiInputsComp->joinGroupForInput[jt->second]);
+
+        // set the current index
+        currIndex = jt->second;
 
         // insert the columns
-        appliedColumns.emplace_back(multiInputsComp->inputNames[this->getInputIndex(i)]);
+        appliedColumns.emplace_back(multiInputsComp->inputNames[jt->second]);
+
+        // continue to the next input
+        continue;
       }
+
+      // throw an error
+      throw std::runtime_error("Don't have an input for index " + std::to_string(i) + ".");
     }
 
     // get the name of the input tuple set
@@ -298,7 +313,7 @@ public:
 
       // check if we are supposed to keep this input column, we keep it either if we are not a root, since it may be used later
       // or if it is a root and it is requested to be kept at the output
-      if(!isRoot || multiInputsComp->inputColumnsToKeep.find(column) != multiInputsComp->inputColumnsToKeep.end()) {
+      if (!isRoot || multiInputsComp->inputColumnsToKeep.find(column) != multiInputsComp->inputColumnsToKeep.end()) {
 
         // if we are supposed to keep this column add it to the input columns
         inputColumnNames.emplace_back(column);
@@ -322,7 +337,7 @@ public:
                                           getInfo());
 
     // if we are a part of the join predicate
-    if(isPredicate) {
+    if (isPredicate) {
 
       // mark as filtered
       isFiltered = true;
@@ -334,11 +349,12 @@ public:
       outputColumns.pop_back();
 
       // make the name for the new tuple set that is the output of the filter
-      outputTupleSetNameTemplate = {"{{tupleSetMidTag}}_FILTERED_{{lambdaLabel}}{{computationName}}{{computationLabel}}"};
+      outputTupleSetNameTemplate =
+          {"{{tupleSetMidTag}}_FILTERED_{{lambdaLabel}}{{computationName}}{{computationLabel}}"};
       outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
 
       // we are applying the filtering on the boolean column
-      appliedColumns = { generatedColumns[0] };
+      appliedColumns = {generatedColumns[0]};
 
       // we are not generating any columns after the filter
       generatedColumns = {};
@@ -356,10 +372,10 @@ public:
     joinGroup = multiInputsComp->joinGroupForInput[currIndex];
 
     // go through each tuple set and update stuff
-    for(int i = 0; i < multiInputsComp->tupleSetNamesForInputs.size(); ++i) {
+    for (int i = 0; i < multiInputsComp->tupleSetNamesForInputs.size(); ++i) {
 
       // check if this tuple set is the same index
-      if(multiInputsComp->joinGroupForInput[i] == joinGroup) {
+      if (multiInputsComp->joinGroupForInput[i] == joinGroup) {
 
         // the output tuple set is the new set with these columns
         multiInputsComp->tupleSetNamesForInputs[i] = outputTupleSetName;
@@ -387,7 +403,7 @@ public:
                             MultiInputsBase *multiInputsComp) {
 
     // make sure we actually have inputs
-    if(inputs.empty()) {
+    if (inputs.empty()) {
       return;
     }
 
@@ -396,7 +412,12 @@ public:
 
     // go through all the inputs
     int32_t idx = 0;
-    for(int in : inputs) {
+    for (int in : inputs) {
+
+      // skip if joined
+      if (multiInputsComp->joinGroupForInput[in] == multiInputsComp->joinGroupForInput[firstInput]) {
+        continue;
+      }
 
       // create the data for the lambda
       mustache::data lambdaData;
@@ -410,11 +431,6 @@ public:
       // create the computation name with label
       mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
       std::string computationNameWithLabel = computationNameWithLabelTemplate.render(lambdaData);
-
-      // skip if joined
-      if(multiInputsComp->joinGroupForInput[in] == multiInputsComp->joinGroupForInput[firstInput]) {
-        continue;
-      }
 
       /**
        * 1.1 Create a hash one for the LHS side
@@ -431,10 +447,11 @@ public:
       const std::string &leftTupleSetName = multiInputsComp->tupleSetNamesForInputs[lhsIndex];
 
       // the lhs column can be any column we only need it to get the number of rows
-      std::vector<std::string> leftColumnsToApply = { lhsColumnNames[0] };
+      std::vector<std::string> leftColumnsToApply = {lhsColumnNames[0]};
 
       // make the output tuple set
-      mustache::mustache leftOutputTupleTemplate{"{{tupleSetMidTag}}_hashOneFor_{{LHSApplyAttribute}}_{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
+      mustache::mustache leftOutputTupleTemplate
+          {"{{tupleSetMidTag}}_hashOneFor_{{LHSApplyAttribute}}_{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
       std::string leftOutputTupleSetName = leftOutputTupleTemplate.render(lambdaData);
 
       // make the column name
@@ -470,10 +487,11 @@ public:
       std::string rightTupleSetName = multiInputsComp->tupleSetNamesForInputs[rhsIndex];
 
       // the rhs column can be any column we only need it to get the number of rows
-      std::vector<std::string> rightColumnsToApply = { rhsColumnNames[0] };
+      std::vector<std::string> rightColumnsToApply = {rhsColumnNames[0]};
 
       // make the output tuple set
-      mustache::mustache rightOutputTupleSetNameTemplate{"{{tupleSetMidTag}}_hashOneFor_{{RHSApplyAttribute}}_{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
+      mustache::mustache rightOutputTupleSetNameTemplate
+          {"{{tupleSetMidTag}}_hashOneFor_{{RHSApplyAttribute}}_{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
       std::string rightOutputTupleSetName = rightOutputTupleSetNameTemplate.render(lambdaData);
 
       // make the column name
@@ -500,7 +518,8 @@ public:
        * 1.3 Make the cartasian join
        */
 
-      mustache::mustache outputTupleSetTemplate{"{{tupleSetMidTag}}_CartesianJoined__{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
+      mustache::mustache
+          outputTupleSetTemplate{"{{tupleSetMidTag}}_CartesianJoined__{{computationLabel}}_{{lambdaLabel}}_{{idx}}"};
       outputTupleSetName = outputTupleSetTemplate.render(lambdaData);
 
       // copy the output columns
@@ -511,7 +530,7 @@ public:
       tcapString += formatJoinComputation(outputTupleSetName,
                                           outputColumns,
                                           leftOutputTupleSetName,
-                                          { leftOutputColumnName },
+                                          {leftOutputColumnName},
                                           lhsColumnNames,
                                           rightOutputTupleSetName,
                                           {rightOutputColumnName},
@@ -522,11 +541,11 @@ public:
       tcapStrings.emplace_back(std::move(tcapString));
 
       // go through each tuple set and update stuff
-      for(int i = 0; i < multiInputsComp->tupleSetNamesForInputs.size(); ++i) {
+      for (int i = 0; i < multiInputsComp->tupleSetNamesForInputs.size(); ++i) {
 
         // check if this tuple set is the same index
         if (multiInputsComp->joinGroupForInput[i] == multiInputsComp->joinGroupForInput[lhsIndex] ||
-            multiInputsComp->joinGroupForInput[i] == multiInputsComp->joinGroupForInput[rhsIndex] ) {
+            multiInputsComp->joinGroupForInput[i] == multiInputsComp->joinGroupForInput[rhsIndex]) {
 
           // the output tuple set is the new set with these columns
           multiInputsComp->tupleSetNamesForInputs[i] = outputTupleSetName;
@@ -570,16 +589,16 @@ public:
 
     // make the name for this lambda object
     std::string myTypeName = this->getTypeOfLambda();
-    std::string myName = myTypeName + "_" + std::to_string(myLambdaLabel + this->getNumChildren());
+    std::string myName = myTypeName + "_" + std::to_string(myLambdaLabel + this->children.size());
 
     // should the child filter or not
     bool shouldFilterChild = false;
-    if(myTypeName == "and" || myTypeName == "deref") {
+    if (myTypeName == "and" || myTypeName == "deref") {
       shouldFilterChild = joinPredicate;
     }
 
     // if this is an expressions subtree make sure all the inputs are joined
-    if(isExpressionRoot) {
+    if (isExpressionRoot) {
 
       // get all the inputs of this lambda tree
       std::set<int32_t> inputs;
@@ -592,23 +611,21 @@ public:
     // the names of the child lambda we need that for the equal lambda etc..
     std::vector<std::string> childrenLambdas;
 
-    for (int i = 0; i < this->getNumChildren(); i++) {
+    for (const auto &child : this->children) {
 
       // get the child lambda
-      LambdaObjectPtr child = this->getChild(i);
-
       // if this is a predicated but the child is not the child is an expression root
-      child->isExpressionRoot = joinPredicate && !shouldFilterChild;
+      child.second->isExpressionRoot = joinPredicate && !shouldFilterChild;
 
       // recurse to generate the TCAP string
-      child->getTCAPStrings(computationLabel,
-                            computationName,
-                            false,
-                            multiInputsComp,
-                            shouldFilterChild,
-                            tcapStrings);
+      child.second->getTCAPStrings(computationLabel,
+                                   computationName,
+                                   false,
+                                   multiInputsComp,
+                                   shouldFilterChild,
+                                   tcapStrings);
 
-      childrenLambdas.push_back(child->getLambdaName());
+      childrenLambdas.push_back(child.second->getLambdaName());
     }
 
     // generate the TCAP string for the current lambda
@@ -624,7 +641,9 @@ public:
    * @param multiInputsComp - the current input tuple sets
    * @param tcapStrings - the list of tcap strings generated
    */
-  void generateExpressionTCAP(const std::string &prefix, MultiInputsBase *multiInputsComp, std::vector<std::string> &tcapStrings) {
+  void generateExpressionTCAP(const std::string &prefix,
+                              MultiInputsBase *multiInputsComp,
+                              std::vector<std::string> &tcapStrings) {
 
     // it is not the root
     this->isRoot = false;
@@ -633,13 +652,10 @@ public:
     this->myPrefix = prefix;
 
     // the names of the child lambda we need that for the equal lambda etc..
-    for (int i = 0; i < this->getNumChildren(); i++) {
-
-      // get the child lambda
-      LambdaObjectPtr child = this->getChild(i);
+    for (const auto &child : this->children) {
 
       // recurse to generate the TCAP string
-      child->generateExpressionTCAP(prefix, multiInputsComp, tcapStrings);
+      child.second->generateExpressionTCAP(prefix, multiInputsComp, tcapStrings);
     }
 
     // generate the TCAP string for the current lambda
@@ -652,73 +668,78 @@ public:
   virtual std::map<std::string, std::string> getInfo() = 0;
 
   /**
-   * input index in a multi-input computation
+   * The children of this lambda that it consumes (the inputs that come from the other lambdas)
    */
-  std::vector<unsigned int> inputIndexes;
+  std::map<int32_t, LambdaObjectPtr> children;
 
-   /**
-    * Is the lambda object the root of the lambda tree
-    */
-   bool isRoot = false;
+  /**
+   * The inputs of this lambda (the inputs that come from an external tuple set)
+   */
+  std::map<int32_t, uint32_t> inputIndexes;
 
-   /**
-    * True if this is an expression subtree
-    */
-   bool isExpressionRoot = false;
+  /**
+   * Is the lambda object the root of the lambda tree
+   */
+  bool isRoot = false;
 
-   /**
-    * Has this lambda been followed by a filter
-    */
-   bool isFiltered = false;
+  /**
+   * True if this is an expression subtree
+   */
+  bool isExpressionRoot = false;
 
-   /**
-    * This is telling us what inputs were joined at the time this lambda was processed
-    */
-   std::set<int32_t> joinedInputs;
+  /**
+   * Has this lambda been followed by a filter
+   */
+  bool isFiltered = false;
 
-   /**
-    * The join group the inputs belong to
-    */
-   int32_t joinGroup = -1;
+  /**
+   * This is telling us what inputs were joined at the time this lambda was processed
+   */
+  std::set<int32_t> joinedInputs;
 
-   /**
-    * The name of the generated tuple set
-    */
-   std::string outputTupleSetName;
+  /**
+   * The join group the inputs belong to
+   */
+  int32_t joinGroup = -1;
 
-   /**
-    * The output columns of this lambda
-    */
-   std::vector<std::string> outputColumns;
+  /**
+   * The name of the generated tuple set
+   */
+  std::string outputTupleSetName;
 
-   /**
-    * The columns this lambda has applied to generate the output
-    */
-   std::vector<std::string> appliedColumns;
+  /**
+   * The output columns of this lambda
+   */
+  std::vector<std::string> outputColumns;
 
-   /**
-    * The columns this lambda has generated
-    */
-   std::vector<std::string> generatedColumns;
+  /**
+   * The columns this lambda has applied to generate the output
+   */
+  std::vector<std::string> appliedColumns;
 
-   /**
-    * Prefix we add to the tuple sets of this lambda
-    */
-    std::string myPrefix = "OutFor";
+  /**
+   * The columns this lambda has generated
+   */
+  std::vector<std::string> generatedColumns;
 
-   /**
-    * The name of the computations
-    */
-   std::string myComputationName;
+  /**
+   * Prefix we add to the tuple sets of this lambda
+   */
+  std::string myPrefix = "OutFor";
 
-   /**
-    * The label associated with the computation
-    */
-   int32_t myComputationLabel;
+  /**
+   * The name of the computations
+   */
+  std::string myComputationName;
 
-   /**
-    * The name of the lambda
-    */
-   int32_t myLambdaLabel;
+  /**
+   * The label associated with the computation
+   */
+  int32_t myComputationLabel;
+
+  /**
+   * The name of the lambda
+   */
+  int32_t myLambdaLabel;
 };
 }

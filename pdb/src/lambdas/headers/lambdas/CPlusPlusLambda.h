@@ -117,7 +117,7 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
  private:
 
   F myFunc;
-  int numInputs = 0;
+  unsigned int numInputs = 0;
 
  public:
 
@@ -155,14 +155,6 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
 
   std::string getTypeOfLambda() const override {
     return std::string("native_lambda");
-  }
-
-  LambdaObjectPtr getChild(int which) override {
-    return nullptr;
-  }
-
-  int getNumChildren() override {
-    return 0;
   }
 
   ComputeExecutorPtr getExecutor(TupleSpec &inputSchema,

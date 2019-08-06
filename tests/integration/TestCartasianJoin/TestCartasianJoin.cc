@@ -109,18 +109,6 @@ int main(int argc, char* argv[]) {
   // for allocations
   const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
-  pdb::String tcapString = "inputDataForSetScanner_0(in0) <= SCAN ('myData', 'mySetA', 'SetScanner_0')\n"
-                           "inputDataForSetScanner_1(in1) <= SCAN ('myData', 'mySetB', 'SetScanner_1')\n"
-                           "nativOutFor_native_lambda_0(in0, nativOut_0_2) <= APPLY (inputDataForSetScanner_0(in0), inputDataForSetScanner_0(in0), 'JoinComp_2', 'native_lambda_0', [('lambdaType', 'native_lambda')])\n"
-                           "filtedOutFor_native_lambda_0(in0) <= FILTER (nativOutFor_native_lambda_0(nativOut_0_2), nativOutFor_native_lambda_0(in0), 'JoinComp_2')\n"
-                           "methodCall_1OutForJoinComp2(in1, boolAttr) <= APPLY (inputDataForSetScanner_1(in1), inputDataForSetScanner_1(in1), 'JoinComp_2', 'methodCall_1', [('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'methodCall'), ('methodName', 'getMyInt'), ('returnTypeName', 'pdb::StringIntPair')])\n"
-                           "filtedOutFor_native_lambda_3(in1) <= FILTER (methodCall_1OutForJoinComp2(boolAttr), methodCall_1OutForJoinComp2(in1), 'JoinComp_2')\n"
-                           "hashOneFor_in0_2_2(in0,OneFor_left_2_2) <= HASHONE (filtedOutFor_native_lambda_0(in0), filtedOutFor_native_lambda_0(in0), 'JoinComp_2', [])\n"
-                           "hashOneFor_in1_2_2(in1,OneFor_right_2_2) <= HASHONE (filtedOutFor_native_lambda_3(in1), filtedOutFor_native_lambda_3(in1), 'JoinComp_2', [])\n"
-                           "CartesianJoined__in0___in1_(in0, in1) <= JOIN (hashOneFor_in0_2_2(OneFor_left_2_2), hashOneFor_in0_2_2(in0), hashOneFor_in1_2_2(OneFor_right_2_2), hashOneFor_in1_2_2(in1), 'JoinComp_2')\n"
-                           "native_lambda_3OutForJoinComp2 (native_lambda_3_2_OutFor) <= APPLY (CartesianJoined__in0___in1_(in0,in1), CartesianJoined__in0___in1_(), 'JoinComp_2', 'native_lambda_3', [('lambdaType', 'native_lambda')])\n"
-                           "native_lambda_3OutForJoinComp2_out( ) <= OUTPUT ( native_lambda_3OutForJoinComp2 ( native_lambda_3_2_OutFor ), 'myData', 'outSet', 'SetWriter_3')";
-
   // here is the list of computations
   Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
 

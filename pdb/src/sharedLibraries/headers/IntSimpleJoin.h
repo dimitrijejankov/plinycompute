@@ -37,8 +37,7 @@ class IntSimpleJoin : public JoinComp<IntSimpleJoin, int, int, StringIntPair, St
 
   Lambda<bool> getSelection(Handle<int> in1, Handle<StringIntPair> in2, Handle<String> in3) {
     return (makeLambdaFromSelf(in1) == makeLambdaFromMember(in2, myInt)) &&
-           (makeLambdaFromMember(in2, myString) == makeLambdaFromSelf(in3)) &&
-           (makeLambdaFromSelf(in3) == makeLambdaFromSelf(in3));
+           (makeLambdaFromMember(in2, myString) == makeLambdaFromSelf(in3));
   }
 
   Lambda<Handle<int>> getProjection(Handle<int> in1, Handle<StringIntPair> in2, Handle<String> in3) {

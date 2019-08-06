@@ -13,7 +13,9 @@ public:
 
   ENABLE_DEEP_COPY
 
-  static Lambda <bool> getSelection (Handle <MatrixBlockMeta> in1, Handle <MatrixBlockMeta> in2) {
+  MatrixMultiplyJoin() = default;
+
+  static Lambda <bool> getKeySelection (Handle <MatrixBlockMeta> in1, Handle <MatrixBlockMeta> in2) {
     return (makeLambdaFromMember (in1, colID) == makeLambdaFromMember (in2, rowID));
   }
 

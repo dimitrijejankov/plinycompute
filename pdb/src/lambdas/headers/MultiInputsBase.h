@@ -86,36 +86,6 @@ class MultiInputsBase {
     inputNames.resize(numInputs);
   }
 
-  // returns the latest tuple set name that contains the i-th input
-  std::string getTupleSetNameForIthInput(int i) {
-    return tupleSetNamesForInputs[i];
-  }
-
-  // set the latest tuple set name that contains the i-th input
-  void setTupleSetNameForIthInput(int i, std::string name) {
-    tupleSetNamesForInputs[i] = std::move(name);
-  }
-
-  // get latest input columns for the tupleset for the i-th input
-  std::vector<std::string> getInputColumnsForIthInput(int i) {
-    return inputColumnsForInputs[i];
-  }
-
-  // set latest input columns for the tupleset for the i-th input
-  void setInputColumnsForIthInput(int i, const std::vector<std::string> &columns) {
-    inputColumnsForInputs[i] = columns;
-  }
-
-  // get latest input column to apply for the tupleset for the i-th input
-  std::vector<std::string> getInputColumnsToApplyForIthInput(int i) {
-    return inputColumnsToApplyForInputs[i];
-  }
-
-  // set latest input column to apply for the tupleset for the i-th input
-  void setInputColumnsToApplyForIthInput(int i, std::vector<std::string> &columnsToApply) {
-    inputColumnsToApplyForInputs[i] = columnsToApply;
-  }
-
   std::vector<std::string> getNotAppliedInputColumnsForIthInput(int i) {
 
     // the return value
@@ -130,30 +100,6 @@ class MultiInputsBase {
 
     // return the input columns
     return std::move(ret);
-  }
-
-  // set latest input column to apply for the tupleset for the i-th input
-  void setColumnToApplyForIthInput(int i, std::string columnToApply) {
-    inputColumnsToApplyForInputs[i].clear();
-    inputColumnsToApplyForInputs[i].emplace_back(columnToApply);
-  }
-
-  // set lambdas for the i-th input, and j-th predicate
-  void setLambdasForIthInputAndPredicate(int i,
-                                         std::string predicateLambda,
-                                         std::string lambdaName) {
-
-    lambdaNamesForInputs[i][predicateLambda].push_back(lambdaName);
-  }
-
-  // get the name for the i-th input
-  std::string getNameForIthInput(int i) {
-    return inputNames[i];
-  }
-
-  // set the name for the i-th input
-  void setNameForIthInput(int i, std::string name) {
-    inputNames[i] = std::move(name);
   }
 
 };
