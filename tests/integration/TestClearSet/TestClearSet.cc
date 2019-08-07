@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
   /// 5. create all of the computation objects and run the query
 
   // make the scan set
-  Handle<Computation> myScanSet = makeObject<ScanSupervisorSet>();
+  Handle<Computation> myScanSet = makeObject<ScanSupervisorSet>("chris_db", "chris_set");
 
   // make the first filter
   Handle<Computation> myFilter = makeObject<SillyQuery>();
@@ -108,7 +108,7 @@ int main(int argc, char* argv[]) {
   myFinalFilter->setInput(myAgg);
 
   // make the set writer
-  Handle<Computation> myWrite = makeObject<WriteSalaries>();
+  Handle<Computation> myWrite = makeObject<WriteSalaries>("chris_db", "output_set");
   myWrite->setInput(myFinalFilter);
 
   /// 5. Run the query for the first time
@@ -160,8 +160,8 @@ int main(int argc, char* argv[]) {
 
   std::cout << "Got " << i << " records expected 0" << std::endl;
 
-  //TODO this is just a preliminary version of the execute computation before we add back the TCAP generation
-  pdbClient.executeComputations(myComputations, myTCAPString);
+  // run computations
+  pdbClient.executeComputations({ myWrite });
 
   /// 5. Get the set from the
 

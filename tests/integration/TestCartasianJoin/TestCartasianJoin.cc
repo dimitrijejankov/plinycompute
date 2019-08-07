@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
   Handle <Computation> join = makeObject <SillyCartasianJoinIntString>();
   join->setInput(0, readA);
   join->setInput(1, readB);
-  Handle <Computation> write = makeObject <SillyWriteIntString>();
+  Handle <Computation> write = makeObject <SillyWriteIntString>("myData", "outSet");
   write->setInput(0, join);
 
   // put them in the list of computations

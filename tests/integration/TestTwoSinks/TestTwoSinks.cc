@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
   /// 5. create all of the computation objects and run the query
 
   // make the scan set
-  Handle<Computation> myScanSet = makeObject<ScanSupervisorSet>();
+  Handle<Computation> myScanSet = makeObject<ScanSupervisorSet>("chris_db", "chris_set");
 
   // make the first filter
   Handle<Computation> myFilter = makeObject<SillyQuery>();
@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
   myFinalFilter1->setInput(myAgg);
 
   // make the set writer
-  Handle<Computation> myWrite1 = makeObject<WriteSalaries>();
+  Handle<Computation> myWrite1 = makeObject<WriteSalaries>("chris_db", "output_set1");
   myWrite1->setInput(myFinalFilter1);
 
   // make the final filter
@@ -117,7 +117,7 @@ int main(int argc, char* argv[]) {
   myFinalFilter2->setInput(myAgg);
 
   // make the set writer
-  Handle<Computation> myWrite2 = makeObject<WriteSalaries>();
+  Handle<Computation> myWrite2 = makeObject<WriteSalaries>("chris_db", "output_set2");
   myWrite2->setInput(myFinalFilter2);
 
   // run computations

@@ -143,7 +143,6 @@ public:
     lambdaData.set("computationLabel", std::to_string(myComputationLabel));
     lambdaData.set("typeOfLambda", getTypeOfLambda());
     lambdaData.set("lambdaLabel", std::to_string(myLambdaLabel));
-    lambdaData.set("lambdaLabel", std::to_string(myLambdaLabel));
     lambdaData.set("tupleSetMidTag", myPrefix);
 
     // create the computation name with label

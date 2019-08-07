@@ -83,18 +83,15 @@ public:
    * This method labels all the lambdas in the lambda tree with an unique identifier
    * @param label - the label we start labeling the tree
    */
-  void labelTree(int32_t &label) {
+  virtual void labelTree(int32_t &label) {
 
     // set my label
-    myLambdaLabel = label;
+    myLambdaLabel = label++;
 
     // set the label of the children
     for (const auto &child : children) {
       child.second->labelTree(label);
     }
-
-    // increment the label
-    label++;
   }
 
   virtual unsigned int getInputIndex(int i) {

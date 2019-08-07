@@ -74,10 +74,10 @@ int main(int argc, char* argv[]) {
   const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
   // here is the list of computations
-  Handle<Computation> myScanSet = makeObject<ScanEmployeeSet>();
+  Handle<Computation> myScanSet = makeObject<ScanEmployeeSet>("chris_db", "chris_set");
   Handle<Computation> myQuery = makeObject<EmployeeBuiltInIdentitySelection>();
   myQuery->setInput(myScanSet);
-  Handle<Computation> myWriteSet = makeObject<WriteBuiltinEmployeeSet>("chris_db", "chris_set");
+  Handle<Computation> myWriteSet = makeObject<WriteBuiltinEmployeeSet>("chris_db", "output_set");
   myWriteSet->setInput(myQuery);
 
   // run computations

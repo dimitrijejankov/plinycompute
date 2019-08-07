@@ -25,6 +25,9 @@
 #include <IntSimpleJoin.h>
 #include <WriteSumResult.h>
 #include <IntAggregation.h>
+#include <WriteBuiltinEmployeeSet.h>
+#include <EmployeeBuiltInIdentitySelection.h>
+#include <ScanEmployeeSet.h>
 
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlock.h"
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixScanner.h"
@@ -153,21 +156,14 @@ TEST(TestTcapGeneration, Test5) {
   const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
 
   // create all of the computation objects
-  Handle<Computation> myScanSet1 = makeObject<ReadInt>("test78_db", "test78_set1");
-  Handle<Computation> myScanSet2 = makeObject<ReadStringIntPair>("test78_db", "test78_set2");
-  Handle<Computation> mySelection = makeObject<StringSelectionOfStringIntPair>();
-  mySelection->setInput(myScanSet2);
-  Handle<Computation> myJoin = makeObject<IntSimpleJoin>();
-  myJoin->setInput(0, myScanSet1);
-  myJoin->setInput(1, myScanSet2);
-  myJoin->setInput(2, mySelection);
-  Handle<Computation> myAggregation = makeObject<IntAggregation>();
-  myAggregation->setInput(myJoin);
-  Handle<Computation> myWriter = makeObject<WriteSumResult>("test78_db", "output_set1");
-  myWriter->setInput(myAggregation);
+  Handle<Computation> myScanSet = makeObject<ScanEmployeeSet>("chris_db", "output_set");
+  Handle<Computation> myQuery = makeObject<EmployeeBuiltInIdentitySelection>();
+  myQuery->setInput(myScanSet);
+  Handle<Computation> myWriteSet = makeObject<WriteBuiltinEmployeeSet>("chris_db", "chris_set");
+  myWriteSet->setInput(myQuery);
 
   // the query graph has only the aggregation
-  std::vector<Handle<Computation>> queryGraph = { myWriter };
+  std::vector<Handle<Computation>> queryGraph = { myWriteSet };
 
   // create the graph analyzer
   pdb::QueryGraphAnalyzer queryAnalyzer(queryGraph);

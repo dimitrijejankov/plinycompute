@@ -88,10 +88,10 @@ int main(int argc, char* argv[]) {
 
   /// 5. create all of the computation objects and run the query
 
-  Handle <Computation> readStringIntPair = pdb::makeObject <ReadStringIntPair>();
+  Handle <Computation> readStringIntPair = pdb::makeObject <ReadStringIntPair>("chris_db", "chris_set");
   Handle <Computation> multiSelection = pdb::makeObject <StringIntPairMultiSelection>();
   multiSelection->setInput(0, readStringIntPair);
-  Handle <Computation> writeStringIntPair = pdb::makeObject <WriteStringIntPair>();
+  Handle <Computation> writeStringIntPair = pdb::makeObject <WriteStringIntPair>("chris_db", "output_set");
   writeStringIntPair->setInput(0, multiSelection);
 
   // run computations

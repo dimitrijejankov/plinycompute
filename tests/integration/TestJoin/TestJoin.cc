@@ -121,12 +121,12 @@ int main(int argc, char* argv[]) {
   const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
   // here is the list of computations
-  Handle <Computation> readA = makeObject <ReadInt>();
-  Handle <Computation> readB = makeObject <ReadStringIntPair>();
+  Handle <Computation> readA = makeObject <ReadInt>("myData", "mySetA");
+  Handle <Computation> readB = makeObject <ReadStringIntPair>("myData", "mySetB");
   Handle <Computation> join = makeObject <SillyJoinIntString>();
   join->setInput(0, readA);
   join->setInput(1, readB);
-  Handle <Computation> write = makeObject <SillyWriteIntString>();
+  Handle <Computation> write = makeObject <SillyWriteIntString>("myData", "outSet");
   write->setInput(0, join);
 
   // run computations
