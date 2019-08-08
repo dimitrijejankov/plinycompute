@@ -19,7 +19,9 @@
 #ifndef JOIN_TESTS_H
 #define JOIN_TESTS_H
 
+#include <lambdas/JoinRecordLambda.h>
 #include "Handle.h"
+#include "ValueExtractionLambda.h"
 
 // all of this nastiness allows us to call getSelection and getProjection on a join, using the correct number of args
 namespace pdb {
@@ -42,6 +44,16 @@ struct HasTwoArgs {
   static auto testProjection (U *x) -> decltype (x->getProjection (foofoo, foofoo)) {
     return x->getProjection (foofoo, foofoo);
   }
+
+  template <typename U>
+  static auto testKeyProjection (U *x) -> decltype (x->getKeyProjection (foofoo, foofoo)) {
+    return x->getKeyProjection (foofoo, foofoo);
+  }
+
+  template <typename U>
+  static auto testValueProjection (U *x) -> decltype (x->getValueProjection (foofoo, foofoo)) {
+    return x->getValueProjection (foofoo, foofoo);
+  }
 };
 
 struct HasThreeArgs {
@@ -59,6 +71,16 @@ struct HasThreeArgs {
   template <typename U>
   static auto testProjection (U *x) -> decltype (x->getProjection (foofoo, foofoo, foofoo)) {
     return x->getProjection (foofoo, foofoo, foofoo);
+  }
+
+  template <typename U>
+  static auto testKeyProjection (U *x) -> decltype (x->getKeyProjection (foofoo, foofoo, foofoo)) {
+    return x->getKeyProjection (foofoo, foofoo, foofoo);
+  }
+
+  template <typename U>
+  static auto testValueProjection (U *x) -> decltype (x->getValueProjection (foofoo, foofoo, foofoo)) {
+    return x->getValueProjection (foofoo, foofoo, foofoo);
   }
 };
 
@@ -78,6 +100,16 @@ struct HasFourArgs {
   static auto testProjection (U *x) -> decltype (x->getProjection (foofoo, foofoo, foofoo, foofoo)) {
     return x->getProjection (foofoo, foofoo, foofoo, foofoo);
   }
+
+  template <typename U>
+  static auto testKeyProjection (U *x) -> decltype (x->getKeyProjection (foofoo, foofoo, foofoo, foofoo)) {
+    return x->getKeyProjection (foofoo, foofoo, foofoo, foofoo);
+  }
+
+  template <typename U>
+  static auto testValueProjection (U *x) -> decltype (x->getValueProjection (foofoo, foofoo, foofoo, foofoo)) {
+    return x->getValueProjection (foofoo, foofoo, foofoo, foofoo);
+  }
 };
 
 struct HasFiveArgs {
@@ -96,6 +128,16 @@ struct HasFiveArgs {
   static auto testProjection (U *x) -> decltype (x->getProjection (foofoo, foofoo, foofoo, foofoo, foofoo)) {
     return x->getProjection (foofoo, foofoo, foofoo, foofoo, foofoo);
   }
+
+  template <typename U>
+  static auto testKeyProjection (U *x) -> decltype (x->getKeyProjection (foofoo, foofoo, foofoo, foofoo, foofoo)) {
+    return x->getKeyProjection (foofoo, foofoo, foofoo, foofoo, foofoo);
+  }
+
+  template <typename U>
+  static auto testValueProjection (U *x) -> decltype (x->getValueProjection (foofoo, foofoo, foofoo, foofoo, foofoo)) {
+    return x->getValueProjection (foofoo, foofoo, foofoo, foofoo, foofoo);
+  }
 };
 
 /**
@@ -104,9 +146,9 @@ struct HasFiveArgs {
 
 template <typename LambdaType, typename In1, typename ...Rest>
 typename std::enable_if<sizeof ...(Rest) != 0, void>::type
-injectIntoSelection(LambdaType predicate, int input) {
+injectKeyExtraction(LambdaType predicate, int input) {
 
-  injectIntoSelection<LambdaType, Rest...>(predicate, input + 1);
+  injectKeyExtraction<LambdaType, Rest...>(predicate, input + 1);
 
   // prepare the input
   GenericHandle tmp(input + 1);
@@ -117,7 +159,7 @@ injectIntoSelection(LambdaType predicate, int input) {
 }
 
 template <typename LambdaType, typename In1>
-void injectIntoSelection(LambdaType predicate, int input) {
+void injectKeyExtraction(LambdaType predicate, int input) {
 
   // prepare the input
   GenericHandle tmp(input + 1);
@@ -125,6 +167,35 @@ void injectIntoSelection(LambdaType predicate, int input) {
 
   // inject the key lambda
   predicate.inject(input, LambdaTree<Ptr<In1>>(std::make_shared<KeyExtractionLambda<In1>>(in)));
+}
+
+/**
+ *
+ */
+
+template <typename LambdaType, typename In1, typename ...Rest>
+typename std::enable_if<sizeof ...(Rest) != 0, void>::type
+injectValueExtraction(LambdaType predicate, int input) {
+
+  injectValueExtraction<LambdaType, Rest...>(predicate, input + 1);
+
+  // prepare the input
+  GenericHandle tmp(input + 1);
+  Handle<In1> in = tmp;
+
+  // inject the key lambda
+  predicate.inject(input, LambdaTree<Ptr<In1>>(std::make_shared<ValueExtractionLambda<In1>>(in)));
+}
+
+template <typename LambdaType, typename In1>
+void injectValueExtraction(LambdaType predicate, int input) {
+
+  // prepare the input
+  GenericHandle tmp(input + 1);
+  Handle<In1> in = tmp;
+
+  // inject the key lambda
+  predicate.inject(input, LambdaTree<Ptr<In1>>(std::make_shared<ValueExtractionLambda<In1>>(in)));
 }
 
 /**
@@ -180,7 +251,7 @@ auto callGetSelection (TypeToCallMethodOn &a, decltype (HasTwoArgs::testKeySelec
   auto predicate = a.getKeySelection (first, second);
 
   // inject the key extraction into the predicate
-  injectIntoSelection<decltype(predicate), In1, In2, Rest...> (predicate, 0);
+  injectKeyExtraction<decltype(predicate), In1, In2, Rest...> (predicate, 0);
 
   // return the predicate
   return predicate;
@@ -198,7 +269,7 @@ auto callGetSelection (TypeToCallMethodOn &a, decltype (HasThreeArgs::testKeySel
   auto predicate = a.getKeySelection (first, second);
 
   // inject the key extraction into the predicate
-  injectIntoSelection<decltype(predicate), In1, In2, Rest...> (predicate, 0);
+  injectKeyExtraction<decltype(predicate), In1, In2, Rest...> (predicate, 0);
 
   // return the predicate
   return predicate;
@@ -217,7 +288,7 @@ auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFourArgs::testKeySele
   auto predicate = a.getKeySelection (first, second);
 
   // inject the key extraction into the predicate
-  injectIntoSelection<decltype(predicate), In1, In2, Rest...> (predicate, 0);
+  injectKeyExtraction<decltype(predicate), In1, In2, Rest...> (predicate, 0);
 
   // return the predicate
   return predicate;
@@ -237,7 +308,7 @@ auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFiveArgs::testKeySele
   auto predicate = a.getKeySelection (first, second);
 
   // inject the key extraction into the predicate
-  injectIntoSelection<decltype(predicate), In1, In2, Rest...> (predicate, 0);
+  injectKeyExtraction<decltype(predicate), In1, In2, Rest...> (predicate, 0);
 
   // return the predicate
   return predicate;
@@ -247,14 +318,14 @@ auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFiveArgs::testKeySele
  *
  */
 
-template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
 auto callGetProjection (TypeToCallMethodOn &a, decltype (HasTwoArgs::testProjection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
   return a.getProjection (first, second);
 }
 
-template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
 auto callGetProjection (TypeToCallMethodOn &a, decltype (HasThreeArgs::testProjection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
@@ -262,7 +333,7 @@ auto callGetProjection (TypeToCallMethodOn &a, decltype (HasThreeArgs::testProje
   return a.getProjection (first, second, third);
 }
 
-template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
 auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFourArgs::testProjection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
@@ -271,7 +342,7 @@ auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFourArgs::testProjec
   return a.getProjection (first, second, third, fourth);
 }
 
-template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
 auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFiveArgs::testProjection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
@@ -279,6 +350,122 @@ auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFiveArgs::testProjec
   GenericHandle fourth (4);
   GenericHandle fifth (5);
   return a.getProjection (first, second, third, fourth, fifth);
+}
+
+/**
+ *
+ */
+
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+auto callGetProjection (TypeToCallMethodOn &a, decltype (HasTwoArgs::testKeyProjection (&a)) *arg1 = nullptr, decltype (HasTwoArgs::testValueProjection (&a)) *arg2 = nullptr) {
+  GenericHandle first (1);
+  GenericHandle second (2);
+
+  // get the key and value projections
+  auto valueProjection = a.getValueProjection (first, second);
+  auto keyProjection = a.getKeyProjection (first, second);
+
+  // inject the key extraction into the predicate
+  injectKeyExtraction<decltype(keyProjection), In1, In2, Rest...> (keyProjection, 0);
+
+  // inject the key extraction into the predicate
+  injectValueExtraction<decltype(valueProjection), In1, In2, Rest...> (valueProjection, 0);
+
+  // the types for key and value
+  using key = typename std::remove_reference<decltype(((Out*) nullptr)->getKey())>::type;
+  using value = typename std::remove_reference<decltype(((Out*) nullptr)->getValue())>::type;
+
+  // make the join record lambda
+  auto lambda = std::make_shared<JoinRecordLambda<Out, key, value>>(keyProjection.tree, valueProjection.tree);
+
+  // create
+  return LambdaTree<Handle<Out>>(lambda);
+}
+
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+auto callGetProjection (TypeToCallMethodOn &a, decltype (HasThreeArgs::testKeyProjection (&a)) *arg1 = nullptr, decltype (HasThreeArgs::testValueProjection (&a)) *arg2 = nullptr) {
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+
+  // get the key and value projections
+  auto valueProjection = a.getValueProjection (first, second, third);
+  auto keyProjection = a.getKeyProjection (first, second, third);
+
+  // inject the key extraction into the predicate
+  injectKeyExtraction<decltype(keyProjection), In1, In2, Rest...> (keyProjection, 0);
+
+  // inject the key extraction into the predicate
+  injectValueExtraction<decltype(valueProjection), In1, In2, Rest...> (valueProjection, 0);
+
+  // the types for key and value
+  using key = typename std::remove_reference<decltype(((Out*) nullptr)->getKey())>::type;
+  using value = typename std::remove_reference<decltype(((Out*) nullptr)->getValue())>::type;
+
+  // make the join record lambda
+  auto lambda = std::make_shared<JoinRecordLambda<Out, key, value>>(keyProjection.tree, valueProjection.tree);
+
+  // create
+  return LambdaTree<Handle<Out>>(lambda);
+}
+
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFourArgs::testKeyProjection (&a)) *arg1 = nullptr, decltype (HasFourArgs::testValueProjection (&a)) *arg2 = nullptr) {
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+  GenericHandle fourth (4);
+
+  // get the key and value projections
+  auto valueProjection = a.getValueProjection (first, second, third, fourth);
+  auto keyProjection = a.getKeyProjection (first, second, third, fourth);
+
+  // inject the key extraction into the predicate
+  injectKeyExtraction<decltype(keyProjection), In1, In2, Rest...> (keyProjection, 0);
+
+  // inject the key extraction into the predicate
+  injectValueExtraction<decltype(valueProjection), In1, In2, Rest...> (valueProjection, 0);
+
+  // the types for key and value
+  using key = typename std::remove_reference<decltype(((Out*) nullptr)->getKey())>::type;
+  using value = typename std::remove_reference<decltype(((Out*) nullptr)->getValue())>::type;
+
+  // make the join record lambda
+  auto lambda = std::make_shared<JoinRecordLambda<Out, key, value>>(keyProjection.tree, valueProjection.tree);
+
+  // create
+  return LambdaTree<Handle<Out>>(lambda);
+}
+
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFiveArgs::testKeyProjection (&a)) *arg1 = nullptr, decltype (HasFiveArgs::testValueProjection (&a)) *arg2 = nullptr) {
+
+  // make the input handles
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+  GenericHandle fourth (4);
+  GenericHandle fifth (5);
+
+  // get the key and value projections
+  auto valueProjection = a.getValueProjection (first, second, third, fourth, fifth);
+  auto keyProjection = a.getKeyProjection (first, second, third, fourth, fifth);
+
+  // inject the key extraction into the predicate
+  injectKeyExtraction<decltype(keyProjection), In1, In2, Rest...> (keyProjection, 0);
+
+  // inject the key extraction into the predicate
+  injectValueExtraction<decltype(valueProjection), In1, In2, Rest...> (valueProjection, 0);
+
+  // the types for key and value
+  using key = typename std::remove_reference<decltype(((Out*) nullptr)->getKey())>::type;
+  using value = typename std::remove_reference<decltype(((Out*) nullptr)->getValue())>::type;
+
+  // make the join record lambda
+  auto lambda = std::make_shared<JoinRecordLambda<Out, key, value>>(keyProjection.tree, valueProjection.tree);
+
+  // create
+  return LambdaTree<Handle<Out>>(lambda);
 }
 
 }

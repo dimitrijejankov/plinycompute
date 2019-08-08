@@ -44,7 +44,7 @@ public:
 
     // get the selection lambda
     Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
-    Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
+    Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, Out, In1, In2, Rest...>(*static_cast<Derived*>(this));
 
     // the label we are started labeling
     int32_t startLabel = 0;
@@ -285,7 +285,7 @@ public:
 
     // get the projection lambda and it's inputs
     tcapString += "\n/* Apply join projection*/\n";
-    Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
+    Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, Out, In1, In2, Rest...>(*static_cast<Derived*>(this));
     tcapString += projectionLambda.toTCAPString(lambdaLabel,
                                                 "JoinComp",
                                                 computationLabel,

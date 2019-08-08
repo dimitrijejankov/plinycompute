@@ -19,21 +19,28 @@ public:
     return (makeLambdaFromMember (in1, colID) == makeLambdaFromMember (in2, rowID));
   }
 
-  static Lambda <Handle <MatrixBlock>> getProjection (Handle <MatrixBlock> in1, Handle <MatrixBlock> in2) {
-    return makeLambda (in1, in2, [] (Handle <MatrixBlock> &in1, Handle <MatrixBlock> &in2) {
+  static Lambda <Handle<MatrixBlockMeta>> getKeyProjection(Handle <MatrixBlockMeta> in1, Handle <MatrixBlockMeta> in2) {
+    return makeLambda (in1, in2, [] (Handle <MatrixBlockMeta> &in1, Handle <MatrixBlockMeta> &in2) {
+      Handle<MatrixBlockMeta> out = makeObject<MatrixBlockMeta>(in1->rowID, in2->colID);
+      return out;
+    });
+  }
+
+  static Lambda <Handle<MatrixBlockData>> getValueProjection(Handle <MatrixBlockData> in1, Handle <MatrixBlockData> in2) {
+    return makeLambda (in1, in2, [] (Handle <MatrixBlockData> &in1, Handle <MatrixBlockData> &in2) {
 
       // get the sizes
-      uint32_t I = in1->data.numRows;
-      uint32_t J = in2->data.numCols;
-      uint32_t K = in1->data.numCols;
+      uint32_t I = in1->numRows;
+      uint32_t J = in2->numCols;
+      uint32_t K = in1->numCols;
 
-      // make the output block
-      Handle <MatrixBlock> out = makeObject<MatrixBlock>(in1->getRowID(), in2->getColID(), I, J);
+      // make an output
+      Handle<MatrixBlockData> out = makeObject<MatrixBlockData>(I, J);
 
       // get the ptrs
-      float *outData = out->data.data->c_ptr();
-      float *in1Data = in1->data.data->c_ptr();
-      float *in2Data = in2->data.data->c_ptr();
+      float *outData = out->data->c_ptr();
+      float *in1Data = in1->data->c_ptr();
+      float *in2Data = in2->data->c_ptr();
 
       //TODO replace this with mkl
       for (uint32_t i = 0; i < I; ++i) {

@@ -156,14 +156,19 @@ TEST(TestTcapGeneration, Test5) {
   const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
 
   // create all of the computation objects
-  Handle<Computation> myScanSet = makeObject<ScanEmployeeSet>("chris_db", "output_set");
-  Handle<Computation> myQuery = makeObject<EmployeeBuiltInIdentitySelection>();
-  myQuery->setInput(myScanSet);
-  Handle<Computation> myWriteSet = makeObject<WriteBuiltinEmployeeSet>("chris_db", "chris_set");
-  myWriteSet->setInput(myQuery);
+  Handle <Computation> readA = makeObject <MatrixScanner>("myData", "A");
+  Handle <Computation> readB = makeObject <MatrixScanner>("myData", "B");
+  Handle <Computation> join = makeObject <MatrixMultiplyJoin>();
+  join->setInput(0, readA);
+  join->setInput(1, readB);
+  Handle<Computation> myAggregation = makeObject<MatrixMultiplyAggregation>();
+  myAggregation->setInput(join);
+  Handle<Computation> myWriter = makeObject<MatrixWriter>("myData", "C");
+  myWriter->setInput(myAggregation);
+
 
   // the query graph has only the aggregation
-  std::vector<Handle<Computation>> queryGraph = { myWriteSet };
+  std::vector<Handle<Computation>> queryGraph = { myWriter };
 
   // create the graph analyzer
   pdb::QueryGraphAnalyzer queryAnalyzer(queryGraph);
