@@ -26,6 +26,7 @@
 
 namespace pdb {
 
+
 template<class OutputClass>
 class SetScanner : public Computation {
  public:
@@ -162,7 +163,7 @@ class SetScanner : public Computation {
       return std::make_shared<pdb::VectorTupleSetIterator>(pageSet, chunkSize, workerID);
     }
     else if(sourceSetInfo->set->containerType == PDB_CATALOG_SET_MAP_CONTAINER) {
-      return std::make_shared<pdb::MapTupleSetIterator<Key, Value, OutputClass>> (pageSet, workerID, chunkSize);
+      return std::make_shared<pdb::MapTupleSetIterator<typename remove_handle<Key>::type, typename remove_handle<Value>::type, OutputClass>> (pageSet, workerID, chunkSize);
     }
 
     throw runtime_error("Unknown container  type for set ("  + (string) dbName +"," + (string) setName +")");

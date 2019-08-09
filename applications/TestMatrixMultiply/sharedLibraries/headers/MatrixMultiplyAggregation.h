@@ -16,12 +16,12 @@ public:
 
   // the key type must have == and size_t hash () defined
   Lambda<MatrixBlockMeta> getKeyProjection(Handle<MatrixBlock> aggMe) override {
-    return makeLambdaFromMethod(aggMe, getKey);
+    return makeLambdaFromMethod(aggMe, getKeyRef);
   }
 
   // the value type must have + defined
   Lambda<MatrixBlockData> getValueProjection(Handle<MatrixBlock> aggMe) override {
-    return makeLambdaFromMethod(aggMe, getValue);
+    return makeLambdaFromMethod(aggMe, getValueRef);
   }
 
 };

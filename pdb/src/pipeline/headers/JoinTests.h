@@ -253,6 +253,9 @@ auto callGetSelection (TypeToCallMethodOn &a, decltype (HasTwoArgs::testKeySelec
   // inject the key extraction into the predicate
   injectKeyExtraction<decltype(predicate), In1, In2, Rest...> (predicate, 0);
 
+  static_assert(std::is_base_of<HandleBase, typename std::remove_reference<decltype(((In1*) nullptr)->getKey())>::type>::value, "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase, typename std::remove_reference<decltype(((In2*) nullptr)->getKey())>::type>::value, "The key of the input has to be a Handle!");
+
   // return the predicate
   return predicate;
 }
@@ -270,6 +273,13 @@ auto callGetSelection (TypeToCallMethodOn &a, decltype (HasThreeArgs::testKeySel
 
   // inject the key extraction into the predicate
   injectKeyExtraction<decltype(predicate), In1, In2, Rest...> (predicate, 0);
+
+  // get the third input
+  using In3 = typename std::tuple_element<0, std::tuple<Rest...>>::type;
+
+  static_assert(std::is_base_of<HandleBase, typename std::remove_reference<decltype(((In1*) nullptr)->getKey())>::type>::value, "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase, typename std::remove_reference<decltype(((In2*) nullptr)->getKey())>::type>::value, "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase, typename std::remove_reference<decltype(((In3*) nullptr)->getKey())>::type>::value, "The key of the input has to be a Handle!");
 
   // return the predicate
   return predicate;
@@ -290,6 +300,15 @@ auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFourArgs::testKeySele
   // inject the key extraction into the predicate
   injectKeyExtraction<decltype(predicate), In1, In2, Rest...> (predicate, 0);
 
+  // get the third input
+  using In3 = typename std::tuple_element<0, std::tuple<Rest...>>::type;
+  using In4 = typename std::tuple_element<0, std::tuple<Rest...>>::type;
+
+  static_assert(std::is_base_of<HandleBase, typename std::remove_reference<decltype(((In1*) nullptr)->getKey())>::type>::value, "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase, typename std::remove_reference<decltype(((In2*) nullptr)->getKey())>::type>::value, "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase, typename std::remove_reference<decltype(((In3*) nullptr)->getKey())>::type>::value, "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase, typename std::remove_reference<decltype(((In4*) nullptr)->getKey())>::type>::value, "The key of the input has to be a Handle!");
+
   // return the predicate
   return predicate;
 }
@@ -309,6 +328,17 @@ auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFiveArgs::testKeySele
 
   // inject the key extraction into the predicate
   injectKeyExtraction<decltype(predicate), In1, In2, Rest...> (predicate, 0);
+
+  // get the third input
+  using In3 = typename std::tuple_element<0, std::tuple<Rest...>>::type;
+  using In4 = typename std::tuple_element<0, std::tuple<Rest...>>::type;
+  using In5 = typename std::tuple_element<0, std::tuple<Rest...>>::type;
+
+  static_assert(std::is_base_of<HandleBase, typename std::remove_reference<decltype(((In1*) nullptr)->getKey())>::type>::value, "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase, typename std::remove_reference<decltype(((In2*) nullptr)->getKey())>::type>::value, "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase, typename std::remove_reference<decltype(((In3*) nullptr)->getKey())>::type>::value, "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase, typename std::remove_reference<decltype(((In4*) nullptr)->getKey())>::type>::value, "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase, typename std::remove_reference<decltype(((In5*) nullptr)->getKey())>::type>::value, "The key of the input has to be a Handle!");
 
   // return the predicate
   return predicate;
@@ -375,6 +405,10 @@ auto callGetProjection (TypeToCallMethodOn &a, decltype (HasTwoArgs::testKeyProj
   using key = typename std::remove_reference<decltype(((Out*) nullptr)->getKey())>::type;
   using value = typename std::remove_reference<decltype(((Out*) nullptr)->getValue())>::type;
 
+  // make sure the the type is fine
+  static_assert(std::is_base_of<HandleBase, key>::value, "The key has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase, value>::value, "The value has to be a Handle!");
+
   // make the join record lambda
   auto lambda = std::make_shared<JoinRecordLambda<Out, key, value>>(keyProjection.tree, valueProjection.tree);
 
@@ -401,6 +435,10 @@ auto callGetProjection (TypeToCallMethodOn &a, decltype (HasThreeArgs::testKeyPr
   // the types for key and value
   using key = typename std::remove_reference<decltype(((Out*) nullptr)->getKey())>::type;
   using value = typename std::remove_reference<decltype(((Out*) nullptr)->getValue())>::type;
+
+  // make sure the the type is fine
+  static_assert(std::is_base_of<HandleBase, key>::value, "The key has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase, value>::value, "The value has to be a Handle!");
 
   // make the join record lambda
   auto lambda = std::make_shared<JoinRecordLambda<Out, key, value>>(keyProjection.tree, valueProjection.tree);
@@ -429,6 +467,10 @@ auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFourArgs::testKeyPro
   // the types for key and value
   using key = typename std::remove_reference<decltype(((Out*) nullptr)->getKey())>::type;
   using value = typename std::remove_reference<decltype(((Out*) nullptr)->getValue())>::type;
+
+  // make sure the the type is fine
+  static_assert(std::is_base_of<HandleBase, key>::value, "The key has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase, value>::value, "The value has to be a Handle!");
 
   // make the join record lambda
   auto lambda = std::make_shared<JoinRecordLambda<Out, key, value>>(keyProjection.tree, valueProjection.tree);
@@ -460,6 +502,10 @@ auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFiveArgs::testKeyPro
   // the types for key and value
   using key = typename std::remove_reference<decltype(((Out*) nullptr)->getKey())>::type;
   using value = typename std::remove_reference<decltype(((Out*) nullptr)->getValue())>::type;
+
+  // make sure the the type is fine
+  static_assert(std::is_base_of<HandleBase, key>::value, "The key has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase, value>::value, "The value has to be a Handle!");
 
   // make the join record lambda
   auto lambda = std::make_shared<JoinRecordLambda<Out, key, value>>(keyProjection.tree, valueProjection.tree);

@@ -107,18 +107,17 @@ public:
 
           // setup the output column, if it is not already set up
           if (!output->hasColumn(outAtt)) {
-            output->addColumn(outAtt, new std::vector<Handle<ValueType>>, true);
+            output->addColumn(outAtt, new std::vector<ValueType>, true);
           }
 
           // get the output column
-          std::vector<Handle<ValueType>> &outColumn = output->getColumn<Handle<ValueType>>(outAtt);
+          std::vector<ValueType> &outColumn = output->getColumn<ValueType>(outAtt);
 
           // loop down the columns, setting the output
           unsigned long numTuples = inputColumn.size();
           outColumn.resize(numTuples);
           for (int i = 0; i < numTuples; i++) {
-            outColumn[i] = makeObject<ValueType>();
-            *outColumn[i] = inputColumn[i]->getValue();
+            outColumn[i] = inputColumn[i]->getValue();
           }
 
           return output;

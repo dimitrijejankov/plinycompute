@@ -65,8 +65,8 @@ public:
           myMachine->setup(input, output);
 
           // get the columns to operate on
-          std::vector<Handle<LeftType>>& keyColumn = input->getColumn<Handle<LeftType>>(keyAtt);
-          std::vector<Handle<RightType>>& valueColumn = input->getColumn<Handle<RightType>>(valueAtt);
+          std::vector<LeftType>& keyColumn = input->getColumn<LeftType>(keyAtt);
+          std::vector<RightType>& valueColumn = input->getColumn<RightType>(valueAtt);
 
           // create the output attribute, if needed
           if (!output->hasColumn(outAtt)) {
@@ -82,8 +82,8 @@ public:
           outColumn.resize(numTuples);
           for (int i = 0; i < numTuples; i++) {
             outColumn[i] = makeObject<OutType>();
-            outColumn[i]->getKey() = *keyColumn[i];
-            outColumn[i]->getValue() = *valueColumn[i];
+            outColumn[i]->getKey() = keyColumn[i];
+            outColumn[i]->getValue() = valueColumn[i];
           }
           return output;
         });

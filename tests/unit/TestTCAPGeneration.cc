@@ -19,15 +19,6 @@
 
 #include <gtest/gtest.h>
 #include <QueryGraphAnalyzer.h>
-#include <ReadInt.h>
-#include <ReadStringIntPair.h>
-#include <StringSelectionOfStringIntPair.h>
-#include <IntSimpleJoin.h>
-#include <WriteSumResult.h>
-#include <IntAggregation.h>
-#include <WriteBuiltinEmployeeSet.h>
-#include <EmployeeBuiltInIdentitySelection.h>
-#include <ScanEmployeeSet.h>
 
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlock.h"
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixScanner.h"

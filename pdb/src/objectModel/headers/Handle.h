@@ -250,6 +250,14 @@ private:
     friend class Record;
 };
 
+template<typename _Tp>
+struct remove_handle
+{ typedef _Tp   type; };
+
+template<typename _Tp>
+struct remove_handle<Handle<_Tp>>
+{ typedef _Tp   type; };
+
 // this weird little class is used to initialize the handle objects that go into getSelection and
 // getProjection
 // in a join object

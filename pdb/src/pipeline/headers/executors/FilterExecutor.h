@@ -43,8 +43,10 @@ class FilterExecutor : public ComputeExecutor {
  public:
 
   // currently, we just ignore the extra parameter to the filter if we get it
-  FilterExecutor(TupleSpec &inputSchema, TupleSpec &attsToOperateOn, TupleSpec &attsToIncludeInOutput, ComputeInfoPtr) :
-      myMachine(inputSchema, attsToIncludeInOutput) {
+  FilterExecutor(TupleSpec &inputSchema,
+                 TupleSpec &attsToOperateOn,
+                 TupleSpec &attsToIncludeInOutput,
+                 ComputeInfoPtr) : myMachine(inputSchema, attsToIncludeInOutput) {
 
     // this is the input attribute that we will process
     output = std::make_shared<TupleSet>();
