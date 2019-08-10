@@ -24,8 +24,10 @@
 #include "DepartmentTotal.h"
 #include "PreaggregationSink.h"
 #include "AggregationCombinerSink.h"
+#include "AggregationTests.h"
 
 namespace pdb {
+
 
 // this aggregates items of type InputClass.  To aggregate an item, the result of getKeyProjection () is
 // used to extract a key from on input, and the result of getValueProjection () is used to extract a
@@ -41,11 +43,12 @@ namespace pdb {
 template<typename Derived, class OutputClass, class InputClass, class KeyClass, class ValueClass>
 class AggregateComp : public AggregateCompBase {
 
+
   // extract the key projection and value projection
   void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
 
     Handle<InputClass> checkMe = nullptr;
-    Lambda<KeyClass> keyLambda = ((Derived*) this)->getKeyProjection(checkMe);
+    Lambda<KeyClass> keyLambda = callGetKeyProjection<Derived, InputClass, KeyClass>((Derived*) this);
     Lambda<ValueClass> valueLambda = ((Derived*) this)->getValueProjection(checkMe);
 
     // the label we are started labeling
@@ -120,7 +123,7 @@ class AggregateComp : public AggregateCompBase {
 
     //  get the projection lambda
     GenericHandle checkMe (1);
-    Lambda<KeyClass> keyLambda = ((Derived*) this)->getKeyProjection(checkMe);
+    Lambda<KeyClass> keyLambda = callGetKeyProjection<Derived, InputClass, KeyClass>(((Derived*) this));
 
     std::string tcapString;
     tcapString += "\n/* Extract key for aggregation */\n";

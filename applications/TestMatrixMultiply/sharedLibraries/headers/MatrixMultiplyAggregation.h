@@ -15,8 +15,8 @@ public:
   ENABLE_DEEP_COPY
 
   // the key type must have == and size_t hash () defined
-  static Lambda<MatrixBlockMeta> getKeyProjection(Handle<MatrixBlock> aggMe) {
-    return makeLambdaFromMethod(aggMe, getKeyRef);
+  static Lambda<MatrixBlockMeta> getKeyProjectionWithInputKey(Handle<MatrixBlockMeta> aggMe) {
+    return makeLambdaFromSelf(aggMe);
   }
 
   // the value type must have + defined
