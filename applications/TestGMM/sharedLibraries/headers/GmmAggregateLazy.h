@@ -35,8 +35,7 @@ using namespace pdb;
 // It performs the Expectation-Maximization Steps
 // The output is later used to update the weights, means and covars of the new
 // model
-class GmmAggregateLazy
-    : public AggregateComp<GmmAggregateOutputLazy, DoubleVector, int, GmmAggregateOutputLazy> {
+class GmmAggregateLazy : public AggregateComp<GmmAggregateLazy, GmmAggregateOutputLazy, DoubleVector, int, GmmAggregateOutputLazy> {
 
 private:
   Handle<GmmModel> model;
@@ -44,9 +43,9 @@ private:
 public:
   ENABLE_DEEP_COPY
 
-  GmmAggregateLazy() {}
+  GmmAggregateLazy() = default;
 
-  GmmAggregateLazy(Handle<GmmModel> inputModel) {
+  explicit GmmAggregateLazy(Handle<GmmModel> inputModel) {
     std::cout << "Entering GmmAggregate constructor" << std::endl;
 
     this->model = inputModel;
@@ -58,7 +57,7 @@ public:
     std::cout << "Exiting GmmAggregate constructor" << std::endl;
   }
 
-  Lambda<int> getKeyProjection(Handle<DoubleVector> aggMe) override {
+  Lambda<int> getKeyProjection(Handle<DoubleVector> aggMe) {
     // Same key for all intermediate objects. The output is a single
     // GmmAggregateOutputLazy object with the info related to all components
 
@@ -71,7 +70,7 @@ public:
   // used
   // to update the weights, means and covars
   Lambda<GmmAggregateOutputLazy>
-  getValueProjection(Handle<DoubleVector> aggMe) override {
+  getValueProjection(Handle<DoubleVector> aggMe) {
 
     return makeLambda(aggMe, [&](Handle<DoubleVector> &aggMe) {
 

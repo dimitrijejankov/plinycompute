@@ -29,16 +29,16 @@ using namespace pdb;
 
 /* Aggregate for doc assignment */
 class LDADocTopicAggregate
-    : public AggregateComp<DocAssignment, DocAssignment, unsigned, DocAssignment> {
+    : public AggregateComp<LDADocTopicAggregate, DocAssignment, DocAssignment, unsigned, DocAssignment> {
 
 public:
     ENABLE_DEEP_COPY
 
-    Lambda<unsigned> getKeyProjection(Handle<DocAssignment> aggMe) override {
+    Lambda<unsigned> getKeyProjection(Handle<DocAssignment> aggMe) {
         return makeLambdaFromMethod(aggMe, getKey);
     }
 
-    Lambda<DocAssignment> getValueProjection(Handle<DocAssignment> aggMe) override {
+    Lambda<DocAssignment> getValueProjection(Handle<DocAssignment> aggMe) {
         return makeLambdaFromMethod(aggMe, getValue);
     }
 };

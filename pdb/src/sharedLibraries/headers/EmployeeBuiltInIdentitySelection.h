@@ -11,7 +11,7 @@
 
 using namespace pdb;
 
-class EmployeeBuiltInIdentitySelection : public pdb::SelectionComp<pdb::Employee, pdb::Employee> {
+class EmployeeBuiltInIdentitySelection : public pdb::SelectionComp<EmployeeBuiltInIdentitySelection, pdb::Employee, pdb::Employee> {
 
  public:
 
@@ -19,7 +19,7 @@ class EmployeeBuiltInIdentitySelection : public pdb::SelectionComp<pdb::Employee
 
   EmployeeBuiltInIdentitySelection() = default;
 
-   pdb::Lambda<bool> getSelection(pdb::Handle<pdb::Employee> checkMe) override {
+   pdb::Lambda<bool> getSelection(pdb::Handle<pdb::Employee> checkMe) {
      return (makeLambdaFromMember(checkMe, salary) == makeLambdaFromMethod(checkMe, getSalary)) &&
             (makeLambdaFromMember(checkMe, salary) == makeLambdaFromMember(checkMe, salary)) &&
              makeLambda(checkMe, [](pdb::Handle<pdb::Employee>& checkMe) { return true; });
@@ -29,7 +29,7 @@ class EmployeeBuiltInIdentitySelection : public pdb::SelectionComp<pdb::Employee
      //return makeLambda(checkMe, [](pdb::Handle<pdb::Employee>& checkMe) { return true; });
    }
 
-  pdb::Lambda<pdb::Handle<pdb::Employee>> getProjection(pdb::Handle<pdb::Employee> checkMe) override {
+  pdb::Lambda<pdb::Handle<pdb::Employee>> getProjection(pdb::Handle<pdb::Employee> checkMe) {
     return makeLambda(checkMe, [](pdb::Handle<pdb::Employee>& checkMe) {
       pdb::Handle<pdb::Employee> newEmployee = pdb::makeObject<pdb::Employee>(*(checkMe->getName()), 100);  // cannot get age!
       return newEmployee;

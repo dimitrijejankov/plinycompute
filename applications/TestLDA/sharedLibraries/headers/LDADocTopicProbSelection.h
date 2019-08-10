@@ -33,7 +33,7 @@
 
 /* This class samples the topic probability for the document */
 using namespace pdb;
-class LDADocTopicProbSelection : public SelectionComp<IntDoubleVectorPair, DocAssignment> {
+class LDADocTopicProbSelection : public SelectionComp<LDADocTopicProbSelection, IntDoubleVectorPair, DocAssignment> {
 
 private:
     Vector<double> prior;
@@ -65,11 +65,11 @@ public:
         gsl_rng_free(src);
     }
 
-    Lambda<bool> getSelection(Handle<DocAssignment> checkMe) override {
+    Lambda<bool> getSelection(Handle<DocAssignment> checkMe) {
         return makeLambda(checkMe, [](Handle<DocAssignment>& checkMe) { return true; });
     }
 
-    Lambda<Handle<IntDoubleVectorPair>> getProjection(Handle<DocAssignment> checkMe) override {
+    Lambda<Handle<IntDoubleVectorPair>> getProjection(Handle<DocAssignment> checkMe) {
         return makeLambda(checkMe, [&](Handle<DocAssignment>& checkMe) {
 
             gsl_rng* rng = getRng();

@@ -11,7 +11,7 @@
 
 namespace pdb {
 
-class FinalQuery : public SelectionComp<double, DepartmentTotal> {
+class FinalQuery : public SelectionComp<FinalQuery, double, DepartmentTotal> {
 
 public:
 
@@ -19,11 +19,11 @@ public:
 
  public:
 
-  Lambda<bool> getSelection(Handle<DepartmentTotal> checkMe) override {
+  Lambda<bool> getSelection(Handle<DepartmentTotal> checkMe) {
     return makeLambdaFromMethod (checkMe, checkSales);
   }
 
-  Lambda<Handle<double>> getProjection(Handle<DepartmentTotal> checkMe) override {
+  Lambda<Handle<double>> getProjection(Handle<DepartmentTotal> checkMe) {
     return makeLambdaFromMethod (checkMe, getTotSales);
   }
 

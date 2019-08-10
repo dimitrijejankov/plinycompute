@@ -51,17 +51,16 @@ class GmmAggregateOutputLazy : public Object {
 private:
   int key = 1;
 
-  Handle<GmmAggregateDatapoint>
-      aggDatapoint; // Datapoint to be processed and responsabilities
-  Handle<GmmAggregateNewComp>
-      newComp; // newComp contains the partial results of
-               // processing datapoint for current model
+  Handle<GmmAggregateDatapoint> aggDatapoint; // Datapoint to be processed and responsabilities
+  Handle<GmmAggregateNewComp> newComp; // newComp contains the partial results of processing datapoint for current model
 public:
+
   ENABLE_DEEP_COPY
 
-  GmmAggregateOutputLazy() {}
+  GmmAggregateOutputLazy() = default;
+  ~GmmAggregateOutputLazy() = default;
 
-  GmmAggregateOutputLazy(Handle<GmmAggregateDatapoint> &aggDatapoint) {
+  explicit GmmAggregateOutputLazy(Handle<GmmAggregateDatapoint> &aggDatapoint) {
     this->aggDatapoint = aggDatapoint;
     this->newComp = nullptr;
   }
@@ -188,7 +187,6 @@ public:
 
   GmmAggregateNewComp getNewComp() { return *(this->newComp); }
 
-  ~GmmAggregateOutputLazy() {}
 };
 
 #endif

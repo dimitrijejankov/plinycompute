@@ -30,33 +30,29 @@ using namespace pdb;
 
 // GmmSampleSelection will randomly select several data points from the input
 // that will be used to initialize the GMM model.
-class GmmSampleSelection : public SelectionComp<DoubleVector, DoubleVector> {
+class GmmSampleSelection : public SelectionComp<GmmSampleSelection, DoubleVector, DoubleVector> {
 
 private:
-  double fraction;
+  double fraction = 0;
 
 public:
   ENABLE_DEEP_COPY
 
-  GmmSampleSelection() {}
+  GmmSampleSelection() = default;
 
-  GmmSampleSelection(double inputFraction) { this->fraction = inputFraction; }
+  explicit GmmSampleSelection(double inputFraction) { this->fraction = inputFraction; }
 
   // srand has already been invoked in server
-  Lambda<bool> getSelection(Handle<DoubleVector> &checkMe) override {
+  Lambda<bool> getSelection(Handle<DoubleVector> checkMe) {
     return makeLambda(checkMe, [&](Handle<DoubleVector> &checkMe) {
 
       double myVal = (double)rand() / (double)RAND_MAX;
-      bool ifSample = (myVal <= (this->fraction));
-      if (ifSample)
-        return true;
-      else
-        return false;
+      return (myVal <= (this->fraction));
     });
   }
 
   Lambda<Handle<DoubleVector>>
-  getProjection(Handle<DoubleVector> &checkMe) override {
+  static getProjection(Handle<DoubleVector> checkMe) {
     return makeLambda(checkMe, [](Handle<DoubleVector> &checkMe) {
       std::cout << "I am selected!!";
       checkMe->print();

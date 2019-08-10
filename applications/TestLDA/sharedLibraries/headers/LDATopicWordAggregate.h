@@ -27,16 +27,16 @@ using namespace pdb;
 
 /* Aggregation for topic assignment */
 class LDATopicWordAggregate
-    : public AggregateComp<TopicAssignment, TopicAssignment, unsigned, TopicAssignment> {
+    : public AggregateComp<LDATopicWordAggregate, TopicAssignment, TopicAssignment, unsigned, TopicAssignment> {
 
 public:
     ENABLE_DEEP_COPY
 
-    Lambda<unsigned> getKeyProjection(Handle<TopicAssignment> aggMe) override {
+    Lambda<unsigned> getKeyProjection(Handle<TopicAssignment> aggMe) {
         return makeLambdaFromMethod(aggMe, getKey);
     }
 
-    Lambda<TopicAssignment> getValueProjection(Handle<TopicAssignment> aggMe) override {
+    Lambda<TopicAssignment> getValueProjection(Handle<TopicAssignment> aggMe) {
         return makeLambdaFromMethod(aggMe, getValue);
     }
 };

@@ -13,24 +13,10 @@ namespace pdb {
  * @tparam Out
  * @tparam InputClass
  */
-template<class Out, class Input>
+template<class Derived, class Out, class Input>
 class MultiSelectionComp : public Computation {
 
  public:
-
-  /**
-   * the computation returned by this method is called to see if a data item should be returned in the output set
-   * @param checkMe
-   * @return
-   */
-  virtual pdb::Lambda<bool> getSelection(pdb::Handle<Input> checkMe) = 0;
-
-  /**
-   * the computation returned by this method is called to produce output tuples from this method
-   * @param checkMe
-   * @return
-   */
-  virtual pdb::Lambda<pdb::Vector<pdb::Handle<Out>>> getProjection(pdb::Handle<Input> checkMe) = 0;
 
   /**
    * calls getProjection and getSelection to extract the lambdas
@@ -38,8 +24,8 @@ class MultiSelectionComp : public Computation {
    */
   void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
     Handle<Input> checkMe = nullptr;
-    Lambda<bool> selectionLambda = getSelection(checkMe);
-    Lambda<Vector<Handle<Out>>> projectionLambda = getProjection(checkMe);
+    Lambda<bool> selectionLambda = ((Derived*) this)->getSelection(checkMe);
+    Lambda<Vector<Handle<Out>>> projectionLambda = ((Derived*) this)->getProjection(checkMe);
 
     // the label we are started labeling
     int32_t startLabel = 0;
@@ -150,7 +136,7 @@ class MultiSelectionComp : public Computation {
 
     // call the selection
     GenericHandle checkMe (1);
-    Lambda<bool> selectionLambda = getSelection(checkMe);
+    Lambda<bool> selectionLambda = ((Derived*) this)->getSelection(checkMe);
 
     // create multi selection
     std::string tcapString;
@@ -198,7 +184,7 @@ class MultiSelectionComp : public Computation {
     mustache::mustache newTupleSetNameTemplate{"filteredInputFor{{computationType}}{{computationLabel}}"};
     multiInputsBase.tupleSetNamesForInputs[0] = newTupleSetNameTemplate.render(selectionCompData);
 
-    Lambda<Vector<Handle<Out>>> projectionLambda = getProjection(checkMe);
+    Lambda<Vector<Handle<Out>>> projectionLambda = ((Derived*) this)->getProjection(checkMe);
     tcapString += "\n/* Apply MultiSelection projection */\n";
     tcapString += projectionLambda.toTCAPString(lambdaLabel,
                                                 getComputationType(),

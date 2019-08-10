@@ -28,16 +28,16 @@
 using namespace pdb;
 
 class LDAWordTopicAggregate
-    : public AggregateComp<LDATopicWordProb, LDATopicWordProb, unsigned, LDATopicWordProb> {
+    : public AggregateComp<LDAWordTopicAggregate, LDATopicWordProb, LDATopicWordProb, unsigned, LDATopicWordProb> {
 
 public:
     ENABLE_DEEP_COPY
 
-    Lambda<unsigned> getKeyProjection(Handle<LDATopicWordProb> aggMe) override {
+    static Lambda<unsigned> getKeyProjection(Handle<LDATopicWordProb> aggMe) {
         return makeLambdaFromMethod(aggMe, getKey);
     }
 
-    Lambda<LDATopicWordProb> getValueProjection(Handle<LDATopicWordProb> aggMe) override {
+    static Lambda<LDATopicWordProb> getValueProjection(Handle<LDATopicWordProb> aggMe) {
         return makeLambdaFromMethod(aggMe, getValue);
     }
 };

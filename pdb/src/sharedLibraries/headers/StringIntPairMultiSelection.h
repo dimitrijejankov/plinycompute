@@ -10,18 +10,18 @@
 
 namespace pdb {
 
-class StringIntPairMultiSelection : public MultiSelectionComp<StringIntPair, StringIntPair> {
+class StringIntPairMultiSelection : public MultiSelectionComp<StringIntPairMultiSelection, StringIntPair, StringIntPair> {
 
  public:
   ENABLE_DEEP_COPY
 
   StringIntPairMultiSelection() = default;
 
-  Lambda<bool> getSelection(Handle<StringIntPair> checkMe) override {
+  Lambda<bool> getSelection(Handle<StringIntPair> checkMe) {
     return makeLambda(checkMe, [](Handle<StringIntPair>& checkMe) { return (checkMe->myInt % 10) == 0; });
   }
 
-  Lambda<Vector<Handle<StringIntPair>>> getProjection(Handle<StringIntPair> checkMe) override {
+  Lambda<Vector<Handle<StringIntPair>>> getProjection(Handle<StringIntPair> checkMe) {
     return makeLambda(checkMe, [](Handle<StringIntPair>& checkMe) {
       Vector<Handle<StringIntPair>> myVec;
       for (int i = 0; i < 10; i++) {

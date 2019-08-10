@@ -16,19 +16,19 @@ namespace pdb {
 void *whereHashTableSits;
 
 // aggregate relies on having two methods in the output type: getKey () and getValue ()
-class SillyAgg : public AggregateComp<DepartmentTotal, Employee, String, double> {
+class SillyAgg : public AggregateComp<SillyAgg, DepartmentTotal, Employee, String, double> {
 
  public:
 
   ENABLE_DEEP_COPY
 
   // the key type must have == and size_t hash () defined
-  Lambda<String> getKeyProjection(Handle<Employee> aggMe) override {
+  Lambda<String> getKeyProjection(Handle<Employee> aggMe) {
     return makeLambdaFromMember (aggMe, department);
   }
 
   // the value type must have + defined
-  Lambda<double> getValueProjection(Handle<Employee> aggMe) override {
+  Lambda<double> getValueProjection(Handle<Employee> aggMe) {
     return makeLambdaFromMethod (aggMe, getSalary);
   }
 

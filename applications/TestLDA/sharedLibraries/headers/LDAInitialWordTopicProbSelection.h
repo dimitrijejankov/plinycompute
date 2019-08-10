@@ -27,7 +27,7 @@
 
 /* This class initialize the topic-probability for each word */
 using namespace pdb;
-class LDAInitialWordTopicProbSelection : public SelectionComp<LDATopicWordProb, int> {
+class LDAInitialWordTopicProbSelection : public SelectionComp<LDAInitialWordTopicProbSelection, LDATopicWordProb, int> {
 
 private:
     unsigned numTopic;
@@ -40,11 +40,11 @@ public:
         this->numTopic = numTopicIn;
     }
 
-    Lambda<bool> getSelection(Handle<int> checkMe) override {
+    Lambda<bool> getSelection(Handle<int> checkMe) {
         return makeLambda(checkMe, [](Handle<int>& checkMe) { return true; });
     }
 
-    Lambda<Handle<LDATopicWordProb>> getProjection(Handle<int> checkMe) override {
+    Lambda<Handle<LDATopicWordProb>> getProjection(Handle<int> checkMe) {
 
         return makeLambda(checkMe, [&](Handle<int> checkMe) {
 

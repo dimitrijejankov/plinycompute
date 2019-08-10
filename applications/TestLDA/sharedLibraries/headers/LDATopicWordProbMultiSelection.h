@@ -34,7 +34,7 @@
 /* This class generates the entries for the topic probability for each word */
 using namespace pdb;
 class LDATopicWordProbMultiSelection
-    : public MultiSelectionComp<LDATopicWordProb, TopicAssignment> {
+    : public MultiSelectionComp<LDATopicWordProbMultiSelection, LDATopicWordProb, TopicAssignment> {
 
 private:
     Vector<double> prior;
@@ -66,12 +66,11 @@ public:
         gsl_rng_free(src);
     }
 
-    Lambda<bool> getSelection(Handle<TopicAssignment> checkMe) override {
+    Lambda<bool> getSelection(Handle<TopicAssignment> checkMe) {
         return makeLambda(checkMe, [](Handle<TopicAssignment>& checkMe) { return true; });
     }
 
-    Lambda<Vector<Handle<LDATopicWordProb>>> getProjection(
-        Handle<TopicAssignment> checkMe) override {
+    Lambda<Vector<Handle<LDATopicWordProb>>> getProjection(Handle<TopicAssignment> checkMe)  {
         return makeLambda(checkMe, [&](Handle<TopicAssignment>& checkMe) {
 
             gsl_rng* rng = getRng();

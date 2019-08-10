@@ -36,7 +36,7 @@ using namespace pdb;
 class GmmAggregateNewComp : public Object {
 
 private:
-  double logLikelihood;
+  double logLikelihood = 0;
   Vector<double> sumWeights;        //[k]
   Vector<Vector<double>> sumMeans;  // r*datapoint [dim]
   Vector<Vector<double>> sumCovars; // r*datapoint*datapoint^T [dim*dim]
@@ -44,7 +44,9 @@ private:
 public:
   ENABLE_DEEP_COPY
 
-  GmmAggregateNewComp() {}
+  GmmAggregateNewComp() = default;
+
+  ~GmmAggregateNewComp() = default;
 
   GmmAggregateNewComp(int k, int dim) {
     logLikelihood = 0;
@@ -79,7 +81,6 @@ public:
     this->sumCovars[index] = sumCovar;
   }
 
-  ~GmmAggregateNewComp() {}
 };
 
 #endif

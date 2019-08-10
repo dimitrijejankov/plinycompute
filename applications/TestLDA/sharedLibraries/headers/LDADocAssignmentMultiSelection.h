@@ -30,17 +30,17 @@
 using namespace pdb;
 
 class LDADocAssignmentMultiSelection
-    : public MultiSelectionComp<DocAssignment, LDADocWordTopicAssignment> {
+    : public MultiSelectionComp<LDADocAssignmentMultiSelection, DocAssignment, LDADocWordTopicAssignment> {
 
 public:
     ENABLE_DEEP_COPY
 
-    Lambda<bool> getSelection(Handle<LDADocWordTopicAssignment> checkMe) override {
+    Lambda<bool> getSelection(Handle<LDADocWordTopicAssignment> checkMe) {
         return makeLambda(checkMe, [](Handle<LDADocWordTopicAssignment>& checkMe) { return true; });
     }
 
     Lambda<Vector<Handle<DocAssignment>>> getProjection(
-        Handle<LDADocWordTopicAssignment> checkMe) override {
+        Handle<LDADocWordTopicAssignment> checkMe) {
         return makeLambdaFromMethod(checkMe, getDocAssigns);
     }
 };

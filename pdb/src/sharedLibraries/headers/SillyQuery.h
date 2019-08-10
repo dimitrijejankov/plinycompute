@@ -12,17 +12,17 @@
 
 namespace pdb {
 
-class SillyQuery : public SelectionComp<Employee, Supervisor> {
+class SillyQuery : public SelectionComp<SillyQuery, Employee, Supervisor> {
 
  public:
 
   ENABLE_DEEP_COPY
 
-  Lambda<bool> getSelection(Handle<Supervisor> checkMe) override {
+  Lambda<bool> getSelection(Handle<Supervisor> checkMe) {
     return makeLambdaFromMethod (checkMe, getSteve) == makeLambdaFromMember (checkMe, me);
   }
 
-  Lambda<Handle<Employee>> getProjection(Handle<Supervisor> checkMe) override{
+  Lambda<Handle<Employee>> getProjection(Handle<Supervisor> checkMe) {
     return makeLambdaFromMethod (checkMe, getMe);
   }
 

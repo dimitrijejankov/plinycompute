@@ -39,7 +39,7 @@ private:
 public:
   ENABLE_DEEP_COPY
 
-  GmmAggregateDatapoint() {}
+  GmmAggregateDatapoint() = default;
 
   GmmAggregateDatapoint(DoubleVector datapoint, Vector<double> rvalues,
                         double logLikelihood) {

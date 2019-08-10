@@ -26,7 +26,7 @@
 #include "IntDoubleVectorPair.h"
 
 using namespace pdb;
-class LDAInitialWordTopicProbMultiSelection : public MultiSelectionComp<IntDoubleVectorPair, int> {
+class LDAInitialWordTopicProbMultiSelection : public MultiSelectionComp<LDAInitialWordTopicProbMultiSelection, IntDoubleVectorPair, int> {
 
 private:
     int numTopic;
@@ -39,11 +39,11 @@ public:
         this->numTopic = fromTopic;
     }
 
-    Lambda<bool> getSelection(Handle<int> checkMe) override {
+    Lambda<bool> getSelection(Handle<int> checkMe) {
         return makeLambda(checkMe, [](Handle<int>& checkMe) { return true; });
     }
 
-    Lambda<Vector<Handle<IntDoubleVectorPair>>> getProjection(Handle<int> checkMe) override {
+    Lambda<Vector<Handle<IntDoubleVectorPair>>> getProjection(Handle<int> checkMe) {
         return makeLambda(checkMe, [&](Handle<int>& checkMe) {
             int numWord = *checkMe;
             Handle<Vector<Handle<IntDoubleVectorPair>>> result =

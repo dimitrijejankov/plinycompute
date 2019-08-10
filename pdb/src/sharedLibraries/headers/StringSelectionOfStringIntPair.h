@@ -26,20 +26,20 @@
 
 using namespace pdb;
 
-class StringSelectionOfStringIntPair : public SelectionComp<String, StringIntPair> {
+class StringSelectionOfStringIntPair : public SelectionComp<StringSelectionOfStringIntPair, String, StringIntPair> {
 
  public:
   ENABLE_DEEP_COPY
 
   StringSelectionOfStringIntPair() = default;
 
-  Lambda<bool> getSelection(Handle<StringIntPair> checkMe) override {
+  Lambda<bool> getSelection(Handle<StringIntPair> checkMe) {
     return makeLambda(checkMe, [](Handle<StringIntPair>& checkMe) {
       return ((*checkMe).myInt % 3 == 0) && ((*checkMe).myInt < 1000);
     });
   }
 
-  Lambda<Handle<String>> getProjection(Handle<StringIntPair> checkMe) override {
+  Lambda<Handle<String>> getProjection(Handle<StringIntPair> checkMe) {
     return makeLambdaFromMember(checkMe, myString);
   }
 };

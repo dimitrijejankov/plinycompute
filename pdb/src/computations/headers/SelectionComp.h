@@ -26,21 +26,14 @@
 
 namespace pdb {
 
-template<class OutputClass, class InputClass>
+template<class Derived, class OutputClass, class InputClass>
 class SelectionComp : public Computation {
-
-  // the computation returned by this method is called to see if a data item should be returned in the output set
-  virtual Lambda<bool> getSelection(Handle<InputClass> checkMe) = 0;
-
-  // the computation returned by this method is called to perfom a transformation on the input item before it
-  // is inserted into the output set
-  virtual Lambda<Handle<OutputClass>> getProjection(Handle<InputClass> checkMe) = 0;
 
   // calls getProjection and getSelection to extract the lambdas
   void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
     Handle<InputClass> checkMe = nullptr;
-    Lambda<bool> selectionLambda = getSelection(checkMe);
-    Lambda<Handle<OutputClass>> projectionLambda = getProjection(checkMe);
+    Lambda<bool> selectionLambda = ((Derived*) this)->getSelection(checkMe);
+    Lambda<Handle<OutputClass>> projectionLambda = ((Derived*) this)->getProjection(checkMe);
 
     // the label we are started labeling
     int32_t startLabel = 0;
@@ -130,7 +123,7 @@ class SelectionComp : public Computation {
 
     // call the selection
     GenericHandle checkMe (1);
-    Lambda<bool> selectionLambda = getSelection(checkMe);
+    Lambda<bool> selectionLambda = ((Derived*) this)->getSelection(checkMe);
 
     std::string tcapString;
     tcapString += "\n/* Apply selection filtering */\n";
@@ -183,7 +176,7 @@ class SelectionComp : public Computation {
     multiInputsBase.inputColumnsToKeep.clear();
 
     // get the projection
-    Lambda<Handle<OutputClass>> projectionLambda = getProjection(checkMe);
+    Lambda<Handle<OutputClass>> projectionLambda = ((Derived*) this)->getProjection(checkMe);
 
     //TODO this needs to be made nicer
     std::string outputTupleSetName;

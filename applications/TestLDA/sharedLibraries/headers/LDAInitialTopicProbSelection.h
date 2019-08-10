@@ -31,7 +31,7 @@
 
 /* The class for initializing the topic-probability for a document */
 using namespace pdb;
-class LDAInitialTopicProbSelection : public SelectionComp<IntDoubleVectorPair, SumResult> {
+class LDAInitialTopicProbSelection : public SelectionComp<LDAInitialTopicProbSelection, IntDoubleVectorPair, SumResult> {
 
 private:
     Vector<double> prior;
@@ -63,11 +63,11 @@ public:
         gsl_rng_free(src);
     }
 
-    Lambda<bool> getSelection(Handle<SumResult> checkMe) override {
+    Lambda<bool> getSelection(Handle<SumResult> checkMe) {
         return makeLambda(checkMe, [](Handle<SumResult>& checkMe) { return true; });
     }
 
-    Lambda<Handle<IntDoubleVectorPair>> getProjection(Handle<SumResult> checkMe) override {
+    Lambda<Handle<IntDoubleVectorPair>> getProjection(Handle<SumResult> checkMe) {
         return makeLambda(checkMe, [&](Handle<SumResult>& checkMe) {
 
             gsl_rng* rng = getRng();

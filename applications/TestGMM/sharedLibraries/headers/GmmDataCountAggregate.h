@@ -28,21 +28,20 @@
 using namespace pdb;
 
 // GmmDataCountAggregate can be used to count the size of the input dataset
-class GmmDataCountAggregate
-    : public AggregateComp<SumResult, DoubleVector, int, int> {
+class GmmDataCountAggregate : public AggregateComp<GmmDataCountAggregate, SumResult, DoubleVector, int, int> {
 
 public:
   ENABLE_DEEP_COPY
 
-  GmmDataCountAggregate() {}
+  GmmDataCountAggregate() = default;
 
   // the key type must have == and size_t hash () defined
-  Lambda<int> getKeyProjection(Handle<DoubleVector> aggMe) override {
+  static Lambda<int> getKeyProjection(Handle<DoubleVector> aggMe) {
     return makeLambda(aggMe, [](Handle<DoubleVector> &aggMe) { return 0; });
   }
 
   // the value type must have + defined
-  Lambda<int> getValueProjection(Handle<DoubleVector> aggMe) override {
+  static Lambda<int> getValueProjection(Handle<DoubleVector> aggMe) {
     return makeLambda(aggMe, [](Handle<DoubleVector> &aggMe) { return 1; });
   }
 };
