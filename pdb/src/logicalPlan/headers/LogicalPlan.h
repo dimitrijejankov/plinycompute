@@ -57,12 +57,11 @@ public:
     // constructor
     LogicalPlan(AtomicComputationList& computationsIn, pdb::Vector<pdb::Handle<pdb::Computation>>& allComputations) {
         computations = computationsIn;
-        // std :: cout << "\nEXTRACTING LAMBDAS:\n";
+
         for (int i = 0; i < allComputations.size(); i++) {
             std::string compType = allComputations[i]->getComputationType();
             compType += "_";
             compType += std::to_string(i);
-            // std :: cout << "Extracting lambdas for computation " << compType << "\n";
             pdb::ComputationNode temp(allComputations[i]);
             allConstituentComputations[compType] = temp;
         }
@@ -71,8 +70,7 @@ public:
     // get a particular node in the computational plan
     pdb::ComputationNode& getNode(const std::string& whichComputationNode) {
         if (allConstituentComputations.count(whichComputationNode) == 0) {
-            std::cout << "This is bad. I did not find a node corresponding to "
-                      << whichComputationNode << "\n";
+            std::cout << "This is bad. I did not find a node corresponding to " << whichComputationNode << "\n";
             std::cout << "There were " << allConstituentComputations.size() << " computations.\n";
             for (auto& a : allConstituentComputations) {
                 std::cout << a.first << "\n";
@@ -88,6 +86,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& os, const LogicalPlan& printMe);
+    friend class JoinAggTransformation;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const LogicalPlan& printMe) {

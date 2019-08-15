@@ -63,7 +63,7 @@ protected:
 
 public:
     // returns the type of this computation
-    virtual std::string getAtomicComputationType() = 0;
+    virtual std::string getAtomicComputationType() const = 0;
 
     // returns the type id of this computation
     virtual AtomicComputationTypeID getAtomicComputationTypeID() = 0;
@@ -152,6 +152,7 @@ public:
 
     // for printing
     friend std::ostream& operator<<(std::ostream& os, const AtomicComputationList& printMe);
+    friend std::ostream& operator<<(std::ostream& os, const AtomicComputation& printMe);
 
     // this finds the position of the specified attribute in all of the output attributes
     int findPosInOutputAtts(std::string& findMe) {

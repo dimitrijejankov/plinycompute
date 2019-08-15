@@ -95,8 +95,15 @@ int main(int argc, char* argv[]) {
   Handle<Computation> myWriter = makeObject<MatrixWriter>("myData", "C");
   myWriter->setInput(myAggregation);
 
-  //TODO this is just a preliminary version of the execute computation before we add back the TCAP generation
   pdbClient.executeComputations({ myWriter });
+
+  //TODO this is just a preliminary version of the execute computation before we add back the TCAP generation
+  auto total_begin = std::chrono::high_resolution_clock::now();
+  pdbClient.executeComputations({ myWriter });
+  auto end = std::chrono::high_resolution_clock::now();
+
+  std::cout << "Time Duration: " << std::chrono::duration_cast<std::chrono::duration<float>>(end - total_begin).count() << " secs." << std::endl;
+
 
   /// 5. Get the set from the
 

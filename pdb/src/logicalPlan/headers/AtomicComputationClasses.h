@@ -73,7 +73,7 @@ struct ApplyLambda : public AtomicComputation {
     keyValuePairs = useMe.getKeyValuePairs();
   }
 
-  std::string getAtomicComputationType() override {
+  std::string getAtomicComputationType() const override {
     return std::string("Apply");
   }
 
@@ -139,7 +139,7 @@ struct HashLeft : public AtomicComputation {
     keyValuePairs = useMe.getKeyValuePairs();
   }
 
-  std::string getAtomicComputationType() override {
+  std::string getAtomicComputationType() const override {
     return std::string("HashLeft");
   }
 
@@ -208,7 +208,7 @@ struct HashRight : public AtomicComputation {
     keyValuePairs = useMe.getKeyValuePairs();
   }
 
-  std::string getAtomicComputationType() override {
+  std::string getAtomicComputationType() const override {
     return std::string("HashRight");
   }
 
@@ -267,7 +267,7 @@ struct HashOne : public AtomicComputation {
     keyValuePairs = useMe.getKeyValuePairs();
   }
 
-  std::string getAtomicComputationType() override {
+  std::string getAtomicComputationType() const override {
     return std::string("HashOne");
   }
 
@@ -319,7 +319,7 @@ struct Flatten : public AtomicComputation {
     keyValuePairs = useMe.getKeyValuePairs();
   }
 
-  std::string getAtomicComputationType() override {
+  std::string getAtomicComputationType() const override {
     return std::string("Flatten");
   }
 
@@ -373,7 +373,7 @@ struct ApplyFilter : public AtomicComputation {
     keyValuePairs = useMe.getKeyValuePairs();
   }
 
-  std::string getAtomicComputationType() override {
+  std::string getAtomicComputationType() const override {
     return std::string("Filter");
   }
 
@@ -411,7 +411,7 @@ struct ApplyAgg : public AtomicComputation {
     keyValuePairs = useMe.getKeyValuePairs();
   }
 
-  std::string getAtomicComputationType() override {
+  std::string getAtomicComputationType() const override {
     return std::string("Aggregate");
   }
 
@@ -446,22 +446,21 @@ struct ScanSet : public AtomicComputation {
   std::string setName;
 
  public:
-  ~ScanSet() {}
 
-  ScanSet(TupleSpec &output, std::string dbName, std::string setName, std::string nodeName)
+  ScanSet(const TupleSpec &output, std::string dbName, std::string setName, const std::string &nodeName)
       : AtomicComputation(TupleSpec(), output, TupleSpec(), nodeName),
-        dbName(dbName),
-        setName(setName) {}
+        dbName(std::move(dbName)), setName(std::move(setName)) {}
 
-  // ss107: New Constructor:
-  ScanSet(TupleSpec &output, std::string dbName, std::string setName, std::string nodeName, KeyValueList &useMe) :
-      AtomicComputation(TupleSpec(), output, TupleSpec(), nodeName), dbName(dbName), setName(setName) {
+  ScanSet(const TupleSpec &output, std::string dbName, std::string setName, std::string nodeName, KeyValueList &useMe) :
+      AtomicComputation(TupleSpec(), output, TupleSpec(), std::move(nodeName)), dbName(std::move(dbName)), setName(std::move(setName)) {
 
     // set the key value pairs
     keyValuePairs = useMe.getKeyValuePairs();
   }
 
-  std::string getAtomicComputationType() override {
+  ~ScanSet() override = default;
+
+  std::string getAtomicComputationType() const override {
     return std::string("Scan");
   }
 
@@ -531,7 +530,7 @@ struct WriteSet : public AtomicComputation {
     keyValuePairs = useMe.getKeyValuePairs();
   }
 
-  std::string getAtomicComputationType() override {
+  std::string getAtomicComputationType() const override {
     return std::string("WriteSet");
   }
 
@@ -605,7 +604,7 @@ struct ApplyJoin : public AtomicComputation {
     return rightInput;
   }
 
-  std::string getAtomicComputationType() override {
+  std::string getAtomicComputationType() const override {
     return std::string("JoinSets");
   }
 
@@ -675,7 +674,7 @@ struct ApplyPartition : public AtomicComputation {
     keyValuePairs = useMe.getKeyValuePairs();
   }
 
-  std::string getAtomicComputationType() override {
+  std::string getAtomicComputationType() const override {
     return std::string("Partition");
   }
 
