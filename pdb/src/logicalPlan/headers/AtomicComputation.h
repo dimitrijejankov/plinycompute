@@ -1,3 +1,5 @@
+#include <utility>
+
 /*****************************************************************************
  *                                                                           *
  *  Copyright 2018 Rice University                                           *
@@ -27,6 +29,7 @@
 #include <vector>
 #include <map>
 #include <unordered_map>
+#include <algorithm>
 
 #include "TupleSpec.h"
 
@@ -53,125 +56,141 @@ enum AtomicComputationTypeID {
 
 struct AtomicComputation {
 
-protected:
-    TupleSpec input;
-    TupleSpec output;
-    TupleSpec projection;
-    std::string computationName;
-    AtomicComputationPtr me;
-    std::shared_ptr<std::map <std::string, std::string>> keyValuePairs;
+ protected:
+  TupleSpec input;
+  TupleSpec output;
+  TupleSpec projection;
+  std::string computationName;
+  AtomicComputationPtr me;
+  std::shared_ptr<std::map<std::string, std::string>> keyValuePairs;
 
 public:
-    // returns the type of this computation
-    virtual std::string getAtomicComputationType() const = 0;
 
-    // returns the type id of this computation
-    virtual AtomicComputationTypeID getAtomicComputationTypeID() = 0;
 
-    // sometimes, we'll need to figure out the type of a particular attribute in a tuple set.  What
-    // this does is to
-    // compute, for a particular attribute in the output of the AtomicComputation, what
-    // (computationName, lambdaName)
-    // pair is that is responsible for creating this attribute... then, we can ask that pair what
-    // the type of the
-    // atribute is.
-    virtual std::pair<std::string, std::string> findSource(std::string attName,
-                                                           AtomicComputationList& allComps) = 0;
+  // returns the type of this computation
+  virtual std::string getAtomicComputationType() const = 0;
 
-    // virtual destructor
-    virtual ~AtomicComputation() {}
+  // returns the type id of this computation
+  virtual AtomicComputationTypeID getAtomicComputationTypeID() = 0;
 
-    // get a shared pointer to this computation..
-    AtomicComputationPtr getShared() {
-        return me;
+  // sometimes, we'll need to figure out the type of a particular attribute in a tuple set.  What
+  // this does is to
+  // compute, for a particular attribute in the output of the AtomicComputation, what
+  // (computationName, lambdaName)
+  // pair is that is responsible for creating this attribute... then, we can ask that pair what
+  // the type of the
+  // atribute is.
+  virtual std::pair<std::string, std::string> findSource(std::string attName, AtomicComputationList &allComps) = 0;
+
+  // virtual destructor
+  virtual ~AtomicComputation() = default;
+
+  // get a shared pointer to this computation..
+  AtomicComputationPtr getShared() {
+    return me;
+  }
+
+  // forget the shared poitner for this computation
+  void destroyPtr() {
+    me = nullptr;
+  }
+
+  // simple constructor... gives the tuple specs that this guy (a) accepts as input, (b) produces
+  // as output, and (c)
+  // projects from the input to perform the computation.  It also accepts the name of the
+  // Computation object that
+  // is actually responsible for this computation
+  AtomicComputation(const TupleSpec& inputIn,
+                    const TupleSpec& outputIn,
+                    const TupleSpec& projectionIn,
+                    std::string computationName) : input(inputIn),
+                                                   output(outputIn),
+                                                   projection(projectionIn),
+                                                   computationName(std::move(computationName)) {
+
+    // initialize the key value pairs
+    keyValuePairs = std::make_shared<std::map<std::string, std::string>>();
+  }
+
+  std::shared_ptr<std::map<std::string, std::string>> &getKeyValuePairs() {
+    return keyValuePairs;
+  }
+
+  std::vector<std::string> getGeneratedColumns() {
+
+    auto &tmp = projection.getAtts();
+
+    // go through attributes
+    std::vector<std::string> out;
+    for(const auto &att : output.getAtts()) {
+
+      // all the is not in the input projection is generated
+      auto it = std::find(std::begin(tmp), std::end(tmp), att);
+      if(it == projection.getAtts().end()) {
+        out.emplace_back(att);
+      }
     }
 
-    // forget the shared poitner for this computation
-    void destroyPtr() {
-        me = nullptr;
+    return std::move(out);
+  }
+
+  // remember the shared pointer for this computation
+  void setShared(AtomicComputationPtr meIn) {
+    me = std::move(meIn);
+  }
+
+  // gets the tuple set specifier for the output of this computation
+  TupleSpec &getOutput() {
+    return output;
+  }
+
+  // gets the name of the tuple set produced by this computation
+  std::string &getOutputName() {
+    return output.getSetName();
+  }
+
+  // gets the specifier for the input tuple set used by this computation
+  TupleSpec &getInput() {
+    return input;
+  }
+
+  // gets the name of the tuple set operated on by this computation
+  std::string &getInputName() {
+    return input.getSetName();
+  }
+
+  // gets the specifier for the set of output attributes that will be produced by this computation
+  TupleSpec &getProjection() {
+    return projection;
+  }
+
+  // this gets a string that allows us to look up the actual Computation object associated with this node
+  std::string &getComputationName() {
+    return computationName;
+  }
+
+  // for printing
+  friend std::ostream &operator<<(std::ostream &os, const AtomicComputationList &printMe);
+  friend std::ostream &operator<<(std::ostream &os, const AtomicComputation &printMe);
+
+  // this finds the position of the specified attribute in all of the output attributes
+  int findPosInOutputAtts(std::string &findMe) {
+    // find where the attribute appears in the outputs
+    int counter = 0;
+    for (auto &a : getOutput().getAtts()) {
+      if (a == findMe) {
+        break;
+      }
+      counter++;
     }
 
-    // simple constructor... gives the tuple specs that this guy (a) accepts as input, (b) produces
-    // as output, and (c)
-    // projects from the input to perform the computation.  It also accepts the name of the
-    // Computation object that
-    // is actually responsible for this computation
-    AtomicComputation(TupleSpec inputIn,
-                      TupleSpec outputIn,
-                      TupleSpec projectionIn,
-                      std::string computationName) : input(inputIn),
-                                                     output(outputIn),
-                                                     projection(projectionIn),
-                                                     computationName(computationName) {
-
-      // initialize the key value pairs
-      keyValuePairs = std::make_shared<std::map <std::string, std::string>>();
+    if (getOutput().getAtts().size() == counter) {
+      std::cout << "This is bad... could not find the attribute that you were asking for!!\n";
+      exit(1);
     }
 
-  std::shared_ptr<std::map <std::string, std::string>> &getKeyValuePairs () {
-			return keyValuePairs;
-	}
-
-
-
-
-    // remember the shared pointer for this computation
-    void setShared(AtomicComputationPtr meIn) {
-        me = meIn;
-    }
-
-    // gets the tuple set specifier for the output of this computation
-    TupleSpec& getOutput() {
-        return output;
-    }
-
-    // gets the name of the tuple set produced by this computation
-    std::string& getOutputName()  {
-        return output.getSetName();
-    }
-
-    // gets the specifier for the input tuple set used by this computation
-    TupleSpec& getInput() {
-        return input;
-    }
-
-    // gets the name of the tuple set operated on by this computation
-    std::string& getInputName() {
-        return input.getSetName();
-    }
-
-    // gets the specifier for the set of output attributes that will be produced by this computation
-    TupleSpec& getProjection() {
-        return projection;
-    }
-
-    // this gets a string that allows us to look up the actual Computation object associated with this node
-    std::string& getComputationName() {
-        return computationName;
-    }
-
-    // for printing
-    friend std::ostream& operator<<(std::ostream& os, const AtomicComputationList& printMe);
-    friend std::ostream& operator<<(std::ostream& os, const AtomicComputation& printMe);
-
-    // this finds the position of the specified attribute in all of the output attributes
-    int findPosInOutputAtts(std::string& findMe) {
-        // find where the attribute appears in the outputs
-        int counter = 0;
-        for (auto& a : getOutput().getAtts()) {
-            if (a == findMe) {
-                break;
-            }
-            counter++;
-        }
-
-        if (getOutput().getAtts().size() == counter) {
-            std::cout << "This is bad... could not find the attribute that you were asking for!!\n";
-            exit(1);
-        }
-
-        return counter;
-    }
+    return counter;
+  }
 };
 
 #endif

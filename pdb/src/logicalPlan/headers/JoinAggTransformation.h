@@ -133,6 +133,10 @@ protected:
 
   void transformRHS() {
 
+    /**
+     * 1. Extract the input name and the key
+     */
+
     std::vector<AtomicComputationPtr> outputRHS;
 
     // get the scan set
@@ -149,14 +153,23 @@ protected:
       throw runtime_error("There is not key extraction lambda after the scan set.");
     }
 
-    // get the key attribute there should either be (in, key) or (key, in)
-    rightKey = (*curr)->getOutput().getAtts().front() == rightIn ? (*curr)->getOutput().getAtts().back() : (*curr)->getOutput().getAtts().front();
+    // get the key attribute
+    auto gen = (*curr)->getGeneratedColumns();
+    if(gen.size() != 1) {
+      throw runtime_error("The key extraction should only generate one key!");
+    }
+    rightKey = gen.front();
 
     // add the scan set for key
     outputRHS.emplace_back(std::make_shared<ScanSet>(TupleSpec{(*curr)->getOutputName(), { rightKey }},
                                                      rightSet.first,
                                                      rightSet.second,
                                                      (*curr)->getComputationName()));
+
+    /**
+     * 2. Modify the left side, basically the rhs input and keep only the rhs key
+     */
+
     curr++;
     for(; curr != rightAtomicComputations.end(); curr++) {
 
@@ -171,22 +184,22 @@ protected:
       auto &inputAtts = comp->getInput().getAtts();
 
       // remove the input
-      auto it = std::find(outAtts.begin(), outAtts.end(), leftIn);
+      auto it = std::find(outAtts.begin(), outAtts.end(), rightIn);
       outAtts.erase(it);
 
       // remove the from the input attributes
-      it = std::find(projectionAtts.begin(), projectionAtts.end(), leftIn);
+      it = std::find(projectionAtts.begin(), projectionAtts.end(), rightIn);
       projectionAtts.erase(it);
 
       // the key was removed add it
-      it = std::find(outAtts.begin(), outAtts.end(), leftKey);
+      it = std::find(outAtts.begin(), outAtts.end(), rightKey);
       if(it == outAtts.end()) {
-        outAtts.emplace_back(leftKey);
-        projectionAtts.emplace_back(leftKey);
+        outAtts.emplace_back(rightKey);
+        projectionAtts.emplace_back(rightKey);
       }
 
       // make sure the input is not in the applied attributes because this would be bad
-      it = std::find(inputAtts.begin(), inputAtts.end(), leftIn);
+      it = std::find(inputAtts.begin(), inputAtts.end(), rightIn);
       if(it != inputAtts.end()) {
         throw runtime_error("Somehow the input was applied in the LHS and therefore we can not use the join-agg algorithm");
       }
@@ -194,6 +207,10 @@ protected:
       // add the computation
       outputRHS.emplace_back(comp);
     }
+
+    /**
+     * 3. Modify the join so that it keeps the key
+     */
 
     auto &joinComp = *curr;
 
@@ -224,8 +241,25 @@ protected:
     // add the computation
     outputRHS.emplace_back(joinComp);
 
+    /**
+     * 4. Now exclude any operator that is n
+     */
+
+    //
+    auto inputSet = joinComp->getOutputName();
+
+    // we store all the aliases for keys here
+    std::set<std::string> lhsKeyAliases;
+    std::set<std::string> rhsKeyAliases;
+    std::set<std::string> attsToRemove;
+
     curr++;
     for(; curr != rightAtomicComputations.end(); curr++) {
+
+
+      /**
+       * 4.1.
+       */
 
       // get the computation
       auto &comp = *curr;
@@ -239,15 +273,107 @@ protected:
       auto &projectionAtts = comp->getProjection().getAtts();
       auto &inputAtts = comp->getInput().getAtts();
 
+
+      /**
+       * 4.2
+       */
+
+      //
       auto it = std::find(inputAtts.begin(), inputAtts.end(), leftIn);
-      if(it != inputAtts.end()) {
+      auto jt = std::find(inputAtts.begin(), inputAtts.end(), rightIn);
+      bool toRemove = std::any_of(inputAtts.begin(), inputAtts.end(), [&](auto &it) { return attsToRemove.find(it) != attsToRemove.end(); });
+      if(it != inputAtts.end() || jt != inputAtts.end() || toRemove) {
+
+        // get the generated columns
+        gen = (*curr)->getGeneratedColumns();
+
+        // check if this is a key extraction
+        kvPairs = (*curr)->getKeyValuePairs();
+        kvIt = kvPairs->find("lambdaType");
+        if(kvIt != kvPairs->end() && kvIt->second == "key" && (it != inputAtts.end() || jt != inputAtts.end())) {
+          rhsKeyAliases.insert(gen.back());
+        }
+        // if it is not a key extraction that means that we have to remove all the
+        else {
+
+          // everything this tuple set generates into the attributes to remove
+          attsToRemove.insert(gen.begin(), gen.end());
+        }
+
         continue;
       }
 
-      it = std::find(inputAtts.begin(), inputAtts.end(), rightIn);
-      if(it != inputAtts.end()) {
-        continue;
+      /**
+       * 4.3 Update the output attributes
+       */
+
+      // replace all the inputs with the appropriate keys
+      for(auto &att : outAtts) {
+
+        // check if left input and change it to a key
+        if(att == leftIn) {
+          att = leftKey;
+          continue;
+        }
+
+        // check if right input and change if to a key
+        if(att == rightIn) {
+          att = rightKey;
+          continue;
+        }
       }
+
+      std::vector<std::string> tmp;
+      for(auto &att : outAtts) {
+
+        // ignore the attribute
+        if(attsToRemove.find(att) != attsToRemove.end()) {
+          continue;
+        }
+
+        // ignore if it is an alias
+        if(lhsKeyAliases.find(att) != lhsKeyAliases.end()) {
+          continue;
+        }
+
+        // ignore if it is an alias
+        if(rhsKeyAliases.find(att) != rhsKeyAliases.end()) {
+          continue;
+        }
+
+        // insert
+        tmp.emplace_back(att);
+      }
+      outAtts = tmp;
+
+      /**
+       * 4.4 Update the input attributes
+       */
+      for(auto &att : inputAtts) {
+
+        // replace the left key alias with the left key name
+        if(lhsKeyAliases.find(att) != lhsKeyAliases.end()) {
+          att = leftKey;
+          continue;
+        }
+
+        // replace the right key alias with the right key name
+        if(rhsKeyAliases.find(att) != rhsKeyAliases.end()) {
+          att = rightKey;
+          continue;
+        }
+      }
+
+      /**
+       * 4.x
+       */
+
+      // set the input
+      comp->getProjection().getSetName() = inputSet;
+      comp->getInput().getSetName() = inputSet;
+
+      // the output of the current computation is becoming the next input set
+      inputSet = comp->getOutputName();
 
       // add the computation
       outputRHS.emplace_back(comp);
