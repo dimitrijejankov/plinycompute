@@ -47,5 +47,18 @@ callGetKeyProjection (Derived* callOnMe) {
   return callOnMe->getKeyProjection (first);
 }
 
+template <typename Derived, typename InputClass, typename KeyClass>
+typename std::enable_if<hasKeyProjection<Derived>::value, Lambda<KeyClass>>::type
+callGetKeyProjectionWithKey (Derived* callOnMe) {
 
+  // get the predicate
+  GenericHandle first (1);
+  return callOnMe->getKeyProjectionWithInputKey (first);
+}
+
+template <typename Derived, typename InputClass, typename KeyClass>
+typename std::enable_if<!hasKeyProjection<Derived>::value, Lambda<KeyClass>>::type
+callGetKeyProjectionWithKey (Derived* callOnMe) {
+  throw runtime_error("This aggregation does not support a key only TCAP");
+}
 }

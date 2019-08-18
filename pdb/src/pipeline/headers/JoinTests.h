@@ -19,6 +19,7 @@
 #ifndef JOIN_TESTS_H
 #define JOIN_TESTS_H
 
+#include <boost/tti/has_member_function.hpp>
 #include <lambdas/JoinRecordLambda.h>
 #include "Handle.h"
 #include "ValueExtractionLambda.h"
@@ -138,6 +139,73 @@ struct HasFiveArgs {
   static auto testValueProjection (U *x) -> decltype (x->getValueProjection (foofoo, foofoo, foofoo, foofoo, foofoo)) {
     return x->getValueProjection (foofoo, foofoo, foofoo, foofoo, foofoo);
   }
+};
+
+/**
+ * This test checks if the key selection even exists
+ */
+
+struct KeySelectionExists {
+
+  template <typename U>
+  static true_type check(U* arg, decltype (HasTwoArgs::testKeySelection (arg)) *arg2 = nullptr) {
+    return true_type {};
+  }
+
+  template <typename U>
+  static true_type check(U* arg, decltype (HasThreeArgs::testKeySelection (arg)) *arg2 = nullptr) {
+    return true_type {};
+  }
+
+  template <typename U>
+  static true_type check(U* arg, decltype (HasFourArgs::testKeySelection (arg)) *arg2 = nullptr) {
+    return true_type {};
+  }
+
+  template <typename U>
+  static true_type check(U* arg, decltype (HasFiveArgs::testKeySelection (arg)) *arg2 = nullptr) {
+    return true_type {};
+  }
+
+  template <typename U>
+  static false_type check(U* arg) {
+    return false_type {};
+  }
+
+};
+
+
+/**
+ *
+ */
+
+struct KeyProjectionExists {
+
+  template <typename U>
+  static true_type check(U* arg, decltype (HasTwoArgs::testKeyProjection (arg)) *arg2 = nullptr) {
+    return true_type {};
+  }
+
+  template <typename U>
+  static true_type check(U* arg, decltype (HasThreeArgs::testKeyProjection (arg)) *arg2 = nullptr) {
+    return true_type {};
+  }
+
+  template <typename U>
+  static true_type check(U* arg, decltype (HasFourArgs::testKeyProjection (arg)) *arg2 = nullptr) {
+    return true_type {};
+  }
+
+  template <typename U>
+  static true_type check(U* arg, decltype (HasFiveArgs::testKeyProjection (arg)) *arg2 = nullptr) {
+    return true_type {};
+  }
+
+  template <typename U>
+  static false_type check(U* arg) {
+    return false_type {};
+  }
+
 };
 
 /**
@@ -512,6 +580,92 @@ auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFiveArgs::testKeyPro
 
   // create
   return LambdaTree<Handle<Out>>(lambda);
+}
+
+/**
+ *
+ */
+
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+auto callGetKeyProjectionWithKey (TypeToCallMethodOn &a, decltype (HasTwoArgs::testKeyProjection (&a)) *arg = nullptr) {
+  GenericHandle first (1);
+  GenericHandle second (2);
+  return a.getKeyProjection (first, second);
+}
+
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+auto callGetKeyProjectionWithKey (TypeToCallMethodOn &a, decltype (HasThreeArgs::testKeyProjection (&a)) *arg = nullptr) {
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+  return a.getKeyProjection (first, second, third);
+}
+
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+auto callGetKeyProjectionWithKey (TypeToCallMethodOn &a, decltype (HasFourArgs::testKeyProjection (&a)) *arg = nullptr) {
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+  GenericHandle fourth (4);
+  return a.getKeyProjection (first, second, third, fourth);
+}
+
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+auto callGetKeyProjectionWithKey (TypeToCallMethodOn &a, decltype (HasFiveArgs::testKeyProjection (&a)) *arg = nullptr) {
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+  GenericHandle fourth (4);
+  GenericHandle fifth (5);
+  return a.getKeyProjection (first, second, third, fourth, fifth);
+}
+
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+auto callGetKeyProjectionWithKey(TypeToCallMethodOn &a, typename enable_if<!decltype(KeyProjectionExists::check(&a))::value, void>::type *arg = nullptr) -> Lambda<Object> {
+  throw runtime_error("The key projection is not defined");
+}
+
+/**
+ *
+ */
+
+template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
+auto callGetKeySelection (TypeToCallMethodOn &a, decltype (HasTwoArgs::testKeySelection (&a)) *arg = nullptr) {
+  GenericHandle first (1);
+  GenericHandle second (2);
+  return a.getKeySelection (first, second);
+}
+
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+auto callGetKeySelection (TypeToCallMethodOn &a, decltype (HasThreeArgs::testKeySelection (&a)) *arg = nullptr) {
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+  return a.getKeySelection (first, second, third);
+}
+
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+auto callGetKeySelection (TypeToCallMethodOn &a, decltype (HasFourArgs::testKeySelection (&a)) *arg = nullptr) {
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+  GenericHandle fourth (4);
+  return a.getKeySelection (first, second, third, fourth);
+}
+
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+auto callGetKeySelection (TypeToCallMethodOn &a, decltype (HasFiveArgs::testKeySelection (&a)) *arg = nullptr) {
+  GenericHandle first (1);
+  GenericHandle second (2);
+  GenericHandle third (3);
+  GenericHandle fourth (4);
+  GenericHandle fifth (5);
+  return a.getKeySelection (first, second, third, fourth, fifth);
+}
+
+template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+auto callGetKeySelection(TypeToCallMethodOn &a, typename enable_if<!decltype(KeySelectionExists::check(&a))::value, void>::type *arg = nullptr) -> Lambda<bool> {
+  throw runtime_error("The key projection is not defined");
 }
 
 }

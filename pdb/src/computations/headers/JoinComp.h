@@ -230,7 +230,75 @@ public:
     return std::string("JoinComp");
   }
 
-  //JiaNote: Returning a TCAP string for this Join computation
+  std::string toTCAPStringForKeys(std::vector<InputTupleSetSpecifier> inputTupleSets, int computationLabel) override {
+
+    // this is going to have info about the inputs
+    MultiInputsBase multiInputsBase(this->getNumInputs());
+
+    // update tuple set name for input sets
+    for (unsigned int i = 0; i < inputTupleSets.size(); i++) {
+
+      // set the name of the tuple set for the i-th position
+      multiInputsBase.tupleSetNamesForInputs[i] = inputTupleSets[i].getTupleSetName();
+
+      // set the columns for the i-th position
+      multiInputsBase.inputColumnsForInputs[i] = inputTupleSets[i].getColumnNamesToKeep();
+
+      // the the columns to apply for the i-th position
+      multiInputsBase.inputColumnsToApplyForInputs[i] = inputTupleSets[i].getColumnNamesToApply();
+
+      // setup all input names (the column name corresponding to input in tuple set)
+      multiInputsBase.inputNames[i] = inputTupleSets[i].getColumnNamesToApply()[0];
+
+      // we are keeping all the inputs
+      multiInputsBase.inputColumnsToKeep.insert(multiInputsBase.inputNames[i]);
+    }
+
+    // we label the lambdas from zero
+    int lambdaLabel = 0;
+
+    /**
+     * 1. Generate the TCAP for the join projection
+     */
+
+    // get the selection lambda
+    std::string tcapString = "\n/* Apply join selection */\n";
+    Lambda<bool> selectionLambda = callGetKeySelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
+    tcapString += selectionLambda.toTCAPString(lambdaLabel,
+                                               "JoinComp",
+                                               computationLabel,
+                                               false,
+                                               &multiInputsBase,
+                                               true);
+
+
+
+    /**
+     * 2. Generate the TCAP for the join projection
+     */
+
+    // get the projection lambda and it's inputs
+    tcapString += "\n/* Apply join projection*/\n";
+    auto projectionLambda = callGetKeyProjectionWithKey<Derived, Out, In1, In2, Rest...>(*static_cast<Derived*>(this));
+    tcapString += projectionLambda.toTCAPString(lambdaLabel,
+                                                "JoinComp",
+                                                computationLabel,
+                                                true,
+                                                &multiInputsBase,
+                                                false);
+
+    //  get the output columns
+    auto outputColumns = multiInputsBase.inputColumnsToApplyForInputs[0];
+    assert(outputColumns.size() == 1);
+    this->outputColumnToApply = outputColumns[0];
+
+    // update the tuple set
+    this->outputTupleSetName = multiInputsBase.tupleSetNamesForInputs[0];
+
+    // return the string
+    return std::move(tcapString);
+  }
+
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets, int computationLabel) override {
 
     if (inputTupleSets.size() != getNumInputs()) {

@@ -611,7 +611,7 @@ inline PipelinePtr ComputePlan::buildBroadcastJoinPipeline(const string &targetT
 }
 
 
-inline ComputePlan::ComputePlan(const String &TCAPComputation, Vector<Handle<Computation>> &allComputations) : TCAPComputation(TCAPComputation),
+inline ComputePlan::ComputePlan(String &TCAPComputation, Vector<Handle<Computation>> &allComputations) : TCAPComputation(TCAPComputation),
                                                                                                          allComputations(allComputations) {}
 }
 

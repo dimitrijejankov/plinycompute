@@ -66,6 +66,39 @@ std::string QueryGraphAnalyzer::parseTCAPString(Vector<Handle<Computation>> &com
   return TCAPStringToReturn;
 }
 
+std::string QueryGraphAnalyzer::parseTCAPForKeys(Vector<Handle<Computation>> &computations) {
+
+  // clear all the markers
+  clearGraph();
+
+  // we start with the label 0 for the computation
+  int computationLabel = 0;
+
+  // we pull al the partial TCAP strings here
+  std::vector<std::string> TCAPStrings;
+
+  // go through each sink
+  for (int i = 0; i < this->queryGraph.size(); i++) {
+
+    // traverse the graph, this basically adds all the visited child computations of the graph in the order they are labeled
+    // and gives us the partial TCAP strings
+    std::vector<InputTupleSetSpecifier> inputTupleSets;
+    queryGraph[i]->traverseForKeys(TCAPStrings, computations, inputTupleSets, computationLabel);
+
+    // add the root computation
+    computations.push_back(queryGraph[i]);
+  }
+
+  // merge all the strings
+  std::string TCAPStringToReturn;
+  for (const auto &tcapString : TCAPStrings) {
+    TCAPStringToReturn += tcapString;
+  }
+
+  // return the TCAP string
+  return TCAPStringToReturn;
+}
+
 void QueryGraphAnalyzer::clearGraph() {
 
   // go through each sink and clear
@@ -73,6 +106,7 @@ void QueryGraphAnalyzer::clearGraph() {
     sink->clearGraph();
   }
 }
+
 
 }
 

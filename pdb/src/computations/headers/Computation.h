@@ -76,11 +76,21 @@ public:
   virtual std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
                                    int computationLabel) = 0;
 
+  virtual std::string toTCAPStringForKeys(std::vector<InputTupleSetSpecifier> inputTupleSets,
+                                          int computationLabel) {
+    throw std::runtime_error("This computation does not have a key only version of the TCAP.");
+  };
+
   // gets the name of the i^th input type...
   virtual std::string getInputType(int i) = 0;
 
   // get the number of inputs to this query type
   virtual int getNumInputs() = 0;
+
+  // get number of registered inputs
+  int getNumOfRegisteredInputs(){
+    return inputs == nullptr ? 0 : (int) inputs->size();
+  }
 
   /**
    * gets the output type of this query as a string
@@ -156,7 +166,7 @@ public:
     // so if the computation is not a scan set, meaning it has at least one input process the children first
     // go through each child and traverse them
     std::vector<InputTupleSetSpecifier> inputTupleSetsForMe;
-    for (int i = 0; i < this->getNumInputs(); i++) {
+    for (int i = 0; i < getNumOfRegisteredInputs(); i++) {
 
       // get the child computation
       Handle<Computation> childComp = (*inputs)[i];
@@ -189,6 +199,47 @@ public:
     computationLabel++;
   }
 
+  virtual void traverseForKeys(std::vector<std::string> &tcapStrings,
+                               Vector<Handle<Computation>> &computations,
+                               const std::vector<InputTupleSetSpecifier>& inputTupleSets,
+                               int &computationLabel) {
+
+    // so if the computation is not a scan set, meaning it has at least one input process the children first
+    // go through each child and traverse them
+    std::vector<InputTupleSetSpecifier> inputTupleSetsForMe;
+    for (int i = 0; i < getNumOfRegisteredInputs(); i++) {
+
+      // get the child computation
+      Handle<Computation> childComp = (*inputs)[i];
+
+      // if we have not visited this computation visit it
+      if (!childComp->traversed) {
+
+        // go traverse the child computation
+        childComp->traverseForKeys(tcapStrings, computations, inputTupleSets, computationLabel);
+
+        // mark the computation as transversed
+        childComp->traversed = true;
+
+        // add the child computation
+        computations.push_back(childComp);
+      }
+
+      // we met a computation that we have visited just grab the name of the output tuple set and the columns it has
+      InputTupleSetSpecifier curOutput(childComp->outputTupleSetName, { childComp->outputColumnToApply }, { childComp->outputColumnToApply });
+      inputTupleSetsForMe.push_back(curOutput);
+    }
+
+    // generate the TCAP string for this computation
+    std::string curTCAPString = this->toTCAPStringForKeys(inputTupleSetsForMe, computationLabel);
+
+    // store the TCAP string generated
+    tcapStrings.push_back(curTCAPString);
+
+    // go to the next computation
+    computationLabel++;
+  }
+
   /**
    *
    */
@@ -198,7 +249,7 @@ public:
     traversed = false;
 
     // clear all children
-    for (int i = 0; i < getNumInputs(); i++) {
+    for (int i = 0; i < getNumOfRegisteredInputs(); i++) {
       (*inputs)[i]->clearGraph();
     }
   }

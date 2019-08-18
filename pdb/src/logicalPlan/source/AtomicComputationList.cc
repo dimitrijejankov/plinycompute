@@ -81,12 +81,4 @@ std::ostream& operator<<(std::ostream& os, const AtomicComputationList& printMe)
     return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const AtomicComputation& printMe) {
-
-    os << printMe.output << " <= " << printMe.getAtomicComputationType() << "("
-       << printMe.input << ", " << printMe.projection;
-    os << ")\n";
-    return os;
-}
-
 #endif

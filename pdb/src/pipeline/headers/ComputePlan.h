@@ -46,7 +46,7 @@ class ComputePlan {
   ComputePlan() = default;
 
   // constructor, takes as input the string to execute, as well as the vector of computations
-  ComputePlan(const String &TCAPComputation, Vector<Handle<Computation>> &allComputations);
+  ComputePlan(String &TCAPComputation, Vector<Handle<Computation>> &allComputations);
 
   // this compiles the TCAPComputation string, returning a LogicalPlan object.  The resuting object contains:
   //

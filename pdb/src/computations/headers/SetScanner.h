@@ -54,6 +54,10 @@ class SetScanner : public Computation {
     return getTypeName<OutputClass>();
   }
 
+  std::string toTCAPStringForKeys(std::vector<InputTupleSetSpecifier> inputTupleSets, int computationLabel) override {
+    return std::move(toTCAPString(inputTupleSets, computationLabel));
+  }
+
   // below function implements the interface for parsing computation into a TCAP string
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
                            int computationLabel) override {

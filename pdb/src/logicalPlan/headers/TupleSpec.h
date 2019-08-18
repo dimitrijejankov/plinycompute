@@ -33,57 +33,52 @@
 // names, as well as the name of the TupleSet
 struct TupleSpec {
 
- private:
-  std::string setName;
-  std::vector<std::string> atts;
+private:
+    std::string setName;
+    std::vector<std::string> atts;
 
- public:
-  TupleSpec() {
-    setName = std::string("Empty");
-  }
+public:
+    TupleSpec() {
+        setName = std::string("Empty");
+    }
 
-  TupleSpec(const std::string &setNameIn) {
-    setName = setNameIn;
-  }
+    ~TupleSpec() {}
 
-  TupleSpec(const std::string &setNameIn, const std::vector<std::string> &useMe) {
-    setName = setNameIn;
-    atts = useMe;
-  }
+    TupleSpec(std::string setNameIn) {
+        setName = setNameIn;
+    }
 
-  TupleSpec(const std::string &setNameIn, AttList &useMe) {
-    setName = setNameIn;
-    atts = useMe.atts;
-  }
+    TupleSpec(std::string setNameIn, AttList& useMe) {
+        setName = setNameIn;
+        atts = useMe.atts;
+    }
 
-  ~TupleSpec() = default;
+    std::string& getSetName() {
+        return setName;
+    }
 
-  std::string &getSetName() {
-    return setName;
-  }
+    std::vector<std::string>& getAtts() {
+        return atts;
+    }
 
-  std::vector<std::string> &getAtts() {
-    return atts;
-  }
+    bool operator==(const TupleSpec& toMe) {
+        return setName == toMe.setName;
+    }
 
-  bool operator==(const TupleSpec &toMe) {
-    return setName == toMe.setName;
-  }
-
-  friend std::ostream &operator<<(std::ostream &os, const TupleSpec &printMe);
+    friend std::ostream& operator<<(std::ostream& os, const TupleSpec& printMe);
 };
 
-inline std::ostream &operator<<(std::ostream &os, const TupleSpec &printMe) {
-  os << printMe.setName << " (";
-  bool first = true;
-  for (auto &a : printMe.atts) {
-    if (!first)
-      os << ", ";
-    first = false;
-    os << a;
-  }
-  os << ")";
-  return os;
+inline std::ostream& operator<<(std::ostream& os, const TupleSpec& printMe) {
+    os << printMe.setName << " (";
+    bool first = true;
+    for (auto& a : printMe.atts) {
+        if (!first)
+            os << ", ";
+        first = false;
+        os << a;
+    }
+    os << ")";
+    return os;
 }
 
 #endif

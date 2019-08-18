@@ -147,28 +147,22 @@ TEST(TestTcapGeneration, Test5) {
   const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
 
   // create all of the computation objects
-  Handle <Computation> readA = makeObject <MatrixScanner>("myData", "A");
-  Handle <Computation> readB = makeObject <MatrixScanner>("myData", "B");
+  Handle <Computation> readA = makeObject <MatrixScanner>("myData", "AKey");
+  Handle <Computation> readB = makeObject <MatrixScanner>("myData", "BKey");
   Handle <Computation> join = makeObject <MatrixMultiplyJoin>();
   join->setInput(0, readA);
   join->setInput(1, readB);
   Handle<Computation> myAggregation = makeObject<MatrixMultiplyAggregation>();
   myAggregation->setInput(join);
-  Handle<Computation> myWriter = makeObject<MatrixWriter>("myData", "C");
-  myWriter->setInput(myAggregation);
-
-
-  // the query graph has only the aggregation
-  std::vector<Handle<Computation>> queryGraph = { myWriter };
 
   // create the graph analyzer
-  pdb::QueryGraphAnalyzer queryAnalyzer(queryGraph);
+  pdb::QueryGraphAnalyzer queryAnalyzer({ myAggregation });
 
   // here is the list of computations
   Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
 
   // parse the tcap string
-  std::string tcapString = queryAnalyzer.parseTCAPString(*myComputations);
+  std::string tcapString = queryAnalyzer.parseTCAPForKeys(*myComputations);
 
   std::cout << tcapString << std::endl;
 }

@@ -82,6 +82,50 @@ class AggregateComp : public AggregateCompBase {
     return getTypeName<OutputClass>();
   }
 
+  std::string toTCAPStringForKeys(std::vector<InputTupleSetSpecifier> inputTupleSets, int computationLabel) override {
+
+    // if there is not input tuple set for the keys we are scanning
+    if (inputTupleSets.empty()) {
+      return "";
+    }
+
+    // this is going to have info about the inputs
+    MultiInputsBase multiInputsBase(1);
+
+    // set the name of the tuple set for the i-th position
+    multiInputsBase.tupleSetNamesForInputs[0] = inputTupleSets[0].getTupleSetName();
+
+    // set the columns for the i-th position
+    multiInputsBase.inputColumnsForInputs[0] = inputTupleSets[0].getColumnNamesToKeep();
+
+    // the the columns to apply for the i-th position
+    multiInputsBase.inputColumnsToApplyForInputs[0] = inputTupleSets[0].getColumnNamesToApply();
+
+    // setup all input names (the column name corresponding to input in tuple set)
+    multiInputsBase.inputNames[0] = inputTupleSets[0].getColumnNamesToApply()[0];
+
+    // we want to keep the input, so that it can be used by the projection
+    multiInputsBase.inputColumnsToKeep = {};
+
+    //  get the projection lambda
+    GenericHandle checkMe (1);
+    Lambda<KeyClass> keyLambda = callGetKeyProjectionWithKey<Derived, InputClass, KeyClass>(((Derived*) this));
+
+    // we label the lambdas from zero
+    int lambdaLabel = 0;
+
+    std::string tcapString;
+    tcapString += "\n/* Extract key for aggregation */\n";
+    tcapString += keyLambda.toTCAPString(lambdaLabel,
+                                         getComputationType(),
+                                         computationLabel,
+                                         false,
+                                         &multiInputsBase);
+
+
+    return tcapString;
+  }
+
   // below function implements the interface for parsing computation into a TCAP string
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
                            int computationLabel) override {

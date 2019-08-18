@@ -54,6 +54,9 @@ public:
   // to convert user query to a tcap string
   std::string parseTCAPString(Vector<Handle<Computation>> &computations);
 
+  // get the tcap for keys
+  std::string parseTCAPForKeys(Vector<Handle<Computation>> &computations);
+
 private:
 
   // to clear all traversal marks
