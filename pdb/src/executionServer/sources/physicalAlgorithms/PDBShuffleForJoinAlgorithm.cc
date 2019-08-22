@@ -174,7 +174,7 @@ bool pdb::PDBShuffleForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManager
 bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
 
   // init the plan
-  ComputePlan plan(job->tcap, *job->computations);
+  ComputePlan plan(std::make_shared<LogicalPlan>(job->tcap, *job->computations));
   logicalPlan = plan.getPlan();
 
   // init the logger

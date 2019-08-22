@@ -383,7 +383,7 @@ TEST(PipelineTest, TestBroadcastJoin) {
   std::cout << myTCAPString << std::endl;
 
   // and create a query object that contains all of this stuff
-  ComputePlan myPlan(myTCAPString, myComputations);
+  ComputePlan myPlan(std::make_shared<LogicalPlan>(myTCAPString, myComputations));
 
   /// 4. Run the pipeline to process the A<int> set. Basically this splits set A into a numNodes * threadsPerNode JoinMaps.
   /// Each page being put into the pageQueue will have numNodes * threadsPerNode  number of JoinMaps. Each join map has records

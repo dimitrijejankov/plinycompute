@@ -41,58 +41,52 @@ using LogicalPlanPtr = std::shared_ptr<LogicalPlan>;
 // this is an actual logical plan
 struct LogicalPlan {
 
-private:
-    // this is the parsed TCAP plan
-    AtomicComputationList computations;
+ private:
+  // this is the parsed TCAP plan
+  AtomicComputationList computations;
 
-    // this allows one to access a particular Computation in the Logical Plan
-    std::map<std::string, pdb::ComputationNode> allConstituentComputations;
+  // this allows one to access a particular Computation in the Logical Plan
+  std::map<std::string, pdb::ComputationNode> allConstituentComputations;
 
-public:
-    // getter for this guy's AtomicComputationList
-    AtomicComputationList& getComputations() {
-        return computations;
+ public:
+
+  LogicalPlan(const std::string &tcap, Vector<Handle<Computation>> &computations);
+
+  // constructor
+  LogicalPlan(AtomicComputationList &computationsIn, pdb::Vector<pdb::Handle<pdb::Computation>> &allComputations);
+
+  // the initialization
+  void init(AtomicComputationList &computationsIn, pdb::Vector<pdb::Handle<pdb::Computation>> &allComputations);
+
+  // getter for this guy's AtomicComputationList
+  AtomicComputationList &getComputations() {
+    return computations;
+  }
+  // get a particular node in the computational plan
+  pdb::ComputationNode &getNode(const std::string &whichComputationNode) {
+    if (allConstituentComputations.count(whichComputationNode) == 0) {
+      std::cout << "This is bad. I did not find a node corresponding to "
+                << whichComputationNode << "\n";
+      std::cout << "There were " << allConstituentComputations.size() << " computations.\n";
+      for (auto &a : allConstituentComputations) {
+        std::cout << a.first << "\n";
+      }
+      exit(1);
     }
+    return allConstituentComputations[whichComputationNode];
+  }
 
-    // constructor
-    LogicalPlan(AtomicComputationList& computationsIn, pdb::Vector<pdb::Handle<pdb::Computation>>& allComputations) {
-        computations = computationsIn;
-        // std :: cout << "\nEXTRACTING LAMBDAS:\n";
-        for (int i = 0; i < allComputations.size(); i++) {
-            std::string compType = allComputations[i]->getComputationType();
-            compType += "_";
-            compType += std::to_string(i);
-            // std :: cout << "Extracting lambdas for computation " << compType << "\n";
-            pdb::ComputationNode temp(allComputations[i]);
-            allConstituentComputations[compType] = temp;
-        }
-    }
+  // getter for the list of nodes
+  std::map<std::string, pdb::ComputationNode> &getAllNodes() {
+    return allConstituentComputations;
+  }
 
-    // get a particular node in the computational plan
-    pdb::ComputationNode& getNode(const std::string& whichComputationNode) {
-        if (allConstituentComputations.count(whichComputationNode) == 0) {
-            std::cout << "This is bad. I did not find a node corresponding to "
-                      << whichComputationNode << "\n";
-            std::cout << "There were " << allConstituentComputations.size() << " computations.\n";
-            for (auto& a : allConstituentComputations) {
-                std::cout << a.first << "\n";
-            }
-            exit(1);
-        }
-        return allConstituentComputations[whichComputationNode];
-    }
-
-    // getter for the list of nodes
-    std::map<std::string, pdb::ComputationNode>& getAllNodes() {
-        return allConstituentComputations;
-    }
-
-    friend std::ostream& operator<<(std::ostream& os, const LogicalPlan& printMe);
+  friend std::ostream &operator<<(std::ostream &os, const LogicalPlan &printMe);
 };
 
-inline std::ostream& operator<<(std::ostream& os, const LogicalPlan& printMe) {
-    os << printMe.computations;
-    return os;
+inline std::ostream &operator<<(std::ostream &os, const LogicalPlan &printMe) {
+  os << printMe.computations;
+  return os;
 }
 
 }

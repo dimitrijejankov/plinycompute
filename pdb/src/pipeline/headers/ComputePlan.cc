@@ -41,47 +41,13 @@ extern int yydebug;
 namespace pdb {
 
 
+inline ComputePlan::ComputePlan(LogicalPlanPtr myPlan) : myPlan(myPlan) {}
+
 inline LogicalPlanPtr ComputePlan::getPlan() {
-
-  // if we already have the plan, then just return it
-  if (myPlan != nullptr)
-    return myPlan;
-
-  // get the string to compile
-  std::string myLogicalPlan = TCAPComputation;
-  myLogicalPlan.push_back('\0');
-
-  // where the result of the parse goes
-  AtomicComputationList *myResult;
-
-  // now, do the compilation
-  yyscan_t scanner;
-  LexerExtra extra{""};
-  yylex_init_extra(&extra, &scanner);
-  const YY_BUFFER_STATE buffer{yy_scan_string(myLogicalPlan.data(), scanner)};
-  const int parseFailed{yyparse(scanner, &myResult)};
-  yy_delete_buffer(buffer, scanner);
-  yylex_destroy(scanner);
-
-  // if it didn't parse, get outta here
-  if (parseFailed) {
-    std::cout << "Parse error when compiling TCAP: " << extra.errorMessage;
-    exit(1);
-  }
-
-  // this is the logical plan to return
-  myPlan = std::make_shared<LogicalPlan>(*myResult, allComputations);
-  delete myResult;
 
   // and now we are outta here
   return myPlan;
 }
-
-
-inline void ComputePlan::nullifyPlanPointer() {
-  myPlan = nullptr;
-}
-
 
 // this does a DFS, trying to find a list of computations that lead to the specified computation
 inline bool recurse(LogicalPlanPtr myPlan,
@@ -610,9 +576,6 @@ inline PipelinePtr ComputePlan::buildBroadcastJoinPipeline(const string &targetT
   return std::make_shared<pdb::JoinBroadcastPipeline>(workerID, outputPageSet, inputPageSet, merger);
 }
 
-
-inline ComputePlan::ComputePlan(String &TCAPComputation, Vector<Handle<Computation>> &allComputations) : TCAPComputation(TCAPComputation),
-                                                                                                         allComputations(allComputations) {}
 }
 
 #endif

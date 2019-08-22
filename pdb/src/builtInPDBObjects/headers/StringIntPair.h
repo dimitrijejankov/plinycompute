@@ -32,7 +32,7 @@ class StringIntPair : public Object {
  public:
 
   Handle<String> myString;
-  int myInt;
+  int myInt{};
 
   bool getBoolean() {
     return true;
@@ -40,8 +40,8 @@ class StringIntPair : public Object {
 
   ENABLE_DEEP_COPY
 
-  ~StringIntPair() {}
-  StringIntPair() {}
+  ~StringIntPair() = default;
+  StringIntPair() = default;
 
   StringIntPair(std::string fromMe, int meTo) {
     myString = makeObject<String>(fromMe);

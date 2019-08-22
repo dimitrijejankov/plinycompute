@@ -240,7 +240,7 @@ TEST(PipelineTest, TestBroadcastJoinSingle) {
                            "out( ) <= OUTPUT ( AandBJoined_Projection ( nativ_3_2OutFor ), 'outSet', 'myData', 'SetWriter_3')";
 
   // and create a query object that contains all of this stuff
-  ComputePlan myPlan(tcapString, myComputations);
+  ComputePlan myPlan(std::make_shared<LogicalPlan>(tcapString, myComputations));
 
   /// 4. Process the left side of the join (set A)
   std::map<ComputeInfoType, ComputeInfoPtr> params = {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<BroadcastJoinProcessor>(numNodes,threadsPerNode,pageQueuesForA, myMgr)},

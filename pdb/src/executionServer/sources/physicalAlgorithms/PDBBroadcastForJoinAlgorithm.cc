@@ -206,7 +206,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
                                               const std::string &error) {
 
   // init the plan
-  ComputePlan plan(job->tcap, *job->computations);
+  ComputePlan plan(std::make_shared<LogicalPlan>(job->tcap, *job->computations));
   logicalPlan = plan.getPlan();
 
   // init the logger

@@ -32,12 +32,6 @@ namespace pdb {
 // this is the basic type that is sent around a PDB cluster to store a computation that PDB is to execute
 class ComputePlan {
 
-  // this is the compiled plan
-  String TCAPComputation;
-
-  // this is the list of Computation objects that are going to be used to power the plan
-  Vector<Handle<Computation>> allComputations;
-
   // this data structure contains both the compiled TCAP string, as well as an index of all of the computations
   LogicalPlanPtr myPlan;
 
@@ -45,8 +39,7 @@ class ComputePlan {
 
   ComputePlan() = default;
 
-  // constructor, takes as input the string to execute, as well as the vector of computations
-  ComputePlan(String &TCAPComputation, Vector<Handle<Computation>> &allComputations);
+  explicit ComputePlan(LogicalPlanPtr myPlan);
 
   // this compiles the TCAPComputation string, returning a LogicalPlan object.  The resuting object contains:
   //
@@ -58,12 +51,6 @@ class ComputePlan {
   //     AtomicComputation objects stored in the graph of SIMD-style operations.
   //
   LogicalPlanPtr getPlan();
-
-  // Note that once getPlan () has been called, ComputePlan object contains a C++ smart pointer inside of it.
-  // IT IS VERY DANGEROUS TO SEND SUCH A POINTER ACCROSS THE NETWORK.  Hence, after calling getPlan () but before
-  // this object is sent accross the network or written to disk, the following method MUST be called to avoid
-  // sending the smart pointer.
-  void nullifyPlanPointer();
 
   /**
    * Returns a processor for a join

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JoinComp.h>
+#include <StringIntPair.h>
 #include <LambdaCreationFunctions.h>
 
 namespace pdb {

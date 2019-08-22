@@ -586,14 +586,14 @@ auto callGetProjection (TypeToCallMethodOn &a, decltype (HasFiveArgs::testKeyPro
  *
  */
 
-template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+template <typename TypeToCallMethodOn>
 auto callGetKeyProjectionWithKey (TypeToCallMethodOn &a, decltype (HasTwoArgs::testKeyProjection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
   return a.getKeyProjection (first, second);
 }
 
-template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+template <typename TypeToCallMethodOn>
 auto callGetKeyProjectionWithKey (TypeToCallMethodOn &a, decltype (HasThreeArgs::testKeyProjection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
@@ -601,7 +601,7 @@ auto callGetKeyProjectionWithKey (TypeToCallMethodOn &a, decltype (HasThreeArgs:
   return a.getKeyProjection (first, second, third);
 }
 
-template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+template <typename TypeToCallMethodOn>
 auto callGetKeyProjectionWithKey (TypeToCallMethodOn &a, decltype (HasFourArgs::testKeyProjection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
@@ -610,7 +610,7 @@ auto callGetKeyProjectionWithKey (TypeToCallMethodOn &a, decltype (HasFourArgs::
   return a.getKeyProjection (first, second, third, fourth);
 }
 
-template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+template <typename TypeToCallMethodOn>
 auto callGetKeyProjectionWithKey (TypeToCallMethodOn &a, decltype (HasFiveArgs::testKeyProjection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
@@ -629,14 +629,14 @@ auto callGetKeyProjectionWithKey(TypeToCallMethodOn &a, typename enable_if<!decl
  *
  */
 
-template <typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
+template <typename TypeToCallMethodOn>
 auto callGetKeySelection (TypeToCallMethodOn &a, decltype (HasTwoArgs::testKeySelection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
   return a.getKeySelection (first, second);
 }
 
-template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+template <typename TypeToCallMethodOn>
 auto callGetKeySelection (TypeToCallMethodOn &a, decltype (HasThreeArgs::testKeySelection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
@@ -644,7 +644,7 @@ auto callGetKeySelection (TypeToCallMethodOn &a, decltype (HasThreeArgs::testKey
   return a.getKeySelection (first, second, third);
 }
 
-template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+template <typename TypeToCallMethodOn>
 auto callGetKeySelection (TypeToCallMethodOn &a, decltype (HasFourArgs::testKeySelection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
@@ -653,7 +653,7 @@ auto callGetKeySelection (TypeToCallMethodOn &a, decltype (HasFourArgs::testKeyS
   return a.getKeySelection (first, second, third, fourth);
 }
 
-template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+template <typename TypeToCallMethodOn>
 auto callGetKeySelection (TypeToCallMethodOn &a, decltype (HasFiveArgs::testKeySelection (&a)) *arg = nullptr) {
   GenericHandle first (1);
   GenericHandle second (2);
@@ -663,7 +663,7 @@ auto callGetKeySelection (TypeToCallMethodOn &a, decltype (HasFiveArgs::testKeyS
   return a.getKeySelection (first, second, third, fourth, fifth);
 }
 
-template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+template <typename TypeToCallMethodOn>
 auto callGetKeySelection(TypeToCallMethodOn &a, typename enable_if<!decltype(KeySelectionExists::check(&a))::value, void>::type *arg = nullptr) -> Lambda<bool> {
   throw runtime_error("The key projection is not defined");
 }

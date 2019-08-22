@@ -263,7 +263,7 @@ public:
 
     // get the selection lambda
     std::string tcapString = "\n/* Apply join selection */\n";
-    Lambda<bool> selectionLambda = callGetKeySelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
+    Lambda<bool> selectionLambda = callGetKeySelection<Derived>(*static_cast<Derived*>(this));
     tcapString += selectionLambda.toTCAPString(lambdaLabel,
                                                "JoinComp",
                                                computationLabel,
