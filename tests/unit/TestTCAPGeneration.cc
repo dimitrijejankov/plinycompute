@@ -28,6 +28,8 @@
 #include <WriteBuiltinEmployeeSet.h>
 #include <EmployeeBuiltInIdentitySelection.h>
 #include <ScanEmployeeSet.h>
+#include <IntUnion.h>
+#include <IntWriter.h>
 
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlock.h"
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixScanner.h"
@@ -156,10 +158,12 @@ TEST(TestTcapGeneration, Test5) {
   const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
 
   // create all of the computation objects
-  Handle<Computation> myScanSet = makeObject<ScanEmployeeSet>("chris_db", "output_set");
-  Handle<Computation> myQuery = makeObject<EmployeeBuiltInIdentitySelection>();
-  myQuery->setInput(myScanSet);
-  Handle<Computation> myWriteSet = makeObject<WriteBuiltinEmployeeSet>("chris_db", "chris_set");
+  Handle<Computation> myScanSet1 = makeObject<ReadInt>("chris_db", "input_set1");
+  Handle<Computation> myScanSet2 = makeObject<ReadInt>("chris_db", "input_set2");
+  Handle<Computation> myQuery = makeObject<IntUnion>();
+  myQuery->setInput(0, myScanSet1);
+  myQuery->setInput(1, myScanSet2);
+  Handle<Computation> myWriteSet = makeObject<IntWriter>("chris_db", "outputSet");
   myWriteSet->setInput(myQuery);
 
   // the query graph has only the aggregation
@@ -172,6 +176,7 @@ TEST(TestTcapGeneration, Test5) {
   Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
 
   // parse the tcap string
+  std::cout << '\n';
   std::string tcapString = queryAnalyzer.parseTCAPString(*myComputations);
 
   std::cout << tcapString << std::endl;
