@@ -57,6 +57,7 @@ struct AtomicComputation *makeHashLeftWithList (struct TupleSpec *output, struct
 struct AtomicComputation *makeHashRightWithList (struct TupleSpec *output, struct TupleSpec *input, struct TupleSpec *projection, char *nodeName, char *opName, struct KeyValueList *useMe);
 struct AtomicComputation *makeHashOneWithList (struct TupleSpec *output, struct TupleSpec *input, struct TupleSpec *projection, char *nodeName, struct KeyValueList *useMe);
 struct AtomicComputation *makeFlattenWithList (struct TupleSpec *output, struct TupleSpec *input, struct TupleSpec *projection, char *nodeName, struct KeyValueList *useMe);
+struct AtomicComputation *makeUnionWithList (struct TupleSpec *output, struct TupleSpec *leftInput, struct TupleSpec *rightInput, char *nodeName, struct KeyValueList *useMe);
 struct AtomicComputation *makeScanWithList (struct TupleSpec *output, char *dbName, char *setName, char *nodeName, struct KeyValueList *useMe);
 struct AtomicComputation *makeOutputWithList (struct TupleSpec *output, struct TupleSpec *input, char *dbName, char *setName, char *nodeName, struct KeyValueList *useMe);
 struct AttList* makeAttList(char* fromMe);
@@ -115,6 +116,12 @@ struct AtomicComputation* makeFlatten(struct TupleSpec* output,
                                       struct TupleSpec* input,
                                       struct TupleSpec* projection,
                                       char* nodeName);
+
+struct AtomicComputation* makeUnion (struct TupleSpec *output,
+                                     struct TupleSpec *leftInput,
+                                     struct TupleSpec *rightInput,
+                                     char *nodeName);
+
 #ifdef __cplusplus
 }
 #endif

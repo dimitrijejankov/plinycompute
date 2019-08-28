@@ -34,6 +34,7 @@
 #undef HASHONE
 #undef FLATTEN
 #undef PARTITION
+#undef UNION
 #endif
 
 #define FILTER 258
@@ -47,8 +48,9 @@
 #define HASHLEFT 266
 #define HASHRIGHT 267
 #define HASHONE 268
-#define FLATTEN 269
-#define IDENTIFIER 270
-#define STRING 271
+#define UNION 269
+#define FLATTEN 270
+#define IDENTIFIER 271
+#define STRING 272
 
 #endif

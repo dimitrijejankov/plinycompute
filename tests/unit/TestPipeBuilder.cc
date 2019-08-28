@@ -843,3 +843,36 @@ TEST(TestPipeBuilder, Test4) {
   }
 
 }
+
+TEST(TestPipeBuilder, Test5) {
+
+  std::string myLogicalPlan = "blabla(in0) <= SCAN ('chris_db', 'input_set1', 'SetScanner_0')\n"
+                              "inputDataForSetScanner_1(in1) <= SCAN ('chris_db', 'input_set2', 'SetScanner_1')\n"
+                              "unionOutUnionComp2 (unionOutFor2)<= UNION (blabla(in0),inputDataForSetScanner_1(in1),'UnionComp_2')\n"
+                              "unionOutUnionComp2_out( ) <= OUTPUT ( unionOutUnionComp2 ( unionOutFor2 ), 'chris_db', 'outputSet', 'SetWriter_3')";
+
+  // get the string to compile
+  myLogicalPlan.push_back('\0');
+
+  // where the result of the parse goes
+  AtomicComputationList *myResult;
+
+  // now, do the compilation
+  yyscan_t scanner;
+  LexerExtra extra{""};
+  yylex_init_extra(&extra, &scanner);
+  const YY_BUFFER_STATE buffer{yy_scan_string(myLogicalPlan.data(), scanner)};
+  const int parseFailed = yyparse(scanner, &myResult);
+  yy_delete_buffer(buffer, scanner);
+  yylex_destroy(scanner);
+
+  // if it didn't parse, get outta here
+  if (parseFailed) {
+    std::cout << "Parse error when compiling TCAP: " << extra.errorMessage;
+    exit(1);
+  }
+
+  // this is the logical plan to return
+  auto atomicComputations = std::shared_ptr<AtomicComputationList>(myResult);
+
+}
