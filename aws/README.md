@@ -113,7 +113,7 @@ See the documentation [here](https://docs.aws.amazon.com/vpc/latest/userguide/wo
 It would be useful to have an AMI which has all of the necessary dependencies installed, so we don't need to start from scratch every time we want to benchmark. Here are all the requirements/constraints I can think of for the AMI:
 * To minimize data storage costs, we need to ensure that the root EBS device for the AMI is as small as possible (we'll be using an ephemeral NVMe drive for the actual benchmarks; see section **Instance Type** below). But it needs to be big enough to store all the installed libraries we're using.
 * Should have the Plinycompute repo cloned already. However, note that because the AMI will be static, you should probably always do a `git pull` to make sure you're getting the most up-to-date version of the repo.
-* Also because the repo will likely be up-to-date, it's probably not worthwhile to build PDB before creating the AMI; users will likely have to rebuild everything.
+* Also because the repo will likely be out-of-date, it's probably not worthwhile to build PDB before creating the AMI; users will likely have to rebuild everything.
 
 Given these constraints, I've created an AMI. Here are the steps I took to do this:
 1. Switched my region to Ohio and went to the EC2 Dashboard. (This is important because the AMI will only be available in the region you create it in, and you'll need to spend something like [2 cents per gigabyte](https://datapath.io/resources/blog/what-are-aws-data-transfer-costs-and-how-to-minimize-them/) to move it to a different region.)
