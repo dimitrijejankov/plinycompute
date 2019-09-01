@@ -48,8 +48,8 @@
 #define HASHLEFT 266
 #define HASHRIGHT 267
 #define HASHONE 268
-#define UNION 269
-#define FLATTEN 270
+#define FLATTEN 269
+#define UNION 270
 #define IDENTIFIER 271
 #define STRING 272
 
