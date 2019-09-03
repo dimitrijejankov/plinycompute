@@ -31,13 +31,27 @@ class PDBAbstractPhysicalNode;
 using PDBAbstractPhysicalNodePtr = std::shared_ptr<PDBAbstractPhysicalNode>;
 using PDBAbstractPhysicalNodeWeakPtr = std::weak_ptr<PDBAbstractPhysicalNode>;
 
+enum class PDBPlanningResultType {
+
+  NOTHING,
+  UNIONED_PIPELINE,
+  GENERATED_ALGORITHM
+
+};
+
 struct PDBPlanningResult {
 
-  PDBPlanningResult(const Handle<PDBPhysicalAlgorithm> &runMe,
+  PDBPlanningResult(PDBPlanningResultType resultType,
+                    const Handle<PDBPhysicalAlgorithm> &runMe,
                     std::list<pdb::PDBAbstractPhysicalNodePtr> newSourceNodes,
                     std::list<PDBPageSetIdentifier> consumedPageSets,
                     std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets) :
-                    runMe(runMe), newSourceNodes(std::move(newSourceNodes)), consumedPageSets(std::move(consumedPageSets)), newPageSets(std::move(newPageSets)) {}
+                    runMe(runMe), newSourceNodes(std::move(newSourceNodes)), consumedPageSets(std::move(consumedPageSets)), newPageSets(std::move(newPageSets)), resultType(resultType) {}
+
+  /**
+   * Tells us what happened during the planning
+   */
+  PDBPlanningResultType resultType = PDBPlanningResultType::NOTHING;
 
   /**
    * Algorithm we are supposed to run
@@ -58,6 +72,30 @@ struct PDBPlanningResult {
    * The new page sets that were created
    */
   std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets;
+
+};
+
+struct PDBPlannedPipeline {
+
+  /**
+   * The starting atomic computation of the left pipeline
+   */
+  AtomicComputationPtr startAtomicComputation = nullptr;
+
+  /**
+   * The source of the left pipeline
+   */
+  pdb::Handle<PDBSourcePageSetSpec> source = nullptr;
+
+  /**
+   * The additional sources needed for the left pipeline
+   */
+  pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> additionalSources = nullptr;
+
+  /**
+   * True if this pipeline needs to swap the left and the right pipeline for the join source
+   */
+  bool shouldSwapLeftAndRight = false;
 
 };
 
@@ -161,6 +199,21 @@ public:
 
     // check if it is a join
     return getPipeComputations().front()->getAtomicComputationTypeID() == ApplyJoinTypeID;
+  }
+
+  /**
+   * Performs a check on whether we are doing an union in this pipeline or not
+   * @return true if we are false otherwise
+   */
+  bool isUnioning() {
+
+    // just to make sure the pipeline is not empty
+    if(pipeline.empty()) {
+      return false;
+    }
+
+    // check if it is a union
+    return getPipeComputations().front()->getAtomicComputationTypeID() == UnionTypeID;
   }
 
   /**
@@ -346,21 +399,15 @@ public:
    * @param additionalSources - any additional page sets the pipeline requires
    * @return the planning result, a pair of the algorithm and the consumers of the result
    */
-  virtual pdb::PDBPlanningResult generateAlgorithm(const AtomicComputationPtr &startAtomicComputation,
-                                                   const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                   PDBPageSetCosts &sourcesWithIDs,
-                                                   pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
-                                                   bool shouldSwapLeftAndRight) = 0;
+  virtual pdb::PDBPlanningResult generateAlgorithm(PDBAbstractPhysicalNodePtr &child,
+                                                   PDBPageSetCosts &pageSetCosts) = 0;
 
   /**
    * Returns the algorithm we chose to run this pipeline, but assumes that we are pipelining stuff into it...
    * @return the planning result, a pair of the algorithm and the consumers of the result
    */
-  virtual pdb::PDBPlanningResult generatePipelinedAlgorithm(const AtomicComputationPtr &startAtomicComputation,
-                                                            const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                            PDBPageSetCosts &sourcesWithIDs,
-                                                            pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
-                                                            bool shouldSwapLeftAndRight) = 0;
+  virtual pdb::PDBPlanningResult generatePipelinedAlgorithm(PDBAbstractPhysicalNodePtr &child,
+                                                            PDBPageSetCosts &sourcesWithIDs);
 
 protected:
 
@@ -424,6 +471,11 @@ protected:
     std::pair<size_t, std::string> pageSetIdentifier;
 
   } sinkPageSet;
+
+  /**
+   * The pipelines we have planned to execute when processing this node
+   */
+  std::vector<PDBPlannedPipeline> plannedPipelines;
 };
 
 }

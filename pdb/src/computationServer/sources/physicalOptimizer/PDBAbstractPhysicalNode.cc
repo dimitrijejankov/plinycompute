@@ -36,8 +36,19 @@ pdb::PDBPlanningResult pdb::PDBAbstractPhysicalNode::generateAlgorithm(PDBPageSe
     source = getSourcePageSet(pageSetCosts);
   }
 
+  // create a new pipeline plan
+  plannedPipelines.emplace_back();
+
+  // set the pipeline plan for this
+  auto &plannedPipeline = plannedPipelines.back();
+  plannedPipeline.source = source;
+  plannedPipeline.startAtomicComputation = pipeline.front();
+  plannedPipeline.additionalSources = additionalSources;
+  plannedPipeline.shouldSwapLeftAndRight = shouldSwapLeftAndRight;
+
   // generate the algorithm
-  return generateAlgorithm(pipeline.front(), source, pageSetCosts, additionalSources, shouldSwapLeftAndRight);
+  auto myHandle = getHandle();
+  return generateAlgorithm(myHandle, pageSetCosts);
 }
 
 const std::list<pdb::PDBAbstractPhysicalNodePtr> pdb::PDBAbstractPhysicalNode::getProducers() {
@@ -56,4 +67,31 @@ const std::list<pdb::PDBAbstractPhysicalNodePtr> pdb::PDBAbstractPhysicalNode::g
 
 const std::list<pdb::PDBAbstractPhysicalNodePtr> &pdb::PDBAbstractPhysicalNode::getConsumers() {
   return consumers;
+}
+
+pdb::PDBPlanningResult pdb::PDBAbstractPhysicalNode::generatePipelinedAlgorithm(PDBAbstractPhysicalNodePtr &child,
+                                                                                PDBPageSetCosts &sourcesWithIDs) {
+
+  // check if we are doing an union here and if we haven't processed the left side already, this is the left side
+  if(isUnioning() && plannedPipelines.empty()) {
+
+    // set all the unions we got from the
+    plannedPipelines.insert(plannedPipelines.end(), child->plannedPipelines.begin(), child->plannedPipelines.end());
+
+    // copy all the sources consumed by the other pipelines
+    std::list<PDBPageSetIdentifier> consumedSources;
+    for(auto &p : child->plannedPipelines) {
+      consumedSources.emplace_back(p.source->pageSetIdentifier);
+    }
+
+    // inform the physical planner that we have consumed the source and that it has been pipelined into the union
+    return std::move(PDBPlanningResult(PDBPlanningResultType::UNIONED_PIPELINE, nullptr, {}, consumedSources, {}));
+  }
+
+  // just copy the pipelines from the child
+  plannedPipelines.insert(plannedPipelines.end(), child->plannedPipelines.begin(), child->plannedPipelines.end());
+
+  // this is the same as @see generateAlgorithm except now the source is the source of the pipe we pipelined to this
+  // and the additional source are transferred for that pipeline. We can not pipeline an aggregation
+  return std::move(generateAlgorithm(sourcesWithIDs));
 }

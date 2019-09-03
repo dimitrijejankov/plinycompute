@@ -26,9 +26,7 @@ public:
    * @param set - the set name
    * @return the PDBPage set
    */
-  PDBSetPageSetPtr createPageSetFromPDBSet(const std::string &db,
-                                           const std::string &set,
-                                           const std::pair<uint64_t, std::string> &pageSetID);
+  PDBSetPageSetPtr createPageSetFromPDBSet(const std::string &db, const std::string &set);
 
   /**
    *

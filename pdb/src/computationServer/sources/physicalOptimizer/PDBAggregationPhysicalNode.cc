@@ -15,11 +15,8 @@ PDBPipelineType pdb::PDBAggregationPhysicalNode::getType() {
   return PDB_AGGREGATION_PIPELINE;
 }
 
-pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const AtomicComputationPtr &startAtomicComputation,
-                                                                     const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                     PDBPageSetCosts &sourcesWithIDs,
-                                                                     pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
-                                                                     bool shouldSwapLeftAndRight) {
+pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(PDBAbstractPhysicalNodePtr &child,
+                                                                     PDBPageSetCosts &pageSetCosts) {
 
   // the aggregation has two parts, one part packs the records into a bunch of hash tables
   // the second part does the actual aggregation, both parts are run at the same time
@@ -49,9 +46,8 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const Atomi
 
     // if it only has two computations in the pipeline, mark that we need to materialize the result
     auto &computations = (*consumer)->getPipeComputations();
-    if(computations.size() == 2 &&
-        computations[0]->getAtomicComputationTypeID() == ApplyAggTypeID &&
-        computations[1]->getAtomicComputationTypeID() == WriteSetTypeID) {
+    if(computations.size() == 2 && computations[0]->getAtomicComputationTypeID() == ApplyAggTypeID &&
+                                   computations[1]->getAtomicComputationTypeID() == WriteSetTypeID) {
 
       // cast the node to the output
       auto writerNode = std::dynamic_pointer_cast<WriteSet>(computations[1]);
@@ -70,6 +66,12 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const Atomi
 
   // just store the sink page set for later use by the eventual consumers
   setSinkPageSet(sink);
+
+  // TODO fix this
+  auto startAtomicComputation = plannedPipelines.front().startAtomicComputation;
+  auto source = plannedPipelines.front().source;
+  auto additionalSources = plannedPipelines.front().additionalSources;
+  auto shouldSwapLeftAndRight = plannedPipelines.front().shouldSwapLeftAndRight;
 
   // create the algorithm
   pdb::Handle<PDBAggregationPipeAlgorithm> algorithm = pdb::makeObject<PDBAggregationPipeAlgorithm>(startAtomicComputation,
@@ -103,19 +105,7 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(const Atomi
                                                                        std::make_pair(hashedToRecv->pageSetIdentifier, 1) };
 
   // return the algorithm and the nodes that consume it's result
-  return std::move(PDBPlanningResult(algorithm, consumers, consumedPageSets, newPageSets));
-}
-
-pdb::PDBPlanningResult PDBAggregationPhysicalNode::generatePipelinedAlgorithm(const AtomicComputationPtr &startAtomicComputation,
-                                                                              const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                              PDBPageSetCosts &sourcesWithIDs,
-                                                                              pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
-                                                                              bool shouldSwapLeftAndRight) {
-
-  // this is the same as @see generateAlgorithm except now the source is the source of the pipe we pipelined to this
-  // and the additional source are transferred for that pipeline. We can not pipeline an aggregation
-
-  return generateAlgorithm(startAtomicComputation, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
+  return std::move(PDBPlanningResult(PDBPlanningResultType::GENERATED_ALGORITHM, algorithm, consumers, consumedPageSets, newPageSets));
 }
 
 }

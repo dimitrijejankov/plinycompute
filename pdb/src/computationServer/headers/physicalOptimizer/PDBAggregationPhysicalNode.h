@@ -19,17 +19,8 @@ public:
 
   PDBPipelineType getType() override;
 
-  pdb::PDBPlanningResult generateAlgorithm(const AtomicComputationPtr &startAtomicComputation,
-                                           const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                           PDBPageSetCosts &sourcesWithIDs,
-                                           pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
-                                           bool shouldSwapLeftAndRight) override;
-
-  pdb::PDBPlanningResult generatePipelinedAlgorithm(const AtomicComputationPtr &startAtomicComputation,
-                                                    const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                    PDBPageSetCosts &sourcesWithIDs,
-                                                    pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
-                                                    bool shouldSwapLeftAndRight) override;
+  pdb::PDBPlanningResult generateAlgorithm(PDBAbstractPhysicalNodePtr &child,
+                                           PDBPageSetCosts &pageSetCosts) override;
 
 };
 

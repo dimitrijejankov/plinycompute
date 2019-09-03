@@ -38,11 +38,9 @@ PDBAbstractPageSetPtr PDBPhysicalAlgorithm::getSourcePageSet(std::shared_ptr<pdb
   if (sourceSet != nullptr) {
 
     // get the page set
-    sourcePageSet = storage->createPageSetFromPDBSet(sourceSet->database,
-                                                     sourceSet->set,
-                                                     std::make_pair(source->pageSetIdentifier.first,
-                                                                    source->pageSetIdentifier.second));
+    sourcePageSet = storage->createPageSetFromPDBSet(sourceSet->database, sourceSet->set);
     sourcePageSet->resetPageSet();
+
   } else {
 
     // we are reading from an existing page set get it

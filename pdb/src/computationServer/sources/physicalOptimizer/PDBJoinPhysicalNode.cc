@@ -13,25 +13,19 @@ PDBPipelineType pdb::PDBJoinPhysicalNode::getType() {
   return PDB_JOIN_SIDE_PIPELINE;
 }
 
-pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generatePipelinedAlgorithm(const AtomicComputationPtr &startAtomicComputation,
-                                                                            const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                            PDBPageSetCosts &sourcesWithIDs,
-                                                                            pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
-                                                                            bool shouldSwapLeftAndRight) {
-  // generate the algorithm
-  return generateAlgorithm(startAtomicComputation, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
-}
-
-pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const AtomicComputationPtr &startAtomicComputation,
-                                                                   const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                   PDBPageSetCosts &sourcesWithIDs,
-                                                                   pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
-                                                                   bool shouldSwapLeftAndRight) {
+pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(PDBAbstractPhysicalNodePtr &child,
+                                                                   PDBPageSetCosts &pageSetCosts) {
   // check if the node is not processed
   assert(state == PDBJoinPhysicalNodeState::PDBJoinPhysicalNodeNotProcessed);
 
   // just grab the ptr for the other side
   auto otherSidePtr = (PDBJoinPhysicalNode*) otherSide.lock().get();
+
+  // TODO fix this
+  auto startAtomicComputation = plannedPipelines.front().startAtomicComputation;
+  auto source = plannedPipelines.front().source;
+  auto additionalSources = plannedPipelines.front().additionalSources;
+  auto shouldSwapLeftAndRight = plannedPipelines.front().shouldSwapLeftAndRight;
 
   // if the other side has been broad casted then this is really cool and we can pipeline through this node
   if(otherSidePtr->state == PDBJoinPhysicalNodeBroadcasted) {
@@ -48,7 +42,8 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const AtomicC
     assert(consumers.size() == 1);
 
     // pipeline this node to the next, it always has to exist and it always has to be one
-    return consumers.front()->generatePipelinedAlgorithm(startAtomicComputation, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
+    auto myHandle = getHandle();
+    return consumers.front()->generatePipelinedAlgorithm(myHandle, pageSetCosts);
   }
 
   // the sink is basically the last computation in the pipeline
@@ -56,7 +51,7 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const AtomicC
   sink->pageSetIdentifier = std::make_pair(computationID, (String) pipeline.back()->getOutputName());
 
   // check if we can broadcast this side (the other side is not shuffled and this side is small enough)
-  auto it = sourcesWithIDs.find(source->pageSetIdentifier);
+  auto it = pageSetCosts.find(source->pageSetIdentifier);
   if(it->second < SHUFFLE_JOIN_THRASHOLD && otherSidePtr->state == PDBJoinPhysicalNodeNotProcessed) {
 
     // set the type of the sink
@@ -102,7 +97,11 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const AtomicC
                                                                          std::make_pair(hashedToRecv->pageSetIdentifier, 1)};
 
     // return the algorithm and the nodes that consume it's result
-    return std::move(PDBPlanningResult(algorithm, std::list<pdb::PDBAbstractPhysicalNodePtr>(), consumedPageSets, newPageSets));
+    return std::move(PDBPlanningResult(PDBPlanningResultType::GENERATED_ALGORITHM,
+                                       algorithm,
+                                       std::list<pdb::PDBAbstractPhysicalNodePtr>(),
+                                       consumedPageSets,
+                                       newPageSets));
   }
 
   // set the type of the sink
@@ -148,7 +147,7 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(const AtomicC
                                                                        std::make_pair(intermediate->pageSetIdentifier, 1) };
 
   // return the algorithm and the nodes that consume it's result
-  return std::move(PDBPlanningResult(algorithm, newSources, consumedPageSets, newPageSets));
+  return std::move(PDBPlanningResult(PDBPlanningResultType::GENERATED_ALGORITHM, algorithm, newSources, consumedPageSets, newPageSets));
 }
 
 // set this value to some reasonable value // TODO this needs to be smarter

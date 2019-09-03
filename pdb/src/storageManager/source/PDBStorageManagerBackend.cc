@@ -47,8 +47,7 @@ void pdb::PDBStorageManagerBackend::registerHandlers(PDBServer &forMe) {
       }));
 }
 
-pdb::PDBSetPageSetPtr pdb::PDBStorageManagerBackend::createPageSetFromPDBSet(const std::string &db, const std::string &set,
-                                                                             const std::pair<uint64_t, std::string> &pageSetID) {
+pdb::PDBSetPageSetPtr pdb::PDBStorageManagerBackend::createPageSetFromPDBSet(const std::string &db, const std::string &set) {
 
 
   // get the configuration
