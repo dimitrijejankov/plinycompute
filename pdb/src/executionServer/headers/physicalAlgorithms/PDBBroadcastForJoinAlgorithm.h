@@ -21,15 +21,13 @@ class PDBBroadcastForJoinAlgorithm : public PDBPhysicalAlgorithm {
 
   PDBBroadcastForJoinAlgorithm() = default;
 
-  PDBBroadcastForJoinAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+  PDBBroadcastForJoinAlgorithm(const std::vector<PDBPrimarySource> &primarySource,
                                const AtomicComputationPtr &finalAtomicComputation,
-                               const pdb::Handle<pdb::PDBSourcePageSetSpec> &source,
                                const pdb::Handle<pdb::PDBSinkPageSetSpec> &hashedToSend,
                                const pdb::Handle<pdb::PDBSourcePageSetSpec> &hashedToRecv,
                                const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
-                               const pdb::Handle<pdb::Vector<pdb::Handle<pdb::PDBSourcePageSetSpec>>> &secondarySources,
-                               const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
-                               const bool swapLHSandRHS);
+                               const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
+                               const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize);
 
   ENABLE_DEEP_COPY
 

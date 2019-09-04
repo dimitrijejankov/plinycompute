@@ -75,30 +75,6 @@ struct PDBPlanningResult {
 
 };
 
-struct PDBPlannedPipeline {
-
-  /**
-   * The starting atomic computation of the left pipeline
-   */
-  AtomicComputationPtr startAtomicComputation = nullptr;
-
-  /**
-   * The source of the left pipeline
-   */
-  pdb::Handle<PDBSourcePageSetSpec> source = nullptr;
-
-  /**
-   * The additional sources needed for the left pipeline
-   */
-  pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> additionalSources = nullptr;
-
-  /**
-   * True if this pipeline needs to swap the left and the right pipeline for the join source
-   */
-  bool shouldSwapLeftAndRight = false;
-
-};
-
 class PDBAbstractPhysicalNode {
 
 public:
@@ -475,7 +451,12 @@ protected:
   /**
    * The pipelines we have planned to execute when processing this node
    */
-  std::vector<PDBPlannedPipeline> plannedPipelines;
+  std::vector<PDBPrimarySource> primarySources;
+
+  /**
+   * The additional sources needed for the left pipeline
+   */
+  std::vector<pdb::Handle<PDBSourcePageSetSpec>> additionalSources;
 };
 
 }

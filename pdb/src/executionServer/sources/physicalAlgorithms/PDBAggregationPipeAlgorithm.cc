@@ -10,18 +10,22 @@
 #include "PDBStorageManagerBackend.h"
 #include "GenericWork.h"
 
-pdb::PDBAggregationPipeAlgorithm::PDBAggregationPipeAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+pdb::PDBAggregationPipeAlgorithm::PDBAggregationPipeAlgorithm(const std::vector<PDBPrimarySource> &primarySource,
                                                               const AtomicComputationPtr &finalAtomicComputation,
-                                                              const Handle<PDBSourcePageSetSpec> &source,
                                                               const Handle<PDBSinkPageSetSpec> &hashedToSend,
                                                               const Handle<PDBSourcePageSetSpec> &hashedToRecv,
                                                               const Handle<PDBSinkPageSetSpec> &sink,
-                                                              const Handle<Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
-                                                              const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
-                                                              bool swapLHSandRHS)
-    : PDBPhysicalAlgorithm(fistAtomicComputation, finalAtomicComputation, source, sink, secondarySources, setsToMaterialize, swapLHSandRHS), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {}
+                                                              const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
+                                                              const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize)
+
+    : PDBPhysicalAlgorithm(primarySource, finalAtomicComputation, sink, secondarySources, setsToMaterialize), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {}
 
 bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
+
+  // TODO remove this
+  const int pipelineIndex = 0;
+  bool swapLHSandRHS = sources[pipelineIndex].swapLHSandRHS;
+  pdb::String firstTupleSet = sources[pipelineIndex].firstTupleSet;
 
   // init the plan
   ComputePlan plan(job->tcap, *job->computations);
@@ -36,7 +40,7 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
   auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
 
   // go grab the source page set
-  PDBAbstractPageSetPtr sourcePageSet = getSourcePageSet(storage);
+  PDBAbstractPageSetPtr sourcePageSet = getSourcePageSet(storage, pipelineIndex);
 
   // did we manage to get a source page set? if not the setup failed
   if (sourcePageSet == nullptr) {
@@ -79,7 +83,7 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
   std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<PreaggregationPageProcessor>(job->numberOfNodes, job->numberOfProcessingThreads, *pageQueues, myMgr) },
                                                        { ComputeInfoType::JOIN_ARGS, joinArguments },
                                                        { ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS) },
-                                                       { ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient)}} ;
+                                                       { ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient, pipelineIndex)}} ;
 
   // fill uo the vector for each thread
   preaggregationPipelines = std::make_shared<std::vector<PipelinePtr>>();

@@ -97,14 +97,13 @@ public:
   }
 
   /**
-   * Returns the actual set we are scanning, it assumes that we are doing that. Check that with @see isScanningSet
+   * Returns the actual sets we are scanning, it assumes that we are doing that. Check that with @see isScanningSet
    * @return get the scanning set
    */
-  std::pair<std::string, std::string> getScanningSet() {
+  vector<pair<string, string>> getScanningSets() {
 
     // return the scanning set
-    return std::move(std::make_pair<std::string, std::string>(physicalAlgorithm->getSetToScan()->set,
-                                                              physicalAlgorithm->getSetToScan()->database));
+    return std::move(physicalAlgorithm->getSetsToScan());
   }
 
   /**
@@ -112,7 +111,7 @@ public:
    * @return true if it is, false otherwise
    */
   bool isScanningSet() {
-    return physicalAlgorithm->getSetToScan() != nullptr;
+    return !physicalAlgorithm->getSetsToScan().empty();
   }
 
   /**

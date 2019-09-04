@@ -32,6 +32,8 @@ public:
                                            PDBPageSetCosts &pageSetCosts) override;
 
 
+  size_t getPrimarySourcesSize(PDBPageSetCosts &pageSetCosts);
+
   /**
    * The other side
    */

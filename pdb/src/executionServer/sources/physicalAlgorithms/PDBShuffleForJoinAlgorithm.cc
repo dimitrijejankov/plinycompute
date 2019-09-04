@@ -13,15 +13,13 @@
 #include <GenericWork.h>
 #include <memory>
 
-pdb::PDBShuffleForJoinAlgorithm::PDBShuffleForJoinAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+pdb::PDBShuffleForJoinAlgorithm::PDBShuffleForJoinAlgorithm(const std::vector<PDBPrimarySource> &primarySource,
                                                             const AtomicComputationPtr &finalAtomicComputation,
-                                                            const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                            const pdb::Handle<PDBSinkPageSetSpec> &intermediate,
-                                                            const pdb::Handle<PDBSinkPageSetSpec> &sink,
-                                                            const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
-                                                            const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
-                                                            const bool swapLHSandRHS)
-                                                            : PDBPhysicalAlgorithm(fistAtomicComputation, finalAtomicComputation, source, sink, secondarySources, setsToMaterialize, swapLHSandRHS),
+                                                            const pdb::Handle<pdb::PDBSinkPageSetSpec> &intermediate,
+                                                            const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
+                                                            const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
+                                                            const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize)
+                                                            : PDBPhysicalAlgorithm(primarySource, finalAtomicComputation, sink, secondarySources, setsToMaterialize),
                                                               intermediate(intermediate) {
 
 }
@@ -173,6 +171,11 @@ bool pdb::PDBShuffleForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManager
 
 bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
 
+  // TODO remove this
+  const int pipelineIndex = 0;
+  bool swapLHSandRHS = sources[pipelineIndex].swapLHSandRHS;
+  pdb::String firstTupleSet = sources[pipelineIndex].firstTupleSet;
+
   // init the plan
   ComputePlan plan(job->tcap, *job->computations);
   logicalPlan = plan.getPlan();
@@ -186,7 +189,7 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
   auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
 
   // go grab the source page set
-  PDBAbstractPageSetPtr sourcePageSet = getSourcePageSet(storage);
+  PDBAbstractPageSetPtr sourcePageSet = getSourcePageSet(storage, pipelineIndex);
 
   // did we manage to get a source page set? if not the setup failed
   if(sourcePageSet == nullptr) {
@@ -226,7 +229,7 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
   std::map<ComputeInfoType, ComputeInfoPtr> params =  {{ComputeInfoType::PAGE_PROCESSOR, plan.getProcessorForJoin(finalTupleSet, job->numberOfNodes, job->numberOfProcessingThreads, *pageQueues, myMgr)},
                                                        {ComputeInfoType::JOIN_ARGS, joinArguments},
                                                        {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)},
-                                                       {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient)}};
+                                                       {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient, pipelineIndex)}};
 
   /// 5. Create the page set that contains the shuffled join side pages for this node
 

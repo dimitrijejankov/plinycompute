@@ -58,11 +58,11 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
   // are we scanning the set, if so update the metadata in the distributed storage that we are doing that
   if(job->isScanningSet()) {
 
-    // get source set
-    auto sourceSet = job->getScanningSet();
-
-    // add the lock
-    locks.emplace_back(distStorage->useSet(sourceSet.first, sourceSet.second, PDBDistributedStorageSetState::READING_DATA));
+    // get source sets loop through and lock them
+    for(auto &sourceSet : job->getScanningSets()) {
+      // add the lock
+      locks.emplace_back(distStorage->useSet(sourceSet.first, sourceSet.second, PDBDistributedStorageSetState::READING_DATA));
+    }
   }
 
   // create the buzzer
@@ -312,8 +312,6 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
 
               // grab a algorithm
               auto algorithm = optimizer.getNextAlgorithm();
-
-              std::cout << "Running " << algorithm->firstTupleSet << " , " << algorithm->finalTupleSet << std::endl;
 
               // make the job
               Handle<ExJob> job = pdb::makeObject<ExJob>();

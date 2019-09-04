@@ -67,27 +67,19 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(PDBAbstract
   // just store the sink page set for later use by the eventual consumers
   setSinkPageSet(sink);
 
-  // TODO fix this
-  auto startAtomicComputation = plannedPipelines.front().startAtomicComputation;
-  auto source = plannedPipelines.front().source;
-  auto additionalSources = plannedPipelines.front().additionalSources;
-  auto shouldSwapLeftAndRight = plannedPipelines.front().shouldSwapLeftAndRight;
-
   // create the algorithm
-  pdb::Handle<PDBAggregationPipeAlgorithm> algorithm = pdb::makeObject<PDBAggregationPipeAlgorithm>(startAtomicComputation,
+  pdb::Handle<PDBAggregationPipeAlgorithm> algorithm = pdb::makeObject<PDBAggregationPipeAlgorithm>(primarySources,
                                                                                                     pipeline.back(),
-                                                                                                    source,
                                                                                                     hashedToSend,
                                                                                                     hashedToRecv,
                                                                                                     sink,
                                                                                                     additionalSources,
-                                                                                                    setsToMaterialize,
-                                                                                                    shouldSwapLeftAndRight);
+                                                                                                    setsToMaterialize);
   // add all the consumed page sets
-  std::list<PDBPageSetIdentifier> consumedPageSets = { source->pageSetIdentifier, hashedToSend->pageSetIdentifier, hashedToRecv->pageSetIdentifier };
-  for(int i = 0; i < additionalSources->size(); ++i) {
-    consumedPageSets.insert(consumedPageSets.begin(), (*additionalSources)[i]->pageSetIdentifier);
-  }
+  std::list<PDBPageSetIdentifier> consumedPageSets = { hashedToSend->pageSetIdentifier, hashedToRecv->pageSetIdentifier };
+  for(auto &primarySource : primarySources) { consumedPageSets.insert(consumedPageSets.begin(), primarySource.source->pageSetIdentifier); }
+  for(auto & additionalSource : additionalSources) { consumedPageSets.insert(consumedPageSets.begin(), additionalSource->pageSetIdentifier); }
+
   // if there are no consumers, (this happens if all the consumers are materializations), mark the ink set as consumed too
   size_t sinkConsumers = consumers.size();
   if(consumers.empty()) {

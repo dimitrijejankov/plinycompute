@@ -1,9 +1,4 @@
-//
-// Created by dimitrije on 3/2/19.
-//
-
-#ifndef PDB_PDBSOURCEPAGESETSPEC_H
-#define PDB_PDBSOURCEPAGESETSPEC_H
+#pragma once
 
 namespace pdb {
 
@@ -40,5 +35,3 @@ public:
 };
 
 }
-
-#endif //PDB_PDBSOURCEPAGESETSPEC_H

@@ -6,45 +6,63 @@
 
 namespace pdb {
 
-PDBPhysicalAlgorithm::PDBPhysicalAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+PDBPhysicalAlgorithm::PDBPhysicalAlgorithm(const std::vector<PDBPrimarySource> &primarySource,
                                            const AtomicComputationPtr &finalAtomicComputation,
-                                           const pdb::Handle<PDBSourcePageSetSpec> &source,
                                            const pdb::Handle<PDBSinkPageSetSpec> &sink,
-                                           const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
-                                           const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
-                                           bool swapLHSandRHS) : firstTupleSet(fistAtomicComputation->getOutputName()),
+                                           const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
+                                           const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize) :
                                                                  finalTupleSet(finalAtomicComputation->getOutputName()),
-                                                                 source(source),
                                                                  sink(sink),
-                                                                 secondarySources(secondarySources),
                                                                  setsToMaterialize(setsToMaterialize),
-                                                                 swapLHSandRHS(swapLHSandRHS) {
+                                                                 sources(primarySource.size(), primarySource.size()) {
 
-  // check if we are scanning a set if we are fill in sourceSet field
-  if(fistAtomicComputation->getAtomicComputationTypeID() == ScanSetAtomicTypeID) {
+  // copy all the primary sources
+  for(int i = 0; i < primarySource.size(); ++i) {
 
-    // cast to a scan set
-    auto scanSet = (ScanSet*) fistAtomicComputation.get();
+    // grab the source
+    auto &source = primarySource[i];
 
-    // get the set info
-    sourceSet = pdb::makeObject<PDBSetObject>(scanSet->getDBName(), scanSet->getSetName());
+    // check if we are scanning a set if we are fill in sourceSet field
+    if(source.startAtomicComputation->getAtomicComputationTypeID() == ScanSetAtomicTypeID) {
+
+      // cast to a scan set
+      auto scanSet = (ScanSet*) source.startAtomicComputation.get();
+
+      // get the set info
+      std::cout << "Set added :" << scanSet->getDBName() << ", " << scanSet->getSetName() << "\n";
+      sources[i].sourceSet = pdb::makeObject<PDBSetObject>(scanSet->getDBName(), scanSet->getSetName());
+    }
+
+    sources[i].firstTupleSet = source.startAtomicComputation->getOutputName();
+    sources[i].source = source.source;
+    sources[i].swapLHSandRHS = source.shouldSwapLeftAndRight;
+  }
+
+  // copy all the secondary sources
+  this->secondarySources = pdb::makeObject<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>>(secondarySources.size(), 0);
+  for(const auto &secondarySource : secondarySources) {
+    this->secondarySources->push_back(secondarySource);
   }
 }
 
-PDBAbstractPageSetPtr PDBPhysicalAlgorithm::getSourcePageSet(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
+PDBAbstractPageSetPtr PDBPhysicalAlgorithm::getSourcePageSet(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, size_t idx) {
+
+  // grab the source set from the sources
+  auto &sourceSet = this->sources[idx].sourceSet;
 
   // if this is a scan set get the page set from a real set
   PDBAbstractPageSetPtr sourcePageSet;
   if (sourceSet != nullptr) {
 
     // get the page set
+    std::cout << sourceSet->database << sourceSet->set << "\n";
     sourcePageSet = storage->createPageSetFromPDBSet(sourceSet->database, sourceSet->set);
     sourcePageSet->resetPageSet();
 
   } else {
 
     // we are reading from an existing page set get it
-    sourcePageSet = storage->getPageSet(source->pageSetIdentifier);
+    sourcePageSet = storage->getPageSet(this->sources[idx].source->pageSetIdentifier);
     sourcePageSet->resetPageSet();
   }
 
@@ -52,7 +70,10 @@ PDBAbstractPageSetPtr PDBPhysicalAlgorithm::getSourcePageSet(std::shared_ptr<pdb
   return sourcePageSet;
 }
 
-pdb::SourceSetArgPtr PDBPhysicalAlgorithm::getSourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient) {
+pdb::SourceSetArgPtr PDBPhysicalAlgorithm::getSourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient, size_t idx) {
+
+  // grab the source set from the sources
+  auto &sourceSet = this->sources[idx].sourceSet;
 
   // check if we actually have a set
   if(sourceSet == nullptr) {

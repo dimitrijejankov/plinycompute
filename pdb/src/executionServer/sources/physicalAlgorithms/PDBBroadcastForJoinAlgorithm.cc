@@ -4,16 +4,20 @@
 
 #include <physicalAlgorithms/PDBBroadcastForJoinAlgorithm.h>
 
-pdb::PDBBroadcastForJoinAlgorithm::PDBBroadcastForJoinAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+pdb::PDBBroadcastForJoinAlgorithm::PDBBroadcastForJoinAlgorithm(const std::vector<PDBPrimarySource> &primarySource,
                                                                 const AtomicComputationPtr &finalAtomicComputation,
-                                                                const pdb::Handle<pdb::PDBSourcePageSetSpec> &source,
                                                                 const pdb::Handle<pdb::PDBSinkPageSetSpec> &hashedToSend,
                                                                 const pdb::Handle<pdb::PDBSourcePageSetSpec> &hashedToRecv,
                                                                 const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
-                                                                const pdb::Handle<pdb::Vector<pdb::Handle<pdb::PDBSourcePageSetSpec>>> &secondarySources,
-                                                                const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
-                                                                const bool swapLHSandRHS): PDBPhysicalAlgorithm(fistAtomicComputation,finalAtomicComputation,source,sink,secondarySources,setsToMaterialize,
-    swapLHSandRHS), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {
+                                                                const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
+                                                                const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize):
+                                                                      PDBPhysicalAlgorithm(primarySource,
+                                                                                           finalAtomicComputation,
+                                                                                           sink,
+                                                                                           secondarySources,
+                                                                                           setsToMaterialize),
+                                                                      hashedToSend(hashedToSend),
+                                                                      hashedToRecv(hashedToRecv) {
 }
 
 pdb::PDBPhysicalAlgorithmType pdb::PDBBroadcastForJoinAlgorithm::getAlgorithmType() {
@@ -205,6 +209,11 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
                                               Handle<pdb::ExJob> &job,
                                               const std::string &error) {
 
+  // TODO remove this
+  const int pipelineIndex = 0;
+  bool swapLHSandRHS = sources[pipelineIndex].swapLHSandRHS;
+  pdb::String firstTupleSet = sources[pipelineIndex].firstTupleSet;
+
   // init the plan
   ComputePlan plan(job->tcap, *job->computations);
   logicalPlan = plan.getPlan();
@@ -218,7 +227,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
   auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
 
   // if this is a scan set get the page set from a real set
-  PDBAbstractPageSetPtr sourcePageSet = getSourcePageSet(storage);
+  PDBAbstractPageSetPtr sourcePageSet = getSourcePageSet(storage, pipelineIndex);
 
   // did we manage to get a source page set? if not the setup failed
   if (sourcePageSet == nullptr) {
@@ -258,7 +267,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
   std::map<ComputeInfoType, ComputeInfoPtr> params = {{ComputeInfoType::PAGE_PROCESSOR,std::make_shared<BroadcastJoinProcessor>(job->numberOfNodes,job->numberOfProcessingThreads,*pageQueues,myMgr)},
                                                       {ComputeInfoType::JOIN_ARGS, joinArguments},
                                                       {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)},
-                                                      {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient)}};
+                                                      {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient, pipelineIndex)}};
 
   /// 5. create the prebroadcastjoin pipelines
 

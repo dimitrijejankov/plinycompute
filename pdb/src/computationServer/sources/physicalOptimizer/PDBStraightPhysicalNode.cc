@@ -47,25 +47,17 @@ pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(PDBAbstra
     }
   }
 
-  auto startAtomicComputation = plannedPipelines.front().startAtomicComputation;
-  auto source = plannedPipelines.front().source;
-  auto additionalSources = plannedPipelines.front().additionalSources;
-  auto shouldSwapLeftAndRight = plannedPipelines.front().shouldSwapLeftAndRight;
-
   // generate the algorithm
-  pdb::Handle<PDBStraightPipeAlgorithm> algorithm = pdb::makeObject<PDBStraightPipeAlgorithm>(startAtomicComputation,
+  pdb::Handle<PDBStraightPipeAlgorithm> algorithm = pdb::makeObject<PDBStraightPipeAlgorithm>(primarySources,
                                                                                               pipeline.back(),
-                                                                                              source,
                                                                                               sink,
                                                                                               additionalSources,
-                                                                                              setsToMaterialize,
-                                                                                              shouldSwapLeftAndRight);
+                                                                                              setsToMaterialize);
 
   // add all the consumed page sets
-  std::list<PDBPageSetIdentifier> consumedPageSets = { source->pageSetIdentifier };
-  for(int i = 0; i < additionalSources->size(); ++i) {
-    consumedPageSets.insert(consumedPageSets.begin(), (*additionalSources)[i]->pageSetIdentifier);
-  }
+  std::list<PDBPageSetIdentifier> consumedPageSets = {};
+  for(auto &primarySource : primarySources) { consumedPageSets.insert(consumedPageSets.begin(), primarySource.source->pageSetIdentifier); }
+  for(auto & additionalSource : additionalSources) { consumedPageSets.insert(consumedPageSets.begin(), additionalSource->pageSetIdentifier); }
 
   // set the page sets created
   std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets = { std::make_pair(sink->pageSetIdentifier, consumers.size()) };

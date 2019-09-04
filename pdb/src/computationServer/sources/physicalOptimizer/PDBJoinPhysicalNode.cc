@@ -21,12 +21,6 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(PDBAbstractPh
   // just grab the ptr for the other side
   auto otherSidePtr = (PDBJoinPhysicalNode*) otherSide.lock().get();
 
-  // TODO fix this
-  auto startAtomicComputation = plannedPipelines.front().startAtomicComputation;
-  auto source = plannedPipelines.front().source;
-  auto additionalSources = plannedPipelines.front().additionalSources;
-  auto shouldSwapLeftAndRight = plannedPipelines.front().shouldSwapLeftAndRight;
-
   // if the other side has been broad casted then this is really cool and we can pipeline through this node
   if(otherSidePtr->state == PDBJoinPhysicalNodeBroadcasted) {
 
@@ -36,7 +30,7 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(PDBAbstractPh
     additionalSource->pageSetIdentifier = std::make_pair(computationID, (String) otherSidePtr->pipeline.back()->getOutputName());
 
     // create the additional sources
-    additionalSources->push_back(additionalSource);
+    additionalSources.push_back(additionalSource);
 
     // make sure everything is
     assert(consumers.size() == 1);
@@ -51,8 +45,8 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(PDBAbstractPh
   sink->pageSetIdentifier = std::make_pair(computationID, (String) pipeline.back()->getOutputName());
 
   // check if we can broadcast this side (the other side is not shuffled and this side is small enough)
-  auto it = pageSetCosts.find(source->pageSetIdentifier);
-  if(it->second < SHUFFLE_JOIN_THRASHOLD && otherSidePtr->state == PDBJoinPhysicalNodeNotProcessed) {
+  auto cost = getPrimarySourcesSize(pageSetCosts);
+  if(cost < SHUFFLE_JOIN_THRASHOLD && otherSidePtr->state == PDBJoinPhysicalNodeNotProcessed) {
 
     // set the type of the sink
     sink->sinkType = PDBSinkType::BroadcastJoinSink;
@@ -72,24 +66,21 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(PDBAbstractPh
     sinkPageSet.pageSetIdentifier = sink->pageSetIdentifier;
 
     // ok so we have to shuffle this side, generate the algorithm
-    pdb::Handle<PDBBroadcastForJoinAlgorithm> algorithm = pdb::makeObject<PDBBroadcastForJoinAlgorithm>(startAtomicComputation,
+    pdb::Handle<PDBBroadcastForJoinAlgorithm> algorithm = pdb::makeObject<PDBBroadcastForJoinAlgorithm>(primarySources,
                                                                                                         pipeline.back(),
-                                                                                                        source,
                                                                                                         hashedToSend,
                                                                                                         hashedToRecv,
                                                                                                         sink,
                                                                                                         additionalSources,
-                                                                                                        pdb::makeObject<pdb::Vector<PDBSetObject>>(),
-                                                                                                        shouldSwapLeftAndRight);
+                                                                                                        pdb::makeObject<pdb::Vector<PDBSetObject>>());
 
     // mark the state of this node as broadcasted
     state = PDBJoinPhysicalNodeBroadcasted;
 
     // add all the consumed page sets
-    std::list<PDBPageSetIdentifier> consumedPageSets = { source->pageSetIdentifier, hashedToSend->pageSetIdentifier, hashedToRecv->pageSetIdentifier };
-    for(int i = 0; i < additionalSources->size(); ++i) {
-      consumedPageSets.insert(consumedPageSets.begin(), (*additionalSources)[i]->pageSetIdentifier);
-    }
+    std::list<PDBPageSetIdentifier> consumedPageSets = { hashedToSend->pageSetIdentifier, hashedToRecv->pageSetIdentifier };
+    for(auto &primarySource : primarySources) { consumedPageSets.insert(consumedPageSets.begin(), primarySource.source->pageSetIdentifier); }
+    for(auto & additionalSource : additionalSources) { consumedPageSets.insert(consumedPageSets.begin(), additionalSource->pageSetIdentifier); }
 
     // set the page sets created, the produced page set has to have a page set
     std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets = { std::make_pair(sink->pageSetIdentifier, 1),
@@ -118,14 +109,12 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(PDBAbstractPh
   sinkPageSet.pageSetIdentifier = sink->pageSetIdentifier;
 
   // ok so we have to shuffle this side, generate the algorithm
-  pdb::Handle<PDBShuffleForJoinAlgorithm> algorithm = pdb::makeObject<PDBShuffleForJoinAlgorithm>(startAtomicComputation,
+  pdb::Handle<PDBShuffleForJoinAlgorithm> algorithm = pdb::makeObject<PDBShuffleForJoinAlgorithm>(primarySources,
                                                                                                   pipeline.back(),
-                                                                                                  source,
                                                                                                   intermediate,
                                                                                                   sink,
                                                                                                   additionalSources,
-                                                                                                  pdb::makeObject<pdb::Vector<PDBSetObject>>(),
-                                                                                                  shouldSwapLeftAndRight);
+                                                                                                  pdb::makeObject<pdb::Vector<PDBSetObject>>());
 
   // mark the state of this node as shuffled
   state = PDBJoinPhysicalNodeShuffled;
@@ -137,10 +126,9 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(PDBAbstractPh
   }
 
   // add all the consumed page sets
-  std::list<PDBPageSetIdentifier> consumedPageSets = { source->pageSetIdentifier, intermediate->pageSetIdentifier };
-  for(int i = 0; i < additionalSources->size(); ++i) {
-    consumedPageSets.insert(consumedPageSets.begin(), (*additionalSources)[i]->pageSetIdentifier);
-  }
+  std::list<PDBPageSetIdentifier> consumedPageSets = { intermediate->pageSetIdentifier };
+  for(auto &primarySource : primarySources) { consumedPageSets.insert(consumedPageSets.begin(), primarySource.source->pageSetIdentifier); }
+  for(auto & additionalSource : additionalSources) { consumedPageSets.insert(consumedPageSets.begin(), additionalSource->pageSetIdentifier); }
 
   // set the page sets created, the produced page set has to have a page set
   std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets = { std::make_pair(sink->pageSetIdentifier, 1),
@@ -152,4 +140,16 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(PDBAbstractPh
 
 // set this value to some reasonable value // TODO this needs to be smarter
 const size_t pdb::PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = 0;
+
+size_t pdb::PDBJoinPhysicalNode::getPrimarySourcesSize(pdb::PDBPageSetCosts &pageSetCosts) {
+
+  // sum up the size of the page set costs
+  size_t tmp = 0;
+  for(const auto &cst : primarySources) {
+    tmp += pageSetCosts.find(cst.source->pageSetIdentifier)->second;
+  }
+
+  // return them
+  return tmp;
+}
 
