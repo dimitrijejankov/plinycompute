@@ -21,29 +21,11 @@ pdb::PDBStraightPipeAlgorithm::PDBStraightPipeAlgorithm(const std::vector<PDBPri
 
 bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
 
-  // TODO remove this
-  const int pipelineIndex = 0;
-  bool swapLHSandRHS = sources[pipelineIndex].swapLHSandRHS;
-  pdb::String firstTupleSet = sources[pipelineIndex].firstTupleSet;
-
   // init the plan
   ComputePlan plan(job->tcap, *job->computations);
   logicalPlan = plan.getPlan();
 
-  /// 1. Figure out the source page set
-
-  // get the source computation
-  auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
-
-  // go grab the source page set
-  PDBAbstractPageSetPtr sourcePageSet = getSourcePageSet(storage, pipelineIndex);
-
-  // did we manage to get a source page set? if not the setup failed
-  if(sourcePageSet == nullptr) {
-    return false;
-  }
-
-  /// 2. Figure out the sink tuple set
+  /// 0. Figure out the sink tuple set
 
   // get the sink page set
   auto sinkPageSet = storage->createAnonymousPageSet(std::make_pair(sink->pageSetIdentifier.first, sink->pageSetIdentifier.second));
@@ -53,32 +35,74 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
     return false;
   }
 
-  /// 3. Init the pipelines
+  /// 1. Initialize the sources
+
+  // we put them here
+  std::vector<PDBAbstractPageSetPtr> sourcePageSets;
+  sourcePageSets.reserve(sources.size());
+
+  // initialize them
+  for(int i = 0; i < sources.size(); i++) {
+    sourcePageSets.emplace_back(getSourcePageSet(storage, i));
+  }
+
+  /// 2. Initialize all the pipelines
 
   // get the number of worker threads from this server's config
   int32_t numWorkers = storage->getConfiguration()->numThreads;
 
-  // figure out the join arguments
-  auto joinArguments = getJoinArguments(storage);
-
-  // if we could not create them we are out of here
-  if(joinArguments == nullptr) {
+  // check that we have at least one worker per primary source
+  if(numWorkers < sources.size()) {
     return false;
   }
 
-  // get catalog client
-  auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
-
-  // empty computations parameters
-  std::map<ComputeInfoType, ComputeInfoPtr> params =  {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<NullProcessor>()},
-                                                       {ComputeInfoType::JOIN_ARGS, joinArguments},
-                                                       {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)},
-                                                       {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient, pipelineIndex)}};
-
-
-  // build a pipeline for each worker thread
+  // we put all the pipelines we need to run here
   myPipelines = std::make_shared<std::vector<PipelinePtr>>();
-  for (uint64_t i = 0; i < numWorkers; ++i) {
+  for (uint64_t pipelineIndex = 0; pipelineIndex < numWorkers; ++pipelineIndex) {
+
+    /// 2.1. Figure out what source to use
+
+    // figure out what pipeline
+    auto pipelineSource = pipelineIndex % sources.size();
+
+    // grab these thins from the source we need them
+    bool swapLHSandRHS = sources[pipelineSource].swapLHSandRHS;
+    const pdb::String &firstTupleSet = sources[pipelineSource].firstTupleSet;
+
+    // get the source computation
+    auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
+
+    // go grab the source page set
+    PDBAbstractPageSetPtr sourcePageSet = sourcePageSets[pipelineSource];
+
+    // did we manage to get a source page set? if not the setup failed
+    if(sourcePageSet == nullptr) {
+      return false;
+    }
+
+    /// 2.2. Figure out the parameters of the pipeline
+
+    // figure out the join arguments
+    auto joinArguments = getJoinArguments(storage);
+
+    // if we could not create them we are out of here
+    if(joinArguments == nullptr) {
+      return false;
+    }
+
+    // get catalog client
+    auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
+
+    // empty computations parameters
+    std::map<ComputeInfoType, ComputeInfoPtr> params =  {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<NullProcessor>()},
+                                                         {ComputeInfoType::JOIN_ARGS, joinArguments},
+                                                         {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)},
+                                                         {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient, pipelineSource)}};
+
+
+
+    /// 2.3. Build the pipeline
+
     auto pipeline = plan.buildPipeline(firstTupleSet, /* this is the TupleSet the pipeline starts with */
                                        finalTupleSet,     /* this is the TupleSet the pipeline ends with */
                                        sourcePageSet,
@@ -87,7 +111,7 @@ bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManager
                                        job->numberOfNodes,
                                        job->numberOfProcessingThreads,
                                        20,
-                                       i);
+                                       pipelineIndex);
     myPipelines->push_back(pipeline);
   }
 

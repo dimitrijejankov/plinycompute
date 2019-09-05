@@ -26,7 +26,7 @@ struct PDBSourceSpec : pdb::Object {
   /**
    * The source page set the algorithm should setup
    */
-  pdb::Handle<PDBSourcePageSetSpec> source;
+  pdb::Handle<PDBSourcePageSetSpec> pageSet;
 
   /**
    * Indicates whether the left and the right side are swapped

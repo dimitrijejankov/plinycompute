@@ -22,32 +22,17 @@ pdb::PDBAggregationPipeAlgorithm::PDBAggregationPipeAlgorithm(const std::vector<
 
 bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
 
-  // TODO remove this
-  const int pipelineIndex = 0;
-  bool swapLHSandRHS = sources[pipelineIndex].swapLHSandRHS;
-  pdb::String firstTupleSet = sources[pipelineIndex].firstTupleSet;
-
   // init the plan
   ComputePlan plan(job->tcap, *job->computations);
   logicalPlan = plan.getPlan();
 
+  // get the buffer manager
+  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
+
   // init the logger
   logger = make_shared<PDBLogger>("aggregationPipeAlgorithm" + std::to_string(job->computationID));
 
-  /// 1. Figure out the source page set
-
-  // get the source computation
-  auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
-
-  // go grab the source page set
-  PDBAbstractPageSetPtr sourcePageSet = getSourcePageSet(storage, pipelineIndex);
-
-  // did we manage to get a source page set? if not the setup failed
-  if (sourcePageSet == nullptr) {
-    return false;
-  }
-
-  /// 2. Figure out the sink tuple set for the preaggregation (this will provide empty pages to the pipeline but we will
+  /// 1. Figure out the sink tuple set for the preaggregation (this will provide empty pages to the pipeline but we will
   /// discard them since they will be processed by the PreaggregationPageProcessor and they won't stay around).
 
   // get the sink page set
@@ -58,36 +43,80 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
     return false;
   }
 
-  /// 3. Init the preaggregation queues
+  /// 2. Init the preaggregation queues
 
   pageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
   for(int i = 0; i < job->numberOfNodes; ++i) { pageQueues->emplace_back(std::make_shared<PDBPageQueue>()); }
 
-  /// 4. Init the preaggregation pipelines
 
-  // figure out the join arguments
-  auto joinArguments = getJoinArguments (storage);
+  /// 3. Initialize the sources
 
-  // if we could not create them we are out of here
-  if(joinArguments == nullptr) {
+  // we put them here
+  std::vector<PDBAbstractPageSetPtr> sourcePageSets;
+  sourcePageSets.reserve(sources.size());
+
+  // initialize them
+  for(int i = 0; i < sources.size(); i++) {
+    sourcePageSets.emplace_back(getSourcePageSet(storage, i));
+  }
+
+  /// 4. Initialize all the pipelines
+
+  // get the number of worker threads from this server's config
+  int32_t numWorkers = storage->getConfiguration()->numThreads;
+
+  // check that we have at least one worker per primary source
+  if(numWorkers < sources.size()) {
     return false;
   }
 
-  // get the buffer manager
-  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
-
-  // get catalog client
-  auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
-
-  // initialize the parameters
-  std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<PreaggregationPageProcessor>(job->numberOfNodes, job->numberOfProcessingThreads, *pageQueues, myMgr) },
-                                                       { ComputeInfoType::JOIN_ARGS, joinArguments },
-                                                       { ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS) },
-                                                       { ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient, pipelineIndex)}} ;
-
   // fill uo the vector for each thread
   preaggregationPipelines = std::make_shared<std::vector<PipelinePtr>>();
-  for (uint64_t i = 0; i < job->numberOfProcessingThreads; ++i) {
+  for (uint64_t pipelineIndex = 0; pipelineIndex < job->numberOfProcessingThreads; ++pipelineIndex) {
+
+    /// 4.1. Figure out the source page set
+
+    // figure out what pipeline
+    auto pipelineSource = pipelineIndex % sources.size();
+
+    // grab these thins from the source we need them
+    bool swapLHSandRHS = sources[pipelineSource].swapLHSandRHS;
+    const pdb::String &firstTupleSet = sources[pipelineSource].firstTupleSet;
+
+    // get the source computation
+    auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
+
+    // go grab the source page set
+    PDBAbstractPageSetPtr sourcePageSet = sourcePageSets[pipelineSource];
+
+    // did we manage to get a source page set? if not the setup failed
+    if (sourcePageSet == nullptr) {
+      return false;
+    }
+
+    /// 4.2. Figure out the parameters of the pipeline
+
+    // figure out the join arguments
+    auto joinArguments = getJoinArguments (storage);
+
+    // if we could not create them we are out of here
+    if(joinArguments == nullptr) {
+      return false;
+    }
+
+    // get catalog client
+    auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
+
+    // initialize the parameters
+    std::map<ComputeInfoType, ComputeInfoPtr> params = { { ComputeInfoType::PAGE_PROCESSOR,  std::make_shared<PreaggregationPageProcessor>(job->numberOfNodes,
+                                                                                                                                           job->numberOfProcessingThreads,
+                                                                                                                                           *pageQueues,
+                                                                                                                                           myMgr) },
+                                                         { ComputeInfoType::JOIN_ARGS, joinArguments },
+                                                         { ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS) },
+                                                         { ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient, pipelineSource)}} ;
+
+    /// 4.3. Build the pipeline
 
     auto pipeline = plan.buildPipeline(firstTupleSet, /* this is the TupleSet the pipeline starts with */
                                        finalTupleSet,     /* this is the TupleSet the pipeline ends with */
@@ -97,7 +126,7 @@ bool pdb::PDBAggregationPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMana
                                        job->numberOfNodes,
                                        job->numberOfProcessingThreads,
                                        20,
-                                       i);
+                                       pipelineIndex);
 
     preaggregationPipelines->push_back(pipeline);
   }

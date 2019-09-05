@@ -32,9 +32,12 @@ PDBPhysicalAlgorithm::PDBPhysicalAlgorithm(const std::vector<PDBPrimarySource> &
       std::cout << "Set added :" << scanSet->getDBName() << ", " << scanSet->getSetName() << "\n";
       sources[i].sourceSet = pdb::makeObject<PDBSetObject>(scanSet->getDBName(), scanSet->getSetName());
     }
+    else {
+      sources[i].sourceSet = nullptr;
+    }
 
     sources[i].firstTupleSet = source.startAtomicComputation->getOutputName();
-    sources[i].source = source.source;
+    sources[i].pageSet = source.source;
     sources[i].swapLHSandRHS = source.shouldSwapLeftAndRight;
   }
 
@@ -62,7 +65,7 @@ PDBAbstractPageSetPtr PDBPhysicalAlgorithm::getSourcePageSet(std::shared_ptr<pdb
   } else {
 
     // we are reading from an existing page set get it
-    sourcePageSet = storage->getPageSet(this->sources[idx].source->pageSetIdentifier);
+    sourcePageSet = storage->getPageSet(this->sources[idx].pageSet->pageSetIdentifier);
     sourcePageSet->resetPageSet();
   }
 
