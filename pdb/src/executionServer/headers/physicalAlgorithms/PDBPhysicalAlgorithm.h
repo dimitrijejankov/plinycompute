@@ -106,16 +106,6 @@ public:
    */
   virtual pdb::PDBCatalogSetContainerType getOutputContainerType() { return PDB_CATALOG_SET_NO_CONTAINER; };
 
-  /**
-   *
-   */
-  pdb::Vector<PDBSourceSpec> sources;
-
-  /**
-   * The is the tuple set of the atomic computation where we are ending our pipeline
-   */
-  pdb::String finalTupleSet;
-
 protected:
 
   /**
@@ -138,6 +128,16 @@ protected:
    * @return the arguments if we can create them, null_ptr otherwise
    */
   std::shared_ptr<JoinArguments> getJoinArguments(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage);
+
+  /**
+   *
+   */
+  pdb::Vector<PDBSourceSpec> sources;
+
+  /**
+   * The is the tuple set of the atomic computation where we are ending our pipeline
+   */
+  pdb::String finalTupleSet;
 
   /**
    * List of secondary sources like hash sets for join etc.. null if there are no secondary sources
