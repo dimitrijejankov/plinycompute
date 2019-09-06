@@ -22,6 +22,7 @@
 #include "ComputePlan.h"
 #include "executors/FilterExecutor.h"
 #include "executors/FlattenExecutor.h"
+#include "executors/UnionExecutor.h"
 #include "executors/HashOneExecutor.h"
 #include "AtomicComputationClasses.h"
 #include "lambdas/EqualsLambda.h"
@@ -425,6 +426,23 @@ inline PipelinePtr ComputePlan::buildPipeline(std::string sourceTupleSetName,
       std::cout << "Adding: " << a->getProjection() << " + apply [" << a->getInput() << "] => " << a->getOutput() << "\n";
       returnVal->addStage(myPlan->getNode(a->getComputationName()).
           getLambda(((ApplyLambda *) a.get())->getLambdaToApply())->getExecutor(lastOne->getOutput(), a->getInput(), a->getProjection()));
+
+    } else if(a->getAtomicComputationType() == "Union") {
+
+      // get the union
+      auto u = (Union *) a.get();
+
+      // check if we are pipelining the right input
+      if (lastOne->getOutput().getSetName() == u->getRightInput().getSetName()) {
+
+        std::cout << "Adding: " << " + apply [" << u->getInput() << ", " << u->getRightInput() << "] => " << u->getOutput() << "\n";
+        returnVal->addStage(std::make_shared<UnionExecutor>(lastOne->getOutput(), u->getRightInput()));
+
+      } else {
+
+        std::cout << "Adding: " << " + apply [" << u->getInput() << ", " << u->getInput() << "] => " << u->getOutput() << "\n";
+        returnVal->addStage(std::make_shared<UnionExecutor>(lastOne->getOutput(), u->getInput()));
+      }
 
     } else if (a->getAtomicComputationType() == "HashLeft") {
 

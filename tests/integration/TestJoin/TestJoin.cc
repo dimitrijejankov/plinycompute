@@ -20,7 +20,7 @@ const size_t replicateCountForB = 2;
 // the number of keys that are going to be joined
 size_t numToJoin = std::numeric_limits<size_t>::max();
 
-void fillSetAPageWithData(pdb::PDBClient &pdbClient) {
+void fillSet(pdb::PDBClient &pdbClient) {
 
   // make the allocation block
   const pdb::UseTemporaryAllocationBlock tempBlock{blockSize * 1024 * 1024};
@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
 
   /// 3. Fill in the data (single threaded)
 
-  fillSetAPageWithData(pdbClient);
+  fillSet(pdbClient);
   fillSetBPageWithData(pdbClient);
 
   /// 4. Make query graph an run query
