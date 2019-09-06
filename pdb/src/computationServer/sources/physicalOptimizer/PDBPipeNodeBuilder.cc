@@ -111,7 +111,7 @@ void pdb::PDBPipeNodeBuilder::transverseTCAPGraph(AtomicComputationPtr curNode) 
       // we are a side so we need to create a straight pipeline and remove the Union because it is going to be executed
       // in the next pipeline
       currentPipe.pop_back();
-      createPhysicalPipeline<PDBAggregationPhysicalNode>();
+      createPhysicalPipeline<PDBStraightPhysicalNode>();
 
       // add the Union back to an empty pipeline
       currentPipe.clear();

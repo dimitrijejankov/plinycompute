@@ -41,6 +41,8 @@ enum class PDBPlanningResultType {
 
 struct PDBPlanningResult {
 
+  PDBPlanningResult() = default;
+
   PDBPlanningResult(PDBPlanningResultType resultType,
                     const Handle<PDBPhysicalAlgorithm> &runMe,
                     std::list<pdb::PDBAbstractPhysicalNodePtr> newSourceNodes,

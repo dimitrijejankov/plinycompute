@@ -1097,6 +1097,91 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
 
 TEST(TestPhysicalOptimizer, TestUnion) {
 
+  std::string tcap = "inputDataForSetScanner_0(in0) <= SCAN ('db', 'input_set1', 'SetScanner_0')\n"
+                     "inputDataForSetScanner_1(in1) <= SCAN ('db', 'input_set2', 'SetScanner_1')\n"
+                     "unionOutUnionComp2 (unionOutFor2 )<= UNION (inputDataForSetScanner_0(in0), inputDataForSetScanner_1(in1),'UnionComp_2')\n"
+                     "unionOutUnionComp2_out( ) <= OUTPUT ( unionOutUnionComp2 ( unionOutFor2 ), 'chris_db', 'outputSet', 'SetWriter_3')";
+  // get the string to compile
+  tcap.push_back('\0');
+
+  // 1MB for algorithm and stuff
+  const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
+
+  // make a logger
+  auto logger = make_shared<pdb::PDBLogger>("log.out");
+
+  // make the mock client
+  auto catalogClient = std::make_shared<MockCatalog>();
+  ON_CALL(*catalogClient,
+          getSet(testing::An<const std::string &>(),
+                 testing::An<const std::string &>(),
+                 testing::An<std::string &>())).WillByDefault(testing::Invoke(
+      [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
+
+        if (setName == "test78_set1") {
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("db",
+                                                          "input_set1",
+                                                          "Nothing",
+                                                          std::numeric_limits<size_t>::max() - 1,
+                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          return tmp;
+        } else {
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("db",
+                                                          "input_set2",
+                                                          "Nothing",
+                                                          std::numeric_limits<size_t>::max() - 2,
+                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          return tmp;
+        }
+      }));
+
+  EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(2));
+
+  // set the computation id
+  const size_t compID = 76;
+
+  // init the optimizer
+  pdb::PDBPhysicalOptimizer optimizer(compID, tcap, catalogClient, logger);
+
+  /// 1. There should only be one algorithm
+
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+
+  Handle<pdb::PDBStraightPipeAlgorithm> unionAlgorithm = unsafeCast<pdb::PDBStraightPipeAlgorithm>(optimizer.getNextAlgorithm());
+
+  // we should have two sources
+  EXPECT_EQ(unionAlgorithm->sources.size(), 2);
+
+  // these are the sources we expect to have
+  std::set<string> expectedSources = {"inputDataForSetScanner_0", "inputDataForSetScanner_1"};
+
+  // check if the first source is right
+  auto &source1 = unionAlgorithm->sources[0];
+  auto it = expectedSources.find(source1.firstTupleSet);
+  EXPECT_TRUE(it != expectedSources.end());
+  EXPECT_EQ((std::string) source1.pageSet->pageSetIdentifier.second, *it);
+  EXPECT_EQ(source1.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ(source1.pageSet->sourceType, SetScanSource);
+
+  // check if the second source is right
+  auto &source2 = unionAlgorithm->sources[1];
+  auto jt = expectedSources.find(source2.firstTupleSet);
+  EXPECT_TRUE(jt != expectedSources.end());
+  EXPECT_TRUE(it != jt);
+  EXPECT_EQ((std::string) source2.pageSet->pageSetIdentifier.second, *jt);
+  EXPECT_EQ(source2.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ(source2.pageSet->sourceType, SetScanSource);
+
+  // check the sink
+  EXPECT_EQ(unionAlgorithm->sink->sinkType, SetSink);
+  EXPECT_EQ((std::string) unionAlgorithm->finalTupleSet, "unionOutUnionComp2_out");
+  EXPECT_EQ((std::string) unionAlgorithm->sink->pageSetIdentifier.second, "unionOutUnionComp2_out");
+  EXPECT_EQ(unionAlgorithm->sink->pageSetIdentifier.first, compID);
+
+  // get the page sets we want to remove
+  auto pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "unionOutUnionComp2_out")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 1);
 }
 
 }

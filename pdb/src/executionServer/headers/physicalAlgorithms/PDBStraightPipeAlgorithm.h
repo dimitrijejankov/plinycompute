@@ -72,6 +72,7 @@ public:
 
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin3);
   FRIEND_TEST(TestPhysicalOptimizer, TestTwoSinksSelection);
+  FRIEND_TEST(TestPhysicalOptimizer, TestUnion);
 };
 
 }
