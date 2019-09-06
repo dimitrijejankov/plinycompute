@@ -92,5 +92,5 @@ pdb::PDBPlanningResult pdb::PDBAbstractPhysicalNode::generatePipelinedAlgorithm(
 
   // this is the same as @see generateAlgorithm except now the source is the source of the pipe we pipelined to this
   // and the additional source are transferred for that pipeline. We can not pipeline an aggregation
-  return std::move(generateAlgorithm(sourcesWithIDs));
+  return std::move(generateAlgorithm(child, sourcesWithIDs));
 }

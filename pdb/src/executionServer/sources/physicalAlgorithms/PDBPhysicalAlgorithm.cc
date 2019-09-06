@@ -29,7 +29,6 @@ PDBPhysicalAlgorithm::PDBPhysicalAlgorithm(const std::vector<PDBPrimarySource> &
       auto scanSet = (ScanSet*) source.startAtomicComputation.get();
 
       // get the set info
-      std::cout << "Set added :" << scanSet->getDBName() << ", " << scanSet->getSetName() << "\n";
       sources[i].sourceSet = pdb::makeObject<PDBSetObject>(scanSet->getDBName(), scanSet->getSetName());
     }
     else {

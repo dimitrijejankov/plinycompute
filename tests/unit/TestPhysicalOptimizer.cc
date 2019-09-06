@@ -17,6 +17,7 @@
 #include <WriteSumResult.h>
 #include <IntAggregation.h>
 #include <physicalAlgorithms/PDBPhysicalAlgorithm.h>
+#include <physicalOptimizer/PDBJoinPhysicalNode.h>
 
 namespace pdb {
 
@@ -128,10 +129,10 @@ TEST(TestPhysicalOptimizer, TestAggregation) {
 
   // check the source
   auto &source2 = strAlgorithm->sources[0];
-  EXPECT_EQ(source1.pageSet->sourceType, AggregationSource);
-  EXPECT_EQ((std::string) source1.firstTupleSet, std::string("agg"));
-  EXPECT_EQ((std::string) source1.pageSet->pageSetIdentifier.second, std::string("aggWithValue"));
-  EXPECT_EQ(source1.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ(source2.pageSet->sourceType, AggregationSource);
+  EXPECT_EQ((std::string) source2.firstTupleSet, std::string("agg"));
+  EXPECT_EQ((std::string) source2.pageSet->pageSetIdentifier.second, std::string("aggWithValue"));
+  EXPECT_EQ(source2.pageSet->pageSetIdentifier.first, compID);
 
   // check the sink
   EXPECT_EQ(strAlgorithm->sink->sinkType, SetSink);
@@ -326,6 +327,9 @@ TEST(TestPhysicalOptimizer, TestJoin1) {
       "AandBJoined_Projection (nativ_3_2OutFor) <= APPLY (AandBJoined_FILTERED(a,b), AandBJoined_FILTERED(), 'JoinComp_2', 'native_lambda_3', [('lambdaType', 'native_lambda')])\n"
       "out( ) <= OUTPUT ( AandBJoined_Projection ( nativ_3_2OutFor ), 'outSet', 'myData', 'SetWriter_3')";
 
+  // set the join thrashold so we force a broadcast join
+  PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = numeric_limits<uint64_t>::max();
+
   // make a logger
   auto logger = make_shared<pdb::PDBLogger>("log.out");
 
@@ -374,8 +378,9 @@ TEST(TestPhysicalOptimizer, TestJoin1) {
 
   // get the page sets we want to remove
   auto pageSetsToRemove = getPageSetsToRemove(optimizer);
-  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "AHashed_to_broadcast")) != pageSetsToRemove.end());
-  EXPECT_EQ(pageSetsToRemove.size(), 1);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "AHashed_hashed_to_send")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "AHashed_hashed_to_recv")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 2);
 
   // we should have one source so we should be able to generate an algorithm
   EXPECT_TRUE(optimizer.hasAlgorithmToRun());
@@ -444,6 +449,9 @@ TEST(TestPhysicalOptimizer, TestJoin2) {
 
   // make a logger
   auto logger = make_shared<pdb::PDBLogger>("log.out");
+
+  // set the join threshold so we force a shuffle join
+  PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = 0;
 
   // make the mock client
   auto catalogClient = std::make_shared<MockCatalog>();
@@ -621,6 +629,9 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
   // make a logger
   auto logger = make_shared<pdb::PDBLogger>("log.out");
 
+  // set the join threshold so we force a shuffle join
+  PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = std::numeric_limits<uint64_t>::max();
+
   // make the mock client
   auto catalogClient = std::make_shared<MockCatalog>();
   ON_CALL(*catalogClient,
@@ -671,8 +682,12 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
 
   // get the page sets we want to remove
   auto pageSetsToRemove = getPageSetsToRemove(optimizer);
-  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "CHashedOnC_to_broadcast")) != pageSetsToRemove.end());
-  EXPECT_EQ(pageSetsToRemove.size(), 1);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "CHashedOnC_hashed_to_send")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "CHashedOnC_hashed_to_recv")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 2);
+
+  // force a shuffle algorithm
+  PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = 0;
 
   EXPECT_TRUE(optimizer.hasAlgorithmToRun());
 
@@ -882,6 +897,9 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
 
   EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(3));
 
+  // change the threshold so that we do a shuffle
+  PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = 0;
+
   // init the optimizer
   pdb::PDBPhysicalOptimizer optimizer(compID, tcap, catalogClient, logger);
 
@@ -960,7 +978,7 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   EXPECT_EQ((std::string) source3.pageSet->pageSetIdentifier.second, std::string("inputDataForSetScanner_0"));
   EXPECT_EQ(source3.pageSet->pageSetIdentifier.first, compID);
   EXPECT_EQ((std::string) source3.sourceSet->database, "test78_db");
-  EXPECT_EQ((std::string) source3.sourceSet->set, "test78_set2");
+  EXPECT_EQ((std::string) source3.sourceSet->set, "test78_set1");
 
   // check the intermediate set
   EXPECT_EQ(shuffleSet1->intermediate->sinkType, JoinShuffleIntermediateSink);
@@ -1070,7 +1088,8 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "nativ_1OutForAggregationComp4_hashed_to_recv")) != pageSetsToRemove.end());
   EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "self_4ExtractedJoinComp3_hashed")) != pageSetsToRemove.end());
   EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "attAccess_3ExtractedForJoinComp3_hashed")) != pageSetsToRemove.end());
-  EXPECT_EQ(pageSetsToRemove.size(), 4);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "nativ_1OutForAggregationComp4")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 5);
 
   // we should have another source that reads the aggregation so we can generate another algorithm
   EXPECT_FALSE(optimizer.hasAlgorithmToRun());

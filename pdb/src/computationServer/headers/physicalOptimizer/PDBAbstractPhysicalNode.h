@@ -228,13 +228,17 @@ public:
     auto &firstProducer = *producers.front().lock();
     auto firstProducerPageSet = firstProducer.getSinkPageSet();
     auto first = pageSetCosts.find(firstProducerPageSet->pageSetIdentifier);
-    if(first == pageSetCosts.end()) { throw std::runtime_error(std::string("Did not find the page set : ") + (std::string) firstProducerPageSet->pageSetIdentifier.second); }
+    if(first == pageSetCosts.end()) {
+      throw std::runtime_error(std::string("Did not find the page set : ") + (std::string) firstProducerPageSet->pageSetIdentifier.second);
+    }
 
     // get the second producer
     auto &secondProducer = *producers.back().lock();
     auto secondProducerPageSet = secondProducer.getSinkPageSet();
     auto second = pageSetCosts.find(secondProducerPageSet->pageSetIdentifier);
-    if(second == pageSetCosts.end()) { throw std::runtime_error(std::string("Did not find the page set : ") + (std::string) secondProducerPageSet->pageSetIdentifier.second); }
+    if(second == pageSetCosts.end()) {
+      throw std::runtime_error(std::string("Did not find the page set : ") + (std::string) secondProducerPageSet->pageSetIdentifier.second);
+    }
 
     // get the join computation
     auto applyJoin = (ApplyJoin *) pipeline.front().get();
