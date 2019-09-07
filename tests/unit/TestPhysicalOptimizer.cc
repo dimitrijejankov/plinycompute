@@ -1095,7 +1095,7 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   EXPECT_FALSE(optimizer.hasAlgorithmToRun());
 }
 
-TEST(TestPhysicalOptimizer, TestUnion) {
+TEST(TestPhysicalOptimizer, TestUnion1) {
 
   std::string tcap = "inputDataForSetScanner_0(in0) <= SCAN ('db', 'input_set1', 'SetScanner_0')\n"
                      "inputDataForSetScanner_1(in1) <= SCAN ('db', 'input_set2', 'SetScanner_1')\n"
@@ -1181,6 +1181,116 @@ TEST(TestPhysicalOptimizer, TestUnion) {
   // get the page sets we want to remove
   auto pageSetsToRemove = getPageSetsToRemove(optimizer);
   EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "unionOutUnionComp2_out")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 1);
+}
+
+TEST(TestPhysicalOptimizer, TestUnion2) {
+
+  std::string tcap = "inputDataForSetScanner_0(in0) <= SCAN ('chris_db', 'input_set1', 'SetScanner_0')\n"
+                     "inputDataForSetScanner_1(in1) <= SCAN ('chris_db', 'input_set2', 'SetScanner_1')\n"
+                     "unionOutUnionComp2 (unionOutFor2)<= UNION (inputDataForSetScanner_0(in0),inputDataForSetScanner_1(in1),'UnionComp_2')\n"
+                     "inputDataForSetScanner_3(in3) <= SCAN ('chris_db', 'input_set3', 'SetScanner_3')\n"
+                     "unionOutUnionComp4 (unionOutFor4)<= UNION (unionOutUnionComp2(unionOutFor2),inputDataForSetScanner_3(in3),'UnionComp_4')\n"
+                     "unionOutUnionComp4_out( ) <= OUTPUT ( unionOutUnionComp4 ( unionOutFor4 ), 'chris_db', 'output_set', 'SetWriter_5')";
+  // get the string to compile
+  tcap.push_back('\0');
+
+  // 1MB for algorithm and stuff
+  const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
+
+  // make a logger
+  auto logger = make_shared<pdb::PDBLogger>("log.out");
+
+  // make the mock client
+  auto catalogClient = std::make_shared<MockCatalog>();
+  ON_CALL(*catalogClient,
+          getSet(testing::An<const std::string &>(),
+                 testing::An<const std::string &>(),
+                 testing::An<std::string &>())).WillByDefault(testing::Invoke(
+      [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
+
+        if (setName == "input_set1") {
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("db",
+                                                          "input_set1",
+                                                          "Nothing",
+                                                          std::numeric_limits<size_t>::max() - 1,
+                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          return tmp;
+        }
+        else if(setName == "input_set2") {
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("db",
+                                                          "input_set2",
+                                                          "Nothing",
+                                                          std::numeric_limits<size_t>::max() - 1,
+                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          return tmp;
+        }
+        else {
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("db",
+                                                          "input_set3",
+                                                          "Nothing",
+                                                          std::numeric_limits<size_t>::max() - 2,
+                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          return tmp;
+        }
+      }));
+
+  EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(3));
+
+  // set the computation id
+  const size_t compID = 76;
+
+  // init the optimizer
+  pdb::PDBPhysicalOptimizer optimizer(compID, tcap, catalogClient, logger);
+
+  /// 1. There should only be one algorithm
+
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+
+  Handle<pdb::PDBStraightPipeAlgorithm> unionAlgorithm = unsafeCast<pdb::PDBStraightPipeAlgorithm>(optimizer.getNextAlgorithm());
+
+  // we should have two sources
+  EXPECT_EQ(unionAlgorithm->sources.size(), 3);
+
+  // these are the sources we expect to have
+  std::set<string> expectedSources = {"inputDataForSetScanner_0", "inputDataForSetScanner_1", "inputDataForSetScanner_3"};
+
+  // check if the first source is right
+  auto &source1 = unionAlgorithm->sources[0];
+  auto it = expectedSources.find(source1.firstTupleSet);
+  EXPECT_TRUE(it != expectedSources.end());
+  EXPECT_EQ((std::string) source1.pageSet->pageSetIdentifier.second, *it);
+  EXPECT_EQ(source1.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ(source1.pageSet->sourceType, SetScanSource);
+
+  // check if the second source is right
+  auto &source2 = unionAlgorithm->sources[1];
+  auto jt = expectedSources.find(source2.firstTupleSet);
+  EXPECT_TRUE(jt != expectedSources.end());
+  EXPECT_TRUE(it != jt);
+  EXPECT_EQ((std::string) source2.pageSet->pageSetIdentifier.second, *jt);
+  EXPECT_EQ(source2.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ(source2.pageSet->sourceType, SetScanSource);
+
+  // check if the third source is right
+  auto &source3 = unionAlgorithm->sources[1];
+  auto kt = expectedSources.find(source3.firstTupleSet);
+  EXPECT_TRUE(jt != expectedSources.end());
+  EXPECT_TRUE(it != jt);
+  EXPECT_TRUE(it != kt);
+  EXPECT_EQ((std::string) source3.pageSet->pageSetIdentifier.second, *jt);
+  EXPECT_EQ(source3.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ(source3.pageSet->sourceType, SetScanSource);
+
+  // check the sink
+  EXPECT_EQ(unionAlgorithm->sink->sinkType, SetSink);
+  EXPECT_EQ((std::string) unionAlgorithm->finalTupleSet, "unionOutUnionComp4_out");
+  EXPECT_EQ((std::string) unionAlgorithm->sink->pageSetIdentifier.second, "unionOutUnionComp4_out");
+  EXPECT_EQ(unionAlgorithm->sink->pageSetIdentifier.first, compID);
+
+  // get the page sets we want to remove
+  auto pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "unionOutUnionComp4_out")) != pageSetsToRemove.end());
   EXPECT_EQ(pageSetsToRemove.size(), 1);
 }
 
