@@ -1187,11 +1187,27 @@ TEST(TestPhysicalOptimizer, TestUnion1) {
 TEST(TestPhysicalOptimizer, TestUnion2) {
 
   std::string tcap = "inputDataForSetScanner_0(in0) <= SCAN ('chris_db', 'input_set1', 'SetScanner_0')\n"
-                     "inputDataForSetScanner_1(in1) <= SCAN ('chris_db', 'input_set2', 'SetScanner_1')\n"
-                     "unionOutUnionComp2 (unionOutFor2)<= UNION (inputDataForSetScanner_0(in0),inputDataForSetScanner_1(in1),'UnionComp_2')\n"
-                     "inputDataForSetScanner_3(in3) <= SCAN ('chris_db', 'input_set3', 'SetScanner_3')\n"
-                     "unionOutUnionComp4 (unionOutFor4)<= UNION (unionOutUnionComp2(unionOutFor2),inputDataForSetScanner_3(in3),'UnionComp_4')\n"
-                     "unionOutUnionComp4_out( ) <= OUTPUT ( unionOutUnionComp4 ( unionOutFor4 ), 'chris_db', 'output_set', 'SetWriter_5')";
+                     "/* Apply selection filtering */\n"
+                     "OutFor_native_lambda_0SelectionComp1(in0,OutFor_native_lambda_0_1) <= APPLY (inputDataForSetScanner_0(in0), inputDataForSetScanner_0(in0), 'SelectionComp_1', 'native_lambda_0', [('lambdaType', 'native_lambda')])\n"
+                     "filteredInputForSelectionComp1(in0) <= FILTER (OutFor_native_lambda_0SelectionComp1(OutFor_native_lambda_0_1), OutFor_native_lambda_0SelectionComp1(in0), 'SelectionComp_1')\n"
+                     "/* Apply selection projection */\n"
+                     "OutFor_native_lambda_1SelectionComp1(OutFor_native_lambda_1_1) <= APPLY (filteredInputForSelectionComp1(in0), filteredInputForSelectionComp1(), 'SelectionComp_1', 'native_lambda_1', [('lambdaType', 'native_lambda')])\n"
+                     "inputDataForSetScanner_2(in2) <= SCAN ('chris_db', 'input_set2', 'SetScanner_2')\n"
+                     "/* Apply selection filtering */\n"
+                     "OutFor_native_lambda_0SelectionComp3(in2,OutFor_native_lambda_0_3) <= APPLY (inputDataForSetScanner_2(in2), inputDataForSetScanner_2(in2), 'SelectionComp_3', 'native_lambda_0', [('lambdaType', 'native_lambda')])\n"
+                     "filteredInputForSelectionComp3(in2) <= FILTER (OutFor_native_lambda_0SelectionComp3(OutFor_native_lambda_0_3), OutFor_native_lambda_0SelectionComp3(in2), 'SelectionComp_3')\n"
+                     "/* Apply selection projection */\n"
+                     "OutFor_native_lambda_1SelectionComp3(OutFor_native_lambda_1_3) <= APPLY (filteredInputForSelectionComp3(in2), filteredInputForSelectionComp3(), 'SelectionComp_3', 'native_lambda_1', [('lambdaType', 'native_lambda')])\n"
+                     "unionOutUnionComp4 (unionOutFor4)<= UNION (OutFor_native_lambda_1SelectionComp1(OutFor_native_lambda_1_1),OutFor_native_lambda_1SelectionComp3(OutFor_native_lambda_1_3),'UnionComp_4')\n"
+                     "inputDataForSetScanner_5(in5) <= SCAN ('chris_db', 'input_set3', 'SetScanner_5')\n"
+                     "/* Apply selection filtering */\n"
+                     "OutFor_native_lambda_0SelectionComp6(in5,OutFor_native_lambda_0_6) <= APPLY (inputDataForSetScanner_5(in5), inputDataForSetScanner_5(in5), 'SelectionComp_6', 'native_lambda_0', [('lambdaType', 'native_lambda')])\n"
+                     "filteredInputForSelectionComp6(in5) <= FILTER (OutFor_native_lambda_0SelectionComp6(OutFor_native_lambda_0_6), OutFor_native_lambda_0SelectionComp6(in5), 'SelectionComp_6')\n"
+                     "/* Apply selection projection */\n"
+                     "OutFor_native_lambda_1SelectionComp6(OutFor_native_lambda_1_6) <= APPLY (filteredInputForSelectionComp6(in5), filteredInputForSelectionComp6(), 'SelectionComp_6', 'native_lambda_1', [('lambdaType', 'native_lambda')])\n"
+                     "unionOutUnionComp7 (unionOutFor7)<= UNION (unionOutUnionComp4(unionOutFor4),OutFor_native_lambda_1SelectionComp6(OutFor_native_lambda_1_6),'UnionComp_7')\n"
+                     "unionOutUnionComp7_out( ) <= OUTPUT ( unionOutUnionComp7 ( unionOutFor7 ), 'chris_db', 'output_set', 'SetWriter_8')";
+
   // get the string to compile
   tcap.push_back('\0');
 
@@ -1253,7 +1269,7 @@ TEST(TestPhysicalOptimizer, TestUnion2) {
   EXPECT_EQ(unionAlgorithm->sources.size(), 3);
 
   // these are the sources we expect to have
-  std::set<string> expectedSources = {"inputDataForSetScanner_0", "inputDataForSetScanner_1", "inputDataForSetScanner_3"};
+  std::set<string> expectedSources = {"inputDataForSetScanner_0", "inputDataForSetScanner_2", "inputDataForSetScanner_5"};
 
   // check if the first source is right
   auto &source1 = unionAlgorithm->sources[0];
@@ -1284,13 +1300,13 @@ TEST(TestPhysicalOptimizer, TestUnion2) {
 
   // check the sink
   EXPECT_EQ(unionAlgorithm->sink->sinkType, SetSink);
-  EXPECT_EQ((std::string) unionAlgorithm->finalTupleSet, "unionOutUnionComp4_out");
-  EXPECT_EQ((std::string) unionAlgorithm->sink->pageSetIdentifier.second, "unionOutUnionComp4_out");
+  EXPECT_EQ((std::string) unionAlgorithm->finalTupleSet, "unionOutUnionComp7_out");
+  EXPECT_EQ((std::string) unionAlgorithm->sink->pageSetIdentifier.second, "unionOutUnionComp7_out");
   EXPECT_EQ(unionAlgorithm->sink->pageSetIdentifier.first, compID);
 
   // get the page sets we want to remove
   auto pageSetsToRemove = getPageSetsToRemove(optimizer);
-  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "unionOutUnionComp4_out")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "unionOutUnionComp7_out")) != pageSetsToRemove.end());
   EXPECT_EQ(pageSetsToRemove.size(), 1);
 }
 
