@@ -16,14 +16,12 @@ public:
 
   PDBShuffleForJoinAlgorithm() = default;
 
-  PDBShuffleForJoinAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+  PDBShuffleForJoinAlgorithm(const std::vector<PDBPrimarySource> &primarySource,
                              const AtomicComputationPtr &finalAtomicComputation,
-                             const pdb::Handle<pdb::PDBSourcePageSetSpec> &source,
                              const pdb::Handle<pdb::PDBSinkPageSetSpec> &intermediate,
                              const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
-                             const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
-                             const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
-                             bool swapLHSandRHS);
+                             const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
+                             const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize);
 
   ENABLE_DEEP_COPY
 

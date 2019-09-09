@@ -59,6 +59,7 @@
 %token HASHRIGHT
 %token HASHONE
 %token FLATTEN
+%token UNION
 %token <myChar> IDENTIFIER
 %token <myChar> STRING 
 
@@ -258,6 +259,19 @@ AtomicComputation: TupleSpec GETS APPLY '(' TupleSpec ',' TupleSpec ',' STRING '
 }
 ;
 
+// Atomic Computation: Union:
+| TupleSpec GETS UNION '(' TupleSpec ',' TupleSpec ',' STRING ')'
+{
+        $$ = makeUnion ($1, $5, $7, $9);
+}
+
+// ss107: Update to older TCAP:
+| TupleSpec GETS UNION '(' TupleSpec ',' TupleSpec ',' STRING ',' DictionarySpec ')'
+{
+        $$ = makeUnionWithList ($1, $5, $7, $9, $11);
+}
+;
+
 /*********************************************/
 /** THIS IS A TUPLE SPEC, LIKE C (a, b, c) ***/
 /*********************************************/
@@ -298,7 +312,7 @@ DictionarySpec : '[' ']'
 	$$ = $2;
 };
 
-ListKeyValuePairs : ListKeyValuePairs ',' '(' STRING ',' STRING ')' 
+ListKeyValuePairs : ListKeyValuePairs ',' '(' STRING ',' STRING ')'
 {
 	$$ = pushBackKeyValue($1, $4, $6);
 }
@@ -313,4 +327,3 @@ ListKeyValuePairs : ListKeyValuePairs ',' '(' STRING ',' STRING ')'
 %%
 
 int yylex(YYSTYPE *, void *);
-

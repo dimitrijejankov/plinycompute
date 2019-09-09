@@ -28,13 +28,11 @@ public:
 
   ~PDBStraightPipeAlgorithm() override = default;
 
-  PDBStraightPipeAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+  PDBStraightPipeAlgorithm(const std::vector<PDBPrimarySource> &primarySource,
                            const AtomicComputationPtr &finalAtomicComputation,
-                           const pdb::Handle<PDBSourcePageSetSpec> &source,
                            const pdb::Handle<PDBSinkPageSetSpec> &sink,
-                           const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
-                           const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
-                           bool swapLHSandRHS);
+                           const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
+                           const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize);
 
   /**
    * //TODO
@@ -74,6 +72,8 @@ public:
 
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin3);
   FRIEND_TEST(TestPhysicalOptimizer, TestTwoSinksSelection);
+  FRIEND_TEST(TestPhysicalOptimizer, TestUnion1);
+  FRIEND_TEST(TestPhysicalOptimizer, TestUnion2);
 };
 
 }

@@ -279,7 +279,7 @@ public:
 
     // get the projection lambda and it's inputs
     tcapString += "\n/* Apply join projection*/\n";
-    auto projectionLambda = callGetKeyProjectionWithKey<Derived, Out, In1, In2, Rest...>(*static_cast<Derived*>(this));
+    auto projectionLambda = callGetKeyProjectionWithKey<Derived>(*static_cast<Derived*>(this));
     tcapString += projectionLambda.toTCAPString(lambdaLabel,
                                                 "JoinComp",
                                                 computationLabel,

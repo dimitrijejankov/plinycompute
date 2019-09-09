@@ -62,6 +62,14 @@ void pdb::PDBPipeNodeBuilder::transverseTCAPGraph(AtomicComputationPtr curNode) 
   // did we already visit this node
   if(visitedNodes.find(curNode) != visitedNodes.end()) {
 
+    // pop this operator that we are currently on since we have visited it
+    currentPipe.pop_back();
+
+    // if there is something in the pipeline materialize it with a straight pipe
+    if(!currentPipe.empty()) {
+      createPhysicalPipeline<pdb::PDBStraightPhysicalNode>();
+    }
+
     // clear the pipe we are done here
     currentPipe.clear();
 
@@ -93,6 +101,19 @@ void pdb::PDBPipeNodeBuilder::transverseTCAPGraph(AtomicComputationPtr curNode) 
       createPhysicalPipeline<PDBAggregationPhysicalNode>();
 
       // add the ApplyAgg back to an empty pipeline
+      currentPipe.clear();
+      currentPipe.push_back(curNode);
+
+      break;
+    }
+    case UnionTypeID: {
+
+      // we are a side so we need to create a straight pipeline and remove the Union because it is going to be executed
+      // in the next pipeline
+      currentPipe.pop_back();
+      createPhysicalPipeline<PDBStraightPhysicalNode>();
+
+      // add the Union back to an empty pipeline
       currentPipe.clear();
       currentPipe.push_back(curNode);
 

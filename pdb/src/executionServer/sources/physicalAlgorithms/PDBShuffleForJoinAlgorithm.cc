@@ -13,21 +13,178 @@
 #include <GenericWork.h>
 #include <memory>
 
-pdb::PDBShuffleForJoinAlgorithm::PDBShuffleForJoinAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+pdb::PDBShuffleForJoinAlgorithm::PDBShuffleForJoinAlgorithm(const std::vector<PDBPrimarySource> &primarySource,
                                                             const AtomicComputationPtr &finalAtomicComputation,
-                                                            const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                            const pdb::Handle<PDBSinkPageSetSpec> &intermediate,
-                                                            const pdb::Handle<PDBSinkPageSetSpec> &sink,
-                                                            const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
-                                                            const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
-                                                            const bool swapLHSandRHS)
-                                                            : PDBPhysicalAlgorithm(fistAtomicComputation, finalAtomicComputation, source, sink, secondarySources, setsToMaterialize, swapLHSandRHS),
+                                                            const pdb::Handle<pdb::PDBSinkPageSetSpec> &intermediate,
+                                                            const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
+                                                            const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
+                                                            const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize)
+                                                            : PDBPhysicalAlgorithm(primarySource, finalAtomicComputation, sink, secondarySources, setsToMaterialize),
                                                               intermediate(intermediate) {
 
 }
 
 pdb::PDBPhysicalAlgorithmType pdb::PDBShuffleForJoinAlgorithm::getAlgorithmType() {
   return ShuffleForJoin;
+}
+
+bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
+
+  // init the plan
+  ComputePlan plan(std::make_shared<LogicalPlan>(job->tcap, *job->computations));
+  logicalPlan = plan.getPlan();
+
+  // init the logger
+  logger = make_shared<PDBLogger>("ShuffleJoinPipeAlgorithm" + std::to_string(job->computationID));
+
+  /// 0. Make the intermediate page set
+
+  // get the sink page set
+  auto intermediatePageSet = storage->createAnonymousPageSet(intermediate->pageSetIdentifier);
+
+  // did we manage to get a sink page set? if not the setup failed
+  if (intermediatePageSet == nullptr) {
+    return false;
+  }
+
+  /// 1. Init the shuffle queues
+
+  pageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
+  for(int i = 0; i < job->numberOfNodes; ++i) { pageQueues->emplace_back(std::make_shared<PDBPageQueue>()); }
+
+  /// 2. Create the page set that contains the shuffled join side pages for this node
+
+  // get the receive page set
+  auto recvPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(sink->pageSetIdentifier.first, sink->pageSetIdentifier.second),
+                                                            job->numberOfProcessingThreads,
+                                                            job->numberOfNodes);
+
+  // make sure we can use them all at the same time
+  recvPageSet->setUsagePolicy(PDBFeedingPageSetUsagePolicy::KEEP_AFTER_USED);
+
+  // did we manage to get a page set where we receive this? if not the setup failed
+  if(recvPageSet == nullptr) {
+    return false;
+  }
+
+  /// 3. Create the self receiver to forward pages that are created on this node and the network senders to forward pages for the other nodes
+
+  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
+
+  senders = std::make_shared<std::vector<PDBPageNetworkSenderPtr>>();
+  for(unsigned i = 0; i < job->nodes.size(); ++i) {
+
+    // check if it is this node or another node
+    if(job->nodes[i]->port == job->thisNode->port && job->nodes[i]->address == job->thisNode->address) {
+
+      // make the self receiver
+      selfReceiver = std::make_shared<pdb::PDBPageSelfReceiver>(pageQueues->at(i), recvPageSet, myMgr);
+    }
+    else {
+
+      // make the sender
+      auto sender = std::make_shared<PDBPageNetworkSender>(job->nodes[i]->address,
+                                                           job->nodes[i]->port,
+                                                           job->numberOfProcessingThreads,
+                                                           job->numberOfNodes,
+                                                           storage->getConfiguration()->maxRetries,
+                                                           logger,
+                                                           std::make_pair(sink->pageSetIdentifier.first, sink->pageSetIdentifier.second),
+                                                           pageQueues->at(i));
+
+      // setup the sender, if we fail return false
+      if(!sender->setup()) {
+        return false;
+      }
+
+      // make the sender
+      senders->emplace_back(sender);
+    }
+  }
+
+  /// 4. Initialize the sources
+
+  // we put them here
+  std::vector<PDBAbstractPageSetPtr> sourcePageSets;
+  sourcePageSets.reserve(sources.size());
+
+  // initialize them
+  for(int i = 0; i < sources.size(); i++) {
+    sourcePageSets.emplace_back(getSourcePageSet(storage, i));
+  }
+
+  /// 5. Initialize all the pipelines
+
+  // get the number of worker threads from this server's config
+  int32_t numWorkers = storage->getConfiguration()->numThreads;
+
+  // check that we have at least one worker per primary source
+  if(numWorkers < sources.size()) {
+    return false;
+  }
+
+  /// 6. Figure out the source page set
+
+  joinShufflePipelines = std::make_shared<std::vector<PipelinePtr>>();
+  for (uint64_t pipelineIndex = 0; pipelineIndex < job->numberOfProcessingThreads; ++pipelineIndex) {
+
+    /// 6.1. Figure out what source to use
+
+    // figure out what pipeline
+    auto pipelineSource = pipelineIndex % sources.size();
+
+    // grab these thins from the source we need them
+    bool swapLHSandRHS = sources[pipelineSource].swapLHSandRHS;
+    const pdb::String &firstTupleSet = sources[pipelineSource].firstTupleSet;
+
+    // get the source computation
+    auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
+
+    // go grab the source page set
+    PDBAbstractPageSetPtr sourcePageSet = sourcePageSets[pipelineSource];
+
+    // did we manage to get a source page set? if not the setup failed
+    if(sourcePageSet == nullptr) {
+      return false;
+    }
+
+    /// 6.2. Figure out the parameters of the pipeline
+
+    // figure out the join arguments
+    auto joinArguments = getJoinArguments (storage);
+
+    // if we could not create them we are out of here
+    if(joinArguments == nullptr) {
+      return false;
+    }
+
+    // get catalog client
+    auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
+
+    // empty computations parameters
+    std::map<ComputeInfoType, ComputeInfoPtr> params =  {{ComputeInfoType::PAGE_PROCESSOR, plan.getProcessorForJoin(finalTupleSet, job->numberOfNodes, job->numberOfProcessingThreads, *pageQueues, myMgr)},
+                                                         {ComputeInfoType::JOIN_ARGS, joinArguments},
+                                                         {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)},
+                                                         {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient, pipelineSource)}};
+
+    /// 6.3. Build the pipeline
+
+    // build the join pipeline
+    auto pipeline = plan.buildPipeline(firstTupleSet, /* this is the TupleSet the pipeline starts with */
+                                       finalTupleSet,     /* this is the TupleSet the pipeline ends with */
+                                       sourcePageSet,
+                                       intermediatePageSet,
+                                       params,
+                                       job->numberOfNodes,
+                                       job->numberOfProcessingThreads,
+                                       20,
+                                       pipelineIndex);
+
+    // store the join pipeline
+    joinShufflePipelines->push_back(pipeline);
+  }
+
+  return true;
 }
 
 bool pdb::PDBShuffleForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
@@ -166,134 +323,6 @@ bool pdb::PDBShuffleForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManager
   // wait while we are running the senders
   while(sendersDone < senders->size()) {
     sendersBuzzer->wait();
-  }
-
-  return true;
-}
-
-bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
-
-  // init the plan
-  ComputePlan plan(std::make_shared<LogicalPlan>(job->tcap, *job->computations));
-  logicalPlan = plan.getPlan();
-
-  // init the logger
-  logger = make_shared<PDBLogger>("ShuffleJoinPipeAlgorithm" + std::to_string(job->computationID));
-
-  /// 1. Figure out the source page set
-
-  // get the source computation
-  auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
-
-  // go grab the source page set
-  PDBAbstractPageSetPtr sourcePageSet = getSourcePageSet(storage);
-
-  // did we manage to get a source page set? if not the setup failed
-  if(sourcePageSet == nullptr) {
-    return false;
-  }
-
-  /// 2. Make the intermediate page set
-
-  // get the sink page set
-  auto intermediatePageSet = storage->createAnonymousPageSet(intermediate->pageSetIdentifier);
-
-  // did we manage to get a sink page set? if not the setup failed
-  if (intermediatePageSet == nullptr) {
-    return false;
-  }
-
-  /// 3. Init the shuffle queues
-
-  pageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
-  for(int i = 0; i < job->numberOfNodes; ++i) { pageQueues->emplace_back(std::make_shared<PDBPageQueue>()); }
-
-  /// 4. Set the parameters
-
-  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
-  // figure out the join arguments
-  auto joinArguments = getJoinArguments (storage);
-
-  // if we could not create them we are out of here
-  if(joinArguments == nullptr) {
-    return false;
-  }
-
-  // get catalog client
-  auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
-
-  // empty computations parameters
-  std::map<ComputeInfoType, ComputeInfoPtr> params =  {{ComputeInfoType::PAGE_PROCESSOR, plan.getProcessorForJoin(finalTupleSet, job->numberOfNodes, job->numberOfProcessingThreads, *pageQueues, myMgr)},
-                                                       {ComputeInfoType::JOIN_ARGS, joinArguments},
-                                                       {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)},
-                                                       {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient)}};
-
-  /// 5. Create the page set that contains the shuffled join side pages for this node
-
-  // get the receive page set
-  auto recvPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(sink->pageSetIdentifier.first, sink->pageSetIdentifier.second),
-                                                            job->numberOfProcessingThreads,
-                                                            job->numberOfNodes);
-
-  // make sure we can use them all at the same time
-  recvPageSet->setUsagePolicy(PDBFeedingPageSetUsagePolicy::KEEP_AFTER_USED);
-
-  // did we manage to get a page set where we receive this? if not the setup failed
-  if(recvPageSet == nullptr) {
-    return false;
-  }
-
-  /// 6. Create the self receiver to forward pages that are created on this node and the network senders to forward pages for the other nodes
-
-  senders = std::make_shared<std::vector<PDBPageNetworkSenderPtr>>();
-  for(unsigned i = 0; i < job->nodes.size(); ++i) {
-
-    // check if it is this node or another node
-    if(job->nodes[i]->port == job->thisNode->port && job->nodes[i]->address == job->thisNode->address) {
-
-      // make the self receiver
-      selfReceiver = std::make_shared<pdb::PDBPageSelfReceiver>(pageQueues->at(i), recvPageSet, myMgr);
-    }
-    else {
-
-      // make the sender
-      auto sender = std::make_shared<PDBPageNetworkSender>(job->nodes[i]->address,
-                                                           job->nodes[i]->port,
-                                                           job->numberOfProcessingThreads,
-                                                           job->numberOfNodes,
-                                                           storage->getConfiguration()->maxRetries,
-                                                           logger,
-                                                           std::make_pair(sink->pageSetIdentifier.first, sink->pageSetIdentifier.second),
-                                                           pageQueues->at(i));
-
-      // setup the sender, if we fail return false
-      if(!sender->setup()) {
-        return false;
-      }
-
-      // make the sender
-      senders->emplace_back(sender);
-    }
-  }
-
-  /// 7. Create the join pipeline
-
-  joinShufflePipelines = std::make_shared<std::vector<PipelinePtr>>();
-  for (uint64_t workerID = 0; workerID < job->numberOfProcessingThreads; ++workerID) {
-
-    // build the join pipeline
-    auto pipeline = plan.buildPipeline(firstTupleSet, /* this is the TupleSet the pipeline starts with */
-                                       finalTupleSet,     /* this is the TupleSet the pipeline ends with */
-                                       sourcePageSet,
-                                       intermediatePageSet,
-                                       params,
-                                       job->numberOfNodes,
-                                       job->numberOfProcessingThreads,
-                                       20,
-                                       workerID);
-
-    // store the join pipeline
-    joinShufflePipelines->push_back(pipeline);
   }
 
   return true;

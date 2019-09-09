@@ -17,6 +17,7 @@
 #include <WriteSumResult.h>
 #include <IntAggregation.h>
 #include <physicalAlgorithms/PDBPhysicalAlgorithm.h>
+#include <physicalOptimizer/PDBJoinPhysicalNode.h>
 
 namespace pdb {
 
@@ -87,12 +88,13 @@ TEST(TestPhysicalOptimizer, TestAggregation) {
   Handle<pdb::PDBAggregationPipeAlgorithm> aggAlgorithm = unsafeCast<pdb::PDBAggregationPipeAlgorithm>(algorithm1);
 
   // check the source
-  EXPECT_EQ(aggAlgorithm->source->sourceType, SetScanSource);
-  EXPECT_EQ((std::string) aggAlgorithm->firstTupleSet, std::string("inputData"));
-  EXPECT_EQ((std::string) aggAlgorithm->source->pageSetIdentifier.second, std::string("inputData"));
-  EXPECT_EQ(aggAlgorithm->source->pageSetIdentifier.first, compID);
-  EXPECT_EQ((std::string)aggAlgorithm->getSetToScan()->database, "by8_db");
-  EXPECT_EQ((std::string)aggAlgorithm->getSetToScan()->set, "input_set");
+  auto &source1 = aggAlgorithm->sources[0];
+  EXPECT_EQ(source1.pageSet->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) source1.firstTupleSet, std::string("inputData"));
+  EXPECT_EQ((std::string) source1.pageSet->pageSetIdentifier.second, std::string("inputData"));
+  EXPECT_EQ(source1.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string)source1.sourceSet->database, "by8_db");
+  EXPECT_EQ((std::string)source1.sourceSet->set, "input_set");
 
   // check the sink that we are
   EXPECT_EQ(aggAlgorithm->hashedToSend->sinkType, AggShuffleSink);
@@ -126,10 +128,11 @@ TEST(TestPhysicalOptimizer, TestAggregation) {
   Handle<pdb::PDBStraightPipeAlgorithm> strAlgorithm = unsafeCast<pdb::PDBStraightPipeAlgorithm>(algorithm2);
 
   // check the source
-  EXPECT_EQ(strAlgorithm->source->sourceType, AggregationSource);
-  EXPECT_EQ((std::string) strAlgorithm->firstTupleSet, std::string("agg"));
-  EXPECT_EQ((std::string) strAlgorithm->source->pageSetIdentifier.second, std::string("aggWithValue"));
-  EXPECT_EQ(strAlgorithm->source->pageSetIdentifier.first, compID);
+  auto &source2 = strAlgorithm->sources[0];
+  EXPECT_EQ(source2.pageSet->sourceType, AggregationSource);
+  EXPECT_EQ((std::string) source2.firstTupleSet, std::string("agg"));
+  EXPECT_EQ((std::string) source2.pageSet->pageSetIdentifier.second, std::string("aggWithValue"));
+  EXPECT_EQ(source2.pageSet->pageSetIdentifier.first, compID);
 
   // check the sink
   EXPECT_EQ(strAlgorithm->sink->sinkType, SetSink);
@@ -202,12 +205,13 @@ TEST(TestPhysicalOptimizer, TestMultiSink) {
   Handle<pdb::PDBAggregationPipeAlgorithm> aggAlgorithm = unsafeCast<pdb::PDBAggregationPipeAlgorithm>(algorithm1);
 
   // check the source
-  EXPECT_EQ(aggAlgorithm->source->sourceType, SetScanSource);
-  EXPECT_EQ((std::string) aggAlgorithm->firstTupleSet, std::string("inputData"));
-  EXPECT_EQ((std::string) aggAlgorithm->source->pageSetIdentifier.second, std::string("inputData"));
-  EXPECT_EQ(aggAlgorithm->source->pageSetIdentifier.first, compID);
-  EXPECT_EQ((std::string)aggAlgorithm->getSetToScan()->database, "myData");
-  EXPECT_EQ((std::string)aggAlgorithm->getSetToScan()->set, "mySetA");
+  auto &source1 = aggAlgorithm->sources[0];
+  EXPECT_EQ(source1.pageSet->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) source1.firstTupleSet, std::string("inputData"));
+  EXPECT_EQ((std::string) source1.pageSet->pageSetIdentifier.second, std::string("inputData"));
+  EXPECT_EQ(source1.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string) source1.sourceSet->database, "myData");
+  EXPECT_EQ((std::string) source1.sourceSet->set, "mySetA");
 
   // check the sink that we are
   EXPECT_EQ(aggAlgorithm->hashedToSend->sinkType, AggShuffleSink);
@@ -246,10 +250,11 @@ TEST(TestPhysicalOptimizer, TestMultiSink) {
   Handle<pdb::PDBStraightPipeAlgorithm> strAlgorithm1 = unsafeCast<pdb::PDBStraightPipeAlgorithm>(algorithm2);
 
   // check the source
-  EXPECT_EQ(strAlgorithm1->source->sourceType, AggregationSource);
-  EXPECT_EQ((std::string) strAlgorithm1->firstTupleSet, std::string("agg"));
-  EXPECT_EQ((std::string) strAlgorithm1->source->pageSetIdentifier.second, std::string("aggWithValue"));
-  EXPECT_EQ(strAlgorithm1->source->pageSetIdentifier.first, compID);
+  auto &source2 = strAlgorithm1->sources[0];
+  EXPECT_EQ(source2.pageSet->sourceType, AggregationSource);
+  EXPECT_EQ((std::string) source2.firstTupleSet, std::string("agg"));
+  EXPECT_EQ((std::string) source2.pageSet->pageSetIdentifier.second, std::string("aggWithValue"));
+  EXPECT_EQ(source2.pageSet->pageSetIdentifier.first, compID);
 
   // check the sink
   EXPECT_EQ(strAlgorithm1->sink->sinkType, SetSink);
@@ -274,10 +279,11 @@ TEST(TestPhysicalOptimizer, TestMultiSink) {
   Handle<pdb::PDBStraightPipeAlgorithm> strAlgorithm2 = unsafeCast<pdb::PDBStraightPipeAlgorithm>(algorithm3);
 
   // check the source
-  EXPECT_EQ(strAlgorithm2->source->sourceType, AggregationSource);
-  EXPECT_EQ((std::string) strAlgorithm2->firstTupleSet, std::string("agg"));
-  EXPECT_EQ((std::string) strAlgorithm2->source->pageSetIdentifier.second, std::string("aggWithValue"));
-  EXPECT_EQ(strAlgorithm2->source->pageSetIdentifier.first, compID);
+  auto &source3 = strAlgorithm2->sources[0];
+  EXPECT_EQ(source3.pageSet->sourceType, AggregationSource);
+  EXPECT_EQ((std::string) source3.firstTupleSet, std::string("agg"));
+  EXPECT_EQ((std::string) source3.pageSet->pageSetIdentifier.second, std::string("aggWithValue"));
+  EXPECT_EQ(source3.pageSet->pageSetIdentifier.first, compID);
 
   // check the sink
   EXPECT_EQ(strAlgorithm2->sink->sinkType, SetSink);
@@ -321,6 +327,9 @@ TEST(TestPhysicalOptimizer, TestJoin1) {
       "AandBJoined_Projection (nativ_3_2OutFor) <= APPLY (AandBJoined_FILTERED(a,b), AandBJoined_FILTERED(), 'JoinComp_2', 'native_lambda_3', [('lambdaType', 'native_lambda')])\n"
       "out( ) <= OUTPUT ( AandBJoined_Projection ( nativ_3_2OutFor ), 'outSet', 'myData', 'SetWriter_3')";
 
+  // set the join thrashold so we force a broadcast join
+  PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = numeric_limits<uint64_t>::max();
+
   // make a logger
   auto logger = make_shared<pdb::PDBLogger>("log.out");
 
@@ -353,12 +362,13 @@ TEST(TestPhysicalOptimizer, TestJoin1) {
       algorithmBroadcastA = unsafeCast<pdb::PDBBroadcastForJoinAlgorithm>(optimizer.getNextAlgorithm());
 
   // check the source
-  EXPECT_EQ(algorithmBroadcastA->source->sourceType, SetScanSource);
-  EXPECT_EQ((std::string) algorithmBroadcastA->firstTupleSet, std::string("A"));
-  EXPECT_EQ((std::string) algorithmBroadcastA->source->pageSetIdentifier.second, std::string("A"));
-  EXPECT_EQ(algorithmBroadcastA->source->pageSetIdentifier.first, compID);
-  EXPECT_EQ((std::string)algorithmBroadcastA->getSetToScan()->database, "myData");
-  EXPECT_EQ((std::string)algorithmBroadcastA->getSetToScan()->set, "mySetA");
+  auto &source1 = algorithmBroadcastA->sources[0];
+  EXPECT_EQ(source1.pageSet->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) source1.firstTupleSet, std::string("A"));
+  EXPECT_EQ((std::string) source1.pageSet->pageSetIdentifier.second, std::string("A"));
+  EXPECT_EQ(source1.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string) source1.sourceSet->database, "myData");
+  EXPECT_EQ((std::string) source1.sourceSet->set, "mySetA");
 
   // check the sink
   EXPECT_EQ(algorithmBroadcastA->sink->sinkType, BroadcastJoinSink);
@@ -368,8 +378,9 @@ TEST(TestPhysicalOptimizer, TestJoin1) {
 
   // get the page sets we want to remove
   auto pageSetsToRemove = getPageSetsToRemove(optimizer);
-  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "AHashed_to_broadcast")) != pageSetsToRemove.end());
-  EXPECT_EQ(pageSetsToRemove.size(), 1);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "AHashed_hashed_to_send")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "AHashed_hashed_to_recv")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 2);
 
   // we should have one source so we should be able to generate an algorithm
   EXPECT_TRUE(optimizer.hasAlgorithmToRun());
@@ -378,12 +389,13 @@ TEST(TestPhysicalOptimizer, TestJoin1) {
   auto algorithmPipelineThroughB = optimizer.getNextAlgorithm();
 
   // check the source
-  EXPECT_EQ(algorithmPipelineThroughB->source->sourceType, SetScanSource);
-  EXPECT_EQ((std::string) algorithmPipelineThroughB->firstTupleSet, std::string("B"));
-  EXPECT_EQ((std::string) algorithmPipelineThroughB->source->pageSetIdentifier.second, std::string("B"));
-  EXPECT_EQ(algorithmPipelineThroughB->source->pageSetIdentifier.first, compID);
-  EXPECT_EQ((std::string)algorithmPipelineThroughB->getSetToScan()->database, "myData");
-  EXPECT_EQ((std::string)algorithmPipelineThroughB->getSetToScan()->set, "mySetB");
+  auto &source2 = algorithmPipelineThroughB->sources[0];
+  EXPECT_EQ(source2.pageSet->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) source2.firstTupleSet, std::string("B"));
+  EXPECT_EQ((std::string) source2.pageSet->pageSetIdentifier.second, std::string("B"));
+  EXPECT_EQ(source2.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string) source2.sourceSet->database, "myData");
+  EXPECT_EQ((std::string) source2.sourceSet->set, "mySetB");
 
   // check the sink
   EXPECT_EQ(algorithmPipelineThroughB->sink->sinkType, SetSink);
@@ -438,6 +450,9 @@ TEST(TestPhysicalOptimizer, TestJoin2) {
   // make a logger
   auto logger = make_shared<pdb::PDBLogger>("log.out");
 
+  // set the join threshold so we force a shuffle join
+  PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = 0;
+
   // make the mock client
   auto catalogClient = std::make_shared<MockCatalog>();
   ON_CALL(*catalogClient,
@@ -465,12 +480,13 @@ TEST(TestPhysicalOptimizer, TestJoin2) {
   Handle<pdb::PDBShuffleForJoinAlgorithm> shuffleB = unsafeCast<pdb::PDBShuffleForJoinAlgorithm>(optimizer.getNextAlgorithm());
 
   // check the source
-  EXPECT_EQ(shuffleB->source->sourceType, SetScanSource);
-  EXPECT_EQ((std::string) shuffleB->firstTupleSet, std::string("B"));
-  EXPECT_EQ((std::string) shuffleB->source->pageSetIdentifier.second, std::string("B"));
-  EXPECT_EQ(shuffleB->source->pageSetIdentifier.first, compID);
-  EXPECT_EQ((std::string)shuffleB->getSetToScan()->database, "myData");
-  EXPECT_EQ((std::string)shuffleB->getSetToScan()->set, "mySetB");
+  auto &source1 = shuffleB->sources[0];
+  EXPECT_EQ(source1.pageSet->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) source1.firstTupleSet, std::string("B"));
+  EXPECT_EQ((std::string) source1.pageSet->pageSetIdentifier.second, std::string("B"));
+  EXPECT_EQ(source1.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string) source1.sourceSet->database, "myData");
+  EXPECT_EQ((std::string) source1.sourceSet->set, "mySetB");
 
   // check the intermediate set
   EXPECT_EQ(shuffleB->intermediate->sinkType, JoinShuffleIntermediateSink);
@@ -494,12 +510,13 @@ TEST(TestPhysicalOptimizer, TestJoin2) {
   Handle<pdb::PDBShuffleForJoinAlgorithm> shuffleA = unsafeCast<pdb::PDBShuffleForJoinAlgorithm>(optimizer.getNextAlgorithm());
 
   // check the source
-  EXPECT_EQ(shuffleA->source->sourceType, SetScanSource);
-  EXPECT_EQ((std::string) shuffleA->firstTupleSet, "A");
-  EXPECT_EQ((std::string) shuffleA->source->pageSetIdentifier.second, "A");
-  EXPECT_EQ(shuffleA->source->pageSetIdentifier.first, compID);
-  EXPECT_EQ((std::string)shuffleA->getSetToScan()->database, "myData");
-  EXPECT_EQ((std::string)shuffleA->getSetToScan()->set, "mySetA");
+  auto &source2 = shuffleA->sources[0];
+  EXPECT_EQ(source2.pageSet->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) source2.firstTupleSet, "A");
+  EXPECT_EQ((std::string) source2.pageSet->pageSetIdentifier.second, "A");
+  EXPECT_EQ(source2.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string) source2.sourceSet->database, "myData");
+  EXPECT_EQ((std::string) source2.sourceSet->set, "mySetA");
 
   // check the intermediate set
   EXPECT_EQ(shuffleA->intermediate->sinkType, JoinShuffleIntermediateSink);
@@ -526,10 +543,11 @@ TEST(TestPhysicalOptimizer, TestJoin2) {
   Handle<pdb::PDBStraightPipeAlgorithm> doJoin = unsafeCast<pdb::PDBStraightPipeAlgorithm>(optimizer.getNextAlgorithm());
 
   // check the source
-  EXPECT_EQ(doJoin->source->sourceType, ShuffledJoinTuplesSource);
-  EXPECT_EQ((std::string) doJoin->firstTupleSet, "AandBJoined");
-  EXPECT_EQ((std::string) doJoin->source->pageSetIdentifier.second, "BHashedOnA");
-  EXPECT_EQ(doJoin->source->pageSetIdentifier.first, compID);
+  auto &source3 = doJoin->sources[0];
+  EXPECT_EQ(source3.pageSet->sourceType, ShuffledJoinTuplesSource);
+  EXPECT_EQ((std::string) source3.firstTupleSet, "AandBJoined");
+  EXPECT_EQ((std::string) source3.pageSet->pageSetIdentifier.second, "BHashedOnA");
+  EXPECT_EQ(source3.pageSet->pageSetIdentifier.first, compID);
 
   // check the sink
   EXPECT_EQ(doJoin->sink->sinkType, SetSink);
@@ -611,6 +629,9 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
   // make a logger
   auto logger = make_shared<pdb::PDBLogger>("log.out");
 
+  // set the join threshold so we force a shuffle join
+  PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = std::numeric_limits<uint64_t>::max();
+
   // make the mock client
   auto catalogClient = std::make_shared<MockCatalog>();
   ON_CALL(*catalogClient,
@@ -645,12 +666,13 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
   Handle<pdb::PDBBroadcastForJoinAlgorithm> algorithmBroadcastC = unsafeCast<pdb::PDBBroadcastForJoinAlgorithm>(optimizer.getNextAlgorithm());
 
   // check the source
-  EXPECT_EQ(algorithmBroadcastC->source->sourceType, SetScanSource);
-  EXPECT_EQ((std::string) algorithmBroadcastC->firstTupleSet, std::string("C"));
-  EXPECT_EQ((std::string) algorithmBroadcastC->source->pageSetIdentifier.second, std::string("C"));
-  EXPECT_EQ(algorithmBroadcastC->source->pageSetIdentifier.first, compID);
-  EXPECT_EQ((std::string)algorithmBroadcastC->getSetToScan()->database, "myData");
-  EXPECT_EQ((std::string)algorithmBroadcastC->getSetToScan()->set, "mySetC");
+  auto &source1 = algorithmBroadcastC->sources[0];
+  EXPECT_EQ(source1.pageSet->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) source1.firstTupleSet, std::string("C"));
+  EXPECT_EQ((std::string) source1.pageSet->pageSetIdentifier.second, std::string("C"));
+  EXPECT_EQ(source1.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string) source1.sourceSet->database, "myData");
+  EXPECT_EQ((std::string) source1.sourceSet->set, "mySetC");
 
   // check the sink
   EXPECT_EQ(algorithmBroadcastC->sink->sinkType, BroadcastJoinSink);
@@ -660,20 +682,25 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
 
   // get the page sets we want to remove
   auto pageSetsToRemove = getPageSetsToRemove(optimizer);
-  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "CHashedOnC_to_broadcast")) != pageSetsToRemove.end());
-  EXPECT_EQ(pageSetsToRemove.size(), 1);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "CHashedOnC_hashed_to_send")) != pageSetsToRemove.end());
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "CHashedOnC_hashed_to_recv")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 2);
+
+  // force a shuffle algorithm
+  PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = 0;
 
   EXPECT_TRUE(optimizer.hasAlgorithmToRun());
 
   Handle<pdb::PDBShuffleForJoinAlgorithm> shuffleA = unsafeCast<pdb::PDBShuffleForJoinAlgorithm>(optimizer.getNextAlgorithm());
 
   // check the source
-  EXPECT_EQ(shuffleA->source->sourceType, SetScanSource);
-  EXPECT_EQ((std::string) shuffleA->firstTupleSet, "A");
-  EXPECT_EQ((std::string) shuffleA->source->pageSetIdentifier.second, "A");
-  EXPECT_EQ(shuffleA->source->pageSetIdentifier.first, compID);
-  EXPECT_EQ((std::string)shuffleA->getSetToScan()->database, "myData");
-  EXPECT_EQ((std::string)shuffleA->getSetToScan()->set, "mySetA");
+  auto &source2 = shuffleA->sources[0];
+  EXPECT_EQ(source2.pageSet->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) source2.firstTupleSet, "A");
+  EXPECT_EQ((std::string) source2.pageSet->pageSetIdentifier.second, "A");
+  EXPECT_EQ(source2.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string) source2.sourceSet->database, "myData");
+  EXPECT_EQ((std::string) source2.sourceSet->set, "mySetA");
 
   // check the intermediate set
   EXPECT_EQ(shuffleA->intermediate->sinkType, JoinShuffleIntermediateSink);
@@ -697,12 +724,13 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
   Handle<pdb::PDBShuffleForJoinAlgorithm> shuffleB = unsafeCast<pdb::PDBShuffleForJoinAlgorithm>(optimizer.getNextAlgorithm());
 
   // check the source
-  EXPECT_EQ(shuffleB->source->sourceType, SetScanSource);
-  EXPECT_EQ((std::string) shuffleB->firstTupleSet, std::string("B"));
-  EXPECT_EQ((std::string) shuffleB->source->pageSetIdentifier.second, std::string("B"));
-  EXPECT_EQ(shuffleB->source->pageSetIdentifier.first, compID);
-  EXPECT_EQ((std::string)shuffleB->getSetToScan()->database, "myData");
-  EXPECT_EQ((std::string)shuffleB->getSetToScan()->set, "mySetB");
+  auto &source3 = shuffleB->sources[0];
+  EXPECT_EQ(source3.pageSet->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) source3.firstTupleSet, std::string("B"));
+  EXPECT_EQ((std::string) source3.pageSet->pageSetIdentifier.second, std::string("B"));
+  EXPECT_EQ(source3.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string)source3.sourceSet->database, "myData");
+  EXPECT_EQ((std::string)source3.sourceSet->set, "mySetB");
 
   // check the intermediate set
   EXPECT_EQ(shuffleB->intermediate->sinkType, JoinShuffleIntermediateSink);
@@ -730,10 +758,11 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
   Handle<pdb::PDBStraightPipeAlgorithm> doJoin = unsafeCast<pdb::PDBStraightPipeAlgorithm>(optimizer.getNextAlgorithm());
 
   // check the source
-  EXPECT_EQ(doJoin->source->sourceType, ShuffledJoinTuplesSource);
-  EXPECT_EQ((std::string) doJoin->firstTupleSet, "AandBJoined");
-  EXPECT_EQ((std::string) doJoin->source->pageSetIdentifier.second, "AHashed");
-  EXPECT_EQ(doJoin->source->pageSetIdentifier.first, compID);
+  auto &source4 = doJoin->sources[0];
+  EXPECT_EQ(source4.pageSet->sourceType, ShuffledJoinTuplesSource);
+  EXPECT_EQ((std::string) source4.firstTupleSet, "AandBJoined");
+  EXPECT_EQ((std::string) source4.pageSet->pageSetIdentifier.second, "AHashed");
+  EXPECT_EQ(source4.pageSet->pageSetIdentifier.first, compID);
 
   // check the sink
   EXPECT_EQ(doJoin->sink->sinkType, SetSink);
@@ -868,6 +897,9 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
 
   EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(3));
 
+  // change the threshold so that we do a shuffle
+  PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = 0;
+
   // init the optimizer
   pdb::PDBPhysicalOptimizer optimizer(compID, tcap, catalogClient, logger);
 
@@ -878,12 +910,13 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   Handle<pdb::PDBShuffleForJoinAlgorithm> shuffleSet2FirstJoin = unsafeCast<pdb::PDBShuffleForJoinAlgorithm>(optimizer.getNextAlgorithm());
 
   // check the source
-  EXPECT_EQ(shuffleSet2FirstJoin->source->sourceType, SetScanSource);
-  EXPECT_EQ((std::string) shuffleSet2FirstJoin->firstTupleSet, std::string("inputDataForSetScanner_1"));
-  EXPECT_EQ((std::string) shuffleSet2FirstJoin->source->pageSetIdentifier.second, std::string("inputDataForSetScanner_1"));
-  EXPECT_EQ(shuffleSet2FirstJoin->source->pageSetIdentifier.first, compID);
-  EXPECT_EQ((std::string)shuffleSet2FirstJoin->getSetToScan()->database, "test78_db");
-  EXPECT_EQ((std::string)shuffleSet2FirstJoin->getSetToScan()->set, "test78_set2");
+  auto &source1 = shuffleSet2FirstJoin->sources[0];
+  EXPECT_EQ(source1.pageSet->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) source1.firstTupleSet, std::string("inputDataForSetScanner_1"));
+  EXPECT_EQ((std::string) source1.pageSet->pageSetIdentifier.second, std::string("inputDataForSetScanner_1"));
+  EXPECT_EQ(source1.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string) source1.sourceSet->database, "test78_db");
+  EXPECT_EQ((std::string) source1.sourceSet->set, "test78_set2");
 
   // check the intermediate set
   EXPECT_EQ(shuffleSet2FirstJoin->intermediate->sinkType, JoinShuffleIntermediateSink);
@@ -908,12 +941,13 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   Handle<pdb::PDBShuffleForJoinAlgorithm> shuffleSet2SecondJoin = unsafeCast<pdb::PDBShuffleForJoinAlgorithm>(optimizer.getNextAlgorithm());
 
   // check the source
-  EXPECT_EQ(shuffleSet2SecondJoin->source->sourceType, SetScanSource);
-  EXPECT_EQ((std::string) shuffleSet2SecondJoin->firstTupleSet, std::string("inputDataForSetScanner_1"));
-  EXPECT_EQ((std::string) shuffleSet2SecondJoin->source->pageSetIdentifier.second, std::string("inputDataForSetScanner_1"));
-  EXPECT_EQ(shuffleSet2SecondJoin->source->pageSetIdentifier.first, compID);
-  EXPECT_EQ((std::string)shuffleSet2SecondJoin->getSetToScan()->database, "test78_db");
-  EXPECT_EQ((std::string)shuffleSet2SecondJoin->getSetToScan()->set, "test78_set2");
+  auto &source2 = shuffleSet2SecondJoin->sources[0];
+  EXPECT_EQ(source2.pageSet->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) source2.firstTupleSet, std::string("inputDataForSetScanner_1"));
+  EXPECT_EQ((std::string) source2.pageSet->pageSetIdentifier.second, std::string("inputDataForSetScanner_1"));
+  EXPECT_EQ(source2.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string)source2.sourceSet->database, "test78_db");
+  EXPECT_EQ((std::string)source2.sourceSet->set, "test78_set2");
 
   // check the intermediate set
   EXPECT_EQ(shuffleSet2SecondJoin->intermediate->sinkType, JoinShuffleIntermediateSink);
@@ -938,12 +972,13 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   Handle<pdb::PDBShuffleForJoinAlgorithm> shuffleSet1 = unsafeCast<pdb::PDBShuffleForJoinAlgorithm>(optimizer.getNextAlgorithm());
 
   // check the source
-  EXPECT_EQ(shuffleSet1->source->sourceType, SetScanSource);
-  EXPECT_EQ((std::string) shuffleSet1->firstTupleSet, std::string("inputDataForSetScanner_0"));
-  EXPECT_EQ((std::string) shuffleSet1->source->pageSetIdentifier.second, std::string("inputDataForSetScanner_0"));
-  EXPECT_EQ(shuffleSet1->source->pageSetIdentifier.first, compID);
-  EXPECT_EQ((std::string)shuffleSet2SecondJoin->getSetToScan()->database, "test78_db");
-  EXPECT_EQ((std::string)shuffleSet2SecondJoin->getSetToScan()->set, "test78_set2");
+  auto &source3 = shuffleSet1->sources[0];
+  EXPECT_EQ(source3.pageSet->sourceType, SetScanSource);
+  EXPECT_EQ((std::string) source3.firstTupleSet, std::string("inputDataForSetScanner_0"));
+  EXPECT_EQ((std::string) source3.pageSet->pageSetIdentifier.second, std::string("inputDataForSetScanner_0"));
+  EXPECT_EQ(source3.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ((std::string) source3.sourceSet->database, "test78_db");
+  EXPECT_EQ((std::string) source3.sourceSet->set, "test78_set1");
 
   // check the intermediate set
   EXPECT_EQ(shuffleSet1->intermediate->sinkType, JoinShuffleIntermediateSink);
@@ -973,10 +1008,11 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   Handle<pdb::PDBShuffleForJoinAlgorithm> doJoin = unsafeCast<pdb::PDBShuffleForJoinAlgorithm>(optimizer.getNextAlgorithm());
 
   // check the source
-  EXPECT_EQ(doJoin->source->sourceType, ShuffledJoinTuplesSource);
-  EXPECT_EQ((std::string) doJoin->firstTupleSet, "JoinedFor_equals2JoinComp3");
-  EXPECT_EQ((std::string) doJoin->source->pageSetIdentifier.second, "attAccess_1ExtractedForJoinComp3_hashed");
-  EXPECT_EQ(doJoin->source->pageSetIdentifier.first, compID);
+  auto &source4 = doJoin->sources[0];
+  EXPECT_EQ(source4.pageSet->sourceType, ShuffledJoinTuplesSource);
+  EXPECT_EQ((std::string) source4.firstTupleSet, "JoinedFor_equals2JoinComp3");
+  EXPECT_EQ((std::string) source4.pageSet->pageSetIdentifier.second, "attAccess_1ExtractedForJoinComp3_hashed");
+  EXPECT_EQ(source4.pageSet->pageSetIdentifier.first, compID);
 
   // check the intermediate set
   EXPECT_EQ(doJoin->intermediate->sinkType, JoinShuffleIntermediateSink);
@@ -1019,10 +1055,11 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   Handle<pdb::PDBAggregationPipeAlgorithm> aggAlgorithm = unsafeCast<pdb::PDBAggregationPipeAlgorithm>(optimizer.getNextAlgorithm());
 
   // check the source
-  EXPECT_EQ(aggAlgorithm->source->sourceType, ShuffledJoinTuplesSource);
-  EXPECT_EQ((std::string) aggAlgorithm->firstTupleSet, std::string("JoinedFor_equals5JoinComp3"));
-  EXPECT_EQ((std::string) aggAlgorithm->source->pageSetIdentifier.second, std::string("self_4ExtractedJoinComp3_hashed"));
-  EXPECT_EQ(aggAlgorithm->source->pageSetIdentifier.first, compID);
+  auto &source5 = aggAlgorithm->sources[0];
+  EXPECT_EQ(source5.pageSet->sourceType, ShuffledJoinTuplesSource);
+  EXPECT_EQ((std::string) source5.firstTupleSet, std::string("JoinedFor_equals5JoinComp3"));
+  EXPECT_EQ((std::string) source5.pageSet->pageSetIdentifier.second, std::string("self_4ExtractedJoinComp3_hashed"));
+  EXPECT_EQ(source5.pageSet->pageSetIdentifier.first, compID);
 
   // check the sink that we are
   EXPECT_EQ(aggAlgorithm->hashedToSend->sinkType, AggShuffleSink);
@@ -1051,11 +1088,226 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "nativ_1OutForAggregationComp4_hashed_to_recv")) != pageSetsToRemove.end());
   EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "self_4ExtractedJoinComp3_hashed")) != pageSetsToRemove.end());
   EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "attAccess_3ExtractedForJoinComp3_hashed")) != pageSetsToRemove.end());
-  EXPECT_EQ(pageSetsToRemove.size(), 4);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "nativ_1OutForAggregationComp4")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 5);
 
   // we should have another source that reads the aggregation so we can generate another algorithm
   EXPECT_FALSE(optimizer.hasAlgorithmToRun());
 }
 
+TEST(TestPhysicalOptimizer, TestUnion1) {
+
+  std::string tcap = "inputDataForSetScanner_0(in0) <= SCAN ('db', 'input_set1', 'SetScanner_0')\n"
+                     "inputDataForSetScanner_1(in1) <= SCAN ('db', 'input_set2', 'SetScanner_1')\n"
+                     "unionOutUnionComp2 (unionOutFor2 )<= UNION (inputDataForSetScanner_0(in0), inputDataForSetScanner_1(in1),'UnionComp_2')\n"
+                     "unionOutUnionComp2_out( ) <= OUTPUT ( unionOutUnionComp2 ( unionOutFor2 ), 'chris_db', 'outputSet', 'SetWriter_3')";
+  // get the string to compile
+  tcap.push_back('\0');
+
+  // 1MB for algorithm and stuff
+  const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
+
+  // make a logger
+  auto logger = make_shared<pdb::PDBLogger>("log.out");
+
+  // make the mock client
+  auto catalogClient = std::make_shared<MockCatalog>();
+  ON_CALL(*catalogClient,
+          getSet(testing::An<const std::string &>(),
+                 testing::An<const std::string &>(),
+                 testing::An<std::string &>())).WillByDefault(testing::Invoke(
+      [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
+
+        if (setName == "test78_set1") {
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("db",
+                                                          "input_set1",
+                                                          "Nothing",
+                                                          std::numeric_limits<size_t>::max() - 1,
+                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          return tmp;
+        } else {
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("db",
+                                                          "input_set2",
+                                                          "Nothing",
+                                                          std::numeric_limits<size_t>::max() - 2,
+                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          return tmp;
+        }
+      }));
+
+  EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(2));
+
+  // set the computation id
+  const size_t compID = 76;
+
+  // init the optimizer
+  pdb::PDBPhysicalOptimizer optimizer(compID, tcap, catalogClient, logger);
+
+  /// 1. There should only be one algorithm
+
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+
+  Handle<pdb::PDBStraightPipeAlgorithm> unionAlgorithm = unsafeCast<pdb::PDBStraightPipeAlgorithm>(optimizer.getNextAlgorithm());
+
+  // we should have two sources
+  EXPECT_EQ(unionAlgorithm->sources.size(), 2);
+
+  // these are the sources we expect to have
+  std::set<string> expectedSources = {"inputDataForSetScanner_0", "inputDataForSetScanner_1"};
+
+  // check if the first source is right
+  auto &source1 = unionAlgorithm->sources[0];
+  auto it = expectedSources.find(source1.firstTupleSet);
+  EXPECT_TRUE(it != expectedSources.end());
+  EXPECT_EQ((std::string) source1.pageSet->pageSetIdentifier.second, *it);
+  EXPECT_EQ(source1.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ(source1.pageSet->sourceType, SetScanSource);
+
+  // check if the second source is right
+  auto &source2 = unionAlgorithm->sources[1];
+  auto jt = expectedSources.find(source2.firstTupleSet);
+  EXPECT_TRUE(jt != expectedSources.end());
+  EXPECT_TRUE(it != jt);
+  EXPECT_EQ((std::string) source2.pageSet->pageSetIdentifier.second, *jt);
+  EXPECT_EQ(source2.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ(source2.pageSet->sourceType, SetScanSource);
+
+  // check the sink
+  EXPECT_EQ(unionAlgorithm->sink->sinkType, SetSink);
+  EXPECT_EQ((std::string) unionAlgorithm->finalTupleSet, "unionOutUnionComp2_out");
+  EXPECT_EQ((std::string) unionAlgorithm->sink->pageSetIdentifier.second, "unionOutUnionComp2_out");
+  EXPECT_EQ(unionAlgorithm->sink->pageSetIdentifier.first, compID);
+
+  // get the page sets we want to remove
+  auto pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "unionOutUnionComp2_out")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 1);
+}
+
+TEST(TestPhysicalOptimizer, TestUnion2) {
+
+  std::string tcap = "inputDataForSetScanner_0(in0) <= SCAN ('chris_db', 'input_set1', 'SetScanner_0')\n"
+                     "/* Apply selection filtering */\n"
+                     "OutFor_native_lambda_0SelectionComp1(in0,OutFor_native_lambda_0_1) <= APPLY (inputDataForSetScanner_0(in0), inputDataForSetScanner_0(in0), 'SelectionComp_1', 'native_lambda_0', [('lambdaType', 'native_lambda')])\n"
+                     "filteredInputForSelectionComp1(in0) <= FILTER (OutFor_native_lambda_0SelectionComp1(OutFor_native_lambda_0_1), OutFor_native_lambda_0SelectionComp1(in0), 'SelectionComp_1')\n"
+                     "/* Apply selection projection */\n"
+                     "OutFor_native_lambda_1SelectionComp1(OutFor_native_lambda_1_1) <= APPLY (filteredInputForSelectionComp1(in0), filteredInputForSelectionComp1(), 'SelectionComp_1', 'native_lambda_1', [('lambdaType', 'native_lambda')])\n"
+                     "inputDataForSetScanner_2(in2) <= SCAN ('chris_db', 'input_set2', 'SetScanner_2')\n"
+                     "/* Apply selection filtering */\n"
+                     "OutFor_native_lambda_0SelectionComp3(in2,OutFor_native_lambda_0_3) <= APPLY (inputDataForSetScanner_2(in2), inputDataForSetScanner_2(in2), 'SelectionComp_3', 'native_lambda_0', [('lambdaType', 'native_lambda')])\n"
+                     "filteredInputForSelectionComp3(in2) <= FILTER (OutFor_native_lambda_0SelectionComp3(OutFor_native_lambda_0_3), OutFor_native_lambda_0SelectionComp3(in2), 'SelectionComp_3')\n"
+                     "/* Apply selection projection */\n"
+                     "OutFor_native_lambda_1SelectionComp3(OutFor_native_lambda_1_3) <= APPLY (filteredInputForSelectionComp3(in2), filteredInputForSelectionComp3(), 'SelectionComp_3', 'native_lambda_1', [('lambdaType', 'native_lambda')])\n"
+                     "unionOutUnionComp4 (unionOutFor4)<= UNION (OutFor_native_lambda_1SelectionComp1(OutFor_native_lambda_1_1),OutFor_native_lambda_1SelectionComp3(OutFor_native_lambda_1_3),'UnionComp_4')\n"
+                     "inputDataForSetScanner_5(in5) <= SCAN ('chris_db', 'input_set3', 'SetScanner_5')\n"
+                     "/* Apply selection filtering */\n"
+                     "OutFor_native_lambda_0SelectionComp6(in5,OutFor_native_lambda_0_6) <= APPLY (inputDataForSetScanner_5(in5), inputDataForSetScanner_5(in5), 'SelectionComp_6', 'native_lambda_0', [('lambdaType', 'native_lambda')])\n"
+                     "filteredInputForSelectionComp6(in5) <= FILTER (OutFor_native_lambda_0SelectionComp6(OutFor_native_lambda_0_6), OutFor_native_lambda_0SelectionComp6(in5), 'SelectionComp_6')\n"
+                     "/* Apply selection projection */\n"
+                     "OutFor_native_lambda_1SelectionComp6(OutFor_native_lambda_1_6) <= APPLY (filteredInputForSelectionComp6(in5), filteredInputForSelectionComp6(), 'SelectionComp_6', 'native_lambda_1', [('lambdaType', 'native_lambda')])\n"
+                     "unionOutUnionComp7 (unionOutFor7)<= UNION (unionOutUnionComp4(unionOutFor4),OutFor_native_lambda_1SelectionComp6(OutFor_native_lambda_1_6),'UnionComp_7')\n"
+                     "unionOutUnionComp7_out( ) <= OUTPUT ( unionOutUnionComp7 ( unionOutFor7 ), 'chris_db', 'output_set', 'SetWriter_8')";
+
+  // get the string to compile
+  tcap.push_back('\0');
+
+  // 1MB for algorithm and stuff
+  const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
+
+  // make a logger
+  auto logger = make_shared<pdb::PDBLogger>("log.out");
+
+  // make the mock client
+  auto catalogClient = std::make_shared<MockCatalog>();
+  ON_CALL(*catalogClient,
+          getSet(testing::An<const std::string &>(),
+                 testing::An<const std::string &>(),
+                 testing::An<std::string &>())).WillByDefault(testing::Invoke(
+      [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
+
+        if (setName == "input_set1") {
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("db",
+                                                          "input_set1",
+                                                          "Nothing",
+                                                          std::numeric_limits<size_t>::max() - 1,
+                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          return tmp;
+        }
+        else if(setName == "input_set2") {
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("db",
+                                                          "input_set2",
+                                                          "Nothing",
+                                                          std::numeric_limits<size_t>::max() - 1,
+                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          return tmp;
+        }
+        else {
+          auto tmp = std::make_shared<pdb::PDBCatalogSet>("db",
+                                                          "input_set3",
+                                                          "Nothing",
+                                                          std::numeric_limits<size_t>::max() - 2,
+                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          return tmp;
+        }
+      }));
+
+  EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(3));
+
+  // set the computation id
+  const size_t compID = 76;
+
+  // init the optimizer
+  pdb::PDBPhysicalOptimizer optimizer(compID, tcap, catalogClient, logger);
+
+  /// 1. There should only be one algorithm
+
+  EXPECT_TRUE(optimizer.hasAlgorithmToRun());
+
+  Handle<pdb::PDBStraightPipeAlgorithm> unionAlgorithm = unsafeCast<pdb::PDBStraightPipeAlgorithm>(optimizer.getNextAlgorithm());
+
+  // we should have two sources
+  EXPECT_EQ(unionAlgorithm->sources.size(), 3);
+
+  // these are the sources we expect to have
+  std::set<string> expectedSources = {"inputDataForSetScanner_0", "inputDataForSetScanner_2", "inputDataForSetScanner_5"};
+
+  // check if the first source is right
+  auto &source1 = unionAlgorithm->sources[0];
+  auto it = expectedSources.find(source1.firstTupleSet);
+  EXPECT_TRUE(it != expectedSources.end());
+  EXPECT_EQ((std::string) source1.pageSet->pageSetIdentifier.second, *it);
+  EXPECT_EQ(source1.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ(source1.pageSet->sourceType, SetScanSource);
+
+  // check if the second source is right
+  auto &source2 = unionAlgorithm->sources[1];
+  auto jt = expectedSources.find(source2.firstTupleSet);
+  EXPECT_TRUE(jt != expectedSources.end());
+  EXPECT_TRUE(it != jt);
+  EXPECT_EQ((std::string) source2.pageSet->pageSetIdentifier.second, *jt);
+  EXPECT_EQ(source2.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ(source2.pageSet->sourceType, SetScanSource);
+
+  // check if the third source is right
+  auto &source3 = unionAlgorithm->sources[1];
+  auto kt = expectedSources.find(source3.firstTupleSet);
+  EXPECT_TRUE(jt != expectedSources.end());
+  EXPECT_TRUE(it != jt);
+  EXPECT_TRUE(it != kt);
+  EXPECT_EQ((std::string) source3.pageSet->pageSetIdentifier.second, *jt);
+  EXPECT_EQ(source3.pageSet->pageSetIdentifier.first, compID);
+  EXPECT_EQ(source3.pageSet->sourceType, SetScanSource);
+
+  // check the sink
+  EXPECT_EQ(unionAlgorithm->sink->sinkType, SetSink);
+  EXPECT_EQ((std::string) unionAlgorithm->finalTupleSet, "unionOutUnionComp7_out");
+  EXPECT_EQ((std::string) unionAlgorithm->sink->pageSetIdentifier.second, "unionOutUnionComp7_out");
+  EXPECT_EQ(unionAlgorithm->sink->pageSetIdentifier.first, compID);
+
+  // get the page sets we want to remove
+  auto pageSetsToRemove = getPageSetsToRemove(optimizer);
+  EXPECT_TRUE(pageSetsToRemove.find(std::make_pair(compID, "unionOutUnionComp7_out")) != pageSetsToRemove.end());
+  EXPECT_EQ(pageSetsToRemove.size(), 1);
+}
 
 }

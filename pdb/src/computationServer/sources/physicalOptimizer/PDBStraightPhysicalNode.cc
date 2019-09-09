@@ -10,27 +10,13 @@ PDBPipelineType pdb::PDBStraightPhysicalNode::getType() {
   return PDB_STRAIGHT_PIPELINE;
 }
 
-pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generatePipelinedAlgorithm(const AtomicComputationPtr &startAtomicComputation,
-                                                                                const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                                PDBPageSetCosts &sourcesWithIDs,
-                                                                                pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
-                                                                                bool shouldSwapLeftAndRight) {
-
-  // this is the same as @see generateAlgorithm except now the source is the source of the pipe we pipelined to this
-  // and the additional source are transferred for that pipeline.
-  return generateAlgorithm(startAtomicComputation, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
-}
-
-pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const AtomicComputationPtr &startAtomicComputation,
-                                                                       const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                                       PDBPageSetCosts &sourcesWithIDs,
-                                                                       pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
-                                                                       bool shouldSwapLeftAndRight) {
+pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(PDBAbstractPhysicalNodePtr &child,
+                                                                       PDBPageSetCosts &pageSetCosts) {
 
 
   // can we pipeline this guy? we can do that if we only have one consumer
   if(consumers.size() == 1) {
-    return consumers.front()->generatePipelinedAlgorithm(startAtomicComputation, source, sourcesWithIDs, additionalSources, shouldSwapLeftAndRight);
+    return consumers.front()->generatePipelinedAlgorithm(child, pageSetCosts);
   }
 
   // the sink is basically the last computation in the pipeline
@@ -62,23 +48,20 @@ pdb::PDBPlanningResult pdb::PDBStraightPhysicalNode::generateAlgorithm(const Ato
   }
 
   // generate the algorithm
-  pdb::Handle<PDBStraightPipeAlgorithm> algorithm = pdb::makeObject<PDBStraightPipeAlgorithm>(startAtomicComputation,
+  pdb::Handle<PDBStraightPipeAlgorithm> algorithm = pdb::makeObject<PDBStraightPipeAlgorithm>(primarySources,
                                                                                               pipeline.back(),
-                                                                                              source,
                                                                                               sink,
                                                                                               additionalSources,
-                                                                                              setsToMaterialize,
-                                                                                              shouldSwapLeftAndRight);
+                                                                                              setsToMaterialize);
 
   // add all the consumed page sets
-  std::list<PDBPageSetIdentifier> consumedPageSets = { source->pageSetIdentifier };
-  for(int i = 0; i < additionalSources->size(); ++i) {
-    consumedPageSets.insert(consumedPageSets.begin(), (*additionalSources)[i]->pageSetIdentifier);
-  }
+  std::list<PDBPageSetIdentifier> consumedPageSets = {};
+  for(auto &primarySource : primarySources) { consumedPageSets.insert(consumedPageSets.begin(), primarySource.source->pageSetIdentifier); }
+  for(auto & additionalSource : additionalSources) { consumedPageSets.insert(consumedPageSets.begin(), additionalSource->pageSetIdentifier); }
 
   // set the page sets created
   std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets = { std::make_pair(sink->pageSetIdentifier, consumers.size()) };
 
   // return the algorithm and the nodes that consume it's result
-  return std::move(PDBPlanningResult(algorithm, consumers, consumedPageSets, newPageSets));
+  return std::move(PDBPlanningResult(PDBPlanningResultType::GENERATED_ALGORITHM, algorithm, consumers, consumedPageSets, newPageSets));
 }

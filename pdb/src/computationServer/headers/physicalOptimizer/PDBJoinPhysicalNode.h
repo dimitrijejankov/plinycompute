@@ -28,18 +28,11 @@ public:
 
   PDBPipelineType getType() override;
 
-  pdb::PDBPlanningResult generateAlgorithm(const AtomicComputationPtr &startAtomicComputation,
-                                           const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                           PDBPageSetCosts &sourcesWithIDs,
-                                           pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
-                                           bool shouldSwapLeftAndRight) override;
+  pdb::PDBPlanningResult generateAlgorithm(PDBAbstractPhysicalNodePtr &child,
+                                           PDBPageSetCosts &pageSetCosts) override;
 
-  pdb::PDBPlanningResult generatePipelinedAlgorithm(const AtomicComputationPtr &startAtomicComputation,
-                                                    const pdb::Handle<PDBSourcePageSetSpec> &source,
-                                                    PDBPageSetCosts &sourcesWithIDs,
-                                                    pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &additionalSources,
-                                                    bool shouldSwapLeftAndRight) override;
 
+  size_t getPrimarySourcesSize(PDBPageSetCosts &pageSetCosts);
 
   /**
    * The other side
@@ -51,12 +44,17 @@ private:
   /**
    * This constant is the cutoff threshold point where we use the shuffle join instead of the broadcast join
    */
-  static const size_t SHUFFLE_JOIN_THRASHOLD;
+  static size_t SHUFFLE_JOIN_THRASHOLD;
 
   /**
    * The state of the node
    */
   PDBJoinPhysicalNodeState state = PDBJoinPhysicalNodeNotProcessed;
+
+  FRIEND_TEST(TestPhysicalOptimizer, TestJoin1);
+  FRIEND_TEST(TestPhysicalOptimizer, TestJoin2);
+  FRIEND_TEST(TestPhysicalOptimizer, TestJoin3);
+  FRIEND_TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin);
 };
 
 }

@@ -620,7 +620,7 @@ auto callGetKeyProjectionWithKey (TypeToCallMethodOn &a, decltype (HasFiveArgs::
   return a.getKeyProjection (first, second, third, fourth, fifth);
 }
 
-template <typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+template <typename TypeToCallMethodOn>
 auto callGetKeyProjectionWithKey(TypeToCallMethodOn &a, typename enable_if<!decltype(KeyProjectionExists::check(&a))::value, void>::type *arg = nullptr) -> Lambda<Object> {
   throw runtime_error("The key projection is not defined");
 }

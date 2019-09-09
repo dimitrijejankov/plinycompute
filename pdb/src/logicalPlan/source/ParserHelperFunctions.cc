@@ -168,7 +168,16 @@ struct AtomicComputation *makeFlattenWithList (struct TupleSpec *output, struct 
         return returnVal.get ();
 }
 
-
+struct AtomicComputation *makeUnionWithList (struct TupleSpec *output, struct TupleSpec *leftInput, struct TupleSpec *rightInput, char *nodeName, struct KeyValueList *useMe) {
+  AtomicComputationPtr returnVal = std :: make_shared <Union> (*output, *leftInput, *rightInput, std :: string (nodeName), *useMe);
+  returnVal->setShared (returnVal);
+  delete output;
+  delete leftInput;
+  delete rightInput;
+  delete useMe;
+  free (nodeName);
+  return returnVal.get ();
+}
 
 struct AtomicComputation *makeScanWithList (struct TupleSpec *output, char *dbName, char *setName, char *nodeName, struct KeyValueList *useMe) {
 	AtomicComputationPtr returnVal = std :: make_shared <ScanSet> (*output, std :: string (dbName), std :: string (setName), std :: string (nodeName), *useMe);
@@ -368,6 +377,18 @@ struct AtomicComputation* makeFlatten(struct TupleSpec* output,
     return returnVal.get();
 }
 
+struct AtomicComputation* makeUnion(struct TupleSpec* output,
+                                    struct TupleSpec* leftInput,
+                                    struct TupleSpec* rightInput,
+                                    char* nodeName) {
+  AtomicComputationPtr returnVal = std::make_shared<Union>(*output, *leftInput, *rightInput, std::string(nodeName));
+  returnVal->setShared(returnVal);
+  delete output;
+  delete leftInput;
+  delete rightInput;
+  free(nodeName);
+  return returnVal.get();
+}
 
 struct AtomicComputation* makeScan(struct TupleSpec* output,
                                    char* dbName,

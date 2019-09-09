@@ -354,12 +354,78 @@ struct Flatten : public AtomicComputation {
   friend std::ostream &operator<<(std::ostream &os, const AtomicComputationList &printMe);
 };
 
+// this is a computation that unions two tuple sets
+// this is a computation that flatten each tuple of a tuple set
+struct Union : public AtomicComputation {
+private:
+
+  TupleSpec rightInput;
+
+ public:
+
+  Union(TupleSpec &output, TupleSpec &lhsInput, TupleSpec &rhsInput, std::string nodeName)
+      : AtomicComputation(lhsInput,
+                          output,
+                          lhsInput,
+                          std::move(nodeName)) {
+    rightInput = rhsInput;
+  }
+
+  // ss107: New Constructor:
+  Union(TupleSpec &output,
+        TupleSpec &lhsInput,
+        TupleSpec &rhsInput,
+        std::string nodeName,
+        KeyValueList &useMe) : AtomicComputation(lhsInput,
+                                                 output,
+                                                 TupleSpec(), // we don't keep any of the attributes from the input sets
+                                                 std::move(nodeName)) {
+    // set the key value pairs
+    keyValuePairs = useMe.getKeyValuePairs();
+
+    // set the rhs input
+    rightInput = rhsInput;
+  }
+
+  ~Union() override = default;
+
+  std::string getAtomicComputationType() override {
+    return std::string("Union");
+  }
+
+  TupleSpec &getRightInput() {
+    return rightInput;
+  }
+
+  AtomicComputationTypeID getAtomicComputationTypeID() override {
+    return UnionTypeID;
+  }
+
+  std::pair<std::string, std::string> findSource(std::string attName,
+                                                 AtomicComputationList &allComps) override {
+
+    // The output from the union should be a single attribute
+    // find where the attribute appears in the outputs
+    int counter = findPosInOutputAtts(attName);
+
+    // if the attribute we are asking for is at the end, it means it's produced by this
+    // aggregate then we asked for it
+    if (counter == 0) {
+      return std::make_pair(getComputationName(), std::string(""));
+    }
+
+    // if it is not at the end, if makes no sense
+    std::cout << "How did we ever get here trying to find an attribute produced by an agg??\n";
+    exit(1);
+  }
+
+  friend std::ostream &operator<<(std::ostream &os, const AtomicComputationList &printMe);
+};
+
 // this is a computation that performs a filer over a tuple set
 struct ApplyFilter : public AtomicComputation {
 
  public:
-  ~ApplyFilter() {}
-
   ApplyFilter(TupleSpec &input, TupleSpec &output, TupleSpec &projection, std::string nodeName)
       : AtomicComputation(input, output, projection, nodeName) {
     // std :: cout << "Filter input tuple spec: " << input << ", output tuple spec: " << output
@@ -372,6 +438,8 @@ struct ApplyFilter : public AtomicComputation {
     // set the key value pairs
     keyValuePairs = useMe.getKeyValuePairs();
   }
+
+  ~ApplyFilter() = default;
 
   std::string getAtomicComputationType() override {
     return std::string("Filter");
@@ -427,8 +495,7 @@ struct ApplyAgg : public AtomicComputation {
     int counter = findPosInOutputAtts(attName);
 
     // if the attribute we are asking for is at the end, it means it's produced by this
-    // aggregate
-    // then we asked for it
+    // aggregate then we asked for it
     if (counter == 0) {
       return std::make_pair(getComputationName(), std::string(""));
     }
@@ -558,12 +625,6 @@ struct ApplyJoin : public AtomicComputation {
 
   TupleSpec rightInput;
   TupleSpec rightProjection;
-  // JiaNote: added below for physical planning
-  // if traversed is set to true, we know that one input has been processed, and the other input
-  // can go through the pipeline
-  bool traversed = false;
-  // JiaNote: added below for hash partitioned join
-  bool toPartitionLHS = false;
 
  public:
   ApplyJoin(TupleSpec &output,
@@ -574,10 +635,7 @@ struct ApplyJoin : public AtomicComputation {
             std::string nodeName)
       : AtomicComputation(lInput, output, lProjection, nodeName),
         rightInput(rInput),
-        rightProjection(rProjection) {
-    traversed = false;
-    toPartitionLHS = false;
-  }
+        rightProjection(rProjection) {}
 
   // ss107: New Constructor: Added Jia's correction too:
   ApplyJoin(TupleSpec &output,
@@ -588,10 +646,6 @@ struct ApplyJoin : public AtomicComputation {
             std::string nodeName,
             KeyValueList &useMe) :
       AtomicComputation(lInput, output, lProjection, nodeName), rightInput(rInput), rightProjection(rProjection) {
-
-      // TODO this stuff is not used anymore will remove later when I refactor this
-      traversed = false;
-      toPartitionLHS = false;
 
       // set the key value pairs
       keyValuePairs = useMe.getKeyValuePairs();
@@ -611,22 +665,6 @@ struct ApplyJoin : public AtomicComputation {
 
   AtomicComputationTypeID getAtomicComputationTypeID() override {
     return ApplyJoinTypeID;
-  }
-
-  bool isTraversed() {
-    return this->traversed;
-  }
-
-  void setTraversed(bool traversed) {
-    this->traversed = traversed;
-  }
-
-  bool isPartitioningLHS() {
-    return this->toPartitionLHS;
-  }
-
-  void setPartitioningLHS(bool toPartitionLHS) {
-    this->toPartitionLHS = toPartitionLHS;
   }
 
   std::pair<std::string, std::string> findSource(std::string attName,

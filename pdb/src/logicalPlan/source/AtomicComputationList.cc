@@ -63,9 +63,13 @@ void AtomicComputationList::addAtomicComputation(AtomicComputationPtr addMe) {
 
     // now, see if this guy is a join; join is special, because we have to add both inputs to the
     // join to the consumers map
-    if (addMe->getAtomicComputationType() == "JoinSets") {
-        ApplyJoin* myPtr = (ApplyJoin*)addMe.get();
+    if (addMe->getAtomicComputationTypeID() == ApplyJoinTypeID) {
+        auto* myPtr = (ApplyJoin*)addMe.get();
         consumers[myPtr->getRightInput().getSetName()].push_back(addMe);
+    }
+    else if (addMe->getAtomicComputationTypeID() == UnionTypeID) {
+      auto* myPtr = (Union*)addMe.get();
+      consumers[myPtr->getRightInput().getSetName()].push_back(addMe);
     }
 
     // kill the copy of the shared pointer that is inside him

@@ -19,6 +19,17 @@
 
 #include <gtest/gtest.h>
 #include <QueryGraphAnalyzer.h>
+#include <ReadInt.h>
+#include <ReadStringIntPair.h>
+#include <StringSelectionOfStringIntPair.h>
+#include <IntSimpleJoin.h>
+#include <WriteSumResult.h>
+#include <IntAggregation.h>
+#include <WriteBuiltinEmployeeSet.h>
+#include <EmployeeBuiltInIdentitySelection.h>
+#include <ScanEmployeeSet.h>
+#include <IntUnion.h>
+#include <IntWriter.h>
 
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlock.h"
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixScanner.h"
@@ -147,22 +158,26 @@ TEST(TestTcapGeneration, Test5) {
   const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
 
   // create all of the computation objects
-  Handle <Computation> readA = makeObject <MatrixScanner>("myData", "AKey");
-  Handle <Computation> readB = makeObject <MatrixScanner>("myData", "BKey");
-  Handle <Computation> join = makeObject <MatrixMultiplyJoin>();
-  join->setInput(0, readA);
-  join->setInput(1, readB);
-  Handle<Computation> myAggregation = makeObject<MatrixMultiplyAggregation>();
-  myAggregation->setInput(join);
+  Handle<Computation> myScanSet1 = makeObject<ReadInt>("chris_db", "input_set1");
+  Handle<Computation> myScanSet2 = makeObject<ReadInt>("chris_db", "input_set2");
+  Handle<Computation> myQuery = makeObject<IntUnion>();
+  myQuery->setInput(0, myScanSet1);
+  myQuery->setInput(1, myScanSet2);
+  Handle<Computation> myWriteSet = makeObject<IntWriter>("chris_db", "outputSet");
+  myWriteSet->setInput(myQuery);
+
+  // the query graph has only the aggregation
+  std::vector<Handle<Computation>> queryGraph = { myWriteSet };
 
   // create the graph analyzer
-  pdb::QueryGraphAnalyzer queryAnalyzer({ myAggregation });
+  pdb::QueryGraphAnalyzer queryAnalyzer(queryGraph);
 
   // here is the list of computations
   Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
 
   // parse the tcap string
-  std::string tcapString = queryAnalyzer.parseTCAPForKeys(*myComputations);
+  std::cout << '\n';
+  std::string tcapString = queryAnalyzer.parseTCAPString(*myComputations);
 
   std::cout << tcapString << std::endl;
 }

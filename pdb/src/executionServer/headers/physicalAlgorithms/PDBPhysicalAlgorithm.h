@@ -17,7 +17,9 @@
 #include <SourceSetArg.h>
 #include <PDBVector.h>
 #include <JoinArguments.h>
+#include <PDBSourceSpec.h>
 #include <gtest/gtest_prod.h>
+#include <physicalOptimizer/PDBPrimarySource.h>
 
 namespace pdb {
 
@@ -33,7 +35,10 @@ enum PDBPhysicalAlgorithmType {
   StraightPipe
 };
 
+
+
 // PRELOAD %PDBPhysicalAlgorithm%
+
 
 class PDBPhysicalAlgorithm : public Object {
 public:
@@ -44,13 +49,11 @@ public:
 
   virtual ~PDBPhysicalAlgorithm() = default;
 
-  PDBPhysicalAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+  PDBPhysicalAlgorithm(const std::vector<PDBPrimarySource> &primarySource,
                        const AtomicComputationPtr &finalAtomicComputation,
-                       const pdb::Handle<PDBSourcePageSetSpec> &source,
                        const pdb::Handle<PDBSinkPageSetSpec> &sink,
-                       const pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
-                       const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
-                       bool swapLHSandRHS);
+                       const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
+                       const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize);
 
   /**
    * Sets up the whole algorithm
@@ -82,22 +85,26 @@ public:
    * Returns the set this algorithm is going to scan
    * @return source set as @see PDBSetObject
    */
-  const pdb::Handle<PDBSetObject> &getSetToScan() { return sourceSet; }
+  std::vector<std::pair<std::string, std::string>> getSetsToScan() {
+
+    // figure out the sets
+    std::vector<std::pair<std::string, std::string>> tmp;
+    for(int i = 0; i < sources.size(); ++i) {
+
+      // if we have a set store it
+      if(sources[i].sourceSet != nullptr) {
+        tmp.emplace_back(std::make_pair<std::string, std::string>(sources[i].sourceSet->database, sources[i].sourceSet->set));
+      }
+    }
+
+    // move the vector
+    return std::move(tmp);
+  }
 
   /**
    * Returns the type of the container that the materialized result will have
    */
   virtual pdb::PDBCatalogSetContainerType getOutputContainerType() { return PDB_CATALOG_SET_NO_CONTAINER; };
-
-  /**
- * This is the tuple set of the atomic computation from which we are starting our pipeline
- */
-  pdb::String firstTupleSet;
-
-  /**
-   * The is the tuple set of the atomic computation where we are ending our pipeline
-   */
-  pdb::String finalTupleSet;
 
 protected:
 
@@ -106,13 +113,13 @@ protected:
    * @param storage - a ptr to the storage manager backend so we can grab the page set
    * @return - the page set
    */
-  PDBAbstractPageSetPtr getSourcePageSet(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage);
+  PDBAbstractPageSetPtr getSourcePageSet(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, size_t idx);
 
   /**
    * Return the info that is going to be provided to the pipeline about the main source set we are scanning
    * @return an instance of SourceSetArgPtr
    */
-  pdb::SourceSetArgPtr getSourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient);
+  pdb::SourceSetArgPtr getSourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient, size_t idx);
 
   /**
    * Returns the additional sources as join arguments, if we can not find a page set that is specified in the additional sources
@@ -123,19 +130,14 @@ protected:
   std::shared_ptr<JoinArguments> getJoinArguments(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage);
 
   /**
-   * The source set we want to scan
+   *
    */
-  pdb::Handle<PDBSetObject> sourceSet;
+  pdb::Vector<PDBSourceSpec> sources;
 
   /**
-   * The source page set the algorithm should setup
+   * The is the tuple set of the atomic computation where we are ending our pipeline
    */
-  pdb::Handle<PDBSourcePageSetSpec> source;
-
-  /**
-   * The sink page set the algorithm should setup
-   */
-  pdb::Handle<PDBSinkPageSetSpec> sink;
+  pdb::String finalTupleSet;
 
   /**
    * List of secondary sources like hash sets for join etc.. null if there are no secondary sources
@@ -143,14 +145,14 @@ protected:
   pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> secondarySources;
 
   /**
+   * The sink page set the algorithm should setup
+   */
+  pdb::Handle<PDBSinkPageSetSpec> sink;
+
+  /**
    * The sets we want to materialize the result of this aggregation to
    */
   pdb::Handle<pdb::Vector<PDBSetObject>> setsToMaterialize;
-
-  /**
-   * Indicates whether the left and the right side are swapped
-   */
-  bool swapLHSandRHS = false;
 
   /**
    * The logical plan

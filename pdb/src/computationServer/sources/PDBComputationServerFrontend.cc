@@ -58,11 +58,11 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
   // are we scanning the set, if so update the metadata in the distributed storage that we are doing that
   if(job->isScanningSet()) {
 
-    // get source set
-    auto sourceSet = job->getScanningSet();
-
-    // add the lock
-    locks.emplace_back(distStorage->useSet(sourceSet.first, sourceSet.second, PDBDistributedStorageSetState::READING_DATA));
+    // get source sets loop through and lock them
+    for(auto &sourceSet : job->getScanningSets()) {
+      // add the lock
+      locks.emplace_back(distStorage->useSet(sourceSet.first, sourceSet.second, PDBDistributedStorageSetState::READING_DATA));
+    }
   }
 
   // create the buzzer
@@ -304,16 +304,14 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
 
             /// 2. Run job while the optimizer can spit out an algorithm
 
+            // make an allocation block the computation size + 1MB for algorithm and stuff
+            const pdb::UseTemporaryAllocationBlock tempBlock{request->numBytes + 1024 * 1024};
+
             // while we still have jobs to execute
             while(optimizer.hasAlgorithmToRun()) {
 
-              // make an allocation block the computation size + 1MB for algorithm and stuff
-              const pdb::UseTemporaryAllocationBlock tempBlock{request->numBytes + 1024*1024};
-
               // grab a algorithm
               auto algorithm = optimizer.getNextAlgorithm();
-
-              std::cout << "Running " << algorithm->firstTupleSet << " , " << algorithm->finalTupleSet << std::endl;
 
               // make the job
               Handle<ExJob> job = pdb::makeObject<ExJob>();
@@ -360,7 +358,7 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
             /// 3. Send the result of the execution back to the client
 
             // make an allocation block
-            const pdb::UseTemporaryAllocationBlock tempBlock{1024};
+            const pdb::UseTemporaryAllocationBlock respBlock{1024};
 
             // create an allocation block to hold the response
             pdb::Handle<pdb::SimpleRequestResult> response = pdb::makeObject<pdb::SimpleRequestResult>(success, error);

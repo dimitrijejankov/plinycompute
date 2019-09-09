@@ -43,6 +43,7 @@ enum AtomicComputationTypeID {
   HashRightTypeID,
   HashOneTypeID,
   FlattenTypeID,
+  UnionTypeID,
   ApplyFilterTypeID,
   ApplyAggTypeID,
   ScanSetAtomicTypeID,

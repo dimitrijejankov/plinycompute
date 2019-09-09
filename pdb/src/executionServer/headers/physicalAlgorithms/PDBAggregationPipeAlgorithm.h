@@ -26,15 +26,13 @@ public:
 
   ~PDBAggregationPipeAlgorithm() override = default;
 
-  PDBAggregationPipeAlgorithm(const AtomicComputationPtr &fistAtomicComputation,
+  PDBAggregationPipeAlgorithm(const std::vector<PDBPrimarySource> &primarySource,
                               const AtomicComputationPtr &finalAtomicComputation,
-                              const Handle<PDBSourcePageSetSpec> &source,
                               const Handle<PDBSinkPageSetSpec> &hashedToSend,
                               const Handle<PDBSourcePageSetSpec> &hashedToRecv,
                               const Handle<PDBSinkPageSetSpec> &sink,
-                              const Handle<Vector<pdb::Handle<PDBSourcePageSetSpec>>> &secondarySources,
-                              const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize,
-                              bool swapLHSandRHS);
+                              const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
+                              const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize);
 
   bool setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) override;
 

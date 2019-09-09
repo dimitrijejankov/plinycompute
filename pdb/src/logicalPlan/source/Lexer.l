@@ -76,6 +76,8 @@
 
 [Ff][Ll][Aa][Tt][Tt][Ee][Nn]    return FLATTEN;
 
+[Uu][Nn][Ii][Oo][Nn]    return UNION;
+
 [Ss][Cc][Aa][Nn]		return SCAN;
 
 [Aa][Gg][Gg][Rr][Ee][Gg][Aa][Tt][Ee]	return AGG;
