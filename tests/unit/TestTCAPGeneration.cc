@@ -158,26 +158,62 @@ TEST(TestTcapGeneration, Test5) {
   const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
 
   // create all of the computation objects
-  Handle<Computation> myScanSet1 = makeObject<ReadInt>("chris_db", "input_set1");
-  Handle<Computation> myScanSet2 = makeObject<ReadInt>("chris_db", "input_set2");
-  Handle<Computation> myQuery = makeObject<IntUnion>();
-  myQuery->setInput(0, myScanSet1);
-  myQuery->setInput(1, myScanSet2);
-  Handle<Computation> myWriteSet = makeObject<IntWriter>("chris_db", "outputSet");
-  myWriteSet->setInput(myQuery);
+  Handle <Computation> readA = makeObject <MatrixScanner>("myData", "A");
+  Handle <Computation> readB = makeObject <MatrixScanner>("myData", "B");
+  Handle <Computation> join = makeObject <MatrixMultiplyJoin>();
+  join->setInput(0, readA);
+  join->setInput(1, readB);
+  Handle<Computation> myAggregation = makeObject<MatrixMultiplyAggregation>();
+  myAggregation->setInput(join);
 
-  // the query graph has only the aggregation
-  std::vector<Handle<Computation>> queryGraph = { myWriteSet };
 
-  // create the graph analyzer
-  pdb::QueryGraphAnalyzer queryAnalyzer(queryGraph);
+  Handle <Computation> readC = makeObject <MatrixScanner>("myData", "A");
+  Handle <Computation> join2 = makeObject <MatrixMultiplyJoin>();
+  join2->setInput(0, readC);
+  join2->setInput(1, myAggregation);
 
-  // here is the list of computations
-  Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
+  Handle<Computation> myAggregation2 = makeObject<MatrixMultiplyAggregation>();
+  myAggregation2->setInput(join2);
 
-  // parse the tcap string
-  std::cout << '\n';
-  std::string tcapString = queryAnalyzer.parseTCAPString(*myComputations);
+  Handle<Computation> writeSet = makeObject<MatrixWriter>("myData", "C");
+  writeSet->setInput(myAggregation2);
 
-  std::cout << tcapString << std::endl;
+
+
+  {
+    // the query graph has only the aggregation
+    std::vector<Handle<Computation>> sinks = { join2 };
+
+    // all the sources we have
+    std::vector<std::tuple<uint64_t, std::string, Handle<Computation>>> sources = { {0, "pageSet", myAggregation} };
+
+    // create the graph analyzer
+    pdb::QueryGraphAnalyzer queryAnalyzer(sources, sinks);
+
+    // here is the list of computations
+    Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
+
+    // parse the tcap string
+    std::cout << '\n';
+    std::string tcapString = queryAnalyzer.parseTCAPForKeys(*myComputations);
+    std::cout << tcapString << std::endl;
+  }
+
+  std::cout << "Real\n";
+
+  {
+    // the query graph has only the aggregation
+    std::vector<Handle<Computation>> sinks = { writeSet };
+
+    // create the graph analyzer
+    pdb::QueryGraphAnalyzer queryAnalyzer(sinks);
+
+    // here is the list of computations
+    Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
+
+    // parse the tcap string
+    std::cout << '\n';
+    std::string tcapString = queryAnalyzer.parseTCAPString(*myComputations);
+    std::cout << tcapString << std::endl;
+  }
 }

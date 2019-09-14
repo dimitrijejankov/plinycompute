@@ -84,9 +84,9 @@ class AggregateComp : public AggregateCompBase {
 
   std::string toTCAPStringForKeys(std::vector<InputTupleSetSpecifier> inputTupleSets, int computationLabel) override {
 
-    // if there is not input tuple set for the keys we are scanning
-    if (inputTupleSets.empty()) {
-      return "";
+    // if a aggregation is a source we generate a SCAN so that we can refer to this computation and use it's page set
+    if(isSource) {
+      return std::move(toSourceTCAP(computationLabel));
     }
 
     // this is going to have info about the inputs

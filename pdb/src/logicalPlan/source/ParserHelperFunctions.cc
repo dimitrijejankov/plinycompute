@@ -180,28 +180,38 @@ struct AtomicComputation *makeUnionWithList (struct TupleSpec *output, struct Tu
 }
 
 struct AtomicComputation *makeScanWithList (struct TupleSpec *output, char *dbName, char *setName, char *nodeName, struct KeyValueList *useMe) {
-	AtomicComputationPtr returnVal = std :: make_shared <ScanSet> (*output, std :: string (dbName), std :: string (setName), std :: string (nodeName), *useMe);
-	returnVal->setShared (returnVal);
-	free (dbName);
-	free (setName);
-	free (nodeName);
+  AtomicComputationPtr returnVal = std :: make_shared <ScanSet> (*output, std :: string (dbName != nullptr ? dbName : ""), std :: string (setName != nullptr ? setName : ""), std :: string (nodeName), *useMe);
+  returnVal->setShared (returnVal);
+  free (dbName);
+  free (setName);
+  free (nodeName);
   delete useMe;
-	delete output;
-	return returnVal.get ();
+  delete output;
+  return returnVal.get ();
 }
 
-struct AtomicComputation *makeOutputWithList (struct TupleSpec *output, struct TupleSpec *input,
-	char *dbName, char *setName, char *nodeName, struct KeyValueList *useMe) {
-	AtomicComputationPtr returnVal = std :: make_shared <WriteSet> (*input, *output, *input,
-		std :: string (dbName), std :: string (setName), std :: string (nodeName), *useMe);
-	returnVal->setShared (returnVal);
-	free (dbName);
-	free (setName);
-	free (nodeName);
+struct AtomicComputation *makeOutputWithList (struct TupleSpec *output,
+                                              struct TupleSpec *input,
+                                              char *dbName,
+                                              char *setName,
+                                              char *nodeName,
+                                              struct KeyValueList *useMe) {
+
+  AtomicComputationPtr returnVal = std :: make_shared <WriteSet> (*input,
+                                                                  *output,
+                                                                  *input,
+                                                                  std::string(dbName),
+                                                                  std::string(setName),
+                                                                  std::string (nodeName),
+                                                                  *useMe);
+  returnVal->setShared (returnVal);
+  free (dbName);
+  free (setName);
+  free (nodeName);
   delete useMe;
-	delete output;
-	delete input;
-	return returnVal.get ();
+  delete output;
+  delete input;
+  return returnVal.get ();
 }
 
 

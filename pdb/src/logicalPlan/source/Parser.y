@@ -162,7 +162,10 @@ AtomicComputation: TupleSpec GETS APPLY '(' TupleSpec ',' TupleSpec ',' STRING '
 	$$ = makeScanWithList ($1, $5, $7, $9, $11);
 }
 
-
+| TupleSpec GETS SCAN '(' STRING ',' DictionarySpec ')'
+{
+	$$ = makeScanWithList ($1, nullptr, nullptr, $5, $7);
+}
 
 // Atomic Computation: Output:
 | TupleSpec GETS OUTPUT '(' TupleSpec ',' STRING ',' STRING ',' STRING ')'

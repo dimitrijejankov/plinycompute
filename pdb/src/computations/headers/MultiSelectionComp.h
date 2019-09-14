@@ -96,10 +96,12 @@ class MultiSelectionComp : public Computation {
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
                            int computationLabel) override {
 
-    if (inputTupleSets.empty()) {
-      return "";
+    // if a multi-selection is a source we generate a SCAN so that we can refer to this computation and use it's page set
+    if(isSource) {
+      return std::move(toSourceTCAP(computationLabel));
     }
 
+    // get the input tuple set
     InputTupleSetSpecifier inputTupleSet = inputTupleSets[0];
 
     // make the inputs

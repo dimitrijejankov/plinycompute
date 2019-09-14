@@ -49,7 +49,11 @@ class QueryGraphAnalyzer {
 public:
 
   // constructor
-  explicit QueryGraphAnalyzer(const vector<Handle < Computation>> &queryGraph);
+  explicit QueryGraphAnalyzer(const vector<Handle<Computation>> &sinks);
+
+  // the constructor that explicitly specifies sources
+  explicit QueryGraphAnalyzer(const std::vector<std::tuple<uint64_t, std::string, Handle<Computation>>> &sources,
+                              const vector<Handle<Computation>> &sinks);
 
   // to convert user query to a tcap string
   std::string parseTCAPString(Vector<Handle<Computation>> &computations);
@@ -59,11 +63,17 @@ public:
 
 private:
 
+  // mark all the source computations as sources
+  void markSources();
+
   // to clear all traversal marks
   void clearGraph();
 
   // user query graph
-  std::vector<Handle<Computation>> queryGraph;
+  std::vector<Handle<Computation>> sinks;
+
+  // the sources if explicitly specified
+  std::vector<std::tuple<uint64_t, std::string, Handle<Computation>>> sources;
 };
 }
 

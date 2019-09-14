@@ -147,10 +147,8 @@ class SetScanner : public Computation {
    */
   template<class T = OutputClass>
   typename std::enable_if_t<hasGetKey<T>::value and hasGetValue<T>::value, pdb::ComputeSourcePtr>
-  _getComputeSource(const PDBAbstractPageSetPtr &pageSet,
-                                          size_t chunkSize,
-                                          uint64_t workerID,
-                                          std::map<ComputeInfoType, ComputeInfoPtr> &params) {
+  _getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID,
+                    std::map<ComputeInfoType, ComputeInfoPtr> &params) {
 
     // declare upfront the key and the value types
     using Value = typename std::remove_reference<decltype(std::declval<T>().getValue())>::type;
@@ -185,10 +183,9 @@ class SetScanner : public Computation {
    */
   template<class T = OutputClass>
   typename std::enable_if_t<!hasGetKey<T>::value or !hasGetValue<T>::value, pdb::ComputeSourcePtr>
-   _getComputeSource(const PDBAbstractPageSetPtr &pageSet,
-                                          size_t chunkSize,
-                                          uint64_t workerID,
-                                          std::map<ComputeInfoType, ComputeInfoPtr> &params) {
+   _getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID,
+                     std::map<ComputeInfoType, ComputeInfoPtr> &params) {
+
     auto sourceSetInfo = std::dynamic_pointer_cast<SourceSetArg>(params[ComputeInfoType::SOURCE_SET_INFO]);
 
     // check if we actually have it

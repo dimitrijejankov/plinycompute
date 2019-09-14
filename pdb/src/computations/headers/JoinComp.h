@@ -232,6 +232,11 @@ public:
 
   std::string toTCAPStringForKeys(std::vector<InputTupleSetSpecifier> inputTupleSets, int computationLabel) override {
 
+    // if a join is a source we generate a SCAN so that we can refer to this computation and use it's page set
+    if(isSource) {
+      return std::move(toSourceTCAP(computationLabel));
+    }
+
     // this is going to have info about the inputs
     MultiInputsBase multiInputsBase(this->getNumInputs());
 
@@ -300,6 +305,11 @@ public:
   }
 
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets, int computationLabel) override {
+
+    // if a join is a source we generate a SCAN so that we can refer to this computation and use it's page set
+    if(isSource) {
+      return std::move(toSourceTCAP(computationLabel));
+    }
 
     if (inputTupleSets.size() != getNumInputs()) {
       std::cout << "ERROR: inputTupleSet size is " << inputTupleSets.size() << " and not equivalent with Join's inputs " << getNumInputs() << std::endl;

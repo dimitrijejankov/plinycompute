@@ -16,8 +16,7 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef COMPUTATION_H
-#define COMPUTATION_H
+#pragma once
 
 #include "Object.h"
 #include "Lambda.h"
@@ -28,6 +27,7 @@
 #include "PDBString.h"
 #include "PDBAbstractPageSet.h"
 #include <map>
+#include <physicalAlgorithms/PDBSourcePageSetSpec.h>
 
 namespace pdb {
 
@@ -73,11 +73,9 @@ public:
   virtual std::string getComputationType() = 0;
 
   //JiaNote: below function returns a TCAP string for this Computation
-  virtual std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
-                                   int computationLabel) = 0;
+  virtual std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets, int computationLabel) = 0;
 
-  virtual std::string toTCAPStringForKeys(std::vector<InputTupleSetSpecifier> inputTupleSets,
-                                          int computationLabel) {
+  virtual std::string toTCAPStringForKeys(std::vector<InputTupleSetSpecifier> inputTupleSets, int computationLabel) {
     throw std::runtime_error("This computation does not have a key only version of the TCAP.");
   };
 
@@ -145,7 +143,7 @@ public:
   }
 
   /**
-   * this is implemented by the actual computation object... as the name implies, it is used
+   * This is implemented by the actual computation object... as the name implies, it is used
    * to extract the lambdas from the computation
    * @param returnVal
    */
@@ -163,10 +161,9 @@ public:
                         const std::vector<InputTupleSetSpecifier>& inputTupleSets,
                         int &computationLabel) {
 
-    // so if the computation is not a scan set, meaning it has at least one input process the children first
-    // go through each child and traverse them
+    // so if the computation is not a source, go through each child computations and traverse them fist
     std::vector<InputTupleSetSpecifier> inputTupleSetsForMe;
-    for (int i = 0; i < getNumOfRegisteredInputs(); i++) {
+    for (int i = 0; i < getNumOfRegisteredInputs() && !isSource; i++) {
 
       // get the child computation
       Handle<Computation> childComp = (*inputs)[i];
@@ -204,10 +201,9 @@ public:
                                const std::vector<InputTupleSetSpecifier>& inputTupleSets,
                                int &computationLabel) {
 
-    // so if the computation is not a scan set, meaning it has at least one input process the children first
-    // go through each child and traverse them
+    // so if the computation is not a source, go through each child computations and traverse them fist
     std::vector<InputTupleSetSpecifier> inputTupleSetsForMe;
-    for (int i = 0; i < getNumOfRegisteredInputs(); i++) {
+    for (int i = 0; i < getNumOfRegisteredInputs() && !isSource; i++) {
 
       // get the child computation
       Handle<Computation> childComp = (*inputs)[i];
@@ -241,17 +237,75 @@ public:
   }
 
   /**
-   *
+   * Generates a SCAN for a page set, essentially we don't specify a database and set
+   * @param computationLabel - the label of the computation the scan belongs to
+   * @return the generated TCAP
+   */
+  std::string toSourceTCAP(int computationLabel) {
+
+
+    // the template we are going to use to create the TCAP string for this ScanUserSet
+    mustache::mustache scanSetTemplate{"inputDataFor{{computationType}}_{{computationLabel}}(in{{computationLabel}})"
+                                       " <= SCAN ('{{computationType}}_{{computationLabel}}', [('pageSetID', '{{pageSetInteger}}:{{pageSetLabel}}')])\n"};
+
+    mustache::data scanSetData;
+    scanSetData.set("computationType", getComputationType());
+    scanSetData.set("computationLabel", std::to_string(computationLabel));
+    scanSetData.set("pageSetInteger", std::to_string(pageSetIdentifier.first));
+    scanSetData.set("pageSetLabel", (std::string) pageSetIdentifier.second);
+
+    // output column name
+    mustache::mustache outputColumnNameTemplate{"in{{computationLabel}}"};
+
+    //  set the output column name
+    this->outputColumnToApply = outputColumnNameTemplate.render(scanSetData);
+    std::vector<std::string> outputColumnNames = { this->outputColumnToApply };
+
+    // output tuple set name template
+    mustache::mustache outputTupleSetTemplate{"inputDataFor{{computationType}}_{{computationLabel}}"};
+    this->outputTupleSetName = outputTupleSetTemplate.render(scanSetData);
+
+    // update the state of the computation
+    this->traversed = true;
+
+    // return the TCAP string
+    return std::move(scanSetTemplate.render(scanSetData));
+  }
+
+  /**
+   * Clears the whole computation graph from any state it might have created during the traversal
    */
   void clearGraph() {
 
     // mark the we are not traversed
     traversed = false;
 
+    // mark that we are not a source
+    isSource = false;
+
     // clear all children
     for (int i = 0; i < getNumOfRegisteredInputs(); i++) {
       (*inputs)[i]->clearGraph();
     }
+  }
+
+  /**
+   *
+   * @param compID
+   * @param pageSetName
+   */
+  void setPageSet(uint64_t compID, std::string &pageSetName) {
+
+    // set the page set identifier
+    pageSetIdentifier.first = compID;
+    pageSetIdentifier.second = pageSetName;
+  }
+
+  /**
+   * Mark this computation as a source
+   */
+  void markSource() {
+    isSource = true;
   }
 
 protected:
@@ -262,22 +316,39 @@ protected:
   Handle<Vector<Handle<Computation>>> inputs = nullptr;
 
   /**
-   *
+   * Did we traverse the computation
    */
   bool traversed = false;
 
   /**
-   *
+   * Is this computation a source
+   */
+  bool isSource;
+
+  /**
+   * The last tuple set produced by this computation
    */
   String outputTupleSetName = "";
 
   /**
-   *
+   * The column this computation is outputting that is going to be used by the next computation
    */
   String outputColumnToApply = "";
 
+  /**
+   * The name of the database the set we are scanning belongs to
+   */
+  pdb::String dbName;
+
+  /**
+   * The name of the set we are scanning
+   */
+  pdb::String setName;
+
+  /**
+   * The identifier of the page set
+   */
+  std::pair<size_t, pdb::String> pageSetIdentifier;
 };
 
 }
-
-#endif

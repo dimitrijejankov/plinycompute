@@ -80,13 +80,14 @@ class SelectionComp : public Computation {
   }
 
   // below function implements the interface for parsing computation into a TCAP string
-  std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
-                           int computationLabel) override {
+  std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets, int computationLabel) override {
 
-    if (inputTupleSets.empty()) {
-      return "";
+    // if a selection is a source we generate a SCAN so that we can refer to this computation and use it's page set
+    if(isSource) {
+      return std::move(toSourceTCAP(computationLabel));
     }
 
+    // get the input tuple set
     InputTupleSetSpecifier inputTupleSet = inputTupleSets[0];
 
     // make the inputs

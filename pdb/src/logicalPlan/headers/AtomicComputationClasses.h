@@ -465,8 +465,9 @@ struct ApplyFilter : public AtomicComputation {
 // this is a computation that aggregates a tuple set
 struct ApplyAgg : public AtomicComputation {
 
- public:
-  ~ApplyAgg() {}
+public:
+
+  ~ApplyAgg() override = default;
 
   ApplyAgg(TupleSpec &input, TupleSpec &output, TupleSpec &projection, std::string nodeName)
       : AtomicComputation(input, output, projection, nodeName) {}
@@ -511,18 +512,18 @@ struct ScanSet : public AtomicComputation {
 
   std::string dbName;
   std::string setName;
+public:
 
- public:
-  ~ScanSet() {}
+  ~ScanSet() override = default;
 
-  ScanSet(TupleSpec &output, std::string dbName, std::string setName, std::string nodeName)
-      : AtomicComputation(TupleSpec(), output, TupleSpec(), nodeName),
-        dbName(dbName),
-        setName(setName) {}
+  ScanSet(TupleSpec &output,
+          std::string dbName,
+          std::string setName,
+          const std::string &nodeName) : AtomicComputation(TupleSpec(), output, TupleSpec(), nodeName), dbName(std::move(dbName)), setName(std::move(setName)) {}
 
   // ss107: New Constructor:
-  ScanSet(TupleSpec &output, std::string dbName, std::string setName, std::string nodeName, KeyValueList &useMe) :
-      AtomicComputation(TupleSpec(), output, TupleSpec(), nodeName), dbName(dbName), setName(setName) {
+  ScanSet(TupleSpec &output, std::string dbName, std::string setName, const std::string &nodeName, KeyValueList &useMe) :
+      AtomicComputation(TupleSpec(), output, TupleSpec(), nodeName), dbName(std::move(dbName)), setName(std::move(setName)) {
 
     // set the key value pairs
     keyValuePairs = useMe.getKeyValuePairs();

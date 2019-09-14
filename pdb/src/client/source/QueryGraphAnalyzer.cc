@@ -15,8 +15,6 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
-#ifndef QUERY_GRAPH_ANALYZER_SOURCE
-#define QUERY_GRAPH_ANALYZER_SOURCE
 
 #include "QueryGraphAnalyzer.h"
 #include "InputTupleSetSpecifier.h"
@@ -25,11 +23,25 @@
 
 namespace pdb {
 
-QueryGraphAnalyzer::QueryGraphAnalyzer(const vector<Handle<Computation>> &queryGraph) {
+QueryGraphAnalyzer::QueryGraphAnalyzer(const vector<Handle<Computation>> &sinks) {
 
-  // move the computations
-  for (const auto &i : queryGraph) {
-    this->queryGraph.push_back(i);
+  // move the sinks
+  for (const auto &i : sinks) {
+    this->sinks.push_back(i);
+  }
+}
+
+QueryGraphAnalyzer::QueryGraphAnalyzer(const std::vector<std::tuple<uint64_t, std::string, Handle<Computation>>> &sources,
+                                       const vector<Handle<Computation>> &sinks) {
+
+  // move the sinks
+  for (const auto &s : sinks) {
+    this->sinks.push_back(s);
+  }
+
+  // move the sources
+  for (const auto &s : sources) {
+    this->sources.push_back(s);
   }
 }
 
@@ -38,6 +50,9 @@ std::string QueryGraphAnalyzer::parseTCAPString(Vector<Handle<Computation>> &com
   // clear all the markers
   clearGraph();
 
+  // mark all the sources
+  markSources();
+
   // we start with the label 0 for the computation
   int computationLabel = 0;
 
@@ -45,15 +60,15 @@ std::string QueryGraphAnalyzer::parseTCAPString(Vector<Handle<Computation>> &com
   std::vector<std::string> TCAPStrings;
 
   // go through each sink
-  for (int i = 0; i < this->queryGraph.size(); i++) {
+  for (int i = 0; i < this->sinks.size(); i++) {
 
     // traverse the graph, this basically adds all the visited child computations of the graph in the order they are labeled
     // and gives us the partial TCAP strings
     std::vector<InputTupleSetSpecifier> inputTupleSets;
-    queryGraph[i]->traverse(TCAPStrings, computations, inputTupleSets, computationLabel);
+    sinks[i]->traverse(TCAPStrings, computations, inputTupleSets, computationLabel);
 
     // add the root computation
-    computations.push_back(queryGraph[i]);
+    computations.push_back(sinks[i]);
   }
 
   // merge all the strings
@@ -66,10 +81,27 @@ std::string QueryGraphAnalyzer::parseTCAPString(Vector<Handle<Computation>> &com
   return TCAPStringToReturn;
 }
 
+void QueryGraphAnalyzer::markSources() {
+
+  // mark some computations as sources if necessary
+  for (int i = 0; i < this->sources.size(); i++) {
+
+    // get the source
+    auto &source = std::get<2>(sources[i]);
+
+    // mark the computation as a source and set an appropriate page set
+    source->markSource();
+    source->setPageSet(std::get<0>(sources[i]), std::get<1>(sources[i]));
+  }
+}
+
 std::string QueryGraphAnalyzer::parseTCAPForKeys(Vector<Handle<Computation>> &computations) {
 
   // clear all the markers
   clearGraph();
+
+  // mark all the sources
+  markSources();
 
   // we start with the label 0 for the computation
   int computationLabel = 0;
@@ -78,15 +110,15 @@ std::string QueryGraphAnalyzer::parseTCAPForKeys(Vector<Handle<Computation>> &co
   std::vector<std::string> TCAPStrings;
 
   // go through each sink
-  for (int i = 0; i < this->queryGraph.size(); i++) {
+  for (int i = 0; i < this->sinks.size(); i++) {
 
     // traverse the graph, this basically adds all the visited child computations of the graph in the order they are labeled
     // and gives us the partial TCAP strings
     std::vector<InputTupleSetSpecifier> inputTupleSets;
-    queryGraph[i]->traverseForKeys(TCAPStrings, computations, inputTupleSets, computationLabel);
+    sinks[i]->traverseForKeys(TCAPStrings, computations, inputTupleSets, computationLabel);
 
     // add the root computation
-    computations.push_back(queryGraph[i]);
+    computations.push_back(sinks[i]);
   }
 
   // merge all the strings
@@ -102,12 +134,10 @@ std::string QueryGraphAnalyzer::parseTCAPForKeys(Vector<Handle<Computation>> &co
 void QueryGraphAnalyzer::clearGraph() {
 
   // go through each sink and clear
-  for (const auto &sink : this->queryGraph) {
+  for (const auto &sink : this->sinks) {
     sink->clearGraph();
   }
 }
 
 
 }
-
-#endif
