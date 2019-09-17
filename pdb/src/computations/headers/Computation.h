@@ -69,6 +69,13 @@ public:
                                         std::map<ComputeInfoType, ComputeInfoPtr> &params,
                                         pdb::LogicalPlanPtr &plan) { return nullptr; }
 
+  virtual ComputeSinkPtr getKeySink(TupleSpec &consumeMe,
+                                    TupleSpec &whichAttsToOpOn,
+                                    TupleSpec &projection,
+                                    uint64_t numberOfPartitions,
+                                    std::map<ComputeInfoType, ComputeInfoPtr> &params,
+                                    pdb::LogicalPlanPtr &plan) { return nullptr; }
+
   // returns the type of this Computation
   virtual std::string getComputationType() = 0;
 

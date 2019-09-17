@@ -165,30 +165,15 @@ TEST(TestTcapGeneration, Test5) {
   join->setInput(1, readB);
   Handle<Computation> myAggregation = makeObject<MatrixMultiplyAggregation>();
   myAggregation->setInput(join);
-
-
-  Handle <Computation> readC = makeObject <MatrixScanner>("myData", "A");
-  Handle <Computation> join2 = makeObject <MatrixMultiplyJoin>();
-  join2->setInput(0, readC);
-  join2->setInput(1, myAggregation);
-
-  Handle<Computation> myAggregation2 = makeObject<MatrixMultiplyAggregation>();
-  myAggregation2->setInput(join2);
-
   Handle<Computation> writeSet = makeObject<MatrixWriter>("myData", "C");
-  writeSet->setInput(myAggregation2);
-
-
+  writeSet->setInput(myAggregation);
 
   {
     // the query graph has only the aggregation
-    std::vector<Handle<Computation>> sinks = { join2 };
-
-    // all the sources we have
-    std::vector<std::tuple<uint64_t, std::string, Handle<Computation>>> sources = { {0, "pageSet", myAggregation} };
+    std::vector<Handle<Computation>> sinks = { myAggregation };
 
     // create the graph analyzer
-    pdb::QueryGraphAnalyzer queryAnalyzer(sources, sinks);
+    pdb::QueryGraphAnalyzer queryAnalyzer(sinks);
 
     // here is the list of computations
     Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();

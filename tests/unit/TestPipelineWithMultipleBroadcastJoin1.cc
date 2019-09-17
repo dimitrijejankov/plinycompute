@@ -37,6 +37,7 @@
 #include <gmock/gmock.h>
 #include <PDBBufferManagerImpl.h>
 #include <processors/BroadcastJoinProcessor.h>
+#include <processors/NullProcessor.h>
 
 #include "SillyJoin.h"
 #include "SillyReadOfB.h"

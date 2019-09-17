@@ -7,6 +7,7 @@
 #include <GenericWork.h>
 #include <PDBCatalogClient.h>
 #include <physicalAlgorithms/PDBStraightPipeAlgorithm.h>
+#include <processors/NullProcessor.h>
 
 #include "physicalAlgorithms/PDBStraightPipeAlgorithm.h"
 #include "ExJob.h"
