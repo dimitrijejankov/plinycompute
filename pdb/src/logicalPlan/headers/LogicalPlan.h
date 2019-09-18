@@ -48,15 +48,23 @@ struct LogicalPlan {
   // this allows one to access a particular Computation in the Logical Plan
   std::map<std::string, pdb::ComputationNode> allConstituentComputations;
 
+  // this tells us if this plan is key only
+  bool isKeyOnly = false;
+
  public:
 
   LogicalPlan(const std::string &tcap, Vector<Handle<Computation>> &computations);
+
+  LogicalPlan(const std::string &tcap, Vector<Handle<Computation>> &computations, bool isKeyOnly);
 
   // constructor
   LogicalPlan(AtomicComputationList &computationsIn, pdb::Vector<pdb::Handle<pdb::Computation>> &allComputations);
 
   // the initialization
   void init(AtomicComputationList &computationsIn, pdb::Vector<pdb::Handle<pdb::Computation>> &allComputations);
+
+  // the initialization with tcap string
+  void init(const std::string &tcap, Vector<Handle<Computation>> &allComputations);
 
   // getter for this guy's AtomicComputationList
   AtomicComputationList &getComputations() {

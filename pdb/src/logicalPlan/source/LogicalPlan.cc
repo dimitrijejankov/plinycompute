@@ -5,6 +5,29 @@
 namespace pdb {
 
 LogicalPlan::LogicalPlan(const std::string &tcap, Vector<Handle<Computation>> &computations)  {
+  init(tcap, computations);
+}
+
+LogicalPlan::LogicalPlan(const std::string &tcap, Vector<Handle<Computation>> &computations, bool isKeyOnly) : isKeyOnly(isKeyOnly) {
+  init(tcap, computations);
+}
+
+LogicalPlan::LogicalPlan(AtomicComputationList &computationsIn, pdb::Vector<pdb::Handle<pdb::Computation>> &allComputations) {
+  init(computationsIn, allComputations);
+}
+
+void LogicalPlan::init(AtomicComputationList &computationsIn, pdb::Vector<pdb::Handle<pdb::Computation>> &allComputations) {
+  computations = computationsIn;
+  for (int i = 0; i < allComputations.size(); i++) {
+    std::string compType = allComputations[i]->getComputationType();
+    compType += "_";
+    compType += std::to_string(i);
+    pdb::ComputationNode temp(allComputations[i], isKeyOnly);
+    allConstituentComputations[compType] = temp;
+  }
+}
+
+void LogicalPlan::init(const std::string &tcap, Vector<Handle<Computation>> &allComputations) {
 
   // get the string to compile
   std::string myLogicalPlan = tcap;
@@ -28,26 +51,10 @@ LogicalPlan::LogicalPlan(const std::string &tcap, Vector<Handle<Computation>> &c
     exit(1);
   }
 
-  // this is the logical plan to return
-  init(*myResult, computations);
+  // copy all the computations
+  init(*myResult, allComputations);
 
   delete myResult;
-}
-
-LogicalPlan::LogicalPlan(AtomicComputationList &computationsIn,
-                         pdb::Vector<pdb::Handle<pdb::Computation>> &allComputations) {
-  init(computationsIn, allComputations);
-}
-
-void LogicalPlan::init(AtomicComputationList &computationsIn, pdb::Vector<pdb::Handle<pdb::Computation>> &allComputations) {
-  computations = computationsIn;
-  for (int i = 0; i < allComputations.size(); i++) {
-    std::string compType = allComputations[i]->getComputationType();
-    compType += "_";
-    compType += std::to_string(i);
-    pdb::ComputationNode temp(allComputations[i]);
-    allConstituentComputations[compType] = temp;
-  }
 }
 
 }

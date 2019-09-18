@@ -54,6 +54,20 @@ public:
     projectionLambda.extractLambdas(returnVal, startLabel);
   }
 
+  void extractKeyLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
+
+    // get the selection lambda
+    Lambda<bool> selectionLambda = callGetKeySelection<Derived>(*static_cast<Derived*>(this));
+    auto projectionLambda = callGetKeyProjectionWithKey<Derived>(*static_cast<Derived*>(this));
+
+    // the label we are started labeling
+    int32_t startLabel = 0;
+
+    // extract the lambdas
+    selectionLambda.extractLambdas(returnVal, startLabel);
+    projectionLambda.extractLambdas(returnVal, startLabel);
+  }
+
   // return the output type
   std::string getOutputType() override {
     return getTypeName<Out>();
@@ -102,6 +116,20 @@ public:
     std::vector<int> whereEveryoneGoes;
     JoinTuplePtr correctJoinTuple = findJoinTuple(projection, plan, whereEveryoneGoes);
     return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+  }
+
+  // this gets the key sink
+  ComputeSinkPtr getKeySink(TupleSpec &consumeMe,
+                            TupleSpec &attsToOpOn,
+                            TupleSpec &projection,
+                            uint64_t numPartitions,
+                            std::map<ComputeInfoType, ComputeInfoPtr> &params,
+                            pdb::LogicalPlanPtr &plan) override {
+
+    // figure out the right join tuple
+    std::vector<int> whereEveryoneGoes;
+    JoinTuplePtr correctJoinTuple = findJoinTuple(projection, plan, whereEveryoneGoes);
+    return correctJoinTuple->getKeySink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
   }
 
   ComputeSinkPtr getComputeMerger(TupleSpec &consumeMe, TupleSpec &attsToOpOn, TupleSpec &projection,

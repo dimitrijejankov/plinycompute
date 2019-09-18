@@ -59,6 +59,18 @@ class AggregateComp : public AggregateCompBase {
     valueLambda.extractLambdas(returnVal, startLabel);
   }
 
+  void extractKeyLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
+
+    Handle<InputClass> checkMe = nullptr;
+    Lambda<KeyClass> keyLambda = callGetKeyProjectionWithKey<Derived, InputClass, KeyClass>((Derived*) this);
+
+    // the label we are started labeling
+    int32_t startLabel = 0;
+
+    // extract the lambdas
+    keyLambda.extractLambdas(returnVal, startLabel);
+  }
+
   // this is an aggregation comp
   std::string getComputationType() override {
     return std::string("AggregationComp");

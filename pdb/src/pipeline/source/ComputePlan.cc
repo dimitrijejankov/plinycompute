@@ -142,12 +142,8 @@ ComputeSourcePtr ComputePlan::getComputeSource(AtomicComputationPtr &sourceAtomi
   }
 }
 
-
-ComputeSinkPtr ComputePlan::getComputeSink(AtomicComputationPtr &targetAtomicComp,
-                                           std::string& targetComputationName,
-                                           std::map<ComputeInfoType, ComputeInfoPtr> &params,
-                                           size_t numNodes,
-                                           size_t numProcessingThreads) {
+std::tuple<TupleSpec, TupleSpec, TupleSpec> ComputePlan::getSinkSpecifier(AtomicComputationPtr &targetAtomicComp,
+                                                                          std::string &targetComputationName) {
 
   // get a reference to the computations of the logical plan
   auto &allComps = myPlan->getComputations();
@@ -164,8 +160,6 @@ ComputeSinkPtr ComputePlan::getComputeSink(AtomicComputationPtr &targetAtomicCom
   for (auto &a : consumers) {
     if (a->getComputationName() == targetComputationName) {
 
-      std::cout << "targetComputationName was " << targetComputationName << "\n";
-
       // we found the consuming computation
       if (targetSpec == a->getInput()) {
         targetProjection = a->getProjection();
@@ -176,39 +170,43 @@ ComputeSinkPtr ComputePlan::getComputeSink(AtomicComputationPtr &targetAtomicCom
         }
 
         targetAttsToOpOn = a->getInput();
-
-        std::cout << "Building sink for: " << targetSpec << " " << targetAttsToOpOn << " " << targetProjection << "\n";
-
         break;
       }
 
       // the only way that the input to this guy does not match targetSpec is if he is a join, which has two inputs
       if (a->getAtomicComputationType() != std::string("JoinSets")) {
-        std::cout << "This is bad... is the target computation name correct??";
-        std::cout << "Didn't find a JoinSets, target was " << targetSpec.getSetName() << "\n";
         exit(1);
       }
 
       // get the join and make sure it matches
       auto *myGuy = (ApplyJoin *) a.get();
       if (!(myGuy->getRightInput() == targetSpec)) {
-        std::cout << "This is bad... is the target computation name correct??";
-        std::cout << "Find a JoinSets, target was " << targetSpec.getSetName() << "\n";
         exit(1);
       }
 
-      std::cout << "Building sink for: " << targetSpec << " " << myGuy->getRightProjection() << " "
-                << myGuy->getRightInput() << "\n";
       targetProjection = myGuy->getRightProjection();
       targetAttsToOpOn = myGuy->getRightInput();
-      std::cout << "Building sink for: " << targetSpec << " " << targetAttsToOpOn << " " << targetProjection << "\n";
     }
   }
 
+  // return the result containing (targetSpec, targetAttsToOpOn, targetProjection)
+  return std::move(make_tuple(targetSpec, targetAttsToOpOn, targetProjection));
+}
+
+ComputeSinkPtr ComputePlan::getComputeSink(AtomicComputationPtr &targetAtomicComp,
+                                           std::string& targetComputationName,
+                                           std::map<ComputeInfoType, ComputeInfoPtr> &params,
+                                           size_t numNodes,
+                                           size_t numProcessingThreads) {
+
+
+  // returns the input specifier
+  auto specifier = getSinkSpecifier(targetAtomicComp, targetComputationName);
+
   // now we have the list of computations, and so it is time to build the pipeline... start by building a compute sink
-  return myPlan->getNode(targetComputationName).getComputation().getComputeSink(targetSpec,
-                                                                                targetAttsToOpOn,
-                                                                                targetProjection,
+  return myPlan->getNode(targetComputationName).getComputation().getComputeSink(std::get<0>(specifier),
+                                                                                std::get<1>(specifier),
+                                                                                std::get<2>(specifier),
                                                                                 numProcessingThreads * numNodes,
                                                                                 params,
                                                                                 myPlan);
@@ -218,7 +216,7 @@ PipelinePtr ComputePlan::assemblePipeline(const std::string& sourceTupleSetName,
                                           const PDBAnonymousPageSetPtr &outputPageSet,
                                           ComputeSourcePtr &computeSource,
                                           ComputeSinkPtr &computeSink,
-                                          PageProcessorPtr &processor,
+                                          const PageProcessorPtr &processor,
                                           std::map<ComputeInfoType, ComputeInfoPtr> &params,
                                           std::vector<AtomicComputationPtr> &pipelineComputations,
                                           size_t numNodes,

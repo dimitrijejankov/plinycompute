@@ -167,7 +167,7 @@ struct HashLeft : public AtomicComputation {
     // application goes)
     // then we asked for it
     if (counter == getOutput().getAtts().size() - 1) {
-      std::cout << "Why are you trying to find the origin of a hash value??\n";
+      std::cout << "Why are you trying to find the origin of a hash value?? " << attName <<" \n";
       exit(1);
     }
 

@@ -38,6 +38,11 @@ class JoinTupleSingleton {
                                  std::vector<int> whereEveryoneGoes,
                                  uint64_t numPartitions) = 0;
 
+  virtual ComputeSinkPtr getKeySink(TupleSpec &consumeMe,
+                                    TupleSpec &attsToOpOn,
+                                    TupleSpec &projection,
+                                    std::vector<int> whereEveryoneGoes,
+                                    uint64_t numPartitions) = 0;
 
   virtual RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
                                                               TupleSpec &hashSchema,
@@ -106,6 +111,31 @@ class JoinSingleton : public JoinTupleSingleton {
     return std::make_shared<JoinSink<HoldMe>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
   }
 
+
+  ComputeSinkPtr getKeySink(TupleSpec &consumeMe,
+                            TupleSpec &attsToOpOn,
+                            TupleSpec &projection,
+                            std::vector<int> whereEveryoneGoes,
+                            uint64_t numPartitions) override {
+    return std::move(_getKeySink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions));
+  }
+
+  //template <typename T = HoldMe, typename Key = decltype(((T*) nullptr)->getKey())>
+  ComputeSinkPtr _getKeySink(TupleSpec &consumeMe,
+                             TupleSpec &attsToOpOn,
+                             TupleSpec &projection,
+                             std::vector<int> whereEveryoneGoes,
+                             uint64_t numPartitions) {
+    return std::make_shared<JoinSink<decltype(myData.getKey())>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+  }
+//
+//  ComputeSinkPtr _getKeySink(TupleSpec &consumeMe,
+//                             TupleSpec &attsToOpOn,
+//                             TupleSpec &projection,
+//                             std::vector<int> whereEveryoneGoes,
+//                             uint64_t numPartitions) {
+//    throw runtime_error("This join is not keyed!");
+//  }
 
   RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
                                                       TupleSpec &hashSchema,

@@ -54,12 +54,16 @@ protected:
                                const PDBAnonymousPageSetPtr &outputPageSet,
                                ComputeSourcePtr &computeSource,
                                ComputeSinkPtr &computeSink,
-                               PageProcessorPtr &processor,
+                               const PageProcessorPtr &processor,
                                std::map<ComputeInfoType, ComputeInfoPtr> &params,
                                std::vector<AtomicComputationPtr> &pipelineComputations,
                                size_t numNodes,
                                size_t numProcessingThreads,
                                uint64_t workerID);
+
+  // return the result containing (targetSpec, targetAttsToOpOn, targetProjection)
+  std::tuple<TupleSpec, TupleSpec, TupleSpec> getSinkSpecifier(AtomicComputationPtr &targetAtomicComp,
+                                                               std::string &targetComputationName);
 
   // this does a DFS, trying to find a list of computations that lead to the specified computation
   static bool findPipelineComputations(const LogicalPlanPtr& myPlan,

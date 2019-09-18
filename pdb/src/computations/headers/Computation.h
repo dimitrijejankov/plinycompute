@@ -156,6 +156,8 @@ public:
    */
   virtual void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) {}
 
+  virtual void extractKeyLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) {}
+
   /**
    * to traverse from a graph sink recursively and generate TCAP
    * @param tcapStrings

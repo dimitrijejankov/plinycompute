@@ -27,51 +27,58 @@ namespace pdb {
 // (a) all of the lambdas extracted from the node, and (b) a reference to the actual computation
 class ComputationNode {
 
-private:
-    // allows us to access the executors for this plan node... the key is a name of a lambda
-    std::map<std::string, LambdaObjectPtr> allLambdas;
+ private:
+  // allows us to access the executors for this plan node... the key is a name of a lambda
+  std::map<std::string, LambdaObjectPtr> allLambdas;
 
-    // the computation itself
-    Handle<Computation> me;
+  // the computation itself
+  Handle<Computation> me;
 
-public:
-    ComputationNode() {
-        me = nullptr;
+ public:
+  ComputationNode() {
+    me = nullptr;
+  }
+
+  ComputationNode(const ComputationNode &toMe) {
+    allLambdas = toMe.allLambdas;
+    me = toMe.me;
+  }
+
+  // simple constructor... extracts the set of lambdas from this compuation
+  ComputationNode(Handle<Computation> &me, bool isKeyed) : me(me) {
+
+    // check if we are dealing with a key only plan or a regular plan...
+    if(!isKeyed) {
+      me->extractLambdas(allLambdas);
     }
-
-    ComputationNode(const ComputationNode& toMe) {
-        allLambdas = toMe.allLambdas;
-        me = toMe.me;
+    else {
+      me->extractKeyLambdas(allLambdas);
     }
+  }
 
-    ComputationNode& operator=(const ComputationNode& toMe) {
-        allLambdas = toMe.allLambdas;
-        me = toMe.me;
-        return *this;
-    }
+  ComputationNode &operator=(const ComputationNode &toMe) {
+    allLambdas = toMe.allLambdas;
+    me = toMe.me;
+    return *this;
+  }
 
-    // simple constructor... extracts the set of lambdas from this compuation
-    ComputationNode(Handle<Computation>& me) : me(me) {
-        me->extractLambdas(allLambdas);
-    }
+  Computation &getComputation() {
+    return *me;
+  }
 
-    Computation& getComputation() {
-        return *me;
-    }
+  // JiaNote: add a new method to get Handle<Computation> for unsafeCast
+  Handle<Computation> getComputationHandle() {
+    return me;
+  }
 
-    // JiaNote: add a new method to get Handle<Computation> for unsafeCast
-    Handle<Computation> getComputationHandle() {
-        return me;
+  // get the particular lambda
+  LambdaObjectPtr getLambda(std::string me) {
+    if (allLambdas.count(me) == 0) {
+      std::cout << "This is bad.  Didn't find a lambda corresponding to " << me << "\n";
+      exit(1);
     }
-
-    // get the particular lambda
-    LambdaObjectPtr getLambda(std::string me) {
-        if (allLambdas.count(me) == 0) {
-            std::cout << "This is bad.  Didn't find a lambda corresponding to " << me << "\n";
-            exit(1);
-        }
-        return allLambdas[me];
-    }
+    return allLambdas[me];
+  }
 };
 }
 

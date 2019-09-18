@@ -1,30 +1,35 @@
-#include <KeyComputePlan.h>
+#include <utility>
 
-std::vector<AtomicComputationPtr> pdb::KeyComputePlan::getLeftPipelineComputations(AtomicComputationPtr &source,
-                                                                                   shared_ptr<pdb::LogicalPlan> &logicalPlan) {
+#include <KeyComputePlan.h>
+#include <processors/NullProcessor.h>
+
+pdb::KeyComputePlan::KeyComputePlan(pdb::LogicalPlanPtr myPlan) : ComputePlan(std::move(myPlan)) {}
+
+std::vector<AtomicComputationPtr> pdb::KeyComputePlan::getLeftPipelineComputations(AtomicComputationPtr &source) {
+
   // we are going to return this
   std::vector<AtomicComputationPtr> tmp;
 
   // get the current tuple set
   auto currTupleSet = source->getOutputName();
 
-  // while we don't hit the hash computation loop
-  while(!logicalPlan->getComputations().getConsumingAtomicComputations(currTupleSet).empty()) {
+  // while we don't hit the join computation loop
+  while(!myPlan->getComputations().getConsumingAtomicComputations(currTupleSet).empty()) {
 
     // get all the consumers
-    auto &consumers = logicalPlan->getComputations().getConsumingAtomicComputations(currTupleSet);
+    auto &consumers = myPlan->getComputations().getConsumingAtomicComputations(currTupleSet);
 
     // there has to be exactly one consumer otherwise something went wrong
-    if(consumers.size() != 1) {
+    if(consumers.size() != 1 ) {
       return {};
     }
 
     // insert the consumer
     tmp.emplace_back(consumers.back());
 
-    // check if this is a hash we are done
+    // check if this is a join we are done
     auto compType = consumers.back()->getAtomicComputationTypeID();
-    if( compType == HashLeftTypeID || compType == HashRightTypeID || compType == HashOneTypeID) {
+    if(compType == HashOneTypeID || compType == HashLeftTypeID || compType == HashRightTypeID) {
       return std::move(tmp);
     }
 
@@ -35,138 +40,56 @@ std::vector<AtomicComputationPtr> pdb::KeyComputePlan::getLeftPipelineComputatio
   // we did not find a hash, return empty list
   return {};
 }
-//
-//pdb::PipelinePtr pdb::KeyComputePlan::buildLeftPipeline(AtomicComputationPtr &source,
-//                                                        const pdb::PDBAbstractPageSetPtr &inputPageSet,
-//                                                        const pdb::PDBAnonymousPageSetPtr &outputPageSet,
-//                                                        map<pdb::ComputeInfoType, pdb::ComputeInfoPtr> &params,
-//                                                        shared_ptr<pdb::LogicalPlan> &myPlan) {
-//
-//  // get the left pipeline computations
-//  auto listSoFar = getLeftPipelineComputations(source, myPlan);
-//
-//  // get the name of the producer set
-//  auto producerName = source->getOutputName();
-//
-//  // our source is a normal source and not a join source, so we just grab it from the computation
-//  auto computeSource = myPlan->getNode(producerName).getComputation().getComputeSource(inputPageSet, 1000, 0, params);
-//
-//  // returns the key sink if needed
-//  ComputeSinkPtr computeSink = getSink(listSoFar.back(), params, myPlan);
-//
-//  // make the pipeline
-//  std::shared_ptr<Pipeline> returnVal = std::make_shared<Pipeline>(outputPageSet, computeSource, computeSink, processor);
-//
-//  // make the pipeline
-//  AtomicComputationPtr lastOne = myPlan->getComputations().getProducingAtomicComputation(source->getOutputName());
-//  for (auto &a : listSoFar) {
-//
-//    // if we have a filter, then just go ahead and create it
-//    if (a->getAtomicComputationType() == "Filter") {
-//
-//      // create a filter executor
-//      std::cout << "Adding: " << a->getProjection() << " + filter [" << a->getInput() << "] => " << a->getOutput() << "\n";
-//      returnVal->addStage(std::make_shared<FilterExecutor>(lastOne->getOutput(), a->getInput(), a->getProjection()));
-//
-//      // if we had an apply, go ahead and find it and add it to the pipeline
-//    } else if (a->getAtomicComputationType() == "Apply") {
-//
-//      // create an executor for the apply lambda
-//      std::cout << "Adding: " << a->getProjection() << " + apply [" << a->getInput() << "] => " << a->getOutput() << "\n";
-//      returnVal->addStage(myPlan->getNode(a->getComputationName()).
-//          getLambda(((ApplyLambda *) a.get())->getLambdaToApply())->getExecutor(lastOne->getOutput(), a->getInput(), a->getProjection()));
-//
-//    } else if(a->getAtomicComputationType() == "Union") {
-//
-//      // get the union
-//      auto u = (Union *) a.get();
-//
-//      // check if we are pipelining the right input
-//      if (lastOne->getOutput().getSetName() == u->getRightInput().getSetName()) {
-//
-//        std::cout << "Adding: " << " + apply [" << u->getInput() << ", " << u->getRightInput() << "] => " << u->getOutput() << "\n";
-//        returnVal->addStage(std::make_shared<UnionExecutor>(lastOne->getOutput(), u->getRightInput()));
-//
-//      } else {
-//
-//        std::cout << "Adding: " << " + apply [" << u->getInput() << ", " << u->getInput() << "] => " << u->getOutput() << "\n";
-//        returnVal->addStage(std::make_shared<UnionExecutor>(lastOne->getOutput(), u->getInput()));
-//      }
-//
-//    } else if (a->getAtomicComputationType() == "HashLeft") {
-//
-//      // create an executor for left hasher
-//      std::cout << "Adding: " << a->getProjection() << " + hashleft [" << a->getInput() << "] => " << a->getOutput() << "\n";
-//      returnVal->addStage(myPlan->getNode(a->getComputationName()).
-//          getLambda(((HashLeft *) a.get())->getLambdaToApply())->getLeftHasher(lastOne->getOutput(), a->getInput(), a->getProjection()));
-//
-//    } else if (a->getAtomicComputationType() == "HashRight") {
-//
-//      // create an executor for the right hasher
-//      std::cout << "Adding: " << a->getProjection() << " + hashright [" << a->getInput() << "] => " << a->getOutput() << "\n";
-//      returnVal->addStage(myPlan->getNode(a->getComputationName()).
-//          getLambda(((HashLeft *) a.get())->getLambdaToApply())->getRightHasher(lastOne->getOutput(), a->getInput(), a->getProjection()));
-//
-//
-//    } else if (a->getAtomicComputationType() == "HashOne") {
-//
-//      std::cout << "Adding: " << a->getProjection() << " + hashone [" << a->getInput() << "] => " << a->getOutput() << "\n";
-//      returnVal->addStage(std::make_shared<HashOneExecutor>(lastOne->getOutput(), a->getInput(), a->getProjection()));
-//
-//    } else if (a->getAtomicComputationType() == "Flatten") {
-//
-//      std::cout << "Adding: " << a->getProjection() << " + flatten [" << a->getInput() << "] => " << a->getOutput() << "\n";
-//      returnVal->addStage(std::make_shared<FlattenExecutor>(lastOne->getOutput(), a->getInput(), a->getProjection()));
-//
-//    } else if (a->getAtomicComputationType() == "JoinSets") {
-//
-//      std::cout << "Adding: " << a->getProjection() << " + join [" << a->getInput() << "] => " << a->getOutput() << "\n";
-//
-//      // join is weird, because there are two inputs...
-//      auto &myComp = (JoinCompBase &) myPlan->getNode(a->getComputationName()).getComputation();
-//      auto *myJoin = (ApplyJoin *) (a.get());
-//
-//      // grab the join arguments
-//      JoinArgumentsPtr joinArgs = std::dynamic_pointer_cast<JoinArguments>(params[ComputeInfoType::JOIN_ARGS]);
-//      if(joinArgs == nullptr) {
-//        throw runtime_error("Join pipeline run without hash tables!");
-//      }
-//
-//      // check if we are pipelining the right input
-//      if (lastOne->getOutput().getSetName() == myJoin->getRightInput().getSetName()) {
-//
-//        // do we have the appropriate join arguments? if not throw an exception
-//        auto it = joinArgs->hashTables.find(myJoin->getInput().getSetName());
-//        if (it == joinArgs->hashTables.end()) {
-//          throw runtime_error("Hash table for the output set," + a->getOutput().getSetName() + "not found!");
-//        }
-//
-//        // if we are pipelining the right input, then we don't need to switch left and right inputs
-//        std::cout << "We are pipelining the right input...\n";
-//        returnVal->addStage(myComp.getExecutor(true, myJoin->getProjection(), lastOne->getOutput(), myJoin->getRightInput(), myJoin->getRightProjection(), it->second, 1, 1, 0, *this));
-//      } else {
-//        // do we have the appropriate join arguments? if not throw an exception
-//        auto it = joinArgs->hashTables.find(myJoin->getRightInput().getSetName());
-//        if (it == joinArgs->hashTables.end()) {
-//          throw runtime_error("Hash table for the output set," + a->getOutput().getSetName() + "not found!");
-//        }
-//        // if we are pipelining the right input, then we don't need to switch left and right inputs
-//        std::cout << "We are pipelining the left input...\n";
-//        returnVal->addStage(myComp.getExecutor(false, myJoin->getRightProjection(), lastOne->getOutput(), myJoin->getInput(), myJoin->getProjection(), it->second, 1, 1, 0, *this));
-//      }
-//
-//    }
-//    else if(a->getAtomicComputationType() == "WriteSet") {
-//
-//      // skip this one
-//      std::cout << "We are skipping a write set this is essentially a NOOP\n";
-//    }
-//    else {
-//      std::cout << "This is bad... found an unexpected computation type (" << a->getAtomicComputationType()
-//                << ") inside of a pipeline.\n";
-//    }
-//    lastOne = a;
-//  }
-//
-//  return std::move(returnVal);
-//}
+
+pdb::PipelinePtr pdb::KeyComputePlan::buildHashPipeline(AtomicComputationPtr &source,
+                                                        const pdb::PDBAbstractPageSetPtr &inputPageSet,
+                                                        const pdb::PDBAnonymousPageSetPtr &outputPageSet,
+                                                        map<pdb::ComputeInfoType, pdb::ComputeInfoPtr> &params) {
+
+  // get the left pipeline computations
+  auto listSoFar = getLeftPipelineComputations(source);
+
+  // if there is nothing in the pipeline finish
+  if(listSoFar.empty()) {
+    return nullptr;
+  }
+
+  /// 1. Figure out the source
+
+  // our source is a normal source and not a join source, so we just grab it from the computation
+  auto computeSource = myPlan->getNode(source->getComputationName()).getComputation().getComputeSource(inputPageSet, std::numeric_limits<size_t>::max(), 0, params);
+
+  /// 2. Figure out the sink
+
+  // get the atomic computation of the hasher
+  auto &targetAtomicComp = listSoFar.back();
+
+  // get the computation that corresponds to the hasher
+  auto targetComputationName = targetAtomicComp->getComputationName();
+
+  // returns the input specifier
+  auto specifier = getSinkSpecifier(targetAtomicComp, targetComputationName);
+
+  // returns the key sink
+  auto computeSink = myPlan->getNode(targetComputationName).getComputation().getKeySink(std::get<0>(specifier),
+                                                                                        std::get<1>(specifier),
+                                                                                        std::get<2>(specifier),
+                                                                                        1,
+                                                                                        params,
+                                                                                        myPlan);
+
+  /// 3. Assemble the pipeline
+
+  // assemble the whole pipeline
+  return assemblePipeline(source->getOutputName(),
+                          outputPageSet,
+                          computeSource,
+                          computeSink,
+                          std::make_shared<NullProcessor>(),
+                          params,
+                          listSoFar,
+                          1,
+                          1,
+                          0);
+}
+
