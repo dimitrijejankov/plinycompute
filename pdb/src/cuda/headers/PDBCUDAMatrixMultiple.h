@@ -1,0 +1,2 @@
+void printCudaVersion();
+void test();

@@ -3,8 +3,11 @@ cmake_minimum_required(VERSION 3.5.1)
 # set clang as the default compiler
 set(CMAKE_C_COMPILER "clang")
 set(CMAKE_CXX_COMPILER "clang++")
+set(CMAKE_CUDA_COMPILER "/usr/local/cuda-10.1/bin/nvcc")
 
 project(pdb)
+
+option(USE_CUDA "Use CUDA" ON)
 
 # set the output directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  "${PROJECT_SOURCE_DIR}/bin")
@@ -17,6 +20,8 @@ set(CMAKE_CXX_STANDARD 14)
 
 # check the operating system and add the appropriate flags
 set(CMAKE_CXX_FLAGS "-fPIC -Wno-deprecated-declarations")
+
+
 
 # if we are compiling for debug add the debug flags
 if(CMAKE_BUILD_TYPE MATCHES Debug)
@@ -104,6 +109,7 @@ include_directories("${PROJECT_SOURCE_DIR}/pdb/src/serverFunctionalities/headers
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/sharedLibraries/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/storageManager/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/work/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/cuda/headers")
 
 # add the third party libraries as includes
 include_directories("${PROJECT_SOURCE_DIR}/third-party/mustache/headers")
@@ -133,6 +139,8 @@ file(GLOB COMPUTATION_SERVER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/computationSe
                                     "${PROJECT_SOURCE_DIR}/pdb/src/computationServer/sources/physicalOptimizer/*.cc")
 file(GLOB EXECUTION_SERVER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/executionServer/sources/*.cc"
                                   "${PROJECT_SOURCE_DIR}/pdb/src/executionServer/sources/physicalAlgorithms/*.cc")
+
+file(GLOB GPU_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/cuda/source/*.cu")
 
 set(SOURCE_FILES_SQL_LITE ${PROJECT_SOURCE_DIR}/third-party/sqlite/source/sqlite3.c)
 
@@ -329,6 +337,29 @@ target_link_libraries(pdb-tests-common PRIVATE ${Boost_LIBRARIES})
 # form the parsers for the logical plan
 add_library(logical-plan-parser OBJECT ${LogicalPlanFlexOutput} ${LogicalPlanParserOutput})
 
+
+# Find CUDA and compile all the .cu to pdb-gpu
+if (("${CMAKE_VERSION}" VERSION_EQUAL 3.8) OR
+        ("${CMAKE_VERSION}" VERSION_GREATER 3.8))
+    # Modern CMake
+    if (USE_CUDA)
+        enable_language("CUDA")
+        add_library(pdb-gpu ${GPU_SOURCE})
+    endif ()
+else ()
+    # Old CMake
+    if (USE_CUDA)
+        find_package(CUDA REQUIRED)
+        if (NOT CUDA_FOUND)
+            message(STATUS "CUDA not found")
+            set(USE_CUDA OFF)
+        else ()
+            message(STATUS "CUDA found")
+            CUDA_ADD_LIBRARY(pdb-gpu ${GPU_SOURCE} SHARED)
+        endif ()
+    endif ()
+endif ()
+
 # check if the target is unit tests
 if(CMAKE_BUILD_TYPE MATCHES UNIT_TESTS)
 
@@ -346,6 +377,7 @@ else()
     target_link_libraries(pdb-node pdb-server-common)
     target_link_libraries(pdb-node ${GSL_LIBRARIES})
     target_link_libraries(pdb-node ${Boost_LIBRARIES})
+    target_link_libraries(pdb-node pdb-gpu)
 
     # set dependencies for pdb-main
     add_custom_target(pdb-main)

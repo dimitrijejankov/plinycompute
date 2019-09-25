@@ -25,8 +25,8 @@ public:
       // get the sizes
       uint32_t I = in1->data.numRows;
       uint32_t J = in2->data.numCols;
-      uint32_t K = in1->data.numCols;
 
+      uint32_t K = in1->data.numCols;
       // make the output block
       Handle <MatrixBlock> out = makeObject<MatrixBlock>(in1->getRowID(), in2->getColID(), I, J);
 
