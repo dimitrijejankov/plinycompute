@@ -460,9 +460,9 @@ PipelinePtr ComputePlan::buildPipeline(const std::string& sourceTupleSetName,
 
 
 PipelinePtr ComputePlan::buildAggregationPipeline(const std::string &targetTupleSetName,
-                                                  const PDBAbstractPageSetPtr &inputPageSet,
-                                                  const PDBAnonymousPageSetPtr &outputPageSet,
-                                                  uint64_t workerID) {
+                                                         const PDBAbstractPageSetPtr &inputPageSet,
+                                                         const PDBAnonymousPageSetPtr &outputPageSet,
+                                                         uint64_t workerID) {
 
   // get all of the computations
   AtomicComputationList &allComps = myPlan->getComputations();
@@ -482,11 +482,11 @@ PipelinePtr ComputePlan::buildAggregationPipeline(const std::string &targetTuple
 
 
 PipelinePtr ComputePlan::buildBroadcastJoinPipeline(const string &targetTupleSetName,
-                                                    const PDBAbstractPageSetPtr &inputPageSet,
-                                                    const PDBAnonymousPageSetPtr &outputPageSet,
-                                                    uint64_t numThreads,
-                                                    uint64_t numNodes,
-                                                    uint64_t workerID) {
+                                                           const PDBAbstractPageSetPtr &inputPageSet,
+                                                           const PDBAnonymousPageSetPtr &outputPageSet,
+                                                           uint64_t numThreads,
+                                                           uint64_t numNodes,
+                                                           uint64_t workerID) {
 
   // get all of the computations
   AtomicComputationList &allComps = myPlan->getComputations();

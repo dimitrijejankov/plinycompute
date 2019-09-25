@@ -37,6 +37,7 @@
 #include <gmock/gmock.h>
 #include <PDBBufferManagerImpl.h>
 #include <processors/ShuffleJoinProcessor.h>
+#include <processors/NullProcessor.h>
 
 #include "SillyJoin.h"
 #include "ReadInt.h"
@@ -460,7 +461,7 @@ TEST(PipelineTest, TestShuffleJoin) {
       "nothing () <= OUTPUT (almostFinal (result), 'outSet', 'myDB', 'SetWriter_4', [])";
 
   // and create a query object that contains all of this stuff
-  ComputePlan myPlan(myTCAPString, myComputations);
+  ComputePlan myPlan(std::make_shared<LogicalPlan>(myTCAPString, myComputations));
 
   /// 4. Process the left side of the join (set A)
 
@@ -579,6 +580,4 @@ TEST(PipelineTest, TestShuffleJoin) {
     if (myVec->size() > 0)
       std::cout << "First one is '" << *((*myVec)[56]) << "'\n";
   }
-
-  myPlan.nullifyPlanPointer();
 }

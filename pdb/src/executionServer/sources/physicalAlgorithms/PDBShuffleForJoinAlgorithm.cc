@@ -19,8 +19,8 @@ pdb::PDBShuffleForJoinAlgorithm::PDBShuffleForJoinAlgorithm(const std::vector<PD
                                                             const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
                                                             const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
                                                             const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize)
-                                                            : PDBPhysicalAlgorithm(primarySource, finalAtomicComputation, sink, secondarySources, setsToMaterialize),
-                                                              intermediate(intermediate) {
+    : PDBPhysicalAlgorithm(primarySource, finalAtomicComputation, sink, secondarySources, setsToMaterialize),
+      intermediate(intermediate) {
 
 }
 
@@ -31,7 +31,7 @@ pdb::PDBPhysicalAlgorithmType pdb::PDBShuffleForJoinAlgorithm::getAlgorithmType(
 bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
 
   // init the plan
-  ComputePlan plan(job->tcap, *job->computations);
+  ComputePlan plan(std::make_shared<LogicalPlan>(job->tcap, *job->computations));
   logicalPlan = plan.getPlan();
 
   // init the logger

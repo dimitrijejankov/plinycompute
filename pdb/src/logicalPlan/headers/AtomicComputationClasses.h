@@ -180,6 +180,7 @@ struct HashLeft : public AtomicComputation {
     // then we asked for it
     if (counter == getOutput().getAtts().size() - 1) {
       std::cout << "Why are you trying to find the origin of a hash value??\n";
+      std::cout << "The attribute is " << attName << '\n';
       exit(1);
     }
 
@@ -249,10 +250,10 @@ struct HashRight : public AtomicComputation {
     int counter = findPosInOutputAtts(attName);
 
     // if the attribute we are asking for is at the end (where the result of the lambda
-    // application goes)
-    // then we asked for it
+    // application goes) then we asked for it
     if (counter == getOutput().getAtts().size() - 1) {
       std::cout << "Why are you trying to find the origin of a hash value??\n";
+      std::cout << "The attribute is " << attName << '\n';
       exit(1);
     }
 

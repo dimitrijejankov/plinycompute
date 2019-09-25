@@ -203,7 +203,7 @@ TEST(PipelineTest, TestAggregation) {
       "write () <= OUTPUT (final (result), 'outSet', 'myDB', 'SetWriter_4', [])";
 
   // and create a query object that contains all of this stuff
-  ComputePlan myPlan(myTCAPString, myComputations);
+  ComputePlan myPlan(std::make_shared<LogicalPlan>(myTCAPString, myComputations));
   LogicalPlanPtr logicalPlan = myPlan.getPlan();
   AtomicComputationList computationList = logicalPlan->getComputations();
   std::cout << "to print logical plan:" << std::endl;
@@ -398,9 +398,4 @@ TEST(PipelineTest, TestAggregation) {
 
     page.second->unpin();
   }
-
-  // and be sure to delete the contents of the ComputePlan object... this always needs to be done
-  // before the object is written to disk or sent accross the network, so that we don't end up
-  // moving around a C++ smart pointer, which would be bad
-  myPlan.nullifyPlanPointer();
 }

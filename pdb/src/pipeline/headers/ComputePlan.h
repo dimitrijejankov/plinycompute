@@ -16,8 +16,7 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef ComputePlan_H
-#define ComputePlan_H
+#pragma once
 
 #include "Computation.h"
 #include "PDBString.h"
@@ -31,65 +30,57 @@ namespace pdb {
 
 // this is the basic type that is sent around a PDB cluster to store a computation that PDB is to execute
 class ComputePlan {
-
-  // this is the compiled plan
-  String TCAPComputation;
-
-  // this is the list of Computation objects that are going to be used to power the plan
-  Vector<Handle<Computation>> allComputations;
+ protected:
 
   // this data structure contains both the compiled TCAP string, as well as an index of all of the computations
   LogicalPlanPtr myPlan;
+
+  // returns the source for a pipeline
+  ComputeSourcePtr getComputeSource(AtomicComputationPtr &sourceAtomicComputation,
+                                    const PDBAbstractPageSetPtr &inputPageSet,
+                                    std::map<ComputeInfoType, ComputeInfoPtr> &params,
+                                    uint64_t chunkSize,
+                                    uint64_t workerID);
+
+  // returns the compute sink
+  ComputeSinkPtr getComputeSink(AtomicComputationPtr &targetAtomicComp,
+                                std::string& targetComputationName,
+                                std::map<ComputeInfoType, ComputeInfoPtr> &params,
+                                size_t numNodes,
+                                size_t numProcessingThreads);
+
+  // assembles the pipeline with everything
+  PipelinePtr assemblePipeline(const std::string& sourceTupleSetName,
+                               const PDBAnonymousPageSetPtr &outputPageSet,
+                               ComputeSourcePtr &computeSource,
+                               ComputeSinkPtr &computeSink,
+                               const PageProcessorPtr &processor,
+                               std::map<ComputeInfoType, ComputeInfoPtr> &params,
+                               std::vector<AtomicComputationPtr> &pipelineComputations,
+                               size_t numNodes,
+                               size_t numProcessingThreads,
+                               uint64_t workerID);
+
+  // return the result containing (targetSpec, targetAttsToOpOn, targetProjection)
+  std::tuple<TupleSpec, TupleSpec, TupleSpec> getSinkSpecifier(AtomicComputationPtr &targetAtomicComp,
+                                                               std::string &targetComputationName);
+
+  // this does a DFS, trying to find a list of computations that lead to the specified computation
+  static bool findPipelineComputations(const LogicalPlanPtr& myPlan,
+                                       std::vector<AtomicComputationPtr> &listSoFar,
+                                       const std::string &targetTupleSetName);
 
  public:
 
   ComputePlan() = default;
 
-  // constructor, takes as input the string to execute, as well as the vector of computations
-  ComputePlan(String &TCAPComputation, Vector<Handle<Computation>> &allComputations);
+  explicit ComputePlan(LogicalPlanPtr myPlan);
 
-  // this compiles the TCAPComputation string, returning a LogicalPlan object.  The resuting object contains:
-  //
-  // (1) a graph of individual, SIMD-style operations.  This can be accessed via the getComputations () method.
-  // (2) a data structure containing all of the actual Computations that implement those SIMD-style operations,
-  //     as well as the Lambdas that are associated with each of those SIMD-style operations.  Particular Computation
-  //     objects can be accessed via the getNode () method (note that the argument to getNode () is a string that
-  //     names the computation; this string can be obtained via the getComputationName () method on the
-  //     AtomicComputation objects stored in the graph of SIMD-style operations.
-  //
-  LogicalPlanPtr getPlan();
+  // returns the logical plan
+  LogicalPlanPtr &getPlan();
 
-  // Note that once getPlan () has been called, ComputePlan object contains a C++ smart pointer inside of it.
-  // IT IS VERY DANGEROUS TO SEND SUCH A POINTER ACCROSS THE NETWORK.  Hence, after calling getPlan () but before
-  // this object is sent accross the network or written to disk, the following method MUST be called to avoid
-  // sending the smart pointer.
-  void nullifyPlanPointer();
-
-  /**
-   * Returns a processor for a join
-   * @param joinTupleSetName
-   * @param numNodes
-   * @param numProcessingThreads
-   * @param pageQueues
-   * @param bufferManager
-   * @return
-   */
-  PageProcessorPtr getProcessorForJoin(const std::string &joinTupleSetName,
-                                       size_t numNodes,
-                                       size_t numProcessingThreads,
-                                       vector<PDBPageQueuePtr> &pageQueues,
-                                       PDBBufferManagerInterfacePtr bufferManager);
-
-  // this builds a pipeline between the Computation that produces sourceTupleSetName and the Computation
-  // targetComputationName.  Since targetComputationName can have more than one input (in the case of a join,
-  // for example) the pipeline to targetComputationName is built on the link producig targetTupleSetName.
-  //
-  // The lambda getPage is used by the pipeline to obtain new temp pages; it is assumed that a page returned
-  // by getPage will remain pinned until either discardTempPage or writeBackPage are called.  The former is
-  // called if the page can safely be destroyed because it has no useful data.  The latter is called if the
-  // page stores a pdb :: Object that contains the result of the computation.
-
-  PipelinePtr buildPipeline(std::string sourceTupleSetName,
+  // builds a regular straight pipeline
+  PipelinePtr buildPipeline(const std::string& sourceTupleSetName,
                             const std::string &targetTupleSetName,
                             const PDBAbstractPageSetPtr &inputPageSet,
                             const PDBAnonymousPageSetPtr &outputPageSet,
@@ -99,23 +90,27 @@ class ComputePlan {
                             uint64_t chunkSize,
                             uint64_t workerID);
 
+  // build the aggregation pipeline
   PipelinePtr buildAggregationPipeline(const std::string &targetTupleSetName,
                                        const PDBAbstractPageSetPtr &inputPageSet,
                                        const PDBAnonymousPageSetPtr &outputPageSet,
                                        uint64_t workerID);
 
+  // build a pipeline for the broadcast join
   PipelinePtr buildBroadcastJoinPipeline(const string &targetTupleSetName,
-                                    const PDBAbstractPageSetPtr &inputPageSet,
-                                    const PDBAnonymousPageSetPtr &outputPageSet,
-                                    uint64_t numThreads,
-                                    uint64_t numNodes,
-                                    uint64_t workerID);
+                                         const PDBAbstractPageSetPtr &inputPageSet,
+                                         const PDBAnonymousPageSetPtr &outputPageSet,
+                                         uint64_t numThreads,
+                                         uint64_t numNodes,
+                                         uint64_t workerID);
+
+  // this will return the processor for the shuffle join
+  PageProcessorPtr getProcessorForJoin(const std::string &joinTupleSetName,
+                                       size_t numNodes,
+                                       size_t numProcessingThreads,
+                                       vector<PDBPageQueuePtr> &pageQueues,
+                                       PDBBufferManagerInterfacePtr bufferManager);
 
 };
 
 }
-
-#endif
-
-#include "ComputePlan.cc"
-

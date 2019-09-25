@@ -28,18 +28,18 @@
 /* The class for extracting document IDs */
 using namespace pdb;
 
-class LDADocIDAggregate : public AggregateComp<SumResult, LDADocument, int, int> {
+class LDADocIDAggregate : public AggregateComp<LDADocIDAggregate, SumResult, LDADocument, int, int> {
 
 public:
     ENABLE_DEEP_COPY
 
     LDADocIDAggregate() {}
 
-    Lambda<int> getKeyProjection(Handle<LDADocument> aggMe) override {
+    Lambda<int> getKeyProjection(Handle<LDADocument> aggMe) {
         return makeLambda(aggMe, [](Handle<LDADocument>& aggMe) { return (int)aggMe->getDoc(); });
     }
 
-    Lambda<int> getValueProjection(Handle<LDADocument> aggMe) override {
+    Lambda<int> getValueProjection(Handle<LDADocument> aggMe) {
         return makeLambda(aggMe, [](Handle<LDADocument>& aggMe) { return 1; });
     }
 };

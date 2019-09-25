@@ -11,13 +11,13 @@ pdb::PDBBroadcastForJoinAlgorithm::PDBBroadcastForJoinAlgorithm(const std::vecto
                                                                 const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
                                                                 const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
                                                                 const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize):
-                                                                      PDBPhysicalAlgorithm(primarySource,
-                                                                                           finalAtomicComputation,
-                                                                                           sink,
-                                                                                           secondarySources,
-                                                                                           setsToMaterialize),
-                                                                      hashedToSend(hashedToSend),
-                                                                      hashedToRecv(hashedToRecv) {
+    PDBPhysicalAlgorithm(primarySource,
+                         finalAtomicComputation,
+                         sink,
+                         secondarySources,
+                         setsToMaterialize),
+    hashedToSend(hashedToSend),
+    hashedToRecv(hashedToRecv) {
 }
 
 pdb::PDBPhysicalAlgorithmType pdb::PDBBroadcastForJoinAlgorithm::getAlgorithmType() {
@@ -29,7 +29,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
                                               const std::string &error) {
 
   // init the plan
-  ComputePlan plan(job->tcap, *job->computations);
+  ComputePlan plan(std::make_shared<LogicalPlan>(job->tcap, *job->computations));
   logicalPlan = plan.getPlan();
 
   // get the manager

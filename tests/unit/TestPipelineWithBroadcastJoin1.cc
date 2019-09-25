@@ -240,7 +240,7 @@ TEST(PipelineTest, TestBroadcastJoinSingle) {
                            "out( ) <= OUTPUT ( AandBJoined_Projection ( nativ_3_2OutFor ), 'outSet', 'myData', 'SetWriter_3')";
 
   // and create a query object that contains all of this stuff
-  ComputePlan myPlan(tcapString, myComputations);
+  ComputePlan myPlan(std::make_shared<LogicalPlan>(tcapString, myComputations));
 
   /// 4. Process the left side of the join (set A)
   std::map<ComputeInfoType, ComputeInfoPtr> params = {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<BroadcastJoinProcessor>(numNodes,threadsPerNode,pageQueuesForA, myMgr)},
@@ -275,20 +275,20 @@ TEST(PipelineTest, TestBroadcastJoinSingle) {
 
   /// 5. Process the pages for every worker in each node
   for (curThread = 0; curThread < threadsPerNode; ++curThread) {
-      for_each(setAPageVectors[curNode].begin(),
-               setAPageVectors[curNode].end(),
-               [&](PDBPageHandle &page) { pageQueuesForA[curNode]->enqueue(page); });
+    for_each(setAPageVectors[curNode].begin(),
+             setAPageVectors[curNode].end(),
+             [&](PDBPageHandle &page) { pageQueuesForA[curNode]->enqueue(page); });
 
-      myPipeline = myPlan.buildBroadcastJoinPipeline("AHashed",
-                                                     partitionedAPageSet,
-                                                     BroadcastedAPageSet,
-                                                     threadsPerNode,
-                                                     numNodes,
-                                                     curThread);
-      std::cout << "\nRUNNING BROADCAST JOIN PIPELINE FOR SET A\n";
-      myPipeline->run();
-      std::cout << "\nDONE RUNNING BROADCAST JOIN PIPELINE FOR SET A\n";
-      myPipeline = nullptr;
+    myPipeline = myPlan.buildBroadcastJoinPipeline("AHashed",
+                                                   partitionedAPageSet,
+                                                   BroadcastedAPageSet,
+                                                   threadsPerNode,
+                                                   numNodes,
+                                                   curThread);
+    std::cout << "\nRUNNING BROADCAST JOIN PIPELINE FOR SET A\n";
+    myPipeline->run();
+    std::cout << "\nDONE RUNNING BROADCAST JOIN PIPELINE FOR SET A\n";
+    myPipeline = nullptr;
   }
   /// 6. Process the right side of the join (set B). Build the pipeline with the Join Argument from pages in Set A.
 

@@ -140,7 +140,7 @@ TEST(PipelineTest, TestSelection) {
                         "flattenedOutForMultiSelectionComp1_out( ) <= OUTPUT ( flattenedOutForMultiSelectionComp1 ( flattened_nativ_1_1OutFor ), '', '', 'SetWriter_2')\n";
 
   // and create a query object that contains all of this stuff
-  ComputePlan myPlan(myTCAPString, myComputations);
+  ComputePlan myPlan(std::make_shared<LogicalPlan>(myTCAPString, myComputations));
   LogicalPlanPtr logicalPlan = myPlan.getPlan();
   AtomicComputationList computationList = logicalPlan->getComputations();
 
@@ -203,11 +203,6 @@ TEST(PipelineTest, TestSelection) {
   // and now, simply run the pipeline and then destroy it!!!
   myPipeline->run();
   myPipeline = nullptr;
-
-  // and be sure to delete the contents of the ComputePlan object... this always needs to be done
-  // before the object is written to disk or sent accross the network, so that we don't end up
-  // moving around a C++ smart pointer, which would be bad
-  myPlan.nullifyPlanPointer();
 
   /// 5. Check the results
   std::unordered_map<int, int> counts;

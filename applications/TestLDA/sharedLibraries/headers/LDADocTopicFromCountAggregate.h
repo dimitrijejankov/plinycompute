@@ -32,7 +32,7 @@ using namespace pdb;
 
 
 class LDADocTopicFromCountAggregate
-    : public AggregateComp<IntIntVectorPair, LDADocWordTopicCount, int, Vector<int>> {
+    : public AggregateComp<LDADocTopicFromCountAggregate, IntIntVectorPair, LDADocWordTopicCount, int, Vector<int>> {
 
 private:
     int numTopic;
@@ -47,13 +47,13 @@ public:
 
 
     // the key type must have == and size_t hash () defined
-    Lambda<int> getKeyProjection(Handle<LDADocWordTopicCount> aggMe) override {
+    Lambda<int> getKeyProjection(Handle<LDADocWordTopicCount> aggMe) {
         return makeLambda(aggMe,
                           [](Handle<LDADocWordTopicCount>& aggMe) { return aggMe->getDoc(); });
     }
 
     // the value type must have + defined
-    Lambda<Vector<int>> getValueProjection(Handle<LDADocWordTopicCount> aggMe) override {
+    Lambda<Vector<int>> getValueProjection(Handle<LDADocWordTopicCount> aggMe) {
         return makeLambda(aggMe, [&](Handle<LDADocWordTopicCount>& aggMe) {
             Handle<Vector<int>> result = makeObject<Vector<int>>(this->numTopic, this->numTopic);
             result->fill(0);

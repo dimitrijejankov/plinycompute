@@ -36,7 +36,7 @@ using namespace pdb;
 // The output is later used to update the weights, means and covars of the new
 // model
 class GmmAggregateLazy
-    : public AggregateComp<GmmAggregateOutputLazy, DoubleVector, int, GmmAggregateOutputLazy> {
+    : public AggregateComp<GmmAggregateLazy, GmmAggregateOutputLazy, DoubleVector, int, GmmAggregateOutputLazy> {
 
 private:
   Handle<GmmModel> model;
@@ -58,7 +58,7 @@ public:
     std::cout << "Exiting GmmAggregate constructor" << std::endl;
   }
 
-  Lambda<int> getKeyProjection(Handle<DoubleVector> aggMe) override {
+  Lambda<int> getKeyProjection(Handle<DoubleVector> aggMe) {
     // Same key for all intermediate objects. The output is a single
     // GmmAggregateOutputLazy object with the info related to all components
 
@@ -71,7 +71,7 @@ public:
   // used
   // to update the weights, means and covars
   Lambda<GmmAggregateOutputLazy>
-  getValueProjection(Handle<DoubleVector> aggMe) override {
+  getValueProjection(Handle<DoubleVector> aggMe) {
 
     return makeLambda(aggMe, [&](Handle<DoubleVector> &aggMe) {
 

@@ -90,7 +90,7 @@ void pdb::Transformation::dropDependents(const std::string &tupleSetName) {
     // get all the consumers and visit them
     auto &consumers = computations.getConsumingAtomicComputations(currComp->getOutput().getSetName());
     for(const auto &c : consumers){
-      
+
       // insert the consumer
       tupleSetsToVisit.emplace_back(c->getOutput().getSetName());
     }
@@ -140,7 +140,7 @@ pdb::LogicalPlanPtr pdb::LogicalPlanTransformer::applyTransformations() {
  * InsertKeyScanSetsTransformation Code
  */
 
-pdb::InsertKeyScanSetsTransformation::InsertKeyScanSetsTransformation(std::string &inputTupleSet) : inputTupleSet(inputTupleSet) {}
+pdb::InsertKeyScanSetsTransformation::InsertKeyScanSetsTransformation(const std::string &inputTupleSet) : inputTupleSet(inputTupleSet) {}
 
 void pdb::InsertKeyScanSetsTransformation::apply() {
 
@@ -179,7 +179,7 @@ bool pdb::InsertKeyScanSetsTransformation::canApply() {
  * JoinFromKeyTransformation
  */
 
-pdb::JoinKeySideTransformation::JoinKeySideTransformation(std::string &inputTupleSet) : inputTupleSet(inputTupleSet) {
+pdb::JoinKeySideTransformation::JoinKeySideTransformation(const std::string &inputTupleSet) : inputTupleSet(inputTupleSet) {
 
 }
 
@@ -227,30 +227,14 @@ void pdb::JoinKeySideTransformation::apply() {
     auto currComp = currentComps.back();
     currentComps.pop_back();
 
-    // remove the input attribute from the output
-    if(currComp->getOutput().hasAtt(inAttribute)) {
-      currComp->getOutput().removeAtt(inAttribute);
-    }
-
-    // remove the input attribute from the projection
-    if(currComp->getProjection().hasAtt(inAttribute)) {
-      currComp->getProjection().removeAtt(inAttribute);
-    }
-
     // the input must not have the inAttribute otherwise we can not transform this
     if(currComp->getInput().hasAtt(inAttribute)) {
       throw runtime_error("The input attribute can not be applied unless it is a key extraction.");
     }
 
-    // if the output does not have a key add it
-    if(!currComp->getOutput().hasAtt(keyAttribute)) {
-      currComp->getOutput().insertAtt(keyAttribute);
-    }
-
-    // if the key is not forwarded forward it
-    if(!currComp->getProjection().hasAtt(keyAttribute)) {
-      currComp->getProjection().insertAtt(keyAttribute);
-    }
+    // replace the input with the key
+    currComp->getOutput().replaceAtt(inAttribute, keyAttribute);
+    currComp->getProjection().replaceAtt(inAttribute, keyAttribute);
 
     // check the consumers
     auto &consumers = computations.getConsumingAtomicComputations(currComp->getOutput().getSetName());
@@ -307,7 +291,7 @@ bool pdb::JoinKeySideTransformation::canApply() {
  * JoinKeyTransformation
  */
 
-pdb::JoinKeyTransformation::JoinKeyTransformation(std::string &joinTupleSet) : joinTupleSet(joinTupleSet) {}
+pdb::JoinKeyTransformation::JoinKeyTransformation(const std::string &joinTupleSet) : joinTupleSet(joinTupleSet) {}
 
 void pdb::JoinKeyTransformation::apply() {
 
@@ -514,7 +498,7 @@ bool pdb::JoinKeyTransformation::canApply() {
  * AggKeyTransformation
  */
 
-pdb::AggKeyTransformation::AggKeyTransformation(std::string &aggStartTupleSet) : aggStartTupleSet(aggStartTupleSet) {}
+pdb::AggKeyTransformation::AggKeyTransformation(const std::string &aggStartTupleSet) : aggStartTupleSet(aggStartTupleSet) {}
 
 void pdb::AggKeyTransformation::apply() {
 
@@ -663,7 +647,7 @@ bool pdb::AggKeyTransformation::canApply() {
  * Drop Dependents
  */
 
-pdb::DropDependents::DropDependents(std::string &startTupleSet) : startTupleSet(startTupleSet) {}
+pdb::DropDependents::DropDependents(const std::string &startTupleSet) : startTupleSet(startTupleSet) {}
 
 void pdb::DropDependents::apply() {
 

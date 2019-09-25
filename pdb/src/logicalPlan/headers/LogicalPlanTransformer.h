@@ -60,7 +60,7 @@ private:
 class InsertKeyScanSetsTransformation : public Transformation {
 public:
 
-  explicit InsertKeyScanSetsTransformation(std::string &inputTupleSet);
+  explicit InsertKeyScanSetsTransformation(const std::string &inputTupleSet);
 
   void apply() override;
   bool canApply() override;
@@ -82,7 +82,7 @@ private:
 class JoinKeySideTransformation : public Transformation {
  public:
 
-  explicit JoinKeySideTransformation(std::string &inputTupleSet);
+  explicit JoinKeySideTransformation(const std::string &inputTupleSet);
 
   void apply() override;
   bool canApply() override;
@@ -101,7 +101,7 @@ class JoinKeySideTransformation : public Transformation {
 class JoinKeyTransformation : public Transformation {
  public:
 
-  explicit JoinKeyTransformation(std::string &joinTupleSet);
+  explicit JoinKeyTransformation(const std::string &joinTupleSet);
 
   void apply() override;
   bool canApply() override;
@@ -121,7 +121,7 @@ class JoinKeyTransformation : public Transformation {
 class AggKeyTransformation : public Transformation {
  public:
 
-  explicit AggKeyTransformation(std::string &aggStartTupleSet);
+  explicit AggKeyTransformation(const std::string &aggStartTupleSet);
 
   void apply() override;
   bool canApply() override;
@@ -141,7 +141,7 @@ class AggKeyTransformation : public Transformation {
 class DropDependents : public Transformation {
  public:
 
-  explicit DropDependents(std::string &startTupleSet);
+  explicit DropDependents(const std::string &startTupleSet);
 
   void apply() override;
   bool canApply() override;

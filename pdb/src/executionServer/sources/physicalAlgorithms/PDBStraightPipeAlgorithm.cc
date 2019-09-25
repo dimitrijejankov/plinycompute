@@ -7,6 +7,7 @@
 #include <GenericWork.h>
 #include <PDBCatalogClient.h>
 #include <physicalAlgorithms/PDBStraightPipeAlgorithm.h>
+#include <processors/NullProcessor.h>
 
 #include "physicalAlgorithms/PDBStraightPipeAlgorithm.h"
 #include "ExJob.h"
@@ -16,13 +17,13 @@ pdb::PDBStraightPipeAlgorithm::PDBStraightPipeAlgorithm(const std::vector<PDBPri
                                                         const pdb::Handle<PDBSinkPageSetSpec> &sink,
                                                         const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
                                                         const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize)
-                                                        : PDBPhysicalAlgorithm(primarySource, finalAtomicComputation, sink, secondarySources, setsToMaterialize) {}
+    : PDBPhysicalAlgorithm(primarySource, finalAtomicComputation, sink, secondarySources, setsToMaterialize) {}
 
 
 bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
 
   // init the plan
-  ComputePlan plan(job->tcap, *job->computations);
+  ComputePlan plan(std::make_shared<LogicalPlan>(job->tcap, *job->computations));
   logicalPlan = plan.getPlan();
 
   /// 0. Figure out the sink tuple set
