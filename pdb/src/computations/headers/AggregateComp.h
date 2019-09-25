@@ -24,8 +24,10 @@
 #include "DepartmentTotal.h"
 #include "PreaggregationSink.h"
 #include "AggregationCombinerSink.h"
+#include "AggregationTests.h"
 
 namespace pdb {
+
 
 // this aggregates items of type InputClass.  To aggregate an item, the result of getKeyProjection () is
 // used to extract a key from on input, and the result of getValueProjection () is used to extract a
@@ -38,20 +40,16 @@ namespace pdb {
 // To convert a key-value pair into an OutputClass object, the result of getKey () is set to the desired key,
 // and the result of getValue () is set to the desired value.
 //
-template<class OutputClass, class InputClass, class KeyClass, class ValueClass>
+template<typename Derived, class OutputClass, class InputClass, class KeyClass, class ValueClass>
 class AggregateComp : public AggregateCompBase {
 
-  // gets the operation tht extracts a key from an input object
-  virtual Lambda<KeyClass> getKeyProjection(Handle<InputClass> aggMe) = 0;
-
-  // gets the operation that extracts a value from an input object
-  virtual Lambda<ValueClass> getValueProjection(Handle<InputClass> aggMe) = 0;
 
   // extract the key projection and value projection
   void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
+
     Handle<InputClass> checkMe = nullptr;
-    Lambda<KeyClass> keyLambda = getKeyProjection(checkMe);
-    Lambda<ValueClass> valueLambda = getValueProjection(checkMe);
+    Lambda<KeyClass> keyLambda = callGetKeyProjection<Derived, InputClass, KeyClass>((Derived*) this);
+    Lambda<ValueClass> valueLambda = ((Derived*) this)->getValueProjection(checkMe);
 
     // the label we are started labeling
     int32_t startLabel = 0;
@@ -125,7 +123,7 @@ class AggregateComp : public AggregateCompBase {
 
     //  get the projection lambda
     GenericHandle checkMe (1);
-    Lambda<KeyClass> keyLambda = getKeyProjection(checkMe);
+    Lambda<KeyClass> keyLambda = callGetKeyProjection<Derived, InputClass, KeyClass>(((Derived*) this));
 
     std::string tcapString;
     tcapString += "\n/* Extract key for aggregation */\n";
@@ -144,7 +142,7 @@ class AggregateComp : public AggregateCompBase {
      */
 
     // get the value lambda
-    Lambda<ValueClass> valueLambda = getValueProjection(checkMe);
+    Lambda<ValueClass> valueLambda = ((Derived*) this)->getValueProjection(checkMe);
 
     // the the columns to apply for the i-th position
     multiInputsBase.inputColumnsToApplyForInputs[0] = inputTupleSets[0].getColumnNamesToApply();

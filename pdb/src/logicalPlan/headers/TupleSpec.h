@@ -1,3 +1,5 @@
+#include <utility>
+
 /*****************************************************************************
  *                                                                           *
  *  Copyright 2018 Rice University                                           *
@@ -21,6 +23,7 @@
 
 #include <iostream>
 #include <memory>
+#include <algorithm>
 #include <stdlib.h>
 #include <string>
 #include <utility>
@@ -33,52 +36,109 @@
 // names, as well as the name of the TupleSet
 struct TupleSpec {
 
-private:
-    std::string setName;
-    std::vector<std::string> atts;
+ private:
+  std::string setName;
+  std::vector<std::string> atts;
 
-public:
-    TupleSpec() {
-        setName = std::string("Empty");
+ public:
+  TupleSpec() {
+    setName = std::string("Empty");
+  }
+
+  ~TupleSpec() = default;
+
+  explicit TupleSpec(std::string setNameIn) {
+    setName = std::move(setNameIn);
+  }
+
+  TupleSpec(std::string setNameIn, AttList &useMe) {
+    setName = std::move(setNameIn);
+    atts = useMe.atts;
+  }
+
+  std::string &getSetName() {
+    return setName;
+  }
+
+  void setSetName(const std::string &val) {
+    setName = val;
+  }
+
+  std::vector<std::string> &getAtts() {
+    return atts;
+  }
+
+  // removes the attribute from the attribute list
+  void removeAtt(const std::string &att) {
+
+    // remove the attribute
+    atts.erase(std::remove(atts.begin(), atts.end(), att), atts.end());
+  }
+
+  // adds a new attribute to the tuple set
+  void insertAtt(const std::string &att) {
+    atts.emplace_back(att);
+  }
+
+  bool hasAtt(const std::string &att) {
+    return std::find(atts.begin(), atts.end(), att) != atts.end();
+  }
+
+  // tries to find the attribute if we find it we replace it
+  void replaceAtt(const std::string &replaceMe, const std::string replaceWithMe) {
+
+    // try to find the attribute
+    auto it = std::find(atts.begin(), atts.end(), replaceMe);
+
+    // if found set it
+    if(it != atts.end()) {
+      *it = replaceWithMe;
+    }
+  }
+
+  // keep all the attributes that are not in rhs for example lhs(a,b) \ rhs(b) = lhs(a)
+  static TupleSpec complement(const TupleSpec &lhs, const TupleSpec &rhs) {
+
+    // make the return value
+    auto ret = TupleSpec(lhs.setName);
+
+    // figure out the complements
+    auto &rhsAtts = rhs.atts;
+    for(const auto &att : lhs.atts) {
+
+      // if the attribute is not in rhs keep it
+      auto it = std::find(rhsAtts.begin(), rhsAtts.end(), att);
+      if(it == rhsAtts.end()) {
+        ret.getAtts().emplace_back(att);
+      }
     }
 
-    ~TupleSpec() {}
+    // return the value
+    return ret;
+  }
 
-    TupleSpec(std::string setNameIn) {
-        setName = setNameIn;
-    }
+  bool isEmpty() {
+    return setName == "Empty";
+  }
 
-    TupleSpec(std::string setNameIn, AttList& useMe) {
-        setName = setNameIn;
-        atts = useMe.atts;
-    }
+  bool operator==(const TupleSpec &toMe) {
+    return setName == toMe.setName;
+  }
 
-    std::string& getSetName() {
-        return setName;
-    }
-
-    std::vector<std::string>& getAtts() {
-        return atts;
-    }
-
-    bool operator==(const TupleSpec& toMe) {
-        return setName == toMe.setName;
-    }
-
-    friend std::ostream& operator<<(std::ostream& os, const TupleSpec& printMe);
+  friend std::ostream &operator<<(std::ostream &os, const TupleSpec &printMe);
 };
 
-inline std::ostream& operator<<(std::ostream& os, const TupleSpec& printMe) {
-    os << printMe.setName << " (";
-    bool first = true;
-    for (auto& a : printMe.atts) {
-        if (!first)
-            os << ", ";
-        first = false;
-        os << a;
-    }
-    os << ")";
-    return os;
+inline std::ostream &operator<<(std::ostream &os, const TupleSpec &printMe) {
+  os << printMe.setName << " (";
+  bool first = true;
+  for (auto &a : printMe.atts) {
+    if (!first)
+      os << ", ";
+    first = false;
+    os << a;
+  }
+  os << ")";
+  return os;
 }
 
 #endif

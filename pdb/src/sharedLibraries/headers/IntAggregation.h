@@ -27,7 +27,7 @@
 
 using namespace pdb;
 
-class IntAggregation : public AggregateComp<SumResult, int, int, int> {
+class IntAggregation : public AggregateComp<IntAggregation, SumResult, int, int, int> {
 public:
 
   ENABLE_DEEP_COPY
@@ -35,12 +35,12 @@ public:
   IntAggregation() = default;
 
   // the key type must have == and size_t hash () defined
-  Lambda<int> getKeyProjection(Handle<int> aggMe) override {
+  Lambda<int> getKeyProjection(Handle<int> aggMe) {
     return makeLambda(aggMe, [](Handle<int>& aggMe) { return 0; });
   }
 
   // the value type must have + defined
-  Lambda<int> getValueProjection(Handle<int> aggMe) override {
+  Lambda<int> getValueProjection(Handle<int> aggMe) {
     return makeLambda(aggMe, [](Handle<int>& aggMe) { return 1; });
   }
 };

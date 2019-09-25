@@ -15,11 +15,11 @@ class PDBStorageMapIterator;
 // enable this if it has both a get key and get value
 template <class T>
 class PDBStorageMapIterator<T, typename std::enable_if<hasGetKey<T>::value and hasGetValue<T>::value>::type> : public PDBStorageIterator<T> {
-public:
+ public:
 
   // declare upfront the key and the value types
-  using Value = typename std::remove_reference<decltype(std::declval<T>().getValue())>::type;
-  using Key = typename std::remove_reference<decltype(std::declval<T>().getKey())>::type;
+  using Value = typename pdb::remove_handle<typename std::remove_reference<decltype(std::declval<T>().getValue())>::type>::type;
+  using Key = typename pdb::remove_handle<typename std::remove_reference<decltype(std::declval<T>().getKey())>::type>::type;
 
   PDBStorageMapIterator(std::string address, int port, int maxRetries, std::string set, std::string db) : address(std::move(address)),
                                                                                                           port(port),
@@ -72,9 +72,13 @@ public:
       // do we have a record
       if(currIterator != currMap->end()) {
 
+        // create the key and value if needed
+        create(returnValue.getKey());
+        create(returnValue.getValue());
+
         // set the return value
-        returnValue.getKey() = *((Key*) currIterator.getKeyPtr());
-        returnValue.getValue() = *((Value *) currIterator.getValuePtr());
+        setRef<Key>(returnValue.getKey(), currIterator.getKeyPtr());
+        setRef<Value>(returnValue.getValue(), currIterator.getValuePtr());
 
         // increment the iterator
         ++currIterator;
@@ -93,7 +97,36 @@ public:
     return nullptr;
   }
 
-private:
+ private:
+
+  // used to to create a new key or value if needed
+  template<typename K>
+  typename std::enable_if<!std::is_base_of<HandleBase, K>::value, void>::type
+  inline create(K &) {}
+
+  // used to to create a new key or value if needed
+  template<typename K>
+  typename std::enable_if<std::is_base_of<HandleBase, K>::value, void>::type
+  inline create(K &val) {
+
+    // make the value
+    val = makeObject<typename remove_handle<K>::type>();
+  }
+
+  template<typename Type, typename LHS, typename  RHS>
+  typename std::enable_if<!std::is_base_of<HandleBase, std::remove_reference_t<LHS>>::value, void>::type
+  inline setRef(LHS &lhs, RHS rhs){
+    lhs = *((Type*) rhs);
+  }
+
+  template<typename Type, typename LHS, typename  RHS>
+  typename std::enable_if<std::is_base_of<HandleBase, std::remove_reference_t<LHS>>::value, void>::type
+  inline setRef(LHS &lhs, RHS rhs) {
+
+    char *location = (char *) rhs;
+    location -= REF_COUNT_PREAMBLE_SIZE;
+    lhs = (RefCountedObject<Type> *) location;
+  }
 
   /**
    * Grab the next page
@@ -280,7 +313,7 @@ private:
 // enable this if it does not have the right methods
 template <class T>
 class PDBStorageMapIterator<T, typename std::enable_if<!hasGetKey<T>::value or !hasGetValue<T>::value>::type> : public PDBStorageIterator<T> {
-public:
+ public:
 
   PDBStorageMapIterator(std::string, int, int, std::string, std::string) {};
 

@@ -10,7 +10,7 @@
 namespace pdb {
 
 class AggregateCompBase : public Computation {
-public:
+ public:
 
   virtual ComputeSinkPtr getAggregationHashMapCombiner(size_t workerID) = 0;
 

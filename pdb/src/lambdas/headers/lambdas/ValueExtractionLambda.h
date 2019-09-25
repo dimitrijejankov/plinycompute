@@ -30,23 +30,23 @@
 namespace pdb {
 
 template<class ClassType>
-class KeyExtractionLambda : public TypedLambdaObject<pdb::Ptr<ClassType>> {
+class ValueExtractionLambda : public TypedLambdaObject<pdb::Ptr<ClassType>> {
 public:
 
   //
-  using KeyType = std::remove_reference_t<decltype(((ClassType*) nullptr)->getKey())>;
+  using ValueType = std::remove_reference_t<decltype(((ClassType*) nullptr)->getValue())>;
 
   std::string inputTypeName;
 
   // create an att access lambda; offset is the position in the input object where we are going to
   // find the input att
-  KeyExtractionLambda(Handle<ClassType> &input) {
+  ValueExtractionLambda(Handle<ClassType> &input) {
     inputTypeName = getTypeName<ClassType>();
     this->setInputIndex(0, -((input.getExactTypeInfoValue() + 1)));
   }
 
   std::string getTypeOfLambda() const override {
-    return std::string("key");
+    return std::string("value");
   }
 
   std::string typeOfAtt() {
@@ -107,17 +107,17 @@ public:
 
           // setup the output column, if it is not already set up
           if (!output->hasColumn(outAtt)) {
-            output->addColumn(outAtt, new std::vector<KeyType>, true);
+            output->addColumn(outAtt, new std::vector<ValueType>, true);
           }
 
           // get the output column
-          std::vector<KeyType> &outColumn = output->getColumn<KeyType>(outAtt);
+          std::vector<ValueType> &outColumn = output->getColumn<ValueType>(outAtt);
 
           // loop down the columns, setting the output
           unsigned long numTuples = inputColumn.size();
           outColumn.resize(numTuples);
           for (int i = 0; i < numTuples; i++) {
-            outColumn[i] = inputColumn[i]->getKey();
+            outColumn[i] = inputColumn[i]->getValue();
           }
 
           return output;

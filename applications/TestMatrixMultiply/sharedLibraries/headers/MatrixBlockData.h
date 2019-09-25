@@ -9,7 +9,7 @@ namespace pdb {
 namespace matrix {
 
 class MatrixBlockData : public pdb::Object {
-public:
+ public:
 
   /**
    * The default constructor

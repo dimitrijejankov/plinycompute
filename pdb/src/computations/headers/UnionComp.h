@@ -29,7 +29,7 @@ public:
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets, int computationLabel) override {
 
     if (inputTupleSets.size() != getNumInputs()) {
-      std::cout << "ERROR: inputTupleSet size is " << inputTupleSets.size() << " and not equivalent with Join's inputs "
+      std::cout << "ERROR: joinTupleSet size is " << inputTupleSets.size() << " and not equivalent with Join's inputs "
                 << getNumInputs() << std::endl;
       return "";
     }

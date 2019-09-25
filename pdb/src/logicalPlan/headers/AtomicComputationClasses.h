@@ -108,7 +108,19 @@ struct ApplyLambda : public AtomicComputation {
     return lambdaName;
   }
 
-  friend std::ostream &operator<<(std::ostream &os, const AtomicComputationList &printMe);
+  // wheter this lambda is a key extraction lambda
+  bool isExtractingKey() {
+
+    // get the lambda type
+    auto it = keyValuePairs->find("lambdaType");
+    return it != keyValuePairs->end() && it->second == "key";
+  }
+
+  // serializes this atomic computation
+  std::ostream &writeOut(std::ostream &os) const override {
+    os << output << " <= APPLY (" << input <<  ", " << projection << ", '" << computationName  << "', '" << lambdaName << "')\n";
+    return os;
+  }
 };
 
 // this is a computation that applies a hash to a particular attribute in a tuple set
@@ -118,7 +130,7 @@ struct HashLeft : public AtomicComputation {
   std::string lambdaName;
 
  public:
-  ~HashLeft() {}
+  ~HashLeft() = default;
 
   HashLeft(TupleSpec &input,
            TupleSpec &output,
@@ -176,7 +188,11 @@ struct HashLeft : public AtomicComputation {
         ->findSource((getProjection().getAtts())[counter], allComps);
   }
 
-  friend std::ostream &operator<<(std::ostream &os, const AtomicComputationList &printMe);
+  // serializes this atomic computation
+  std::ostream &writeOut(std::ostream &os) const override {
+    os << output << " <= HASHLEFT (" << input <<  ", " << projection << ", '" << computationName << "', '" << lambdaName << "')\n";
+    return os;
+  }
 };
 
 // this is a computation that applies a lambda to a tuple set
@@ -186,7 +202,7 @@ struct HashRight : public AtomicComputation {
   std::string lambdaName;
 
  public:
-  ~HashRight() {}
+  ~HashRight() = default;
 
   HashRight(TupleSpec &input,
             TupleSpec &output,
@@ -245,14 +261,18 @@ struct HashRight : public AtomicComputation {
         ->findSource((getProjection().getAtts())[counter], allComps);
   }
 
-  friend std::ostream &operator<<(std::ostream &os, const AtomicComputationList &printMe);
+  // serializes this atomic computation
+  std::ostream &writeOut(std::ostream &os) const override {
+    os << output << " <= HASHRIGHT (" << input <<  ", " << projection << ", '" << computationName << "', '" << lambdaName << "')\n";
+    return os;
+  }
 };
 
 // this is a computation that adds 1  to each tuple of a tuple set
 struct HashOne : public AtomicComputation {
 
  public:
-  ~HashOne() {}
+  ~HashOne() override = default;
 
   HashOne(TupleSpec &input, TupleSpec &output, TupleSpec &projection, std::string nodeName) : AtomicComputation(input,
                                                                                                                 output,
@@ -291,14 +311,18 @@ struct HashOne : public AtomicComputation {
         ->findSource((getProjection().getAtts())[counter], allComps);
   }
 
-  friend std::ostream &operator<<(std::ostream &os, const AtomicComputationList &printMe);
+  // serializes this atomic computation
+  std::ostream &writeOut(std::ostream &os) const override {
+    os << output << " <= HASHONE (" << input <<  ", " << projection << ", '" << computationName << "')\n";
+    return os;
+  }
 };
 
 // this is a computation that flatten each tuple of a tuple set
 struct Flatten : public AtomicComputation {
+public:
 
- public:
-  ~Flatten() {}
+  ~Flatten() = default;
 
   Flatten(TupleSpec &input, TupleSpec &output, TupleSpec &projection, std::string nodeName)
       : AtomicComputation(input,
@@ -342,22 +366,21 @@ struct Flatten : public AtomicComputation {
       return std::make_pair(getComputationName(), std::string(""));
     }
 
-    // otherwise, find our parent
-    // std :: cout << "Flatten projection set name is " << getProjection().getSetName() << std
-    // :: endl;
-
-    // std :: cout << "Flatten getProjection is " << getProjection() << std :: endl;
     return allComps.getProducingAtomicComputation(getProjection().getSetName())
         ->findSource((getProjection().getAtts())[counter], allComps);
   }
 
-  friend std::ostream &operator<<(std::ostream &os, const AtomicComputationList &printMe);
+  // serializes this atomic computation
+  std::ostream &writeOut(std::ostream &os) const override {
+    os << output << " <= FLATTEN (" << input <<  ", " << projection << ", '" << computationName << "')\n";
+    return os;
+  }
 };
 
 // this is a computation that unions two tuple sets
 // this is a computation that flatten each tuple of a tuple set
 struct Union : public AtomicComputation {
-private:
+ private:
 
   TupleSpec rightInput;
 
@@ -393,8 +416,17 @@ private:
     return std::string("Union");
   }
 
-  TupleSpec &getRightInput() {
+  TupleSpec &getRightInput() override {
     return rightInput;
+  }
+
+  // the projection is the same as the input
+  TupleSpec &getRightProjection() override {
+    return rightInput;
+  }
+
+  bool hasTwoInputs() override {
+    return true;
   }
 
   AtomicComputationTypeID getAtomicComputationTypeID() override {
@@ -419,7 +451,11 @@ private:
     exit(1);
   }
 
-  friend std::ostream &operator<<(std::ostream &os, const AtomicComputationList &printMe);
+  // serializes this atomic computation
+  std::ostream &writeOut(std::ostream &os) const override {
+    os << output << " <= UNION (" << input <<  ", " << rightInput << ", '" << computationName << "')\n";
+    return os;
+  }
 };
 
 // this is a computation that performs a filer over a tuple set
@@ -433,13 +469,14 @@ struct ApplyFilter : public AtomicComputation {
   }
 
   // ss107: New Constructor:
-  ApplyFilter(TupleSpec &input, TupleSpec &output, TupleSpec &projection, std::string nodeName, KeyValueList &useMe) : AtomicComputation(input, output, projection, nodeName) {
+  ApplyFilter(TupleSpec &input, TupleSpec &output, TupleSpec &projection, std::string nodeName, KeyValueList &useMe)
+      : AtomicComputation(input, output, projection, nodeName) {
 
     // set the key value pairs
     keyValuePairs = useMe.getKeyValuePairs();
   }
 
-  ~ApplyFilter() = default;
+  ~ApplyFilter() override = default;
 
   std::string getAtomicComputationType() override {
     return std::string("Filter");
@@ -460,13 +497,20 @@ struct ApplyFilter : public AtomicComputation {
     return allComps.getProducingAtomicComputation(getProjection().getSetName())
         ->findSource((getProjection().getAtts())[counter], allComps);
   }
+
+  // serializes this atomic computation
+  std::ostream &writeOut(std::ostream &os) const override {
+    os << output << " <= FILTER (" << input <<  ", " << projection << ", '" << computationName << "')\n";
+    return os;
+  }
 };
 
 // this is a computation that aggregates a tuple set
 struct ApplyAgg : public AtomicComputation {
 
- public:
-  ~ApplyAgg() {}
+public:
+
+  ~ApplyAgg() override = default;
 
   ApplyAgg(TupleSpec &input, TupleSpec &output, TupleSpec &projection, std::string nodeName)
       : AtomicComputation(input, output, projection, nodeName) {}
@@ -504,29 +548,50 @@ struct ApplyAgg : public AtomicComputation {
     std::cout << "How did we ever get here trying to find an attribute produced by an agg??\n";
     exit(1);
   }
+
+  // serializes this atomic computation
+  std::ostream &writeOut(std::ostream &os) const override {
+    os << output << " <= AGGREGATE ( '" << input <<  ", '" << computationName << "')\n";
+    return os;
+  }
 };
 
 // this is a computation that produces a tuple set by scanning a set stored in the database
 struct ScanSet : public AtomicComputation {
+protected:
 
-  std::string dbName;
-  std::string setName;
+  // the specifier of the set (database, set)
+  std::pair<std::string, std::string> setSpecifier;
 
- public:
-  ~ScanSet() {}
+  // The page set identifier (taskID, specifier)
+  std::pair<size_t, std::string> pageSetSpecifier;
 
-  ScanSet(TupleSpec &output, std::string dbName, std::string setName, std::string nodeName)
+public:
+
+  ~ScanSet() override = default;
+
+  ScanSet(TupleSpec &output, const std::string &dbName, const std::string &setName, const std::string &nodeName)
       : AtomicComputation(TupleSpec(), output, TupleSpec(), nodeName),
-        dbName(dbName),
-        setName(setName) {}
+        setSpecifier(std::make_pair(dbName, setName)) {}
 
   // ss107: New Constructor:
-  ScanSet(TupleSpec &output, std::string dbName, std::string setName, std::string nodeName, KeyValueList &useMe) :
-      AtomicComputation(TupleSpec(), output, TupleSpec(), nodeName), dbName(dbName), setName(setName) {
+  ScanSet(TupleSpec &output, const std::string &dbName, const std::string &setName, const std::string &nodeName, KeyValueList &useMe) :
+      AtomicComputation(TupleSpec(), output, TupleSpec(), nodeName),
+      setSpecifier(std::make_pair(dbName, setName)) {
 
     // set the key value pairs
     keyValuePairs = useMe.getKeyValuePairs();
   }
+
+  ScanSet(TupleSpec &output, size_t taskID, const std::string &pageSetSpecifier, const std::string &nodeName, KeyValueList &useMe) :
+    AtomicComputation(TupleSpec(), output, TupleSpec(), nodeName), pageSetSpecifier(std::make_pair(taskID, pageSetSpecifier)) {
+
+    // set the key value pairs
+    keyValuePairs = useMe.getKeyValuePairs();
+  }
+
+  ScanSet(TupleSpec &output, size_t taskID, const std::string &pageSetSpecifier, const std::string &nodeName) :
+      AtomicComputation(TupleSpec(), output, TupleSpec(), nodeName), pageSetSpecifier(std::make_pair(taskID, pageSetSpecifier)) {}
 
   std::string getAtomicComputationType() override {
     return std::string("Scan");
@@ -537,11 +602,15 @@ struct ScanSet : public AtomicComputation {
   }
 
   std::string &getDBName() {
-    return dbName;
+    return setSpecifier.first;
   }
 
   std::string &getSetName() {
-    return setName;
+    return setSpecifier.second;
+  }
+
+  std::pair<size_t, std::string> &getPageSetSpecifier() {
+    return pageSetSpecifier;
   }
 
   std::pair<std::string, std::string> findSource(std::string attName,
@@ -563,6 +632,12 @@ struct ScanSet : public AtomicComputation {
         << "How did we ever get here trying to find an attribute produced by a scan set??\n";
     exit(1);
   }
+
+  // serializes this atomic computation
+  std::ostream &writeOut(std::ostream &os) const override {
+    os << output << " <= SCAN ( '" << setSpecifier.first << "', '" << setSpecifier.second << "', '" << computationName << "')\n";
+    return os;
+  }
 };
 
 // this is a computation that writes out a tuple set
@@ -572,7 +647,7 @@ struct WriteSet : public AtomicComputation {
   std::string setName;
 
  public:
-  ~WriteSet() {}
+  ~WriteSet() = default;
 
   WriteSet(TupleSpec &input,
            TupleSpec &output,
@@ -619,6 +694,12 @@ struct WriteSet : public AtomicComputation {
     std::cout << "How did we ever get to a write set trying to find an attribute??\n";
     exit(1);
   }
+
+  // serializes this atomic computation
+  std::ostream &writeOut(std::ostream &os) const override {
+    os << output << " <= OUTPUT ( " << input << ", '" << dbName << "', '" << setName << "', '" << computationName << "')\n";
+    return os;
+  }
 };
 
 struct ApplyJoin : public AtomicComputation {
@@ -647,16 +728,19 @@ struct ApplyJoin : public AtomicComputation {
             KeyValueList &useMe) :
       AtomicComputation(lInput, output, lProjection, nodeName), rightInput(rInput), rightProjection(rProjection) {
 
-      // set the key value pairs
-      keyValuePairs = useMe.getKeyValuePairs();
-    }
+    // set the key value pairs
+    keyValuePairs = useMe.getKeyValuePairs();
+  }
 
-  TupleSpec &getRightProjection() {
+  TupleSpec &getRightProjection() override {
     return rightProjection;
   }
 
-  TupleSpec &getRightInput() {
+  TupleSpec &getRightInput() override {
     return rightInput;
+  }
+  bool hasTwoInputs() override {
+    return true;
   }
 
   std::string getAtomicComputationType() override {
@@ -694,52 +778,12 @@ struct ApplyJoin : public AtomicComputation {
       exit(1);
     }
   }
-};
 
-
-// this is a computation that partitions a tuple set
-struct ApplyPartition : public AtomicComputation {
-
- public:
-  ~ApplyPartition() {}
-
-  ApplyPartition(TupleSpec &input, TupleSpec &output, TupleSpec &projection, std::string nodeName)
-      : AtomicComputation(input, output, projection, nodeName) {}
-
-  ApplyPartition(TupleSpec &input, TupleSpec &output, TupleSpec &projection, std::string nodeName, KeyValueList &useMe) :
-      AtomicComputation(input, output, projection, nodeName) {
-
-    // set the key value pairs
-    keyValuePairs = useMe.getKeyValuePairs();
-  }
-
-  std::string getAtomicComputationType() override {
-    return std::string("Partition");
-  }
-
-  AtomicComputationTypeID getAtomicComputationTypeID() override {
-    return ApplyPartitionTypeID;
-  }
-
-  std::pair<std::string, std::string> findSource(std::string attName,
-                                                 AtomicComputationList &allComps) override {
-
-    // The output from the partition should be a single attribute
-    // find where the attribute appears in the outputs
-    int counter = findPosInOutputAtts(attName);
-
-    // if the attribute we are asking for is at the end, it means it's produced by this
-    // aggregate
-    // then we asked for it
-    if (counter == 0) {
-      return std::make_pair(getComputationName(), std::string(""));
-    }
-
-    // if it is not at the end, if makes no sense
-    std::cout << "How did we ever get here trying to find an attribute produced by an agg??\n";
-    exit(1);
+  // serializes this atomic computation
+  std::ostream &writeOut(std::ostream &os) const override {
+    os << output << " <= JOIN (" << input << ", " << projection << ", " << rightInput << ", " << rightProjection << ", '" << computationName << "')\n";
+    return os;
   }
 };
-
 
 #endif

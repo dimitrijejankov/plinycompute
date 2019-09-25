@@ -114,7 +114,7 @@ inline std::string formatFilterComputation(const std::string &outputTupleSetName
   {"{{outputTupleSetName}}({{#outputColumns}}{{value}}{{^isLast}},{{/isLast}}{{/outputColumns}}) <= "
    "FILTER ({{inputTupleSetName}}({{#inputColumnsToApply}}{{value}}{{^isLast}},{{/isLast}}{{/inputColumnsToApply}}), "
            "{{inputTupleSetName}}({{#inputColumnNames}}{{value}}{{^isLast}},{{/isLast}}{{/inputColumnNames}}), "
-           "'JoinComp_2')\n"};
+           "'{{computationNameAndLabel}}')\n"};
 
   // create the data for the output columns
   mustache::data outputColumnData = mustache::from_vector<std::string>(outputColumns);

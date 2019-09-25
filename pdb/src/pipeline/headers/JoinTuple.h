@@ -75,6 +75,26 @@ class JoinTuple : public JoinTupleBase {
   // and this is the recursion
   MeTo myOtherData;
 
+  // this returns the keys of the join input as JoinTuple
+  template <typename T = typename pdb::remove_handle<HoldMe>::type,
+      typename U = MeTo,
+      typename Key1 = decltype(((T*) nullptr)->getKey()),
+      typename Key2 = decltype(((U*) nullptr)->getKey()),
+      typename ret = JoinTuple<typename std::remove_reference<Key1>::type, Key2>>
+  ret getKey() {
+    return ret();
+  }
+
+  // this returns the keys of the join input as JoinTuple
+  template <typename T = typename pdb::remove_handle<HoldMe>::type,
+      typename U = MeTo,
+      typename Key1 = decltype(((T*) nullptr)->getKey()),
+      typename ret = JoinTuple<typename std::remove_reference<Key1>::type, char[0]>>
+  typename std::enable_if<std::is_same<U, char[0]>::value, ret>::type
+  getKey() {
+    return ret();
+  }
+
   static void *allocate(TupleSet &processMe, int where) {
     std::cout << "Creating column for type " << getTypeName<Handle<HoldMe>>() << " at position " << where << "\n";
     auto *me = new std::vector<Handle<HoldMe>>;

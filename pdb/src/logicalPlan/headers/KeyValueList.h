@@ -51,9 +51,6 @@ public:
 	std::shared_ptr<std::map <std::string, std::string>> &getKeyValuePairs () {
 		return keyValuePairs;
 	}
-	
-	//friend struct TupleSpec;
-
 };
 
 #endif

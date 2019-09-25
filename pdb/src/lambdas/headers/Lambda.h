@@ -126,6 +126,7 @@ public:
       multiInputsComp->tupleSetNamesForInputs[i] = tree->getOutputTupleSetName();
       multiInputsComp->inputColumnsToApplyForInputs[i] = tree->getGeneratedColumns();
       multiInputsComp->inputColumnsForInputs[i] = tree->getOutputColumns();
+      multiInputsComp->joinGroupForInput[i] = 0;
     }
 
     // combine all the tcap strings

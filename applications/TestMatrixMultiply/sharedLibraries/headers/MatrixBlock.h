@@ -22,7 +22,7 @@ namespace matrix {
  * |       1      |       0      |    25k     |    25k     | 25k * 25k  |
  */
 class MatrixBlock : public pdb::Object {
-public:
+ public:
 
   /**
    * The default constructor
@@ -36,26 +36,28 @@ public:
    * @param numRows - the number of rows the block has
    * @param numCols - the number of columns the block has
    */
-  MatrixBlock(uint32_t rowID, uint32_t colID, uint32_t numRows, uint32_t numCols) : metaData(rowID, colID),
-                                                                                    data(numRows, numCols) {}
+  MatrixBlock(uint32_t rowID, uint32_t colID, uint32_t numRows, uint32_t numCols) {
+    metaData = makeObject<MatrixBlockMeta>(rowID, colID),
+    data = makeObject<MatrixBlockData>(numRows, numCols);
+  }
 
   ENABLE_DEEP_COPY
 
   /**
    * The metadata of the matrix
    */
-  MatrixBlockMeta metaData;
+  Handle<MatrixBlockMeta> metaData;
 
   /**
    * The data of the matrix
    */
-  MatrixBlockData data;
+  Handle<MatrixBlockData> data;
 
   /**
    *
    * @return
    */
-  MatrixBlockMeta& getKey() {
+  Handle<MatrixBlockMeta>& getKey() {
     return metaData;
   }
 
@@ -63,25 +65,36 @@ public:
    *
    * @return
    */
-  MatrixBlockData& getValue() {
+  MatrixBlockMeta& getKeyRef(){
+    return *metaData;
+  }
+
+  /**
+   *
+   * @return
+   */
+  Handle<MatrixBlockData>& getValue() {
     return data;
   }
 
+  MatrixBlockData& getValueRef() {
+    return *data;
+  }
 
   uint32_t getRowID() {
-    return metaData.rowID;
+    return metaData->rowID;
   }
 
   uint32_t getColID() {
-    return metaData.colID;
+    return metaData->colID;
   }
 
   uint32_t getNumRows() {
-    return data.numRows;
+    return data->numRows;
   }
 
   uint32_t getNumCols() {
-    return data.numCols;
+    return data->numCols;
   }
 };
 

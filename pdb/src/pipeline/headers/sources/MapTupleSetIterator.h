@@ -46,6 +46,34 @@ class MapTupleSetIterator : public ComputeSource {
   // the page that contains the map
   PDBPageHandle page;
 
+  // used to assign rhs to the lhs if the lhs is not a handle
+  template<typename LHS, typename RHS>
+  typename std::enable_if<!std::is_base_of<HandleBase, LHS>::value, void>::type
+  inline assign(LHS &lhs, RHS &rhs) {
+    lhs = rhs;
+  }
+
+  // used to assign rhs to the lhs if the lhs is a handle
+  template<typename LHS, typename RHS>
+  typename std::enable_if<std::is_base_of<HandleBase, LHS>::value, void>::type
+  inline assign(LHS &lhs, RHS &rhs) {
+    *lhs = rhs;
+  }
+
+  // used to to create a new key or value if needed
+  template<typename T>
+  typename std::enable_if<!std::is_base_of<HandleBase, T>::value, void>::type
+  inline create(T &) {}
+
+  // used to to create a new key or value if needed
+  template<typename T>
+  typename std::enable_if<std::is_base_of<HandleBase, T>::value, void>::type
+  inline create(T &val) {
+
+    // make the value
+    val = makeObject<typename remove_handle<T>::type>();
+  }
+
  public:
 
   // the first param is a callback function that the iterator will call in order to obtain another vector
@@ -99,13 +127,21 @@ class MapTupleSetIterator : public ComputeSource {
     for (int i = 0; i < chunkSize; i++) {
 
       if (i >= limit) {
+
+        // make the object
         Handle<OutputType> temp = (makeObject<OutputType>());
+
+        // make the key and value if needed
+        create(temp->getKey());
+        create(temp->getValue());
+
+        // push the column
         inputColumn.push_back(temp);
       }
 
       // key the key/value pair
-      inputColumn[i]->getKey() = (*begin).key;
-      inputColumn[i]->getValue() = (*begin).value;
+      assign(inputColumn[i]->getKey(), (*begin).key);
+      assign(inputColumn[i]->getValue(), (*begin).value);
 
       // move on to the next item
       ++begin;

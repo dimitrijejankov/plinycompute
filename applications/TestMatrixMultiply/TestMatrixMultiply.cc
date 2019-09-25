@@ -32,7 +32,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
       Handle<MatrixBlock> myInt = makeObject<MatrixBlock>(r, c, matrixRows / numRows, matrixColumns / numCols);
 
       // init the values
-      float *vals = myInt->data.data->c_ptr();
+      float *vals = myInt->data->data->c_ptr();
       for (int v = 0; v < (matrixRows / numRows) * (matrixColumns / numCols); ++v) {
         vals[v] = 1.0f * v;
       }
@@ -108,10 +108,10 @@ int main(int argc, char* argv[]) {
     auto r = it->getNextRecord();
 
     // write out the values
-    float *values = r->data.data->c_ptr();
-    for(int i = 0; i < r->data.numRows; ++i) {
-      for(int j = 0; j < r->data.numCols; ++j) {
-        std::cout << values[i * r->data.numCols + j] << ", ";
+    float *values = r->data->data->c_ptr();
+    for(int i = 0; i < r->data->numRows; ++i) {
+      for(int j = 0; j < r->data->numCols; ++j) {
+        std::cout << values[i * r->data->numCols + j] << ", ";
       }
       std::cout << "\n";
     }

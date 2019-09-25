@@ -54,8 +54,26 @@ public:
     // AtomicComputationPtr in the returned list will point to a SetScanner object
     std::vector<AtomicComputationPtr>& getAllScanSets();
 
+    // removes the consumer from a tuple set
+    void removeConsumer(const std::string &tupleSet, const AtomicComputationPtr& consumer);
+
+    // removes the atomic computation that produces the specified tuple set
+    void removeProducer(const std::string &tupleSet);
+
+    // remove all consumers
+    void removeAllConsumers(const std::string &tupleSet);
+
+    // removes the computation and relinks the produces of it and consumers of it
+    void removeAndRelink(const std::string &tupleSet);
+
+    // replace the computation
+    void replaceComputation(const std::string &tupleSet, const AtomicComputationPtr& comp);
+
+    // check if this tuple set has a consumer
+    bool hasConsumer(const std::string &tupleSet);
+
     // add an atomic computation to the graph
-    void addAtomicComputation(AtomicComputationPtr addMe);
+    void addAtomicComputation(const AtomicComputationPtr& addMe);
 
     friend std::ostream& operator<<(std::ostream& os, const AtomicComputationList& printMe);
 };

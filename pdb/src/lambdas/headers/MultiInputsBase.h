@@ -84,6 +84,10 @@ class MultiInputsBase {
     inputColumnsToApplyForInputs.resize(numInputs);
     lambdaNamesForInputs.resize(numInputs);
     inputNames.resize(numInputs);
+
+    // label each join group
+    joinGroupForInput.resize(numInputs);
+    for(int i = 0; i < numInputs; ++i) { joinGroupForInput[i] = i; }
   }
 
   std::vector<std::string> getNotAppliedInputColumnsForIthInput(int i) {

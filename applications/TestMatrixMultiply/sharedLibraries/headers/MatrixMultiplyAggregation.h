@@ -9,19 +9,19 @@ namespace pdb {
 
 namespace matrix {
 
-class MatrixMultiplyAggregation : public AggregateComp<MatrixBlock, MatrixBlock, MatrixBlockMeta, MatrixBlockData> {
-public:
+class MatrixMultiplyAggregation : public AggregateComp<MatrixMultiplyAggregation, MatrixBlock, MatrixBlock, MatrixBlockMeta, MatrixBlockData> {
+ public:
 
   ENABLE_DEEP_COPY
 
   // the key type must have == and size_t hash () defined
-  Lambda<MatrixBlockMeta> getKeyProjection(Handle<MatrixBlock> aggMe) override {
-    return makeLambdaFromMethod(aggMe, getKey);
+  static Lambda<MatrixBlockMeta> getKeyProjectionWithInputKey(Handle<MatrixBlockMeta> aggMe) {
+    return makeLambdaFromSelf(aggMe);
   }
 
   // the value type must have + defined
-  Lambda<MatrixBlockData> getValueProjection(Handle<MatrixBlock> aggMe) override {
-    return makeLambdaFromMethod(aggMe, getValue);
+  static Lambda<MatrixBlockData> getValueProjection(Handle<MatrixBlock> aggMe) {
+    return makeLambdaFromMethod(aggMe, getValueRef);
   }
 
 };

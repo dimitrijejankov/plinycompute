@@ -268,7 +268,7 @@ public:
         LambdaObjectPtr child = it->second;
 
         // grab what columns we require
-        appliedColumns = child->generatedColumns;
+        appliedColumns.insert(appliedColumns.end(), child->generatedColumns.begin(), child->generatedColumns.end());
 
         // get the index
         assert(!child->joinedInputs.empty());

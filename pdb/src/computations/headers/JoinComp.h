@@ -35,7 +35,7 @@ namespace pdb {
 
 template<typename Derived, typename Out, typename In1, typename In2, typename ...Rest>
 class JoinComp : public JoinCompBase {
-public:
+ public:
 
   virtual ~JoinComp() = default;
 
@@ -44,7 +44,7 @@ public:
 
     // get the selection lambda
     Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
-    Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
+    Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, Out, In1, In2, Rest...>(*static_cast<Derived*>(this));
 
     // the label we are started labeling
     int32_t startLabel = 0;
@@ -102,6 +102,20 @@ public:
     std::vector<int> whereEveryoneGoes;
     JoinTuplePtr correctJoinTuple = findJoinTuple(projection, plan, whereEveryoneGoes);
     return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+  }
+
+  // this gets the key sink
+  ComputeSinkPtr getKeySink(TupleSpec &consumeMe,
+                            TupleSpec &attsToOpOn,
+                            TupleSpec &projection,
+                            uint64_t numPartitions,
+                            std::map<ComputeInfoType, ComputeInfoPtr> &params,
+                            pdb::LogicalPlanPtr &plan) override {
+
+    // figure out the right join tuple
+    std::vector<int> whereEveryoneGoes;
+    JoinTuplePtr correctJoinTuple = findJoinTuple(projection, plan, whereEveryoneGoes);
+    return correctJoinTuple->getKeySink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
   }
 
   ComputeSinkPtr getComputeMerger(TupleSpec &consumeMe, TupleSpec &attsToOpOn, TupleSpec &projection,
@@ -230,8 +244,12 @@ public:
     return std::string("JoinComp");
   }
 
-  //JiaNote: Returning a TCAP string for this Join computation
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets, int computationLabel) override {
+
+    // if a join is a source we generate a SCAN so that we can refer to this computation and use it's page set
+    if(isSource) {
+      return std::move(toSourceTCAP(computationLabel));
+    }
 
     if (inputTupleSets.size() != getNumInputs()) {
       std::cout << "ERROR: inputTupleSet size is " << inputTupleSets.size() << " and not equivalent with Join's inputs " << getNumInputs() << std::endl;
@@ -285,7 +303,7 @@ public:
 
     // get the projection lambda and it's inputs
     tcapString += "\n/* Apply join projection*/\n";
-    Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
+    Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, Out, In1, In2, Rest...>(*static_cast<Derived*>(this));
     tcapString += projectionLambda.toTCAPString(lambdaLabel,
                                                 "JoinComp",
                                                 computationLabel,

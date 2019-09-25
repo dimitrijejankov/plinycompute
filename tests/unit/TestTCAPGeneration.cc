@@ -19,17 +19,7 @@
 
 #include <gtest/gtest.h>
 #include <QueryGraphAnalyzer.h>
-#include <ReadInt.h>
-#include <ReadStringIntPair.h>
-#include <StringSelectionOfStringIntPair.h>
-#include <IntSimpleJoin.h>
-#include <WriteSumResult.h>
-#include <IntAggregation.h>
-#include <WriteBuiltinEmployeeSet.h>
-#include <EmployeeBuiltInIdentitySelection.h>
-#include <ScanEmployeeSet.h>
-#include <IntUnion.h>
-#include <IntWriter.h>
+
 
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlock.h"
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixScanner.h"
@@ -157,14 +147,33 @@ TEST(TestTcapGeneration, Test5) {
 
   const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
 
-  // create all of the computation objects
-  Handle<Computation> myScanSet1 = makeObject<ReadInt>("chris_db", "input_set1");
-  Handle<Computation> myScanSet2 = makeObject<ReadInt>("chris_db", "input_set2");
-  Handle<Computation> myQuery = makeObject<IntUnion>();
-  myQuery->setInput(0, myScanSet1);
-  myQuery->setInput(1, myScanSet2);
-  Handle<Computation> myWriteSet = makeObject<IntWriter>("chris_db", "outputSet");
-  myWriteSet->setInput(myQuery);
+  // create the scan sets for a and b
+  Handle<Computation> myScanSet1 = makeObject<MatrixScanner>("db", "a");
+  Handle<Computation> myScanSet2 = makeObject<MatrixScanner>("db", "b");
+
+  // make the join of the first multiply
+  Handle<Computation> myJoin = makeObject<MatrixMultiplyJoin>();
+  myJoin->setInput(0, myScanSet1);
+  myJoin->setInput(1, myScanSet2);
+
+  // make the aggregation of the first multiply
+  Handle<Computation> myAggregation = makeObject<MatrixMultiplyAggregation>();
+  myAggregation->setInput(myJoin);
+
+  // create the scan set for c
+  Handle<Computation> myScanSet3 = makeObject<MatrixScanner>("db", "c");
+
+  // make the join of the second multiply
+  Handle<Computation> myJoin2 = makeObject<MatrixMultiplyJoin>();
+  myJoin2->setInput(0, myAggregation);
+  myJoin2->setInput(1, myScanSet3);
+
+  // make the aggregation of the second multiply
+  Handle<Computation> myAggregation2 = makeObject<MatrixMultiplyAggregation>();
+  myAggregation2->setInput(myJoin2);
+
+  Handle<Computation> myWriteSet = makeObject<MatrixWriter>("db", "d");
+  myWriteSet->setInput(myAggregation2);
 
   // the query graph has only the aggregation
   std::vector<Handle<Computation>> queryGraph = { myWriteSet };
@@ -181,3 +190,39 @@ TEST(TestTcapGeneration, Test5) {
 
   std::cout << tcapString << std::endl;
 }
+
+//TEST(TestTcapGeneration, Test5) {
+//
+//  const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
+//
+//  // create the scan sets for a and b
+//  Handle<Computation> myScanSet1 = makeObject<MatrixScanner>("db", "a");
+//  Handle<Computation> myScanSet2 = makeObject<MatrixScanner>("db", "b");
+//
+//  // make the join of the first multiply
+//  Handle<Computation> myJoin = makeObject<MatrixMultiplyJoin>();
+//  myJoin->setInput(0, myScanSet1);
+//  myJoin->setInput(1, myScanSet2);
+//
+//  // make the aggregation of the first multiply
+//  Handle<Computation> myAggregation = makeObject<MatrixMultiplyAggregation>();
+//  myAggregation->setInput(myJoin);
+//
+//  Handle<Computation> myWriteSet = makeObject<MatrixWriter>("db", "c");
+//  myWriteSet->setInput(myAggregation);
+//
+//  // the query graph has only the aggregation
+//  std::vector<Handle<Computation>> queryGraph = { myWriteSet };
+//
+//  // create the graph analyzer
+//  pdb::QueryGraphAnalyzer queryAnalyzer(queryGraph);
+//
+//  // here is the list of computations
+//  Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
+//
+//  // parse the tcap string
+//  std::cout << '\n';
+//  std::string tcapString = queryAnalyzer.parseTCAPString(*myComputations);
+//
+//  std::cout << tcapString << std::endl;
+//}
