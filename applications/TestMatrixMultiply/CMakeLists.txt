@@ -13,14 +13,8 @@ foreach (file ${GPU_SOURCE})
     get_filename_component(fileName "${file}" NAME_WE)
     if (USE_CUDA)
         enable_language("CUDA")
-        add_library(${fileName} MODULE ${file})
-        target_link_libraries(${fileName} pdb-shared-common)
-        target_link_libraries(${fileName} ${GSL_LIBRARIES})
-
-        add_library(${fileName}_share STATIC ${file})
-        target_link_libraries(TestMatrixMultiply ${fileName}_share)
-
-        add_dependencies(shared-libraries ${fileName})
+        add_library(${fileName} SHARED ${file})
+        target_link_libraries(TestMatrixMultiply PDBCUDAMatrixMultiple)
     endif ()
 endforeach ()
 
@@ -42,3 +36,6 @@ add_dependencies(TestMatrixMultiply MatrixMultiplyAggregation)
 add_dependencies(TestMatrixMultiply MatrixMultiplyJoin)
 add_dependencies(TestMatrixMultiply MatrixScanner)
 add_dependencies(TestMatrixMultiply MatrixWriter)
+
+target_link_libraries(MatrixMultiplyJoin PDBCUDAMatrixMultiple)
+add_dependencies(MatrixMultiplyJoin PDBCUDAMatrixMultiple)

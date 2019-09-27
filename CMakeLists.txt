@@ -342,7 +342,7 @@ if (("${CMAKE_VERSION}" VERSION_EQUAL 3.8) OR
     # Modern CMake
     if (USE_CUDA)
         enable_language("CUDA")
-        add_library(pdb-gpu ${GPU_SOURCE})
+        add_library(pdb-gpu SHARED ${GPU_SOURCE})
     endif ()
 else ()
     # Old CMake
@@ -375,6 +375,7 @@ else()
     target_link_libraries(pdb-node pdb-server-common)
     target_link_libraries(pdb-node ${GSL_LIBRARIES})
     target_link_libraries(pdb-node ${Boost_LIBRARIES})
+    add_dependencies(pdb-node pdb-gpu)
     target_link_libraries(pdb-node pdb-gpu)
 
     # set dependencies for pdb-main

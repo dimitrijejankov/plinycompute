@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
   pdbClient.registerType("libraries/libMatrixMultiplyJoin.so");
   pdbClient.registerType("libraries/libMatrixScanner.so");
   pdbClient.registerType("libraries/libMatrixWriter.so");
-  pdbClient.registerType("libraries/libPDBCUDAMatrixMultiple.so");
+  //pdbClient.registerType("libraries/libPDBCUDAMatrixMultiple.so");
 
   /// 2. Create the set
 
