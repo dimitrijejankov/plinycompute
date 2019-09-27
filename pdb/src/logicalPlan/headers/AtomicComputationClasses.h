@@ -16,8 +16,7 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef COMP_CLASSES_H
-#define COMP_CLASSES_H
+#pragma once
 
 #include "TupleSpec.h"
 #include "AtomicComputationList.h"
@@ -706,15 +705,19 @@ struct WriteSet : public AtomicComputation {
 struct ApplyJoin : public AtomicComputation {
 
   TupleSpec rightInput;
+
+  // the right projection of the join (basically the inputs we keepo )
   TupleSpec rightProjection;
 
- public:
+  // true if this is a key join false otherwise
+  bool isKeyJoin = false;
+
   ApplyJoin(TupleSpec &output,
             TupleSpec &lInput,
             TupleSpec &rInput,
             TupleSpec &lProjection,
             TupleSpec &rProjection,
-            std::string nodeName)
+            const std::string &nodeName)
       : AtomicComputation(lInput, output, lProjection, nodeName),
         rightInput(rInput),
         rightProjection(rProjection) {}
@@ -725,7 +728,7 @@ struct ApplyJoin : public AtomicComputation {
             TupleSpec &rInput,
             TupleSpec &lProjection,
             TupleSpec &rProjection,
-            std::string nodeName,
+            const std::string &nodeName,
             KeyValueList &useMe) :
       AtomicComputation(lInput, output, lProjection, nodeName), rightInput(rInput), rightProjection(rProjection) {
 
@@ -786,5 +789,3 @@ struct ApplyJoin : public AtomicComputation {
     return os;
   }
 };
-
-#endif

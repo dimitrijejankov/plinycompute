@@ -6,6 +6,7 @@
 #include <gmock/gmock.h>
 
 #include "ReadInt.h"
+#include "NullProcessor.h"
 #include "ReadStringIntPair.h"
 #include "SillyJoinIntString.h"
 #include "SillyWriteIntString.h"
@@ -255,23 +256,19 @@ TEST(PipelineTest, TestShuffleJoinSingle) {
   myComputations.push_back (join);
   myComputations.push_back (write);
 
-  pdb::String tcapString = "A(a) <= SCAN ('myData', 'mySetA', 'SetScanner_0')\n"
-                           "B(b) <= SCAN ('myData', 'mySetB', 'SetScanner_1')\n"
-                           "A_extracted_value(a,self_0_2Extracted) <= APPLY (A(a), A(a), 'JoinComp_2', 'self_0', [('lambdaType', 'self')])\n"
-                           "AHashed(a,a_value_for_hashed) <= HASHLEFT (A_extracted_value(self_0_2Extracted), A_extracted_value(a), 'JoinComp_2', '==_2', [])\n"
-                           "B_extracted_value(b,b_value_for_hash) <= APPLY (B(b), B(b), 'JoinComp_2', 'attAccess_1', [('attName', 'myInt'), ('attTypeName', 'int'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
-                           "BHashedOnA(b,b_value_for_hashed) <= HASHRIGHT (B_extracted_value(b_value_for_hash), B_extracted_value(b), 'JoinComp_2', '==_2', [])\n"
-                           "\n"
-                           "/* Join ( a ) and ( b ) */\n"
-                           "AandBJoined(a, b) <= JOIN (AHashed(a_value_for_hashed), AHashed(a), BHashedOnA(b_value_for_hashed), BHashedOnA(b), 'JoinComp_2')\n"
-                           "AandBJoined_WithLHSExtracted(a,b,LHSExtractedFor_2_2) <= APPLY (AandBJoined(a), AandBJoined(a,b), 'JoinComp_2', 'self_0', [('lambdaType', 'self')])\n"
-                           "AandBJoined_WithBOTHExtracted(a,b,LHSExtractedFor_2_2,RHSExtractedFor_2_2) <= APPLY (AandBJoined_WithLHSExtracted(b), AandBJoined_WithLHSExtracted(a,b,LHSExtractedFor_2_2), 'JoinComp_2', 'attAccess_1', [('attName', 'myInt'), ('attTypeName', 'int'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
-                           "AandBJoined_BOOL(a,b,bool_2_2) <= APPLY (AandBJoined_WithBOTHExtracted(LHSExtractedFor_2_2,RHSExtractedFor_2_2), AandBJoined_WithBOTHExtracted(a,b), 'JoinComp_2', '==_2', [('lambdaType', '==')])\n"
-                           "AandBJoined_FILTERED(a, b) <= FILTER (AandBJoined_BOOL(bool_2_2), AandBJoined_BOOL(a, b), 'JoinComp_2')\n"
-                           "\n"
-                           "/* run Join projection on ( a b )*/\n"
-                           "AandBJoined_Projection (nativ_3_2OutFor) <= APPLY (AandBJoined_FILTERED(a,b), AandBJoined_FILTERED(), 'JoinComp_2', 'native_lambda_3', [('lambdaType', 'native_lambda')])\n"
-                           "out( ) <= OUTPUT ( AandBJoined_Projection ( nativ_3_2OutFor ), 'outSet', 'myData', 'SetWriter_3')";
+  pdb::String tcapString = "A(in0) <= SCAN ('myData', 'mySetA', 'SetScanner_0')\n"
+                           "B(in1) <= SCAN ('myData', 'mySetB', 'SetScanner_1')\n"
+                           "A_extracted_value(in0,OutFor_self_1_2) <= APPLY (A(in0), A(in0), 'JoinComp_2', 'self_1', [('lambdaType', 'self')])\n"
+                           "AHashed(in0,OutFor_self_1_2_hash) <= HASHLEFT (A_extracted_value(OutFor_self_1_2), A_extracted_value(in0), 'JoinComp_2', '==_0', [])\n"
+                           "B_extracted_value(in1,OutFor_attAccess_2_2) <= APPLY (B(in1), B(in1), 'JoinComp_2', 'attAccess_2', [('attName', 'myInt'), ('attTypeName', 'int'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
+                           "BHashedOnA(in1,OutFor_attAccess_2_2_hash) <= HASHRIGHT (B_extracted_value(OutFor_attAccess_2_2), B_extracted_value(in1), 'JoinComp_2', '==_0', [])\n"
+                           "AandBJoined(in0,in1) <= JOIN (AHashed(OutFor_self_1_2_hash), AHashed(in0), BHashedOnA(OutFor_attAccess_2_2_hash), BHashedOnA(in1), 'JoinComp_2')\n"
+                           "AandBJoined_WithLHSExtracted(in0,in1,LExtractedFor0_self_1_2) <= APPLY (AandBJoined(in0), AandBJoined(in0,in1), 'JoinComp_2', 'self_1', [('lambdaType', 'self')])\n"
+                           "AandBJoined_WithBOTHExtracted(in0,in1,LExtractedFor0_self_1_2,RExtractedFor0_attAccess_2_2) <= APPLY (AandBJoined_WithLHSExtracted(in1), AandBJoined_WithLHSExtracted(in0,in1,LExtractedFor0_self_1_2), 'JoinComp_2', 'attAccess_2', [('attName', 'myInt'), ('attTypeName', 'int'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
+                           "AandBJoined_BOOL(in0,in1,bool_0_2) <= APPLY (AandBJoined_WithBOTHExtracted(LExtractedFor0_self_1_2,RExtractedFor0_attAccess_2_2), AandBJoined_WithBOTHExtracted(in0,in1), 'JoinComp_2', '==_0', [('lambdaType', '==')])\n"
+                           "AandBJoined_FILTERED(in0,in1) <= FILTER (AandBJoined_BOOL(bool_0_2), AandBJoined_BOOL(in0,in1), 'JoinComp_2')\n"
+                           "AandBJoined_Projection(OutFor_native_lambda_3_2) <= APPLY (AandBJoined_FILTERED(in0,in1), AandBJoined_FILTERED(), 'JoinComp_2', 'native_lambda_3', [('lambdaType', 'native_lambda')])\n"
+                           "out( ) <= OUTPUT ( AandBJoined_Projection ( OutFor_native_lambda_3_2 ), 'outSet', 'myData', 'SetWriter_3')";
 
   // and create a query object that contains all of this stuff
   ComputePlan myPlan(std::make_shared<LogicalPlan>(tcapString, myComputations));

@@ -327,18 +327,17 @@ void pdb::JoinKeyTransformation::apply() {
   }
 
   // replace the left key
-  joinComp->getProjection().removeAtt(leftAtt.getAtts().front());
-  joinComp->getProjection().insertAtt(leftKey.getAtts().front());
+  joinComp->getProjection().replaceAtt(leftAtt.getAtts().front(), leftKey.getAtts().front());
 
   // replace the right key
-  joinComp->getRightProjection().removeAtt(rightAtt.getAtts().front());
-  joinComp->getRightProjection().insertAtt(rightKey.getAtts().front());
+  joinComp->getRightProjection().replaceAtt(rightAtt.getAtts().front(), rightKey.getAtts().front());
 
   // replace the stuff in the output
-  joinComp->getOutput().removeAtt(leftAtt.getAtts().front());
-  joinComp->getOutput().removeAtt(rightAtt.getAtts().front());
-  joinComp->getOutput().insertAtt(leftKey.getAtts().front());
-  joinComp->getOutput().insertAtt(rightKey.getAtts().front());
+  joinComp->getOutput().replaceAtt(leftAtt.getAtts().front(), leftKey.getAtts().front());
+  joinComp->getOutput().replaceAtt(rightAtt.getAtts().front(), rightKey.getAtts().front());
+
+  // make this a key join
+  joinComp->isKeyJoin = true;
 
   // get the name of the join computation
   std::string joinCompName = joinComp->getComputationName();

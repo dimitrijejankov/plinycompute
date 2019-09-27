@@ -339,52 +339,35 @@ TEST(PipelineTest, TestBroadcastJoin) {
   myComputations.push_back(myWriter);
 
   // now we create the TCAP string
-  String myTCAPString =
-      "/* scan the three inputs */ \n"
-      "A (a) <= SCAN ('myData', 'mySetA', 'SetScanner_0', []) \n"
-      "B (aAndC) <= SCAN ('myData', 'mySetB', 'SetScanner_1', []) \n"
-      "C (c) <= SCAN ('myData', 'mySetC', 'SetScanner_2', []) \n"
-      "\n"
-      "/* extract and hash a from A */ \n"
-      "AWithAExtracted (a, aExtracted) <= APPLY (A (a), A(a), 'JoinComp_3', 'self_0', []) \n"
-      "AHashed (a, hash) <= HASHLEFT (AWithAExtracted (aExtracted), A (a), 'JoinComp_3', '==_2', []) \n"
-      "\n"
-      "/* extract and hash a from B */ \n"
-      "BWithAExtracted (aAndC, a) <= APPLY (B (aAndC), B (aAndC), 'JoinComp_3', 'attAccess_1', []) \n"
-      "BHashedOnA (aAndC, hash) <= HASHRIGHT (BWithAExtracted (a), BWithAExtracted (aAndC), 'JoinComp_3', '==_2', []) \n"
-      "\n"
-      "/* now, join the two of them */ \n"
-      "AandBJoined (a, aAndC) <= JOIN (AHashed (hash), AHashed (a), BHashedOnA (hash), BHashedOnA (aAndC), 'JoinComp_3', []) \n"
-      "\n"
-      "/* and extract the two atts and check for equality */ \n"
-      "AandBJoinedWithAExtracted (a, aAndC, aExtracted) <= APPLY (AandBJoined (a), AandBJoined (a, aAndC), 'JoinComp_3', 'self_0', []) \n"
-      "AandBJoinedWithBothExtracted (a, aAndC, aExtracted, otherA) <= APPLY (AandBJoinedWithAExtracted (aAndC), AandBJoinedWithAExtracted (a, aAndC, aExtracted), 'JoinComp_3', 'attAccess_1', []) \n"
-      "AandBJoinedWithBool (aAndC, a, bool) <= APPLY (AandBJoinedWithBothExtracted (aExtracted, otherA), AandBJoinedWithBothExtracted (aAndC, a), 'JoinComp_3', '==_2', []) \n"
-      "AandBJoinedFiltered (a, aAndC) <= FILTER (AandBJoinedWithBool (bool), AandBJoinedWithBool (a, aAndC), 'JoinComp_3', []) \n"
-      "\n"
-      "/* now get ready to join the strings */ \n"
-      "AandBJoinedFilteredWithC (a, aAndC, cExtracted) <= APPLY (AandBJoinedFiltered (aAndC), AandBJoinedFiltered (a, aAndC), 'JoinComp_3', 'attAccess_3', []) \n"
-      "BHashedOnC (a, aAndC, hash) <= HASHLEFT (AandBJoinedFilteredWithC (cExtracted), AandBJoinedFilteredWithC (a, aAndC), 'JoinComp_3', '==_5', []) \n"
-      "CwithCExtracted (c, cExtracted) <= APPLY (C (c), C (c), 'JoinComp_3', 'self_0', []) \n"
-      "CHashedOnC (c, hash) <= HASHRIGHT (CwithCExtracted (cExtracted), CwithCExtracted (c), 'JoinComp_3', '==_5', []) \n"
-      "\n"
-      "/* join the two of them */ \n"
-      "BandCJoined (a, aAndC, c) <= JOIN (BHashedOnC (hash), BHashedOnC (a, aAndC), CHashedOnC (hash), CHashedOnC (c), 'JoinComp_3', []) \n"
-      "\n"
-      "/* and extract the two atts and check for equality */ \n"
-      "BandCJoinedWithCExtracted (a, aAndC, c, cFromLeft) <= APPLY (BandCJoined (aAndC), BandCJoined (a, aAndC, c), 'JoinComp_3', 'attAccess_3', []) \n"
-      "BandCJoinedWithBoth (a, aAndC, c, cFromLeft, cFromRight) <= APPLY (BandCJoinedWithCExtracted (c), BandCJoinedWithCExtracted (a, aAndC, c, cFromLeft), 'JoinComp_3', 'self_4', []) \n"
-      "BandCJoinedWithBool (a, aAndC, c, bool) <= APPLY (BandCJoinedWithBoth (cFromLeft, cFromRight), BandCJoinedWithBoth (a, aAndC, c), 'JoinComp_3', '==_5', []) \n"
-      "last (a, aAndC, c) <= FILTER (BandCJoinedWithBool (bool), BandCJoinedWithBool (a, aAndC, c), 'JoinComp_3', []) \n"
-      "\n"
-      "/* and here is the answer */ \n"
-      "almostFinal (result) <= APPLY (last (a, aAndC, c), last (), 'JoinComp_3', 'native_lambda_7', []) \n"
-      "nothing () <= OUTPUT (almostFinal (result), 'outSet', 'myDB', 'SetWriter_4', [])";
+  String myTCAP = "inputDataForSetScanner_0(in0) <= SCAN ('myData', 'mySetA', 'SetScanner_0')\n"
+                  "inputDataForSetScanner_1(in1) <= SCAN ('myData', 'mySetB', 'SetScanner_1')\n"
+                  "inputDataForSetScanner_2(in2) <= SCAN ('myData', 'mySetC', 'SetScanner_2')\n"
+                  "OutFor_self_2JoinComp3(in0,OutFor_self_2_3) <= APPLY (inputDataForSetScanner_0(in0), inputDataForSetScanner_0(in0), 'JoinComp_3', 'self_2', [('lambdaType', 'self')])\n"
+                  "OutFor_attAccess_3JoinComp3(in1,OutFor_attAccess_3_3) <= APPLY (inputDataForSetScanner_1(in1), inputDataForSetScanner_1(in1), 'JoinComp_3', 'attAccess_3', [('attName', 'myInt'), ('attTypeName', 'int'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
+                  "OutFor_self_2JoinComp3_hashed(in0,OutFor_self_2_3_hash) <= HASHLEFT (OutFor_self_2JoinComp3(OutFor_self_2_3), OutFor_self_2JoinComp3(in0), 'JoinComp_3', '==_1', [])\n"
+                  "OutFor_attAccess_3JoinComp3_hashed(in1,OutFor_attAccess_3_3_hash) <= HASHRIGHT (OutFor_attAccess_3JoinComp3(OutFor_attAccess_3_3), OutFor_attAccess_3JoinComp3(in1), 'JoinComp_3', '==_1', [])\n"
+                  "OutForJoinedFor_equals_1JoinComp3(in0,in1) <= JOIN (OutFor_self_2JoinComp3_hashed(OutFor_self_2_3_hash), OutFor_self_2JoinComp3_hashed(in0), OutFor_attAccess_3JoinComp3_hashed(OutFor_attAccess_3_3_hash), OutFor_attAccess_3JoinComp3_hashed(in1), 'JoinComp_3')\n"
+                  "LExtractedFor1_self_2JoinComp3(in0,in1,LExtractedFor1_self_2_3) <= APPLY (OutForJoinedFor_equals_1JoinComp3(in0), OutForJoinedFor_equals_1JoinComp3(in0,in1), 'JoinComp_3', 'self_2', [('lambdaType', 'self')])\n"
+                  "RExtractedFor1_attAccess_3JoinComp3(in0,in1,LExtractedFor1_self_2_3,RExtractedFor1_attAccess_3_3) <= APPLY (LExtractedFor1_self_2JoinComp3(in1), LExtractedFor1_self_2JoinComp3(in0,in1,LExtractedFor1_self_2_3), 'JoinComp_3', 'attAccess_3', [('attName', 'myInt'), ('attTypeName', 'int'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
+                  "OutFor_OutForJoinedFor_equals_1JoinComp3_BOOL(in0,in1,bool_1_3) <= APPLY (RExtractedFor1_attAccess_3JoinComp3(LExtractedFor1_self_2_3,RExtractedFor1_attAccess_3_3), RExtractedFor1_attAccess_3JoinComp3(in0,in1), 'JoinComp_3', '==_1', [('lambdaType', '==')])\n"
+                  "OutFor_OutForJoinedFor_equals_1JoinComp3_FILTERED(in0,in1) <= FILTER (OutFor_OutForJoinedFor_equals_1JoinComp3_BOOL(bool_1_3), OutFor_OutForJoinedFor_equals_1JoinComp3_BOOL(in0,in1), 'JoinComp_3')\n"
+                  "OutFor_attAccess_5JoinComp3(in0,in1,OutFor_attAccess_5_3) <= APPLY (OutFor_OutForJoinedFor_equals_1JoinComp3_FILTERED(in1), OutFor_OutForJoinedFor_equals_1JoinComp3_FILTERED(in0,in1), 'JoinComp_3', 'attAccess_5', [('attName', 'myString'), ('attTypeName', 'pdb::Handle&lt;pdb::String&gt;'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
+                  "OutFor_self_6JoinComp3(in2,OutFor_self_6_3) <= APPLY (inputDataForSetScanner_2(in2), inputDataForSetScanner_2(in2), 'JoinComp_3', 'self_6', [('lambdaType', 'self')])\n"
+                  "OutFor_attAccess_5JoinComp3_hashed(in0,in1,OutFor_attAccess_5_3_hash) <= HASHLEFT (OutFor_attAccess_5JoinComp3(OutFor_attAccess_5_3), OutFor_attAccess_5JoinComp3(in0,in1), 'JoinComp_3', '==_4', [])\n"
+                  "OutFor_self_6JoinComp3_hashed(in2,OutFor_self_6_3_hash) <= HASHRIGHT (OutFor_self_6JoinComp3(OutFor_self_6_3), OutFor_self_6JoinComp3(in2), 'JoinComp_3', '==_4', [])\n"
+                  "OutForJoinedFor_equals_4JoinComp3(in0,in1,in2) <= JOIN (OutFor_attAccess_5JoinComp3_hashed(OutFor_attAccess_5_3_hash), OutFor_attAccess_5JoinComp3_hashed(in0,in1), OutFor_self_6JoinComp3_hashed(OutFor_self_6_3_hash), OutFor_self_6JoinComp3_hashed(in2), 'JoinComp_3')\n"
+                  "LExtractedFor4_attAccess_5JoinComp3(in0,in1,in2,LExtractedFor4_attAccess_5_3) <= APPLY (OutForJoinedFor_equals_4JoinComp3(in1), OutForJoinedFor_equals_4JoinComp3(in0,in1,in2), 'JoinComp_3', 'attAccess_5', [('attName', 'myString'), ('attTypeName', 'pdb::Handle&lt;pdb::String&gt;'), ('inputTypeName', 'pdb::StringIntPair'), ('lambdaType', 'attAccess')])\n"
+                  "RExtractedFor4_self_6JoinComp3(in0,in1,in2,LExtractedFor4_attAccess_5_3,RExtractedFor4_self_6_3) <= APPLY (LExtractedFor4_attAccess_5JoinComp3(in2), LExtractedFor4_attAccess_5JoinComp3(in0,in1,in2,LExtractedFor4_attAccess_5_3), 'JoinComp_3', 'self_6', [('lambdaType', 'self')])\n"
+                  "OutFor_OutForJoinedFor_equals_4JoinComp3_BOOL(in0,in1,in2,bool_4_3) <= APPLY (RExtractedFor4_self_6JoinComp3(LExtractedFor4_attAccess_5_3,RExtractedFor4_self_6_3), RExtractedFor4_self_6JoinComp3(in0,in1,in2), 'JoinComp_3', '==_4', [('lambdaType', '==')])\n"
+                  "OutFor_OutForJoinedFor_equals_4JoinComp3_FILTERED(in0,in1,in2) <= FILTER (OutFor_OutForJoinedFor_equals_4JoinComp3_BOOL(bool_4_3), OutFor_OutForJoinedFor_equals_4JoinComp3_BOOL(in0,in1,in2), 'JoinComp_3')\n"
+                  "OutFor_native_lambda_7JoinComp3(OutFor_native_lambda_7_3) <= APPLY (OutFor_OutForJoinedFor_equals_4JoinComp3_FILTERED(in0,in1,in2), OutFor_OutForJoinedFor_equals_4JoinComp3_FILTERED(), 'JoinComp_3', 'native_lambda_7', [('lambdaType', 'native_lambda')])\n"
+                  "OutFor_native_lambda_7JoinComp3_out( ) <= OUTPUT ( OutFor_native_lambda_7JoinComp3 ( OutFor_native_lambda_7_3 ), 'outSet', 'myDB', 'SetWriter_4')";
 
-  std::cout << myTCAPString << std::endl;
+
+  std::cout << myTCAP << std::endl;
 
   // and create a query object that contains all of this stuff
-  ComputePlan myPlan(std::make_shared<LogicalPlan>(myTCAPString, myComputations));
+  ComputePlan myPlan(std::make_shared<LogicalPlan>(myTCAP, myComputations));
 
   /// 4. Run the pipeline to process the A<int> set. Basically this splits set A into a numNodes * threadsPerNode JoinMaps.
   /// Each page being put into the pageQueue will have numNodes * threadsPerNode  number of JoinMaps. Each join map has records
@@ -392,8 +375,8 @@ TEST(PipelineTest, TestBroadcastJoin) {
 
   std::map<ComputeInfoType, ComputeInfoPtr> params = {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<BroadcastJoinProcessor>(numNodes,threadsPerNode, pageQueuesForA, myMgr)},
                                                       {ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("myData", "mySetA","", 0, PDB_CATALOG_SET_VECTOR_CONTAINER))}};
-  PipelinePtr myPipeline = myPlan.buildPipeline(std::string("A"), /* this is the TupleSet the pipeline starts with */
-                                                std::string("AHashed"),     /* this is the TupleSet the pipeline ends with */
+  PipelinePtr myPipeline = myPlan.buildPipeline(std::string("inputDataForSetScanner_0"), /* this is the TupleSet the pipeline starts with */
+                                                std::string("OutFor_self_2JoinComp3_hashed"),     /* this is the TupleSet the pipeline ends with */
                                                 setAReader,
                                                 partitionedAPageSet,
                                                 params,
@@ -425,7 +408,7 @@ TEST(PipelineTest, TestBroadcastJoin) {
              setAPageVectors[curNode].end(),
              [&](PDBPageHandle &page) { pageQueuesForA[curNode]->enqueue(page); });
 
-    myPipeline = myPlan.buildBroadcastJoinPipeline("AHashed",
+    myPipeline = myPlan.buildBroadcastJoinPipeline("OutFor_self_2JoinComp3_hashed",
                                                    partitionedAPageSet,
                                                    BroadcastedAPageSet,
                                                    threadsPerNode,
@@ -442,8 +425,8 @@ TEST(PipelineTest, TestBroadcastJoin) {
   /// with the same hash % (numNodes * threadsPerNode). The join map records will be of type JoinTuple<String, char[0]>
   params = {{ComputeInfoType::PAGE_PROCESSOR,std::make_shared<BroadcastJoinProcessor>(numNodes, threadsPerNode, pageQueuesForC, myMgr)},
             {ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("myData","mySetC","",0, PDB_CATALOG_SET_VECTOR_CONTAINER))}};
-  myPipeline = myPlan.buildPipeline(std::string("C"), /* this is the TupleSet the pipeline starts with */
-                                    std::string("CHashedOnC"),     /* this is the TupleSet the pipeline ends with */
+  myPipeline = myPlan.buildPipeline(std::string("inputDataForSetScanner_2"), /* this is the TupleSet the pipeline starts with */
+                                    std::string("OutFor_self_6JoinComp3_hashed"),     /* this is the TupleSet the pipeline ends with */
                                     setCReader,
                                     partitionedCPageSet,
                                     params,
@@ -475,7 +458,7 @@ TEST(PipelineTest, TestBroadcastJoin) {
              setCPageVectors[curNode].end(),
              [&](PDBPageHandle &page) { pageQueuesForC[curNode]->enqueue(page); });
 
-    myPipeline = myPlan.buildBroadcastJoinPipeline("CHashedOnC",
+    myPipeline = myPlan.buildBroadcastJoinPipeline("OutFor_self_6JoinComp3_hashed",
                                                    partitionedCPageSet,
                                                    BroadcastedCPageSet,
                                                    threadsPerNode,
@@ -492,14 +475,14 @@ TEST(PipelineTest, TestBroadcastJoin) {
   BroadcastedCPageSetQueue.push(nullptr);
 
   /// 8. Process the right side of the Join. Build the pipeline with the Join Argument from pages in Set A and Set C
-  unordered_map<string, JoinArgPtr> hashTables = {{"AHashed", std::make_shared<JoinArg>(BroadcastedAPageSet)},
-                                                  {"CHashedOnC", std::make_shared<JoinArg>(BroadcastedCPageSet)}};
+  unordered_map<string, JoinArgPtr> hashTables = {{"OutFor_self_2JoinComp3_hashed", std::make_shared<JoinArg>(BroadcastedAPageSet)},
+                                                  {"OutFor_self_6JoinComp3_hashed", std::make_shared<JoinArg>(BroadcastedCPageSet)}};
   // set the parameters
   params = {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<NullProcessor>()},
             {ComputeInfoType::JOIN_ARGS, std::make_shared<JoinArguments>(hashTables)},
             {ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("myData","mySetB","",0, PDB_CATALOG_SET_VECTOR_CONTAINER))}};
-  myPipeline = myPlan.buildPipeline(std::string("B"), /* this is the TupleSet the pipeline starts with */
-                                    std::string("nothing"),     /* this is the TupleSet the pipeline ends with */
+  myPipeline = myPlan.buildPipeline(std::string("inputDataForSetScanner_1"), /* this is the TupleSet the pipeline starts with */
+                                    std::string("OutFor_native_lambda_7JoinComp3_out"),     /* this is the TupleSet the pipeline ends with */
                                     setBReader,
                                     pageWriter,
                                     params,

@@ -13,7 +13,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/tools/cmake")
 set(CTEST_BINARY_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
 # set the standard
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 # check the operating system and add the appropriate flags
 set(CMAKE_CXX_FLAGS "-fPIC -Wno-deprecated-declarations")

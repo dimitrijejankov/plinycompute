@@ -186,21 +186,22 @@ TEST(PipelineTest, TestAggregation) {
 
   // now we create the TCAP string
   String myTCAPString =
-      "inputData (in) <= SCAN ('myData', 'mySet', 'SetScanner_0', []) \n"
-      "inputWithAtt (in, att) <= APPLY (inputData (in), inputData (in), 'SelectionComp_1', 'methodCall_0', []) \n"
-      "inputWithAttAndMethod (in, att, method) <= APPLY (inputWithAtt (in), inputWithAtt (in, att), 'SelectionComp_1', 'attAccess_1', []) \n"
-      "inputWithBool (in, bool) <= APPLY (inputWithAttAndMethod (att, method), inputWithAttAndMethod (in), 'SelectionComp_1', '==_2', []) \n"
-      "filteredInput (in) <= FILTER (inputWithBool (bool), inputWithBool (in), 'SelectionComp_1', []) \n"
-      "projectedInputWithPtr (out) <= APPLY (filteredInput (in), filteredInput (), 'SelectionComp_1', 'methodCall_3', []) \n"
-      "projectedInput (out) <= APPLY (projectedInputWithPtr (out), projectedInputWithPtr (), 'SelectionComp_1', 'deref_4', []) \n"
-      "aggWithKeyWithPtr (out, key) <= APPLY (projectedInput (out), projectedInput (out), 'AggregationComp_2', 'attAccess_0', []) \n"
-      "aggWithKey (out, key) <= APPLY (aggWithKeyWithPtr (key), aggWithKeyWithPtr (out), 'AggregationComp_2', 'deref_1', []) \n"
-      "aggWithValue (key, value) <= APPLY (aggWithKey (out), aggWithKey (key), 'AggregationComp_2', 'methodCall_2', []) \n"
-      "agg (aggOut) <=	AGGREGATE (aggWithValue (key, value), 'AggregationComp_2', []) \n"
-      "checkSales (aggOut, isSales) <= APPLY (agg (aggOut), agg (aggOut), 'SelectionComp_3', 'methodCall_0', []) \n"
-      "justSales (aggOut, isSales) <= FILTER (checkSales (isSales), checkSales (aggOut), 'SelectionComp_3', []) \n"
-      "final (result) <= APPLY (justSales (aggOut), justSales (), 'SelectionComp_3', 'methodCall_1', []) \n"
-      "write () <= OUTPUT (final (result), 'outSet', 'myDB', 'SetWriter_4', [])";
+      "inputDataForSetScanner_0(in0) <= SCAN ('myData', 'mySet', 'SetScanner_0')\n"
+      "OutFor_methodCall_1SelectionComp1(in0,OutFor_methodCall_1_1) <= APPLY (inputDataForSetScanner_0(in0), inputDataForSetScanner_0(in0), 'SelectionComp_1', 'methodCall_1', [('inputTypeName', 'pdb::Supervisor'), ('lambdaType', 'methodCall'), ('methodName', 'getSteve'), ('returnTypeName', 'pdb::Supervisor')])\n"
+      "OutFor_attAccess_2SelectionComp1(in0,OutFor_methodCall_1_1,OutFor_attAccess_2_1) <= APPLY (OutFor_methodCall_1SelectionComp1(in0), OutFor_methodCall_1SelectionComp1(in0,OutFor_methodCall_1_1), 'SelectionComp_1', 'attAccess_2', [('attName', 'me'), ('attTypeName', 'pdb::Handle&lt;pdb::Employee&gt;'), ('inputTypeName', 'pdb::Supervisor'), ('lambdaType', 'attAccess')])\n"
+      "equal_0OutForSelectionComp1(in0,equal_0_1_OutFor) <= APPLY (OutFor_attAccess_2SelectionComp1(OutFor_methodCall_1_1,OutFor_attAccess_2_1), OutFor_attAccess_2SelectionComp1(in0), 'SelectionComp_1', '==_0', [('lambdaType', '==')])\n"
+      "filteredInputForSelectionComp1(in0) <= FILTER (equal_0OutForSelectionComp1(equal_0_1_OutFor), equal_0OutForSelectionComp1(in0), 'SelectionComp_1')\n"
+      "OutFor_methodCall_4SelectionComp1(in0,OutFor_methodCall_4_1) <= APPLY (filteredInputForSelectionComp1(in0), filteredInputForSelectionComp1(in0), 'SelectionComp_1', 'methodCall_4', [('inputTypeName', 'pdb::Supervisor'), ('lambdaType', 'methodCall'), ('methodName', 'getMe'), ('returnTypeName', 'pdb::Supervisor')])\n"
+      "OutFor_deref_3SelectionComp1(OutFor_deref_3_1) <= APPLY (OutFor_methodCall_4SelectionComp1(OutFor_methodCall_4_1), OutFor_methodCall_4SelectionComp1(), 'SelectionComp_1', 'deref_3', [('lambdaType', 'deref')])\n"
+      "OutFor_attAccess_1AggregationComp2(OutFor_deref_3_1,OutFor_attAccess_1_2) <= APPLY (OutFor_deref_3SelectionComp1(OutFor_deref_3_1), OutFor_deref_3SelectionComp1(OutFor_deref_3_1), 'AggregationComp_2', 'attAccess_1', [('attName', 'department'), ('attTypeName', 'pdb::String'), ('inputTypeName', 'pdb::Employee'), ('lambdaType', 'attAccess')])\n"
+      "OutFor_deref_0AggregationComp2(OutFor_deref_3_1,OutFor_deref_0_2) <= APPLY (OutFor_attAccess_1AggregationComp2(OutFor_attAccess_1_2), OutFor_attAccess_1AggregationComp2(OutFor_deref_3_1), 'AggregationComp_2', 'deref_0', [('lambdaType', 'deref')])\n"
+      "OutFor_methodCall_2AggregationComp2(OutFor_deref_0_2,OutFor_methodCall_2_2) <= APPLY (OutFor_deref_0AggregationComp2(OutFor_deref_3_1), OutFor_deref_0AggregationComp2(OutFor_deref_0_2), 'AggregationComp_2', 'methodCall_2', [('inputTypeName', 'pdb::Employee'), ('lambdaType', 'methodCall'), ('methodName', 'getSalary'), ('returnTypeName', 'pdb::Employee')])\n"
+      "aggOutForAggregationComp2 (aggOutFor2)<= AGGREGATE (OutFor_methodCall_2AggregationComp2(OutFor_deref_0_2,OutFor_methodCall_2_2),'AggregationComp_2')\n"
+      "OutFor_methodCall_0SelectionComp3(aggOutFor2,OutFor_methodCall_0_3) <= APPLY (aggOutForAggregationComp2(aggOutFor2), aggOutForAggregationComp2(aggOutFor2), 'SelectionComp_3', 'methodCall_0', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'checkSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
+      "filteredInputForSelectionComp3(aggOutFor2) <= FILTER (OutFor_methodCall_0SelectionComp3(OutFor_methodCall_0_3), OutFor_methodCall_0SelectionComp3(aggOutFor2), 'SelectionComp_3')\n"
+      "OutFor_methodCall_1SelectionComp3(OutFor_methodCall_1_3) <= APPLY (filteredInputForSelectionComp3(aggOutFor2), filteredInputForSelectionComp3(), 'SelectionComp_3', 'methodCall_1', [('inputTypeName', 'pdb::DepartmentTotal'), ('lambdaType', 'methodCall'), ('methodName', 'getTotSales'), ('returnTypeName', 'pdb::DepartmentTotal')])\n"
+      "OutFor_methodCall_1SelectionComp3_out( ) <= OUTPUT ( OutFor_methodCall_1SelectionComp3 ( OutFor_methodCall_1_3 ), 'outSet', 'myDB', 'SetWriter_4')";
+
 
   // and create a query object that contains all of this stuff
   ComputePlan myPlan(std::make_shared<LogicalPlan>(myTCAPString, myComputations));
@@ -332,8 +333,8 @@ TEST(PipelineTest, TestAggregation) {
 
   // now, let's pretend that myPlan has been sent over the network, and we want to execute it... first we build
   // a pipeline into the aggregation operation
-  PipelinePtr myPipeline = myPlan.buildPipeline(std::string("inputData"), /* this is the TupleSet the pipeline starts with */
-                                                std::string("aggWithValue"),     /* this is the TupleSet the pipeline ends with */
+  PipelinePtr myPipeline = myPlan.buildPipeline(std::string("inputDataForSetScanner_0"), /* this is the TupleSet the pipeline starts with */
+                                                std::string("OutFor_methodCall_2AggregationComp2"),     /* this is the TupleSet the pipeline ends with */
                                                 pageReader,
                                                 partitionedHashTable,
                                                 params,
@@ -352,7 +353,7 @@ TEST(PipelineTest, TestAggregation) {
 
   /// 5. Create the aggregation and run it
 
-  myPipeline = myPlan.buildAggregationPipeline(std::string("aggWithValue"), partitionedHashTable, hashTablePageSet, curThread);
+  myPipeline = myPlan.buildAggregationPipeline(std::string("OutFor_methodCall_2AggregationComp2"), partitionedHashTable, hashTablePageSet, curThread);
 
   // and now, simply run the pipeline and then destroy it!!!
   std::cout << "\nRUNNING PIPELINE\n";
@@ -368,8 +369,8 @@ TEST(PipelineTest, TestAggregation) {
 
   // at this point, the hash table should be filled up...	so now we can build a second pipeline that covers
   // the second half of the aggregation
-  myPipeline = myPlan.buildPipeline(std::string("agg"), /* this is the TupleSet the pipeline starts with */
-                                    std::string("write"),     /* this is the TupleSet the pipeline ends with */
+  myPipeline = myPlan.buildPipeline(std::string("aggOutForAggregationComp2"), /* this is the TupleSet the pipeline starts with */
+                                    std::string("OutFor_methodCall_1SelectionComp3_out"),     /* this is the TupleSet the pipeline ends with */
                                     hashTablePageSet,
                                     pageWriter,
                                     params,

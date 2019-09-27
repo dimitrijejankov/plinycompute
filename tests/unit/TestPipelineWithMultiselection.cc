@@ -133,11 +133,15 @@ TEST(PipelineTest, TestSelection) {
 
   // now we create the TCAP string
   String myTCAPString = "inputDataForSetScanner_0(in0) <= SCAN ('db', 'set', 'SetScanner_0')\n"
-                        "nativ_0OutForMultiSelectionComp1(in0,nativ_0_1OutFor) <= APPLY (inputDataForSetScanner_0(in0), inputDataForSetScanner_0(in0), 'MultiSelectionComp_1', 'native_lambda_0', [('lambdaType', 'native_lambda')])\n"
-                        "filteredInputForMultiSelectionComp1(in0) <= FILTER (nativ_0OutForMultiSelectionComp1(nativ_0_1OutFor), nativ_0OutForMultiSelectionComp1(in0), 'MultiSelectionComp_1')\n"
-                        "nativ_1OutForMultiSelectionComp1 (nativ_1_1OutFor) <= APPLY (filteredInputForMultiSelectionComp1(in0), filteredInputForMultiSelectionComp1(), 'MultiSelectionComp_1', 'native_lambda_1', [('lambdaType', 'native_lambda')])\n"
-                        "flattenedOutForMultiSelectionComp1(flattened_nativ_1_1OutFor) <= FLATTEN (nativ_1OutForMultiSelectionComp1(nativ_1_1OutFor), nativ_1OutForMultiSelectionComp1(), 'MultiSelectionComp_1')\n"
-                        "flattenedOutForMultiSelectionComp1_out( ) <= OUTPUT ( flattenedOutForMultiSelectionComp1 ( flattened_nativ_1_1OutFor ), '', '', 'SetWriter_2')\n";
+                        "\n"
+                        "/* Apply MultiSelection filtering */\n"
+                        "OutFor_native_lambda_0MultiSelectionComp1(in0,OutFor_native_lambda_0_1) <= APPLY (inputDataForSetScanner_0(in0), inputDataForSetScanner_0(in0), 'MultiSelectionComp_1', 'native_lambda_0', [('lambdaType', 'native_lambda')])\n"
+                        "filteredInputForMultiSelectionComp1(in0) <= FILTER (OutFor_native_lambda_0MultiSelectionComp1(OutFor_native_lambda_0_1), OutFor_native_lambda_0MultiSelectionComp1(in0), 'MultiSelectionComp_1')\n"
+                        "\n"
+                        "/* Apply MultiSelection projection */\n"
+                        "OutFor_native_lambda_1MultiSelectionComp1(OutFor_native_lambda_1_1) <= APPLY (filteredInputForMultiSelectionComp1(in0), filteredInputForMultiSelectionComp1(), 'MultiSelectionComp_1', 'native_lambda_1', [('lambdaType', 'native_lambda')])\n"
+                        "flattenedOutForMultiSelectionComp1(flattened_OutFor_native_lambda_1_1) <= FLATTEN (OutFor_native_lambda_1MultiSelectionComp1(OutFor_native_lambda_1_1), OutFor_native_lambda_1MultiSelectionComp1(), 'MultiSelectionComp_1')\n"
+                        "flattenedOutForMultiSelectionComp1_out( ) <= OUTPUT ( flattenedOutForMultiSelectionComp1 ( flattened_OutFor_native_lambda_1_1 ), '', '', 'SetWriter_2')";
 
   // and create a query object that contains all of this stuff
   ComputePlan myPlan(std::make_shared<LogicalPlan>(myTCAPString, myComputations));

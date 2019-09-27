@@ -2,7 +2,7 @@
 #include <PDBAbstractPhysicalNode.h>
 #include <physicalOptimizer/PDBOptimizerSource.h>
 
-bool pdb::OptimizerSourceComparator::operator()(const pdb::OptimizerSource &lhs, const pdb::OptimizerSource &rhs) {
+bool pdb::OptimizerSourceComparator::operator()(const pdb::OptimizerSource &lhs, const pdb::OptimizerSource &rhs) const {
 
   // first compare them based on the size
   if(lhs.first != rhs.first) {
@@ -13,7 +13,7 @@ bool pdb::OptimizerSourceComparator::operator()(const pdb::OptimizerSource &lhs,
   return lhs.second->getNodeIdentifier() != rhs.second->getNodeIdentifier();
 }
 
-bool pdb::PageSetIdentifierComparator::operator()(const std::pair<size_t, std::string> &lhs, const std::pair<size_t, std::string> &rhs) {
+bool pdb::PageSetIdentifierComparator::operator()(const std::pair<size_t, std::string> &lhs, const std::pair<size_t, std::string> &rhs) const {
 
   // first compare them based on the size
   if(lhs.first != rhs.first) {

@@ -21,6 +21,13 @@
 #include <QueryGraphAnalyzer.h>
 
 
+#include <ReadInt.h>
+#include <ReadStringIntPair.h>
+#include <SillyJoinIntString.h>
+#include <SillyWriteIntString.h>
+
+
+
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlock.h"
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixScanner.h"
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixMultiplyJoin.h"
@@ -143,40 +150,28 @@ using namespace pdb::matrix;
 //}
 //
 
+#include <ScanEmployeeSet.h>
+#include <EmployeeBuiltInIdentitySelection.h>
+#include <WriteBuiltinEmployeeSet.h>
+#include <FinalQuery.h>
+#include <WriteSalaries.h>
+#include <SillyReadOfC.h>
+#include <WriteStringIntPair.h>
+#include <StringIntPairMultiSelection.h>
+
 TEST(TestTcapGeneration, Test5) {
 
   const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
 
-  // create the scan sets for a and b
-  Handle<Computation> myScanSet1 = makeObject<MatrixScanner>("db", "a");
-  Handle<Computation> myScanSet2 = makeObject<MatrixScanner>("db", "b");
-
-  // make the join of the first multiply
-  Handle<Computation> myJoin = makeObject<MatrixMultiplyJoin>();
-  myJoin->setInput(0, myScanSet1);
-  myJoin->setInput(1, myScanSet2);
-
-  // make the aggregation of the first multiply
-  Handle<Computation> myAggregation = makeObject<MatrixMultiplyAggregation>();
-  myAggregation->setInput(myJoin);
-
-  // create the scan set for c
-  Handle<Computation> myScanSet3 = makeObject<MatrixScanner>("db", "c");
-
-  // make the join of the second multiply
-  Handle<Computation> myJoin2 = makeObject<MatrixMultiplyJoin>();
-  myJoin2->setInput(0, myAggregation);
-  myJoin2->setInput(1, myScanSet3);
-
-  // make the aggregation of the second multiply
-  Handle<Computation> myAggregation2 = makeObject<MatrixMultiplyAggregation>();
-  myAggregation2->setInput(myJoin2);
-
-  Handle<Computation> myWriteSet = makeObject<MatrixWriter>("db", "d");
-  myWriteSet->setInput(myAggregation2);
+  // create all of the computation objects
+  Handle <Computation> readStringIntPair = pdb::makeObject <ReadStringIntPair>();
+  Handle <Computation> multiSelection = pdb::makeObject <StringIntPairMultiSelection>();
+  multiSelection->setInput(0, readStringIntPair);
+  Handle <Computation> writeStringIntPair = pdb::makeObject <WriteStringIntPair>();
+  writeStringIntPair->setInput(0, multiSelection);
 
   // the query graph has only the aggregation
-  std::vector<Handle<Computation>> queryGraph = { myWriteSet };
+  std::vector<Handle<Computation>> queryGraph = { writeStringIntPair };
 
   // create the graph analyzer
   pdb::QueryGraphAnalyzer queryAnalyzer(queryGraph);

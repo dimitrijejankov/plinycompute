@@ -9,7 +9,7 @@
 
 namespace pdb {
 
-class SillyWrite : public SetWriter <Handle <String>> {
+class SillyWrite : public SetWriter <String> {
 
 public:
 

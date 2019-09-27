@@ -15,13 +15,13 @@ using OptimizerSource = std::pair<size_t, PDBAbstractPhysicalNodePtr>;
 class OptimizerSourceComparator
 {
  public:
-  bool operator() (const OptimizerSource &lhs, const OptimizerSource &rhs);
+  bool operator() (const OptimizerSource &lhs, const OptimizerSource &rhs) const;
 };
 
 class PageSetIdentifierComparator
 {
  public:
-  bool operator() (const PDBPageSetIdentifier &lhs, const PDBPageSetIdentifier &rhs);
+  bool operator() (const PDBPageSetIdentifier &lhs, const PDBPageSetIdentifier &rhs) const;
 };
 
 using PDBPageSetCosts = std::map<PDBPageSetIdentifier, size_t, PageSetIdentifierComparator>;

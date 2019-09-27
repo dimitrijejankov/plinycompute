@@ -14,6 +14,7 @@
 #include <JoinedShuffleJoinSource.h>
 #include <processors/ShuffleJoinProcessor.h>
 #include <BroadcastJoinCombinerSink.h>
+#include <JoinTupleTests.h>
 
 namespace pdb {
 
@@ -35,13 +36,13 @@ class JoinTupleSingleton {
   virtual ComputeSinkPtr getSink(TupleSpec &consumeMe,
                                  TupleSpec &attsToOpOn,
                                  TupleSpec &projection,
-                                 std::vector<int> whereEveryoneGoes,
+                                 std::vector<int> &whereEveryoneGoes,
                                  uint64_t numPartitions) = 0;
 
   virtual ComputeSinkPtr getKeySink(TupleSpec &consumeMe,
                                     TupleSpec &attsToOpOn,
                                     TupleSpec &projection,
-                                    std::vector<int> whereEveryoneGoes,
+                                    std::vector<int> &whereEveryoneGoes,
                                     uint64_t numPartitions) = 0;
 
   virtual RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
@@ -106,7 +107,7 @@ class JoinSingleton : public JoinTupleSingleton {
   ComputeSinkPtr getSink(TupleSpec &consumeMe,
                          TupleSpec &attsToOpOn,
                          TupleSpec &projection,
-                         std::vector<int> whereEveryoneGoes,
+                         std::vector<int> &whereEveryoneGoes,
                          uint64_t numPartitions) override {
     return std::make_shared<JoinSink<HoldMe>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
   }
@@ -115,27 +116,17 @@ class JoinSingleton : public JoinTupleSingleton {
   ComputeSinkPtr getKeySink(TupleSpec &consumeMe,
                             TupleSpec &attsToOpOn,
                             TupleSpec &projection,
-                            std::vector<int> whereEveryoneGoes,
+                            std::vector<int> &whereEveryoneGoes,
                             uint64_t numPartitions) override {
-    return std::move(_getKeySink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions));
-  }
 
-  //template <typename T = HoldMe, typename Key = decltype(((T*) nullptr)->getKey())>
-  ComputeSinkPtr _getKeySink(TupleSpec &consumeMe,
-                             TupleSpec &attsToOpOn,
-                             TupleSpec &projection,
-                             std::vector<int> whereEveryoneGoes,
-                             uint64_t numPartitions) {
-    return std::make_shared<JoinSink<decltype(myData.getKey())>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+    // check if it has the key
+    if constexpr(pdb::tupleTests::has_get_key<HoldMe>::value) {
+      return std::make_shared<JoinSink<decltype(myData.getKey())>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+    }
+
+    // this is not supposed to happen
+    throw runtime_error("The tuple does not have a key. Why are u calling to get the key sink?");
   }
-//
-//  ComputeSinkPtr _getKeySink(TupleSpec &consumeMe,
-//                             TupleSpec &attsToOpOn,
-//                             TupleSpec &projection,
-//                             std::vector<int> whereEveryoneGoes,
-//                             uint64_t numPartitions) {
-//    throw runtime_error("This join is not keyed!");
-//  }
 
   RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
                                                       TupleSpec &hashSchema,

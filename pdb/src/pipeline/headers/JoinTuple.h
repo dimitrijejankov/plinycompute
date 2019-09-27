@@ -67,7 +67,7 @@ class JoinTupleBase {};
 template<typename HoldMe, typename MeTo>
 class JoinTuple : public JoinTupleBase {
 
- public:
+public:
 
   // this stores the base type
   decltype(IsAbstract<HoldMe>::val) myData;
