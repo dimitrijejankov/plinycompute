@@ -3,6 +3,7 @@
 #include <LambdaCreationFunctions.h>
 #include "JoinComp.h"
 #include "MatrixBlock.h"
+#include "PDBCUDAMatrixMultiple.h"
 
 namespace pdb {
 
@@ -26,24 +27,40 @@ public:
       uint32_t I = in1->data.numRows;
       uint32_t J = in2->data.numCols;
 
+      // K and L should be equal
       uint32_t K = in1->data.numCols;
+      uint32_t L = in2->data.numRows;
+
       // make the output block
       Handle <MatrixBlock> out = makeObject<MatrixBlock>(in1->getRowID(), in2->getColID(), I, J);
 
       // get the ptrs
-      float *outData = out->data.data->c_ptr();
-      float *in1Data = in1->data.data->c_ptr();
-      float *in2Data = in2->data.data->c_ptr();
+      float *outDataCPU = out->data.data->c_ptr();
+      float *in1DataCPU = in1->data.data->c_ptr();
+      float *in2DataCPU = in2->data.data->c_ptr();
+
+      float * outDataGPU;
+      float * in1DataGPU;
+      float * in2DataGPU;
+
+      copyFromHostToDevice(in1DataGPU, in1DataCPU, I, K);
+      copyFromHostToDevice(in2DataGPU, in2DataCPU, L, J);
+      initGPUMemoryToZero(outDataGPU, I, J);
+
+      launchKernel(in1DataGPU, I, K, in2DataGPU, L, J, outDataGPU, outDataCPU);
 
       //TODO replace this with mkl
+      std::cout<<"Hello here is the gpu\n";
       for (uint32_t i = 0; i < I; ++i) {
         for (uint32_t j = 0; j < J; ++j) {
+          float val = 0;
           for (uint32_t k = 0; k < K; ++k) {
-            outData[i * J + j] += in1Data[i * K + k] * in2Data[k * J + j];
+             val += in1DataCPU[i * K + k] * in2DataCPU[k * J + j];
           }
+          std::cout << "output by GPU: " << outDataCPU[i * J + j] << " at "<< (i * J + j) << std::endl;
+          std::cout << "output by CPU: " << val << " at " << (i * J + j) << std::endl;
         }
       }
-
       // return the output
       return out;
     });

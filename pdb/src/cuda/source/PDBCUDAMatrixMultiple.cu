@@ -1,96 +1,58 @@
 #include <iostream>
-#include <cstdio>
 #include "PDBCUDAMatrixMultiple.h"
 
-#define N  1000
+#define NUM_THREAD 16
 
-__global__ void matrixMulGPU( int * a, int * b, int * c )
-{
-  int val = 0;
+__global__ void matrixMulGPU(float * in1data, unsigned int in1NumRow, unsigned int in1NumCol, float * in2data, unsigned int in2NumRow, unsigned int in2NumCol, float * outdata){
+  if (in1NumCol!=in2NumRow){
+    return;
+  }
+  unsigned int I = in1NumRow;
+  unsigned int J = in2NumCol;
+  unsigned int K = in1NumCol;
 
+  float val = 0;
   int row = blockIdx.x * blockDim.x + threadIdx.x;
   int col = blockIdx.y * blockDim.y + threadIdx.y;
 
-  if (row < N && col < N)
-  {
-    for ( int k = 0; k < N; ++k )
-      val += a[row * N + k] * b[k * N + col];
-    c[row * N + col] = val;
+  if (row < I && col < J){
+    for ( int k = 0; k < K; ++k ){
+      val += in1data[row * K + k] * in2data[k * J + col];
+    }
+    outdata[row * J + col] = val;
   }
 }
 
-void matrixMulCPU( int * a, int * b, int * c )
-{
-  int val = 0;
-
-  for( int row = 0; row < N; ++row )
-    for( int col = 0; col < N; ++col )
-    {
-      val = 0;
-      for ( int k = 0; k < N; ++k )
-        val += a[row * N + k] * b[k * N + col];
-      c[row * N + col] = val;
-    }
+void copyFromHostToDevice(float * targetDevice, float * sourceHost, unsigned int numRows, unsigned int numCols){
+    const unsigned int numElems = numRows * numCols;
+    cudaMalloc((void **)&targetDevice, numElems*sizeof(float));
+    cudaMemcpy(targetDevice, sourceHost, numElems*sizeof(float), cudaMemcpyHostToDevice);
 }
 
-void test()
-{
-  int *a, *b, *c_cpu, *c_gpu;
+void copyFromDeviceToHost(float * targetHost, float * sourceDevice, unsigned int numRows, unsigned int numCols){
+    const unsigned int numElems = numRows * numCols;
+    cudaMemcpy(targetHost, sourceDevice, numElems*sizeof(float), cudaMemcpyDeviceToHost);
+}
 
-  int size = N * N * sizeof (int); // Number of bytes of an N x N matrix
+void launchKernel(float * in1data, unsigned int in1NumRow, unsigned int in1NumCol, float * in2data, unsigned int in2NumRow, unsigned int in2NumCol, float * outdataGPU, float * outdataCPU){
+      dim3 threads_per_block (16, 16, 1);
+      dim3 number_of_blocks ((in1NumRow / threads_per_block.x) + 1, (in2NumCol / threads_per_block.y) + 1, 1);
+      matrixMulGPU<<<number_of_blocks, threads_per_block>>>(in1data, in1NumRow, in1NumCol, in2data, in2NumRow, in2NumCol, outdataGPU);
+      copyFromDeviceToHost(outdataCPU, outdataGPU, in1NumRow, in2NumCol);
+}
 
-  // Allocate memory
-  cudaMallocManaged (&a, size);
-  cudaMallocManaged (&b, size);
-  cudaMallocManaged (&c_cpu, size);
-  cudaMallocManaged (&c_gpu, size);
-
-  // Initialize memory
-  for( int row = 0; row < N; ++row )
-    for( int col = 0; col < N; ++col )
-    {
-      a[row*N + col] = row;
-      b[row*N + col] = col+2;
-      c_cpu[row*N + col] = 0;
-      c_gpu[row*N + col] = 0;
-    }
-
-  dim3 threads_per_block (16, 16, 1); // A 16 x 16 block threads
-  dim3 number_of_blocks ((N / threads_per_block.x) + 1, (N / threads_per_block.y) + 1, 1);
-
-  matrixMulGPU <<< number_of_blocks, threads_per_block >>> ( a, b, c_gpu );
-
-  cudaDeviceSynchronize(); // Wait for the GPU to finish before proceeding
-
-  // Call the CPU version to check our work
-  matrixMulCPU( a, b, c_cpu );
-
-  // Compare the two answers to make sure they are equal
-  bool error = false;
-  for( int row = 0; row < N && !error; ++row )
-    for( int col = 0; col < N && !error; ++col )
-      if (c_cpu[row * N + col] != c_gpu[row * N + col])
-      {
-        printf("FOUND ERROR at c[%d][%d]\n", row, col);
-        error = true;
-        break;
-      }
-  if (!error)
-    printf("Success!\n");
-
-  // Free all our allocated memory
-  cudaFree(a); cudaFree(b);
-  cudaFree( c_cpu ); cudaFree( c_gpu );
+void initGPUMemoryToZero(float * memdata, unsigned int numRows, unsigned int numCols){
+    const unsigned int numElems = numRows * numCols;
+    cudaMalloc((void **)&memdata, numElems*sizeof(float));
+    cudaMemset((void **)&memdata, 0, numElems*sizeof(float));
 }
 
 void printCudaVersion()
 {
     std::cout << "CUDA Compiled version: " << __CUDACC_VER__ << std::endl;
-
     int runtime_ver;
     cudaRuntimeGetVersion(&runtime_ver);
     std::cout << "CUDA Runtime version: " << runtime_ver << std::endl;
-
     int driver_ver;
     cudaDriverGetVersion(&driver_ver);
     std::cout << "CUDA Driver version: " << driver_ver << std::endl;
