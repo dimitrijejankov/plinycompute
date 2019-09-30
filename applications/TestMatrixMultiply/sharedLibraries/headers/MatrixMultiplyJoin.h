@@ -22,7 +22,6 @@ public:
 
   static Lambda <Handle <MatrixBlock>> getProjection (Handle <MatrixBlock> in1, Handle <MatrixBlock> in2) {
     return makeLambda (in1, in2, [] (Handle <MatrixBlock> &in1, Handle <MatrixBlock> &in2) {
-
       // get the sizes
       uint32_t I = in1->data.numRows;
       uint32_t J = in2->data.numCols;
@@ -43,25 +42,23 @@ public:
       float * in1DataGPU;
       float * in2DataGPU;
 
-      copyFromHostToDevice(in1DataGPU, in1DataCPU, I, K);
-      copyFromHostToDevice(in2DataGPU, in2DataCPU, L, J);
-      initGPUMemoryToZero(outDataGPU, I, J);
-
-      launchKernel(in1DataGPU, I, K, in2DataGPU, L, J, outDataGPU, outDataCPU);
+      copyFromHostToDevice(&in1DataGPU, in1DataCPU, I, K);
+      copyFromHostToDevice(&in2DataGPU, in2DataCPU, L, J);
+      initGPUMemoryToZero(&outDataGPU, I, J);
+      launchKernel(in1DataGPU, I, K, in2DataGPU, L, J, outDataGPU);
+      copyFromDeviceToHost(outDataCPU, outDataGPU, I, J);
 
       //TODO replace this with mkl
-      std::cout<<"Hello here is the gpu\n";
       for (uint32_t i = 0; i < I; ++i) {
         for (uint32_t j = 0; j < J; ++j) {
           float val = 0;
           for (uint32_t k = 0; k < K; ++k) {
-             val += in1DataCPU[i * K + k] * in2DataCPU[k * J + j];
+            val += in1DataCPU[i * K + k] * in2DataCPU[k * J + j];
           }
-          std::cout << "output by GPU: " << outDataCPU[i * J + j] << " at "<< (i * J + j) << std::endl;
-          std::cout << "output by CPU: " << val << " at " << (i * J + j) << std::endl;
+          std::cout << "output by GPU: " << outDataCPU[i * J + j] << " at row: " << i << " column: " << j << std::endl;
+          std::cout << "output by CPU: " << val << " at row: " << i <<" column: "<<j<< std::endl;
         }
       }
-      // return the output
       return out;
     });
   }

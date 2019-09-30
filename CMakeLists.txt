@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.5.1)
 set(CMAKE_C_COMPILER "clang")
 set(CMAKE_CXX_COMPILER "clang++")
 set(CMAKE_CUDA_COMPILER "/usr/local/cuda-10.1/bin/nvcc")
+set(CMAKE_CUDA_FLAGS "-arch=sm_61")
 
 project(pdb)
 

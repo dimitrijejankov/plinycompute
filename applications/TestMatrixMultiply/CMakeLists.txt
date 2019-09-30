@@ -4,6 +4,9 @@ add_pdb_integration_test(TestMatrixMultiply)
 # add a build dependency to build-tests target
 add_dependencies(build-integration-tests TestMatrixMultiply)
 
+set(CMAKE_CUDA_COMPILER "/usr/local/cuda-10.1/bin/nvcc")
+set(CMAKE_CUDA_FLAGS "-arch=sm_61")
+
 option(USE_CUDA "Use CUDA" ON)
 # compile all the objects
 file(GLOB files "${PROJECT_SOURCE_DIR}/applications/TestMatrixMultiply/sharedLibraries/source/*.cc")
