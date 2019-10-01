@@ -74,3 +74,6 @@ void printCudaVersion() {
   std::cout << "CUDA Driver version: " << driver_ver << std::endl;
 }
 
+void freeGPUMemory(float ** memdata){
+  gpuErrchk(cudaFree(*memdata));
+}

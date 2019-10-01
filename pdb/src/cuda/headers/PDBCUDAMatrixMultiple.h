@@ -26,4 +26,6 @@ extern void initGPUMemoryToZero(float **memdata,
                                 unsigned int numRows,
                                 unsigned int numCols);
 
+extern void freeGPUMemory(float **memdata);
+
 #endif

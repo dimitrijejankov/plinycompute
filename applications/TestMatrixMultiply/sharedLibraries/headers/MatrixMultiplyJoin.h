@@ -1,5 +1,7 @@
 #pragma once
 
+#define  __GPU__COMPUTATIONS
+
 #include <LambdaCreationFunctions.h>
 #include "JoinComp.h"
 #include "MatrixBlock.h"
@@ -38,6 +40,7 @@ public:
       float *in1DataCPU = in1->data.data->c_ptr();
       float *in2DataCPU = in2->data.data->c_ptr();
 
+#ifdef __GPU__COMPUTATIONS
       float * outDataGPU;
       float * in1DataGPU;
       float * in2DataGPU;
@@ -47,18 +50,19 @@ public:
       initGPUMemoryToZero(&outDataGPU, I, J);
       launchKernel(in1DataGPU, I, K, in2DataGPU, L, J, outDataGPU);
       copyFromDeviceToHost(outDataCPU, outDataGPU, I, J);
-
+      freeGPUMemory(&in1DataGPU);
+      freeGPUMemory(&in2DataGPU);
+      freeGPUMemory(&outDataGPU);
+#else
       //TODO replace this with mkl
       for (uint32_t i = 0; i < I; ++i) {
         for (uint32_t j = 0; j < J; ++j) {
-          float val = 0;
           for (uint32_t k = 0; k < K; ++k) {
-            val += in1DataCPU[i * K + k] * in2DataCPU[k * J + j];
+            outDataCPU[i * J + j] += in1DataCPU[i * K + k] * in2DataCPU[k * J + j];
           }
-          std::cout << "output by GPU: " << outDataCPU[i * J + j] << " at row: " << i << " column: " << j << std::endl;
-          std::cout << "output by CPU: " << val << " at row: " << i <<" column: "<<j<< std::endl;
         }
       }
+#endif
       return out;
     });
   }
@@ -68,3 +72,4 @@ public:
 }
 
 }
+#define __GPU__COMPUTATIONS

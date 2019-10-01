@@ -86,6 +86,7 @@ int main(int argc, char* argv[]) {
   // for allocations
   const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
+  auto total_begin = std::chrono::high_resolution_clock::now();
   Handle <Computation> readA = makeObject <MatrixScanner>("myData", "A");
   Handle <Computation> readB = makeObject <MatrixScanner>("myData", "B");
   Handle <Computation> join = makeObject <MatrixMultiplyJoin>();
@@ -97,22 +98,31 @@ int main(int argc, char* argv[]) {
   myWriter->setInput(myAggregation);
 
   //TODO this is just a preliminary version of the execute computation before we add back the TCAP generation
+
   pdbClient.executeComputations({ myWriter });
+
+  auto end = std::chrono::high_resolution_clock::now();
+  std::cout << "Time Duration: " << std::chrono::duration_cast<std::chrono::duration<float>>(end - total_begin).count()
+            << " secs." << std::endl;
 
   /// 5. Get the set from the
 
   // grab the iterator
   auto it = pdbClient.getSetIterator<MatrixBlock>("myData", "C");
+  int record_count = 0;
   while(it->hasNextRecord()) {
 
     // grab the record
     auto r = it->getNextRecord();
 
+
     // write out the values
     float *values = r->data.data->c_ptr();
     for(int i = 0; i < r->data.numRows; ++i) {
       for(int j = 0; j < r->data.numCols; ++j) {
-        std::cout << values[i * r->data.numCols + j] << ", ";
+        if (record_count++ <= 10) {
+          std::cout << values[i * r->data.numCols + j] << ", ";
+        }
       }
       std::cout << "\n";
     }
