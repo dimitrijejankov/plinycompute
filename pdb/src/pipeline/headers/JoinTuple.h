@@ -80,7 +80,7 @@ public:
       typename U = MeTo,
       typename Key1 = decltype(((T*) nullptr)->getKey()),
       typename Key2 = decltype(((U*) nullptr)->getKey()),
-      typename ret = JoinTuple<typename std::remove_reference<Key1>::type, Key2>>
+      typename ret = JoinTuple<typename pdb::remove_handle<typename std::remove_reference<Key1>::type>::type, Key2>>
   ret getKey() {
     return ret();
   }
@@ -89,7 +89,7 @@ public:
   template <typename T = typename pdb::remove_handle<HoldMe>::type,
       typename U = MeTo,
       typename Key1 = decltype(((T*) nullptr)->getKey()),
-      typename ret = JoinTuple<typename std::remove_reference<Key1>::type, char[0]>>
+      typename ret = JoinTuple<typename pdb::remove_handle<typename std::remove_reference<Key1>::type>::type, char[0]>>
   typename std::enable_if<std::is_same<U, char[0]>::value, ret>::type
   getKey() {
     return ret();

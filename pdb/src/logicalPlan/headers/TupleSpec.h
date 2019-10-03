@@ -36,11 +36,11 @@
 // names, as well as the name of the TupleSet
 struct TupleSpec {
 
- private:
+public:
+
   std::string setName;
   std::vector<std::string> atts;
 
- public:
   TupleSpec() {
     setName = std::string("Empty");
   }

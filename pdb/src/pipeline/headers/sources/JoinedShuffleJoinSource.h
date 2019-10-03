@@ -2,13 +2,14 @@
 
 #include <ComputeSource.h>
 #include <JoinPairArray.h>
+#include <utility>
 
 namespace pdb {
 
 template<typename LHS>
 class JoinedShuffleJoinSource : public ComputeSource {
 
-private:
+protected:
 
   // and the tuple set we return
   TupleSetPtr output;
@@ -38,10 +39,10 @@ private:
   uint64_t workerID = 0;
 
   // the output columns of the tuple set
-  void **lhsColumns;
+  void **lhsColumns{};
 
   // the offset where the right input is going to be
-  int offset;
+  int offset{};
 
   // the list of counts for matches of each of the rhs tuples. Basically if the count[3] = 99 the fourth tuple in the rhs tupleset will be repeated 99 times
   std::vector<uint32_t> counts;
@@ -50,6 +51,18 @@ private:
   std::vector<JoinMapIterator<LHS>> currIterators;
 
 public:
+
+  JoinedShuffleJoinSource() = default;
+
+  JoinedShuffleJoinSource(TupleSpec &inputSchemaRHS,
+                          TupleSpec &recordSchemaRHS,
+                          std::vector<int> lhsRecordOrder,
+                          RHSShuffleJoinSourceBasePtr &rhsSource,
+                          uint64_t chunkSize) : lhsRecordOrder(std::move(lhsRecordOrder)),
+                                                rhsMachine(inputSchemaRHS, recordSchemaRHS),
+                                                rhsSource(rhsSource),
+                                                chunkSize(chunkSize),
+                                                workerID(0) {}
 
   JoinedShuffleJoinSource(TupleSpec &inputSchemaRHS,
                           TupleSpec &hashSchemaRHS,

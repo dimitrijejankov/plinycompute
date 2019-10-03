@@ -21,7 +21,8 @@
 
 #include <iostream>
 #include <memory>
-#include <stdlib.h>
+#include <set>
+#include <cstdlib>
 #include <string>
 #include <utility>
 #include <vector>
@@ -54,6 +55,35 @@ public:
     // AtomicComputationPtr in the returned list will point to a SetScanner object
     std::vector<AtomicComputationPtr>& getAllScanSets();
 
+    // finds all the computations matching a predicate lambda
+    template <class Predicate>
+    std::set<AtomicComputationPtr> findByPredicate(Predicate p) {
+
+      std::set<AtomicComputationPtr> ret;
+      std::vector<AtomicComputationPtr> toVisit = scans;
+
+      // visit all nodes and check the predicate
+      while(!toVisit.empty()) {
+
+        // get the node
+        auto currNode = toVisit.back();
+        toVisit.pop_back();
+
+        // check the predicate
+        if(p(currNode)) {
+          ret.insert(currNode);
+        }
+
+        // get the current consumers and add them if you need it
+        auto curCons = consumers.find(currNode->getOutputName());
+        if(curCons != consumers.end()) {
+          toVisit.insert(toVisit.end(), curCons->second.begin(), curCons->second.end());
+        }
+      }
+
+      return std::move(ret);
+    }
+
     // removes the consumer from a tuple set
     void removeConsumer(const std::string &tupleSet, const AtomicComputationPtr& consumer);
 
@@ -62,6 +92,9 @@ public:
 
     // remove all consumers
     void removeAllConsumers(const std::string &tupleSet);
+
+    // removes all consumer entries that are not used
+    void removeNonUsedConsumers();
 
     // removes the computation and relinks the produces of it and consumers of it
     void removeAndRelink(const std::string &tupleSet);

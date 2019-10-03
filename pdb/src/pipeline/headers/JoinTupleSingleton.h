@@ -15,6 +15,9 @@
 #include <processors/ShuffleJoinProcessor.h>
 #include <BroadcastJoinCombinerSink.h>
 #include <JoinTupleTests.h>
+#include <JoinKeySink.h>
+#include <JoinedKeySource.h>
+#include <RHSJoinKeySource.h>
 
 namespace pdb {
 
@@ -45,6 +48,14 @@ class JoinTupleSingleton {
                                     std::vector<int> &whereEveryoneGoes,
                                     uint64_t numPartitions) = 0;
 
+  virtual RHSShuffleJoinSourceBasePtr getRHSShuffleKeyJoinSource(TupleSpec &inputSchema,
+                                                                 TupleSpec &hashSchema,
+                                                                 TupleSpec &recordSchema,
+                                                                 const PDBAbstractPageSetPtr &leftInputPageSet,
+                                                                 std::vector<int> &recordOrder,
+                                                                 uint64_t chunkSize,
+                                                                 uint64_t workerID) = 0;
+
   virtual RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
                                                               TupleSpec &hashSchema,
                                                               TupleSpec &recordSchema,
@@ -63,6 +74,16 @@ class JoinTupleSingleton {
                                            uint64_t chunkSize,
                                            uint64_t workerID) = 0;
 
+  virtual ComputeSourcePtr getJoinedKeySource(TupleSpec &inputSchemaRHS,
+                                              TupleSpec &hashSchemaRHS,
+                                              TupleSpec &recordSchemaRHS,
+                                              RHSShuffleJoinSourceBasePtr rhsSource,
+                                              const PDBAbstractPageSetPtr &lhsInputPageSet,
+                                              std::vector<int> &lhsRecordOrder,
+                                              bool needToSwapLHSAndRhs,
+                                              uint64_t chunkSize,
+                                              uint64_t workerID) = 0;
+
   virtual PageProcessorPtr getPageProcessor(size_t numNodes,
                                             size_t numProcessingThreads,
                                             vector<PDBPageQueuePtr> &pageQueues,
@@ -78,10 +99,9 @@ class JoinSingleton : public JoinTupleSingleton {
   // the actual data that we hold
   HoldMe myData;
 
- public:
+public:
 
   // gets a hash table prober
-
   ComputeExecutorPtr getProber(PDBAbstractPageSetPtr &hashTable,
                                std::vector<int> &positions,
                                TupleSpec &inputSchema,
@@ -109,7 +129,13 @@ class JoinSingleton : public JoinTupleSingleton {
                          TupleSpec &projection,
                          std::vector<int> &whereEveryoneGoes,
                          uint64_t numPartitions) override {
-    return std::make_shared<JoinSink<HoldMe>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+
+    // return the join sink
+    return std::make_shared<JoinSink<HoldMe>>(consumeMe,
+                                              attsToOpOn,
+                                              projection,
+                                              whereEveryoneGoes,
+                                              numPartitions);
   }
 
 
@@ -121,7 +147,11 @@ class JoinSingleton : public JoinTupleSingleton {
 
     // check if it has the key
     if constexpr(pdb::tupleTests::has_get_key<HoldMe>::value) {
-      return std::make_shared<JoinSink<decltype(myData.getKey())>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+      return std::make_shared<JoinKeySink<decltype(myData.getKey())>>(consumeMe,
+                                                                      attsToOpOn,
+                                                                      projection,
+                                                                      whereEveryoneGoes,
+                                                                      numPartitions);
     }
 
     // this is not supposed to happen
@@ -136,7 +166,14 @@ class JoinSingleton : public JoinTupleSingleton {
                                                       uint64_t chunkSize,
                                                       uint64_t workerID) override {
 
-    return std::make_shared<RHSShuffleJoinSource<HoldMe>>(inputSchema, hashSchema, recordSchema, recordOrder, leftInputPageSet, chunkSize, workerID);
+    // return the join shuffle source
+    return std::make_shared<RHSShuffleJoinSource<HoldMe>>(inputSchema,
+                                                          hashSchema,
+                                                          recordSchema,
+                                                          recordOrder,
+                                                          leftInputPageSet,
+                                                          chunkSize,
+                                                          workerID);
   }
 
   ComputeSourcePtr getJoinedSource(TupleSpec &inputSchemaRHS,
@@ -149,8 +186,66 @@ class JoinSingleton : public JoinTupleSingleton {
                                    uint64_t chunkSize,
                                    uint64_t workerID) override {
 
-    /// remove this
-    return std::make_shared<JoinedShuffleJoinSource<HoldMe>>(inputSchemaRHS, hashSchemaRHS, recordSchemaRHS, lhsInputPageSet, lhsRecordOrder, rhsSource, needToSwapLHSAndRhs, chunkSize, workerID);
+    // return the shuffle join source
+    return std::make_shared<JoinedShuffleJoinSource<HoldMe>>(inputSchemaRHS,
+                                                             hashSchemaRHS,
+                                                             recordSchemaRHS,
+                                                             lhsInputPageSet,
+                                                             lhsRecordOrder,
+                                                             rhsSource,
+                                                             needToSwapLHSAndRhs,
+                                                             chunkSize,
+                                                             workerID);
+  }
+
+  RHSShuffleJoinSourceBasePtr getRHSShuffleKeyJoinSource(TupleSpec &inputSchema,
+                                                         TupleSpec &hashSchema,
+                                                         TupleSpec &recordSchema,
+                                                         const PDBAbstractPageSetPtr &leftInputPageSet,
+                                                         std::vector<int> &recordOrder,
+                                                         uint64_t chunkSize,
+                                                         uint64_t workerID) override {
+    // check if it has the key
+    if constexpr(pdb::tupleTests::has_get_key<HoldMe>::value) {
+
+      // return the shuffle join source
+      return std::make_shared<RHSJoinKeySource<decltype(myData.getKey())>>(inputSchema,
+                                                                           hashSchema,
+                                                                           recordSchema,
+                                                                           recordOrder,
+                                                                           leftInputPageSet,
+                                                                           chunkSize);
+    }
+
+    // this is not supposed to happen
+    throw runtime_error("The tuple does not have a key. Why are u calling to get the rhs join key source?");
+  }
+
+  ComputeSourcePtr getJoinedKeySource(TupleSpec &inputSchemaRHS,
+                                      TupleSpec &hashSchemaRHS,
+                                      TupleSpec &recordSchemaRHS,
+                                      RHSShuffleJoinSourceBasePtr rhsSource,
+                                      const PDBAbstractPageSetPtr &lhsInputPageSet,
+                                      std::vector<int> &lhsRecordOrder,
+                                      bool needToSwapLHSAndRhs,
+                                      uint64_t chunkSize,
+                                      uint64_t workerID) override {
+    // check if it has the key
+    if constexpr(pdb::tupleTests::has_get_key<HoldMe>::value) {
+
+      // return the join shuffle source
+      return std::make_shared<JoinedKeySource<decltype(myData.getKey())>>(inputSchemaRHS,
+                                                                          hashSchemaRHS,
+                                                                          recordSchemaRHS,
+                                                                          lhsInputPageSet,
+                                                                          lhsRecordOrder,
+                                                                          rhsSource,
+                                                                          needToSwapLHSAndRhs,
+                                                                          chunkSize);
+    }
+
+    // this is not supposed to happen
+    throw runtime_error("The tuple does not have a key. Why are u calling to get the join key source?");
   }
 
   PageProcessorPtr getPageProcessor(size_t numNodes,

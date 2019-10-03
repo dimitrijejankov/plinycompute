@@ -25,6 +25,8 @@
 #include "PreaggregationSink.h"
 #include "AggregationCombinerSink.h"
 #include "AggregationTests.h"
+#include "JoinAggSink.h"
+#include "NullProcessor.h"
 
 namespace pdb {
 
@@ -43,6 +45,8 @@ namespace pdb {
 template<typename Derived, class OutputClass, class InputClass, class KeyClass, class ValueClass>
 class AggregateComp : public AggregateCompBase {
 
+  // return the page processor
+  PageProcessorPtr getAggregationKeyProcessor() override { return std::make_shared<NullProcessor>(); }
 
   // extract the key projection and value projection
   void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
@@ -206,6 +210,15 @@ class AggregateComp : public AggregateCompBase {
   ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &, TupleSpec &projection, uint64_t numberOfPartitions,
                                 std::map<ComputeInfoType, ComputeInfoPtr> &, pdb::LogicalPlanPtr &) override {
     return std::make_shared<pdb::PreaggregationSink<KeyClass, ValueClass>>(consumeMe, projection, numberOfPartitions);
+  }
+
+  ComputeSinkPtr getKeyJoinAggSink(TupleSpec &consumeMe,
+                                   TupleSpec &whichAttsToOpOn,
+                                   TupleSpec &projection,
+                                   uint64_t numberOfPartitions,
+                                   std::map<ComputeInfoType, ComputeInfoPtr> &params,
+                                   pdb::LogicalPlanPtr &plan) override {
+    return std::make_shared<pdb::JoinAggSink<KeyClass>>(consumeMe, projection, numberOfPartitions);
   }
 
   ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID, std::map<ComputeInfoType, ComputeInfoPtr> &) override {

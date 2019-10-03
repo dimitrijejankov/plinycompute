@@ -291,29 +291,35 @@ PipelinePtr ComputePlan::assemblePipeline(const std::string& sourceTupleSetName,
         throw runtime_error("Join pipeline run without hash tables!");
       }
 
-      // check if we are pipelining the right input
-      if (lastOne->getOutput().getSetName() == myJoin->getRightInput().getSetName()) {
+      // init the parameters
+      bool needToSwapAtts = lastOne->getOutput().getSetName() == myJoin->getRightInput().getSetName();
+      TupleSpec hashedInputSchema = needToSwapAtts ? myJoin->getProjection() : myJoin->getRightProjection();
+      TupleSpec pipelinedInputSchema = lastOne->getOutput();
+      TupleSpec pipelinedAttsToOperateOn = needToSwapAtts ? myJoin->getRightInput() : myJoin->getInput();
+      TupleSpec pipelinedAttsToIncludeInOutput = needToSwapAtts ? myJoin->getRightProjection() : myJoin->getProjection();
 
-        // do we have the appropriate join arguments? if not throw an exception
-        auto it = joinArgs->hashTables.find(myJoin->getInput().getSetName());
-        if (it == joinArgs->hashTables.end()) {
-          throw runtime_error("Hash table for the output set," + a->getOutput().getSetName() + "not found!");
-        }
-
-        // if we are pipelining the right input, then we don't need to switch left and right inputs
-        returnVal->addStage(myComp.getExecutor(true, myJoin->getProjection(), lastOne->getOutput(), myJoin->getRightInput(), myJoin->getRightProjection(), it->second, numNodes, numProcessingThreads, workerID, *this));
-      } else {
-
-        // do we have the appropriate join arguments? if not throw an exception
-        auto it = joinArgs->hashTables.find(myJoin->getRightInput().getSetName());
-        if (it == joinArgs->hashTables.end()) {
-          throw runtime_error("Hash table for the output set," + a->getOutput().getSetName() + "not found!");
-        }
-
-        // if we are pipelining the right input, then we don't need to switch left and right inputs
-        returnVal->addStage(myComp.getExecutor(false, myJoin->getRightProjection(), lastOne->getOutput(), myJoin->getInput(), myJoin->getProjection(), it->second, numNodes, numProcessingThreads, workerID, *this));
+      // do we have the appropriate join arguments? if not throw an exception
+      auto it = joinArgs->hashTables.find(needToSwapAtts ? myJoin->getInput().getSetName() : myJoin->getRightInput().getSetName());
+      if (it == joinArgs->hashTables.end()) {
+        throw runtime_error("Hash table for the output set," + a->getOutput().getSetName() + "not found!");
       }
 
+      // if this is a keyed join this is bad.
+      if(myJoin->isKeyJoin) {
+        throw runtime_error("The join is keyed for " + a->getOutput().getSetName() + " can not add an executor for that!");
+      }
+
+      // if we are pipelining the right input, then we don't need to switch left and right inputs
+      returnVal->addStage(myComp.getExecutor(needToSwapAtts,
+                                                 hashedInputSchema,
+                                                 pipelinedInputSchema,
+                                                 pipelinedAttsToOperateOn,
+                                                 pipelinedAttsToIncludeInOutput,
+                                                 it->second,
+                                                     numNodes,
+                                                     numProcessingThreads,
+                                                     workerID,
+                                                 *this));
     }
     else if(a->getAtomicComputationType() == "WriteSet") {
 

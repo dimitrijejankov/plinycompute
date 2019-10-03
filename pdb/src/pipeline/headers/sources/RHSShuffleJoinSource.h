@@ -13,13 +13,13 @@ namespace pdb {
 
 template<typename RHS>
 class RHSShuffleJoinSource : public RHSShuffleJoinSourceBase {
- private:
+protected:
 
   // and the tuple set we return
   TupleSetPtr output;
 
   // tells us which attribute is the key
-  int keyAtt;
+  int keyAtt{};
 
   // the attribute order of the records
   std::vector<int> recordAttributes;
@@ -46,7 +46,7 @@ class RHSShuffleJoinSource : public RHSShuffleJoinSourceBase {
   uint64_t workerID = 0;
 
   // the output columns of the tuple set
-  void **columns;
+  void **columns{};
 
   // the vector that contains the hash column
   std::vector<size_t> hashColumn;
@@ -59,12 +59,22 @@ class RHSShuffleJoinSource : public RHSShuffleJoinSourceBase {
   RHSShuffleJoinSource() = default;
 
   RHSShuffleJoinSource(TupleSpec &inputSchema,
+                       PDBAbstractPageSetPtr rightInputPageSet,
+                       uint64_t chunkSize) : myMachine(inputSchema),
+                                             pageSet(std::move(rightInputPageSet)),
+                                             chunkSize(chunkSize),
+                                             workerID(0) {};
+
+  RHSShuffleJoinSource(TupleSpec &inputSchema,
                        TupleSpec &hashSchema,
                        TupleSpec &recordSchema,
                        std::vector<int> &recordOrder,
                        PDBAbstractPageSetPtr rightInputPageSet,
                        uint64_t chunkSize,
-                       uint64_t workerID) : myMachine(inputSchema), pageSet(std::move(rightInputPageSet)), chunkSize(chunkSize), workerID(workerID) {
+                       uint64_t workerID) : myMachine(inputSchema),
+                                            pageSet(std::move(rightInputPageSet)),
+                                            chunkSize(chunkSize),
+                                            workerID(workerID) {
 
     // create the tuple set that we'll return during iteration
     output = std::make_shared<TupleSet>();

@@ -60,7 +60,7 @@ private:
 class InsertKeyScanSetsTransformation : public Transformation {
 public:
 
-  explicit InsertKeyScanSetsTransformation(const std::string &inputTupleSet);
+  explicit InsertKeyScanSetsTransformation(std::string inputTupleSet);
 
   void apply() override;
   bool canApply() override;

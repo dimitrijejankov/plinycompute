@@ -159,6 +159,26 @@ struct AtomicComputation {
     return computationName;
   }
 
+  // sort the output so that the projection goes first
+  void sortOutput() {
+
+    // add first the attributes from the projection
+    std::vector<std::string> sortedAtts;
+    sortedAtts = projection.getAtts();
+
+    // go through each attribute in the output
+    for(auto &c : output.getAtts()) {
+
+      // check if the attribute is in the sorted atts
+      if(std::find(sortedAtts.begin(), sortedAtts.end(), c) == sortedAtts.end()) {
+        sortedAtts.emplace_back(c);
+      }
+    }
+
+    // move the attributes
+    output.atts = std::move(sortedAtts);
+  }
+
   virtual bool hasTwoInputs() {
     return false;
   }

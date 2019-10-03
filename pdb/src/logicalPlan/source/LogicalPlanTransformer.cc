@@ -1,8 +1,7 @@
 #include <SetScanner.h>
 #include <AtomicComputationClasses.h>
 #include <LogicalPlanTransformer.h>
-
-#include "LogicalPlanTransformer.h"
+#include <utility>
 #include "LogicalPlan.h"
 
 void pdb::Transformation::setPlan(pdb::LogicalPlanPtr planToSet) {
@@ -70,6 +69,19 @@ void pdb::Transformation::dropDependents(const std::string &tupleSetName) {
 
   // get the computations from the plan
   auto &computations = logicalPlan->getComputations();
+
+  // remove start computation from the consumers
+  auto startComp = computations.getProducingAtomicComputation(tupleSetName);
+
+  // remove the input
+  computations.removeConsumer(startComp->getInputName(), startComp);
+
+  // do we have two inputs here if so remove the right input
+  if(startComp->hasTwoInputs()) {
+
+    // remove the right side since there is one
+    computations.removeConsumer(startComp->getRightInput().getSetName(), startComp);
+  }
 
   // list of tuple sets to visit
   vector<std::string> tupleSetsToVisit = { tupleSetName };
@@ -140,7 +152,7 @@ pdb::LogicalPlanPtr pdb::LogicalPlanTransformer::applyTransformations() {
  * InsertKeyScanSetsTransformation Code
  */
 
-pdb::InsertKeyScanSetsTransformation::InsertKeyScanSetsTransformation(const std::string &inputTupleSet) : inputTupleSet(inputTupleSet) {}
+pdb::InsertKeyScanSetsTransformation::InsertKeyScanSetsTransformation(std::string inputTupleSet) : inputTupleSet(std::move(inputTupleSet)) {}
 
 void pdb::InsertKeyScanSetsTransformation::apply() {
 
@@ -161,6 +173,9 @@ void pdb::InsertKeyScanSetsTransformation::apply() {
 
   // replace the atomic computation
   computations.replaceComputation(inputComp->getOutput().getSetName(), setScanner);
+
+  // remove all the non used consumers
+  computations.removeNonUsedConsumers();
 }
 
 bool pdb::InsertKeyScanSetsTransformation::canApply() {
@@ -210,6 +225,9 @@ void pdb::JoinKeySideTransformation::apply() {
   inputComp->getOutput().removeAtt(inAttribute);
   inputComp->getOutput().insertAtt(keyAttribute);
 
+  // we modified the attributes sort them
+  inputComp->sortOutput();
+
   // remove temporarily the scan set
   computations.removeProducer(inputComp->getOutput().getSetName());
   computations.replaceComputation(keyComp->getOutput().getSetName(), inputComp);
@@ -233,8 +251,13 @@ void pdb::JoinKeySideTransformation::apply() {
     }
 
     // replace the input with the key
+    currComp->getOutput().removeAtt(keyAttribute);
     currComp->getOutput().replaceAtt(inAttribute, keyAttribute);
+    currComp->getProjection().removeAtt(keyAttribute);
     currComp->getProjection().replaceAtt(inAttribute, keyAttribute);
+
+    // we modified the attributes sort them
+    currComp->sortOutput();
 
     // check the consumers
     auto &consumers = computations.getConsumingAtomicComputations(currComp->getOutput().getSetName());
@@ -250,6 +273,9 @@ void pdb::JoinKeySideTransformation::apply() {
     // insert the comps
     currentComps.emplace_back(consumers.front());
   }
+
+  // remove all the non used consumers
+  computations.removeNonUsedConsumers();
 }
 
 bool pdb::JoinKeySideTransformation::canApply() {
@@ -338,6 +364,9 @@ void pdb::JoinKeyTransformation::apply() {
 
   // make this a key join
   joinComp->isKeyJoin = true;
+
+  // we modified the attributes sort them
+  joinComp->sortOutput();
 
   // get the name of the join computation
   std::string joinCompName = joinComp->getComputationName();
@@ -450,6 +479,9 @@ void pdb::JoinKeyTransformation::apply() {
         currComp->getProjection().insertAtt(rightKey.getAtts().front());
       }
 
+      // sort the output since we just modified the attributes
+      currComp->sortOutput();
+
       // mark this as the last computation we actually used
       lastUsedComputation = currComp;
     }
@@ -477,7 +509,13 @@ void pdb::JoinKeyTransformation::apply() {
     lastUsedComputation->getOutput().removeAtt(rightKey.getAtts().front());
     lastUsedComputation->getProjection().removeAtt(leftKey.getAtts().front());
     lastUsedComputation->getProjection().removeAtt(rightKey.getAtts().front());
+
+    // sort the output since we just modified the attributes
+    lastUsedComputation->sortOutput();
   }
+
+  // remove all the non used consumers
+  computations.removeNonUsedConsumers();
 }
 
 bool pdb::JoinKeyTransformation::canApply() {
@@ -592,10 +630,16 @@ void pdb::AggKeyTransformation::apply() {
     currComp->getProjection().replaceAtt(keyAlias, inputKey);
     currComp->getInput().replaceAtt(keyAlias, inputKey);
 
+    // sort the output since we just modified the attributes
+    currComp->sortOutput();
+
     // get the consumers of this computation
     auto &cons = computations.getConsumingAtomicComputations(currComp->getOutput().getSetName());
     currentComps.insert(currentComps.end(), cons.begin(), cons.end());
   }
+
+  // remove all the non used consumers
+  computations.removeNonUsedConsumers();
 }
 
 bool pdb::AggKeyTransformation::canApply() {

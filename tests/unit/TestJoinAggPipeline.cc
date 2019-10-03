@@ -44,6 +44,7 @@ class MockPageSetWriter: public pdb::PDBAnonymousPageSet {
 };
 
 std::tuple<pdb::PipelinePtr, pdb::PipelinePtr> buildHashingPipeline(std::shared_ptr<KeyComputePlan> &computePlan,
+                                                                    const pdb::PDBBufferManagerInterfacePtr &myMgr,
                                                                     const pdb::PDBAbstractPageSetPtr &lhsReader,
                                                                     const pdb::PDBAnonymousPageSetPtr &lhsWriter,
                                                                     const pdb::PDBAbstractPageSetPtr &rhsReader,
@@ -59,7 +60,7 @@ std::tuple<pdb::PipelinePtr, pdb::PipelinePtr> buildHashingPipeline(std::shared_
   }
 
   // get the left source comp
-  auto lhsSource = sources.front();
+  auto lhsSource = computations.getProducingAtomicComputation("inputDataForSetScanner_0");
 
   // make the parameters for the first set
   std::map<ComputeInfoType, ComputeInfoPtr> params = {{ ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>(((ScanSet*)lhsSource.get())->getDBName(), ((ScanSet*)lhsSource.get())->getSetName(), "", 0, PDB_CATALOG_SET_VECTOR_CONTAINER)) }};
@@ -68,7 +69,7 @@ std::tuple<pdb::PipelinePtr, pdb::PipelinePtr> buildHashingPipeline(std::shared_
   auto leftPipeline = computePlan->buildHashPipeline(lhsSource, lhsReader, lhsWriter, params);
 
   // the get the right source comp
-  auto rhsSource = sources.back();
+  auto rhsSource = computations.getProducingAtomicComputation("inputDataForSetScanner_1");
 
   // init the parameters for rhs
   params = {{ ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>(((ScanSet*)rhsSource.get())->getDBName(), ((ScanSet*)rhsSource.get())->getSetName(), "", 0, PDB_CATALOG_SET_VECTOR_CONTAINER)) }};
@@ -78,6 +79,67 @@ std::tuple<pdb::PipelinePtr, pdb::PipelinePtr> buildHashingPipeline(std::shared_
 
   // return the pipelines
   return {leftPipeline, rightPipeline};
+}
+
+pdb::PipelinePtr buildJoinAggPipeline(std::shared_ptr<KeyComputePlan> &computePlan,
+                                      const pdb::PDBAbstractPageSetPtr &lhsReader,
+                                      const pdb::PDBAbstractPageSetPtr &rhsReader,
+                                      const pdb::PDBAnonymousPageSetPtr &writer) {
+
+  // get the atomic computations and the source atomic computations
+  auto &computations = computePlan->getPlan()->getComputations();
+  auto &sources = computations.getAllScanSets();
+
+  // try to find the join
+  auto joinList = computations.findByPredicate([](AtomicComputationPtr &c){
+
+    // check if this is a join
+    return c->getAtomicComputationTypeID() == ApplyJoinTypeID;
+  });
+
+  // make sure we have only one join
+  if(joinList.size() != 1){
+    throw runtime_error("Could not find a join!");
+  }
+
+  auto &joinComp = *joinList.begin();
+
+  // try to find the sink
+  auto sinkList = computations.findByPredicate([&computations](AtomicComputationPtr &c){
+
+    // check if this is a sink
+    return computations.getConsumingAtomicComputations(c->getOutputName()).empty();
+  });
+
+  // make sure we have only one join
+  if(sinkList.size() != 1){
+    throw runtime_error("Could not find an aggregation!");
+  }
+
+  // get the join computation
+  auto &sinkComp = *sinkList.begin();
+
+  // the key aggregation processor
+  auto aggComputation = ((AggregateCompBase*)(&computePlan->getPlan()->getNode(sinkComp->getComputationName()).getComputation()));
+
+  //
+  std::map<ComputeInfoType, ComputeInfoPtr> params;
+  params = {{ComputeInfoType::PAGE_PROCESSOR, aggComputation->getAggregationKeyProcessor()},
+            {ComputeInfoType::JOIN_ARGS, std::make_shared<JoinArguments>(JoinArgumentsInit{{joinComp->getRightInput().getSetName(), std::make_shared<JoinArg>(rhsReader)}})},
+            {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(false)}};
+
+  PipelinePtr myPipeline = computePlan->buildJoinAggPipeline(joinComp->getOutputName(),
+                                                             sinkComp->getOutputName(),     /* this is the TupleSet the pipeline ends with */
+                                                             lhsReader,
+                                                             writer,
+                                                             params,
+                                                             1,
+                                                             1,
+                                                             20,
+                                                             0);
+
+  // return the pipeline
+  return std::move(myPipeline);
 }
 
 std::string getTCAPString(std::vector<Handle<Computation>> &queryGraph) {
@@ -100,8 +162,8 @@ TEST(PipelineTest, TestJoinAggPipeline) {
   /// 1. Create the buffer manager that is going to provide the pages to the pipeline
 
   // create the buffer manager
-  pdb::PDBBufferManagerImpl myMgr;
-  myMgr.initialize("tempDSFSD", 64 * 1024 * 1024, 16, "metadata", ".");
+  pdb::PDBBufferManagerInterfacePtr myMgr = std::make_shared<PDBBufferManagerImpl>();
+  ((PDBBufferManagerImpl*) myMgr.get())->initialize("tempDSFSD", 64 * 1024 * 1024, 16, "metadata", ".");
 
   /// 0. Create a computation graph
 
@@ -180,7 +242,7 @@ TEST(PipelineTest, TestJoinAggPipeline) {
           return (PDBPageHandle) nullptr;
 
         // create a page, loading it with random data
-        auto page = myMgr.getPage();
+        auto page = myMgr->getPage();
         {
           const pdb::UseTemporaryAllocationBlock tempBlock{page->getBytes(), 64 * 1024};
 
@@ -213,7 +275,7 @@ TEST(PipelineTest, TestJoinAggPipeline) {
       [&]() {
 
         // store the page
-        auto page = myMgr.getPage();
+        auto page = myMgr->getPage();
         lhsWritePages[page->whichPage()] = page;
 
         return page;
@@ -230,6 +292,26 @@ TEST(PipelineTest, TestJoinAggPipeline) {
   // it should call send object exactly six times
   EXPECT_CALL(*lhsWriter, removePage).Times(testing::Exactly(0));
 
+  // make the function return pages
+  std::unordered_map<uint64_t, PDBPageHandle>::iterator lhsIt;
+  ON_CALL(*lhsWriter, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
+      [&](size_t workerID) {
+
+        // we have a page if we do return it
+        if(lhsIt != lhsWritePages.end()) {
+          auto page = lhsIt->second;
+          lhsIt++;
+          return page;
+        }
+
+        // return the null ptr
+        return (PDBPageHandle) nullptr;
+      }
+  ));
+
+  // it should call send object exactly six times
+  EXPECT_CALL(*lhsWriter, getNextPage).Times(testing::Exactly(2));
+
   // the page set that is gonna provide stuff
   std::shared_ptr<MockPageSetReader> rhsReader = std::make_shared<MockPageSetReader>();
 
@@ -243,7 +325,7 @@ TEST(PipelineTest, TestJoinAggPipeline) {
           return (PDBPageHandle) nullptr;
 
         // create a page, loading it with random data
-        auto page = myMgr.getPage();
+        auto page = myMgr->getPage();
         {
           const pdb::UseTemporaryAllocationBlock tempBlock{page->getBytes(), 64 * 1024};
 
@@ -276,8 +358,8 @@ TEST(PipelineTest, TestJoinAggPipeline) {
       [&]() {
 
         // store the page
-        auto page = myMgr.getPage();
-        lhsWritePages[page->whichPage()] = page;
+        auto page = myMgr->getPage();
+        rhsWritePages[page->whichPage()] = page;
 
         return page;
       }));
@@ -293,12 +375,71 @@ TEST(PipelineTest, TestJoinAggPipeline) {
   // it should call send object exactly six times
   EXPECT_CALL(*rhsWriter, removePage).Times(testing::Exactly(0));
 
+  // make the function return pages
+  std::unordered_map<uint64_t, PDBPageHandle>::iterator rhsIt;
+  ON_CALL(*rhsWriter, getNextPage(testing::An<size_t>())).WillByDefault(testing::Invoke(
+      [&](size_t workerID) {
+
+        // we have a page if we do return it
+        if(rhsIt != rhsWritePages.end()) {
+          auto page = rhsIt->second;
+          rhsIt++;
+          return page;
+        }
+
+        // return the null ptr
+        return (PDBPageHandle) nullptr;
+      }
+  ));
+
+  // it should call send object exactly six times
+  EXPECT_CALL(*rhsWriter, getNextPage).Times(testing::Exactly(2));
+
   /// 4. Create the hashing pipelines
 
-  auto hashingPipelines = buildHashingPipeline(computePlan, lhsReader, lhsWriter, rhsReader, rhsWriter);
+  // where we put the hashed records
+  PDBPageQueuePtr lhsPageQueue;
+  PDBPageQueuePtr rhsPageQueue;
+
+  auto hashingPipelines = buildHashingPipeline(computePlan, myMgr, lhsReader, lhsWriter, rhsReader, rhsWriter);
 
   std::get<0>(hashingPipelines)->run();
   std::get<1>(hashingPipelines)->run();
+
+  // 5. Run the last pipeline
+
+  // the page set that is gonna provide stuff
+  std::shared_ptr<MockPageSetWriter> finalWriter = std::make_shared<MockPageSetWriter>();
+
+  std::unordered_map<uint64_t, PDBPageHandle> finalWritePages;
+  ON_CALL(*finalWriter, getNewPage).WillByDefault(testing::Invoke(
+      [&]() {
+
+        // store the page
+        auto page = myMgr->getPage();
+        finalWritePages[page->whichPage()] = page;
+
+        return page;
+      }));
+
+  // it should call this method many times
+  EXPECT_CALL(*finalWriter, getNewPage).Times(testing::AtLeast(1));
+
+  ON_CALL(*finalWriter, removePage(testing::An<PDBPageHandle>())).WillByDefault(testing::Invoke(
+      [&](PDBPageHandle pageHandle) {
+        finalWritePages.erase(pageHandle->whichPage());
+      }));
+
+  // it should call send object exactly six times
+  EXPECT_CALL(*finalWriter, removePage).Times(testing::Exactly(0));
+
+  // set the lhs and rhs
+  lhsIt = lhsWritePages.begin();
+  rhsIt = rhsWritePages.begin();
+
+  // run the final pipeline
+  auto finalPipeline = buildJoinAggPipeline(computePlan, lhsWriter, rhsWriter, finalWriter);
+  finalPipeline->run();
 }
 
 

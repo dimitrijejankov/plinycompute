@@ -107,6 +107,23 @@ void AtomicComputationList::removeAllConsumers(const std::string &tupleSet) {
   }
 }
 
+void AtomicComputationList::removeNonUsedConsumers() {
+
+  // go through all consumers
+  auto iter = consumers.begin();
+  for(; iter != consumers.end(); ) {
+
+    // check if we have one that is not in the producers if so remove it
+    if (producers.find(iter->first) == producers.end()) {
+      consumers.erase(iter++);
+      continue;
+    }
+
+    // otherwise just go to the next one
+    ++iter;
+  }
+}
+
 void AtomicComputationList::replaceComputation(const std::string &tupleSet, const AtomicComputationPtr& comp) {
 
   // get the current comp that we want to replace
@@ -174,9 +191,6 @@ void AtomicComputationList::removeAndRelink(const std::string &tupleSet) {
   // get the current comp that we want to replace
   auto &currComp = producers[tupleSet];
 
-  // replace the producer
-  producers.erase(tupleSet);
-
   // get the current consumers
   auto currCons = consumers[tupleSet];
   for(auto &c : currCons) {
@@ -207,6 +221,9 @@ void AtomicComputationList::removeAndRelink(const std::string &tupleSet) {
   auto &inputCons = consumers[currComp->getInput().getSetName()];
   inputCons.erase(std::remove(inputCons.begin(), inputCons.end(), currComp), inputCons.end());
   inputCons.insert(inputCons.end(), currCons.begin(), currCons.end());
+
+  // replace the producer
+  producers.erase(tupleSet);
 }
 
 bool AtomicComputationList::hasConsumer(const std::string &tupleSet) {

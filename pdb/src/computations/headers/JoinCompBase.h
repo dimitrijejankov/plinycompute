@@ -53,7 +53,7 @@ class JoinCompBase : public Computation {
                                                               uint64_t chunkSize,
                                                               uint64_t workerID) = 0;
 
-  virtual ComputeSourcePtr getJoinedSource(TupleSpec &outputSchema,
+  virtual ComputeSourcePtr getJoinedSource(TupleSpec &recordSchemaLHS,
                                            TupleSpec &inputSchemaRHS,
                                            TupleSpec &hashSchemaRHS,
                                            TupleSpec &recordSchemaRHS,
@@ -63,6 +63,25 @@ class JoinCompBase : public Computation {
                                            bool needToSwapLHSAndRhs,
                                            uint64_t chunkSize,
                                            uint64_t workerID) = 0;
+
+  virtual RHSShuffleJoinSourceBasePtr getRHSKeyShuffleJoinSource(TupleSpec &inputSchema,
+                                                                 TupleSpec &hashSchema,
+                                                                 TupleSpec &recordSchema,
+                                                                 const PDBAbstractPageSetPtr &leftInputPageSet,
+                                                                 pdb::LogicalPlanPtr &plan,
+                                                                 uint64_t chunkSize,
+                                                                 uint64_t workerID) = 0;
+
+  virtual ComputeSourcePtr getKeyedJoinedSource(TupleSpec &recordSchemaLHS,
+                                                TupleSpec &inputSchemaRHS,
+                                                TupleSpec &hashSchemaRHS,
+                                                TupleSpec &recordSchemaRHS,
+                                                RHSShuffleJoinSourceBasePtr leftSource,
+                                                const PDBAbstractPageSetPtr &rightInputPageSet,
+                                                pdb::LogicalPlanPtr &plan,
+                                                bool needToSwapLHSAndRhs,
+                                                uint64_t chunkSize,
+                                                uint64_t workerID) = 0;
 
   virtual PageProcessorPtr getShuffleJoinProcessor(size_t numNodes,
                                                    size_t numProcessingThreads,

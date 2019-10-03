@@ -1,9 +1,4 @@
-//
-// Created by dimitrije on 3/27/19.
-//
-
-#ifndef PDB_AGGREGATECOMPBASE_H
-#define PDB_AGGREGATECOMPBASE_H
+#pragma once
 
 #include "Computation.h"
 
@@ -14,8 +9,14 @@ class AggregateCompBase : public Computation {
 
   virtual ComputeSinkPtr getAggregationHashMapCombiner(size_t workerID) = 0;
 
+  virtual PageProcessorPtr getAggregationKeyProcessor() = 0;
+
+  virtual ComputeSinkPtr getKeyJoinAggSink(TupleSpec &consumeMe,
+                                           TupleSpec &whichAttsToOpOn,
+                                           TupleSpec &projection,
+                                           uint64_t numberOfPartitions,
+                                           std::map<ComputeInfoType, ComputeInfoPtr> &params,
+                                           pdb::LogicalPlanPtr &plan) { return nullptr; }
 };
 
 }
-
-#endif //PDB_AGGREGATECOMPBASE_H
