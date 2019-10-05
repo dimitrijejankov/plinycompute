@@ -120,7 +120,7 @@ pdb::PipelinePtr pdb::KeyComputePlan::buildJoinAggPipeline(const std::string& so
   TupleSpec &origSpec = sourceAtomicComputation->getOutput();
 
   // figure out the source
-  ComputeSourcePtr computeSource = getKeySource(sourceAtomicComputation, inputPageSet, params, chunkSize, workerID);
+  ComputeSourcePtr computeSource = getKeySource(sourceAtomicComputation, inputPageSet, params);
 
   /// 1. Find all the computations in the pipeline
 
@@ -160,7 +160,9 @@ pdb::PipelinePtr pdb::KeyComputePlan::buildJoinAggPipeline(const std::string& so
   auto targetComputationName = targetAtomicComp->getComputationName();
 
   // get the compute sink
-  auto computeSink = getJoinAggSink(targetAtomicComp, targetComputationName, params, numNodes, numProcessingThreads);
+  auto computeSink = getJoinAggSink(targetAtomicComp,
+                                    targetComputationName,
+                                    params);
 
   // do we have a processor provided
   PageProcessorPtr processor = dynamic_pointer_cast<PageProcessor>(params.find(ComputeInfoType::PAGE_PROCESSOR)->second);
@@ -181,14 +183,8 @@ pdb::PipelinePtr pdb::KeyComputePlan::buildJoinAggPipeline(const std::string& so
 }
 
 pdb::ComputeSinkPtr pdb::KeyComputePlan::getJoinAggSink(AtomicComputationPtr &targetAtomicComp,
-                                                        std::string& targetComputationName,
-                                                        std::map<ComputeInfoType, ComputeInfoPtr> &params,
-                                                        size_t numNodes,
-                                                        size_t numProcessingThreads) {
-
-
-  // returns the input specifier
-  auto specifier = getSinkSpecifier(targetAtomicComp, targetComputationName);
+                                                        const std::string &targetComputationName,
+                                                        std::map<ComputeInfoType, ComputeInfoPtr> &params) {
 
   // get the computation
   auto &comp = myPlan->getNode(targetComputationName).getComputation();
@@ -197,19 +193,16 @@ pdb::ComputeSinkPtr pdb::KeyComputePlan::getJoinAggSink(AtomicComputationPtr &ta
   }
 
   // now we have the list of computations, and so it is time to build the pipeline... start by building a compute sink
-  return ((AggregateCompBase*) &comp)->getKeyJoinAggSink(std::get<0>(specifier),
-                                                         std::get<1>(specifier),
-                                                         std::get<2>(specifier),
-                                                         numProcessingThreads * numNodes,
+  return ((AggregateCompBase*) &comp)->getKeyJoinAggSink(targetAtomicComp->getOutput(),
+                                                         targetAtomicComp->getInput(),
+                                                         targetAtomicComp->getProjection(),
                                                          params,
                                                          myPlan);
 }
 
 pdb::ComputeSourcePtr pdb::KeyComputePlan::getKeySource(AtomicComputationPtr &sourceAtomicComputation,
                                                         const PDBAbstractPageSetPtr &inputPageSet,
-                                                        std::map<ComputeInfoType, ComputeInfoPtr> &params,
-                                                        uint64_t chunkSize,
-                                                        uint64_t workerID) {
+                                                        std::map<ComputeInfoType, ComputeInfoPtr> &params) {
 
 
   // now we get the name of the actual computation object that corresponds to the producer of this tuple set
@@ -225,6 +218,9 @@ pdb::ComputeSourcePtr pdb::KeyComputePlan::getKeySource(AtomicComputationPtr &so
 
   // cast the join computation
   auto *joinComputation = (ApplyJoin *) sourceAtomicComputation.get();
+
+  // get the join source
+  KeyJoinSourceArgsPtr keySourceArgs = std::dynamic_pointer_cast<KeyJoinSourceArgs>(params[ComputeInfoType::KEY_JOIN_SOURCE_ARGS]);
 
   // grab the join arguments
   JoinArgumentsPtr joinArgs = std::dynamic_pointer_cast<JoinArguments>(params[ComputeInfoType::JOIN_ARGS]);
@@ -252,8 +248,7 @@ pdb::ComputeSourcePtr pdb::KeyComputePlan::getKeySource(AtomicComputationPtr &so
                                                                                                                                              joinComputation->getRightProjection(),
                                                                                                                                              it->second->hashTablePageSet,
                                                                                                                                              myPlan,
-                                                                                                                                             chunkSize,
-                                                                                                                                             workerID);
+                                                                                                                                             keySourceArgs);
 
     // init the compute source for the join
     return ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getKeyedJoinedSource(joinComputation->getProjection(), // this tells me how the join tuple of the LHS is layed out
@@ -264,8 +259,7 @@ pdb::ComputeSourcePtr pdb::KeyComputePlan::getKeySource(AtomicComputationPtr &so
                                                                                                                              inputPageSet, // the LHS page set
                                                                                                                              myPlan,
                                                                                                                              needsToSwapSides,
-                                                                                                                             chunkSize,
-                                                                                                                             workerID);
+                                                                                                                             keySourceArgs);
 
   }
   else {
@@ -286,8 +280,7 @@ pdb::ComputeSourcePtr pdb::KeyComputePlan::getKeySource(AtomicComputationPtr &so
                                                                                                                                              joinComputation->getProjection(),
                                                                                                                                              it->second->hashTablePageSet,
                                                                                                                                              myPlan,
-                                                                                                                                             chunkSize,
-                                                                                                                                             workerID);
+                                                                                                                                             keySourceArgs);
 
     // init the compute source for the join
     return ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getKeyedJoinedSource(joinComputation->getRightProjection(), // this tells me how the join tuple of the LHS is layed out
@@ -298,7 +291,6 @@ pdb::ComputeSourcePtr pdb::KeyComputePlan::getKeySource(AtomicComputationPtr &so
                                                                                                                              inputPageSet, // the LHS page set
                                                                                                                              myPlan,
                                                                                                                              needsToSwapSides,
-                                                                                                                             chunkSize,
-                                                                                                                             workerID);
+                                                                                                                             keySourceArgs);
   }
 }

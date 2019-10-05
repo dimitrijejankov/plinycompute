@@ -45,15 +45,11 @@ class ComputationNode {
   }
 
   // simple constructor... extracts the set of lambdas from this compuation
-  ComputationNode(Handle<Computation> &me) : me(me) {
+  explicit ComputationNode(Handle<Computation> &me) : me(me) {
     me->extractLambdas(allLambdas);
   }
 
-  ComputationNode &operator=(const ComputationNode &toMe) {
-    allLambdas = toMe.allLambdas;
-    me = toMe.me;
-    return *this;
-  }
+  ComputationNode &operator=(const ComputationNode &toMe) = default;
 
   Computation &getComputation() {
     return *me;

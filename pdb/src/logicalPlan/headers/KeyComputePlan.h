@@ -14,16 +14,12 @@ public:
 
   pdb::ComputeSourcePtr getKeySource(AtomicComputationPtr &sourceAtomicComputation,
                                      const PDBAbstractPageSetPtr &inputPageSet,
-                                     std::map<ComputeInfoType, ComputeInfoPtr> &params,
-                                     uint64_t chunkSize,
-                                     uint64_t workerID);
+                                     std::map<ComputeInfoType, ComputeInfoPtr> &params);
 
   // returns the compute sink
   ComputeSinkPtr getJoinAggSink(AtomicComputationPtr &targetAtomicComp,
-                                std::string& targetComputationName,
-                                std::map<ComputeInfoType, ComputeInfoPtr> &params,
-                                size_t numNodes,
-                                size_t numProcessingThreads);
+                                const std::string &targetComputationName,
+                                std::map<ComputeInfoType, ComputeInfoPtr> &params);
 
   PipelinePtr buildHashPipeline(AtomicComputationPtr &source,
                                 const PDBAbstractPageSetPtr &inputPageSet,

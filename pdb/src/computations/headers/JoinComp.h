@@ -207,13 +207,12 @@ class JoinComp : public JoinCompBase {
     return correctJoinTuple->getJoinedSource(inputSchemaRHS, hashSchemaRHS, recordSchemaRHS, leftSource, rightInputPageSet, whereEveryoneGoes, needToSwapLHSAndRhs, chunkSize, workerID);
   }
 
-  RHSShuffleJoinSourceBasePtr getRHSKeyShuffleJoinSource(TupleSpec &inputSchema,
-                                                         TupleSpec &hashSchema,
-                                                         TupleSpec &recordSchema,
-                                                         const PDBAbstractPageSetPtr &leftInputPageSet,
-                                                         pdb::LogicalPlanPtr &plan,
-                                                         uint64_t chunkSize,
-                                                         uint64_t workerID) override {
+  RHSKeyJoinSourceBasePtr getRHSKeyShuffleJoinSource(TupleSpec &inputSchema,
+                                                     TupleSpec &hashSchema,
+                                                     TupleSpec &recordSchema,
+                                                     const PDBAbstractPageSetPtr &leftInputPageSet,
+                                                     pdb::LogicalPlanPtr &plan,
+                                                     const KeyJoinSourceArgsPtr &keySourceArgs) override {
     // figure out the right join tuple
     std::vector<int> whereEveryoneGoes;
     JoinTuplePtr correctJoinTuple = findJoinTuple(recordSchema, plan, whereEveryoneGoes);
@@ -224,26 +223,31 @@ class JoinComp : public JoinCompBase {
                                                         recordSchema,
                                                         leftInputPageSet,
                                                         whereEveryoneGoes,
-                                                        chunkSize,
-                                                        workerID);
+                                                        keySourceArgs);
   }
 
   ComputeSourcePtr getKeyedJoinedSource(TupleSpec &recordSchemaLHS,
                                         TupleSpec &inputSchemaRHS,
                                         TupleSpec &hashSchemaRHS,
                                         TupleSpec &recordSchemaRHS,
-                                        RHSShuffleJoinSourceBasePtr leftSource,
+                                        RHSKeyJoinSourceBasePtr leftSource,
                                         const PDBAbstractPageSetPtr &rightInputPageSet,
                                         pdb::LogicalPlanPtr &plan,
                                         bool needToSwapLHSAndRhs,
-                                        uint64_t chunkSize,
-                                        uint64_t workerID) override {
+                                        const KeyJoinSourceArgsPtr &keySourceArgs) override {
     // figure out the right join tuple
     std::vector<int> whereEveryoneGoes;
     JoinTuplePtr correctJoinTuple = findJoinTuple(recordSchemaLHS, plan, whereEveryoneGoes);
 
     // return the lhs join source
-    return correctJoinTuple->getJoinedKeySource(inputSchemaRHS, hashSchemaRHS, recordSchemaRHS, leftSource, rightInputPageSet, whereEveryoneGoes, needToSwapLHSAndRhs, chunkSize, workerID);
+    return correctJoinTuple->getJoinedKeySource(inputSchemaRHS,
+                                                hashSchemaRHS,
+                                                recordSchemaRHS,
+                                                leftSource,
+                                                rightInputPageSet,
+                                                whereEveryoneGoes,
+                                                needToSwapLHSAndRhs,
+                                                keySourceArgs);
   }
 
   JoinTuplePtr findJoinTuple(TupleSpec &recordSchema, LogicalPlanPtr &plan, vector<int> &whereEveryoneGoes) const {

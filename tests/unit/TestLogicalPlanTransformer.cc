@@ -136,6 +136,7 @@ TEST(TestLogicalPlanTransformer, Test1) {
   transformer->addTransformation(std::make_shared<JoinKeyTransformation>(joinTupleSet));
   transformer->addTransformation(std::make_shared<AggKeyTransformation>(preAggTupleSet));
   transformer->addTransformation(std::make_shared<DropDependents>(writeSet));
+  transformer->addTransformation(std::make_shared<AddJoinTID>(joinTupleSet));
 
   // apply all the transformations
   auto newPlan = transformer->applyTransformations();

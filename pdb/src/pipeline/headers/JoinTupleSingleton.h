@@ -18,6 +18,7 @@
 #include <JoinKeySink.h>
 #include <JoinedKeySource.h>
 #include <RHSJoinKeySource.h>
+#include <JoinArguments.h>
 
 namespace pdb {
 
@@ -48,13 +49,12 @@ class JoinTupleSingleton {
                                     std::vector<int> &whereEveryoneGoes,
                                     uint64_t numPartitions) = 0;
 
-  virtual RHSShuffleJoinSourceBasePtr getRHSShuffleKeyJoinSource(TupleSpec &inputSchema,
-                                                                 TupleSpec &hashSchema,
-                                                                 TupleSpec &recordSchema,
-                                                                 const PDBAbstractPageSetPtr &leftInputPageSet,
-                                                                 std::vector<int> &recordOrder,
-                                                                 uint64_t chunkSize,
-                                                                 uint64_t workerID) = 0;
+  virtual RHSKeyJoinSourceBasePtr getRHSShuffleKeyJoinSource(TupleSpec &inputSchema,
+                                                             TupleSpec &hashSchema,
+                                                             TupleSpec &recordSchema,
+                                                             const PDBAbstractPageSetPtr &leftInputPageSet,
+                                                             std::vector<int> &recordOrder,
+                                                             const KeyJoinSourceArgsPtr &keySourceArgs) = 0;
 
   virtual RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
                                                               TupleSpec &hashSchema,
@@ -77,12 +77,11 @@ class JoinTupleSingleton {
   virtual ComputeSourcePtr getJoinedKeySource(TupleSpec &inputSchemaRHS,
                                               TupleSpec &hashSchemaRHS,
                                               TupleSpec &recordSchemaRHS,
-                                              RHSShuffleJoinSourceBasePtr rhsSource,
+                                              RHSKeyJoinSourceBasePtr rhsSource,
                                               const PDBAbstractPageSetPtr &lhsInputPageSet,
                                               std::vector<int> &lhsRecordOrder,
                                               bool needToSwapLHSAndRhs,
-                                              uint64_t chunkSize,
-                                              uint64_t workerID) = 0;
+                                              const KeyJoinSourceArgsPtr &keySourceArgs) = 0;
 
   virtual PageProcessorPtr getPageProcessor(size_t numNodes,
                                             size_t numProcessingThreads,
@@ -198,13 +197,12 @@ public:
                                                              workerID);
   }
 
-  RHSShuffleJoinSourceBasePtr getRHSShuffleKeyJoinSource(TupleSpec &inputSchema,
-                                                         TupleSpec &hashSchema,
-                                                         TupleSpec &recordSchema,
-                                                         const PDBAbstractPageSetPtr &leftInputPageSet,
-                                                         std::vector<int> &recordOrder,
-                                                         uint64_t chunkSize,
-                                                         uint64_t workerID) override {
+  RHSKeyJoinSourceBasePtr getRHSShuffleKeyJoinSource(TupleSpec &inputSchema,
+                                                     TupleSpec &hashSchema,
+                                                     TupleSpec &recordSchema,
+                                                     const PDBAbstractPageSetPtr &leftInputPageSet,
+                                                     std::vector<int> &recordOrder,
+                                                     const KeyJoinSourceArgsPtr &keySourceArgs) override {
     // check if it has the key
     if constexpr(pdb::tupleTests::has_get_key<HoldMe>::value) {
 
@@ -214,7 +212,7 @@ public:
                                                                            recordSchema,
                                                                            recordOrder,
                                                                            leftInputPageSet,
-                                                                           chunkSize);
+                                                                           keySourceArgs->rhsTablePageSet);
     }
 
     // this is not supposed to happen
@@ -224,12 +222,11 @@ public:
   ComputeSourcePtr getJoinedKeySource(TupleSpec &inputSchemaRHS,
                                       TupleSpec &hashSchemaRHS,
                                       TupleSpec &recordSchemaRHS,
-                                      RHSShuffleJoinSourceBasePtr rhsSource,
+                                      RHSKeyJoinSourceBasePtr rhsSource,
                                       const PDBAbstractPageSetPtr &lhsInputPageSet,
                                       std::vector<int> &lhsRecordOrder,
                                       bool needToSwapLHSAndRhs,
-                                      uint64_t chunkSize,
-                                      uint64_t workerID) override {
+                                      const KeyJoinSourceArgsPtr &keySourceArgs) override {
     // check if it has the key
     if constexpr(pdb::tupleTests::has_get_key<HoldMe>::value) {
 
@@ -241,7 +238,7 @@ public:
                                                                           lhsRecordOrder,
                                                                           rhsSource,
                                                                           needToSwapLHSAndRhs,
-                                                                          chunkSize);
+                                                                          keySourceArgs->lhsTablePageSet);
     }
 
     // this is not supposed to happen

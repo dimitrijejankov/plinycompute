@@ -215,10 +215,9 @@ class AggregateComp : public AggregateCompBase {
   ComputeSinkPtr getKeyJoinAggSink(TupleSpec &consumeMe,
                                    TupleSpec &whichAttsToOpOn,
                                    TupleSpec &projection,
-                                   uint64_t numberOfPartitions,
                                    std::map<ComputeInfoType, ComputeInfoPtr> &params,
                                    pdb::LogicalPlanPtr &plan) override {
-    return std::make_shared<pdb::JoinAggSink<KeyClass>>(consumeMe, projection, numberOfPartitions);
+    return std::make_shared<pdb::JoinAggSink<KeyClass>>(consumeMe, whichAttsToOpOn, projection);
   }
 
   ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID, std::map<ComputeInfoType, ComputeInfoPtr> &) override {

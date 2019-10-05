@@ -1,3 +1,5 @@
+#include <utility>
+
 #include <SetScanner.h>
 #include <AtomicComputationClasses.h>
 #include <LogicalPlanTransformer.h>
@@ -194,7 +196,7 @@ bool pdb::InsertKeyScanSetsTransformation::canApply() {
  * JoinFromKeyTransformation
  */
 
-pdb::JoinKeySideTransformation::JoinKeySideTransformation(const std::string &inputTupleSet) : inputTupleSet(inputTupleSet) {
+pdb::JoinKeySideTransformation::JoinKeySideTransformation(std::string inputTupleSet) : inputTupleSet(std::move(inputTupleSet)) {
 
 }
 
@@ -317,7 +319,7 @@ bool pdb::JoinKeySideTransformation::canApply() {
  * JoinKeyTransformation
  */
 
-pdb::JoinKeyTransformation::JoinKeyTransformation(const std::string &joinTupleSet) : joinTupleSet(joinTupleSet) {}
+pdb::JoinKeyTransformation::JoinKeyTransformation(std::string joinTupleSet) : joinTupleSet(std::move(joinTupleSet)) {}
 
 void pdb::JoinKeyTransformation::apply() {
 
@@ -535,7 +537,7 @@ bool pdb::JoinKeyTransformation::canApply() {
  * AggKeyTransformation
  */
 
-pdb::AggKeyTransformation::AggKeyTransformation(const std::string &aggStartTupleSet) : aggStartTupleSet(aggStartTupleSet) {}
+pdb::AggKeyTransformation::AggKeyTransformation(std::string aggStartTupleSet) : aggStartTupleSet(std::move(aggStartTupleSet)) {}
 
 void pdb::AggKeyTransformation::apply() {
 
@@ -690,7 +692,7 @@ bool pdb::AggKeyTransformation::canApply() {
  * Drop Dependents
  */
 
-pdb::DropDependents::DropDependents(const std::string &startTupleSet) : startTupleSet(startTupleSet) {}
+pdb::DropDependents::DropDependents(std::string startTupleSet) : startTupleSet(std::move(startTupleSet)) {}
 
 void pdb::DropDependents::apply() {
 
@@ -704,4 +706,75 @@ bool pdb::DropDependents::canApply() {
   auto &computations = logicalPlan->getComputations();
 
   return computations.getProducingAtomicComputation(startTupleSet) != nullptr;
+}
+
+/**
+ * Add TID to the join
+ */
+
+pdb::AddJoinTID::AddJoinTID(std::string joinTupleSet) : joinTupleSet(std::move(joinTupleSet)) {}
+
+void pdb::AddJoinTID::apply() {
+
+  // get the computations from the plan
+  auto &computations = logicalPlan->getComputations();
+
+  // get the input computation
+  auto joinComp = std::dynamic_pointer_cast<ApplyJoin>(computations.getProducingAtomicComputation(joinTupleSet));
+
+  // make the tid atributes
+  auto leftTID = joinComp->getProjection().getAtts().front() + "_TID";
+  auto rightTID = joinComp->getRightProjection().getAtts().front() + "_TID";
+
+  // update the output
+  joinComp->getOutput().insertAtt(leftTID);
+  joinComp->getOutput().insertAtt(rightTID);
+
+  // process all the way to the hash
+  std::vector<AtomicComputationPtr> currentComps = computations.getConsumingAtomicComputations(joinComp->getOutput().getSetName());
+  if(currentComps.size() != 1) {
+    throw runtime_error("The join pipeline has branchings.");
+  }
+
+  // basically the last computation that still remains after the transformation
+  AtomicComputationPtr lastUsedComputation;
+
+  // while we still have computations do stuff
+  while (!currentComps.empty()) {
+
+    // get the current computation
+    auto currComp = currentComps.back();
+    currentComps.pop_back();
+
+    // insert the TIDs
+    currComp->getProjection().insertAtt(leftTID);
+    currComp->getProjection().insertAtt(rightTID);
+    currComp->getOutput().insertAtt(leftTID);
+    currComp->getOutput().insertAtt(rightTID);
+    currComp->sortOutput();
+
+    // get the consumers of this computation
+    auto &cons = computations.getConsumingAtomicComputations(currComp->getOutput().getSetName());
+
+    // make sure we have exactly one branch
+    if(cons.size() > 1) {
+      throw runtime_error("The join pipeline has branchings.");
+    }
+
+    // insert the consumers to we can  traverse
+    currentComps.insert(currentComps.end(), cons.begin(), cons.end());
+  }
+
+}
+
+bool pdb::AddJoinTID::canApply() {
+
+  // get the computations from the plan
+  auto &computations = logicalPlan->getComputations();
+
+  // get the input computation
+  auto joinComp = computations.getProducingAtomicComputation(joinTupleSet);
+
+  // if it is not a join we can not apply this
+  return joinComp->getAtomicComputationTypeID() == ApplyJoinTypeID;
 }

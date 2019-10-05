@@ -84,7 +84,9 @@ std::tuple<pdb::PipelinePtr, pdb::PipelinePtr> buildHashingPipeline(std::shared_
 pdb::PipelinePtr buildJoinAggPipeline(std::shared_ptr<KeyComputePlan> &computePlan,
                                       const pdb::PDBAbstractPageSetPtr &lhsReader,
                                       const pdb::PDBAbstractPageSetPtr &rhsReader,
-                                      const pdb::PDBAnonymousPageSetPtr &writer) {
+                                      const pdb::PDBAnonymousPageSetPtr &writer,
+                                      const PDBPageHandle &leftKeyPage,
+                                      const PDBPageHandle &rightKeyPage) {
 
   // get the atomic computations and the source atomic computations
   auto &computations = computePlan->getPlan()->getComputations();
@@ -126,6 +128,7 @@ pdb::PipelinePtr buildJoinAggPipeline(std::shared_ptr<KeyComputePlan> &computePl
   std::map<ComputeInfoType, ComputeInfoPtr> params;
   params = {{ComputeInfoType::PAGE_PROCESSOR, aggComputation->getAggregationKeyProcessor()},
             {ComputeInfoType::JOIN_ARGS, std::make_shared<JoinArguments>(JoinArgumentsInit{{joinComp->getRightInput().getSetName(), std::make_shared<JoinArg>(rhsReader)}})},
+            {ComputeInfoType::KEY_JOIN_SOURCE_ARGS, std::make_shared<KeyJoinSourceArgs>(std::vector<PDBPageHandle>({leftKeyPage, rightKeyPage}))},
             {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(false)}};
 
   PipelinePtr myPipeline = computePlan->buildJoinAggPipeline(joinComp->getOutputName(),
@@ -216,6 +219,7 @@ TEST(PipelineTest, TestJoinAggPipeline) {
   transformer->addTransformation(std::make_shared<JoinKeyTransformation>("OutForJoinedFor_equals_0JoinComp2"));
   transformer->addTransformation(std::make_shared<AggKeyTransformation>("OutFor_key_2AggregationComp3"));
   transformer->addTransformation(std::make_shared<DropDependents>("aggOutForAggregationComp3_out"));
+  transformer->addTransformation(std::make_shared<AddJoinTID>("OutForJoinedFor_equals_0JoinComp2"));
 
   // apply all the transformations
   logicalPlan = transformer->applyTransformations();
@@ -437,8 +441,12 @@ TEST(PipelineTest, TestJoinAggPipeline) {
   lhsIt = lhsWritePages.begin();
   rhsIt = rhsWritePages.begin();
 
+  // get the left and right key page, basically a map of pdb::Map<Key, uint32_t>
+  PDBPageHandle leftKeyPage = myMgr->getPage();
+  PDBPageHandle rightKeyPage = myMgr->getPage();
+
   // run the final pipeline
-  auto finalPipeline = buildJoinAggPipeline(computePlan, lhsWriter, rhsWriter, finalWriter);
+  auto finalPipeline = buildJoinAggPipeline(computePlan, lhsWriter, rhsWriter, finalWriter, leftKeyPage, rightKeyPage);
   finalPipeline->run();
 }
 

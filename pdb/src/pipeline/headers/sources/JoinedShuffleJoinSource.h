@@ -261,9 +261,12 @@ public:
     // truncate if we have extra
     eraseEnd<LHS>(overallCounter, 0, lhsColumns);
 
-    /// 3. Finally, we need to replicate the rhs records
+    /// 3. We need to replicate the rhs records
 
     rhsMachine.replicate(rhsTuple.first, output, counts, offset);
+
+
+    /// 4. set the rhs TIDs
 
     return output;
   }

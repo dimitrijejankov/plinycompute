@@ -14,7 +14,6 @@ class AggregateCompBase : public Computation {
   virtual ComputeSinkPtr getKeyJoinAggSink(TupleSpec &consumeMe,
                                            TupleSpec &whichAttsToOpOn,
                                            TupleSpec &projection,
-                                           uint64_t numberOfPartitions,
                                            std::map<ComputeInfoType, ComputeInfoPtr> &params,
                                            pdb::LogicalPlanPtr &plan) { return nullptr; }
 };

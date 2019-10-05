@@ -82,7 +82,7 @@ private:
 class JoinKeySideTransformation : public Transformation {
  public:
 
-  explicit JoinKeySideTransformation(const std::string &inputTupleSet);
+  explicit JoinKeySideTransformation(std::string inputTupleSet);
 
   void apply() override;
   bool canApply() override;
@@ -101,7 +101,7 @@ class JoinKeySideTransformation : public Transformation {
 class JoinKeyTransformation : public Transformation {
  public:
 
-  explicit JoinKeyTransformation(const std::string &joinTupleSet);
+  explicit JoinKeyTransformation(std::string joinTupleSet);
 
   void apply() override;
   bool canApply() override;
@@ -121,7 +121,7 @@ class JoinKeyTransformation : public Transformation {
 class AggKeyTransformation : public Transformation {
  public:
 
-  explicit AggKeyTransformation(const std::string &aggStartTupleSet);
+  explicit AggKeyTransformation(std::string aggStartTupleSet);
 
   void apply() override;
   bool canApply() override;
@@ -141,7 +141,7 @@ class AggKeyTransformation : public Transformation {
 class DropDependents : public Transformation {
  public:
 
-  explicit DropDependents(const std::string &startTupleSet);
+  explicit DropDependents(std::string startTupleSet);
 
   void apply() override;
   bool canApply() override;
@@ -152,5 +152,26 @@ class DropDependents : public Transformation {
   std::string startTupleSet;
 
 };
+
+/**
+ * Drop AddJoinTID
+ */
+
+
+class AddJoinTID : public Transformation {
+ public:
+
+  explicit AddJoinTID(std::string joinTupleSet);
+
+  void apply() override;
+  bool canApply() override;
+
+ private:
+
+  // the input tuple set
+  std::string joinTupleSet;
+
+};
+
 
 }

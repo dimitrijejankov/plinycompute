@@ -45,4 +45,26 @@ public:
 using JoinArgumentsPtr = std::shared_ptr<JoinArguments>;
 using JoinArgumentsInit = std::initializer_list<std::pair<const std::string, JoinArgPtr>>;
 
+class KeyJoinSourceArgs : public pdb::ComputeInfo {
+public:
+
+  explicit KeyJoinSourceArgs(const std::vector<PDBPageHandle> &init) {
+
+    // make sure we have two
+    assert(init.size() == 2);
+
+    // init the page set
+    lhsTablePageSet = init[0];
+    rhsTablePageSet = init[1];
+  }
+
+  // the location of the lhs key table
+  PDBPageHandle lhsTablePageSet;
+
+  // the location of the rhs key table
+  PDBPageHandle rhsTablePageSet;
+};
+
+using KeyJoinSourceArgsPtr = std::shared_ptr<KeyJoinSourceArgs>;
+
 }
