@@ -31,12 +31,14 @@
 namespace pdb {
 
 template<class DataType>
-bool PDBDistributedStorageClient::sendData(const std::string &db, const std::string &set,
-                                   Handle<Vector<Handle<DataType>>> dataToSend, std::string &errMsg) {
+bool PDBDistributedStorageClient::sendData(const std::string &db,
+                                           const std::string &set,
+                                           Handle<Vector<Handle<DataType>>> dataToSend,
+                                           std::string &errMsg) {
 
 
   return RequestFactory::dataHeapRequest<DisAddData, DataType, SimpleRequestResult, bool>(
-      logger, port, address, false, 1024, [&](Handle<SimpleRequestResult> result) {
+      logger, port, address, false, 1024, [&](const Handle<SimpleRequestResult>& result) {
 
         // check the response
         if (result != nullptr && !result->getRes().first) {

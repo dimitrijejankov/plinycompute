@@ -46,10 +46,12 @@ class CatGetSetResult : public Object {
                            const std::string &set,
                            const std::string &internalType,
                            const std::string &type,
+                           bool isStoringKeys,
                            size_t setSize,
                            const PDBCatalogSetContainerType &containerType) : databaseName(database),
                                                                               setName(set),
                                                                               internalType(internalType),
+                                                                              isStoringKeys(isStoringKeys),
                                                                               type(type),
                                                                               containerType(containerType),
                                                                               setSize(setSize) {}
@@ -76,6 +78,11 @@ class CatGetSetResult : public Object {
    * The real name of the type see above
    */
   String type;
+
+  /**
+   * The true if it is storing keys
+   */
+  bool isStoringKeys;
 
   /**
    * The size of the set

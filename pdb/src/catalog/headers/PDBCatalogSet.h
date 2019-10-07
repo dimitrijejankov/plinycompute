@@ -51,10 +51,16 @@ public:
    * @param database - the database the set belongs to
    * @param type - the id of the set type, something like 8xxx
    */
-  PDBCatalogSet(const std::string &database, const std::string &name, const std::string &type, size_t setSize, PDBCatalogSetContainerType containerType) :
+  PDBCatalogSet(const std::string &database,
+                const std::string &name,
+                const std::string &type,
+                bool isStoringKeys,
+                size_t setSize,
+                PDBCatalogSetContainerType containerType) :
                 setIdentifier(database + ":" + name),
                 name(name),
                 database(database),
+                isStoringKeys(isStoringKeys),
                 type(std::make_shared<std::string>(type)),
                 setSize(setSize),
                 containerType(containerType) {}
@@ -89,6 +95,11 @@ public:
    */
    int containerType = PDB_CATALOG_SET_NO_CONTAINER;
 
+   /**
+    * Is this set storing extracted keys
+    */
+   bool isStoringKeys = false;
+
   /**
    * Return the schema of the database object
    * @return the schema
@@ -102,6 +113,7 @@ public:
                                            sqlite_orm::make_column("setSize", &PDBCatalogSet::setSize),
                                            sqlite_orm::make_column("setType", &PDBCatalogSet::type),
                                            sqlite_orm::make_column("setContainerType", &PDBCatalogSet::containerType),
+                                           sqlite_orm::make_column("isStoringKeys", &PDBCatalogSet::isStoringKeys),
                                            sqlite_orm::foreign_key(&PDBCatalogSet::database).references(&PDBCatalogDatabase::name),
                                            sqlite_orm::foreign_key(&PDBCatalogSet::type).references(&PDBCatalogType::name),
                                            sqlite_orm::primary_key(&PDBCatalogSet::setIdentifier));

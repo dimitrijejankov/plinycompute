@@ -46,6 +46,17 @@ bool pdb::PDBCatalog::registerSet(pdb::PDBCatalogSetPtr set, std::string &error)
       return false;
     }
 
+    // we check if the set is alpha numerical
+    std::regex isAlphaNumerical("^[a-zA-Z][a-zA-Z0-9]*$");
+    if(!std::regex_match(set->name, isAlphaNumerical)) {
+
+      // set the error
+      error = "The name of the set is not alpha numerical";
+
+      // we failed return false
+      return false;
+    }
+
     // insert the database
     storage.replace(*set);
 
@@ -71,6 +82,17 @@ bool pdb::PDBCatalog::registerDatabase(pdb::PDBCatalogDatabasePtr db, std::strin
 
       // set the error
       error = "The database is already registered\n";
+
+      // we failed return false
+      return false;
+    }
+
+    // we check if the set is alpha numerical
+    std::regex isAlphaNumerical("^[a-zA-Z][a-zA-Z0-9]*$");
+    if(!std::regex_match(db->name, isAlphaNumerical)) {
+
+      // set the error
+      error = "The name of the database is not alpha numerical";
 
       // we failed return false
       return false;
@@ -414,8 +436,12 @@ int32_t pdb::PDBCatalog::numRegisteredTypes() {
 std::vector<pdb::PDBCatalogSet> pdb::PDBCatalog::getSetsInDatabase(const std::string &dbName) {
 
   // select all the sets
-  auto rows = storage.select(columns(&PDBCatalogSet::name, &PDBCatalogSet::database, &PDBCatalogSet::type, &PDBCatalogSet::setSize, &PDBCatalogSet::containerType),
-                             where(c(&PDBCatalogSet::database) == dbName));
+  auto rows = storage.select(columns(&PDBCatalogSet::name,
+                                     &PDBCatalogSet::database,
+                                     &PDBCatalogSet::type,
+                                     &PDBCatalogSet::isStoringKeys,
+                                     &PDBCatalogSet::setSize,
+                                     &PDBCatalogSet::containerType), where(c(&PDBCatalogSet::database) == dbName));
 
   // create a return value
   std::vector<pdb::PDBCatalogSet> ret;
@@ -425,7 +451,12 @@ std::vector<pdb::PDBCatalogSet> pdb::PDBCatalog::getSetsInDatabase(const std::st
 
   // create the objects
   for(auto &r : rows) {
-    ret.emplace_back(pdb::PDBCatalogSet(std::get<1>(r), std::get<0>(r), *std::get<2>(r), std::get<3>(r), (PDBCatalogSetContainerType) std::get<4>(r)));
+    ret.emplace_back(pdb::PDBCatalogSet(std::get<1>(r),
+                                        std::get<0>(r),
+                                        *std::get<2>(r),
+                                        std::get<3>(r),
+                                        std::get<4>(r),
+                                        (PDBCatalogSetContainerType) std::get<5>(r)));
   }
 
   return std::move(ret);

@@ -23,15 +23,18 @@
 #include "CatCreateSetRequest.h"
 #include "HeapRequest.h"
 #include "SimpleRequestResult.h"
+#include "JoinTupleTests.h"
 
 namespace pdb {
 
-template <class DataType>
-bool PDBCatalogClient::createSet(std::string databaseName, std::string setName,
-                              std::string &errMsg) {
+template<class DataType>
+bool PDBCatalogClient::createSet(std::string databaseName, std::string setName, std::string &errMsg) {
 
   // figure out the type name
   std::string typeName = VTableMap::getInternalTypeName(getTypeName<DataType>());
+
+  // figure out whether we can extract the key
+  constexpr bool isExtractingKey = pdb::tupleTests::has_get_key<DataType>::value;
 
   // get the type id
   int16_t typeID = VTableMap::getIDByName(VTableMap::getInternalTypeName(getTypeName<DataType>()), false);
@@ -41,7 +44,7 @@ bool PDBCatalogClient::createSet(std::string databaseName, std::string setName,
   }
 
   // make the request
-  return RequestFactory::heapRequest< CatCreateSetRequest, SimpleRequestResult, bool>(
+  return RequestFactory::heapRequest<CatCreateSetRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
         if (result != nullptr) {
@@ -55,7 +58,7 @@ bool PDBCatalogClient::createSet(std::string databaseName, std::string setName,
         errMsg = "Error getting type name: got nothing back from catalog";
         return false;
       },
-      databaseName, setName, typeName, typeID);
+      databaseName, setName, typeName, typeID, isExtractingKey);
 }
 }
 

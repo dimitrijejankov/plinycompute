@@ -111,7 +111,7 @@ public:
 
   /* same as above, but here we use the type code */
   bool createSet(const std::string &typeName, int16_t typeID, const std::string &databaseName,
-                 const std::string &setName, std::string &errMsg);
+                 bool isStoringKeys, const std::string &setName, std::string &errMsg);
 
   /**
    * Sends a request to the Catalog Server to delete a set returns true on success, false on fail

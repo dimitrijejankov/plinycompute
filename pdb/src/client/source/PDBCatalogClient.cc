@@ -313,11 +313,11 @@ std::string PDBCatalogClient::getObjectType(std::string databaseName,
 
 // sends a request to the Catalog Server to create Metadata for a new Set
 bool PDBCatalogClient::createSet(const std::string &typeName, int16_t typeID, const std::string &databaseName,
-                              const std::string &setName, std::string &errMsg) {
+                                 bool isStoringKeys, const std::string &setName, std::string &errMsg) {
   PDB_COUT << "PDBCatalogClient: to create set..." << std::endl;
   return RequestFactory::heapRequest< CatCreateSetRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
+      [&](const Handle<SimpleRequestResult>& result) {
         PDB_COUT << "PDBCatalogClient: received response for creating set"
                  << std::endl;
         if (result != nullptr) {
@@ -334,7 +334,7 @@ bool PDBCatalogClient::createSet(const std::string &typeName, int16_t typeID, co
         PDB_COUT << errMsg << std::endl;
         return false;
       },
-      databaseName, setName, typeName, typeID);
+      databaseName, setName, typeName, isStoringKeys, typeID);
 }
 
 // sends a request to the Catalog Server to create Metadata for a new Database
@@ -405,11 +405,16 @@ pdb::PDBCatalogSetPtr PDBCatalogClient::getSet(const std::string &dbName, const 
   // make a request and return the value
   return RequestFactory::heapRequest< CatGetSetRequest, CatGetSetResult, pdb::PDBCatalogSetPtr>(
               myLogger, port, address, (pdb::PDBCatalogSetPtr) nullptr, 1024,
-              [&](Handle<CatGetSetResult> result) {
+              [&](const Handle<CatGetSetResult>& result) {
 
                 // do we have the thing
                 if(result != nullptr && result->databaseName == dbName && result->setName == setName) {
-                  return std::make_shared<pdb::PDBCatalogSet>(result->databaseName, result->setName, result->type, result->setSize, result->containerType);
+                  return std::make_shared<pdb::PDBCatalogSet>(result->databaseName,
+                                                              result->setName,
+                                                              result->type,
+                                                              result->isStoringKeys,
+                                                              result->setSize,
+                                                              result->containerType);
                 }
 
                 // return a null pointer otherwise

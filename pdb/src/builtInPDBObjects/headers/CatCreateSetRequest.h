@@ -37,13 +37,15 @@ class CatCreateSetRequest : public Object {
   CatCreateSetRequest(const std::string &dbName,
                       const std::string &setName,
                       const std::string &typeName,
-                      int16_t typeID) : dbName(dbName), setName(setName), typeName(typeName), typeID(typeID) {}
+                      bool isStoringKeys,
+                      int16_t typeID) : dbName(dbName), setName(setName), typeName(typeName), typeID(typeID), isStoringKeys(isStoringKeys) {}
 
   explicit CatCreateSetRequest(const Handle<CatCreateSetRequest> &requestToCopy) {
     dbName = requestToCopy->dbName;
     setName = requestToCopy->setName;
     typeName = requestToCopy->typeName;
     typeID = requestToCopy->typeID;
+    isStoringKeys = requestToCopy->isStoringKeys;
   }
 
   ENABLE_DEEP_COPY
@@ -62,6 +64,11 @@ class CatCreateSetRequest : public Object {
    * The name of the type
    */
   String typeName;
+
+  /**
+   * Is it storing the extracted keys of the object
+   */
+  bool isStoringKeys = false;
 
   /**
    * The type id

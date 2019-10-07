@@ -28,9 +28,9 @@ TEST(CatalogTest, FullTest) {
   EXPECT_EQ(catalog.numRegisteredTypes() - numBefore, 2);
 
   // create the set
-  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db1", "set1", "Type1", 0, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_NO_CONTAINER), error));
-  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db1", "set2", "Type1", 0, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_NO_CONTAINER), error));
-  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db2", "set3", "Type2", 0, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_NO_CONTAINER), error));
+  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db1", "set1", "Type1", true, 0, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_NO_CONTAINER), error));
+  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db1", "set2", "Type1", true, 0, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_NO_CONTAINER), error));
+  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db2", "set3", "Type2", false, 0, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_NO_CONTAINER), error));
 
   // update the set
   EXPECT_TRUE(catalog.incrementSetSize("db1", "set1", 1024, error));
@@ -88,6 +88,7 @@ TEST(CatalogTest, FullTest) {
   EXPECT_EQ(*set->type, "Type1");
   EXPECT_EQ(set->containerType, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_VECTOR_CONTAINER);
   EXPECT_EQ(set->setSize, 1024 + 2048);
+  EXPECT_TRUE(set->isStoringKeys);
 
   set = catalog.getSet("db1", "set2");
 
@@ -97,6 +98,7 @@ TEST(CatalogTest, FullTest) {
   EXPECT_EQ(*set->type, "Type1");
   EXPECT_EQ(set->containerType, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_MAP_CONTAINER);
   EXPECT_EQ(set->setSize, 1024 + 512);
+  EXPECT_TRUE(set->isStoringKeys);
 
   set = catalog.getSet("db2", "set3");
 
@@ -106,6 +108,7 @@ TEST(CatalogTest, FullTest) {
   EXPECT_EQ(*set->type, "Type2");
   EXPECT_EQ(set->containerType, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_NO_CONTAINER);
   EXPECT_EQ(set->setSize, 0);
+  EXPECT_FALSE(set->isStoringKeys);
 
   set = catalog.getSet("db1", "set3");
   EXPECT_TRUE(set == nullptr);
