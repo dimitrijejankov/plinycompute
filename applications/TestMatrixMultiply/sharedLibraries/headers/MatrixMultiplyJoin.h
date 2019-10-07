@@ -1,11 +1,13 @@
 #pragma once
 
-#define  __GPU__COMPUTATIONS
+//#define  __GPU__COMPUTATIONS
 
 #include <LambdaCreationFunctions.h>
 #include "JoinComp.h"
 #include "MatrixBlock.h"
 #include "PDBCUDAMatrixMultiple.h"
+#include <mkl.h>
+
 
 namespace pdb {
 
@@ -25,13 +27,19 @@ public:
   static Lambda <Handle <MatrixBlock>> getProjection (Handle <MatrixBlock> in1, Handle <MatrixBlock> in2) {
     return makeLambda (in1, in2, [] (Handle <MatrixBlock> &in1, Handle <MatrixBlock> &in2) {
       // get the sizes
+#ifdef __GPU__COMPUTATIONS
       uint32_t I = in1->data.numRows;
       uint32_t J = in2->data.numCols;
-
       // K and L should be equal
       uint32_t K = in1->data.numCols;
       uint32_t L = in2->data.numRows;
-
+#else
+      MKL_INT I = in1->data.numRows;
+      MKL_INT J = in2->data.numCols;
+      // K and L should be equal
+      MKL_INT K = in1->data.numCols;
+      MKL_INT L = in2->data.numRows;
+#endif
       // make the output block
       Handle <MatrixBlock> out = makeObject<MatrixBlock>(in1->getRowID(), in2->getColID(), I, J);
 
@@ -54,14 +62,16 @@ public:
       freeGPUMemory(&in2DataGPU);
       freeGPUMemory(&outDataGPU);
 #else
-      //TODO replace this with mkl
-      for (uint32_t i = 0; i < I; ++i) {
-        for (uint32_t j = 0; j < J; ++j) {
-          for (uint32_t k = 0; k < K; ++k) {
-            outDataCPU[i * J + j] += in1DataCPU[i * K + k] * in2DataCPU[k * J + j];
-          }
-        }
-      }
+      float * in1DataMKL = (float *) mkl_malloc(I * K * sizeof(float), 64);
+      float * in2DataMKL = (float *) mkl_malloc(L * J * sizeof(float), 64);
+      float * outDataMKL = (float *) mkl_malloc(I * J * sizeof(float), 64);
+
+      cblas_scopy(I * K, in1DataCPU, 1, in1DataMKL,1);
+      cblas_scopy(L * J, in2DataCPU, 1, in2DataMKL,1);
+      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                  I, J, K, 1, in1DataMKL, K, in2DataMKL, J, 0, outDataMKL, J);
+      cblas_scopy(I * J, outDataMKL, 1, outDataCPU, 1);
+
 #endif
       return out;
     });

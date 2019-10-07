@@ -2,6 +2,8 @@
 #include <cstdio>
 #include "PDBCUDAMatrixMultiple.h"
 
+
+#define NUM_THREADS 8
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true) {
   if (code != cudaSuccess) {
@@ -52,7 +54,7 @@ void launchKernel(float *in1data,
                   unsigned int in2NumRow,
                   unsigned int in2NumCol,
                   float *outdataGPU) {
-  dim3 threads_per_block(2, 2, 1);
+  dim3 threads_per_block(NUM_THREADS, NUM_THREADS, 1);
   dim3 number_of_blocks((in1NumRow / threads_per_block.x) + 1, (in2NumCol / threads_per_block.y) + 1, 1);
 
   matrixMulGPU <<< number_of_blocks, threads_per_block >>> (in1data, in1NumRow, in1NumCol, in2data, in2NumRow, in2NumCol, outdataGPU);

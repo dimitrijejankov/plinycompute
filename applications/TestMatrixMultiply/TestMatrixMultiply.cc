@@ -109,27 +109,21 @@ int main(int argc, char* argv[]) {
 
   // grab the iterator
   auto it = pdbClient.getSetIterator<MatrixBlock>("myData", "C");
-  int record_count = 0;
   while(it->hasNextRecord()) {
 
     // grab the record
     auto r = it->getNextRecord();
 
-
     // write out the values
     float *values = r->data.data->c_ptr();
     for(int i = 0; i < r->data.numRows; ++i) {
       for(int j = 0; j < r->data.numCols; ++j) {
-        if (record_count++ <= 10) {
-          std::cout << values[i * r->data.numCols + j] << ", ";
-        }
+            std::cout << values[i * r->data.numCols + j] << ", ";
       }
       std::cout << "\n";
     }
-
     std::cout << "\n\n";
   }
-
   // shutdown the server
   pdbClient.shutDownServer();
 
