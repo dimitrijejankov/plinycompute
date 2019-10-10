@@ -78,7 +78,7 @@ private:
   /**
    * This thing is running and sending heartbeats
    */
-  PDBHeartBeatWorkPtr heartBeatWorker;
+  PDBHeartBeatWorkPtr heartBeatWorker{};
 };
 
 }

@@ -22,40 +22,54 @@
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %CatSetUpdateSizeRequest%
+// PRELOAD %CatSetIncrementSetRecordInfo%
 
 namespace pdb {
 
 /**
  * Encapsulates a request to update the size of a set
  */
-class CatSetUpdateSizeRequest : public Object {
+class CatSetIncrementSetRecordInfo : public Object {
 
- public:
+public:
 
-  CatSetUpdateSizeRequest() = default;
-  ~CatSetUpdateSizeRequest() = default;
+  CatSetIncrementSetRecordInfo() = default;
+  ~CatSetIncrementSetRecordInfo() = default;
 
   /**
    * Creates a request to get the database
    * @param database - the name of database
    */
-  explicit CatSetUpdateSizeRequest(const std::string &database, const std::string &set, size_t sizeUpdate) :
-                                   databaseName(database), setName(set), sizeUpdate(sizeUpdate) {}
+  explicit CatSetIncrementSetRecordInfo(const std::string &nodeID,
+                                        const std::string &database,
+                                        const std::string &set,
+                                        size_t sizeAdded,
+                                        size_t recordsStored) : nodeID(nodeID),
+                                                                databaseName(database),
+                                                                setName(set),
+                                                                sizeAdded(sizeAdded),
+                                                                recordsStored(recordsStored) {}
 
   /**
    * Copy the request this is needed by the broadcast
    * @param pdbItemToCopy - the request to copy
    */
-  explicit CatSetUpdateSizeRequest(const Handle<CatSetUpdateSizeRequest>& pdbItemToCopy) {
+  explicit CatSetIncrementSetRecordInfo(const Handle<CatSetIncrementSetRecordInfo>& pdbItemToCopy) {
 
     // copy the thing
+    nodeID = pdbItemToCopy->nodeID;
     databaseName = pdbItemToCopy->databaseName;
     setName = pdbItemToCopy->setName;
-    sizeUpdate = pdbItemToCopy->sizeUpdate;
+    sizeAdded = pdbItemToCopy->sizeAdded;
+    recordsStored = pdbItemToCopy->recordsStored;
   }
 
   ENABLE_DEEP_COPY
+
+  /**
+   * The ID of the node where stuff is stored
+   */
+  String nodeID;
 
   /**
    * The name of the database
@@ -70,6 +84,11 @@ class CatSetUpdateSizeRequest : public Object {
   /**
    * The size of the update in bytes
    */
-  size_t sizeUpdate;
+  size_t sizeAdded{};
+
+  /**
+   * The number of records stored
+   */
+  size_t recordsStored{};
 };
 }

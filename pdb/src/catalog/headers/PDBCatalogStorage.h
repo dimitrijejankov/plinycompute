@@ -1,9 +1,4 @@
-//
-// Created by dimitrije on 9/5/18.
-//
-
-#ifndef CATALOGREFACTORING_PDBCATALOGSTORAGE_H
-#define CATALOGREFACTORING_PDBCATALOGSTORAGE_H
+#pragma once
 
 #include <sqlite_orm.h>
 
@@ -11,6 +6,7 @@
 #include "PDBCatalogDatabase.h"
 #include "PDBCatalogType.h"
 #include "PDBCatalogSet.h"
+#include "PDBCatalogSetOnNode.h"
 
 namespace pdb {
 
@@ -26,7 +22,8 @@ namespace pdb {
     return sqlite_orm::make_storage(*location, PDBCatalogDatabase::getSchema(),
                                                PDBCatalogSet::getSchema(),
                                                PDBCatalogNode::getSchema(),
-                                               PDBCatalogType::getSchema());
+                                               PDBCatalogType::getSchema(),
+                                               PDBCatalogSetOnNode::getSchema());
   }
 
   /**
@@ -34,5 +31,3 @@ namespace pdb {
    */
   using PDBCatalogStorage = decltype(makeStorage(nullptr));
 }
-
-#endif //CATALOGREFACTORING_PDBCATALOGSTORAGE_H

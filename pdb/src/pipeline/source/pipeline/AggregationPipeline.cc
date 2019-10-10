@@ -21,6 +21,11 @@ void pdb::AggregationPipeline::run() {
     merger->writeOutPage(inputPage, myRAM->outputSink);
   }
 
+  // increment the records in the output set
+  if(myRAM->outputSink != nullptr) {
+    outputPageSet->increaseRecords(merger->getNumRecords(myRAM->outputSink));
+  }
+
   // we only have one iteration
   myRAM->setIteration(0);
 

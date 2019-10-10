@@ -90,6 +90,16 @@ public:
 
   }
 
+  // returns the number of records in the aggregation sink
+  uint64_t getNumRecords(Handle<Object> &writeToMe) override {
+
+    // cast the hash table we are merging to
+    Map<KeyType, ValueType> &mergeToMe = *unsafeCast <Map<KeyType, ValueType>> (writeToMe);
+
+    // return the size
+    return mergeToMe.size();
+  }
+
 private:
 
   /**

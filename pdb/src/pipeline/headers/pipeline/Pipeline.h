@@ -82,10 +82,13 @@ class Pipeline : public PipelineInterface {
   void addStage(ComputeExecutorPtr addMe);
 
   // store page
-  void keepPage(pdb::MemoryHolderPtr ram, int iteration);
+  void keepPage(const pdb::MemoryHolderPtr& ram, int iteration);
 
   // dismiss the page if not needed anymore
-  void dismissPage(pdb::MemoryHolderPtr ram, bool dismissLast);
+  static void dismissPage(const pdb::MemoryHolderPtr& ram, bool dismissLast);
+
+  // incement the number of records
+  void incrementRecordNumber(const MemoryHolderPtr &ram);
 
   // runs the pipeline
   void run() override;

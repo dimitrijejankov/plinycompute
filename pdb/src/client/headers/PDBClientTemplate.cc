@@ -40,7 +40,16 @@ namespace pdb {
   template <class DataType>
   bool PDBClient::sendData(const std::string &database, const std::string &set, Handle<Vector<Handle<DataType>>> dataToSend) {
 
-    bool result = distributedStorage->sendData<DataType>(database, set, dataToSend, returnedMsg);
+    constexpr bool isExtractingKey = pdb::tupleTests::has_get_key<DataType>::value;
+
+    // check if that data we are sending is capable of
+    bool result;
+    if(!isExtractingKey) {
+      result = distributedStorage->sendData<DataType>(database, set, dataToSend, returnedMsg);
+    }
+    else {
+      result = distributedStorage->sendDataWithKey<DataType>(database, set, dataToSend, returnedMsg);
+    }
 
     if (result==false) {
         errorMsg = "Not able to send data: " + returnedMsg;

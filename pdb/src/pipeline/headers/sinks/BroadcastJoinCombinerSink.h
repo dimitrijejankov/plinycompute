@@ -47,6 +47,7 @@ class BroadcastJoinCombinerSink : public ComputeSink {
   }
 
   void writeOutPage(pdb::PDBPageHandle &page, Handle<Object> &writeToMe) override {
+
     // cast the hash table we are merging to
     Handle<JoinMap<RHSType>> mergeToMe = unsafeCast<JoinMap<RHSType>>(writeToMe);
 
@@ -91,6 +92,16 @@ class BroadcastJoinCombinerSink : public ComputeSink {
         }
       }
     }
+  }
+
+  // returns the number of records in the broadcast join sink sink
+  uint64_t getNumRecords(Handle<Object> &writeToMe) override {
+
+    // cast the hash table we are merging to
+    Handle<JoinMap<RHSType>> mergeToMe = unsafeCast<JoinMap<RHSType>>(writeToMe);
+
+    // return the size
+    return mergeToMe->size();
   }
 
 };

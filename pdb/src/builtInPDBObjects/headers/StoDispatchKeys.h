@@ -22,21 +22,23 @@
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %StoMaterializePageSetRequest%
+// PRELOAD %StoDispatchKeys%
 
 namespace pdb {
 
-// encapsulates a request to add data to a set in storage
-class StoMaterializePageSetRequest : public Object {
+/**
+ * This one looks exactly like the add data but it is sent by the @see PDBDistributedStorage to store key
+ */
+class StoDispatchKeys : public Object {
 
 public:
 
-  StoMaterializePageSetRequest() = default;
-  ~StoMaterializePageSetRequest() = default;
+  StoDispatchKeys() = default;
+  ~StoDispatchKeys() = default;
 
-  StoMaterializePageSetRequest(const std::string &db, const std::string &set, uint64_t numRecords) : databaseName(db),
-                                                                                                     setName(set),
-                                                                                                     numRecords(numRecords) {}
+  StoDispatchKeys(const std::string &databaseName, const std::string &setName, const std::string &typeName, uint64_t compressedSize)
+      : databaseName(databaseName), setName(setName), typeName(typeName), compressedSize(compressedSize) {
+  }
 
   ENABLE_DEEP_COPY
 
@@ -46,14 +48,19 @@ public:
   String databaseName;
 
   /**
-   * The name of the set we are storing the stuff
+   * The name of the set we are adding the data to
    */
   String setName;
 
   /**
-   * The number of records the page set has that we want to materialize
+   * The name of the type we are adding
    */
-  uint64_t numRecords{};
+  String typeName;
+
+  /**
+   * The size of the compressed stuff
+   */
+  uint64_t compressedSize{};
 };
 
 }

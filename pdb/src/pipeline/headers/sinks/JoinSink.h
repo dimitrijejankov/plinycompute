@@ -145,6 +145,21 @@ class JoinSink : public ComputeSink {
 
   void writeOutPage(pdb::PDBPageHandle &page, Handle<Object> &writeToMe) override { throw runtime_error("Join sink can not write out a page."); }
 
+  // returns the number of records in the join sink
+  uint64_t getNumRecords(Handle<Object> &writeToMe) override {
+
+    // get the map we are adding to
+    Handle<Vector<Handle<JoinMap<RHSType>>>> writeMe = unsafeCast<Vector<Handle<JoinMap<RHSType>>>>(writeToMe);
+
+    // sum up all the records from each join map
+    uint64_t numRecords{0};
+    for(int i = 0; i < writeMe->size(); ++i) {
+      numRecords += (*writeMe)[i]->size();
+    }
+
+    // return the size
+    return numRecords;
+  }
 };
 
 }

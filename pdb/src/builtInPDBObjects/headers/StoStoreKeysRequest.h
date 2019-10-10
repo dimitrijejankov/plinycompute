@@ -16,27 +16,25 @@
  *                                                                           *
  *****************************************************************************/
 
-
-#ifndef OBJECTQUERYMODEL_StoStoreOnPageRequest_H
-#define OBJECTQUERYMODEL_StoStoreOnPageRequest_H
+#pragma once
 
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %StoStoreOnPageRequest%
+// PRELOAD %StoStoreKeysRequest%
 
 namespace pdb {
 
 // encapsulates a request to add data to a set in storage
-class StoStoreOnPageRequest : public Object {
+class StoStoreKeysRequest : public Object {
 
 public:
 
-  StoStoreOnPageRequest() = default;
-  ~StoStoreOnPageRequest() = default;
+  StoStoreKeysRequest() = default;
+  ~StoStoreKeysRequest() = default;
 
-  StoStoreOnPageRequest(const std::string &databaseName, const std::string &setName, const uint64_t page, uint64_t compressedSize)
+  StoStoreKeysRequest(const std::string &databaseName, const std::string &setName, const uint64_t page, uint64_t compressedSize)
       : databaseName(databaseName), setName(setName), page(page), compressedSize(compressedSize) {
   }
 
@@ -64,5 +62,3 @@ public:
 };
 
 }
-
-#endif

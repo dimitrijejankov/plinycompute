@@ -33,8 +33,7 @@ class VectorSink : public ComputeSink {
  private:
 
   // the attribute to store
-  int whichAttToStore;
-  int whichAttToAggregate;
+  int whichAttToStore{};
 
  public:
 
@@ -82,6 +81,16 @@ class VectorSink : public ComputeSink {
   }
 
   void writeOutPage(pdb::PDBPageHandle &page, Handle<Object> &writeToMe) override { throw runtime_error("VectorSink can not write out a page."); }
+
+  // returns the number of records in the vector sink
+  uint64_t getNumRecords(Handle<Object> &writeToMe) override {
+
+    // cast the thing a vector
+    Handle<Vector<Handle<DataType>>> writeMe = unsafeCast<Vector<Handle<DataType>>>(writeToMe);
+
+    // return the size
+    return writeMe->size();
+  }
 };
 
 }

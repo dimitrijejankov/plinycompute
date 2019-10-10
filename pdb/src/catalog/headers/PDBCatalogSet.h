@@ -1,9 +1,4 @@
-//
-// Created by dimitrije on 9/4/18.
-//
-
-#ifndef PDB_PDBCATALOGSET_H
-#define PDB_PDBCATALOGSET_H
+#pragma once
 
 #include <string>
 #include <sqlite_orm.h>
@@ -122,5 +117,3 @@ public:
 };
 
 }
-
-#endif //PDB_PDBCATALOGSET_H

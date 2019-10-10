@@ -140,8 +140,15 @@ private:
                                                  std::shared_ptr<Communicator> &sendUsingMe);
 
   /**
-   * This handler adds data to the distributed storage. Basically it checks whether the size of the sent data can fit
-   * on a single page. If it can it finds a node the data should be stored on and forwards the data to it.
+   * This handler adds data to the distributed storage. So it does a few things :
+   * 1. First it check whether we have the set for the request and whether the set has the ability to store extracted keys,
+   *    and if it is a vector set, since we only can add data to a vector set
+   * 2. Next we get the compressed data onto an anonymous page
+   * 3. Then we update the stats about the set (size)
+   * 4. Then we grab the dispatch policy and figure out the node where we want to send the data to
+   * 5. This is optional, depends whether the set is supposed to store the extracted keys.
+   * 5.1. Get the compressed bytes of the keys
+   * 5.2. Send them to the first node
    *
    * @tparam Communicator - the communicator class PDBCommunicator is used to handle the request. This is basically here
    * so we could write unit tests

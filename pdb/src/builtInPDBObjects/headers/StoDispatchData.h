@@ -29,7 +29,8 @@
 namespace pdb {
 
 /**
- * This one looks exactly like the add data but it is sent by the @see PDBDistributedStorage
+ * This one looks a lot like the add data but it is sent by the @see PDBDistributedStorage and does not have the field
+ * to store the key
  */
 class StoDispatchData : public Object {
 
@@ -62,7 +63,7 @@ public:
   /**
    * The size of the compressed stuff
    */
-  uint64_t compressedSize;
+  uint64_t compressedSize{};
 };
 
 }

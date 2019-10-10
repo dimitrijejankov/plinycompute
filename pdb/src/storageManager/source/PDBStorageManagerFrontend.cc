@@ -7,7 +7,7 @@
 #include <StoDispatchData.h>
 #include <PDBBufferManagerInterface.h>
 #include <PDBBufferManagerFrontEnd.h>
-#include <StoStoreOnPageRequest.h>
+#include <StoStoreDataRequest.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <fstream>
@@ -19,6 +19,8 @@
 #include <StoGetPageResult.h>
 #include <StoMaterializePageSetRequest.h>
 #include <StoStartFeedingPageSetRequest.h>
+#include <StoDispatchKeys.h>
+#include <StoStoreKeysRequest.h>
 
 namespace fs = boost::filesystem;
 
@@ -112,8 +114,14 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
       StoDispatchData_TYPEID,
       make_shared<pdb::HeapRequestHandler<pdb::StoDispatchData>>(
           [&](Handle<pdb::StoDispatchData> request, PDBCommunicatorPtr sendUsingMe) {
+            return handleDispatchedData<PDBCommunicator, RequestFactory, pdb::StoDispatchData, StoStoreDataRequest>(request, sendUsingMe);
+          }));
 
-            return handleDispatchedData<PDBCommunicator, RequestFactory>(request, sendUsingMe);
+  forMe.registerHandler(
+      StoDispatchKeys_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoDispatchKeys>>(
+          [&](Handle<pdb::StoDispatchKeys> request, PDBCommunicatorPtr sendUsingMe) {
+            return handleDispatchedData<PDBCommunicator, RequestFactory, pdb::StoDispatchKeys, StoStoreKeysRequest>(request, sendUsingMe);
           }));
 
   forMe.registerHandler(

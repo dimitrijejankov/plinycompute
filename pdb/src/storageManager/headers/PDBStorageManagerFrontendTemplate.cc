@@ -10,7 +10,7 @@
 #include <StoDispatchData.h>
 #include <PDBBufferManagerInterface.h>
 #include <PDBBufferManagerFrontEnd.h>
-#include <StoStoreOnPageRequest.h>
+#include <StoStoreDataRequest.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <fstream>
@@ -101,8 +101,9 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageReques
   return make_pair(true, string(""));
 }
 
-template <class Communicator, class Requests>
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedData(pdb::Handle<pdb::StoDispatchData> request, std::shared_ptr<Communicator> sendUsingMe) {
+template <class Communicator, class Requests, class RequestType, class ForwardRequestType>
+std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedData(pdb::Handle<RequestType> request,
+                                                                                  std::shared_ptr<Communicator> sendUsingMe) {
 
   /// 1. Get the page from the distributed storage
 
@@ -168,7 +169,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
 
   // create an allocation block to hold the response
   const UseTemporaryAllocationBlock tempBlock{1024};
-  Handle<StoStoreOnPageRequest> response = makeObject<StoStoreOnPageRequest>(request->databaseName, request->setName, pageNum, request->compressedSize);
+  Handle<ForwardRequestType> response = makeObject<ForwardRequestType>(request->databaseName, request->setName, pageNum, request->compressedSize);
 
   // send the thing to the backend
   if (!communicatorToBackend->sendObject(response, error)) {
@@ -364,6 +365,9 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleMaterializeSe
   // this is going to count the total size of the pages
   uint64_t totalSize = 0;
 
+  // this is the count of total records in this page set
+  uint64_t totalRecords = request->numRecords;
+
   // start forwarding the pages
   bool hasNext = true;
   while (hasNext) {
@@ -405,7 +409,13 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleMaterializeSe
       if(totalSize != 0) {
 
         // broadcast the set size change so far
-        this->getFunctionalityPtr<PDBCatalogClient>()->incrementSetSize(set->getDBName(), set->getSetName(), totalSize, error);
+        PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
+        pdbClient.incrementSetRecordInfo(getConfiguration()->getNodeIdentifier(),
+                                                      set->getDBName(),
+                                                      set->getSetName(),
+                                                      totalSize,
+                                                      totalRecords,
+                                                      error);
       }
 
       // finish here since this is not recoverable on the backend
@@ -458,7 +468,13 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleMaterializeSe
       if(totalSize != 0) {
 
         // broadcast the set size change so far
-        this->getFunctionalityPtr<PDBCatalogClient>()->incrementSetSize(set->getDBName(), set->getSetName(), totalSize, error);
+        PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
+        pdbClient.incrementSetRecordInfo(getConfiguration()->getNodeIdentifier(),
+                                         set->getDBName(),
+                                         set->getSetName(),
+                                         totalSize,
+                                         totalRecords,
+                                         error);
       }
 
       // finish
@@ -487,7 +503,13 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleMaterializeSe
   /// 4. Update the set size
 
   // broadcast the set size change so far
-  success = this->getFunctionalityPtr<PDBCatalogClient>()->incrementSetSize(set->getDBName(), set->getSetName(), totalSize, error);
+  PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
+  pdbClient.incrementSetRecordInfo(getConfiguration()->getNodeIdentifier(),
+                                   set->getDBName(),
+                                   set->getSetName(),
+                                   totalSize,
+                                   totalRecords,
+                                   error);
 
   /// 5. Finish this
 

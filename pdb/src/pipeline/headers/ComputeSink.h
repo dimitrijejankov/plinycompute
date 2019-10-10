@@ -44,6 +44,9 @@ public:
 	// this writes out the whole page to this sink
   	virtual void writeOutPage(pdb::PDBPageHandle &page, Handle<Object> &writeToMe) = 0;
 
+  	// this returns the number of records written by this sink
+  	virtual uint64_t getNumRecords(Handle<Object> &writeToMe) = 0;
+
 	virtual ~ComputeSink () = default;
 
 };

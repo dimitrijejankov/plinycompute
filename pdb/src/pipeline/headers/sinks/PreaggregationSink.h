@@ -142,6 +142,21 @@ class PreaggregationSink : public ComputeSink {
 
   void writeOutPage(pdb::PDBPageHandle &page, Handle<Object> &writeToMe) override { throw runtime_error("PreaggregationSink can not write out a page."); }
 
+  // returns the number of records in the preaggregation sink
+  uint64_t getNumRecords(Handle<Object> &writeToMe) override {
+
+    // cast the thing to the map of maps
+    Handle<Vector<Handle<Map<KeyType, ValueType>>>> vectorOfMaps = unsafeCast<Vector<Handle<Map<KeyType, ValueType>>>>(writeToMe);
+
+    // sum up all the records from each join map
+    uint64_t numRecords{0};
+    for(int i = 0; i < vectorOfMaps->size(); ++i) {
+      numRecords += (*vectorOfMaps)[i]->size();
+    }
+
+    // return the size
+    return numRecords;
+  }
 };
 
 }

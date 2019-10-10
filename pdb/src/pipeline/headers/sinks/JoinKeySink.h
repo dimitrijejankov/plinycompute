@@ -136,6 +136,15 @@ class JoinKeySink : public ComputeSink {
 
   void writeOutPage(pdb::PDBPageHandle &page, Handle<Object> &writeToMe) override { throw runtime_error("Join sink can not write out a page."); }
 
+  // returns the number of records in the join key sink
+  uint64_t getNumRecords(Handle<Object> &writeToMe) override {
+
+    // get the map we were adding to
+    Handle<JoinMap<RHSType>> myMap = unsafeCast<JoinMap<RHSType>>(writeToMe);
+
+    // return the size
+    return myMap->size();
+  }
 };
 
 }

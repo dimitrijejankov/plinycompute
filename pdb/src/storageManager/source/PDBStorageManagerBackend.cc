@@ -5,7 +5,7 @@
 #include <SharedEmployee.h>
 #include <memory>
 #include "HeapRequestHandler.h"
-#include "StoStoreOnPageRequest.h"
+#include "StoStoreDataRequest.h"
 #include "StoGetSetPagesRequest.h"
 #include "StoGetSetPagesResult.h"
 #include <boost/filesystem/path.hpp>
@@ -16,6 +16,7 @@
 #include <StoMaterializePageResult.h>
 #include <PDBBufferManagerBackEnd.h>
 #include <StoStartFeedingPageSetRequest.h>
+#include <StoStoreKeysRequest.h>
 
 void pdb::PDBStorageManagerBackend::init() {
 
@@ -26,11 +27,18 @@ void pdb::PDBStorageManagerBackend::init() {
 void pdb::PDBStorageManagerBackend::registerHandlers(PDBServer &forMe) {
 
   forMe.registerHandler(
-      StoStoreOnPageRequest_TYPEID,
-      make_shared<pdb::HeapRequestHandler<pdb::StoStoreOnPageRequest>>(
-          [&](Handle<pdb::StoStoreOnPageRequest> request, PDBCommunicatorPtr sendUsingMe) {
-            return handleStoreOnPage(request, sendUsingMe);
+      StoStoreDataRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoStoreDataRequest>>(
+          [&](Handle<pdb::StoStoreDataRequest> request, PDBCommunicatorPtr sendUsingMe) {
+            return handleStoreData(request, sendUsingMe);
       }));
+
+  forMe.registerHandler(
+      StoStoreKeysRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoStoreKeysRequest>>(
+          [&](Handle<pdb::StoStoreKeysRequest> request, PDBCommunicatorPtr sendUsingMe) {
+            return handleStoreKeys(request, sendUsingMe);
+          }));
 
   forMe.registerHandler(
       StoRemovePageSetRequest_TYPEID,
@@ -208,7 +216,7 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(const pdb::PDBAbstractPag
   const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
   // set the stat results
-  pdb::Handle<StoMaterializePageSetRequest> materializeRequest = pdb::makeObject<StoMaterializePageSetRequest>(set.first, set.second);
+  pdb::Handle<StoMaterializePageSetRequest> materializeRequest = pdb::makeObject<StoMaterializePageSetRequest>(set.first, set.second, pageSet->getNumRecords());
 
   // sends result to requester
   success = comm->sendObject(materializeRequest, error);

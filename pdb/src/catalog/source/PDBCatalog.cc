@@ -316,7 +316,17 @@ pdb::PDBCatalogSetPtr pdb::PDBCatalog::getSet(const std::string &dbName, const s
   return storage.get_no_throw<PDBCatalogSet>(dbName + ":" + setName);
 }
 
-bool pdb::PDBCatalog::incrementSetSize(const std::string &dbName, const std::string &setName, size_t increment, std::string &error) {
+pdb::PDBCatalogSetOnNodePtr pdb::PDBCatalog::getSetOnNode(const std::string &nodeIdentifier,
+                                                          const std::string &setIdentifier) {
+  return storage.get_no_throw<PDBCatalogSetOnNode>(nodeIdentifier, setIdentifier);
+}
+
+bool pdb::PDBCatalog::incrementSetSize(const std::string &nodeID,
+                                       const std::string &dbName,
+                                       const std::string &setName,
+                                       size_t sizeAdded,
+                                       size_t recordsStored,
+                                       std::string &error) {
 
   try {
 
@@ -333,11 +343,38 @@ bool pdb::PDBCatalog::incrementSetSize(const std::string &dbName, const std::str
       return false;
     }
 
-    // increment the set size
-    set->setSize += increment;
+    // grab the node we want to update
+    auto node = getNode(nodeID);
 
-    // insert the the set
-    storage.replace(*set);
+    // if the node exists don't create it
+    if(node == nullptr) {
+
+      // set the error
+      error = "The node with the id (" + nodeID + ") does not exist\n";
+
+      // we failed return false
+      return false;
+    }
+
+    // grab the entry if it exists
+    auto setOnNode = getSetOnNode(node->nodeID, set->setIdentifier);
+
+    // if it does not exist create it
+    if(setOnNode == nullptr) {
+
+      // insert the the entry
+      storage.replace(pdb::PDBCatalogSetOnNode(node->nodeID, set->setIdentifier, recordsStored, sizeAdded));
+    }
+    else {
+
+      // increment the stats and replace it
+      setOnNode->recordCount += recordsStored;
+      setOnNode->shardSize += sizeAdded;
+
+      // replace
+      storage.replace(*setOnNode);
+    }
+
 
     // return true
     return true;

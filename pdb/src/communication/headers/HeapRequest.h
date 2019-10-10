@@ -114,6 +114,30 @@ public:
 
 
   /**
+   *
+   * @tparam RequestType - the type of object to create to send over the wire
+   * @tparam DataType - the type of data we want to send
+   * @tparam ResponseType - the type of object we expect to receive over the wire
+   * @tparam ReturnType - the type we will return to the caller
+   * @tparam RequestTypeParams - type of the params to use for the constructor to the object we send over the wire
+   *
+   * @param myLogger - The logger we write error messages to
+   * @param port - the port to send the request to
+   * @param address - the address to send the request to
+   * @param onErr - the value to return if there is an error sending/receiving data
+   * @param bytesForRequest - the number of bytes to give to the allocator used to build the request
+   * @param processResponse - the std::function used to process the response to the request
+   * @param dataToSend - the vector of data we want to send
+   * @param args - the arguments to give to the constructor of the request
+   * @return whatever is returned from processResponse or onErr in case of failure
+   * @return
+   */
+  template <class RequestType, class DataType, class ResponseType, class ReturnType, class... RequestTypeParams>
+  static ReturnType dataKeyHeapRequest(pdb::PDBLoggerPtr myLogger, int port, const std::string &address,
+                                       ReturnType onErr, size_t bytesForRequest, std::function<ReturnType(pdb::Handle<ResponseType>)> processResponse,
+                                       pdb::Handle<Vector<pdb::Handle<DataType>>> dataToSend, RequestTypeParams&&... args);
+
+  /**
    * This method send raw bytes in addition to the object of RequestType to the particular node.
    * @tparam RequestType - the type of object to create to send over the wire
    * @tparam ResponseType - the type of data we want to get

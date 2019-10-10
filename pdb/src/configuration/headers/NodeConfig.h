@@ -83,6 +83,12 @@ struct NodeConfig {
    */
   std::string catalogFile = "";
 
+  /**
+   * The node identifier
+   */
+  std::string getNodeIdentifier() const {
+    return address + ":" + std::to_string(port);
+  }
 };
 
 }

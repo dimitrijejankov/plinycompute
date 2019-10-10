@@ -126,14 +126,32 @@ public:
    * Increments the size of a set for a particular set by size
    * @param databaseName - the database the set belongs to
    * @param setName - the name of the set
-   * @param sizeToAdd - the size we want to add to the current size
+   * @param sizeAdded - the size we want to add to the current size
    * @param errMsg - the error message if any
    * @return - true if we succeed
    */
-  bool incrementSetSize(const std::string &databaseName,
-                        const std::string &setName,
-                        size_t sizeToAdd,
-                        std::string &errMsg);
+  bool incrementSetRecordInfo(const std::string &nodeIdentifier,
+                              const std::string &databaseName,
+                              const std::string &setName,
+                              size_t sizeAdded,
+                              size_t recordsStored,
+                              std::string &errMsg);
+
+  /**
+   *
+   * @param databaseName
+   * @param setName
+   * @param sizeAdded
+   * @param keysStored
+   * @param errMsg
+   * @return
+   */
+  bool incrementKeyRecordInfo(const std::string &nodeIdentifier,
+                              const std::string &databaseName,
+                              const std::string &setName,
+                              size_t sizeAdded,
+                              size_t keysStored,
+                              std::string &errMsg);
 
   /**
    * Update the container type of a set for a particular set by size
@@ -165,9 +183,8 @@ public:
   /* Sends a request to the Catalog Server to print the content of the metadata
    * stored in the
    * catalog */
-  string
-  printCatalogMetadata(pdb::Handle<pdb::CatPrintCatalogRequest> itemToSearch,
-                       std::string &errMsg);
+  string printCatalogMetadata(pdb::Handle<pdb::CatPrintCatalogRequest> itemToSearch,
+                              std::string &errMsg);
 
   /* Sends a request to the Catalog Server to print a category of metadata
    * stored in the

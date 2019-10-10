@@ -49,7 +49,7 @@
 #include "CatUserTypeMetadata.h"
 #include "CatPrintCatalogRequest.h"
 #include "CatPrintCatalogResult.h"
-#include "CatSetUpdateSizeRequest.h"
+#include "CatSetIncrementSetRecordInfo.h"
 #include "CatalogServer.h"
 #include "HeapRequestHandler.h"
 #include "VTableMap.h"
@@ -527,16 +527,16 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
       }));
 
   forMe.registerHandler(
-      CatSetUpdateSizeRequest_TYPEID,
-      make_shared<HeapRequestHandler<CatSetUpdateSizeRequest>>(
-          [&](Handle<CatSetUpdateSizeRequest> request, const PDBCommunicatorPtr& sendUsingMe) {
+      CatSetIncrementSetRecordInfo_TYPEID,
+      make_shared<HeapRequestHandler<CatSetIncrementSetRecordInfo>>(
+          [&](Handle<CatSetIncrementSetRecordInfo> request, const PDBCommunicatorPtr& sendUsingMe) {
 
             // lock the catalog server
             std::lock_guard<std::mutex> guard(serverMutex);
 
             // invokes the increment
             std::string errMsg;
-            bool res = pdbCatalog->incrementSetSize(request->databaseName, request->setName, request->sizeUpdate, errMsg);
+            bool res = pdbCatalog->incrementSetSize(request->nodeID, request->databaseName, request->setName, request->sizeAdded, request->recordsStored, errMsg);
 
             // after we incremented the size of the set in the local catalog, if this is the
             // manager catalog iterate over all nodes in the cluster and broadcast the

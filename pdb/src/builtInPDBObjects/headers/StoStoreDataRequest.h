@@ -16,27 +16,29 @@
  *                                                                           *
  *****************************************************************************/
 
-#pragma once
+
+#ifndef OBJECTQUERYMODEL_StoStoreOnPageRequest_H
+#define OBJECTQUERYMODEL_StoStoreOnPageRequest_H
 
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %StoMaterializePageSetRequest%
+// PRELOAD %StoStoreDataRequest%
 
 namespace pdb {
 
 // encapsulates a request to add data to a set in storage
-class StoMaterializePageSetRequest : public Object {
+class StoStoreDataRequest : public Object {
 
 public:
 
-  StoMaterializePageSetRequest() = default;
-  ~StoMaterializePageSetRequest() = default;
+  StoStoreDataRequest() = default;
+  ~StoStoreDataRequest() = default;
 
-  StoMaterializePageSetRequest(const std::string &db, const std::string &set, uint64_t numRecords) : databaseName(db),
-                                                                                                     setName(set),
-                                                                                                     numRecords(numRecords) {}
+  StoStoreDataRequest(const std::string &databaseName, const std::string &setName, const uint64_t page, uint64_t compressedSize)
+      : databaseName(databaseName), setName(setName), page(page), compressedSize(compressedSize) {
+  }
 
   ENABLE_DEEP_COPY
 
@@ -51,9 +53,16 @@ public:
   String setName;
 
   /**
-   * The number of records the page set has that we want to materialize
+   * page of the set where we are storing the stuff
    */
-  uint64_t numRecords{};
+  uint64_t page = 0;
+
+  /**
+   * The compressed size
+   */
+  uint64_t compressedSize = 0;
 };
 
 }
+
+#endif

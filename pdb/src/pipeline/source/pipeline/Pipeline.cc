@@ -137,16 +137,24 @@ void pdb::Pipeline::run() {
     for (ComputeExecutorPtr &q : pipeline) {
 
       try {
+
+        // process the chunk
         curChunk = q->process(curChunk);
 
       } catch (NotEnoughSpace &n) {
+
+        // increment the number of records if needed
+        incrementRecordNumber(ram);
 
         // we run out of space so  this page can contain important data, process the page and possibly store it
         if (pageProcessor->process(ram)) {
 
           // we need to keep the page
           keepPage(ram, iteration);
+
         } else {
+
+          // dismiss the page
           dismissPage(ram, true);
         }
 
@@ -170,12 +178,18 @@ void pdb::Pipeline::run() {
 
     } catch (NotEnoughSpace &n) {
 
+      // increment the number of records if needed
+      incrementRecordNumber(ram);
+
       // again, we ran out of RAM here, so write back the page and then create a new output page
       if (pageProcessor->process(ram)) {
 
         // we need to keep the page
         keepPage(ram, iteration);
+
       } else {
+
+        // dismiss the page
         dismissPage(ram, true);
       }
 
@@ -205,18 +219,21 @@ void pdb::Pipeline::run() {
     dismissPage(ram, true);
   }
 
+  // for the last page increment the number of records
+  incrementRecordNumber(ram);
+
   // clean the pipeline before we finish running
   cleanPipeline();
 }
 
-void pdb::Pipeline::keepPage(pdb::MemoryHolderPtr ram, int iteration) {
+void pdb::Pipeline::keepPage(const pdb::MemoryHolderPtr& ram, int iteration) {
 
   // set the iteration and store it in the list of unwritten pages
   ram->setIteration(iteration);
   unwrittenPages.push(ram);
 }
 
-void pdb::Pipeline::dismissPage(pdb::MemoryHolderPtr ram, bool dismissLast) {
+void pdb::Pipeline::dismissPage(const pdb::MemoryHolderPtr& ram, bool dismissLast) {
 
   // and force the reference count for this guy to go to zero
   PDB_COUT << "to empty out containing block" << std::endl;
@@ -228,4 +245,12 @@ void pdb::Pipeline::dismissPage(pdb::MemoryHolderPtr ram, bool dismissLast) {
 
   // unpin the page so we don't have problems
   ram->pageHandle->unpin();
+}
+
+void pdb::Pipeline::incrementRecordNumber(const pdb::MemoryHolderPtr &ram) {
+
+  // if we have an output sink on this page update the number of records on the page set
+  if (ram->outputSink != nullptr) {
+    outputPageSet->increaseRecords(dataSink->getNumRecords(ram->outputSink));
+  }
 }

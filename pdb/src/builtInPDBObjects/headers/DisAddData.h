@@ -36,8 +36,11 @@ public:
   DisAddData() = default;
   ~DisAddData() = default;
 
-  DisAddData(const std::string &databaseName, const std::string &setName, const std::string &typeName)
-      : databaseName(databaseName), setName(setName), typeName(typeName) {
+  DisAddData(const std::string &databaseName,
+             const std::string &setName,
+             const std::string &typeName,
+             bool shouldStoreKey)
+      : databaseName(databaseName), setName(setName), typeName(typeName), shouldStoreKey(shouldStoreKey) {
   }
 
   ENABLE_DEEP_COPY
@@ -56,6 +59,11 @@ public:
    * The name of the type we are adding
    */
   String typeName;
+
+  /**
+   * This tells the dispatcher if it should expect a page full of keys
+   */
+  bool shouldStoreKey = false;
 };
 
 }

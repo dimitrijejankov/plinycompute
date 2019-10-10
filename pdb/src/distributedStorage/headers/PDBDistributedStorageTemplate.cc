@@ -12,6 +12,7 @@
 #include <StoClearSetRequest.h>
 #include <DisClearSet.h>
 #include <DisRemoveSet.h>
+#include <StoDispatchKeys.h>
 #include <GenericWork.h>
 
 template<class Communicator, class Requests>
@@ -236,7 +237,7 @@ template<class Communicator, class Requests>
 std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb::Handle<pdb::DisAddData> &request,
                                                                        shared_ptr<Communicator> &sendUsingMe) {
 
-  /// 0. Check if the set exists
+  /// 0. Check if the set is okay for the request
 
   // get the set if exists
   std::string error;
@@ -305,7 +306,33 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
     return make_pair(false, errMsg);
   }
 
-  /// 1. Receive the bytes onto an anonymous page
+  // check if the set can store the keys if they were sent
+  if(request->shouldStoreKey && !set->isStoringKeys) {
+
+    // make the error string
+    std::string errMsg = "Dispatcher does not know what to do with the stored keys!";
+
+    // respond with error
+    respondAddDataWithError(sendUsingMe, errMsg);
+
+    // return the problem
+    return make_pair(false, errMsg);
+  }
+
+  // check if the set can store the keys if they were sent
+  if(!request->shouldStoreKey && set->isStoringKeys) {
+
+    // make the error string
+    std::string errMsg = "Dispatcher expected keys did not get any!";
+
+    // respond with error
+    respondAddDataWithError(sendUsingMe, errMsg);
+
+    // return the problem
+    return make_pair(false, errMsg);
+  }
+
+  /// 1. Receive the data bytes onto an anonymous page
 
   // grab the buffer manager
   auto bufferManager = getFunctionalityPtr<PDBBufferManagerInterface>();
@@ -324,6 +351,13 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
 
     // skip the data part
     sendUsingMe->skipBytes(errMsg);
+
+    // skip the key part if needed
+    if(request->shouldStoreKey) {
+
+      // skip the key part
+      sendUsingMe->skipBytes(errMsg);
+    }
 
     // create an allocation block to hold the response
     const UseTemporaryAllocationBlock tempBlock{1024};
@@ -353,6 +387,13 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
     // log the error
     logger->error(errMsg);
 
+    // skip the key part if needed
+    if(request->shouldStoreKey) {
+
+      // skip the key part
+      sendUsingMe->skipBytes(errMsg);
+    }
+
     // create an allocation block to hold the response
     const UseTemporaryAllocationBlock tempBlock{1024};
     Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
@@ -362,25 +403,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
     return make_pair(false, errMsg);
   }
 
-  /// 2. Update the set size
-  {
-    std::string errMsg;
-    if (!getFunctionalityPtr<PDBCatalogClient>()->incrementSetSize(request->databaseName,
-                                                                   request->setName,
-                                                                   uncompressedSize,
-                                                                   errMsg)) {
-
-      // create an allocation block to hold the response
-      const UseTemporaryAllocationBlock tempBlock{1024};
-      Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
-
-      // sends result to requester
-      sendUsingMe->sendObject(response, errMsg);
-      return make_pair(false, errMsg);
-    }
-  }
-
-  /// 3. Figure out on what node to forward the thing
+  /// 2. Figure out on what node to forward the thing
 
   // grab all active nodes
   const auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
@@ -422,6 +445,75 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
       },
       (char *) page->getBytes(), numBytes, request->databaseName, request->setName, request->typeName, numBytes);
 
+
+  /// 3. This is optional, depends whether the set is supposed to store the extracted keys.
+
+  if(request->shouldStoreKey) {
+
+    /// 3.1 Get the compressed bytes of the keys
+
+    // grab a page to write this
+    page = bufferManager->getPage(numBytes);
+
+    // receive bytes
+    sendUsingMe->receiveBytes(page->getBytes(), error);
+
+    // check the uncompressed size
+    uncompressedSize = 0;
+    snappy::GetUncompressedLength((char *) page->getBytes(), numBytes, &uncompressedSize);
+
+    // check the uncompressed size
+    if (bufferManager->getMaxPageSize() < uncompressedSize) {
+
+      // make the error string
+      std::string errMsg = "The uncompressed size is larger than the maximum page size";
+
+      // log the error
+      logger->error(errMsg);
+
+      // skip the key part if needed
+      if(request->shouldStoreKey) {
+
+        // skip the key part
+        sendUsingMe->skipBytes(errMsg);
+      }
+
+      // create an allocation block to hold the response
+      const UseTemporaryAllocationBlock tempBlock{1024};
+      Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+
+      // sends result to requester
+      sendUsingMe->sendObject(response, errMsg);
+      return make_pair(false, errMsg);
+    }
+
+    /// 3.2 Send them to the every node
+
+    for(const auto& n : nodes) {
+
+      // time to send the keys
+      ret = RequestFactory::bytesHeapRequest<pdb::StoDispatchKeys, SimpleRequestResult, bool>(
+          logger, n->port, n->address, false, 1024,
+          [&](Handle<SimpleRequestResult> result) {
+
+            if (result != nullptr && result->getRes().first) {
+              return true;
+            }
+
+            logger->error("Error sending keys: " + result->getRes().second);
+            error = "Error sending keys: " + result->getRes().second;
+
+            return false;
+          },
+          (char *) page->getBytes(), numBytes, request->databaseName, std::string(request->setName) + "#keys", request->typeName, numBytes);
+
+
+      // break if there was an error dispatching the keys
+      if(!ret) {
+        break;
+      }
+    }
+  }
 
   // create an allocation block to hold the response
   const UseTemporaryAllocationBlock tempBlock{1024};

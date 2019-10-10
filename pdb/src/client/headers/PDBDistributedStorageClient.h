@@ -63,6 +63,9 @@ public:
   template<class DataType>
   bool sendData(const std::string &db, const std::string &set, Handle<Vector<Handle<DataType>>> dataToSend, std::string &errMsg);
 
+  template<class DataType>
+  bool sendDataWithKey(const std::string &db, const std::string &set, Handle<Vector<Handle<DataType>>> dataToSend, std::string &errMsg);
+
   /**
    * Removes all the data from a set
    * @param dbName - the name of the database

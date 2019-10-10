@@ -38,6 +38,32 @@ public:
    * Resets the page set so it can be reused
    */
   virtual void resetPageSet() = 0;
+
+  /**
+   * Increases the number of records in the page set
+   * @param numRecords - the number we want to increase by
+   */
+  void increaseRecords(uint64_t value) { this->numRecords += value; }
+
+  /**
+   * Decreases the number of records in the page set
+   * @param numRecords - the number we want to decrease by
+   */
+  void decreaseRecords(uint64_t value) { this->numRecords -= value; }
+
+  /**
+   * Returns the number of records in the page set
+   * @return the number of records
+   */
+  uint64_t getNumRecords() { return numRecords; }
+
+protected:
+
+  /**
+   * The number of records in this page set, we don't keep the size since pages can be frozen
+   */
+  atomic_uint_least64_t numRecords = 0;
+
 };
 
 }

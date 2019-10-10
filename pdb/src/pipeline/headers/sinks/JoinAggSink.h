@@ -99,6 +99,15 @@ public:
 
   void writeOutPage(pdb::PDBPageHandle &page, Handle<Object> &writeToMe) override { throw runtime_error("JoinAggSink can not write out a page."); }
 
+  // returns the number of records in the join agg sink
+  uint64_t getNumRecords(Handle<Object> &writeToMe) override {
+
+    // cast the thing to the map of maps
+    Handle<TIDIndexMap> outputMap = unsafeCast<TIDIndexMap>(writeToMe);
+
+    // return the size
+    return outputMap->size();
+  }
 };
 
 }

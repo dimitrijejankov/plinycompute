@@ -82,8 +82,9 @@ public:
    * @param sendUsingMe - the communicator to the node that made the request (should be the manager)
    * @return - the result of the handler (success, error)
    */
-  template <class Communicator, class Requests>
-  std::pair<bool, std::string> handleDispatchedData(pdb::Handle<pdb::StoDispatchData> request, std::shared_ptr<Communicator> sendUsingMe);
+  template <class Communicator, class Requests, class RequestType, class ForwardRequestType>
+  std::pair<bool, std::string> handleDispatchedData(pdb::Handle<RequestType> request, std::shared_ptr<Communicator> sendUsingMe);
+
 
   /**
    * Handles the the request to get stats about a particular set.

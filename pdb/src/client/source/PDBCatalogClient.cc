@@ -1,3 +1,5 @@
+#include <utility>
+
 /*****************************************************************************
  *                                                                           *
  *  Copyright 2018 Rice University                                           *
@@ -27,7 +29,7 @@
 #include <CatGetWorkersRequest.h>
 #include <CatUpdateNodeStatusRequest.h>
 #include <PDBCatalogClient.h>
-#include <CatSetUpdateSizeRequest.h>
+#include <CatSetIncrementSetRecordInfo.h>
 #include <CatSetUpdateContainerTypeRequest.h>
 
 #include "CatCreateDatabaseRequest.h"
@@ -50,6 +52,7 @@
 #include "SimpleSendDataRequest.h"
 #include "CatUserTypeMetadata.h"
 #include "CatGetWorkersResult.h"
+#include "CatSetIncrementKeyRecordInfo.h"
 
 namespace pdb {
 
@@ -59,7 +62,7 @@ PDBCatalogClient::PDBCatalogClient(int portIn, std::string addressIn, PDBLoggerP
   // get the communicator information
   port = portIn;
   address = std::move(addressIn);
-  myLogger = myLoggerIn;
+  myLogger = std::move(myLoggerIn);
 
   // and let the v-table map know this information
   if (!theVTable->getCatalogClient()) {
@@ -423,13 +426,15 @@ pdb::PDBCatalogSetPtr PDBCatalogClient::getSet(const std::string &dbName, const 
               dbName, setName);
 }
 
-bool PDBCatalogClient::incrementSetSize(const std::string &databaseName,
-                                        const std::string &setName,
-                                        size_t sizeToAdd,
-                                        std::string &errMsg) {
+bool PDBCatalogClient::incrementSetRecordInfo(const std::string &nodeIdentifier,
+                                              const std::string &databaseName,
+                                              const std::string &setName,
+                                              size_t sizeAdded,
+                                              size_t recordsStored,
+                                              std::string &errMsg) {
 
   // make a request and return the value
-  return RequestFactory::heapRequest< CatSetUpdateSizeRequest, SimpleRequestResult, bool>(
+  return RequestFactory::heapRequest<CatSetIncrementSetRecordInfo, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
 
@@ -444,7 +449,33 @@ bool PDBCatalogClient::incrementSetSize(const std::string &databaseName,
         errMsg = "Error getting set: got nothing back from catalog";
         return false;
       },
-      databaseName, setName, sizeToAdd);
+      nodeIdentifier, databaseName, setName, sizeAdded, recordsStored);
+}
+
+bool PDBCatalogClient::incrementKeyRecordInfo(const std::string &nodeIdentifier,
+                                              const std::string &databaseName,
+                                              const std::string &setName,
+                                              size_t sizeAdded,
+                                              size_t keysStored,
+                                              std::string &errMsg) {
+
+  // make a request and return the value
+  return RequestFactory::heapRequest<CatSetIncrementKeyRecordInfo, SimpleRequestResult, bool>(
+      myLogger, port, address, false, 1024,
+      [&](Handle<SimpleRequestResult> result) {
+
+        if (result != nullptr) {
+          if (!result->getRes().first) {
+            errMsg = "Error updating set: " + result->getRes().second;
+            myLogger->error("Error updating set: " + result->getRes().second);
+            return false;
+          }
+          return true;
+        }
+        errMsg = "Error getting set: got nothing back from catalog";
+        return false;
+      },
+      nodeIdentifier, databaseName, setName, sizeAdded, keysStored);
 }
 
 bool PDBCatalogClient::updateSetContainerType(const string &databaseName,

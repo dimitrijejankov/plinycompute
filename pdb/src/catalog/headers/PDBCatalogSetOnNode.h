@@ -1,0 +1,81 @@
+#pragma once
+#include <string>
+#include <sqlite_orm.h>
+
+namespace pdb {
+
+/**
+ * This is just a definition for the shared pointer on the type
+ */
+class PDBCatalogSetOnNode;
+typedef std::shared_ptr<PDBCatalogSetOnNode> PDBCatalogSetOnNodePtr;
+
+class PDBCatalogSetOnNode {
+
+ public:
+
+  /**
+   * The default constructor needed by the orm
+   */
+  PDBCatalogSetOnNode() = default;
+
+  /**
+   * The initializer constructor
+   * @param setIdentifier - the identifier of the set
+   * @param nodeID - the identifier of the node
+   */
+  PDBCatalogSetOnNode(std::string setIdentifier, std::string nodeID) : setIdentifier(std::move(setIdentifier)),
+                                                                       nodeID(std::move(nodeID)) {}
+
+  /**
+   * The initializer constructor
+   * @param setIdentifier - the identifier of the set
+   * @param nodeID - the identifier of the node
+   * @param recordCount - how many records are in this shard
+   * @param shardSize - how many bytes are there in this shard
+   */
+  PDBCatalogSetOnNode(std::string setIdentifier,
+                      std::string nodeID,
+                      uint64_t recordCount,
+                      uint64_t shardSize) : setIdentifier(std::move(setIdentifier)),
+                                            nodeID(std::move(nodeID)),
+                                            recordCount(recordCount),
+                                            shardSize(shardSize) {}
+
+  /**
+   * The identifier of the set
+   */
+  std::string setIdentifier;
+
+  /**
+   * The identifier of the node
+   */
+  std::string nodeID;
+
+  /**
+   * The record count
+   */
+  uint64_t recordCount = 0;
+
+  /**
+   * The size of the shard on this node in bytes
+   */
+  uint64_t shardSize = 0;
+
+  /**
+   * Return the schema of the database object
+   * @return the schema
+   */
+  static auto getSchema() {
+
+    // return the schema
+    return sqlite_orm::make_table("setOnNode",
+                                  sqlite_orm::make_column("setIdentifier", &PDBCatalogSetOnNode::setIdentifier),
+                                  sqlite_orm::make_column("nodeID", &PDBCatalogSetOnNode::nodeID),
+                                  sqlite_orm::make_column("recordCount", &PDBCatalogSetOnNode::recordCount),
+                                  sqlite_orm::make_column("shardSize", &PDBCatalogSetOnNode::shardSize),
+                                  sqlite_orm::primary_key(&PDBCatalogSetOnNode::setIdentifier, &PDBCatalogSetOnNode::nodeID));
+  }
+};
+
+}

@@ -2,12 +2,13 @@
 #define PDB_PDBStorageManagerBackend_H
 
 #include <ServerFunctionality.h>
-#include <StoStoreOnPageRequest.h>
+#include <StoStoreDataRequest.h>
 #include "PDBAbstractPageSet.h"
 #include "PDBSetPageSet.h"
 #include "PDBAnonymousPageSet.h"
 #include "StoRemovePageSetRequest.h"
 #include "StoStartFeedingPageSetRequest.h"
+#include "StoStoreKeysRequest.h"
 #include "PDBFeedingPageSet.h"
 
 namespace pdb {
@@ -84,7 +85,20 @@ public:
    * @return the result of the handler (success, error)
    */
   template <class Communicator>
-  std::pair<bool, std::string> handleStoreOnPage(const pdb::Handle<pdb::StoStoreOnPageRequest> &request, std::shared_ptr<Communicator> &sendUsingMe);
+  std::pair<bool, std::string> handleStoreData(const pdb::Handle<pdb::StoStoreDataRequest> &request,
+                                               std::shared_ptr<Communicator> &sendUsingMe);
+
+  /**
+   *
+   * @tparam Communicator
+   * @param request
+   * @param sendUsingMe
+   * @return
+   */
+  template <class Communicator>
+  std::pair<bool, std::string> handleStoreKeys(const pdb::Handle<pdb::StoStoreKeysRequest> &request,
+                                               std::shared_ptr<Communicator> &sendUsingMe);
+
 
   /**
    *

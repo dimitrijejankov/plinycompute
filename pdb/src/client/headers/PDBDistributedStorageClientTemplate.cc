@@ -49,7 +49,28 @@ bool PDBDistributedStorageClient::sendData(const std::string &db,
 
         return true;
       },
-      dataToSend, db, set, getTypeName<DataType>());
+      dataToSend, db, set, getTypeName<DataType>(), false);
+}
+
+template<class DataType>
+bool PDBDistributedStorageClient::sendDataWithKey(const std::string &db,
+                                                  const std::string &set,
+                                                  Handle<Vector<Handle<DataType>>> dataToSend,
+                                                  std::string &errMsg) {
+
+  return RequestFactory::dataKeyHeapRequest<DisAddData, DataType, SimpleRequestResult, bool>(
+      logger, port, address, false, 1024, [&](const Handle<SimpleRequestResult>& result) {
+
+        // check the response
+        if (result != nullptr && !result->getRes().first) {
+
+          logger->error("Error sending data: " + result->getRes().second);
+          errMsg = "Error sending data: " + result->getRes().second;
+        }
+
+        return true;
+      },
+      dataToSend, db, set, getTypeName<DataType>(), true);
 }
 
 template<class DataType>

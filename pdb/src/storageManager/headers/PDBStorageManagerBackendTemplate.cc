@@ -1,17 +1,17 @@
-
-#ifndef PDB_PDBSTORAGEMANAGERBACKENDTEMPLATE_H
-#define PDB_PDBSTORAGEMANAGERBACKENDTEMPLATE_H
+#pragma once
 
 #include <ServerFunctionality.h>
-#include <StoStoreOnPageRequest.h>
+#include <StoStoreDataRequest.h>
 #include <PDBStorageManagerBackend.h>
 #include <PDBBufferManagerBackEnd.h>
 #include <StoFeedPageRequest.h>
 #include <PDBBufferManagerDebugBackEnd.h>
+#include <StoStoreKeysRequest.h>
+#include <PDBCatalogClient.h>
 
 template <class Communicator>
-std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStoreOnPage(const pdb::Handle<pdb::StoStoreOnPageRequest> &request,
-                                                                              std::shared_ptr<Communicator> &sendUsingMe) {
+std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStoreData(const pdb::Handle<pdb::StoStoreDataRequest> &request,
+                                                                            std::shared_ptr<Communicator> &sendUsingMe) {
 
   /// 1. Grab a page and decompress the forwarded page
 
@@ -34,7 +34,82 @@ std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStoreOnPage(co
   // freeze the page
   outPage->freezeSize(uncompressedSize);
 
-  /// 2. Send the response that we are done
+  /// 2. Update the set size
+  {
+    // figure out the number of records
+    Handle<Vector<Handle<Object>>> data = ((Record<Vector<Handle<Object>>> *) outPage->getBytes())->getRootObject();
+    uint64_t numRecords = data->size();
+
+    // send the catalog that data has been added
+    std::string errMsg;
+    PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
+    if (!pdbClient.incrementSetRecordInfo(getConfiguration()->getNodeIdentifier(),
+                                                       request->databaseName,
+                                                       request->setName,
+                                                       uncompressedSize,
+                                                       numRecords,
+                                                       errMsg)) {
+
+      // create an allocation block to hold the response
+      const UseTemporaryAllocationBlock tempBlock{1024};
+      Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+
+      // sends result to requester
+      sendUsingMe->sendObject(response, errMsg);
+      return make_pair(false, errMsg);
+    }
+  }
+
+  /// 3. Send the response that we are done
+
+  // create an allocation block to hold the response
+  string error;
+  pdb::Handle<pdb::SimpleRequestResult> simpleResponse = pdb::makeObject<pdb::SimpleRequestResult>(true, error);
+
+  // sends result to requester
+  sendUsingMe->sendObject(simpleResponse, error);
+
+  // finish
+  return make_pair(true, error);
+}
+
+template <class Communicator>
+std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStoreKeys(const pdb::Handle<pdb::StoStoreKeysRequest> &request,
+                                                                            std::shared_ptr<Communicator> &sendUsingMe) {
+
+  /// 1. Grab a page and decompress the forwarded page
+
+  // grab the buffer manager
+  auto bufferManager = std::dynamic_pointer_cast<pdb::PDBBufferManagerBackEndImpl>(this->getFunctionalityPtr<PDBBufferManagerInterface>());
+
+  // grab the forwarded page
+  auto inPage = bufferManager->expectPage(sendUsingMe);
+
+  // check the uncompressed size
+  size_t uncompressedSize = 0;
+  snappy::GetUncompressedLength((char*) inPage->getBytes(), request->compressedSize, &uncompressedSize);
+
+  // grab the page
+  auto outPage = bufferManager->getPage(make_shared<pdb::PDBSet>(request->databaseName, request->setName), request->page);
+
+  // uncompress and copy to page
+  snappy::RawUncompress((char*) inPage->getBytes(), request->compressedSize, (char*) outPage->getBytes());
+
+  // freeze the page
+  outPage->freezeSize(uncompressedSize);
+
+
+  /// 2. Figure out how many tuple we have stored
+
+  // cast the place where we copied the thing
+  auto* recordCopy = (Record<Vector<Handle<Object>>>*) outPage->getBytes();
+
+  // grab the copy of the supervisor object
+  Handle<Vector<Handle<Object>>> keyVector = recordCopy->getRootObject();
+
+  //this->getFunctionality<PDBCatalogClient>()
+
+  /// 3. Send the response that we are done
 
   // create an allocation block to hold the response
   string error;
@@ -160,6 +235,3 @@ std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStartFeedingPa
   // return
   return std::make_pair(success, error);
 }
-
-
-#endif //PDB_PDBSTORAGEMANAGERBACKENDTEMPLATE_H
