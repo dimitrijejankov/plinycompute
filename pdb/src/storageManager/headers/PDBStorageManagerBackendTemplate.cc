@@ -8,6 +8,7 @@
 #include <PDBBufferManagerDebugBackEnd.h>
 #include <StoStoreKeysRequest.h>
 #include <PDBCatalogClient.h>
+#include <PDBCatalog.h>
 
 template <class Communicator>
 std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStoreData(const pdb::Handle<pdb::StoStoreDataRequest> &request,
@@ -98,16 +99,33 @@ std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStoreKeys(cons
   // freeze the page
   outPage->freezeSize(uncompressedSize);
 
+  /// 3. Update the set size
+  {
+    // cast the place where we copied the thing
+    auto* recordCopy = (Record<Vector<Handle<Object>>>*) outPage->getBytes();
 
-  /// 2. Figure out how many tuple we have stored
+    // grab the copy of the supervisor object
+    Handle<Vector<Handle<Object>>> keyVector = recordCopy->getRootObject();
 
-  // cast the place where we copied the thing
-  auto* recordCopy = (Record<Vector<Handle<Object>>>*) outPage->getBytes();
+    // send the catalog that data has been added
+    std::string errMsg;
+    PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
+    if (!pdbClient.incrementKeyRecordInfo(getConfiguration()->getNodeIdentifier(),
+                                          request->databaseName,
+                                          PDBCatalog::fromKeySetNameToSetName(std::string(request->setName)),
+                                          uncompressedSize,
+                                          keyVector->size(),
+                                          errMsg)) {
 
-  // grab the copy of the supervisor object
-  Handle<Vector<Handle<Object>>> keyVector = recordCopy->getRootObject();
+      // create an allocation block to hold the response
+      const UseTemporaryAllocationBlock tempBlock{1024};
+      Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
 
-  //this->getFunctionality<PDBCatalogClient>()
+      // sends result to requester
+      sendUsingMe->sendObject(response, errMsg);
+      return make_pair(false, errMsg);
+    }
+  }
 
   /// 3. Send the response that we are done
 

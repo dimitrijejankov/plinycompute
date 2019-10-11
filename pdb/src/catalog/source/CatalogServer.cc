@@ -538,7 +538,14 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
             // invokes the increment
             std::string errMsg;
-            bool res = pdbCatalog->incrementSetSize(request->nodeID, request->databaseName, request->setName, request->sizeAdded, request->recordsStored, errMsg);
+            bool res = pdbCatalog->incrementSetSize(request->nodeID,
+                                                    request->databaseName,
+                                                    request->setName,
+                                                    request->sizeAdded,
+                                                    request->recordsStored,
+                                                    request->keySizeAdded,
+                                                    request->keyRecordsStored,
+                                                    errMsg);
 
             // after we incremented the size of the set in the local catalog, if this is the
             // manager catalog iterate over all nodes in the cluster and broadcast the

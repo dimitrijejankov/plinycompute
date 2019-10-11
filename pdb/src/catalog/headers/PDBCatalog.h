@@ -175,6 +175,8 @@ class PDBCatalog {
    * @param setName - the name of the set
    * @param sizeAdded - the size added to the set
    * @param recordsStored - the number of records stored
+   * @param keySizeAdded - the size of the keys added
+   * @param keyRecordsStored - the number of key records added
    * @param error - error string if any
    * @return true if the set exists false otherwise
    */
@@ -183,6 +185,8 @@ class PDBCatalog {
                         const std::string &setName,
                         size_t sizeAdded,
                         size_t recordsStored,
+                        size_t keySizeAdded,
+                        size_t keyRecordsStored,
                         std::string &error);
 
   /**
@@ -317,6 +321,20 @@ class PDBCatalog {
    * @return true if we removed it, false otherwise
    */
   bool removeSet(const std::string &dbName, const std::string &setName, std::string &error);
+
+  /**
+   * Converts the set name to key set name
+   * @param setName - the set name
+   * @return the set name for the key by convention "setName#keys"
+   */
+  static std::string toKeySetName(const std::string &setName);
+
+  /**
+   * Converts the key set anme to the set name
+   * @param setName - the key set name, by convention "setName#keys"
+   * @return the set name from "setName#keys" to "setName"
+   */
+  static std::string fromKeySetNameToSetName(const std::string &setName);
 
  private:
 

@@ -14,6 +14,7 @@
 #include <DisRemoveSet.h>
 #include <StoDispatchKeys.h>
 #include <GenericWork.h>
+#include <PDBCatalog.h>
 
 template<class Communicator, class Requests>
 std::pair<pdb::PDBPageHandle, size_t> pdb::PDBDistributedStorage::requestPage(const PDBCatalogNodePtr &node,
@@ -505,7 +506,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
 
             return false;
           },
-          (char *) page->getBytes(), numBytes, request->databaseName, std::string(request->setName) + "#keys", request->typeName, numBytes);
+          (char *) page->getBytes(), numBytes, request->databaseName, PDBCatalog::toKeySetName(std::string(request->setName)), request->typeName, numBytes);
 
 
       // break if there was an error dispatching the keys

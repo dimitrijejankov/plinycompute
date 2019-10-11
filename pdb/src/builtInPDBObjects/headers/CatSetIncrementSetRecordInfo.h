@@ -34,21 +34,21 @@ class CatSetIncrementSetRecordInfo : public Object {
 public:
 
   CatSetIncrementSetRecordInfo() = default;
-  ~CatSetIncrementSetRecordInfo() = default;
+  CatSetIncrementSetRecordInfo(const string &nodeId,
+                               const string &databaseName,
+                               const string &setName,
+                               size_t sizeAdded,
+                               size_t recordsStored,
+                               size_t keySizeAdded,
+                               size_t keyRecordsStored) : nodeID(nodeId),
+                                                          databaseName(databaseName),
+                                                          setName(setName),
+                                                          sizeAdded(sizeAdded),
+                                                          recordsStored(recordsStored),
+                                                          keySizeAdded(keySizeAdded),
+                                                          keyRecordsStored(keyRecordsStored) {}
 
-  /**
-   * Creates a request to get the database
-   * @param database - the name of database
-   */
-  explicit CatSetIncrementSetRecordInfo(const std::string &nodeID,
-                                        const std::string &database,
-                                        const std::string &set,
-                                        size_t sizeAdded,
-                                        size_t recordsStored) : nodeID(nodeID),
-                                                                databaseName(database),
-                                                                setName(set),
-                                                                sizeAdded(sizeAdded),
-                                                                recordsStored(recordsStored) {}
+  ~CatSetIncrementSetRecordInfo() = default;
 
   /**
    * Copy the request this is needed by the broadcast
@@ -62,6 +62,8 @@ public:
     setName = pdbItemToCopy->setName;
     sizeAdded = pdbItemToCopy->sizeAdded;
     recordsStored = pdbItemToCopy->recordsStored;
+    keySizeAdded = pdbItemToCopy->keySizeAdded;
+    keyRecordsStored = pdbItemToCopy->keyRecordsStored;
   }
 
   ENABLE_DEEP_COPY
@@ -84,11 +86,21 @@ public:
   /**
    * The size of the update in bytes
    */
-  size_t sizeAdded{};
+  size_t sizeAdded{0};
 
   /**
    * The number of records stored
    */
-  size_t recordsStored{};
+  size_t recordsStored{0};
+
+  /**
+   * The size of the update in bytes
+   */
+  size_t keySizeAdded{0};
+
+  /**
+   * The number of records stored
+   */
+  size_t keyRecordsStored{0};
 };
 }

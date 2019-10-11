@@ -52,7 +52,6 @@
 #include "SimpleSendDataRequest.h"
 #include "CatUserTypeMetadata.h"
 #include "CatGetWorkersResult.h"
-#include "CatSetIncrementKeyRecordInfo.h"
 #include "CatSetStatsRequest.h"
 
 namespace pdb {
@@ -436,7 +435,7 @@ bool PDBCatalogClient::incrementSetRecordInfo(const std::string &nodeIdentifier,
   // make a request and return the value
   return RequestFactory::heapRequest<CatSetIncrementSetRecordInfo, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
+      [&](const Handle<SimpleRequestResult>& result) {
 
         if (result != nullptr) {
           if (!result->getRes().first) {
@@ -449,7 +448,7 @@ bool PDBCatalogClient::incrementSetRecordInfo(const std::string &nodeIdentifier,
         errMsg = "Error getting set: got nothing back from catalog";
         return false;
       },
-      nodeIdentifier, databaseName, setName, sizeAdded, recordsStored);
+      nodeIdentifier, databaseName, setName, sizeAdded, recordsStored, 0, 0);
 }
 
 bool PDBCatalogClient::incrementKeyRecordInfo(const std::string &nodeIdentifier,
@@ -460,9 +459,9 @@ bool PDBCatalogClient::incrementKeyRecordInfo(const std::string &nodeIdentifier,
                                               std::string &errMsg) {
 
   // make a request and return the value
-  return RequestFactory::heapRequest<CatSetIncrementKeyRecordInfo, SimpleRequestResult, bool>(
+  return RequestFactory::heapRequest<CatSetIncrementSetRecordInfo, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
+      [&](const Handle<SimpleRequestResult>& result) {
 
         if (result != nullptr) {
           if (!result->getRes().first) {
@@ -475,7 +474,7 @@ bool PDBCatalogClient::incrementKeyRecordInfo(const std::string &nodeIdentifier,
         errMsg = "Error getting set: got nothing back from catalog";
         return false;
       },
-      nodeIdentifier, databaseName, setName, sizeAdded, keysStored);
+      nodeIdentifier, databaseName, setName, 0, 0, sizeAdded, keysStored);
 }
 
 bool PDBCatalogClient::updateSetContainerType(const string &databaseName,

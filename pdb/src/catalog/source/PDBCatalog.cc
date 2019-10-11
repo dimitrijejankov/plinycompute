@@ -325,6 +325,8 @@ bool pdb::PDBCatalog::incrementSetSize(const std::string &nodeID,
                                        const std::string &setName,
                                        size_t sizeAdded,
                                        size_t recordsStored,
+                                       size_t keySizeAdded,
+                                       size_t keyRecordsStored,
                                        std::string &error) {
 
   try {
@@ -362,18 +364,19 @@ bool pdb::PDBCatalog::incrementSetSize(const std::string &nodeID,
     if(setOnNode == nullptr) {
 
       // insert the the entry
-      storage.replace(pdb::PDBCatalogSetOnNode(set->setIdentifier, node->nodeID, recordsStored, sizeAdded, 0, 0));
+      storage.replace(pdb::PDBCatalogSetOnNode(set->setIdentifier, node->nodeID, recordsStored, sizeAdded, keyRecordsStored, keySizeAdded));
     }
     else {
 
       // increment the stats and replace it
       setOnNode->recordCount += recordsStored;
       setOnNode->shardSize += sizeAdded;
+      setOnNode->keyCount += keyRecordsStored;
+      setOnNode->keySize += keySizeAdded;
 
       // replace
       storage.replace(*setOnNode);
     }
-
 
     // return true
     return true;
@@ -650,6 +653,15 @@ bool pdb::PDBCatalog::removeSet(const std::string &dbName, const std::string &se
 
   return true;
 }
+
+std::string pdb::PDBCatalog::toKeySetName(const std::string &setName) {
+  return std::move(setName + "#keys");
+}
+
+std::string pdb::PDBCatalog::fromKeySetNameToSetName(const std::string &setName){
+  return std::move(setName.substr(0, setName.size() - 5));
+}
+
 
 std::vector<pdb::PDBCatalogNodePtr> pdb::PDBCatalog::getWorkerNodes() {
 
