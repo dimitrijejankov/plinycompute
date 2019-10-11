@@ -51,7 +51,10 @@ namespace pdb {
 
     // if it has get key
     if constexpr (hasGetKey) {
-      if constexpr (std::is_base_of<HandleBase, decltype(((DataType*) nullptr)->getKey())>::value) {
+
+      // figure out if the key is a handle
+      using keyType = typename std::remove_reference<decltype(((DataType*) nullptr)->getKey())>::type;
+      if constexpr (std::is_base_of<HandleBase, keyType>::value) {
 
         // send the data with key
         result = distributedStorage->sendDataWithKey<DataType>(database, set, dataToSend, returnedMsg);

@@ -41,7 +41,10 @@ bool PDBCatalogClient::createSet(std::string databaseName, std::string setName, 
 
   // if it has get key
   if constexpr (hasGetKey) {
-    isExtractingKey = std::is_base_of<HandleBase, decltype(((DataType*) nullptr)->getKey())>::value;
+
+    // get the type of the key and figure out if it is a handle
+    using keyType = typename std::remove_reference<decltype(((DataType*) nullptr)->getKey())>::type;
+    isExtractingKey = std::is_base_of<HandleBase, keyType>::value;
   }
 
   // get the type id
