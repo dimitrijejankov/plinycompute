@@ -47,14 +47,12 @@ class CatGetSetResult : public Object {
                            const std::string &internalType,
                            const std::string &type,
                            bool isStoringKeys,
-                           size_t setSize,
                            const PDBCatalogSetContainerType &containerType) : databaseName(database),
                                                                               setName(set),
                                                                               internalType(internalType),
                                                                               isStoringKeys(isStoringKeys),
                                                                               type(type),
-                                                                              containerType(containerType),
-                                                                              setSize(setSize) {}
+                                                                              containerType(containerType) {}
 
   ENABLE_DEEP_COPY
 
@@ -83,11 +81,6 @@ class CatGetSetResult : public Object {
    * The true if it is storing keys
    */
   bool isStoringKeys;
-
-  /**
-   * The size of the set
-   */
-  size_t setSize;
 
   /**
    * The type of the container that are stored on the pages of this set

@@ -5,8 +5,8 @@
 bool pdb::OptimizerSourceComparator::operator()(const pdb::OptimizerSource &lhs, const pdb::OptimizerSource &rhs) const {
 
   // first compare them based on the size
-  if(lhs.first != rhs.first) {
-    return lhs.first < rhs.first;
+  if(lhs.first->setSize != rhs.first->setSize) {
+    return lhs.first->setSize < rhs.first->setSize;
   }
 
   // if the size is equal compare them on the

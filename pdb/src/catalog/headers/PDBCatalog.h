@@ -40,6 +40,7 @@
 #include <memory>
 #include <mutex>
 #include "PDBCatalogStorage.h"
+#include "PDBCatalogSetStats.h"
 
 namespace pdb {
 class PDBCatalog;
@@ -235,6 +236,14 @@ class PDBCatalog {
    * type the shared library will be an empty vector<char>
    */
   PDBCatalogTypePtr getTypeWithoutLibrary(const std::string &name);
+
+  /**
+   * Returns the statistics about a particular set
+   * @param dbName - the database the set belongs to
+   * @param setName - the name of the set
+   * @return The aggregated statistics about the set
+   */
+  PDBCatalogSetStatsPtr getSetStats(const std::string &dbName, const std::string &setName);
 
   /**
    * Returns the total number of registered types inside the catalog

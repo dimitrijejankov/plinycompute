@@ -28,7 +28,7 @@ pdb::Handle<pdb::PDBPhysicalAlgorithm> PDBPhysicalOptimizer::getNextAlgorithm() 
 
     // go through each consumer of the output of this algorithm and add it to the sources
     for(const auto &sourceNode : result.newSourceNodes) {
-      sources.insert(std::make_pair(0, sourceNode));
+      sources.insert(std::make_pair(std::make_shared<PDBCatalogSetStats>(), sourceNode));
     }
 
     // add the new page sets
@@ -36,7 +36,7 @@ pdb::Handle<pdb::PDBPhysicalAlgorithm> PDBPhysicalOptimizer::getNextAlgorithm() 
 
       // insert the page set with the specified number of consumers
       activePageSets[pageSet.first] += pageSet.second;
-      pageSetCosts[pageSet.first] = 0;
+      pageSetCosts[pageSet.first] = std::make_shared<PDBCatalogSetStats>(0, 0, 0, 0);
     }
 
     // deallocate the old ones
@@ -77,14 +77,14 @@ bool PDBPhysicalOptimizer::hasAlgorithmToRun() {
 }
 
 void PDBPhysicalOptimizer::updatePageSet(const PDBPageSetIdentifier &identifier, size_t size) {
-  pageSetCosts[identifier] = size;
+  pageSetCosts[identifier] = std::make_shared<PDBCatalogSetStats>(0, 0, size, 0);
 }
 
 std::vector<PDBPageSetIdentifier> PDBPhysicalOptimizer::getPageSetsToRemove() {
 
   // set the sizes of all the removed sets to 0
   for (const auto &i : pageSetsToRemove) {
-    pageSetCosts[i] = 0;
+    pageSetCosts[i] = std::make_shared<PDBCatalogSetStats>(0, 0, 0, 0);
   }
 
   // empty out the page set

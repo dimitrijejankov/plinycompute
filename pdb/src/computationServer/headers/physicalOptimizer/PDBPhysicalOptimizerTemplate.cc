@@ -7,6 +7,7 @@
 
 #include <Lexer.h>
 #include <Parser.h>
+#include <PDBCatalogClient.h>
 
 namespace pdb {
 
@@ -56,15 +57,15 @@ PDBPhysicalOptimizer::PDBPhysicalOptimizer(uint64_t computationID,
     // get the set
     std::string error;
     auto setIdentifier = source->getSourceSet();
-    auto set = clientPtr->getSet(setIdentifier.first, setIdentifier.second, error);
+    auto stats = clientPtr->getSetStats(setIdentifier.first, setIdentifier.second, error);
 
-    if(set == nullptr) {
+    if(stats == nullptr) {
       throw runtime_error("Could not find the set I needed. " +  error);
     }
 
     // add the source to the data structures
-    sources.insert(std::make_pair(set->setSize, source));
-    pageSetCosts[source->getSourcePageSet(pageSetCosts)->pageSetIdentifier] = set->setSize;
+    sources.insert(std::make_pair(stats, source));
+    pageSetCosts[source->getSourcePageSet(pageSetCosts)->pageSetIdentifier] = stats;
   }
 
 }

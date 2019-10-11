@@ -37,10 +37,14 @@ class PDBCatalogSetOnNode {
   PDBCatalogSetOnNode(std::string setIdentifier,
                       std::string nodeID,
                       uint64_t recordCount,
-                      uint64_t shardSize) : setIdentifier(std::move(setIdentifier)),
-                                            nodeID(std::move(nodeID)),
-                                            recordCount(recordCount),
-                                            shardSize(shardSize) {}
+                      uint64_t shardSize,
+                      uint64_t keyCount,
+                      uint64_t keySize) : setIdentifier(std::move(setIdentifier)),
+                                          nodeID(std::move(nodeID)),
+                                          recordCount(recordCount),
+                                          shardSize(shardSize),
+                                          keyCount(keyCount),
+                                          keySize(keySize) {}
 
   /**
    * The identifier of the set
@@ -63,6 +67,16 @@ class PDBCatalogSetOnNode {
   uint64_t shardSize = 0;
 
   /**
+   * The key count on this node, a node always holds all the keys
+   */
+  uint64_t keyCount = 0;
+
+  /**
+   * The size of the keys on this node, a node always holds all the keys
+   */
+  uint64_t keySize = 0;
+
+  /**
    * Return the schema of the database object
    * @return the schema
    */
@@ -74,6 +88,8 @@ class PDBCatalogSetOnNode {
                                   sqlite_orm::make_column("nodeID", &PDBCatalogSetOnNode::nodeID),
                                   sqlite_orm::make_column("recordCount", &PDBCatalogSetOnNode::recordCount),
                                   sqlite_orm::make_column("shardSize", &PDBCatalogSetOnNode::shardSize),
+                                  sqlite_orm::make_column("keyCount", &PDBCatalogSetOnNode::keyCount),
+                                  sqlite_orm::make_column("keySize", &PDBCatalogSetOnNode::keySize),
                                   sqlite_orm::primary_key(&PDBCatalogSetOnNode::setIdentifier, &PDBCatalogSetOnNode::nodeID));
   }
 };

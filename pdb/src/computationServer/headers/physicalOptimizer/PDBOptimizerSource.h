@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <map>
+#include <PDBCatalogSetStats.h>
 
 namespace pdb {
 
@@ -11,7 +12,7 @@ using PDBAbstractPhysicalNodeWeakPtr = std::weak_ptr<PDBAbstractPhysicalNode>;
 
 using PDBPageSetIdentifier = std::pair<size_t, std::string>;
 
-using OptimizerSource = std::pair<size_t, PDBAbstractPhysicalNodePtr>;
+using OptimizerSource = std::pair<pdb::PDBCatalogSetStatsPtr, PDBAbstractPhysicalNodePtr>;
 class OptimizerSourceComparator
 {
  public:
@@ -24,6 +25,6 @@ class PageSetIdentifierComparator
   bool operator() (const PDBPageSetIdentifier &lhs, const PDBPageSetIdentifier &rhs) const;
 };
 
-using PDBPageSetCosts = std::map<PDBPageSetIdentifier, size_t, PageSetIdentifierComparator>;
+using PDBPageSetCosts = std::map<PDBPageSetIdentifier, pdb::PDBCatalogSetStatsPtr, PageSetIdentifierComparator>;
 
 }

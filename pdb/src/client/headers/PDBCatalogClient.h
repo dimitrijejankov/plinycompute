@@ -15,8 +15,7 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
-#ifndef CATALOG_CLIENT_H
-#define CATALOG_CLIENT_H
+#pragma once
 
 #include <PDBCatalogSet.h>
 #include "CatSharedLibraryByNameRequest.h"
@@ -25,6 +24,7 @@
 #include "PDBLogger.h"
 #include "PDBServer.h"
 #include "ServerFunctionality.h"
+#include "PDBCatalogSetStats.h"
 
 namespace pdb {
 
@@ -166,6 +166,14 @@ public:
                               PDBCatalogSetContainerType containerType,
                               std::string &errMsg);
 
+  /**
+   * Gets the stats of a set in the database
+   * @param databaseName - the database the set belongs to
+   * @param setName - the name of the set
+   * @return - the stats
+   */
+  pdb::PDBCatalogSetStatsPtr getSetStats(const std::string &dbName, const std::string &setName, std::string &errMsg);
+
   /* Sends a request to the Catalog Server to delete a database; returns true on
    * success, false on
    * fail
@@ -225,5 +233,3 @@ private:
 }
 
 #include "PDBCatalogClientTemplate.cc"
-
-#endif

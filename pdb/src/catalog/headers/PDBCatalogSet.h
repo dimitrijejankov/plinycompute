@@ -50,14 +50,12 @@ public:
                 const std::string &name,
                 const std::string &type,
                 bool isStoringKeys,
-                size_t setSize,
                 PDBCatalogSetContainerType containerType) :
                 setIdentifier(database + ":" + name),
                 name(name),
                 database(database),
                 isStoringKeys(isStoringKeys),
                 type(std::make_shared<std::string>(type)),
-                setSize(setSize),
                 containerType(containerType) {}
 
   /**
@@ -74,11 +72,6 @@ public:
    * The database of the set
    */
   std::string database;
-
-  /**
-   * The size of the set
-   */
-  size_t setSize = 0;
 
   /**
    * The type of the set
@@ -105,7 +98,6 @@ public:
     return sqlite_orm::make_table("sets",  sqlite_orm::make_column("setIdentifier", &PDBCatalogSet::setIdentifier),
                                            sqlite_orm::make_column("setName", &PDBCatalogSet::name),
                                            sqlite_orm::make_column("setDatabase", &PDBCatalogSet::database),
-                                           sqlite_orm::make_column("setSize", &PDBCatalogSet::setSize),
                                            sqlite_orm::make_column("setType", &PDBCatalogSet::type),
                                            sqlite_orm::make_column("setContainerType", &PDBCatalogSet::containerType),
                                            sqlite_orm::make_column("isStoringKeys", &PDBCatalogSet::isStoringKeys),

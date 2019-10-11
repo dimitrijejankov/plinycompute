@@ -146,7 +146,7 @@ size_t pdb::PDBJoinPhysicalNode::getPrimarySourcesSize(pdb::PDBPageSetCosts &pag
   // sum up the size of the page set costs
   size_t tmp = 0;
   for(const auto &cst : primarySources) {
-    tmp += pageSetCosts.find(cst.source->pageSetIdentifier)->second;
+    tmp += pageSetCosts.find(cst.source->pageSetIdentifier)->second->setSize;
   }
 
   // return them

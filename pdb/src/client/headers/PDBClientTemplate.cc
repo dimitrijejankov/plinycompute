@@ -40,23 +40,39 @@ namespace pdb {
   template <class DataType>
   bool PDBClient::sendData(const std::string &database, const std::string &set, Handle<Vector<Handle<DataType>>> dataToSend) {
 
-    constexpr bool isExtractingKey = pdb::tupleTests::has_get_key<DataType>::value;
-
     // check if that data we are sending is capable of
     bool result;
-    if(!isExtractingKey) {
-      result = distributedStorage->sendData<DataType>(database, set, dataToSend, returnedMsg);
-    }
-    else {
-      result = distributedStorage->sendDataWithKey<DataType>(database, set, dataToSend, returnedMsg);
+
+    // figure out whether we can extract the key
+    bool isExtractingKey = false;
+
+    // fist check if it has get key
+    constexpr bool hasGetKey = pdb::tupleTests::has_get_key<DataType>::value;
+
+    // if it has get key
+    if constexpr (hasGetKey) {
+      if constexpr (std::is_base_of<HandleBase, decltype(((DataType*) nullptr)->getKey())>::value) {
+
+        // send the data with key
+        result = distributedStorage->sendDataWithKey<DataType>(database, set, dataToSend, returnedMsg);
+
+        // if we failed
+        if(!result) {
+          errorMsg = "Not able to send data: " + returnedMsg;
+        }
+
+        // finish here
+        return result;
+      }
     }
 
-    if (result==false) {
-        errorMsg = "Not able to send data: " + returnedMsg;
-        exit(-1);
-    } else {
-        cout << "Data sent.\n";
+    result = distributedStorage->sendData<DataType>(database, set, dataToSend, returnedMsg);
+
+    // if we failed
+    if(!result) {
+      errorMsg = "Not able to send data: " + returnedMsg;
     }
+
     return result;
   }
 

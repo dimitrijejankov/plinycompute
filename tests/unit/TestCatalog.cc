@@ -28,9 +28,9 @@ TEST(CatalogTest, FullTest) {
   EXPECT_EQ(catalog.numRegisteredTypes() - numBefore, 2);
 
   // create the set
-  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db1", "set1", "Type1", true, 0, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_NO_CONTAINER), error));
-  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db1", "set2", "Type1", true, 0, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_NO_CONTAINER), error));
-  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db2", "set3", "Type2", false, 0, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_NO_CONTAINER), error));
+  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db1", "set1", "Type1", true, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_NO_CONTAINER), error));
+  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db1", "set2", "Type1", true, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_NO_CONTAINER), error));
+  EXPECT_TRUE(catalog.registerSet(std::make_shared<pdb::PDBCatalogSet>("db2", "set3", "Type2", false, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_NO_CONTAINER), error));
 
   EXPECT_TRUE(catalog.updateSetContainer("db1", "set1", pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_VECTOR_CONTAINER, error));
   EXPECT_TRUE(catalog.updateSetContainer("db1", "set2", pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_MAP_CONTAINER, error));
@@ -83,26 +83,34 @@ TEST(CatalogTest, FullTest) {
   // check the get method for the sets
   auto set = catalog.getSet("db1", "set1");
 
+  //
+  auto setOnNode = catalog.getSetStats("db1", "set1");
+
   EXPECT_EQ(set->name, "set1");
   EXPECT_EQ(set->setIdentifier, "db1:set1");
   EXPECT_EQ(set->database, "db1");
   EXPECT_EQ(*set->type, "Type1");
   EXPECT_EQ(set->containerType, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_VECTOR_CONTAINER);
-  //EXPECT_EQ(set->setSize, 1024 + 2048);
+  EXPECT_EQ(setOnNode->setSize, 4096);
+  EXPECT_EQ(setOnNode->numRecords, 8);
   EXPECT_TRUE(set->isStoringKeys);
 
   set = catalog.getSet("db1", "set2");
+  setOnNode = catalog.getSetStats("db1", "set2");
 
   EXPECT_EQ(set->name, "set2");
   EXPECT_EQ(set->setIdentifier, "db1:set2");
   EXPECT_EQ(set->database, "db1");
   EXPECT_EQ(*set->type, "Type1");
   EXPECT_EQ(set->containerType, pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_MAP_CONTAINER);
-  //EXPECT_EQ(set->setSize, 1024 + 512);
+  EXPECT_EQ(setOnNode->setSize, 1536);
+  EXPECT_EQ(setOnNode->numRecords, 7);
   EXPECT_TRUE(set->isStoringKeys);
 
   set = catalog.getSet("db2", "set3");
+  setOnNode = catalog.getSetStats("db2", "set3");
 
+  EXPECT_EQ(setOnNode, nullptr);
   EXPECT_EQ(set->name, "set3");
   EXPECT_EQ(set->setIdentifier, "db2:set3");
   EXPECT_EQ(set->database, "db2");

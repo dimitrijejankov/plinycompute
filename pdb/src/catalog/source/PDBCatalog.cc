@@ -16,9 +16,8 @@
  *                                                                           *
  *****************************************************************************/
 
-#include <PDBCatalog.h>
-
 #include "PDBCatalog.h"
+#include "PDBCatalogSetStats.h"
 
 using namespace sqlite_orm;
 
@@ -47,7 +46,7 @@ bool pdb::PDBCatalog::registerSet(pdb::PDBCatalogSetPtr set, std::string &error)
     }
 
     // we check if the set is alpha numerical
-    std::regex isAlphaNumerical("^[a-zA-Z][a-zA-Z0-9]*$");
+    std::regex isAlphaNumerical("^[a-zA-Z][a-zA-Z0-9_]*$");
     if(!std::regex_match(set->name, isAlphaNumerical)) {
 
       // set the error
@@ -88,7 +87,7 @@ bool pdb::PDBCatalog::registerDatabase(pdb::PDBCatalogDatabasePtr db, std::strin
     }
 
     // we check if the set is alpha numerical
-    std::regex isAlphaNumerical("^[a-zA-Z][a-zA-Z0-9]*$");
+    std::regex isAlphaNumerical("^[a-zA-Z][a-zA-Z0-9_]*$");
     if(!std::regex_match(db->name, isAlphaNumerical)) {
 
       // set the error
@@ -316,9 +315,9 @@ pdb::PDBCatalogSetPtr pdb::PDBCatalog::getSet(const std::string &dbName, const s
   return storage.get_no_throw<PDBCatalogSet>(dbName + ":" + setName);
 }
 
-pdb::PDBCatalogSetOnNodePtr pdb::PDBCatalog::getSetOnNode(const std::string &nodeIdentifier,
-                                                          const std::string &setIdentifier) {
-  return storage.get_no_throw<PDBCatalogSetOnNode>(nodeIdentifier, setIdentifier);
+pdb::PDBCatalogSetOnNodePtr pdb::PDBCatalog::getSetOnNode(const std::string &setIdentifier,
+                                                          const std::string &nodeIdentifier) {
+  return storage.get_no_throw<PDBCatalogSetOnNode>(setIdentifier, nodeIdentifier);
 }
 
 bool pdb::PDBCatalog::incrementSetSize(const std::string &nodeID,
@@ -357,13 +356,13 @@ bool pdb::PDBCatalog::incrementSetSize(const std::string &nodeID,
     }
 
     // grab the entry if it exists
-    auto setOnNode = getSetOnNode(node->nodeID, set->setIdentifier);
+    auto setOnNode = getSetOnNode(set->setIdentifier, node->nodeID);
 
     // if it does not exist create it
     if(setOnNode == nullptr) {
 
       // insert the the entry
-      storage.replace(pdb::PDBCatalogSetOnNode(node->nodeID, set->setIdentifier, recordsStored, sizeAdded));
+      storage.replace(pdb::PDBCatalogSetOnNode(set->setIdentifier, node->nodeID, recordsStored, sizeAdded, 0, 0));
     }
     else {
 
@@ -464,6 +463,30 @@ pdb::PDBCatalogTypePtr pdb::PDBCatalog::getTypeWithoutLibrary(const std::string 
                                                std::vector<char>());
 }
 
+pdb::PDBCatalogSetStatsPtr pdb::PDBCatalog::getSetStats(const std::string &dbName, const std::string &setName) {
+
+  std::string setIdentifier = dbName + ":" + setName;
+  auto cols = storage.select(columns(max(&PDBCatalogSetOnNode::keyCount),
+                                     max(&PDBCatalogSetOnNode::keySize),
+                                     sum(&PDBCatalogSetOnNode::shardSize),
+                                     sum(&PDBCatalogSetOnNode::recordCount)),
+                 where(c(&PDBCatalogSetOnNode::setIdentifier) == setIdentifier));
+
+  // if there was no entry finish
+  if(std::get<0>(cols.front()) == nullptr ||
+     std::get<1>(cols.front()) == nullptr ||
+     std::get<2>(cols.front()) == nullptr ||
+     std::get<3>(cols.front()) == nullptr) {
+    return nullptr;
+  }
+
+  // return the stats
+  return std::make_shared<PDBCatalogSetStats>(*std::get<0>(cols.front()),
+                                              *std::get<3>(cols.front()),
+                                              *std::get<2>(cols.front()),
+                                              *std::get<1>(cols.front()));
+}
+
 int32_t pdb::PDBCatalog::numRegisteredTypes() {
 
   // return the number of types in the catalog
@@ -477,7 +500,6 @@ std::vector<pdb::PDBCatalogSet> pdb::PDBCatalog::getSetsInDatabase(const std::st
                                      &PDBCatalogSet::database,
                                      &PDBCatalogSet::type,
                                      &PDBCatalogSet::isStoringKeys,
-                                     &PDBCatalogSet::setSize,
                                      &PDBCatalogSet::containerType), where(c(&PDBCatalogSet::database) == dbName));
 
   // create a return value
@@ -492,8 +514,7 @@ std::vector<pdb::PDBCatalogSet> pdb::PDBCatalog::getSetsInDatabase(const std::st
                                         std::get<0>(r),
                                         *std::get<2>(r),
                                         std::get<3>(r),
-                                        std::get<4>(r),
-                                        (PDBCatalogSetContainerType) std::get<5>(r)));
+                                        (PDBCatalogSetContainerType) std::get<4>(r)));
   }
 
   return std::move(ret);
@@ -645,4 +666,3 @@ std::vector<pdb::PDBCatalogNodePtr> pdb::PDBCatalog::getWorkerNodes() {
   // return the nodes
   return std::move(ret);
 }
-

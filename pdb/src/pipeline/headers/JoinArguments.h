@@ -3,6 +3,7 @@
 #include <utility>
 #include <PDBAbstractPageSet.h>
 #include <ComputeInfo.h>
+#include <cassert>
 
 namespace pdb {
 

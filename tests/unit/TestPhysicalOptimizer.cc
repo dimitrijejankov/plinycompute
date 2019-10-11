@@ -18,13 +18,14 @@
 #include <IntAggregation.h>
 #include <physicalAlgorithms/PDBPhysicalAlgorithm.h>
 #include <physicalOptimizer/PDBJoinPhysicalNode.h>
+#include <PDBCatalogSetStats.h>
 
 namespace pdb {
 
 class MockCatalog {
  public:
 
-  MOCK_METHOD3(getSet, pdb::PDBCatalogSetPtr(
+  MOCK_METHOD3(getSetStats, pdb::PDBCatalogSetStatsPtr(
       const std::string &, const std::string &, std::string &));
 };
 
@@ -66,14 +67,14 @@ TEST(TestPhysicalOptimizer, TestAggregation) {
   // make the mock client
   auto catalogClient = std::make_shared<MockCatalog>();
   ON_CALL(*catalogClient,
-          getSet(testing::An<const std::string &>(),
-                 testing::An<const std::string &>(),
-                 testing::An<std::string &>())).WillByDefault(testing::Invoke(
+          getSetStats(testing::An<const std::string &>(),
+                      testing::An<const std::string &>(),
+                      testing::An<std::string &>())).WillByDefault(testing::Invoke(
       [&](const std::string &, const std::string &, std::string &errMsg) {
-        return std::make_shared<pdb::PDBCatalogSet>("input_set", "by8_db", "Nothing", 10, PDB_CATALOG_SET_NO_CONTAINER);
+        return std::make_shared<pdb::PDBCatalogSetStats>(0, 0, 10, 0);
       }));
 
-  EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(1));
+  EXPECT_CALL(*catalogClient, getSetStats).Times(testing::Exactly(1));
 
   // init the optimizer
   pdb::PDBPhysicalOptimizer optimizer(compID, tcapString, catalogClient, logger);
@@ -183,12 +184,12 @@ TEST(TestPhysicalOptimizer, TestMultiSink) {
   // make the mock client
   auto catalogClient = std::make_shared<MockCatalog>();
   ON_CALL(*catalogClient,
-          getSet(testing::An<const std::string &>(), testing::An<const std::string &>(), testing::An<std::string &>())).WillByDefault(testing::Invoke(
+          getSetStats(testing::An<const std::string &>(), testing::An<const std::string &>(), testing::An<std::string &>())).WillByDefault(testing::Invoke(
       [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
-        return std::make_shared<pdb::PDBCatalogSet>("mySetA", "myData", "Nothing", std::numeric_limits<size_t>::max(), PDB_CATALOG_SET_NO_CONTAINER);
+        return std::make_shared<pdb::PDBCatalogSetStats>(0, 0, std::numeric_limits<size_t>::max(), 0);
       }));
 
-  EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(1));
+  EXPECT_CALL(*catalogClient, getSetStats).Times(testing::Exactly(1));
 
   // init the optimizer
   pdb::PDBPhysicalOptimizer optimizer(compID, tcapString, catalogClient, logger);
@@ -336,20 +337,20 @@ TEST(TestPhysicalOptimizer, TestJoin1) {
   // make the mock client
   auto catalogClient = std::make_shared<MockCatalog>();
   ON_CALL(*catalogClient,
-          getSet(testing::An<const std::string &>(),
-                 testing::An<const std::string &>(),
-                 testing::An<std::string &>())).WillByDefault(testing::Invoke(
+          getSetStats(testing::An<const std::string &>(),
+                      testing::An<const std::string &>(),
+                      testing::An<std::string &>())).WillByDefault(testing::Invoke(
       [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
         if (setName == "mySetA") {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetA", "myData", "Nothing", 1000, PDB_CATALOG_SET_NO_CONTAINER);
+          auto tmp = std::make_shared<pdb::PDBCatalogSetStats>(0, 0, 1000, 0);
           return tmp;
         } else {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetB", "myData", "Nothing", 2000, PDB_CATALOG_SET_NO_CONTAINER);
+          auto tmp = std::make_shared<pdb::PDBCatalogSetStats>(0, 0, 2000, 0);
           return tmp;
         }
       }));
 
-  EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(2));
+  EXPECT_CALL(*catalogClient, getSetStats).Times(testing::Exactly(2));
 
   // init the optimizer
   pdb::PDBPhysicalOptimizer optimizer(compID, tcapString, catalogClient, logger);
@@ -456,21 +457,18 @@ TEST(TestPhysicalOptimizer, TestJoin2) {
   // make the mock client
   auto catalogClient = std::make_shared<MockCatalog>();
   ON_CALL(*catalogClient,
-          getSet(testing::An<const std::string &>(),
-                 testing::An<const std::string &>(),
-                 testing::An<std::string &>())).WillByDefault(testing::Invoke(
+          getSetStats(testing::An<const std::string &>(),
+                      testing::An<const std::string &>(),
+                      testing::An<std::string &>())).WillByDefault(testing::Invoke(
       [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
         if (setName == "mySetA") {
-          return std::make_shared<pdb::PDBCatalogSet>("mySetA", "myData", "Nothing", std::numeric_limits<size_t>::max(), PDB_CATALOG_SET_NO_CONTAINER);
+          return std::make_shared<pdb::PDBCatalogSetStats>(0, 0, std::numeric_limits<size_t>::max(), 0);
         } else {
-          return std::make_shared<pdb::PDBCatalogSet>("mySetB",
-                                                      "myData",
-                                                      "Nothing",
-                                                      std::numeric_limits<size_t>::max() - 1, PDB_CATALOG_SET_NO_CONTAINER);
+          return std::make_shared<pdb::PDBCatalogSetStats>(0, 0, std::numeric_limits<size_t>::max() - 1, 0);
         }
       }));
 
-  EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(2));
+  EXPECT_CALL(*catalogClient, getSetStats).Times(testing::Exactly(2));
 
   // init the optimizer
   pdb::PDBPhysicalOptimizer optimizer(compID, tcapString, catalogClient, logger);
@@ -635,27 +633,23 @@ TEST(TestPhysicalOptimizer, TestJoin3) {
   // make the mock client
   auto catalogClient = std::make_shared<MockCatalog>();
   ON_CALL(*catalogClient,
-          getSet(testing::An<const std::string &>(),
-                 testing::An<const std::string &>(),
-                 testing::An<std::string &>())).WillByDefault(testing::Invoke(
+          getSetStats(testing::An<const std::string &>(),
+                      testing::An<const std::string &>(),
+                      testing::An<std::string &>())).WillByDefault(testing::Invoke(
       [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
         if (setName == "mySetA") {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetA",
-                                                          "myData",
-                                                          "Nothing",
-                                                          std::numeric_limits<size_t>::max() - 1,
-                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          auto tmp = std::make_shared<pdb::PDBCatalogSetStats>(0, 0, std::numeric_limits<size_t>::max() - 1, 0);
           return tmp;
         } else if (setName == "mySetC") {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetC", "myData", "Nothing", 0, PDB_CATALOG_SET_NO_CONTAINER);
+          auto tmp = std::make_shared<pdb::PDBCatalogSetStats>(0, 0, 0, PDB_CATALOG_SET_NO_CONTAINER);
           return tmp;
         } else {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("mySetB", "myData", "Nothing", std::numeric_limits<size_t>::max(), PDB_CATALOG_SET_NO_CONTAINER);
+          auto tmp = std::make_shared<pdb::PDBCatalogSetStats>(0, 0, std::numeric_limits<size_t>::max(), 0);
           return tmp;
         }
       }));
 
-  EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(3));
+  EXPECT_CALL(*catalogClient, getSetStats).Times(testing::Exactly(3));
 
   // init the optimizer
   pdb::PDBPhysicalOptimizer optimizer(compID, tcapString, catalogClient, logger);
@@ -873,29 +867,21 @@ TEST(TestPhysicalOptimizer, TestAggregationAfterTwoWayJoin) {
   // make the mock client
   auto catalogClient = std::make_shared<MockCatalog>();
   ON_CALL(*catalogClient,
-          getSet(testing::An<const std::string &>(),
-                 testing::An<const std::string &>(),
-                 testing::An<std::string &>())).WillByDefault(testing::Invoke(
+          getSetStats(testing::An<const std::string &>(),
+                      testing::An<const std::string &>(),
+                      testing::An<std::string &>())).WillByDefault(testing::Invoke(
       [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
 
         if (setName == "test78_set1") {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("test78_db",
-                                                          "test78_set1",
-                                                          "Nothing",
-                                                          std::numeric_limits<size_t>::max() - 1,
-                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          auto tmp = std::make_shared<pdb::PDBCatalogSetStats>(0, 0, std::numeric_limits<size_t>::max() - 1, 0);
           return tmp;
         } else {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("test78_db",
-                                                          "test78_set2",
-                                                          "Nothing",
-                                                          std::numeric_limits<size_t>::max() - 2,
-                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          auto tmp = std::make_shared<pdb::PDBCatalogSetStats>(0, 0, std::numeric_limits<size_t>::max() - 2, 0);
           return tmp;
         }
       }));
 
-  EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(3));
+  EXPECT_CALL(*catalogClient, getSetStats).Times(testing::Exactly(3));
 
   // change the threshold so that we do a shuffle
   PDBJoinPhysicalNode::SHUFFLE_JOIN_THRASHOLD = 0;
@@ -1113,29 +1099,21 @@ TEST(TestPhysicalOptimizer, TestUnion1) {
   // make the mock client
   auto catalogClient = std::make_shared<MockCatalog>();
   ON_CALL(*catalogClient,
-          getSet(testing::An<const std::string &>(),
-                 testing::An<const std::string &>(),
-                 testing::An<std::string &>())).WillByDefault(testing::Invoke(
+          getSetStats(testing::An<const std::string &>(),
+                      testing::An<const std::string &>(),
+                      testing::An<std::string &>())).WillByDefault(testing::Invoke(
       [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
 
         if (setName == "test78_set1") {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("db",
-                                                          "input_set1",
-                                                          "Nothing",
-                                                          std::numeric_limits<size_t>::max() - 1,
-                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          auto tmp = std::make_shared<pdb::PDBCatalogSetStats>(0, 0, std::numeric_limits<size_t>::max() - 1, 0);
           return tmp;
         } else {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("db",
-                                                          "input_set2",
-                                                          "Nothing",
-                                                          std::numeric_limits<size_t>::max() - 2,
-                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          auto tmp = std::make_shared<pdb::PDBCatalogSetStats>(0, 0, std::numeric_limits<size_t>::max() - 2, 0);
           return tmp;
         }
       }));
 
-  EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(2));
+  EXPECT_CALL(*catalogClient, getSetStats).Times(testing::Exactly(2));
 
   // set the computation id
   const size_t compID = 76;
@@ -1220,38 +1198,26 @@ TEST(TestPhysicalOptimizer, TestUnion2) {
   // make the mock client
   auto catalogClient = std::make_shared<MockCatalog>();
   ON_CALL(*catalogClient,
-          getSet(testing::An<const std::string &>(),
-                 testing::An<const std::string &>(),
-                 testing::An<std::string &>())).WillByDefault(testing::Invoke(
+          getSetStats(testing::An<const std::string &>(),
+                      testing::An<const std::string &>(),
+                      testing::An<std::string &>())).WillByDefault(testing::Invoke(
       [&](const std::string &dbName, const std::string &setName, std::string &errMsg) {
 
         if (setName == "input_set1") {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("db",
-                                                          "input_set1",
-                                                          "Nothing",
-                                                          std::numeric_limits<size_t>::max() - 1,
-                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          auto tmp = std::make_shared<pdb::PDBCatalogSetStats>(0, 0, std::numeric_limits<size_t>::max() - 1, 0);
           return tmp;
         }
         else if(setName == "input_set2") {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("db",
-                                                          "input_set2",
-                                                          "Nothing",
-                                                          std::numeric_limits<size_t>::max() - 1,
-                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          auto tmp = std::make_shared<pdb::PDBCatalogSetStats>(0, 0, std::numeric_limits<size_t>::max() - 1, 0);
           return tmp;
         }
         else {
-          auto tmp = std::make_shared<pdb::PDBCatalogSet>("db",
-                                                          "input_set3",
-                                                          "Nothing",
-                                                          std::numeric_limits<size_t>::max() - 2,
-                                                          PDB_CATALOG_SET_NO_CONTAINER);
+          auto tmp = std::make_shared<pdb::PDBCatalogSetStats>(0, 0, std::numeric_limits<size_t>::max() - 2, 0);
           return tmp;
         }
       }));
 
-  EXPECT_CALL(*catalogClient, getSet).Times(testing::Exactly(3));
+  EXPECT_CALL(*catalogClient, getSetStats).Times(testing::Exactly(3));
 
   // set the computation id
   const size_t compID = 76;

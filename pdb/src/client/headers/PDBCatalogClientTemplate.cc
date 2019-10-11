@@ -34,7 +34,15 @@ bool PDBCatalogClient::createSet(std::string databaseName, std::string setName, 
   std::string typeName = VTableMap::getInternalTypeName(getTypeName<DataType>());
 
   // figure out whether we can extract the key
-  constexpr bool isExtractingKey = pdb::tupleTests::has_get_key<DataType>::value;
+  bool isExtractingKey = false;
+
+  // fist check if it has get key
+  constexpr bool hasGetKey = pdb::tupleTests::has_get_key<DataType>::value;
+
+  // if it has get key
+  if constexpr (hasGetKey) {
+    isExtractingKey = std::is_base_of<HandleBase, decltype(((DataType*) nullptr)->getKey())>::value;
+  }
 
   // get the type id
   int16_t typeID = VTableMap::getIDByName(VTableMap::getInternalTypeName(getTypeName<DataType>()), false);
@@ -58,7 +66,7 @@ bool PDBCatalogClient::createSet(std::string databaseName, std::string setName, 
         errMsg = "Error getting type name: got nothing back from catalog";
         return false;
       },
-      databaseName, setName, typeName, typeID, isExtractingKey);
+      databaseName, setName, typeName, isExtractingKey, typeID);
 }
 }
 

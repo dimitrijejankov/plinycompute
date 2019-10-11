@@ -46,13 +46,14 @@
 #include "CatPrintCatalogResult.h"
 #include "CatTypeNameSearchResult.h"
 #include "CatGetTypeResult.h"
-#include "CatGetTypeResult.h"
+#include "CatSetStatsResult.h"
 #include "PDBCatalogClient.h"
 #include "ShutDown.h"
 #include "SimpleSendDataRequest.h"
 #include "CatUserTypeMetadata.h"
 #include "CatGetWorkersResult.h"
 #include "CatSetIncrementKeyRecordInfo.h"
+#include "CatSetStatsRequest.h"
 
 namespace pdb {
 
@@ -416,7 +417,6 @@ pdb::PDBCatalogSetPtr PDBCatalogClient::getSet(const std::string &dbName, const 
                                                               result->setName,
                                                               result->type,
                                                               result->isStoringKeys,
-                                                              result->setSize,
                                                               result->containerType);
                 }
 
@@ -498,6 +498,28 @@ bool PDBCatalogClient::updateSetContainerType(const string &databaseName,
         return false;
       },
       databaseName, setName, containerType);
+}
+
+pdb::PDBCatalogSetStatsPtr PDBCatalogClient::getSetStats(const std::string &dbName, const std::string &setName, std::string &errMsg) {
+
+  // make a request and return the value
+  return RequestFactory::heapRequest<CatSetStatsRequest, CatSetStatsResult, pdb::PDBCatalogSetStatsPtr>(
+      myLogger, port, address, (pdb::PDBCatalogSetStatsPtr) nullptr, 1024,
+      [&](Handle<CatSetStatsResult> result) {
+
+        if (result != nullptr && !result->hasStats) {
+            myLogger->error("Error getting the stats: " + dbName + " : " + setName);
+            errMsg = "Error getting the stats: " + dbName + " : " + setName + '\n';
+            return pdb::PDBCatalogSetStatsPtr(nullptr);
+        }
+
+        // return the stats
+        return std::make_shared<pdb::PDBCatalogSetStats>(result->keyCount,
+                                                         result->recordCount,
+                                                         result->shardSize,
+                                                         result->keySize);
+      },
+      dbName, setName);
 }
 
 pdb::PDBCatalogDatabasePtr PDBCatalogClient::getDatabase(const std::string &dbName, std::string &errMsg) {

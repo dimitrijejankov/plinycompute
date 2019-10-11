@@ -26,6 +26,7 @@
 #include "CatalogServer.h"
 #include <CatGetWorkersRequest.h>
 #include <CatSetUpdateContainerTypeRequest.h>
+#include <CatSetStatsResult.h>
 
 #include "BuiltInObjectTypeIDs.h"
 #include "CatSyncWorkerRequest.h"
@@ -47,6 +48,7 @@
 #include "CatGetSetResult.h"
 #include "CatGetWorkersResult.h"
 #include "CatUserTypeMetadata.h"
+#include "CatSetStatsRequest.h"
 #include "CatPrintCatalogRequest.h"
 #include "CatPrintCatalogResult.h"
 #include "CatSetIncrementSetRecordInfo.h"
@@ -575,6 +577,42 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
             return make_pair(res, errMsg);
       }));
 
+  forMe.registerHandler(
+      CatSetStatsRequest_TYPEID,
+      make_shared<HeapRequestHandler<CatSetStatsRequest>>(
+          [&](Handle<CatSetStatsRequest> request, const PDBCommunicatorPtr& sendUsingMe) {
+
+            // lock the catalog server
+            std::lock_guard<std::mutex> guard(serverMutex);
+
+            // tries to find the stats
+            auto stats = pdbCatalog->getSetStats(request->databaseName, request->setName);
+
+            // create an allocation block for the response
+            const UseTemporaryAllocationBlock tempBlock{1024};
+
+            // allocate the response
+            Handle<CatSetStatsResult> response;
+
+            // did we find the stats
+            if (stats == nullptr) {
+
+              // return a failure
+              response = makeObject<CatSetStatsResult>(false, 0, 0, 0, 0);
+            }
+            else {
+
+              // return the stats
+              response = makeObject<CatSetStatsResult>(true, stats->numRecords, stats->setSize, stats->numKeys, stats->keySize);
+            }
+
+            // sends result to requester
+            std::string errMsg;
+            bool res = sendUsingMe->sendObject(response, errMsg);
+
+            // return
+            return make_pair(res, errMsg);
+          }));
 
   forMe.registerHandler(
       CatSetUpdateContainerTypeRequest_TYPEID,
@@ -749,7 +787,6 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
                                                                       setName,
                                                                       internalTypeName,
                                                                       request->isStoringKeys,
-                                                                      0,
                                                                       PDBCatalogSetContainerType::PDB_CATALOG_SET_NO_CONTAINER), errMsg) && res;
 
         // after we added the set to the local catalog, if this is the
@@ -1018,7 +1055,6 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
                                                      *set->type,
                                                      *set->type,
                                                      set->isStoringKeys,
-                                                     set->setSize,
                                                      (PDBCatalogSetContainerType) set->containerType);
 
             } else {
