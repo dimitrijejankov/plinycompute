@@ -220,6 +220,28 @@ public:
     return std::make_pair(scanSet->getDBName(), scanSet->getSetName());
   }
 
+  std::vector<PDBSourcePageSetSpec> getInputPageSets() {
+
+    // the stuff here
+    std::vector<PDBSourcePageSetSpec> tmp;
+    for(auto &producer : producers) {
+
+      // get the sink page set
+      auto pageSet = producer.lock()->getSinkPageSet();
+
+      // create the source
+      PDBSourcePageSetSpec sourcePageSet{};
+      sourcePageSet.sourceType = getSourceTypeForSinkType(pageSet->sinkType);
+      sourcePageSet.pageSetIdentifier = pageSet->pageSetIdentifier;
+
+      // move it
+      tmp.emplace_back(sourcePageSet);
+    }
+
+    // return the source page sets
+    return std::move(tmp);
+  }
+
   std::tuple<pdb::Handle<PDBSourcePageSetSpec>, pdb::Handle<PDBSourcePageSetSpec>, bool> getJoinSources(PDBPageSetCosts &pageSetCosts) {
 
     // make sure we are doing a join
@@ -246,8 +268,8 @@ public:
     auto applyJoin = (ApplyJoin *) pipeline.front().get();
 
     // figure out which side
-    auto &leftSide = second->second < first->second ? secondProducer : firstProducer;
-    auto &rightSide = second->second >= first->second ? secondProducer : firstProducer;
+    auto &leftSide = second->second->setSize < first->second->setSize ? secondProducer : firstProducer;
+    auto &rightSide = second->second->setSize >= first->second->setSize ? secondProducer : firstProducer;
 
     // get the tuple set identifier corresponding to the right input of the join
     auto rhsInput = applyJoin->getRightInput();

@@ -88,7 +88,7 @@ private:
   /**
    * These are all the sources we currently have, with the associated size
    */
-  set<OptimizerSource,  OptimizerSourceComparator> sources;
+  multiset<OptimizerSource,  OptimizerSourceComparator> sources;
 
   /**
    * All the sources that have been processed
@@ -104,6 +104,11 @@ private:
    * The page sets that are active, and the number of their consumers.
    */
   map<PDBPageSetIdentifier, size_t, PageSetIdentifierComparator> activePageSets;
+
+  /**
+   * Maps a page set to all the sources it is using
+   */
+  map<PDBPageSetIdentifier, multiset<OptimizerSource,  OptimizerSourceComparator>::iterator, PageSetIdentifierComparator> sourcesUsingPageSet;
 
   /**
    * The page sets we can safely remove

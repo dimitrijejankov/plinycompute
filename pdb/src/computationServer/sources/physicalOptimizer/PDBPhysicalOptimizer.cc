@@ -28,7 +28,15 @@ pdb::Handle<pdb::PDBPhysicalAlgorithm> PDBPhysicalOptimizer::getNextAlgorithm() 
 
     // go through each consumer of the output of this algorithm and add it to the sources
     for(const auto &sourceNode : result.newSourceNodes) {
-      sources.insert(std::make_pair(std::make_shared<PDBCatalogSetStats>(), sourceNode));
+
+      // the iterator
+      auto it = sources.insert(std::make_pair(std::make_shared<PDBCatalogSetStats>(), sourceNode));
+
+      // store the iterator so we can update it.
+      auto inputPageSets = sourceNode->getInputPageSets();
+      for_each(inputPageSets.begin(), inputPageSets.end(), [&](const auto &pageSet) {
+        sourcesUsingPageSet[pageSet.pageSetIdentifier] = it;
+      });
     }
 
     // add the new page sets
@@ -77,7 +85,25 @@ bool PDBPhysicalOptimizer::hasAlgorithmToRun() {
 }
 
 void PDBPhysicalOptimizer::updatePageSet(const PDBPageSetIdentifier &identifier, size_t size) {
+
+  // update the cost in the page set costs
   pageSetCosts[identifier] = std::make_shared<PDBCatalogSetStats>(0, 0, size, 0);
+
+  // check if we have a source
+  auto it = sourcesUsingPageSet.find(identifier);
+  if(it != sourcesUsingPageSet.end()) {
+
+    // get the pointer to the optimizer node
+    auto node = it->second->second;
+
+    // get the stats
+    auto stats = it->second->first;
+
+    // replace the source with updated cost
+    stats->setSize += size;
+    sources.erase(it->second);
+    sources.insert(std::make_pair(stats, node));
+  }
 }
 
 std::vector<PDBPageSetIdentifier> PDBPhysicalOptimizer::getPageSetsToRemove() {
