@@ -2,6 +2,7 @@
 #define PDB_CUDA_MATRIX_MULTIPLE
 #include <iostream>
 
+
 extern void copyFromHostToDevice(float **targetDevice,
                                  float *sourceHost,
                                  unsigned int numRows,

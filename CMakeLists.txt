@@ -3,8 +3,12 @@ cmake_minimum_required(VERSION 3.5.1)
 # set clang as the default compiler
 set(CMAKE_C_COMPILER "clang")
 set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_CUDA_COMPILER "/usr/local/cuda-10.1/bin/nvcc")
-set(CMAKE_CUDA_FLAGS "-arch=sm_61")
+set(CMAKE_CUDA_COMPILER "/usr/local/cuda-10.0/bin/nvcc")
+set(CMAKE_CUDA_FLAGS "-arch=sm_75")
+
+set (BOOST_ROOT "/home/yuxin/snap/boost")
+set (Boost_INCLUDE_DIR "/home/yuxin/snap/boost/include")
+set (Boost_LIBRARY_DIRS "/home/yuxin/snap/boost/lib")
 
 project(pdb)
 
@@ -378,6 +382,7 @@ else()
     target_link_libraries(pdb-node ${Boost_LIBRARIES})
     add_dependencies(pdb-node pdb-gpu)
     target_link_libraries(pdb-node pdb-gpu)
+    target_link_libraries(pdb-node "/usr/local/cuda-10.0/lib64/libcublas.so")
 
     # set dependencies for pdb-main
     add_custom_target(pdb-main)

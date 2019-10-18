@@ -3,12 +3,13 @@ add_pdb_integration_test(TestMatrixMultiply)
 # add a build dependency to build-tests target
 add_dependencies(build-integration-tests TestMatrixMultiply)
 
-set(CMAKE_CUDA_COMPILER "/usr/local/cuda-10.1/bin/nvcc")
-set(CMAKE_CUDA_FLAGS "-arch=sm_61")
+set(CMAKE_CUDA_COMPILER "/usr/local/cuda-10.0/bin/nvcc")
+set(CMAKE_CUDA_FLAGS "-arch=sm_75")
 set(USE_MKL Yes)
 
 find_package(MKL REQUIRED)
-link_directories(${/home/yuxin/Softwares/intel/mkl/include/})
+link_directories(${/home/yuxin/snap/intel/mkl/include/})
+include_directories("/usr/local/cuda-10.0/samples/common/inc/")
 include_directories(${MKL_INCLUDE_DIR})
 message("as ${MKL_LIBRARIES}")
 
@@ -36,6 +37,7 @@ endforeach ()
 target_link_libraries(TestMatrixMultiply ${MKL_LIBRARIES})
 target_link_libraries(MatrixMultiplyJoin PDBCUDAMatrixMultiple)
 target_link_libraries(TestMatrixMultiply PDBCUDAMatrixMultiple)
+target_link_libraries(TestMatrixMultiply "/usr/local/cuda-10.0/lib64/libcublas.so")
 
 # add build dependencies to shared libraries it uses
 add_dependencies(TestMatrixMultiply MatrixBlock)

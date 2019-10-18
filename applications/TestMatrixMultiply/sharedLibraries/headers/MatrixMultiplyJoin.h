@@ -1,13 +1,12 @@
 #pragma once
 
-//#define  __GPU__COMPUTATIONS
+#define  __GPU__COMPUTATIONS
 
 #include <LambdaCreationFunctions.h>
 #include "JoinComp.h"
 #include "MatrixBlock.h"
 #include "PDBCUDAMatrixMultiple.h"
 #include <mkl.h>
-
 
 namespace pdb {
 
