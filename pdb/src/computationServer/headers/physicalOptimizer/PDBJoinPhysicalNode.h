@@ -16,21 +16,28 @@ enum PDBJoinPhysicalNodeState {
 
   PDBJoinPhysicalNodeNotProcessed,
   PDBJoinPhysicalNodeBroadcasted,
-  PDBJoinPhysicalNodeShuffled
+  PDBJoinPhysicalNodeShuffled,
+  PDBJoinPhysicalNodeMerged,
+  PDBJoinPhysicalNodeToBeMerged
 };
 
 class PDBJoinPhysicalNode : public pdb::PDBAbstractPhysicalNode {
 
 public:
 
-  PDBJoinPhysicalNode(const std::vector<AtomicComputationPtr> &pipeline, size_t computationID, size_t currentNodeIndex)
-      : PDBAbstractPhysicalNode(pipeline, computationID, currentNodeIndex) {};
+  PDBJoinPhysicalNode(const std::vector<AtomicComputationPtr> &pipeline,
+                      size_t computationID,
+                      size_t currentNodeIndex,
+                      bool keyed)
+      : PDBAbstractPhysicalNode(pipeline, computationID, currentNodeIndex, keyed) {};
 
   PDBPipelineType getType() override;
 
   pdb::PDBPlanningResult generateAlgorithm(PDBAbstractPhysicalNodePtr &child,
                                            PDBPageSetCosts &pageSetCosts) override;
 
+
+  bool canMergeJoinToAggregation();
 
   size_t getPrimarySourcesSize(PDBPageSetCosts &pageSetCosts);
 

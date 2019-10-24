@@ -23,6 +23,7 @@
 #include "SourceSetArg.h"
 #include "Computation.h"
 #include "PDBAggregationResultTest.h"
+#include "JoinTupleTests.h"
 
 namespace pdb {
 
@@ -42,6 +43,11 @@ class SetScanner : public Computation {
   // gets the name of the i^th input type...
   std::string getInputType(int i) override {
     return "";
+  }
+
+  // for now scan is never keyed for now
+  bool isKeyed() override {
+    return pdb::tupleTests::has_get_key<OutputClass>::value;
   }
 
   // get the number of inputs to this query type

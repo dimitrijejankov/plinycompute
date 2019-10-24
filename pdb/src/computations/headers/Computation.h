@@ -85,6 +85,9 @@ class Computation : public Object {
   // gets the name of the i^th input type...
   virtual std::string getInputType(int i) = 0;
 
+  // check if the computation is keyed
+  virtual bool isKeyed() = 0;
+
   // get the number of inputs to this query type
   virtual int getNumInputs() = 0;
 

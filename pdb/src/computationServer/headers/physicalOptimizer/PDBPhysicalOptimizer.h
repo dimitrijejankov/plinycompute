@@ -43,11 +43,16 @@ public:
    * Takes in the TCAP string that we want to analyze and to the physical optimization on
    * @param computationID - the id of the computation this optimizer is to optimize
    * @param tcapString - the TACP string
+   * @param keyedComputations - the indicates what computations are keyed, maps the name of the computation
    * @param clientPtr - the catalog client
    * @param logger - the logger
    */
   template <class CatalogClient>
-  PDBPhysicalOptimizer(uint64_t computationID, String tcapString, const std::shared_ptr<CatalogClient> &clientPtr, PDBLoggerPtr &logger);
+  PDBPhysicalOptimizer(uint64_t computationID,
+                       const String& tcapString,
+                       const std::unordered_map<uint64_t, bool>& keyedComputations,
+                       const shared_ptr<CatalogClient> &clientPtr,
+                       PDBLoggerPtr &logger);
 
   /**
    * Default destructor
@@ -83,7 +88,7 @@ private:
   /**
    * The identifier of the computation
    */
-  size_t computationID;
+  size_t computationID{};
 
   /**
    * These are all the sources we currently have, with the associated size

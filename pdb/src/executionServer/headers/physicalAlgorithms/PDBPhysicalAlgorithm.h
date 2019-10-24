@@ -32,7 +32,8 @@ enum PDBPhysicalAlgorithmType {
   ShuffleForJoin,
   BroadcastForJoin,
   DistributedAggregation,
-  StraightPipe
+  StraightPipe,
+  JoinAggregation
 };
 
 

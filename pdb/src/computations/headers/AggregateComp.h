@@ -68,6 +68,10 @@ class AggregateComp : public AggregateCompBase {
     return std::string("AggregationComp");
   }
 
+  bool isKeyed() override {
+    return aggregationUsesKey<Derived>();
+  }
+
   int getNumInputs() override {
     return 1;
   }

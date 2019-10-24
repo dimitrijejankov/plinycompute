@@ -290,11 +290,22 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
             // the id associated with this computation
             auto compID = this->statsManager.startComputation();
 
-            // distributed storage
+            // grab the catalog
             auto catalogClient = getFunctionalityPtr<pdb::PDBCatalogClient>();
 
+            // figure out what computations are keyed
+            // TODO this has to be moved somewhere after I finish everything it is just ugly
+            std::unordered_map<uint64_t, bool> keyedComputations;
+            for(uint64_t i = 0; i < request->computations->size(); ++i) {
+              keyedComputations[i] = (*request->computations)[i]->isKeyed();
+            }
+
             // init the optimizer
-            pdb::PDBPhysicalOptimizer optimizer(compID, request->tcapString, catalogClient, logger);
+            pdb::PDBPhysicalOptimizer optimizer(compID,
+                                                request->tcapString,
+                                                keyedComputations,
+                                                catalogClient,
+                                                logger);
 
             // we start from job 0
             uint64_t jobID = 0;

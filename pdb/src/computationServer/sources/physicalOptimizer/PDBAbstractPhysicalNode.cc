@@ -47,7 +47,7 @@ pdb::PDBPlanningResult pdb::PDBAbstractPhysicalNode::generateAlgorithm(PDBPageSe
   return generateAlgorithm(myHandle, pageSetCosts);
 }
 
-const std::list<pdb::PDBAbstractPhysicalNodePtr> pdb::PDBAbstractPhysicalNode::getProducers() {
+std::list<pdb::PDBAbstractPhysicalNodePtr> pdb::PDBAbstractPhysicalNode::getProducers() {
 
   // create the list
   std::list<PDBAbstractPhysicalNodePtr> out;
@@ -94,4 +94,12 @@ pdb::PDBPlanningResult pdb::PDBAbstractPhysicalNode::generatePipelinedAlgorithm(
   // and the additional source are transferred for that pipeline. We can not pipeline an aggregation
   auto me = getHandle();
   return std::move(generateAlgorithm(me, sourcesWithIDs));
+}
+
+const vector<pdb::PDBPrimarySource> &pdb::PDBAbstractPhysicalNode::getPrimarySources() const {
+  return primarySources;
+}
+
+const std::vector<pdb::Handle<pdb::PDBSourcePageSetSpec>> &pdb::PDBAbstractPhysicalNode::getAdditionalSources() const {
+  return additionalSources;
 }

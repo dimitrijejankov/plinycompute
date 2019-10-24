@@ -13,7 +13,8 @@ namespace pdb {
 
 template<class CatalogClient>
 PDBPhysicalOptimizer::PDBPhysicalOptimizer(uint64_t computationID,
-                                           String tcapString,
+                                           const String& tcapString,
+                                           const std::unordered_map<uint64_t, bool>& keyedComputations,
                                            const shared_ptr<CatalogClient> &clientPtr,
                                            PDBLoggerPtr &logger) {
 
@@ -43,7 +44,9 @@ PDBPhysicalOptimizer::PDBPhysicalOptimizer(uint64_t computationID,
   auto atomicComputations = std::shared_ptr<AtomicComputationList>(myResult);
 
   // split the computations into pipes
-  pdb::PDBPipeNodeBuilder factory(computationID, atomicComputations);
+  pdb::PDBPipeNodeBuilder factory(computationID,
+                                  keyedComputations,
+                                  atomicComputations);
 
   // fill the sources up
   auto sourcesVector = factory.generateAnalyzerGraph();

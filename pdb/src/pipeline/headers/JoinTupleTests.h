@@ -4,6 +4,7 @@
 
 namespace pdb {
 
+// this needs to be moved to some place it actually makes sense
 namespace tupleTests {
 
 // test to checki if the join tuple has getKey method

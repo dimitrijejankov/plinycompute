@@ -21,7 +21,7 @@
 
 #include <set>
 #include <AtomicComputation.h>
-#include <assert.h>
+#include <cassert>
 #include "PDBAbstractPhysicalNode.h"
 
 namespace pdb {
@@ -30,7 +30,9 @@ class PDBPipeNodeBuilder {
 
 public:
 
-  PDBPipeNodeBuilder(size_t computationID, std::shared_ptr<AtomicComputationList> computations);
+  PDBPipeNodeBuilder(size_t computationID,
+                     std::unordered_map<uint64_t, bool> keyedComputations,
+                     std::shared_ptr<AtomicComputationList> computations);
 
   /**
    *
@@ -45,19 +47,42 @@ public:
    *
    * @param curNode
    */
-  void transverseTCAPGraph(AtomicComputationPtr curNode);
+  void transverseTCAPGraph(const AtomicComputationPtr& curNode);
 
   /**
    * This method updates the @see consumedBy for the node we provide.
    * This method assumes that the last AtomicComputation belonging to this node is stored at @see currentPipe
    * @param node - the node we are updating the consumedBy for
    */
-  void setConsumers(std::shared_ptr<PDBAbstractPhysicalNode> node);
+  void setConsumers(const std::shared_ptr<PDBAbstractPhysicalNode>& node);
 
   /**
    * After we create all the pipes we we need to connect them to create a graph consisting of pipes
    */
   void connectThePipes();
+
+  /**
+   * Does the pipeline supports the key only execution
+   * @return true if it does, false otherwise
+   */
+  bool isCurrentPipeKeyed() {
+
+    // go through each computation in the pipeline
+    for(auto &c : currentPipe) {
+
+      // figure out the computation ID
+      std::string compName = c->getComputationName();
+      uint64_t compID = std::stoi(compName.substr(compName.find('_') + 1));
+
+      // if it is not
+      if(!keyedComputations[compID]) {
+        return false;
+      }
+    }
+
+    // return true since all of them are keyed
+    return true;
+  }
 
   /**
    * This method creates a straight pipe and adds it to the physicalNodes
@@ -69,7 +94,7 @@ public:
     assert(!currentPipe.empty());
 
     // create the node
-    auto node = new T(currentPipe, computationID, currentNodeIndex++);
+    auto node = new T(currentPipe, computationID, currentNodeIndex++, isCurrentPipeKeyed());
 
     // create the node handle
     auto nodeHandle = node->getHandle();
@@ -146,6 +171,11 @@ public:
    * The atomic computations we are splitting up
    */
   std::shared_ptr<AtomicComputationList> atomicComps;
+
+  /**
+   * Tells us what computations support key only computations
+   */
+  std::unordered_map<uint64_t, bool> keyedComputations;
 
   /**
    * The id of the computation we are building the pipes for

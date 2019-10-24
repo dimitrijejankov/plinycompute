@@ -47,6 +47,11 @@ class SetWriter : public Computation {
     }
   }
 
+  // for now writer is never keyed for now
+  bool isKeyed() override {
+    return false;
+  }
+
   // get the number of inputs to this query type
   int getNumInputs() override {
     return 1;

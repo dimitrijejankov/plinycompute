@@ -13,7 +13,13 @@ class PDBAggregationPhysicalNode : public PDBAbstractPhysicalNode  {
 
 public:
   
-  PDBAggregationPhysicalNode(const std::vector<AtomicComputationPtr>& pipeline, size_t computationID, size_t currentNodeIndex) : PDBAbstractPhysicalNode(pipeline, computationID, currentNodeIndex) {};
+  PDBAggregationPhysicalNode(const std::vector<AtomicComputationPtr>& pipeline,
+                             size_t computationID,
+                             size_t currentNodeIndex,
+                             bool keyed) : PDBAbstractPhysicalNode(pipeline,
+                                                                   computationID,
+                                                                   currentNodeIndex,
+                                                                   keyed) {};
 
   ~PDBAggregationPhysicalNode() override = default;
 
@@ -21,6 +27,10 @@ public:
 
   pdb::PDBPlanningResult generateAlgorithm(PDBAbstractPhysicalNodePtr &child,
                                            PDBPageSetCosts &pageSetCosts) override;
+
+  pdb::PDBPlanningResult generateMergedAlgorithm(const PDBAbstractPhysicalNodePtr &lhs,
+                                                 const PDBAbstractPhysicalNodePtr &rhs,
+                                                 const PDBPageSetCosts &pageSetCosts);
 
 };
 

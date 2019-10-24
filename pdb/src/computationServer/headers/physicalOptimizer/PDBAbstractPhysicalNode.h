@@ -35,7 +35,8 @@ enum class PDBPlanningResultType {
 
   NOTHING,
   UNIONED_PIPELINE,
-  GENERATED_ALGORITHM
+  GENERATED_ALGORITHM,
+  MERGED
 
 };
 
@@ -48,7 +49,11 @@ struct PDBPlanningResult {
                     std::list<pdb::PDBAbstractPhysicalNodePtr> newSourceNodes,
                     std::list<PDBPageSetIdentifier> consumedPageSets,
                     std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets) :
-                    runMe(runMe), newSourceNodes(std::move(newSourceNodes)), consumedPageSets(std::move(consumedPageSets)), newPageSets(std::move(newPageSets)), resultType(resultType) {}
+                                  runMe(runMe),
+                                  newSourceNodes(std::move(newSourceNodes)),
+                                  consumedPageSets(std::move(consumedPageSets)),
+                                  newPageSets(std::move(newPageSets)),
+                                  resultType(resultType) {}
 
   /**
    * Tells us what happened during the planning
@@ -82,7 +87,13 @@ class PDBAbstractPhysicalNode {
 public:
 
   // TODO
-  PDBAbstractPhysicalNode(std::vector<AtomicComputationPtr> pipeline, size_t computationID, size_t id) : pipeline(std::move(pipeline)), id(id), computationID(computationID) {};
+  PDBAbstractPhysicalNode(std::vector<AtomicComputationPtr> pipeline,
+                          size_t computationID,
+                          size_t id,
+                          bool keyed) : pipeline(std::move(pipeline)),
+                                        id(id),
+                                        computationID(computationID),
+                                        keyed(keyed) {};
 
   virtual ~PDBAbstractPhysicalNode() = default;
 
@@ -136,7 +147,7 @@ public:
    * Returns the list of producers of this node
    * @return - the list of producers
    */
-  const std::list<PDBAbstractPhysicalNodePtr> getProducers();
+  std::list<PDBAbstractPhysicalNodePtr> getProducers();
 
   /**
    * Returns the cost of running this pipeline
@@ -157,6 +168,18 @@ public:
    * @return
    */
   std::string getNodeIdentifier() { return std::string("node_") + std::to_string(id); };
+
+  /**
+   *
+   * @return
+   */
+  const vector<PDBPrimarySource> &getPrimarySources() const;
+
+  /**
+   *
+   * @return
+   */
+  const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &getAdditionalSources() const;
 
   /**
    * Returns all the atomic computations the make up this pipeline
@@ -355,6 +378,13 @@ public:
   }
 
   /**
+   * @return true if we have a keyed pipeline here false otherwise
+   */
+  virtual bool isKeyed() {
+    return keyed;
+  }
+
+  /**
    * Sets the sink page set so we know what this node produces
    * @param pageSink - the sink page set
    */
@@ -372,7 +402,7 @@ public:
    * @param sinkType - the type of the sink
    * @return - the type of the source
    */
-  PDBSourceType getSourceTypeForSinkType(PDBSinkType sinkType) {
+  static PDBSourceType getSourceTypeForSinkType(PDBSinkType sinkType) {
 
     switch (sinkType) {
 
@@ -427,6 +457,11 @@ protected:
    * The identifier of this node
    */
   size_t id;
+
+  /**
+   * Can this pipe run a key only computation, for indices
+   */
+  bool keyed = false;
 
   /**
    * Where the pipeline begins

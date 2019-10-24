@@ -3,9 +3,11 @@
 //
 
 #include <physicalAlgorithms/PDBAggregationPipeAlgorithm.h>
+#include <physicalAlgorithms/PDBJoinAggregationAlgorithm.h>
 #include <physicalOptimizer/PDBAggregationPhysicalNode.h>
 #include <PDBSetObject.h>
 
+#include <physicalOptimizer/PDBJoinPhysicalNode.h>
 #include "physicalOptimizer/PDBAggregationPhysicalNode.h"
 
 
@@ -98,6 +100,70 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateAlgorithm(PDBAbstract
 
   // return the algorithm and the nodes that consume it's result
   return std::move(PDBPlanningResult(PDBPlanningResultType::GENERATED_ALGORITHM, algorithm, consumers, consumedPageSets, newPageSets));
+}
+
+pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const PDBAbstractPhysicalNodePtr &lhs,
+                                                                           const PDBAbstractPhysicalNodePtr &rhs,
+                                                                           const PDBPageSetCosts &pageSetCosts) {
+
+  // this is the page set that is containing the bunch of hash maps want to send
+  pdb::Handle<PDBSinkPageSetSpec> hashedToSend = pdb::makeObject<PDBSinkPageSetSpec>();
+  hashedToSend->sinkType = PDBSinkType::AggShuffleSink;
+  hashedToSend->pageSetIdentifier = std::make_pair(computationID, (String) (pipeline.back()->getOutputName()  + "_hashed_to_send"));
+
+  // this is the page set where we put the hash maps send over the wire
+  pdb::Handle<PDBSourcePageSetSpec> hashedToRecv = pdb::makeObject<PDBSourcePageSetSpec>();
+  hashedToRecv->sourceType = PDBSourceType::ShuffledAggregatesSource;
+  hashedToRecv->pageSetIdentifier = std::make_pair(computationID, (String) (pipeline.back()->getOutputName() + "_hashed_to_recv"));
+
+  // this is the tuple set where we put the output
+  pdb::Handle<PDBSinkPageSetSpec> sink = pdb::makeObject<PDBSinkPageSetSpec>();
+  sink->sinkType = PDBSinkType::AggregationSink;
+  sink->pageSetIdentifier = std::make_pair(computationID, (String) pipeline.back()->getOutputName());
+
+  // combine the sources from both pipelines
+  auto additionalSources = lhs->getAdditionalSources();
+  std::vector<pdb::Handle<PDBSourcePageSetSpec>> secondarySources;
+  secondarySources.insert(secondarySources.end(), additionalSources.begin(), additionalSources.end());
+  additionalSources = rhs->getAdditionalSources();
+  secondarySources.insert(secondarySources.end(), additionalSources.begin(), additionalSources.end());
+
+  pdb::Handle<pdb::Vector<PDBSetObject>> setsToMaterialize = pdb::makeObject<pdb::Vector<PDBSetObject>>();
+
+  // ok so we have to shuffle this side, generate the algorithm
+  pdb::Handle<PDBJoinAggregationAlgorithm> algorithm = pdb::makeObject<PDBJoinAggregationAlgorithm>(lhs->getPrimarySources(),
+                                                                                                    rhs->getPrimarySources(),
+                                                                                                    sink,
+                                                                                                    lhs->getPipeComputations().front(),
+                                                                                                    rhs->getPipeComputations().front(),
+                                                                                                    this->getPipeComputations().front(),
+                                                                                                    this->getPipeComputations().back(),
+                                                                                                    additionalSources,
+                                                                                                    setsToMaterialize);
+
+
+  std::list<PDBPageSetIdentifier> consumedPageSets = { hashedToSend->pageSetIdentifier, hashedToRecv->pageSetIdentifier };
+
+  // if there are no consumers, (this happens if all the consumers are materializations), mark the ink set as consumed too
+  size_t sinkConsumers = consumers.size();
+  if(consumers.empty()) {
+
+    // since we are materializing this set we are kind of consuming it
+    sinkConsumers = 1;
+
+    // add the sink to the list of consumed page sets
+    consumedPageSets.insert(consumedPageSets.begin(), sink->pageSetIdentifier);
+  }
+
+  // set the page sets created
+  std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets = { std::make_pair(sink->pageSetIdentifier, sinkConsumers),
+                                                                       std::make_pair(hashedToSend->pageSetIdentifier, 1),
+                                                                       std::make_pair(hashedToRecv->pageSetIdentifier, 1) };
+
+
+  // return the algorithm and the nodes that consume it's result
+  return std::move(PDBPlanningResult(PDBPlanningResultType::GENERATED_ALGORITHM,
+                                                  algorithm,consumers, consumedPageSets, newPageSets));
 }
 
 }

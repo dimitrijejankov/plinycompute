@@ -81,6 +81,11 @@ class SelectionComp : public Computation {
     return 1;
   }
 
+  // for now selection is never keyed for now
+  bool isKeyed() override {
+    return false;
+  }
+
   // gets the output type of this query as a string
   std::string getOutputType() override {
     return getTypeName<OutputClass>();

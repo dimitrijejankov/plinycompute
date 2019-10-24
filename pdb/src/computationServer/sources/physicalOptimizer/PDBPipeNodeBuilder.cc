@@ -1,5 +1,7 @@
 #include <utility>
 
+#include <utility>
+
 /*****************************************************************************
  *                                                                           *
  *  Copyright 2018 Rice University                                           *
@@ -27,8 +29,13 @@
 
 namespace pdb {
 
-PDBPipeNodeBuilder::PDBPipeNodeBuilder(size_t computationID, std::shared_ptr<AtomicComputationList> computations)
-    : atomicComps(std::move(computations)), currentNodeIndex(0), computationID(computationID) {}
+PDBPipeNodeBuilder::PDBPipeNodeBuilder(size_t computationID,
+                                       std::unordered_map<uint64_t, bool> keyedComputations,
+                                       std::shared_ptr<AtomicComputationList> computations)
+    : atomicComps(std::move(computations)),
+      currentNodeIndex(0),
+      computationID(computationID),
+      keyedComputations(std::move(keyedComputations)) {}
 }
 
 std::vector<pdb::PDBAbstractPhysicalNodePtr> pdb::PDBPipeNodeBuilder::generateAnalyzerGraph() {
@@ -57,7 +64,7 @@ std::vector<pdb::PDBAbstractPhysicalNodePtr> pdb::PDBPipeNodeBuilder::generateAn
   return this->physicalSourceNodes;
 }
 
-void pdb::PDBPipeNodeBuilder::transverseTCAPGraph(AtomicComputationPtr curNode) {
+void pdb::PDBPipeNodeBuilder::transverseTCAPGraph(const AtomicComputationPtr& curNode) {
 
   // did we already visit this node
   if(visitedNodes.find(curNode) != visitedNodes.end()) {
@@ -165,7 +172,7 @@ void pdb::PDBPipeNodeBuilder::transverseTCAPGraph(AtomicComputationPtr curNode) 
   }
 }
 
-void pdb::PDBPipeNodeBuilder::setConsumers(std::shared_ptr<PDBAbstractPhysicalNode> node) {
+void pdb::PDBPipeNodeBuilder::setConsumers(const std::shared_ptr<PDBAbstractPhysicalNode>& node) {
 
   // all the consumers of these pipes
   std::vector<std::string> consumers;
@@ -213,7 +220,7 @@ void pdb::PDBPipeNodeBuilder::connectThePipes() {
   for(const auto &joinNode : joinPipes) {
 
     // get the producers
-    auto &producers = joinNode->getProducers();
+    auto producers = joinNode->getProducers();
     if(producers.size() != 2) {
       throw std::runtime_error("There are not exactly two sides of a join pipe, something went wrong!");
     }

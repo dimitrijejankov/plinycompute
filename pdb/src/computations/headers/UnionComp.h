@@ -13,6 +13,11 @@ public:
     return getTypeName<InOut>();
   }
 
+  // for now union is never keyed for now
+  bool isKeyed() override {
+    return false;
+  }
+
   // count the number of inputs
   int getNumInputs() final {
     return 2;

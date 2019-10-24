@@ -59,6 +59,11 @@ class JoinComp : public JoinCompBase {
     return getTypeName<Out>();
   }
 
+  // is the key
+  bool isKeyed() override {
+    return joinUsesKey<Derived>(*static_cast<Derived*>(this));
+  }
+
   // count the number of inputs
   int getNumInputs() final {
     const int extras = sizeof...(Rest);

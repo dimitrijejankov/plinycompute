@@ -8,9 +8,27 @@
 #include <physicalOptimizer/PDBAbstractPhysicalNode.h>
 #include <physicalAlgorithms/PDBShuffleForJoinAlgorithm.h>
 #include <physicalAlgorithms/PDBBroadcastForJoinAlgorithm.h>
+#include <physicalOptimizer/PDBAggregationPhysicalNode.h>
 
 PDBPipelineType pdb::PDBJoinPhysicalNode::getType() {
   return PDB_JOIN_SIDE_PIPELINE;
+}
+
+bool pdb::PDBJoinPhysicalNode::canMergeJoinToAggregation() {
+
+  // just grab the ptr for the other side
+  auto otherSidePtr = (PDBJoinPhysicalNode*) otherSide.lock().get();
+
+  // in order for a join to be mergeable into an aggregation the following has to hold.
+  // the next pipe has to be an aggregation.
+  // the next pipe has to support keying
+  // this pipe has to support keying
+  // the other side of the join has to support keying
+  // the left and right side of the join have to have few large records with small keys, compared to the records.
+  return consumers.front()->isKeyed() &&
+         isKeyed() &&
+         otherSidePtr->isKeyed() &&
+         consumers.front()->getType() == PDB_AGGREGATION_PIPELINE;
 }
 
 pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(PDBAbstractPhysicalNodePtr &child,
@@ -19,7 +37,33 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(PDBAbstractPh
   assert(state == PDBJoinPhysicalNodeState::PDBJoinPhysicalNodeNotProcessed);
 
   // just grab the ptr for the other side
-  auto otherSidePtr = (PDBJoinPhysicalNode*) otherSide.lock().get();
+  auto otherSidePtr = std::dynamic_pointer_cast<PDBJoinPhysicalNode>(otherSide.lock());
+
+  // if the other side is not processed and both sides are keyed and the join is keyed
+  bool canMerge = canMergeJoinToAggregation();
+  if(canMerge && otherSidePtr->state == PDBJoinPhysicalNodeToBeMerged) {
+
+    // make sure everything is dandy
+    assert(consumers.size() == 1);
+
+    // mark sides as merged
+    otherSidePtr->state = PDBJoinPhysicalNodeMerged;
+    this->state = PDBJoinPhysicalNodeMerged;
+
+    // pipeline this node to the next, it always has to exist and it always has to be one
+    auto myHandle = getHandle();
+    return ((PDBAggregationPhysicalNode*) consumers.front().get())->generateMergedAlgorithm(myHandle, otherSidePtr, pageSetCosts);
+  }
+  else if(canMerge) {
+
+    // merge the join side in
+    this->state = PDBJoinPhysicalNodeToBeMerged;
+
+    // return the algorithm and the nodes that consume it's result
+    return std::move(PDBPlanningResult(PDBPlanningResultType::MERGED,
+                                             nullptr,
+                                             std::list<pdb::PDBAbstractPhysicalNodePtr>(), {}, {}));
+  }
 
   // if the other side has been broad casted then this is really cool and we can pipeline through this node
   if(otherSidePtr->state == PDBJoinPhysicalNodeBroadcasted) {
@@ -152,4 +196,3 @@ size_t pdb::PDBJoinPhysicalNode::getPrimarySourcesSize(pdb::PDBPageSetCosts &pag
   // return them
   return tmp;
 }
-
