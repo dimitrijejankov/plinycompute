@@ -37,6 +37,9 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
                               AtomicComputationPtr rightInputTupleSet,
                               AtomicComputationPtr joinTupleSet,
                               AtomicComputationPtr aggregationKey,
+                              pdb::Handle<PDBSinkPageSetSpec> &hashedLHSKey,
+                              pdb::Handle<PDBSinkPageSetSpec> &hashedRHSKey,
+                              pdb::Handle<PDBSinkPageSetSpec> &aggregationTID,
                               const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
                               const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize);
 
@@ -95,6 +98,22 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
    * The sources of the right side of the merged pipeline
    */
   pdb::Vector<PDBSourceSpec> rightSources;
+
+  /**
+   * this page set is going to have the intermediate results of the LHS, the it is going to contain the JoinMap<hash, LHSKey>
+   */
+  pdb::Handle<PDBSinkPageSetSpec> hashedLHSKey;
+
+  /**
+   * this page set is going to have the intermediate results of the RHS, the it is going to contain the JoinMap<hash, RHSKey>
+   */
+  pdb::Handle<PDBSinkPageSetSpec> hashedRHSKey;
+
+  /**
+   * this page set is going to have the intermediate results of the Aggregation Keys, the it is going to contain the JoinMap<AGG_TID, Vector<pair<LHS_TID, RHS_TID>>
+   * there are also going to be two anonymous pages with Map<LHSKey, LHS_TID> and Map<RHSKey, RHS_Key>.
+   */
+  pdb::Handle<PDBSinkPageSetSpec> aggregationTID;
 
   FRIEND_TEST(TestPhysicalOptimizer, TestKeyedMatrixMultipply);
 };

@@ -16,6 +16,8 @@ enum PDBSinkType {
   JoinShuffleIntermediateSink,
   BroadcastJoinSink,
   BroadcastIntermediateJoinSink,
+  HashedKeySink,
+  JoinAggregationTIDSink
 };
 
 // PRELOAD %PDBSinkPageSetSpec%

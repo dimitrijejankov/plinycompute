@@ -12,11 +12,27 @@ PDBJoinAggregationAlgorithm::PDBJoinAggregationAlgorithm(const std::vector<PDBPr
                                                          AtomicComputationPtr rightInputTupleSet,
                                                          AtomicComputationPtr joinTupleSet,
                                                          AtomicComputationPtr aggregationKey,
+                                                         pdb::Handle<PDBSinkPageSetSpec> &hashedLHSKey,
+                                                         pdb::Handle<PDBSinkPageSetSpec> &hashedRHSKey,
+                                                         pdb::Handle<PDBSinkPageSetSpec> &aggregationTID,
                                                          const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
-                                                         const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize) : leftInputTupleSet(std::move(leftInputTupleSet)),
+                                                         const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize) : hashedLHSKey(hashedLHSKey),
+                                                                                                                            hashedRHSKey(hashedRHSKey),
+                                                                                                                            aggregationTID(aggregationTID),
+                                                                                                                            leftInputTupleSet(std::move(leftInputTupleSet)),
                                                                                                                             rightInputTupleSet(std::move(rightInputTupleSet)),
                                                                                                                             joinTupleSet(std::move(joinTupleSet)),
                                                                                                                             aggregationKey(std::move(aggregationKey)) {
+  // set the sink
+  this->sink = sink;
+
+  // set the sets to materialize
+  this->setsToMaterialize = setsToMaterialize;
+
+  // ini the source sizes
+  sources = pdb::Vector<PDBSourceSpec>(leftSource.size(), leftSource.size());
+  rightSources = pdb::Vector<PDBSourceSpec>(rightSource.size(), rightSource.size());
+
   // copy all the primary sources
   for(int i = 0; i < leftSource.size(); ++i) {
 
@@ -72,15 +88,14 @@ PDBJoinAggregationAlgorithm::PDBJoinAggregationAlgorithm(const std::vector<PDBPr
   }
 }
 
-bool pdb::PDBJoinAggregationAlgorithm::setup(std::shared_ptr<PDBStorageManagerBackend> &storage,
-                                             Handle<ExJob> &job,
-                                             const std::string &error) {
+bool pdb::PDBJoinAggregationAlgorithm::setup(std::shared_ptr<PDBStorageManagerBackend> &storage, Handle<ExJob> &job, const std::string &error) {
   return PDBPhysicalAlgorithm::setup(storage, job, error);
 }
 
 bool pdb::PDBJoinAggregationAlgorithm::run(std::shared_ptr<PDBStorageManagerBackend> &storage) {
   return PDBPhysicalAlgorithm::run(storage);
 }
+
 
 void pdb::PDBJoinAggregationAlgorithm::cleanup() {
   PDBPhysicalAlgorithm::cleanup();
