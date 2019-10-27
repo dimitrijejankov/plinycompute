@@ -75,11 +75,6 @@ public:
   std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> senders;
 
   /**
-   * The logger for this algorithm, initialized on setup
-   */
-  PDBLoggerPtr logger;
-
-  /**
    * Vector of pipelines that will run this algorithm. The pipelines will be built when you call setup on this object.
    * This must be null when sending this object.
    */

@@ -230,10 +230,21 @@ bool pdb::PDBAggregationPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManage
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&aggCounter, workerID, this](PDBBuzzerPtr callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&aggCounter, &success, workerID, this](const PDBBuzzerPtr& callerBuzzer) {
 
-      // run the pipeline
-      (*aggregationPipelines)[workerID]->run();
+      try {
+
+        // run the pipeline
+        (*aggregationPipelines)[workerID]->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        this->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
 
       // signal that the run was successful
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, aggCounter);
@@ -263,7 +274,7 @@ bool pdb::PDBAggregationPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManage
   {
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&selfRecDone, this](PDBBuzzerPtr callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&selfRecDone, this](const PDBBuzzerPtr& callerBuzzer) {
 
       // run the receiver
       if(selfReceiver->run()) {
@@ -302,7 +313,7 @@ bool pdb::PDBAggregationPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManage
   for(auto &sender : *senders) {
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sendersDone, sender, this](PDBBuzzerPtr callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sendersDone, sender, this](const PDBBuzzerPtr& callerBuzzer) {
 
       // run the sender
       if(sender->run()) {
@@ -344,10 +355,21 @@ bool pdb::PDBAggregationPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManage
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&preaggCounter, workerID, this](PDBBuzzerPtr callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&preaggCounter, &success, workerID, this](const PDBBuzzerPtr& callerBuzzer) {
 
-      // run the pipeline
-      (*preaggregationPipelines)[workerID]->run();
+      try {
+
+        // run the pipeline
+        (*preaggregationPipelines)[workerID]->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        this->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
 
       // signal that the run was successful
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, preaggCounter);

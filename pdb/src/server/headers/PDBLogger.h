@@ -47,7 +47,7 @@ public:
     PDBLogger(const std::string &rootDir, const std::string &fName);
 
     // opens up a logger; output is written to the specified file
-    PDBLogger(std::string fName);
+    explicit PDBLogger(std::string fName);
 
     // opens up the logger
     void open(std::string fName);

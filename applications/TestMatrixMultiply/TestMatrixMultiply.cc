@@ -10,42 +10,51 @@ using namespace pdb;
 using namespace pdb::matrix;
 
 // some constants for the test
-const size_t blockSize = 64;
-const uint32_t matrixRows = 10;
-const uint32_t matrixColumns = 10;
-const uint32_t numRows = 2;
-const uint32_t numCols = 2;
+const size_t blockSize = 1024;
+const uint32_t matrixRows = 10000;
+const uint32_t matrixColumns = 10000;
+const uint32_t numRows = 200;
+const uint32_t numCols = 200;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
-  // make the allocation block
-  const pdb::UseTemporaryAllocationBlock tempBlock{blockSize * 1024 * 1024};
-
-  // put the chunks here
-  Handle<Vector<Handle<MatrixBlock>>> data = pdb::makeObject<Vector<Handle<MatrixBlock>>>();
-
   // fill the vector up
-  for (uint32_t r = 0; r < numRows; r++) {
-    for (uint32_t c = 0; c < numCols; c++) {
+  for (uint32_t r1 = 0; r1 < 4; r1++) {
 
-      // allocate a matrix
-      Handle<MatrixBlock> myInt = makeObject<MatrixBlock>(r, c, matrixRows / numRows, matrixColumns / numCols);
+    // make the allocation block
+    const pdb::UseTemporaryAllocationBlock tempBlock{blockSize * 1024 * 1024};
 
-      // init the values
-      float *vals = myInt->data->data->c_ptr();
-      for (int v = 0; v < (matrixRows / numRows) * (matrixColumns / numCols); ++v) {
-        vals[v] = 1.0f * v;
+    // put the chunks here
+    Handle<Vector<Handle<MatrixBlock>>> data = pdb::makeObject<Vector<Handle<MatrixBlock>>>();
+
+    // fill up the vector
+    for (uint32_t r2 = 0; r2 < 50; r2++) {
+
+      // figure out the row id
+      auto r = r1 * 50 + r2;
+
+      for (uint32_t c = 0; c < numCols; c++) {
+
+        // allocate a matrix
+        Handle<MatrixBlock> myInt = makeObject<MatrixBlock>(r, c, matrixRows / numRows, matrixColumns / numCols);
+
+        // init the values
+        float *vals = myInt->data->data->c_ptr();
+        for (int v = 0; v < (matrixRows / numRows) * (matrixColumns / numCols); ++v) {
+          vals[v] = 1.0f * (float) v;
+        }
+
+        data->push_back(myInt);
       }
-
-      data->push_back(myInt);
     }
+
+    // init the records
+    getRecord(data);
+
+    // send the data a bunch of times
+    pdbClient.sendData<MatrixBlock>("myData", set, data);
   }
 
-  // init the records
-  getRecord(data);
-
-  // send the data a bunch of times
-  pdbClient.sendData<MatrixBlock>("myData", set, data);
 }
 
 

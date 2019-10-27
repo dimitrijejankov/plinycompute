@@ -153,6 +153,8 @@ void pdb::Pipeline::run() {
         // get new page
         ram = std::make_shared<MemoryHolder>(outputPageSet->getNewPage());
 
+        std::cout << "pipeline has " << curChunk->getNumRows(0) << "\n";
+
         // then try again
         curChunk = q->process(curChunk);
       }

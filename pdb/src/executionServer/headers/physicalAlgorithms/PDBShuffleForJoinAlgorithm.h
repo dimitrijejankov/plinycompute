@@ -69,11 +69,6 @@ public:
   std::shared_ptr<std::vector<PDBPageQueuePtr>> pageQueues = nullptr;
 
   /**
-   *
-   */
-  PDBLoggerPtr logger;
-
-  /**
    * The intermediate page set
    */
   pdb::Handle<PDBSinkPageSetSpec> intermediate;
