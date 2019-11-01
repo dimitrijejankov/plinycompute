@@ -52,10 +52,10 @@ protected:
   /**
    * Setting a max chunk size makes it so that we prevent, the chunk size from exploding.
    * And really making it too large does not yield any benefits the virtual function calls are amortized in this
-   * case 1/maxChunkSize, if virtual functions calls are more expensive than processing 1000 tuples that might
+   * case 1/maxChunkSize, if virtual functions calls are more expensive than processing 100 tuples that might
    * be problem with the computation.
    */
-  int32_t maxChunkSize = 1000;
+  int32_t maxChunkSize = 100;
 
   /**
    * The the last known chunk size we know the write succeeded.
