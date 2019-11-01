@@ -19,6 +19,7 @@
 #ifndef COMPUTE_SOURCE_H
 #define COMPUTE_SOURCE_H
 
+#include <pipeline/PDBTupleSetSizePolicy.h>
 #include "TupleSet.h"
 
 namespace pdb {
@@ -34,7 +35,7 @@ class ComputeSource {
 public:
 
 	// this gets another tuple set for processing
-	virtual TupleSetPtr getNextTupleSet () = 0;
+	virtual TupleSetPtr getNextTupleSet (const PDBTupleSetSizePolicy &policy) = 0;
 
 	virtual ~ComputeSource () = default;
 

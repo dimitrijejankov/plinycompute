@@ -59,6 +59,8 @@ class MockPageSetReader : public pdb::PDBAbstractPageSet {
 class MockPageSetWriter: public pdb::PDBAnonymousPageSet {
  public:
 
+  MockPageSetWriter(const PDBBufferManagerInterfacePtr &bufferManager) : pdb::PDBAnonymousPageSet(bufferManager) {}
+
   MOCK_METHOD1(getNextPage, PDBPageHandle(size_t workerID));
 
   MOCK_METHOD0(getNewPage, PDBPageHandle());
@@ -73,8 +75,8 @@ TEST(PipelineTest, TestSelection) {
   /// 1. Create the buffer manager that is going to provide the pages to the pipeline
 
   // create the buffer manager
-  pdb::PDBBufferManagerImpl myMgr;
-  myMgr.initialize("tempDSFSD", 64 * 1024, 16, "metadata", ".");
+  std::shared_ptr<PDBBufferManagerImpl> myMgr = std::make_shared<PDBBufferManagerImpl>();
+  myMgr->initialize("tempDSFSD", 64 * 1024, 64, "metadata", ".");
 
   // this is the object allocation block where all of this stuff will reside
   makeObjectAllocatorBlock(1024 * 1024, true);
@@ -96,12 +98,24 @@ TEST(PipelineTest, TestSelection) {
   myComputations.push_back(myWriteSet);
 
   // now we create the TCAP string
-  String myTCAPString =
-      "inputDataForScanSet_0(in0) <= SCAN ('by8_db', 'input_set', 'SetScanner_0') \n"\
-  "nativ_0OutForSelectionComp1(in0,nativ_0_1OutFor) <= APPLY (inputDataForScanSet_0(in0), inputDataForScanSet_0(in0), 'SelectionComp_1', 'native_lambda_0', [('lambdaType', 'native_lambda')]) \n"\
-  "filteredInputForSelectionComp1(in0) <= FILTER (nativ_0OutForSelectionComp1(nativ_0_1OutFor), nativ_0OutForSelectionComp1(in0), 'SelectionComp_1') \n"\
-  "nativ_1OutForSelectionComp1 (nativ_1_1OutFor) <= APPLY (filteredInputForSelectionComp1(in0), filteredInputForSelectionComp1(), 'SelectionComp_1', 'native_lambda_1', [('lambdaType', 'native_lambda')]) \n"\
-  "nativ_1OutForSelectionComp1_out() <= OUTPUT ( nativ_1OutForSelectionComp1 ( nativ_1_1OutFor ), 'output_set', 'by8_db', 'SetWriter_2') \n";
+  String myTCAPString = "inputDataForScanSet_0(in0) <= SCAN ('by8_db', 'input_set', 'SetScanner_0')\n"
+                        "\n"
+                        "/* Apply selection filtering */\n"
+                        "OutFor_attAccess_3SelectionComp1(in0,OutFor_attAccess_3_1) <= APPLY (inputDataForScanSet_0(in0), inputDataForScanSet_0(in0), 'SelectionComp_1', 'attAccess_3', [('attName', 'salary'), ('attTypeName', 'double'), ('inputTypeName', 'pdb::Employee'), ('lambdaType', 'attAccess')])\n"
+                        "OutFor_methodCall_4SelectionComp1(in0,OutFor_attAccess_3_1,OutFor_methodCall_4_1) <= APPLY (OutFor_attAccess_3SelectionComp1(in0), OutFor_attAccess_3SelectionComp1(in0,OutFor_attAccess_3_1), 'SelectionComp_1', 'methodCall_4', [('inputTypeName', 'pdb::Employee'), ('lambdaType', 'methodCall'), ('methodName', 'getSalary'), ('returnTypeName', 'pdb::Employee')])\n"
+                        "equal_2OutForSelectionComp1(in0,equal_2_1_OutFor) <= APPLY (OutFor_methodCall_4SelectionComp1(OutFor_attAccess_3_1,OutFor_methodCall_4_1), OutFor_methodCall_4SelectionComp1(in0), 'SelectionComp_1', '==_2', [('lambdaType', '==')])\n"
+                        "OutFor_attAccess_6SelectionComp1(in0,equal_2_1_OutFor,OutFor_attAccess_6_1) <= APPLY (equal_2OutForSelectionComp1(in0), equal_2OutForSelectionComp1(in0,equal_2_1_OutFor), 'SelectionComp_1', 'attAccess_6', [('attName', 'salary'), ('attTypeName', 'double'), ('inputTypeName', 'pdb::Employee'), ('lambdaType', 'attAccess')])\n"
+                        "OutFor_attAccess_7SelectionComp1(in0,equal_2_1_OutFor,OutFor_attAccess_6_1,OutFor_attAccess_7_1) <= APPLY (OutFor_attAccess_6SelectionComp1(in0), OutFor_attAccess_6SelectionComp1(in0,equal_2_1_OutFor,OutFor_attAccess_6_1), 'SelectionComp_1', 'attAccess_7', [('attName', 'salary'), ('attTypeName', 'double'), ('inputTypeName', 'pdb::Employee'), ('lambdaType', 'attAccess')])\n"
+                        "equal_5OutForSelectionComp1(in0,equal_2_1_OutFor,equal_5_1_OutFor) <= APPLY (OutFor_attAccess_7SelectionComp1(OutFor_attAccess_6_1,OutFor_attAccess_7_1), OutFor_attAccess_7SelectionComp1(in0,equal_2_1_OutFor), 'SelectionComp_1', '==_5', [('lambdaType', '==')])\n"
+                        "OutFor_and1_bool_SelectionComp1(in0,and_1_1_bool) <= APPLY (equal_5OutForSelectionComp1(equal_2_1_OutFor,equal_5_1_OutFor), equal_5OutForSelectionComp1(in0), 'SelectionComp_1', 'and_1', [('lambdaType', 'and')])\n"
+                        "OutFor_native_lambda_8SelectionComp1(in0,and_1_1_bool,OutFor_native_lambda_8_1) <= APPLY (OutFor_and1_bool_SelectionComp1(in0), OutFor_and1_bool_SelectionComp1(in0,and_1_1_bool), 'SelectionComp_1', 'native_lambda_8', [('lambdaType', 'native_lambda')])\n"
+                        "OutFor_and0_bool_SelectionComp1(in0,and_0_1_bool) <= APPLY (OutFor_native_lambda_8SelectionComp1(and_1_1_bool,OutFor_native_lambda_8_1), OutFor_native_lambda_8SelectionComp1(in0), 'SelectionComp_1', 'and_0', [('lambdaType', 'and')])\n"
+                        "filteredInputForSelectionComp1(in0) <= FILTER (OutFor_and0_bool_SelectionComp1(and_0_1_bool), OutFor_and0_bool_SelectionComp1(in0), 'SelectionComp_1')\n"
+                        "\n"
+                        "/* Apply selection projection */\n"
+                        "OutFor_native_lambda_9SelectionComp1(OutFor_native_lambda_9_1) <= APPLY (filteredInputForSelectionComp1(in0), filteredInputForSelectionComp1(), 'SelectionComp_1', 'native_lambda_9', [('lambdaType', 'native_lambda')])\n"
+                        "\n"
+                        "nativ_1OutForSelectionComp1_out( ) <= OUTPUT ( OutFor_native_lambda_9SelectionComp1 ( OutFor_native_lambda_9_1 ), 'output_set', 'by8_db', 'SetWriter_2')";
 
   // and create a query object that contains all of this stuff
   ComputePlan myPlan(std::make_shared<LogicalPlan>(myTCAPString, myComputations));
@@ -126,7 +140,7 @@ TEST(PipelineTest, TestSelection) {
           return (PDBPageHandle) nullptr;
 
         // create a page, loading it with random data
-        auto page = myMgr.getPage();
+        auto page = myMgr->getPage();
         {
           const pdb::UseTemporaryAllocationBlock tempBlock{page->getBytes(), 64 * 1024};
 
@@ -163,6 +177,7 @@ TEST(PipelineTest, TestSelection) {
                 employees->push_back(temp);
               }
             }
+
           } catch (pdb::NotEnoughSpace &e) {
 
             getRecord (employees);
@@ -174,24 +189,25 @@ TEST(PipelineTest, TestSelection) {
   ));
 
   // it should call send object exactly six times
-  EXPECT_CALL(*pageReader, getNextPage(testing::An<size_t>())).Times(7);
+  EXPECT_CALL(*pageReader, getNextPage(testing::An<size_t>())).Times(testing::AtLeast(0));
 
   // the page set that is gonna provide stuff
-  std::shared_ptr<MockPageSetWriter> pageWriter = std::make_shared<MockPageSetWriter>();
+  std::shared_ptr<MockPageSetWriter> pageWriter = std::make_shared<MockPageSetWriter>(myMgr);
 
   std::unordered_map<uint64_t, PDBPageHandle> writePages;
   ON_CALL(*pageWriter, getNewPage).WillByDefault(testing::Invoke(
       [&]() {
 
         // store the page
-        auto page = myMgr.getPage();
+        auto page = myMgr->getPage();
         writePages[page->whichPage()] = page;
+        page->freezeSize(16 * 1024);
 
         return page;
       }));
 
   // it should call this method many times
-  EXPECT_CALL(*pageWriter, getNewPage).Times(testing::AtLeast(1));
+  EXPECT_CALL(*pageWriter, getNewPage).Times(testing::AtLeast(0));
 
   ON_CALL(*pageWriter, removePage(testing::An<PDBPageHandle>())).WillByDefault(testing::Invoke(
       [&](PDBPageHandle pageHandle) {
@@ -199,7 +215,7 @@ TEST(PipelineTest, TestSelection) {
       }));
 
   // it should call send object exactly six times
-  EXPECT_CALL(*pageWriter, removePage).Times(testing::Exactly(0));
+  EXPECT_CALL(*pageWriter, removePage).Times(testing::AtLeast(0));
 
 
   /// 4. Build the pipeline
@@ -222,13 +238,18 @@ TEST(PipelineTest, TestSelection) {
 
   /// 5. Check the results
 
+  std::string tmp(16 * 1024, 'a');
+
   EXPECT_TRUE(!writePages.empty());
   for(auto &page : writePages) {
 
+    page.second->repin();
     Handle<Vector<Handle<Employee>>> myHashTable = ((Record<Vector<Handle<Employee>>> *) page.second->getBytes())->getRootObject();
     for (int i = 0; i < myHashTable->size(); i++) {
       EXPECT_TRUE(*(((*myHashTable)[i])->getName()) == "Steve Stevens" || *(((*myHashTable)[i])->getName()) == "Ninja Turtles");
+      //EXPECT_TRUE(*(((*myHashTable)[i])->getName()) == tmp);
     }
+    page.second->unpin();
   }
 
 }

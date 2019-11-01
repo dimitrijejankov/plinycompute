@@ -53,16 +53,16 @@ class VectorTupleSetIterator : public ComputeSource {
   // the pointer to holding the last page that we previously processed
   Record<Vector<Handle < Object>>> *lastRec;
 
-  // how many objects to put into a chunk
-  size_t chunkSize;
-
   // where we are in the chunk
   size_t pos;
 
   // and the tuple set we return
   TupleSetPtr output;
 
- public:
+  // the buffer where we put records in the case of a failed processing attempt
+  std::vector<Handle<Object>> *inputBuffer = nullptr;
+
+public:
 
  /**
   * Initializes the VectorTupleSetIterator with a page set from which we are going to grab the pages from.
@@ -71,7 +71,7 @@ class VectorTupleSetIterator : public ComputeSource {
   * @param chunkSize - the chunk size tells us how many objects to put into a tuple set
   * @param workerID - the worker id is used a as a parameter @see PDBAbstractPageSetPtr::getNextPage to get a specific page for a worker
   */
-  VectorTupleSetIterator(PDBAbstractPageSetPtr pageSetIn, size_t chunkSize, uint64_t workerID) : pageSet(std::move(pageSetIn)), chunkSize(chunkSize), workerID(workerID) {
+  VectorTupleSetIterator(PDBAbstractPageSetPtr pageSetIn, size_t chunkSize, uint64_t workerID) : pageSet(std::move(pageSetIn)), workerID(workerID) {
 
     // create the tuple set that we'll return during iteration
     output = std::make_shared<TupleSet>();
@@ -98,11 +98,16 @@ class VectorTupleSetIterator : public ComputeSource {
     curRec = (Record<Vector<Handle<Object>>> *) curPage->getBytes();
     if (curRec != nullptr) {
 
+      // get the root object of the page
       iterateOverMe = curRec->getRootObject();
 
       // create the output vector and put it into the tuple set
       auto *inputColumn = new std::vector<Handle<Object>>;
       output->addColumn(0, inputColumn, true);
+
+      // initialize the buffer
+      inputBuffer = new std::vector<Handle<Object>>;
+
     } else {
 
       iterateOverMe = nullptr;
@@ -117,14 +122,66 @@ class VectorTupleSetIterator : public ComputeSource {
   }
 
   ~VectorTupleSetIterator() override {
+
+    // set the last rec to null
     lastRec = nullptr;
+
+    // delete the input buffer
+    delete inputBuffer;
   }
 
   /**
    * returns the next tuple set to process, or nullptr if there is not one to process
    * @return - the mentioned tuple set
    */
-  TupleSetPtr getNextTupleSet() override {
+  TupleSetPtr getNextTupleSet(const PDBTupleSetSizePolicy &policy) override {
+
+    /**
+     * 0. In case of failure we need to reprocess the input, copy the current stuff into the buffer
+     */
+
+    // did we manage to process the input, if not move the records into the buffer
+    if(!policy.inputWasProcessed() && output != nullptr && inputBuffer != nullptr) {
+
+      // get the input column
+      std::vector<Handle<Object>> &inputColumn = output->getColumn<Handle<Object>>(0);
+
+      // if the buffer is empty we just swap this is an optimization since that means we are not doing a copy
+      if(inputBuffer->empty()) {
+        std::swap(inputColumn, *inputBuffer);
+      } else {
+
+        // copy the input column and clear it
+        inputBuffer->insert(inputBuffer->end(), inputColumn.begin(), inputColumn.end());
+        inputBuffer->clear();
+      }
+    }
+
+    /**
+     * 1. We need to check if the buffer has something, if it does we need to process it.
+     */
+
+    if(inputBuffer != nullptr && !inputBuffer->empty()) {
+
+      // get the input column
+      std::vector<Handle<Object>> &inputColumn = output->getColumn<Handle<Object>>(0);
+
+      // figure out the number to move
+      auto numToCopy = std::min((size_t) policy.getChunksSize(), inputBuffer->size());
+
+      // move the stuff out of the buffer
+      inputColumn.clear();
+      inputColumn.insert(inputColumn.end(),inputBuffer->end() - numToCopy,inputBuffer->end());
+      inputBuffer->resize(inputBuffer->size() - numToCopy);
+
+      // return the output
+      return output;
+    }
+
+    /**
+     * 2. We need to grab our tupleSet from the page, we do here a bunch of checking to know from what page we
+     *    need to grab the records.
+     */
 
     // if we made it here with lastRec being a valid pointer, then it means
     // that we have gone through an entire cycle, and so all of the data that
@@ -171,8 +228,12 @@ class VectorTupleSetIterator : public ComputeSource {
       pos = 0;
     }
 
+    /**
+     * 3. Here we figure out how many records we need to grab. And then just copy.
+     */
+
     // compute how many slots in the output vector we can fill
-    size_t numSlotsToIterate = chunkSize;
+    size_t numSlotsToIterate = policy.getChunksSize();
     if (numSlotsToIterate + pos > iterateOverMe->size()) {
       numSlotsToIterate = iterateOverMe->size() - pos;
     }
@@ -190,7 +251,6 @@ class VectorTupleSetIterator : public ComputeSource {
     // and return the output TupleSet
     return output;
   }
-
 
 };
 

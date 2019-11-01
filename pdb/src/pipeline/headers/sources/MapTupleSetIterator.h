@@ -28,13 +28,10 @@ namespace pdb {
 template<typename KeyType, typename ValueType, typename OutputType>
 class MapTupleSetIterator : public ComputeSource {
 
- private:
+private:
 
   // the map we are iterating over
   Handle<Map<KeyType, ValueType>> iterateOverMe;
-
-  // the number of items to put in each chunk that we produce
-  size_t chunkSize;
 
   // the tuple set we return
   TupleSetPtr output;
@@ -45,6 +42,9 @@ class MapTupleSetIterator : public ComputeSource {
 
   // the page that contains the map
   PDBPageHandle page;
+
+  // the buffer where we put records in the case of a failed processing attempt
+  std::vector<Handle<OutputType>> *inputBuffer = nullptr;
 
   // used to assign rhs to the lhs if the lhs is not a handle
   template<typename LHS, typename RHS>
@@ -74,11 +74,11 @@ class MapTupleSetIterator : public ComputeSource {
     val = makeObject<typename remove_handle<T>::type>();
   }
 
- public:
+public:
 
   // the first param is a callback function that the iterator will call in order to obtain another vector
   // to iterate over.  The second param tells us how many objects to put into a tuple set
-  MapTupleSetIterator(const PDBAbstractPageSetPtr &pageSet, uint64_t workerID, size_t chunkSize) : chunkSize(chunkSize) {
+  MapTupleSetIterator(const PDBAbstractPageSetPtr &pageSet, uint64_t workerID, size_t chunkSize) {
 
     // get the page if we have one if we don't set the hash map to null
     page = pageSet->getNextPage(workerID);
@@ -104,15 +104,69 @@ class MapTupleSetIterator : public ComputeSource {
     output->addColumn(0, new std::vector<Handle<OutputType>>, true);
   }
 
+  ~MapTupleSetIterator() override {
+    delete inputBuffer;
+  };
+
   // returns the next tuple set to process, or nullptr if there is not one to process
-  TupleSetPtr getNextTupleSet() override {
+  TupleSetPtr getNextTupleSet(const PDBTupleSetSizePolicy &policy) override {
+
+    /**
+     * 0. In case of failure we need to reprocess the input, copy the current stuff into the buffer
+     */
+
+    // did we manage to process the input, if not move the records into the buffer
+    if(!policy.inputWasProcessed() && output != nullptr && inputBuffer != nullptr) {
+
+      // get the input column
+      std::vector<Handle<OutputType>> &inputColumn = output->getColumn<Handle<OutputType>>(0);
+
+      // if the buffer is empty we just swap this is an optimization since that means we are not doing a copy
+      if(inputBuffer->empty()) {
+        std::swap(inputColumn, *inputBuffer);
+      } else {
+
+        // copy the input column and clear it
+        inputBuffer->insert(inputBuffer->end(), inputColumn.begin(), inputColumn.end());
+        inputBuffer->clear();
+      }
+    }
+
+    /**
+     * 1. We need to check if the buffer has something, if it does we need to process it.
+     */
+
+    if(inputBuffer != nullptr && !inputBuffer->empty()) {
+
+      // get the input column
+      std::vector<Handle<Object>> &inputColumn = output->getColumn<Handle<Object>>(0);
+
+      // figure out the number to move
+      auto numToCopy = std::min((size_t) policy.getChunksSize(), inputBuffer->size());
+
+      // move the stuff out of the buffer
+      inputColumn.clear();
+      inputColumn.insert(inputColumn.end(),inputBuffer->end() - numToCopy,inputBuffer->end());
+      inputBuffer->resize(inputBuffer->size() - numToCopy);
+
+      // return the output
+      return output;
+    }
+
+    /**
+     * 2. We need to grab our tupleSet from the page, we do here a bunch of checking to know from what page we
+     *    need to grab the records.
+     */
+
+    std::vector<Handle<OutputType>> &inputColumn = output->getColumn<Handle<OutputType>>(0);
+    int limit = (int) inputColumn.size();
 
     // do we even have a map
     if(iterateOverMe == nullptr) {
       return nullptr;
     }
 
-    // see if there are no more items in the vector to iterate over
+    // see if there are no more items in the map to iterate over
     if (!(begin != end)) {
 
       // unpin the page
@@ -122,9 +176,7 @@ class MapTupleSetIterator : public ComputeSource {
       return nullptr;
     }
 
-    std::vector<Handle<OutputType>> &inputColumn = output->getColumn<Handle<OutputType>>(0);
-    int limit = (int) inputColumn.size();
-    for (int i = 0; i < chunkSize; i++) {
+    for (int i = 0; i < policy.getChunksSize(); i++) {
 
       if (i >= limit) {
 
@@ -159,7 +211,7 @@ class MapTupleSetIterator : public ComputeSource {
     return output;
   }
 
-  ~MapTupleSetIterator() override = default;
+
 };
 
 }

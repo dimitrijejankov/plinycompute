@@ -121,21 +121,21 @@ class JoinSingleton : public JoinTupleSingleton {
   }
 
   //template <typename T = HoldMe, typename Key = decltype(((T*) nullptr)->getKey())>
-  ComputeSinkPtr _getKeySink(TupleSpec &consumeMe,
-                             TupleSpec &attsToOpOn,
-                             TupleSpec &projection,
-                             std::vector<int> whereEveryoneGoes,
-                             uint64_t numPartitions) {
-    return std::make_shared<JoinSink<decltype(myData.getKey())>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
-  }
-//
 //  ComputeSinkPtr _getKeySink(TupleSpec &consumeMe,
 //                             TupleSpec &attsToOpOn,
 //                             TupleSpec &projection,
 //                             std::vector<int> whereEveryoneGoes,
 //                             uint64_t numPartitions) {
-//    throw runtime_error("This join is not keyed!");
+//    return std::make_shared<JoinSink<decltype(myData.getKey())>>(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
 //  }
+
+  ComputeSinkPtr _getKeySink(TupleSpec &consumeMe,
+                             TupleSpec &attsToOpOn,
+                             TupleSpec &projection,
+                             std::vector<int> whereEveryoneGoes,
+                             uint64_t numPartitions) {
+    throw runtime_error("This join is not keyed!");
+  }
 
   RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
                                                       TupleSpec &hashSchema,

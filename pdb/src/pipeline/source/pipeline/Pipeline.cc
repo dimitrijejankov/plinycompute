@@ -1,5 +1,3 @@
-#include <utility>
-#include <pipeline/Pipeline.h>
 
 
 /*****************************************************************************
@@ -21,13 +19,14 @@
  *****************************************************************************/
 
 #include "Pipeline.h"
-#include "NullProcessor.h"
+#include <utility>
 
-pdb::Pipeline::Pipeline(PDBAnonymousPageSetPtr outputPageSet,
+pdb::Pipeline::Pipeline(const PDBAnonymousPageSetPtr &outputPageSet,
                         ComputeSourcePtr dataSource,
                         ComputeSinkPtr tupleSink,
                         PageProcessorPtr pageProcessor) :
-    outputPageSet(std::move(outputPageSet)),
+    tupleSetSizePolicy(outputPageSet->getMaxPageSize()),
+    outputPageSet(outputPageSet),
     dataSource(std::move(dataSource)),
     dataSink(std::move(tupleSink)),
     pageProcessor(std::move(pageProcessor)) {}
@@ -40,7 +39,7 @@ pdb::Pipeline::~Pipeline() {
 }
 
 // adds a stage to the pipeline
-void pdb::Pipeline::addStage(ComputeExecutorPtr addMe) {
+void pdb::Pipeline::addStage(const ComputeExecutorPtr& addMe) {
   pipeline.push_back(addMe);
 }
 
@@ -49,12 +48,7 @@ void pdb::Pipeline::cleanPages(int iteration) {
 
   // take care of getting rid of any pages... but only get rid of those from two iterations ago...
   // pages from the last iteration may still have pointers into them
-  PDB_COUT << "to clean page for iteration-" << iteration << std::endl;
-  PDB_COUT << "unwrittenPages.size() =" << unwrittenPages.size() << std::endl;
-
   while (!unwrittenPages.empty() && iteration > unwrittenPages.front()->iteration + 1) {
-
-    PDB_COUT << "unwrittenPages.front()->iteration=" << unwrittenPages.front()->iteration << std::endl;
 
     // in this case, the page did not have any output data written to it... it only had
     // intermediate results, and so we will just discard it
@@ -65,8 +59,6 @@ void pdb::Pipeline::cleanPages(int iteration) {
         // this is bad... there should not be any objects here because this memory
         // chunk does not store an output vector
         emptyOutContainingBlock(unwrittenPages.front()->pageHandle->getBytes());
-
-        std::cout << "This is Strange... how did I find a page with objects??\n";
       }
 
       // remove the page from the output set
@@ -76,13 +68,19 @@ void pdb::Pipeline::cleanPages(int iteration) {
       // in this case, the page DID have some data written to it
     } else {
 
-      // and force the reference count for this guy to go to zero
-      PDB_COUT << "to empty out containing block" << std::endl;
-      unwrittenPages.front()->outputSink.emptyOutContainingBlock();
+      // remove the page if not needed
+      if(!pageProcessor->process(unwrittenPages.front())) {
+
+        // and force the reference count for this guy to go to zero
+        unwrittenPages.front()->outputSink.emptyOutContainingBlock();
+
+        // remove the page from the page set
+        outputPageSet->removePage(unwrittenPages.front()->pageHandle);
+      }
 
       // OK, because we will have invalidated the current object allocator block, we need to
       // create a new one, or this could cause a lot of problems!!
-      if (iteration == 999999999) {
+      if (iteration == std::numeric_limits<int32_t>::max()) {
         makeObjectAllocatorBlock(1024, true);
       }
 
@@ -112,10 +110,14 @@ void pdb::Pipeline::cleanPipeline() {
   }
 
   // write back all of the pages
-  cleanPages(999999999);
+  cleanPages(std::numeric_limits<int32_t>::max());
 
-  if (!unwrittenPages.empty())
+  if (!unwrittenPages.empty()) {
     std::cout << "This is bad: in destructor for pipeline, still some pages with objects!!\n";
+  }
+
+  // invalidate the current allocation block
+  makeObjectAllocatorBlock(1024, true);
 }
 
 // runs the pipeline
@@ -128,38 +130,89 @@ void pdb::Pipeline::run() {
   TupleSetPtr curChunk;
 
   // the iteration counter
-  int iteration = 0;
+  int32_t iteration = 0;
+
+  // we keep track of how much ram we used to process each iteration of the pipeline
+  // this will be used by @see PDBTupleSetSizePolicy to determine the number of rows in the tuple set
+  uint64_t initialFree = 0;
+  uint64_t finalFree = 0;
+  uint64_t additionalPagesUsed = 0;
 
   // while there is still data
-  while ((curChunk = dataSource->getNextTupleSet()) != nullptr) {
+  while ((curChunk = dataSource->getNextTupleSet(tupleSetSizePolicy)) != nullptr) {
 
-    // go through all of the pipeline stages
-    for (ComputeExecutorPtr &q : pipeline) {
+    // we keep track of how much ram we used to process each iteration of the pipeline
+    // this will be used by @see PDBTupleSetSizePolicy to determine the number of rows in the tuple set
+    initialFree = getAllocator().getFreeBytesAtTheEnd();
+    additionalPagesUsed = 0;
+
+    /**
+     * 1. First we go through each computation in the pipeline and apply it
+     *    what can happen is basically that stuff can not fit on a single page so we are going to get a bunch of pages
+     *    that are connected somehow to do this computation.
+     *    If the pipeline can not be processed we need to reduce the number of rows. This is going to be repeated
+     */
+    int stage = 0;
+    for(const auto &q : pipeline) {
+
+      // this value indicates whether we need to reapply this computation
+      bool reapply = false;
+
+// this is kind of nasty but I am doing this so we can reapply a failed computation
+// I am doing this since it is the easiest way to go and repeat this try block
+REAPPLY:
 
       try {
+
+        // try to process the chunk
         curChunk = q->process(curChunk);
 
       } catch (NotEnoughSpace &n) {
 
-        // we run out of space so  this page can contain important data, process the page and possibly store it
-        if (pageProcessor->process(ram)) {
+        // if we already reapplied then we can obviously not do the processing of this tuple set
+        // we need to have less rows to finish this pipeline
+        if(reapply) {
 
-          // we need to keep the page
-          keepPage(ram, iteration);
-        } else {
-          dismissPage(ram, true);
+          // mark that we had a failure to process this pipeline
+          tupleSetSizePolicy.pipelineFailed();
+
+          // we add the current page to the list so it can be removed and then we grab a new one
+          // the page will not contain anything important since we just grabbed it
+          addPageToIteration(ram, iteration);
+          ram = std::make_shared<MemoryHolder>(outputPageSet->getNewPage());
+
+          // so in this case we need to reduce the number of rows by half to finish this pipeline
+          goto CLEAN_ITERATION;
         }
+
+        // we run out of space so this page can contain important data, process the page and possibly store it
+        // the page can contain intermediate results
+        addPageToIteration(ram, iteration);
 
         // get new page
         ram = std::make_shared<MemoryHolder>(outputPageSet->getNewPage());
+        additionalPagesUsed++;
 
-        std::cout << "pipeline has " << curChunk->getNumRows(0) << "\n";
-
-        // then try again
-        curChunk = q->process(curChunk);
+        // jump to reapply and try to reprocess the chunk
+        reapply = true;
+        goto REAPPLY;
       }
     }
 
+    // mark how much memory we have at the end in the last page we used
+    finalFree = getAllocator().getFreeBytesAtTheEnd();
+
+    // mark that we succeeded in running this pipeline
+    tupleSetSizePolicy.pipelineSucceeded(additionalPagesUsed, initialFree, finalFree);
+
+    // the initial size before we do the write to sink is how much free memory was at the end
+    initialFree = finalFree;
+
+    /**
+     * 2. Write to the output pages and once we run out of memory process the page if needed.
+     */
+
+    // write the output pages
     try {
 
       // make a new output sink if we don't have one already
@@ -172,14 +225,8 @@ void pdb::Pipeline::run() {
 
     } catch (NotEnoughSpace &n) {
 
-      // again, we ran out of RAM here, so write back the page and then create a new output page
-      if (pageProcessor->process(ram)) {
-
-        // we need to keep the page
-        keepPage(ram, iteration);
-      } else {
-        dismissPage(ram, true);
-      }
+      // we need to keep the page
+      addPageToIteration(ram, iteration);
 
       // get new page
       ram = std::make_shared<MemoryHolder>(outputPageSet->getNewPage());
@@ -189,45 +236,31 @@ void pdb::Pipeline::run() {
       dataSink->writeOut(curChunk, ram->outputSink);
     }
 
+    // mark how much memory we have at the end in the last page we used
+    finalFree = getAllocator().getFreeBytesAtTheEnd();
+
+    // mark that we succeeded in writing to a page
+    tupleSetSizePolicy.writeToPageSucceeded(0, initialFree, finalFree);
+
+// this is also nasty but basically if we have a tuple set that has too many rows
+// we jump here to do some cleanup and repeat with a smaller chunk size
+CLEAN_ITERATION:
+
     // lastly, write back all of the output pages
     iteration++;
     cleanPages(iteration);
   }
 
-  // process the last page
-  if (pageProcessor->process(ram)) {
-
-    // we need to keep the page
-    keepPage(ram, iteration);
-
-    // TODO make this nicer
-    makeObjectAllocatorBlock(1024, true);
-  }
-  else {
-    dismissPage(ram, true);
-  }
+  // we need to keep the page
+  addPageToIteration(ram, iteration);
 
   // clean the pipeline before we finish running
   cleanPipeline();
 }
 
-void pdb::Pipeline::keepPage(pdb::MemoryHolderPtr ram, int iteration) {
+void pdb::Pipeline::addPageToIteration(const pdb::MemoryHolderPtr& ram, int iteration) {
 
   // set the iteration and store it in the list of unwritten pages
   ram->setIteration(iteration);
   unwrittenPages.push(ram);
-}
-
-void pdb::Pipeline::dismissPage(pdb::MemoryHolderPtr ram, bool dismissLast) {
-
-  // and force the reference count for this guy to go to zero
-  PDB_COUT << "to empty out containing block" << std::endl;
-  ram->outputSink.emptyOutContainingBlock();
-
-  if (dismissLast) {
-    makeObjectAllocatorBlock(1024, true);
-  }
-
-  // unpin the page so we don't have problems
-  ram->pageHandle->unpin();
 }

@@ -98,3 +98,7 @@ void pdb::PDBAnonymousPageSet::setAccessOrder(PDBAnonymousPageSetAccessPattern p
   // reset the current pages
   nextPageForWorker.clear();
 }
+
+size_t pdb::PDBAnonymousPageSet::getMaxPageSize() {
+  return bufferManager->getMaxPageSize();
+}

@@ -23,6 +23,7 @@
 #include "PDBVector.h"
 #include "Ptr.h"
 #include <functional>
+#include <utility>
 
 namespace pdb {
 
@@ -84,6 +85,12 @@ struct MaintenanceFuncs {
   // this replicates instances of a column to run a join
   std::function<void *(void *, std::vector<uint32_t> &)> replicate;
 
+  // this function splits the column into two
+  std::function<void(void*, void**, uint64_t)> split;
+
+  // this function merges rhs into lhs after that lhs is empty
+  std::function<void(void**, void*)> merge;
+
   // JiaNote: this gets count for a particular column
   std::function<size_t(void*)> getCount;
 
@@ -103,21 +110,23 @@ struct MaintenanceFuncs {
   std::string typeContained;
 
   // tells us if we need to delete
-  bool mustDelete;
+  bool mustDelete{};
 
   // tells us the serialized size of an object in this column
-  size_t serializedSize;
+  size_t serializedSize{};
 
   // the last value that we wrote if we are writing out this column
   size_t lastWritten = 0;
 
   // empty constructor
-  MaintenanceFuncs() {}
+  MaintenanceFuncs() = default;
 
   // fill all of the fields
   MaintenanceFuncs(std::function<void(void *)> deleter,
                    std::function<void *(void *, std::vector<bool> &)> filter,
                    std::function<void *(void *, std::vector<uint32_t> &)> replicate,
+                   std::function<void(void*, void**, uint64_t)> split,
+                   std::function<void(void**, void*)> merge,
                    std::function<size_t(void*)> getCount,
                    std::function<Handle<Vector<Handle<Object>>>()> createPDBVector,
                    std::function<void(Handle<Vector<Handle<Object>>> &, void *, size_t &)> writeToVector,
@@ -126,15 +135,17 @@ struct MaintenanceFuncs {
                    bool mustDelete,
                    std::string typeContained,
                    size_t serializedSize) :
-      deleter(deleter),
-      filter(filter),
-      replicate(replicate),
-      getCount(getCount),
-      createPDBVector(createPDBVector),
-      writeToVector(writeToVector),
-      deSerialize(deSerialize),
-      serialize(serialize),
-      typeContained(typeContained),
+      deleter(std::move(deleter)),
+      filter(std::move(filter)),
+      replicate(std::move(replicate)),
+      split(std::move(split)),
+      merge(std::move(merge)),
+      getCount(std::move(getCount)),
+      createPDBVector(std::move(createPDBVector)),
+      writeToVector(std::move(writeToVector)),
+      deSerialize(std::move(deSerialize)),
+      serialize(std::move(serialize)),
+      typeContained(std::move(typeContained)),
       mustDelete(mustDelete),
       serializedSize(serializedSize) {}
 
@@ -158,16 +169,6 @@ class TupleSet {
     return columns.size();
   }
 
-  /* TODO: this will be needed to be able to do joins!!!
-  // deep copies the set of serialized objects from the specified location, do the specified location
-  void deepCopyAndDelete (std :: vector <void *> &source, std :: vector <void *> &dest) {
-      size_t offset = 0;
-      for (int i = 0; columns.count (i) != 0; i++) {
-          // columns[i].second.deepCopyAndDelete (source, dest, offset);
-          // offset += columns[i].second.serializedSize;
-      }
-  }*/
-
   // gets a list, in order, of the types of the columns in this tuple set
   // this can be used at a later time to re-constitute the tuple set
   std::vector<std::string> getTypeNames() {
@@ -178,16 +179,66 @@ class TupleSet {
     return output;
   }
 
-  /*  TODO: this will be needed to be able to do joins!!!
-  // gets the serialized size of one row in this tuple set
-  size_t getSerializedSize () {
-      return columns[whichColumn].second.serializedSize;
-      size_t offset = 0;
-      for (int i = 0; columns.count (i) != 0; i++) {
-          offset += columns[i].second.serializedSize;
+  static void split(const TupleSet& lhs, TupleSet& rhs, uint64_t where) {
+
+    // go through each column and split them
+    for(auto &c : lhs.columns) {
+
+      // get references for nicer use
+      auto &lhsVec = c.second.first;
+      auto &m = c.second.second;
+
+      // try to find the column
+      auto it = rhs.columns.find(c.first);
+
+      // if we did not find it
+      if(it == rhs.columns.end()) {
+
+        // split them
+        void *rhsVec = nullptr;
+        m.split(lhsVec, &rhsVec, where);
+
+        // add the column to the rhs
+        rhs.columns[c.first] = std::make_pair(rhsVec, m);
+
+        // just go
+        continue;
       }
-      return offset;
-  } */
+
+      m.split(lhsVec, &it->second.first, where);
+    }
+  }
+
+  static void merge(TupleSet& lhs, TupleSet& rhs) {
+
+    // go through each column and merge them
+    for(auto &r : rhs.columns) {
+
+      // get the maintenance functions
+      auto &m = r.second.second;
+
+      // try to find the column
+      auto it = lhs.columns.find(r.first);
+
+      // check if we have a column
+      if(it == lhs.columns.end()) {
+
+        // we don't have a column
+        void *lhsCol = nullptr;
+
+        // merge rhs into lhs
+        m.merge(&lhsCol, r.second.first);
+
+        // add the column to the lhs
+        lhs.columns[it->first] = std::make_pair(lhsCol, m);
+      }
+      else {
+
+        // merge rhs into lhs
+        m.merge(&it->second.first, r.second.first);
+      }
+    }
+  }
 
   // serialize all of the colums in this TupleSet to the positions pointed to by toHere.  Note that
   // the length of toHere must match the number of tuples in this TupleSet
@@ -282,7 +333,7 @@ class TupleSet {
 
   // creates a replication of the column from another tuple set, copying each item a specified
   // number of times and deleting the target, if necessary
-  void replicate(TupleSetPtr fromMe, int whichColInFromMe, int whichColToCopyTo, std::vector<uint32_t> &replications) {
+  void replicate(const TupleSetPtr& fromMe, int whichColInFromMe, int whichColToCopyTo, std::vector<uint32_t> &replications) {
 
     // kill the old one so we don't have a memory leak
     if (hasColumn(whichColToCopyTo)) {
@@ -308,14 +359,14 @@ class TupleSet {
   }
 
   int getNumRows(int whichColumn) {
-    if (hasColumn(whichColumn) == false) {
+    if (!hasColumn(whichColumn)) {
       return -1;
     }
     return columns[whichColumn].second.getCount(columns[whichColumn].first);
   }
 
   // copies a column from another TupleSet, deleting the target, if necessary
-  void copyColumn(TupleSetPtr fromMe, int whichColInFromMe, int whichColToCopyTo) {
+  void copyColumn(const TupleSetPtr& fromMe, int whichColInFromMe, int whichColToCopyTo) {
 
     // kill the old one so we don't have a memory leak
     if (hasColumn(whichColToCopyTo)) {
@@ -355,7 +406,7 @@ class TupleSet {
     // account the type of the column...
     std::function<void(void *)> deleter;
     deleter = [](void *deleteMe) {
-      std::vector<ColType> *killMe = (std::vector<ColType> *) deleteMe;
+      auto *killMe = (std::vector<ColType> *) deleteMe;
       delete killMe;
     };
 
@@ -372,7 +423,7 @@ class TupleSet {
           counter++;
 
       // copy the ones that need to be retained over
-      std::vector<ColType> *newVec = new std::vector<ColType>(counter);
+      auto *newVec = new std::vector<ColType>(counter);
       counter = 0;
       for (int i = 0; i < filterMe.size(); i++) {
         if (whichAreValid[i])
@@ -393,7 +444,7 @@ class TupleSet {
         counter += a;
 
       // copy the ones that need to be retained over
-      std::vector<ColType> *newVec = new std::vector<ColType>(counter);
+      auto *newVec = new std::vector<ColType>(counter);
       counter = 0;
       for (int i = 0; i < timesToReplicate.size(); i++) {
         for (int j = 0; j < timesToReplicate[i]; j++) {
@@ -406,10 +457,62 @@ class TupleSet {
       return (void *) newVec;
     };
 
+    // this one splits the column into two
+    std::function<void(void*, void**, uint64_t)> split;
+    split = [](void* splitMe, void **toMe, uint64_t where) {
+
+      // the vector we want to split
+      auto *leftVec = (std::vector<ColType> *) splitMe;;
+
+      // check if we have the right vector to split to
+      std::vector<ColType> *rightVec;
+      if(*toMe == nullptr) {
+
+        // cast the vector
+        rightVec = new std::vector<ColType>();
+        *toMe = (void*) rightVec;
+      }
+      else {
+
+        // cast the thing and clear it
+        rightVec = (std::vector<ColType> *) *toMe;
+        rightVec->clear();
+      }
+
+      // allocate enough space
+      rightVec->reserve(leftVec->size() - where);
+
+      // copy the vector
+      rightVec->insert(rightVec->end(), leftVec->begin() + where, leftVec->end());
+
+      // resize the input one
+      leftVec->resize(where);
+    };
+
+    // this one merges rhs into lhs after that lhs is empty
+    std::function<void(void**, void*)> merge;
+    merge = [](void** lhs, void* rhs) {
+
+      // if necessary create the column to merge to
+      if(*lhs == nullptr) {
+        *lhs = (void*) new std::vector<ColType>();
+      }
+
+      // cast the vectors
+      auto *leftVec = (std::vector<ColType> *) *lhs;
+      auto *rightVec = (std::vector<ColType> *) rhs;
+
+      // copy rhs into lhs
+      leftVec->insert(leftVec->end(), rightVec->begin(), rightVec->end());
+
+      // clear rhs
+      rightVec->clear();
+    };
+
     // add getCount to get number of rows for a particular column at runtime
     std::function<size_t(void*)> getCount;
     getCount = [](void* countMe) {
-      std::vector<ColType>* toCountRowsOfMe = (std::vector<ColType>*)countMe;
+      auto* toCountRowsOfMe = (std::vector<ColType>*)countMe;
       return toCountRowsOfMe->size();
     };
 
@@ -452,8 +555,7 @@ class TupleSet {
 
         // tryDereference will return either (a) the pointed-to object if this is a Ptr <> type, or (b) the object
         ColType *temp = nullptr;
-        typename std::remove_reference<decltype(tryDereference<std::is_base_of<PtrBase, ColType>::value>(*temp))>::type
-            *target =
+        auto *target =
             (typename std::remove_reference<decltype(tryDereference<std::is_base_of<PtrBase,
                                                                                     ColType>::value>(*temp))>::type *)
                 (((char *) toHere[i]) + offset);
@@ -482,9 +584,7 @@ class TupleSet {
 
         // tryDereference will return either (a) the pointed-to object if this is a Ptr <> type, or (b) the object... so source
         // is going to be a pointer to an object type
-        typename std::remove_reference<decltype(tryDereference<std::is_base_of<PtrBase,
-                                                                               ColType>::value>(writeToMe[0]))>::type
-            *source =
+        auto *source =
             (typename std::remove_reference<decltype(tryDereference<std::is_base_of<PtrBase,
                                                                                     ColType>::value>(writeToMe[0]))>::type *)
                 (((char *) fromHere[i]) + offset);
@@ -505,6 +605,8 @@ class TupleSet {
     MaintenanceFuncs myFuncs(deleter,
                              filter,
                              replicate,
+                             split,
+                             merge,
                              getCount,
                              createPDBVector,
                              writeToVector,

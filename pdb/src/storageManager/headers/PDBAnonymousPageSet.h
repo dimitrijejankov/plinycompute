@@ -54,10 +54,16 @@ public:
   size_t getNumPages() override;
 
   /**
+   * Returns the maximum size of the page
+   * @return the size
+   */
+  size_t getMaxPageSize();
+
+  /**
    * Remove the page from this page. The page has to be in this page set, otherwise the behavior is not defined
    * @param pageHandle - the page handle we want to remove
    */
-  void removePage(PDBPageHandle pageHandle);
+  virtual void removePage(PDBPageHandle pageHandle);
 
   /**
    * Resets the page set so it can be reused
