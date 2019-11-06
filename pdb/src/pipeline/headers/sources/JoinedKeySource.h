@@ -76,7 +76,7 @@ public:
     delete[] lhsColumns;
   }
 
-  TupleSetPtr getNextTupleSet() override {
+  TupleSetPtr getNextTupleSet(const PDBTupleSetSizePolicy &policy) override {
 
     // get the rhs tuple
     auto rhsTuple = rhsSource->getNextTupleSet();

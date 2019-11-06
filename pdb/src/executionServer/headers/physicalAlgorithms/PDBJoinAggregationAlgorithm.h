@@ -33,10 +33,10 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
   PDBJoinAggregationAlgorithm(const std::vector<PDBPrimarySource> &leftSource,
                               const std::vector<PDBPrimarySource> &rightSource,
                               const pdb::Handle<PDBSinkPageSetSpec> &sink,
-                              AtomicComputationPtr leftInputTupleSet,
-                              AtomicComputationPtr rightInputTupleSet,
-                              AtomicComputationPtr joinTupleSet,
-                              AtomicComputationPtr aggregationKey,
+                              const AtomicComputationPtr& leftInputTupleSet,
+                              const AtomicComputationPtr& rightInputTupleSet,
+                              const AtomicComputationPtr& joinTupleSet,
+                              const AtomicComputationPtr& aggregationKey,
                               pdb::Handle<PDBSinkPageSetSpec> &hashedLHSKey,
                               pdb::Handle<PDBSinkPageSetSpec> &hashedRHSKey,
                               pdb::Handle<PDBSinkPageSetSpec> &aggregationTID,
@@ -77,22 +77,17 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
   /**
    * The lhs input set to the join aggregation pipeline
    */
-  AtomicComputationPtr leftInputTupleSet;
+  pdb::String leftInputTupleSet;
 
   /**
    * The rhs input set to the join aggregation pipeline
    */
-  AtomicComputationPtr rightInputTupleSet;
+  pdb::String rightInputTupleSet;
 
   /**
    * The join tuple set
    */
-  AtomicComputationPtr joinTupleSet;
-
-  /**
-   * The the key extraction tuple set of the aggregation
-   */
-  AtomicComputationPtr aggregationKey;
+  pdb::String joinTupleSet;
 
   /**
    * The sources of the right side of the merged pipeline

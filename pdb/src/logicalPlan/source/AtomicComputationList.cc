@@ -28,9 +28,8 @@
 
 // gets the computation that builds the tuple set with the specified name
 AtomicComputationPtr AtomicComputationList::getProducingAtomicComputation(std::string outputName) {
-  if (producers.count(outputName) == 0) {
-    PDB_COUT << "This could be bad... can't find the guy producing output " << outputName
-             << ".\n";
+  if (producers.find(outputName) == producers.end()) {
+    return nullptr;
   }
   return producers[outputName];
 }

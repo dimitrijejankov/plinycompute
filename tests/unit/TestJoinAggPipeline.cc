@@ -34,6 +34,8 @@ class MockPageSetReader : public pdb::PDBAbstractPageSet {
 class MockPageSetWriter: public pdb::PDBAnonymousPageSet {
  public:
 
+  MockPageSetWriter(const PDBBufferManagerInterfacePtr &bufferManager) : pdb::PDBAnonymousPageSet(bufferManager) {}
+
   MOCK_METHOD1(getNextPage, PDBPageHandle(size_t workerID));
 
   MOCK_METHOD0(getNewPage, PDBPageHandle());
@@ -217,8 +219,8 @@ TEST(PipelineTest, TestJoinAggPipeline) {
   transformer->addTransformation(std::make_shared<JoinKeySideTransformation>("inputDataForSetScanner_0"));
   transformer->addTransformation(std::make_shared<JoinKeySideTransformation>("inputDataForSetScanner_1"));
   transformer->addTransformation(std::make_shared<JoinKeyTransformation>("OutForJoinedFor_equals_0JoinComp2"));
+  transformer->addTransformation(std::make_shared<DropDependents>("aggOutForAggregationComp3"));
   transformer->addTransformation(std::make_shared<AggKeyTransformation>("OutFor_key_2AggregationComp3"));
-  transformer->addTransformation(std::make_shared<DropDependents>("aggOutForAggregationComp3_out"));
   transformer->addTransformation(std::make_shared<AddJoinTID>("OutForJoinedFor_equals_0JoinComp2"));
 
   // apply all the transformations
@@ -272,7 +274,7 @@ TEST(PipelineTest, TestJoinAggPipeline) {
   EXPECT_CALL(*lhsReader, getNextPage(testing::An<size_t>())).Times(2);
 
   // the page set that is gonna provide stuff
-  std::shared_ptr<MockPageSetWriter> lhsWriter = std::make_shared<MockPageSetWriter>();
+  std::shared_ptr<MockPageSetWriter> lhsWriter = std::make_shared<MockPageSetWriter>(myMgr);
 
   std::unordered_map<uint64_t, PDBPageHandle> lhsWritePages;
   ON_CALL(*lhsWriter, getNewPage).WillByDefault(testing::Invoke(
@@ -355,7 +357,7 @@ TEST(PipelineTest, TestJoinAggPipeline) {
   EXPECT_CALL(*rhsReader, getNextPage(testing::An<size_t>())).Times(2);
 
   // the page set that is gonna provide stuff
-  std::shared_ptr<MockPageSetWriter> rhsWriter = std::make_shared<MockPageSetWriter>();
+  std::shared_ptr<MockPageSetWriter> rhsWriter = std::make_shared<MockPageSetWriter>(myMgr);
 
   std::unordered_map<uint64_t, PDBPageHandle> rhsWritePages;
   ON_CALL(*rhsWriter, getNewPage).WillByDefault(testing::Invoke(
@@ -413,7 +415,7 @@ TEST(PipelineTest, TestJoinAggPipeline) {
   // 5. Run the last pipeline
 
   // the page set that is gonna provide stuff
-  std::shared_ptr<MockPageSetWriter> finalWriter = std::make_shared<MockPageSetWriter>();
+  std::shared_ptr<MockPageSetWriter> finalWriter = std::make_shared<MockPageSetWriter>(myMgr);
 
   std::unordered_map<uint64_t, PDBPageHandle> finalWritePages;
   ON_CALL(*finalWriter, getNewPage).WillByDefault(testing::Invoke(

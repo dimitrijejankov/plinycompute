@@ -141,7 +141,7 @@ class AggKeyTransformation : public Transformation {
 class DropDependents : public Transformation {
  public:
 
-  explicit DropDependents(std::string startTupleSet);
+  explicit DropDependents(const string startTupleSet);
 
   void apply() override;
   bool canApply() override;

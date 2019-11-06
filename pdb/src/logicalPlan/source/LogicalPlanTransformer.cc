@@ -692,12 +692,19 @@ bool pdb::AggKeyTransformation::canApply() {
  * Drop Dependents
  */
 
-pdb::DropDependents::DropDependents(std::string startTupleSet) : startTupleSet(std::move(startTupleSet)) {}
+pdb::DropDependents::DropDependents(const string startTupleSet) : startTupleSet(startTupleSet) {}
 
 void pdb::DropDependents::apply() {
 
-  // drop all dependents of this tuple set
-  dropDependents(startTupleSet);
+  // get the computations from the plan
+  auto &computations = logicalPlan->getComputations();
+
+  // go and drop each consumer
+  for(const auto &a : computations.getConsumingAtomicComputations(startTupleSet)) {
+
+    // drop all dependents of this tuple set
+    dropDependents(a->getOutputName());
+  }
 }
 
 bool pdb::DropDependents::canApply() {
@@ -705,7 +712,8 @@ bool pdb::DropDependents::canApply() {
   // get the computations from the plan
   auto &computations = logicalPlan->getComputations();
 
-  return computations.getProducingAtomicComputation(startTupleSet) != nullptr;
+  // it has to have at least one consumer
+  return computations.hasConsumer(startTupleSet);
 }
 
 /**

@@ -84,6 +84,9 @@ class Pipeline : public PipelineInterface {
   // store page
   void addPageToIteration(const pdb::MemoryHolderPtr& ram, int iteration);
 
+  // increment the record number1
+  void incrementRecordNumber(const pdb::MemoryHolderPtr &ram);
+
   // runs the pipeline
   void run() override;
 

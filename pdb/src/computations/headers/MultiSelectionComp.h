@@ -86,6 +86,10 @@ class MultiSelectionComp : public Computation {
     return getTypeName<Out>();
   }
 
+  bool isKeyed() override {
+    return false;
+  }
+
   pdb::ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet,
                                          size_t chunkSize,
                                          uint64_t workerID,

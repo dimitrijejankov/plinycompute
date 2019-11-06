@@ -34,13 +34,13 @@ public:
    * the same input again
    * @return true if it was, false otherwise
    */
-  bool inputWasProcessed() const;
+  [[nodiscard]] bool inputWasProcessed() const;
 
   /**
    * Returns the current chunks size we decided to use
    * @return the chunks size
    */
-  int32_t getChunksSize() const;
+  [[nodiscard]] int32_t getChunksSize() const;
 
 protected:
 
