@@ -160,6 +160,11 @@ protected:
    */
   pdb::LogicalPlanPtr logicalPlan;
 
+  /*
+   * The logger of the algorithm
+   */
+  PDBLoggerPtr logger;
+
   // mark the tests that are testing this algorithm
   FRIEND_TEST(TestPhysicalOptimizer, TestAggregation);
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin1);

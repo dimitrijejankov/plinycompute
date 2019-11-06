@@ -1,7 +1,5 @@
 #include <utility>
 
-#include <utility>
-
 /*****************************************************************************
  *                                                                           *
  *  Copyright 2018 Rice University                                           *
@@ -20,8 +18,7 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef PIPELINE_H
-#define PIPELINE_H
+#pragma once
 
 #include "ComputeSource.h"
 #include "ComputeSink.h"
@@ -43,7 +40,7 @@ class Pipeline : public PipelineInterface {
  private:
 
   // the id of the worker this pipeline is running on
-  size_t workerID;
+  size_t workerID{};
 
   // this is the page set where we are going to be writing all the output
   pdb::PDBAnonymousPageSetPtr outputPageSet;
@@ -63,6 +60,9 @@ class Pipeline : public PipelineInterface {
   // and here is all of the pages we've not yet written back
   std::queue<MemoryHolderPtr> unwrittenPages;
 
+  // this determines the size of the tuple set when running the pipeline
+  PDBTupleSetSizePolicy tupleSetSizePolicy;
+
   // cleans the pipeline from all the leftover pages
   void cleanPipeline();
 
@@ -74,21 +74,15 @@ class Pipeline : public PipelineInterface {
   // the first argument is a function to call that gets a new output page...
   // the second argument is a function to call that deals with a full output page
   // the third argument is the iterator that will create TupleSets to process
-  Pipeline(PDBAnonymousPageSetPtr outputPageSet, ComputeSourcePtr dataSource, ComputeSinkPtr tupleSink, PageProcessorPtr pageProcessor);
+  Pipeline(const PDBAnonymousPageSetPtr &outputPageSet, ComputeSourcePtr dataSource, ComputeSinkPtr tupleSink, PageProcessorPtr pageProcessor);
 
   ~Pipeline() override;
 
   // adds a stage to the pipeline
-  void addStage(ComputeExecutorPtr addMe);
+  void addStage(const ComputeExecutorPtr& addMe);
 
   // store page
-  void keepPage(const pdb::MemoryHolderPtr& ram, int iteration);
-
-  // dismiss the page if not needed anymore
-  static void dismissPage(const pdb::MemoryHolderPtr& ram, bool dismissLast);
-
-  // incement the number of records
-  void incrementRecordNumber(const MemoryHolderPtr &ram);
+  void addPageToIteration(const pdb::MemoryHolderPtr& ram, int iteration);
 
   // runs the pipeline
   void run() override;
@@ -96,5 +90,3 @@ class Pipeline : public PipelineInterface {
 };
 
 }
-
-#endif

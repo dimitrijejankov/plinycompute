@@ -672,6 +672,12 @@ MultiPolicyAllocator<FirstPolicy, OtherPolicies...>::getBytesAvailableInCurrentA
 }
 
 template <typename FirstPolicy, typename... OtherPolicies>
+inline size_t
+MultiPolicyAllocator<FirstPolicy, OtherPolicies...>::getFreeBytesAtTheEnd() {
+  return myState.numBytes - LAST_USED;
+}
+
+template <typename FirstPolicy, typename... OtherPolicies>
 inline unsigned
 MultiPolicyAllocator<FirstPolicy, OtherPolicies...>::getNumObjectsInCurrentAllocatorBlock() {
     return ALLOCATOR_REF_COUNT;

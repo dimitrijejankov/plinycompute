@@ -73,10 +73,6 @@ class PDBBroadcastForJoinAlgorithm : public PDBPhysicalAlgorithm {
    */
   std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> senders;
 
-  /**
-   *
-   */
-  PDBLoggerPtr logger;
 
   /**
    * Vector of pipelines that will run this algorithm. The pipelines will be built when you call setup on this object.

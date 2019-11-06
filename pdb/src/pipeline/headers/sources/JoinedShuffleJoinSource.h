@@ -14,6 +14,15 @@ protected:
   // and the tuple set we return
   TupleSetPtr output;
 
+  // the size of the last output
+  uint64_t outputSize = 0;
+
+  // the buffer we use if we generate to many records
+  TupleSetPtr buffer;
+
+  // number of records left in the buffer
+  uint64_t bufferSize = 0;
+
   // to setup the output tuple set
   TupleSetSetupMachine rhsMachine;
 
@@ -32,9 +41,6 @@ protected:
   // pages that contain lhs side pages
   std::vector<PDBPageHandle> lhsPages;
 
-  // the number of tuples in the tuple set
-  uint64_t chunkSize = 0;
-
   // this is the worker we are doing the processing for
   uint64_t workerID = 0;
 
@@ -52,18 +58,6 @@ protected:
 
 public:
 
-  JoinedShuffleJoinSource() = default;
-
-  JoinedShuffleJoinSource(TupleSpec &inputSchemaRHS,
-                          TupleSpec &recordSchemaRHS,
-                          std::vector<int> lhsRecordOrder,
-                          RHSShuffleJoinSourceBasePtr &rhsSource,
-                          uint64_t chunkSize) : lhsRecordOrder(std::move(lhsRecordOrder)),
-                                                rhsMachine(inputSchemaRHS, recordSchemaRHS),
-                                                rhsSource(rhsSource),
-                                                chunkSize(chunkSize),
-                                                workerID(0) {}
-
   JoinedShuffleJoinSource(TupleSpec &inputSchemaRHS,
                           TupleSpec &hashSchemaRHS,
                           TupleSpec &recordSchemaRHS,
@@ -75,7 +69,6 @@ public:
                           uint64_t workerID) : lhsRecordOrder(lhsRecordOrder),
                                                rhsMachine(inputSchemaRHS, recordSchemaRHS),
                                                rhsSource(rhsSource),
-                                               chunkSize(chunkSize),
                                                workerID(workerID) {
 
     PDBPageHandle page;
@@ -99,8 +92,9 @@ public:
       }
     }
 
-    // set up the output tuple
+    // set up the output tuple and buffer
     output = std::make_shared<TupleSet>();
+    buffer = std::make_shared<TupleSet>();
     lhsColumns = new void *[lhsRecordOrder.size()];
 
     // were the RHS and the LHS side swapped?
@@ -130,7 +124,40 @@ public:
     delete[] lhsColumns;
   }
 
-  TupleSetPtr getNextTupleSet() override {
+  TupleSetPtr getNextTupleSet(const PDBTupleSetSizePolicy &policy) override {
+
+
+    /**
+     * 0. In case of failure we need to reprocess the input, copy the current stuff into the buffer
+     */
+
+    // did we manage to process the input, if not move the records into the buffer
+    if(!policy.inputWasProcessed()) {
+
+      // merge the previous output into the buffer since we failed
+      TupleSet::merge(*buffer, *output);
+      bufferSize += outputSize;
+      outputSize = 0;
+    }
+
+    /**
+     * 1. We need to check if the buffer has something, if it does we need to process it.
+     */
+
+    if(bufferSize != 0) {
+
+      // figure out how many records we want to grab (not more than the buffer size)
+      outputSize = std::min<uint64_t>(bufferSize, policy.getChunksSize());
+
+      // this one is a bit tricky basically it moves a outputSize number of records into the buffer
+      // by splitting on the outputSize-th position from the back of the buffer, since getting rows from the back is
+      // faster
+      TupleSet::split(*buffer, *output, bufferSize - outputSize);
+      bufferSize -= outputSize;
+
+      // return the output
+      return output;
+    }
 
     // get the rhs tuple
     auto rhsTuple = rhsSource->getNextTupleSet();
@@ -142,7 +169,7 @@ public:
     counts.clear();
 
     // go through the hashes
-    int overallCounter = 0;
+    outputSize = 0;
     for (auto &currHash : *rhsTuple.second) {
 
       // clear the iterators from the previous iteration
@@ -252,21 +279,26 @@ public:
           for (int which = 0; which < records.size(); which++) {
 
             // do the unpack
-            unpack(records[which], overallCounter++, 0, lhsColumns);
+            unpack(records[which], outputSize++, 0, lhsColumns);
           }
         }
       }
     }
 
     // truncate if we have extra
-    eraseEnd<LHS>(overallCounter, 0, lhsColumns);
+    eraseEnd<LHS>(outputSize, 0, lhsColumns);
 
-    /// 3. We need to replicate the rhs records
+    /// 3. Finally, we need to replicate the rhs records
 
     rhsMachine.replicate(rhsTuple.first, output, counts, offset);
 
+    /// 4. if we have more than the chunks size buffer the extra rows
 
-    /// 4. set the rhs TIDs
+    if(outputSize > policy.getChunksSize()) {
+      TupleSet::split(*output, *buffer, policy.getChunksSize());
+      bufferSize = outputSize - policy.getChunksSize();
+      outputSize = policy.getChunksSize();
+    }
 
     return output;
   }

@@ -22,6 +22,9 @@ pdb::PDBStraightPipeAlgorithm::PDBStraightPipeAlgorithm(const std::vector<PDBPri
 
 bool pdb::PDBStraightPipeAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) {
 
+  // init the logger
+  logger = make_shared<PDBLogger>("PDBStraightPipeAlgorithm" + std::to_string(job->computationID));
+
   // init the plan
   ComputePlan plan(std::make_shared<LogicalPlan>(job->tcap, *job->computations));
   logicalPlan = plan.getPlan();
@@ -138,18 +141,33 @@ bool pdb::PDBStraightPipeAlgorithm::run(std::shared_ptr<pdb::PDBStorageManagerBa
     cnt++;
   });
 
-  // here we get a worker per pipeline and run all the preaggregationPipelines.
-
+  // here we get a worker per pipeline and run them all.
   for (int i = 0; i < myPipelines->size(); ++i) {
+
     // get a worker from the server
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&counter, i, this](PDBBuzzerPtr callerBuzzer) {
-      (*myPipelines)[i]->run();
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&counter, &success, i, this](const PDBBuzzerPtr& callerBuzzer) {
+
+      try {
+
+        // run the pipeline
+        (*myPipelines)[i]->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        this->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
+
       // signal that the run was successful
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
     });
+
     // run the work
     worker->execute(myWork, tempBuzzer);
   }

@@ -387,7 +387,9 @@ public:
 // when we try to do an allocation to create an Object
 // but there is not enough RAM
 class NotEnoughSpace : public std::bad_alloc {
-    virtual const char* what() const throw() {
+public:
+
+  const char* what() const throw() override {
         return "Not enough free memory in current allocation block.\n";
     }
 };
@@ -451,6 +453,10 @@ public:
 
     // get the number of bytes available in the current allocation block
     inline size_t getBytesAvailableInCurrentAllocatorBlock();
+
+    // get the number of bytes available in the current allocation block at the end of the block, meaning we
+    // exclude all the chunks that we can potentially reclaim
+    inline size_t getFreeBytesAtTheEnd();
 
     // returns true if and only if the RAM is in the current allocation block
     inline bool contains(void* whereIn);

@@ -294,10 +294,21 @@ bool pdb::PDBShuffleForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManager
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&joinCounter, workerID, this](PDBBuzzerPtr callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&joinCounter, &success, workerID, this](const PDBBuzzerPtr& callerBuzzer) {
 
-      // run the pipeline
-      (*joinShufflePipelines)[workerID]->run();
+      try {
+
+        // run the pipeline
+        (*joinShufflePipelines)[workerID]->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        this->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
 
       // signal that the run was successful
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, joinCounter);

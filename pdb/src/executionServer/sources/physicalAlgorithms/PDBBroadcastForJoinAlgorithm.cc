@@ -238,10 +238,21 @@ bool pdb::PDBBroadcastForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManag
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&joinCounter, workerID, this](PDBBuzzerPtr callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&joinCounter, &success, workerID, this](const PDBBuzzerPtr &callerBuzzer) {
 
-      // run the pipeline
-      (*broadcastjoinPipelines)[workerID]->run();
+      try {
+
+        // run the pipeline
+        (*broadcastjoinPipelines)[workerID]->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        this->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
 
       // signal that the run was successful
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, joinCounter);
@@ -270,7 +281,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManag
   // run the work
   {
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&selfRecDone, this](PDBBuzzerPtr callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&selfRecDone, this](const PDBBuzzerPtr& callerBuzzer) {
 
       // run the receiver
       if (selfReceiver->run()) {
@@ -308,7 +319,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManag
   for (auto &sender : *senders) {
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sendersDone, sender, this](PDBBuzzerPtr callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sendersDone, sender, this](const PDBBuzzerPtr& callerBuzzer) {
 
       // run the sender
       if (sender->run()) {
@@ -349,10 +360,21 @@ bool pdb::PDBBroadcastForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManag
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&prejoinCounter, workerID, this](PDBBuzzerPtr callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&prejoinCounter, &success, workerID, this](const PDBBuzzerPtr& callerBuzzer) {
 
-      // run the pipeline
-      (*prebroadcastjoinPipelines)[workerID]->run();
+      try {
+
+        // run the pipeline
+        (*prebroadcastjoinPipelines)[workerID]->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        this->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
 
       // signal that the run was successful
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, prejoinCounter);

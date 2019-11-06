@@ -31,18 +31,20 @@ namespace pdb {
 class Employee : public Object {
 public:
     Handle<String> name;
-    int age;
+    int age{};
 
-    double salary;
+    double salary{};
     String department;
 
     ENABLE_DEEP_COPY
 
-    ~Employee() {}
-    Employee() {}
+    ~Employee() = default;
+    Employee() = default;
+
     size_t hash() {
         return name->hash();
     }
+
     void print() {
         std::cout << "name is: " << *name << " age is: " << age << " dept is: " << department;
     }
@@ -63,13 +65,13 @@ public:
         return salary;
     }
 
-    Employee(std::string nameIn, int ageIn, std::string department, double salary)
+    Employee(const std::string& nameIn, int ageIn, const std::string& department, double salary)
         : salary(salary), department(department) {
         name = makeObject<String>(nameIn);
         age = ageIn;
     }
 
-    Employee(std::string nameIn, int ageIn) {
+    Employee(const std::string& nameIn, int ageIn) {
         name = makeObject<String>(nameIn);
         age = ageIn;
         department = "myDept";
