@@ -10,53 +10,43 @@ using namespace pdb;
 using namespace pdb::matrix;
 
 // some constants for the test
-const size_t blockSize = 1024;
-const uint32_t matrixRows = 10000;
-const uint32_t matrixColumns = 10000;
-const uint32_t numRows = 200;
-const uint32_t numCols = 200;
+const size_t blockSize = 64;
+const uint32_t matrixRows = 10;
+const uint32_t matrixColumns = 10;
+const uint32_t numRows = 2;
+const uint32_t numCols = 2;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
+  // make the allocation block
+  const pdb::UseTemporaryAllocationBlock tempBlock{blockSize * 1024 * 1024};
+
+  // put the chunks here
+  Handle<Vector<Handle<MatrixBlock>>> data = pdb::makeObject<Vector<Handle<MatrixBlock>>>();
+
   // fill the vector up
-  for (uint32_t r1 = 0; r1 < 4; r1++) {
+  for (uint32_t r = 0; r < numRows; r++) {
+    for (uint32_t c = 0; c < numCols; c++) {
 
-    // make the allocation block
-    const pdb::UseTemporaryAllocationBlock tempBlock{blockSize * 1024 * 1024};
+      // allocate a matrix
+      Handle<MatrixBlock> myInt = makeObject<MatrixBlock>(r, c, matrixRows / numRows, matrixColumns / numCols);
 
-    // put the chunks here
-    Handle<Vector<Handle<MatrixBlock>>> data = pdb::makeObject<Vector<Handle<MatrixBlock>>>();
-
-    // fill up the vector
-    for (uint32_t r2 = 0; r2 < 50; r2++) {
-
-      // figure out the row id
-      auto r = r1 * 50 + r2;
-
-      for (uint32_t c = 0; c < numCols; c++) {
-
-        // allocate a matrix
-        Handle<MatrixBlock> myInt = makeObject<MatrixBlock>(r, c, matrixRows / numRows, matrixColumns / numCols);
-
-        // init the values
-        float *vals = myInt->data->data->c_ptr();
-        for (int v = 0; v < (matrixRows / numRows) * (matrixColumns / numCols); ++v) {
-          vals[v] = 1.0f * (float) v;
-        }
-
-        data->push_back(myInt);
+      // init the values
+      float *vals = myInt->data->data->c_ptr();
+      for (int v = 0; v < (matrixRows / numRows) * (matrixColumns / numCols); ++v) {
+        vals[v] = 1.0f * v;
       }
+
+      data->push_back(myInt);
     }
-
-    // init the records
-    getRecord(data);
-
-    // send the data a bunch of times
-    pdbClient.sendData<MatrixBlock>("myData", set, data);
   }
 
-}
+  // init the records
+  getRecord(data);
 
+  // send the data a bunch of times
+  pdbClient.sendData<MatrixBlock>("myData", set, data);
+}
 
 int main(int argc, char* argv[]) {
 
@@ -107,26 +97,26 @@ int main(int argc, char* argv[]) {
   //TODO this is just a preliminary version of the execute computation before we add back the TCAP generation
   pdbClient.executeComputations({ myWriter });
 
-  /// 5. Get the set from the
-
-  // grab the iterator
-  auto it = pdbClient.getSetIterator<MatrixBlock>("myData", "C");
-  while(it->hasNextRecord()) {
-
-    // grab the record
-    auto r = it->getNextRecord();
-
-    // write out the values
-    float *values = r->data->data->c_ptr();
-    for(int i = 0; i < r->data->numRows; ++i) {
-      for(int j = 0; j < r->data->numCols; ++j) {
-        std::cout << values[i * r->data->numCols + j] << ", ";
-      }
-      std::cout << "\n";
-    }
-
-    std::cout << "\n\n";
-  }
+//  /// 5. Get the set from the
+//
+//  // grab the iterator
+//  auto it = pdbClient.getSetIterator<MatrixBlock>("myData", "C#keys");
+//  while(it->hasNextRecord()) {
+//
+//    // grab the record
+//    auto r = it->getNextRecord();
+//
+//    // write out the values
+//    float *values = r->data->data->c_ptr();
+//    for(int i = 0; i < r->data->numRows; ++i) {
+//      for(int j = 0; j < r->data->numCols; ++j) {
+//        std::cout << values[i * r->data->numCols + j] << ", ";
+//      }
+//      std::cout << "\n";
+//    }
+//
+//    std::cout << "\n\n";
+//  }
 
   // shutdown the server
   pdbClient.shutDownServer();

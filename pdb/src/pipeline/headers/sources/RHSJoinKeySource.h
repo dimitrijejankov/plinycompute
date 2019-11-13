@@ -37,6 +37,13 @@ public:
 
     // add the hash column
     this->output->addColumn(this->keyAtt, &this->hashColumn, false);
+  }
+
+  ~RHSJoinKeySource() override {
+    delete[] columns;
+  }
+
+  void initialize() {
 
     PDBPageHandle page;
     while ((page = this->pageSet->getNextPage(0)) != nullptr) {
@@ -61,13 +68,17 @@ public:
         this->pages.push_back(page);
       }
     }
-  }
 
-  ~RHSJoinKeySource() override {
-    delete[] columns;
+    // mark as initialized
+    isInitialized = true;
   }
 
   std::tuple<pdb::TupleSetPtr, std::vector<std::pair<size_t, size_t>>*, std::vector<uint32_t>> getNextTupleSet() override {
+
+    // initialize the source
+    if(!isInitialized) {
+      initialize();
+    }
 
     //
     std::vector<uint32_t> rightTDI;
@@ -153,6 +164,9 @@ protected:
 
   // this is where we store the map with all keys and TIDs
   PDBPageHandle rightMap;
+
+  // is this source initialized
+  bool isInitialized = false;
 
   // and the tuple set we return
   TupleSetPtr output;

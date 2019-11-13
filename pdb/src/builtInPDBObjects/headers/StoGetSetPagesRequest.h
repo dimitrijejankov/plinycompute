@@ -38,6 +38,13 @@ public:
       : databaseName(databaseName), setName(setName) {
   }
 
+  StoGetSetPagesRequest(const std::string &databaseName,
+                        const std::string &setName,
+                        bool forKeys)
+      : databaseName(databaseName), setName(setName), forKeys(forKeys) {
+  }
+
+
   ENABLE_DEEP_COPY
 
   /**
@@ -50,6 +57,10 @@ public:
    */
   String setName;
 
+  /**
+   * Should we get the one for the keys
+   */
+  bool forKeys = false;
 };
 
 }

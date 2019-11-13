@@ -327,7 +327,7 @@ class PDBCatalog {
    * @param setName - the set name
    * @return the set name for the key by convention "setName#keys"
    */
-  static std::string toKeySetName(const std::string &setName);
+  static const std::string toKeySetName(const std::string &setName);
 
   /**
    * Converts the key set anme to the set name

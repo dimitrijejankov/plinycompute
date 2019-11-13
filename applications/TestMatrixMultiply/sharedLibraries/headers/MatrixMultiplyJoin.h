@@ -21,6 +21,9 @@ class MatrixMultiplyJoin : public JoinComp <MatrixMultiplyJoin, MatrixBlock, Mat
 
   static Lambda <Handle<MatrixBlockMeta>> getKeyProjection(Handle <MatrixBlockMeta> in1, Handle <MatrixBlockMeta> in2) {
     return makeLambda (in1, in2, [] (Handle <MatrixBlockMeta> &in1, Handle <MatrixBlockMeta> &in2) {
+
+      std::cout << "Made chunk" << in1->rowID << " " << in2->colID << '\n';
+
       Handle<MatrixBlockMeta> out = makeObject<MatrixBlockMeta>(in1->rowID, in2->colID);
       return out;
     });

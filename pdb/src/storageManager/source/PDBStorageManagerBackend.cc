@@ -55,7 +55,7 @@ void pdb::PDBStorageManagerBackend::registerHandlers(PDBServer &forMe) {
       }));
 }
 
-pdb::PDBSetPageSetPtr pdb::PDBStorageManagerBackend::createPageSetFromPDBSet(const std::string &db, const std::string &set) {
+pdb::PDBSetPageSetPtr pdb::PDBStorageManagerBackend::createPageSetFromPDBSet(const std::string &db, const std::string &set, bool isKeyed) {
 
 
   // get the configuration
@@ -88,18 +88,25 @@ pdb::PDBSetPageSetPtr pdb::PDBStorageManagerBackend::createPageSetFromPDBSet(con
 
         // we succeeded
         return std::make_pair(result->success, std::move(pages));
-      }, db, set);
+      }, db, set, isKeyed);
 
   // if we failed return a null ptr
   if(!pageInfo.first) {
     return nullptr;
   }
 
-  /// 3. Crate it and return it
+  /// 3. Create it and return it
 
+  if(!isKeyed) {
 
-  // store the page set
-  return std::make_shared<pdb::PDBSetPageSet>(db, set, pageInfo.second, getFunctionalityPtr<PDBBufferManagerInterface>());
+    // store the page set
+    return std::make_shared<pdb::PDBSetPageSet>(db, set, pageInfo.second, getFunctionalityPtr<PDBBufferManagerInterface>());
+  }
+  else {
+
+    // store the page set
+    return std::make_shared<pdb::PDBSetPageSet>(db, PDBCatalog::toKeySetName(set), pageInfo.second, getFunctionalityPtr<PDBBufferManagerInterface>());
+  }
 }
 
 pdb::PDBAnonymousPageSetPtr pdb::PDBStorageManagerBackend::createAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID) {

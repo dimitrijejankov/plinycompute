@@ -654,7 +654,7 @@ bool pdb::PDBCatalog::removeSet(const std::string &dbName, const std::string &se
   return true;
 }
 
-std::string pdb::PDBCatalog::toKeySetName(const std::string &setName) {
+const std::string pdb::PDBCatalog::toKeySetName(const std::string &setName) {
   return std::move(setName + "#keys");
 }
 

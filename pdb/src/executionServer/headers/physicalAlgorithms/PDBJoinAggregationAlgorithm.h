@@ -7,6 +7,7 @@
 #include "PDBPageSelfReceiver.h"
 #include "Computation.h"
 #include "PDBPageNetworkSender.h"
+#include "PDBAnonymousPageSet.h"
 
 namespace pdb {
 
@@ -33,6 +34,9 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
   PDBJoinAggregationAlgorithm(const std::vector<PDBPrimarySource> &leftSource,
                               const std::vector<PDBPrimarySource> &rightSource,
                               const pdb::Handle<PDBSinkPageSetSpec> &sink,
+                              const pdb::Handle<PDBSinkPageSetSpec> &leftKeySink,
+                              const pdb::Handle<PDBSinkPageSetSpec> &rightKeySink,
+                              const pdb::Handle<PDBSinkPageSetSpec> &joinAggKeySink,
                               const AtomicComputationPtr& leftInputTupleSet,
                               const AtomicComputationPtr& rightInputTupleSet,
                               const AtomicComputationPtr& joinTupleSet,
@@ -72,6 +76,14 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
    */
   PDBCatalogSetContainerType getOutputContainerType() override;
 
+  pdb::SourceSetArgPtr getKeySourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient,
+                                          pdb::Vector<PDBSourceSpec> &sources,
+                                          size_t idx);
+
+  PDBAbstractPageSetPtr getKeySourcePageSet(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                            size_t idx,
+                                            pdb::Vector<PDBSourceSpec> &srcs);
+
  private:
 
   /**
@@ -109,6 +121,19 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
    * there are also going to be two anonymous pages with Map<LHSKey, LHS_TID> and Map<RHSKey, RHS_Key>.
    */
   pdb::Handle<PDBSinkPageSetSpec> aggregationTID;
+
+  pdb::PDBAnonymousPageSetPtr leftPageSet = nullptr;
+  pdb::PDBAnonymousPageSetPtr rightPageSet = nullptr;
+
+  /**
+   * The join key side pipelines
+   */
+  std::shared_ptr<std::vector<PipelinePtr>> joinKeyPipelines = nullptr;
+
+  /**
+   * The join aggregation pipeline
+   */
+  PipelinePtr joinAggPipeline = nullptr;
 
   FRIEND_TEST(TestPhysicalOptimizer, TestKeyedMatrixMultipply);
 };

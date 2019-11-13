@@ -46,10 +46,13 @@ std::vector<AtomicComputationPtr> pdb::KeyComputePlan::getLeftPipelineComputatio
   return {};
 }
 
-pdb::PipelinePtr pdb::KeyComputePlan::buildHashPipeline(AtomicComputationPtr &source,
+pdb::PipelinePtr pdb::KeyComputePlan::buildHashPipeline(const std::string &sourceTupleSet,
                                                         const pdb::PDBAbstractPageSetPtr &inputPageSet,
                                                         const pdb::PDBAnonymousPageSetPtr &outputPageSet,
                                                         map<pdb::ComputeInfoType, pdb::ComputeInfoPtr> &params) {
+
+  //
+  auto source = myPlan->getComputations().getProducingAtomicComputation(sourceTupleSet);
 
   // get the left pipeline computations
   auto listSoFar = getLeftPipelineComputations(source);

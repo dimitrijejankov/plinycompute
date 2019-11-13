@@ -68,7 +68,7 @@ std::tuple<pdb::PipelinePtr, pdb::PipelinePtr> buildHashingPipeline(std::shared_
   std::map<ComputeInfoType, ComputeInfoPtr> params = {{ ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>(((ScanSet*)lhsSource.get())->getDBName(), ((ScanSet*)lhsSource.get())->getSetName(), "", 0, PDB_CATALOG_SET_VECTOR_CONTAINER)) }};
 
   // build the pipeline
-  auto leftPipeline = computePlan->buildHashPipeline(lhsSource, lhsReader, lhsWriter, params);
+  auto leftPipeline = computePlan->buildHashPipeline("inputDataForSetScanner_0", lhsReader, lhsWriter, params);
 
   // the get the right source comp
   auto rhsSource = computations.getProducingAtomicComputation("inputDataForSetScanner_1");
@@ -77,7 +77,7 @@ std::tuple<pdb::PipelinePtr, pdb::PipelinePtr> buildHashingPipeline(std::shared_
   params = {{ ComputeInfoType::SOURCE_SET_INFO, std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>(((ScanSet*)rhsSource.get())->getDBName(), ((ScanSet*)rhsSource.get())->getSetName(), "", 0, PDB_CATALOG_SET_VECTOR_CONTAINER)) }};
 
   // build the pipeline
-  auto rightPipeline = computePlan->buildHashPipeline(rhsSource, rhsReader, rhsWriter, params);
+  auto rightPipeline = computePlan->buildHashPipeline("inputDataForSetScanner_1", rhsReader, rhsWriter, params);
 
   // return the pipelines
   return {leftPipeline, rightPipeline};
@@ -132,6 +132,8 @@ pdb::PipelinePtr buildJoinAggPipeline(std::shared_ptr<KeyComputePlan> &computePl
             {ComputeInfoType::JOIN_ARGS, std::make_shared<JoinArguments>(JoinArgumentsInit{{joinComp->getRightInput().getSetName(), std::make_shared<JoinArg>(rhsReader)}})},
             {ComputeInfoType::KEY_JOIN_SOURCE_ARGS, std::make_shared<KeyJoinSourceArgs>(std::vector<PDBPageHandle>({leftKeyPage, rightKeyPage}))},
             {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(false)}};
+
+  std::cout << joinComp->getOutputName() << " " << sinkComp->getOutputName() << '\n';
 
   PipelinePtr myPipeline = computePlan->buildJoinAggPipeline(joinComp->getOutputName(),
                                                              sinkComp->getOutputName(),     /* this is the TupleSet the pipeline ends with */

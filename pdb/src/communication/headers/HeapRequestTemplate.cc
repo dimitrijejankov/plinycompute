@@ -430,10 +430,10 @@ ReturnType RequestFactory::dataKeyHeapRequest(PDBLoggerPtr logger, int port, con
       }
 
       // store the records
-      getRecord(tmp);
+      auto keyRecord = getRecord(tmp);
 
       // compress the record
-      snappy::RawCompress((char*) myRecord, myRecord->numBytes(), compressedBytes.get(), &compressedSize);
+      snappy::RawCompress((char*) keyRecord, keyRecord->numBytes(), compressedBytes.get(), &compressedSize);
 
       // now, send the bytes
       if (!temp.sendBytes(compressedBytes.get(), compressedSize, errMsg)) {

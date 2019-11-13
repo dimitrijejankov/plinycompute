@@ -252,14 +252,27 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetSetPages(p
 
   // the error
   std::string error;
-  bool success;
+  bool success = true;
 
   // check if the set exists
-  if(!getFunctionalityPtr<pdb::PDBCatalogClient>()->setExists(request->databaseName, request->setName)) {
+  auto set = getFunctionalityPtr<pdb::PDBCatalogClient>()->getSet(request->databaseName, request->setName, error);
+  if(set == nullptr) {
 
     // set the error
     error = "The set the pages were requested does not exist!";
     success = false;
+  }
+
+  // check if we requested a keyed set but the set is not keyed
+  if(success && request->forKeys && !set->isStoringKeys) {
+
+    // set the error
+    error = "Requested the keys of a set but the keys don't exist!";
+    success = false;
+  }
+
+  // check if everything went well
+  if(!success) {
 
     // make an allocation block
     const UseTemporaryAllocationBlock tempBlock{1024};
@@ -275,7 +288,17 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetSetPages(p
   }
 
   // make the set identifier
-  auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
+  PDBSetPtr storageSet = nullptr;
+  if(!request->forKeys) {
+
+    // we are requesting a regular set
+    storageSet = std::make_shared<PDBSet>(request->databaseName, request->setName);
+  }
+  else {
+
+    // we request the key modify the set name
+    storageSet = std::make_shared<PDBSet>(request->databaseName, PDBCatalog::toKeySetName(request->setName));
+  }
 
   std::vector<uint64_t> pages;
   {
@@ -283,7 +306,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetSetPages(p
     unique_lock<std::mutex> lck(pageMutex);
 
     // try to find the page
-    auto it = this->pageStats.find(set);
+    auto it = this->pageStats.find(storageSet);
     if(it != this->pageStats.end()) {
 
       // reserve the pages
@@ -294,7 +317,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetSetPages(p
       while(currPage <= it->second.lastPage) {
 
         // check if the page is valid
-        if(pageExists(set, currPage) && !isPageBeingWrittenTo(set, currPage) && !isPageFree(set, currPage)) {
+        if(pageExists(storageSet, currPage) && !isPageBeingWrittenTo(storageSet, currPage) && !isPageFree(storageSet, currPage)) {
           pages.emplace_back(currPage);
         }
 

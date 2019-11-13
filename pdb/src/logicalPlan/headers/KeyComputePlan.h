@@ -21,7 +21,7 @@ public:
                                 const std::string &targetComputationName,
                                 std::map<ComputeInfoType, ComputeInfoPtr> &params);
 
-  PipelinePtr buildHashPipeline(AtomicComputationPtr &source,
+  PipelinePtr buildHashPipeline(const std::string &sourceTupleSet,
                                 const PDBAbstractPageSetPtr &inputPageSet,
                                 const PDBAnonymousPageSetPtr &outputPageSet,
                                 std::map<ComputeInfoType, ComputeInfoPtr> &params);

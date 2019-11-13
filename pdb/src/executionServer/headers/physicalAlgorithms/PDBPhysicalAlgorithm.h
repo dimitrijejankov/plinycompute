@@ -150,6 +150,10 @@ protected:
    */
   pdb::Handle<PDBSinkPageSetSpec> sink;
 
+  pdb::Handle<PDBSinkPageSetSpec> lhsKeySink;
+  pdb::Handle<PDBSinkPageSetSpec> rhsKeySink;
+  pdb::Handle<PDBSinkPageSetSpec> joinAggKeySink;
+
   /**
    * The sets we want to materialize the result of this aggregation to
    */

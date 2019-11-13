@@ -6,6 +6,8 @@
 #define PDB_ABSTRATCTPAGESET_H
 
 #include <PDBPageHandle.h>
+#include <PDBString.h>
+
 
 namespace pdb {
 
@@ -56,6 +58,24 @@ public:
    * @return the number of records
    */
   uint64_t getNumRecords() { return numRecords; }
+
+  /**
+   * Converts a page set identifier to it's key version. We use this method for consistency
+   * @param pageSetID - the identifier of the page set
+   * @return the the identifier of page set that stores the keys
+   */
+  static auto toKeyPageSetIdentifier(const std::pair<size_t, pdb::String> &pageSetID) {
+    return std::make_pair(pageSetID.first, (std::string) pageSetID.second + "#keys");
+  }
+
+  /**
+ * Converts a page set identifier to it's key version. We use this method for consistency
+ * @param pageSetID - the identifier of the page set
+ * @return the the identifier of page set that stores the keys
+ */
+  static auto toKeyPageSetIdentifier(const std::pair<size_t, pdb::string> &pageSetID) {
+    return std::make_pair(pageSetID.first, (std::string) pageSetID.second + "#keys");
+  }
 
 protected:
 

@@ -5,7 +5,6 @@
 #include <TupleSetMachine.h>
 #include <JoinMap.h>
 #include <JoinTuple.h>
-#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlockMeta.h"
 
 namespace pdb {
 
@@ -75,7 +74,6 @@ class JoinKeySink : public ComputeSink {
 
     // this is where the hash attribute is located
     std::vector<size_t> &keyColumn = input->getColumn<size_t>(keyAtt);
-    std::vector<Handle<pdb::matrix::MatrixBlockMeta>> &qwe = *(std::vector<Handle<pdb::matrix::MatrixBlockMeta>>*)columns[0];
 
     size_t length = keyColumn.size();
     for (int i = 0; i < length; i++) {

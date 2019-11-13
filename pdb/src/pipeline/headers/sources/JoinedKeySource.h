@@ -1,3 +1,5 @@
+#include <utility>
+
 #pragma once
 
 #include "RHSKeyJoinSourceBase.h"
@@ -14,37 +16,17 @@ public:
   JoinedKeySource(TupleSpec &inputSchemaRHS,
                   TupleSpec &hashSchemaRHS,
                   TupleSpec &recordSchemaRHS,
-                  const PDBAbstractPageSetPtr &lhsInputPageSet,
+                  PDBAbstractPageSetPtr lhsInputPageSet,
                   const std::vector<int> &lhsRecordOrder,
                   RHSKeyJoinSourceBasePtr &rhsSource,
                   bool needToSwapLHSAndRhs,
                   PDBPageHandle leftMap) : leftTDI(new std::vector<uint32_t>),
                                            rightTDI(new std::vector<uint32_t>),
                                            lhsRecordOrder(lhsRecordOrder),
+                                           pageSet(std::move(lhsInputPageSet)),
                                            rhsMachine(inputSchemaRHS, recordSchemaRHS),
                                            rhsSource(rhsSource),
                                            leftMap(std::move(leftMap)) {
-
-    PDBPageHandle page;
-    while((page = lhsInputPageSet->getNextPage(0)) != nullptr) {
-
-      // pin the page
-      page->repin();
-
-      // we grab the vector of hash maps
-      Handle<JoinMap<LHS>> returnVal = ((Record<JoinMap<LHS>> *) (page->getBytes()))->getRootObject();
-
-      // next we grab the join map we need
-      this->lhsMaps.push_back(returnVal);
-
-      if(this->lhsMaps.back()->size() != 0) {
-        // insert the iterator
-        this->lhsIterators.push(this->lhsMaps.back()->begin());
-
-        // push the page
-        this->lhsPages.push_back(page);
-      }
-    }
 
     // set up the output tuple
     this->output = std::make_shared<TupleSet>();
@@ -76,7 +58,39 @@ public:
     delete[] lhsColumns;
   }
 
+  void initialize() {
+
+    PDBPageHandle page;
+    while((page = pageSet->getNextPage(0)) != nullptr) {
+
+      // pin the page
+      page->repin();
+
+      // we grab the vector of hash maps
+      Handle<JoinMap<LHS>> returnVal = ((Record<JoinMap<LHS>> *) (page->getBytes()))->getRootObject();
+
+      // next we grab the join map we need
+      this->lhsMaps.push_back(returnVal);
+
+      if(this->lhsMaps.back()->size() != 0) {
+        // insert the iterator
+        this->lhsIterators.push(this->lhsMaps.back()->begin());
+
+        // push the page
+        this->lhsPages.push_back(page);
+      }
+    }
+
+    // mark as initialized
+    isInitialized = true;
+  }
+
   TupleSetPtr getNextTupleSet(const PDBTupleSetSizePolicy &policy) override {
+
+    // initialize the source
+    if(!isInitialized) {
+      initialize();
+    }
 
     // get the rhs tuple
     auto rhsTuple = rhsSource->getNextTupleSet();
@@ -280,6 +294,12 @@ private:
 
   // pages that contain lhs side pages
   std::vector<PDBPageHandle> lhsPages;
+
+  // the page set we are going to be grabbing the pages from
+  PDBAbstractPageSetPtr pageSet;
+
+  // is this source initialized
+  bool isInitialized = false;
 
   // the output columns of the tuple set
   void **lhsColumns{};

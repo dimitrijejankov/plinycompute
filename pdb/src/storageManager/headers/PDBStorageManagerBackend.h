@@ -25,9 +25,10 @@ public:
    * This method contacts the frontend to get a PageSet for a particular PDB set
    * @param db - the database the set belongs to
    * @param set - the set name
+   * @param isKeyed - are we getting the key version of the set
    * @return the PDBPage set
    */
-  PDBSetPageSetPtr createPageSetFromPDBSet(const std::string &db, const std::string &set);
+  PDBSetPageSetPtr createPageSetFromPDBSet(const std::string &db, const std::string &set, bool isKeyed);
 
   /**
    *
