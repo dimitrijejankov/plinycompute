@@ -8,6 +8,8 @@
 #include "Computation.h"
 #include "PDBPageNetworkSender.h"
 #include "PDBAnonymousPageSet.h"
+#include "JoinAggPlanner.h"
+#include "PDBLabeledPageSet.h"
 
 namespace pdb {
 
@@ -54,6 +56,10 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
    */
   bool setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) override;
 
+  bool setupLead(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error);
+
+  bool setupFollower(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error);
+
   /**
    * //TODO
    */
@@ -76,15 +82,31 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
    */
   PDBCatalogSetContainerType getOutputContainerType() override;
 
-  pdb::SourceSetArgPtr getKeySourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient,
-                                          pdb::Vector<PDBSourceSpec> &sources,
-                                          size_t idx);
+  static pdb::SourceSetArgPtr getKeySourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient,
+                                                 pdb::Vector<PDBSourceSpec> &sources,
+                                                 size_t idx);
 
-  PDBAbstractPageSetPtr getKeySourcePageSet(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
-                                            size_t idx,
-                                            pdb::Vector<PDBSourceSpec> &srcs);
+  static PDBAbstractPageSetPtr getKeySourcePageSet(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                                   size_t idx,
+                                                   pdb::Vector<PDBSourceSpec> &srcs);
+
+  static PDBAbstractPageSetPtr getFetchingPageSet(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                                  size_t idx,
+                                                  pdb::Vector<PDBSourceSpec> &srcs,
+                                                  const std::string &ip,
+                                                  int32_t port);
 
  private:
+
+  /**
+   * This tells us if this node is doing the planning
+   */
+  uint64_t plannerNodeID;
+
+  /**
+   * Tells us how many nodes are running this
+   */
+  uint64_t numNodes = 0;
 
   /**
    * The lhs input set to the join aggregation pipeline
@@ -122,8 +144,30 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
    */
   pdb::Handle<PDBSinkPageSetSpec> aggregationTID;
 
-  pdb::PDBAnonymousPageSetPtr leftPageSet = nullptr;
-  pdb::PDBAnonymousPageSetPtr rightPageSet = nullptr;
+  /**
+   * The labled left page set of keys
+   */
+  pdb::PDBLabeledPageSetPtr labeledLeftPageSet = nullptr;
+
+  /**
+   * The labled right page set of keys
+   */
+  pdb::PDBLabeledPageSetPtr labeledRightPageSet = nullptr;
+
+  /**
+   *
+   */
+  pdb::PDBAnonymousPageSetPtr joinAggPageSet = nullptr;
+
+  /**
+   *
+   */
+  PDBPageHandle leftKeyPage = nullptr;
+
+  /**
+   *
+   */
+  PDBPageHandle rightKeyPage = nullptr;
 
   /**
    * The join key side pipelines

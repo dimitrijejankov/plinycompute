@@ -1,7 +1,3 @@
-//
-// Created by dimitrije on 2/9/19.
-//
-
 #ifndef PDB_STORAGEMANAGERFRONTEND_H
 #define PDB_STORAGEMANAGERFRONTEND_H
 
@@ -22,6 +18,8 @@
 #include <StoRemovePageSetRequest.h>
 #include <StoStartFeedingPageSetRequest.h>
 #include <StoClearSetRequest.h>
+#include <StoFetchSetPagesRequest.h>
+#include <StoFetchPageSetPagesRequest.h>
 
 namespace pdb {
 
@@ -147,6 +145,25 @@ public:
   template <class Communicator>
   std::pair<bool, std::string> handleClearSetRequest(pdb::Handle<pdb::StoClearSetRequest> &request, std::shared_ptr<Communicator> &sendUsingMe);
 
+
+  /**
+   *
+   * @param request
+   * @param sendUsingMe
+   * @return
+   */
+  std::pair<bool, std::string> handleStoFetchSetPages(pdb::Handle<pdb::StoFetchSetPagesRequest> &request,
+                                                      std::shared_ptr<PDBCommunicator> &sendUsingMe);
+
+  /**
+   *
+   * @param request
+   * @param sendUsingMe
+   * @return
+   */
+  std::pair<bool, std::string> handleStoFetchPageSetPagesRequest(pdb::Handle<pdb::StoFetchPageSetPagesRequest> &request,
+                                                                 std::shared_ptr<PDBCommunicator> &sendUsingMe);
+
   /**
    * This method handles the situation where we want to reclaim a page of a set that was allocated for the backend to
    * put the dispatched data to. We want to call this in case some unpredicted error happens
@@ -158,7 +175,7 @@ public:
    * @param communicator - the communicator to send a NACK to the disptacher
    * @return true if it succeeds false if it fails
    */
-  bool handleDispatchFailure(const PDBSetPtr &set, uint64_t pageNum, uint64_t size, PDBCommunicatorPtr communicator);
+  bool handleDispatchFailure(const PDBSetPtr &set, uint64_t pageNum, uint64_t size, const PDBCommunicatorPtr& communicator);
 
   /**
    * Checks whether we are writing to a particular page.

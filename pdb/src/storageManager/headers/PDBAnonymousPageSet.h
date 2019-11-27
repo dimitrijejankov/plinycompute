@@ -57,13 +57,13 @@ public:
    * Returns the maximum size of the page
    * @return the size
    */
-  size_t getMaxPageSize();
+  size_t getMaxPageSize() override;
 
   /**
    * Remove the page from this page. The page has to be in this page set, otherwise the behavior is not defined
    * @param pageHandle - the page handle we want to remove
    */
-  virtual void removePage(PDBPageHandle pageHandle);
+  void removePage(PDBPageHandle pageHandle) override;
 
   /**
    * Resets the page set so it can be reused
@@ -101,7 +101,7 @@ public:
   /**
    * Tells us what is the next page we are supposed to give a worker
    */
-   std::unordered_map<size_t, pageIterator> nextPageForWorker;
+  std::unordered_map<size_t, pageIterator> nextPageForWorker;
 
   /**
    * The order in which we serve the pages

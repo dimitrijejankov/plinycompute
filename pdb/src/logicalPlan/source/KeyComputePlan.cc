@@ -48,7 +48,7 @@ std::vector<AtomicComputationPtr> pdb::KeyComputePlan::getLeftPipelineComputatio
 
 pdb::PipelinePtr pdb::KeyComputePlan::buildHashPipeline(const std::string &sourceTupleSet,
                                                         const pdb::PDBAbstractPageSetPtr &inputPageSet,
-                                                        const pdb::PDBAnonymousPageSetPtr &outputPageSet,
+                                                        const pdb::PDBAbstractPageSetPtr &outputPageSet,
                                                         map<pdb::ComputeInfoType, pdb::ComputeInfoPtr> &params) {
 
   //

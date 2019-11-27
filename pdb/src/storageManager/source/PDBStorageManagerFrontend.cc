@@ -11,6 +11,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <fstream>
+#include <utility>
 #include <HeapRequest.h>
 #include <StoGetNextPageRequest.h>
 #include <StoGetNextPageResult.h>
@@ -21,6 +22,8 @@
 #include <StoStartFeedingPageSetRequest.h>
 #include <StoDispatchKeys.h>
 #include <StoStoreKeysRequest.h>
+#include <StoFetchPagesResponse.h>
+#include <StoFetchNextPageResult.h>
 
 namespace fs = boost::filesystem;
 
@@ -104,7 +107,7 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
 
   forMe.registerHandler(
       StoGetPageRequest_TYPEID,
-      make_shared<pdb::HeapRequestHandler<pdb::StoGetPageRequest>>([&](Handle<pdb::StoGetPageRequest> request,
+      make_shared<pdb::HeapRequestHandler<pdb::StoGetPageRequest>>([&](const Handle<pdb::StoGetPageRequest>& request,
                                                                        PDBCommunicatorPtr sendUsingMe) {
         // handle the get page request
         return handleGetPageRequest(request, sendUsingMe);
@@ -113,27 +116,27 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
   forMe.registerHandler(
       StoDispatchData_TYPEID,
       make_shared<pdb::HeapRequestHandler<pdb::StoDispatchData>>(
-          [&](Handle<pdb::StoDispatchData> request, PDBCommunicatorPtr sendUsingMe) {
-            return handleDispatchedData<PDBCommunicator, RequestFactory, pdb::StoDispatchData, StoStoreDataRequest>(request, sendUsingMe);
+          [&](const Handle<pdb::StoDispatchData>& request, PDBCommunicatorPtr sendUsingMe) {
+            return handleDispatchedData<PDBCommunicator, RequestFactory, pdb::StoDispatchData, StoStoreDataRequest>(request, std::move(sendUsingMe));
           }));
 
   forMe.registerHandler(
       StoDispatchKeys_TYPEID,
       make_shared<pdb::HeapRequestHandler<pdb::StoDispatchKeys>>(
-          [&](Handle<pdb::StoDispatchKeys> request, PDBCommunicatorPtr sendUsingMe) {
-            return handleDispatchedData<PDBCommunicator, RequestFactory, pdb::StoDispatchKeys, StoStoreKeysRequest>(request, sendUsingMe);
+          [&](const Handle<pdb::StoDispatchKeys>& request, PDBCommunicatorPtr sendUsingMe) {
+            return handleDispatchedData<PDBCommunicator, RequestFactory, pdb::StoDispatchKeys, StoStoreKeysRequest>(request, std::move(sendUsingMe));
           }));
 
   forMe.registerHandler(
       StoGetSetPagesRequest_TYPEID,
-      make_shared<pdb::HeapRequestHandler<pdb::StoGetSetPagesRequest>>([&](pdb::Handle<pdb::StoGetSetPagesRequest> request, PDBCommunicatorPtr sendUsingMe) {
-        return handleGetSetPages<PDBCommunicator, RequestFactory>(request, sendUsingMe);
+      make_shared<pdb::HeapRequestHandler<pdb::StoGetSetPagesRequest>>([&](const pdb::Handle<pdb::StoGetSetPagesRequest>& request, PDBCommunicatorPtr sendUsingMe) {
+        return handleGetSetPages<PDBCommunicator, RequestFactory>(request, std::move(sendUsingMe));
       }));
 
   forMe.registerHandler(
       StoMaterializePageSetRequest_TYPEID,
-      make_shared<pdb::HeapRequestHandler<pdb::StoMaterializePageSetRequest>>([&](pdb::Handle<pdb::StoMaterializePageSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
-        return handleMaterializeSet<PDBCommunicator, RequestFactory>(request, sendUsingMe);
+      make_shared<pdb::HeapRequestHandler<pdb::StoMaterializePageSetRequest>>([&](const pdb::Handle<pdb::StoMaterializePageSetRequest>& request, PDBCommunicatorPtr sendUsingMe) {
+        return handleMaterializeSet<PDBCommunicator, RequestFactory>(request, std::move(sendUsingMe));
       }));
 
   forMe.registerHandler(
@@ -154,6 +157,142 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
         return handleClearSetRequest(request, sendUsingMe);
   }));
 
+  forMe.registerHandler(
+      StoFetchSetPagesRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoFetchSetPagesRequest>>([&](Handle<pdb::StoFetchSetPagesRequest> request, PDBCommunicatorPtr sendUsingMe) {
+        return handleStoFetchSetPages(request, sendUsingMe);
+      }));
+
+  forMe.registerHandler(
+      StoFetchPageSetPagesRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoFetchPageSetPagesRequest>>([&](Handle<pdb::StoFetchPageSetPagesRequest> request, PDBCommunicatorPtr sendUsingMe) {
+        return handleStoFetchPageSetPagesRequest(request, sendUsingMe);
+      }));
+}
+
+std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStoFetchSetPages(pdb::Handle<pdb::StoFetchSetPagesRequest> &request,
+                                                                                    std::shared_ptr<PDBCommunicator> &sendUsingMe) {
+
+  /// 1. Get all the pages we need from the set
+
+  // make the set identifier
+  PDBSetPtr storageSet = nullptr;
+  if(!request->forKeys) {
+
+    // we are requesting a regular set
+    storageSet = std::make_shared<PDBSet>(request->databaseName, request->setName);
+  }
+  else {
+
+    // we request the key modify the set name
+    storageSet = std::make_shared<PDBSet>(request->databaseName, PDBCatalog::toKeySetName(request->setName));
+  }
+
+  // get the pages of the set
+  std::vector<uint64_t> pages;
+  {
+    // lock the stuff
+    unique_lock<std::mutex> lck(pageMutex);
+
+    // try to find the page
+    auto it = this->pageStats.find(storageSet);
+    if(it != this->pageStats.end()) {
+
+      // reserve the pages
+      pages.reserve(it->second.lastPage);
+
+      // do we even have this page
+      uint64_t currPage = 0;
+      while(currPage <= it->second.lastPage) {
+
+        // check if the page is valid
+        if(pageExists(storageSet, currPage) && !isPageBeingWrittenTo(storageSet, currPage) && !isPageFree(storageSet, currPage)) {
+          pages.emplace_back(currPage);
+        }
+
+        // if not try to go to the next one
+        currPage++;
+      }
+    }
+  }
+
+  /// 2. Send a response with the number of pages to expect
+
+  // make the allocation
+  const UseTemporaryAllocationBlock tempBlock{1024 * 1024};
+
+  // make the response
+  pdb::Handle<StoFetchPagesResponse> response = pdb::makeObject<StoFetchPagesResponse>(pages.size());
+
+  // send it
+  std::string error;
+  sendUsingMe->sendObject(response, error);
+
+  // get the buffer manager
+  auto bufferManager = getFunctionalityPtr<PDBBufferManagerInterface>();
+
+  // make the response
+  pdb::Handle<StoFetchNextPageResult> fetchNextPage = pdb::makeObject<StoFetchNextPageResult>();
+
+  // go through each page
+  for(const auto &page : pages) {
+
+    // get the page handle
+    auto pageHandle = bufferManager->getPage(storageSet, page);
+
+    // set the page size and that we have another page
+    fetchNextPage->pageSize = pageHandle->getSize();
+    fetchNextPage->hasNext = true;
+
+    // send the fetch next page
+    bool success = sendUsingMe->sendObject(fetchNextPage, error);
+
+    // check if the
+    if(!success) {
+
+      // log the error
+      logger->error(error);
+
+      // we failed
+      return std::make_pair(success, error);
+    }
+
+    // send the bytes
+    std::cout << "Sending\n";
+    success = sendUsingMe->sendBytes((char*) pageHandle->getBytes(), fetchNextPage->pageSize, error);
+
+    // check if we failed to send the bytes
+    if(!success) {
+
+      // log the error
+      logger->error(error);
+
+      // we failed
+      return std::make_pair(success, error);
+    }
+  }
+
+  /// 3. Finish here
+
+  // send the fetch next page
+  fetchNextPage->hasNext = false;
+  bool success = sendUsingMe->sendObject(fetchNextPage, error);
+
+  // check if the
+  if(!success) {
+
+    // log the error
+    logger->error(error);
+  }
+
+  // we failed
+  return std::make_pair(success, error);
+}
+
+std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStoFetchPageSetPagesRequest(pdb::Handle<pdb::StoFetchPageSetPagesRequest> &request,
+                                                                                               std::shared_ptr<PDBCommunicator> &sendUsingMe){
+
+  throw runtime_error("Fetching pages from a page set is not yet supported");
 }
 
 bool pdb::PDBStorageManagerFrontend::isPageBeingWrittenTo(const pdb::PDBSetPtr &set, uint64_t pageNum) {
@@ -285,7 +424,7 @@ void pdb::PDBStorageManagerFrontend::endWritingToPage(const pdb::PDBSetPtr &set,
   pagesBeingWrittenTo[set].erase(pageNum);
 }
 
-bool pdb::PDBStorageManagerFrontend::handleDispatchFailure(const PDBSetPtr &set, uint64_t pageNum, uint64_t size, PDBCommunicatorPtr communicator) {
+bool pdb::PDBStorageManagerFrontend::handleDispatchFailure(const PDBSetPtr &set, uint64_t pageNum, uint64_t size, const PDBCommunicatorPtr& communicator) {
 
   // where we put the error
   std::string error;

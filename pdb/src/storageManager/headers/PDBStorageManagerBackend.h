@@ -3,6 +3,7 @@
 
 #include <ServerFunctionality.h>
 #include <StoStoreDataRequest.h>
+#include <physicalAlgorithms/PDBSourcePageSetSpec.h>
 #include "PDBAbstractPageSet.h"
 #include "PDBSetPageSet.h"
 #include "PDBAnonymousPageSet.h"
@@ -36,13 +37,40 @@ public:
    * @return
    */
   PDBAnonymousPageSetPtr createAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID);
-
   /**
    *
    * @param pageSetID
    * @return
    */
   PDBFeedingPageSetPtr createFeedingAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID, uint64_t numReaders, uint64_t numFeeders);
+
+  /**
+   * This makes a page set that fetches pages of a given set from a particular node
+   * @param database - the name of the database the set belongs to
+   * @param set - the name of the set
+   * @param isKey - are we requesting the key only version of the set
+   * @param ip - the ip of the node we are requesting it from
+   * @param port - the port of the node
+   * @return the page set
+   */
+  PDBAbstractPageSetPtr fetchPDBSet(const std::string &database,
+                                    const std::string &set,
+                                    bool isKey,
+                                    const std::string &ip,
+                                    int32_t port);
+
+  /**
+   * This makes a page se that fetches pages of a given page set from a particular node
+   * @param pageSetSpec - the specification of the page set we want to grab pages from
+   * @param isKey - are we requesting the key only version of the set
+   * @param ip - the ip of the node we are requesting it from
+   * @param port - the port of the node
+   * @return the page set
+   */
+  PDBAbstractPageSetPtr fetchPageSet(const PDBSourcePageSetSpec &pageSetSpec,
+                                     bool isKey,
+                                     const std::string &ip,
+                                     int32_t port);
 
   /**
    * Returns a pages set that already exists

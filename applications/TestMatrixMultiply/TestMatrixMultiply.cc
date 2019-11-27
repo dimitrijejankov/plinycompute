@@ -18,15 +18,16 @@ const uint32_t numCols = 2;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
-  // make the allocation block
-  const pdb::UseTemporaryAllocationBlock tempBlock{blockSize * 1024 * 1024};
-
-  // put the chunks here
-  Handle<Vector<Handle<MatrixBlock>>> data = pdb::makeObject<Vector<Handle<MatrixBlock>>>();
-
   // fill the vector up
   for (uint32_t r = 0; r < numRows; r++) {
+
     for (uint32_t c = 0; c < numCols; c++) {
+
+      // make the allocation block
+      const pdb::UseTemporaryAllocationBlock tempBlock{blockSize * 1024 * 1024};
+
+      // put the chunks here
+      Handle<Vector<Handle<MatrixBlock>>> data = pdb::makeObject<Vector<Handle<MatrixBlock>>>();
 
       // allocate a matrix
       Handle<MatrixBlock> myInt = makeObject<MatrixBlock>(r, c, matrixRows / numRows, matrixColumns / numCols);
@@ -38,14 +39,16 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
       }
 
       data->push_back(myInt);
+
+      // init the records
+      getRecord(data);
+
+      // send the data a bunch of times
+      pdbClient.sendData<MatrixBlock>("myData", set, data);
     }
   }
 
-  // init the records
-  getRecord(data);
 
-  // send the data a bunch of times
-  pdbClient.sendData<MatrixBlock>("myData", set, data);
 }
 
 int main(int argc, char* argv[]) {
@@ -95,7 +98,7 @@ int main(int argc, char* argv[]) {
   myWriter->setInput(myAggregation);
 
   //TODO this is just a preliminary version of the execute computation before we add back the TCAP generation
-  pdbClient.executeComputations({ myWriter });
+  bool success = pdbClient.executeComputations({ myWriter });
 
 //  /// 5. Get the set from the
 //

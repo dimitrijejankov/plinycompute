@@ -88,7 +88,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
     auto worker = parent->getWorkerQueue()->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = make_shared<pdb::GenericWork>([=, &counter, &job](PDBBuzzerPtr callerBuzzer) {
+    PDBWorkPtr myWork = make_shared<pdb::GenericWork>([=, &counter, &job](const PDBBuzzerPtr& callerBuzzer) {
 
       std::string errMsg;
 
@@ -124,6 +124,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
 
       // set my node
       jobForMe->thisNode = job->nodes[i];
+      jobForMe->isLeadNode = i == 0;
 
       if(!scheduleJob(comm, jobForMe, errMsg)) {
 

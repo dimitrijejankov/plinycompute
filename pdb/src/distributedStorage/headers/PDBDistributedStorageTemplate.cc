@@ -488,32 +488,23 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
       return make_pair(false, errMsg);
     }
 
-    /// 3.2 Send them to the every node
+    /// 3.2 Send to the same node
 
-    for(const auto& n : nodes) {
+    // time to send the keys
+    ret = RequestFactory::bytesHeapRequest<pdb::StoDispatchKeys, SimpleRequestResult, bool>(
+        logger, node->port, node->address, false, 1024,
+        [&](const Handle<SimpleRequestResult>& result) {
 
-      // time to send the keys
-      ret = RequestFactory::bytesHeapRequest<pdb::StoDispatchKeys, SimpleRequestResult, bool>(
-          logger, n->port, n->address, false, 1024,
-          [&](Handle<SimpleRequestResult> result) {
+          if (result != nullptr && result->getRes().first) {
+            return true;
+          }
 
-            if (result != nullptr && result->getRes().first) {
-              return true;
-            }
+          logger->error("Error sending keys: " + result->getRes().second);
+          error = "Error sending keys: " + result->getRes().second;
 
-            logger->error("Error sending keys: " + result->getRes().second);
-            error = "Error sending keys: " + result->getRes().second;
-
-            return false;
-          },
-          (char *) page->getBytes(), numBytes, request->databaseName, PDBCatalog::toKeySetName(std::string(request->setName)), request->typeName, numBytes);
-
-
-      // break if there was an error dispatching the keys
-      if(!ret) {
-        break;
-      }
-    }
+          return false;
+        },
+        (char *) page->getBytes(), numBytes, request->databaseName, PDBCatalog::toKeySetName(std::string(request->setName)), request->typeName, numBytes);
   }
 
   // create an allocation block to hold the response

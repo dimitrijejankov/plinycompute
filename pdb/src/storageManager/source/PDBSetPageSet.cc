@@ -45,3 +45,10 @@ void pdb::PDBSetPageSet::resetPageSet() {
   // reset the page counter
   curPage = 0;
 }
+void pdb::PDBSetPageSet::removePage(pdb::PDBPageHandle pageHandle) {
+  throw runtime_error("Removing a new page to a page set not implemented.");
+}
+
+size_t pdb::PDBSetPageSet::getMaxPageSize() {
+  throw runtime_error("Getting the max page size of a set page set is not supported.");
+}

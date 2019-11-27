@@ -148,8 +148,8 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
   // get the receive page set
   auto recvPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(hashedToRecv->pageSetIdentifier.first,
                                                                            hashedToRecv->pageSetIdentifier.second),
-                                                            job->numberOfProcessingThreads,
-                                                            job->numberOfNodes);
+                                                                           job->numberOfProcessingThreads,
+                                                                           job->numberOfNodes);
 
   // did we manage to get a page set where we receive this? if not the setup failed
   if (recvPageSet == nullptr) {

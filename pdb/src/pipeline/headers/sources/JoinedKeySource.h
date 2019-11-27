@@ -5,7 +5,7 @@
 #include "RHSKeyJoinSourceBase.h"
 
 #include <utility>
-
+#include <PDBLabeledPageSet.h>
 
 namespace pdb {
 
@@ -16,17 +16,19 @@ public:
   JoinedKeySource(TupleSpec &inputSchemaRHS,
                   TupleSpec &hashSchemaRHS,
                   TupleSpec &recordSchemaRHS,
-                  PDBAbstractPageSetPtr lhsInputPageSet,
+                  const PDBAbstractPageSetPtr& lhsInputPageSet,
                   const std::vector<int> &lhsRecordOrder,
                   RHSKeyJoinSourceBasePtr &rhsSource,
                   bool needToSwapLHSAndRhs,
-                  PDBPageHandle leftMap) : leftTDI(new std::vector<uint32_t>),
-                                           rightTDI(new std::vector<uint32_t>),
+                  PDBPageHandle leftMap) : leftTDI(new std::vector<std::pair<uint32_t, uint32_t>>),
+                                           rightTDI(new std::vector<std::pair<uint32_t, uint32_t>>),
                                            lhsRecordOrder(lhsRecordOrder),
-                                           pageSet(std::move(lhsInputPageSet)),
                                            rhsMachine(inputSchemaRHS, recordSchemaRHS),
                                            rhsSource(rhsSource),
                                            leftMap(std::move(leftMap)) {
+
+    // cast the page set
+    this->pageSet = std::dynamic_pointer_cast<PDBLabeledPageSet>(lhsInputPageSet);
 
     // set up the output tuple
     this->output = std::make_shared<TupleSet>();
@@ -227,13 +229,13 @@ public:
 
             // if we don't have a tid assign one
             if(tidMap->count(records[which].myData) == 0) {
-              leftTDI->emplace_back(curTID);
+              leftTDI->emplace_back(std::make_pair(curTID, iterator.getLabel()));
               (*tidMap)[records[which].myData] = curTID++;
             }
             else {
 
               // insert the TID
-              leftTDI->emplace_back((*tidMap)[records[which].myData]);
+              leftTDI->emplace_back(std::make_pair((*tidMap)[records[which].myData], iterator.getLabel()));
             }
 
             // do the unpack
@@ -258,7 +260,8 @@ public:
 
       // replicate it
       for(int jdx = 0; jdx < c; jdx++) {
-        rightTDI->emplace_back(std::get<2>(rhsTuple)[idx]);
+        rightTDI->emplace_back(std::make_pair(std::get<2>(rhsTuple)[idx].first,
+                                              std::get<2>(rhsTuple)[idx].second));
       }
 
       // increment the idx
@@ -274,8 +277,8 @@ private:
   TupleSetPtr output;
 
   // the left and right TDI
-  std::vector<uint32_t> *leftTDI;
-  std::vector<uint32_t> *rightTDI;
+  std::vector<std::pair<uint32_t, uint32_t>> *leftTDI;
+  std::vector<std::pair<uint32_t, uint32_t>> *rightTDI;
 
   // to setup the output tuple set
   TupleSetSetupMachine rhsMachine;
@@ -296,7 +299,7 @@ private:
   std::vector<PDBPageHandle> lhsPages;
 
   // the page set we are going to be grabbing the pages from
-  PDBAbstractPageSetPtr pageSet;
+  PDBLabeledPageSetPtr pageSet;
 
   // is this source initialized
   bool isInitialized = false;

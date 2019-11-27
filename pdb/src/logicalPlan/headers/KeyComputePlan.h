@@ -23,7 +23,7 @@ public:
 
   PipelinePtr buildHashPipeline(const std::string &sourceTupleSet,
                                 const PDBAbstractPageSetPtr &inputPageSet,
-                                const PDBAnonymousPageSetPtr &outputPageSet,
+                                const PDBAbstractPageSetPtr &outputPageSet,
                                 std::map<ComputeInfoType, ComputeInfoPtr> &params);
 
 

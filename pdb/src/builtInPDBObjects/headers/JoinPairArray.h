@@ -96,6 +96,8 @@ class JoinMapIterator {
   
   bool isDone();
   const size_t getHash() const;
+  void setLabel(int32_t value);
+  int32_t getLabel();
 
  private:
 
@@ -107,10 +109,14 @@ class JoinMapIterator {
   
   // the join pair array of the join map we are iterating on
   JoinPairArray<ValueType> *iterateMe;
-  
+
+  // label of the iterator. We use this to know which page or node this join pair array belongs to
+  int32_t label;
+
   // are we at the end?
   bool done;
 };
+
 
 template<class ValueType>
 class JoinPairArray : public Object {

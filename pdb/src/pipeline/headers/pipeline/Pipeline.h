@@ -43,7 +43,7 @@ class Pipeline : public PipelineInterface {
   size_t workerID{};
 
   // this is the page set where we are going to be writing all the output
-  pdb::PDBAnonymousPageSetPtr outputPageSet;
+  pdb::PDBAbstractPageSetPtr outputPageSet;
 
   // this is the source of data in the pipeline
   ComputeSourcePtr dataSource;
@@ -74,7 +74,10 @@ class Pipeline : public PipelineInterface {
   // the first argument is a function to call that gets a new output page...
   // the second argument is a function to call that deals with a full output page
   // the third argument is the iterator that will create TupleSets to process
-  Pipeline(const PDBAnonymousPageSetPtr &outputPageSet, ComputeSourcePtr dataSource, ComputeSinkPtr tupleSink, PageProcessorPtr pageProcessor);
+  Pipeline(const PDBAbstractPageSetPtr &outputPageSet,
+           ComputeSourcePtr dataSource,
+           ComputeSinkPtr tupleSink,
+           PageProcessorPtr pageProcessor);
 
   ~Pipeline() override;
 

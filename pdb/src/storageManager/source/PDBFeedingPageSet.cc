@@ -126,3 +126,11 @@ void pdb::PDBFeedingPageSet::setUsagePolicy(pdb::PDBFeedingPageSetUsagePolicy po
   // set the policy
   this->usagePolicy = policy;
 }
+
+void pdb::PDBFeedingPageSet::removePage(pdb::PDBPageHandle pageHandle) {
+  throw runtime_error("You can not remove a page from a FeedingPage set!");
+}
+
+size_t pdb::PDBFeedingPageSet::getMaxPageSize() {
+  throw runtime_error("You can not get the page size from a FeedingPage set!");
+}

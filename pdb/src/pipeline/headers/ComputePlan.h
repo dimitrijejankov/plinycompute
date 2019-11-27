@@ -51,7 +51,7 @@ class ComputePlan {
 
   // assembles the pipeline with everything
   PipelinePtr assemblePipeline(const std::string& sourceTupleSetName,
-                               const PDBAnonymousPageSetPtr &outputPageSet,
+                               const PDBAbstractPageSetPtr &outputPageSet,
                                ComputeSourcePtr &computeSource,
                                ComputeSinkPtr &computeSink,
                                const PageProcessorPtr &processor,

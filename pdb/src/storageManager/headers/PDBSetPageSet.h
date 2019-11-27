@@ -54,6 +54,20 @@ public:
    */
   void resetPageSet() override;
 
+  /**
+   * Remove a page from the page set
+   * @details not supported
+   * @param pageHandle - the page handle
+   */
+  void removePage(PDBPageHandle pageHandle) override;
+
+  /**
+   * Returns the maximum page size
+   * @details not supported
+   * @return - the page size
+   */
+  size_t getMaxPageSize() override;
+
  private:
 
   // current page, it is thread safe to update it

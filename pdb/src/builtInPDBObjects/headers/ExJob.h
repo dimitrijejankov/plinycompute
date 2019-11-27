@@ -75,6 +75,11 @@ public:
   pdb::Handle<ExJobNode> thisNode;
 
   /**
+   * Is it the lead node? Some algorithms require this to know if they are the leader of the group
+   */
+   bool isLeadNode = false;
+
+  /**
    * Returns all the sets that are going to be materialized after the job is executed
    * @return - a vector of pairs the frist value is the database name, the second value is the set name
    */

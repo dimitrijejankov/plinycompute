@@ -469,8 +469,8 @@ pdb::PDBCatalogTypePtr pdb::PDBCatalog::getTypeWithoutLibrary(const std::string 
 pdb::PDBCatalogSetStatsPtr pdb::PDBCatalog::getSetStats(const std::string &dbName, const std::string &setName) {
 
   std::string setIdentifier = dbName + ":" + setName;
-  auto cols = storage.select(columns(max(&PDBCatalogSetOnNode::keyCount),
-                                     max(&PDBCatalogSetOnNode::keySize),
+  auto cols = storage.select(columns(sum(&PDBCatalogSetOnNode::keyCount),
+                                     sum(&PDBCatalogSetOnNode::keySize),
                                      sum(&PDBCatalogSetOnNode::shardSize),
                                      sum(&PDBCatalogSetOnNode::recordCount)),
                  where(c(&PDBCatalogSetOnNode::setIdentifier) == setIdentifier));

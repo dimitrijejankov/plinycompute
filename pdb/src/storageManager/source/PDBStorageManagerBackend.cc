@@ -17,6 +17,11 @@
 #include <PDBBufferManagerBackEnd.h>
 #include <StoStartFeedingPageSetRequest.h>
 #include <StoStoreKeysRequest.h>
+#include <StoFetchSetPagesRequest.h>
+#include <PDBFetchingPageSet.h>
+#include <StoFetchPageSetPagesRequest.h>
+#include <StoFetchPagesResponse.h>
+#include <PDBLabeledPageSet.h>
 
 void pdb::PDBStorageManagerBackend::init() {
 
@@ -153,6 +158,170 @@ pdb::PDBFeedingPageSetPtr pdb::PDBStorageManagerBackend::createFeedingAnonymousP
   return pageSet;
 }
 
+pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerBackend::fetchPDBSet(const std::string &database,
+                                                                      const std::string &set,
+                                                                      bool isKey,
+                                                                      const std::string &ip,
+                                                                      int32_t port) {
+
+
+  // get the configuration
+  auto conf = this->getConfiguration();
+
+  /// 1. Contact the frontend to establish a connection
+
+  // create an allocation block to hold the response
+  const UseTemporaryAllocationBlock tempBlock{1024};
+
+  // the communicator
+  PDBCommunicatorPtr comm = make_shared<PDBCommunicator>();
+  string errMsg;
+
+  // connect to the node
+  if (!comm->connectToInternetServer(logger, port, ip, errMsg)) {
+
+    // log the error
+    logger->error(errMsg);
+    logger->error("Could not connect node " + ip + ":" + std::to_string(port) + " to fetch the set (" +  database + ":" + set + ").\n");
+
+    // return null
+    return nullptr;
+  }
+
+  // make request
+  pdb::Handle<StoFetchSetPagesRequest> request = pdb::makeObject<StoFetchSetPagesRequest>(database, set, isKey);
+
+  // send the object
+  std::string error;
+  bool success = comm->sendObject(request, error);
+
+  // if we failed
+  if(!success) {
+
+    // log the error
+    logger->error(error);
+
+    // return a null pointer
+    return nullptr;
+  }
+
+  /// 2. Grab the response
+
+  // wait to get the number of pages
+  uint64_t numPages;
+  success = RequestFactory::waitHeapRequest<StoFetchPagesResponse, bool>(logger, comm, false,
+      [&](const Handle<StoFetchPagesResponse>& result) {
+
+   // check the result
+   if (result != nullptr) {
+     numPages = result->numPages;
+     return true;
+   }
+
+   // log the error
+   error = "Error getting the number of pages for the fetching page set!";
+   logger->error(error);
+
+   return false;
+ });
+
+  // did we fail if we did return null
+  if(!success) {
+    return nullptr;
+  }
+
+  /// 3. Create the page set since we are about to receive the pages
+
+  auto storageManager = getFunctionalityPtr<PDBStorageManagerBackend>();
+  auto bufferManager = getFunctionalityPtr<PDBBufferManagerInterface>();
+
+  // return the fetching page set
+  return std::make_shared<pdb::PDBFetchingPageSet>(comm,
+                                                   storageManager,
+                                                   bufferManager,
+                                                   numPages);
+}
+
+pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerBackend::fetchPageSet(const PDBSourcePageSetSpec &pageSetSpec,
+                                                                       bool isKey,
+                                                                       const std::string &ip,
+                                                                       int32_t port) {
+  // get the configuration
+  auto conf = this->getConfiguration();
+
+  /// 1. Contact the frontend to establish a connection
+
+  // create an allocation block to hold the response
+  const UseTemporaryAllocationBlock tempBlock{1024};
+
+  // the communicator
+  PDBCommunicatorPtr comm = make_shared<PDBCommunicator>();
+  string errMsg;
+
+  // connect to the node
+  if (!comm->connectToInternetServer(logger, port, ip, errMsg)) {
+
+    // log the error
+    logger->error(errMsg);
+    logger->error("Could not connect node " + ip + ":" + std::to_string(port) +
+                           " to fetch the page set (" +  std::to_string(pageSetSpec.pageSetIdentifier.first) +
+                           ":" + (std::string)pageSetSpec.pageSetIdentifier.second + ").\n");
+
+    // return null
+    return nullptr;
+  }
+
+  // make request
+  pdb::Handle<StoFetchPageSetPagesRequest> request = pdb::makeObject<StoFetchPageSetPagesRequest>(pageSetSpec.pageSetIdentifier, isKey);
+
+  // send the object
+  std::string error;
+  bool success = comm->sendObject(request, error);
+
+  // if we failed
+  if(!success) {
+
+    // log the error
+    logger->error(error);
+
+    // return a null pointer
+    return nullptr;
+  }
+
+  /// 2. Grab the response
+
+  // wait to get the number of pages
+  uint64_t numPages;
+  success = RequestFactory::waitHeapRequest<StoFetchPagesResponse, bool>(logger, comm, false,
+    [&](const Handle<StoFetchPagesResponse>& result) {
+
+      // check the result
+      if (result != nullptr) {
+        numPages = result->numPages;
+        return true;
+      }
+
+      // log the error
+      error = "Error getting the number of pages for the fetching page set!";
+      logger->error(error);
+
+      return false;
+    });
+
+  // did we fail if we did return null
+  if(!success) {
+    return nullptr;
+  }
+
+  /// 3. Create the page set since we are about to receive the pages
+
+  // return the fetching page set
+  return std::make_shared<pdb::PDBFetchingPageSet>(comm,
+                                                   getFunctionalityPtr<PDBStorageManagerBackend>(),
+                                                   getFunctionalityPtr<PDBBufferManagerInterface>(),
+                                                   numPages);
+}
+
 pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerBackend::getPageSet(const std::pair<uint64_t, std::string> &pageSetID) {
 
   // try to find the page if it exists return it
@@ -242,7 +411,7 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(const pdb::PDBAbstractPag
 
   // wait for the storage finish result
   success = RequestFactory::waitHeapRequest<SimpleRequestResult, bool>(logger, comm, false,
-    [&](Handle<SimpleRequestResult> result) {
+    [&](const Handle<SimpleRequestResult>& result) {
 
       // check the result
       if (result != nullptr && result->getRes().first) {
@@ -330,3 +499,5 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(const pdb::PDBAbstractPag
   // we succeeded
   return true;
 }
+
+

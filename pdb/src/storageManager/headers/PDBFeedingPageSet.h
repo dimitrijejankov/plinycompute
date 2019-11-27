@@ -90,6 +90,20 @@ class PDBFeedingPageSet : public PDBAbstractPageSet {
   void feedPage(const PDBPageHandle &page);
 
   /**
+   * Remove the page from a page set
+   * @param pageHandle - the page
+   * @details This is not implemented
+   */
+  void removePage(PDBPageHandle pageHandle) override;
+
+  /**
+   * Returns the maximum page size
+   * @details This is not implemented
+   * @return - not implemented
+   */
+  size_t getMaxPageSize() override;
+
+  /**
    * Call when one of the feeders has finished feeding pages
    */
   void finishFeeding();

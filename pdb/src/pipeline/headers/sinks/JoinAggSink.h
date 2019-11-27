@@ -19,11 +19,23 @@ private:
   int leftKeyTIDAttribute;
   int rightKeyTIDAttribute;
 
-  // the index map
-  using TIDVector = Vector<std::pair<uint32_t, uint32_t>>;
+  // the first integer is the join key value identifier, the second value is the node it comes from
+  using TIDType = std::pair<uint32_t, int32_t>;
+
+  // this is a vector of keys that are joined to form an aggregation group
+  using TIDVector = Vector<std::pair<TIDType, TIDType>>;
+
+  // each aggregation group is identified by an unsigned integer
+  // this maps maps the aggregation grup to all the keys that are joined to form it
   using TIDIndexMap = Map<uint32_t, TIDVector>;
 
-public:
+  // the tids for the aggregation key
+  Map<KeyType, uint32_t> aggTIDs;
+
+  // make sure we only create one one join aggregation map
+  bool mapCreated = false;
+
+ public:
 
   JoinAggSink(TupleSpec &outputSchema, TupleSpec &attsToOperateOn, TupleSpec &projection) {
 
@@ -48,6 +60,14 @@ public:
 
   Handle<Object> createNewOutputContainer() override {
 
+    // make sure we only create the map once
+    if(mapCreated) {
+      throw runtime_error("Already created output map");
+    }
+
+    // mark that the map is created
+    mapCreated = true;
+
     // we simply create a new vector of maps to store the stuff
     Handle<TIDIndexMap> returnVal = makeObject<TIDIndexMap>();
 
@@ -60,16 +80,13 @@ public:
     // the current TID
     uint32_t currentTID = 0;
 
-    // the tids for the aggregation key
-    Map<KeyType, uint32_t> aggTIDs;
-
     // cast the thing to the map of maps
     Handle<TIDIndexMap> outputMap = unsafeCast<TIDIndexMap>(writeToMe);
 
     // get the input columns
     std::vector<KeyType> &keyColumn = input->getColumn<KeyType>(aggKeyAttribute);
-    std::vector<uint32_t> &leftTIDColumn = input->getColumn<uint32_t>(leftKeyTIDAttribute);
-    std::vector<uint32_t> &rightTIDColumn = input->getColumn<uint32_t>(rightKeyTIDAttribute);
+    std::vector<TIDType> &leftTIDColumn = input->getColumn<TIDType>(leftKeyTIDAttribute);
+    std::vector<TIDType> &rightTIDColumn = input->getColumn<TIDType>(rightKeyTIDAttribute);
 
     // and aggregate everyone
     size_t length = keyColumn.size();

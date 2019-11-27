@@ -29,6 +29,10 @@ class MockPageSetReader : public pdb::PDBAbstractPageSet {
   MOCK_METHOD0(getNumPages, size_t ());
 
   MOCK_METHOD0(resetPageSet, void ());
+
+  MOCK_METHOD1(removePage, void(PDBPageHandle pageHandle));
+
+  MOCK_METHOD0(getMaxPageSize, size_t ());
 };
 
 class MockPageSetWriter: public pdb::PDBAnonymousPageSet {
@@ -132,8 +136,6 @@ pdb::PipelinePtr buildJoinAggPipeline(std::shared_ptr<KeyComputePlan> &computePl
             {ComputeInfoType::JOIN_ARGS, std::make_shared<JoinArguments>(JoinArgumentsInit{{joinComp->getRightInput().getSetName(), std::make_shared<JoinArg>(rhsReader)}})},
             {ComputeInfoType::KEY_JOIN_SOURCE_ARGS, std::make_shared<KeyJoinSourceArgs>(std::vector<PDBPageHandle>({leftKeyPage, rightKeyPage}))},
             {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(false)}};
-
-  std::cout << joinComp->getOutputName() << " " << sinkComp->getOutputName() << '\n';
 
   PipelinePtr myPipeline = computePlan->buildJoinAggPipeline(joinComp->getOutputName(),
                                                              sinkComp->getOutputName(),     /* this is the TupleSet the pipeline ends with */

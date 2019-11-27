@@ -417,6 +417,16 @@ size_t JoinPairArray<ValueType>::getSize(void *forMe) {
 }
 
 template<class ValueType>
+void JoinMapIterator<ValueType>::setLabel(int32_t value) {
+  this->label = value;
+}
+
+template<class ValueType>
+int32_t JoinMapIterator<ValueType>::getLabel() {
+  return this->label;
+}
+
+template<class ValueType>
 JoinRecordList<ValueType>::JoinRecordList(uint32_t whichOne, JoinPairArray<ValueType> *parent) {
   this->parent = parent;
   this->whichOne = whichOne;

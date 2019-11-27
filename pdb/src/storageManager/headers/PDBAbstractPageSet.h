@@ -31,6 +31,12 @@ public:
   virtual PDBPageHandle getNewPage() = 0;
 
   /**
+   * Removes a page from the page set
+   * @param pageHandle - the page set
+   */
+  virtual void removePage(PDBPageHandle pageHandle) = 0;
+
+  /**
    * Return the number of pages in this page set
    * @return the number
    */
@@ -40,6 +46,12 @@ public:
    * Resets the page set so it can be reused
    */
   virtual void resetPageSet() = 0;
+
+  /**
+   * Returns the maximum page size this page set can give
+   * @return the maximum page size, if method is defined
+   */
+  virtual size_t getMaxPageSize() = 0;
 
   /**
    * Increases the number of records in the page set

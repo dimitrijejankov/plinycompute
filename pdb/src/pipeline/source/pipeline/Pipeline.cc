@@ -23,7 +23,7 @@
 #include "Pipeline.h"
 #include <utility>
 
-pdb::Pipeline::Pipeline(const PDBAnonymousPageSetPtr &outputPageSet,
+pdb::Pipeline::Pipeline(const PDBAbstractPageSetPtr &outputPageSet,
                         ComputeSourcePtr dataSource,
                         ComputeSinkPtr tupleSink,
                         PageProcessorPtr pageProcessor) :

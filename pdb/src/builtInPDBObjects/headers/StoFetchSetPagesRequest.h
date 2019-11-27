@@ -16,20 +16,51 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef KEEP_GOING_H
-#define KEEP_GOING_H
+#pragma once
 
 #include "Object.h"
+#include "Handle.h"
+#include "PDBString.h"
 
-//  PRELOAD %KeepGoing%
+// PRELOAD %StoFetchSetPagesRequest%
 
 namespace pdb {
 
-class KeepGoing : public Object {
+// encapsulates a request to add data to a set in storage
+class StoFetchSetPagesRequest : public Object {
 
 public:
-    ENABLE_DEEP_COPY
-};
-}
 
-#endif
+  StoFetchSetPagesRequest() = default;
+  ~StoFetchSetPagesRequest() = default;
+
+  StoFetchSetPagesRequest(const std::string &databaseName, const std::string &setName)
+      : databaseName(databaseName), setName(setName) {
+  }
+
+  StoFetchSetPagesRequest(const std::string &databaseName,
+                        const std::string &setName,
+                        bool forKeys)
+      : databaseName(databaseName), setName(setName), forKeys(forKeys) {
+  }
+
+
+  ENABLE_DEEP_COPY
+
+  /**
+   * The name of the database the set belongs to
+   */
+  String databaseName;
+
+  /**
+   * The name of the set we are storing the stuff
+   */
+  String setName;
+
+  /**
+   * Should we get the one for the keys
+   */
+  bool forKeys = false;
+};
+
+}
