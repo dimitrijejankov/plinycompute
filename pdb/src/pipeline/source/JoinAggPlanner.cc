@@ -68,6 +68,9 @@ void pdb::JoinAggPlanner::getPlan(const PDBPageHandle& pageToStore) {
     curNod = (curNod + 1) % numNodes;
   }
 
+  // set the main record of the page
+  getRecord(planResult);
+
   // print the planning result
   print(planResult);
 }

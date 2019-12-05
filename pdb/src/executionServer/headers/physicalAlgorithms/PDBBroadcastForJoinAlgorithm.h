@@ -47,7 +47,7 @@ class PDBBroadcastForJoinAlgorithm : public PDBPhysicalAlgorithm {
   /**
    * //TODO
    */
-  bool run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) override;
+  bool run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job) override;
 
   void cleanup() override;
 

@@ -53,7 +53,7 @@ void pdb::ExecutionServerBackend::registerHandlers(pdb::PDBServer &forMe) {
             }
 
             // run the algorithm
-            request->physicalAlgorithm->run(storage);
+            request->physicalAlgorithm->run(storage, request);
 
             // sends result to requester
             sendUsingMe->sendObject(response, error);

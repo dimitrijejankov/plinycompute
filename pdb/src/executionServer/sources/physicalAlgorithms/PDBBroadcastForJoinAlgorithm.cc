@@ -209,7 +209,7 @@ bool pdb::PDBBroadcastForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageMan
   return true;
 }
 
-bool pdb::PDBBroadcastForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
+bool pdb::PDBBroadcastForJoinAlgorithm::run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job) {
 
   // success indicator
   atomic_bool success;

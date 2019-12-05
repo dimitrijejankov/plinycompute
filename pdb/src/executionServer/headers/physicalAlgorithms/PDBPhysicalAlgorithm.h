@@ -64,7 +64,7 @@ public:
   /**
    * Runs the algorithm
    */
-  virtual bool run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) { throw std::runtime_error("Can not run PDBPhysicalAlgorithm that is an abstract class"); };
+  virtual bool run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job) { throw std::runtime_error("Can not run PDBPhysicalAlgorithm that is an abstract class"); };
 
   /**
    * Cleans the algorithm after setup and/or run. This has to be called after the usage!
@@ -159,6 +159,21 @@ protected:
    *
    */
   pdb::Handle<PDBSinkPageSetSpec> rhsKeySink;
+
+  /**
+   *
+   */
+  pdb::Handle<PDBSourcePageSetSpec> leftKeySource;
+
+  /**
+   *
+   */
+  pdb::Handle<PDBSourcePageSetSpec> rightKeySource;
+
+  /**
+   *
+   */
+  pdb::Handle<PDBSourcePageSetSpec> planSource;
 
   /**
    *

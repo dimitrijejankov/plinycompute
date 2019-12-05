@@ -19,6 +19,9 @@ PDBJoinAggregationAlgorithm::PDBJoinAggregationAlgorithm(const std::vector<PDBPr
                                                          const pdb::Handle<PDBSinkPageSetSpec> &leftKeySink,
                                                          const pdb::Handle<PDBSinkPageSetSpec> &rightKeySink,
                                                          const pdb::Handle<PDBSinkPageSetSpec> &joinAggKeySink,
+                                                         const pdb::Handle<PDBSourcePageSetSpec> &leftKeySource,
+                                                         const pdb::Handle<PDBSourcePageSetSpec> &rightKeySource,
+                                                         const pdb::Handle<PDBSourcePageSetSpec> &planSource,
                                                          const AtomicComputationPtr& leftInputTupleSet,
                                                          const AtomicComputationPtr& rightInputTupleSet,
                                                          const AtomicComputationPtr& joinTupleSet,
@@ -41,6 +44,11 @@ PDBJoinAggregationAlgorithm::PDBJoinAggregationAlgorithm(const std::vector<PDBPr
   this->lhsKeySink = leftKeySink;
   this->rhsKeySink = rightKeySink;
   this->joinAggKeySink = joinAggKeySink;
+
+  // set the key sources
+  this->leftKeySource = leftKeySource;
+  this->rightKeySource = rightKeySource;
+  this->planSource = planSource;
 
   // set the sets to materialize
   this->setsToMaterialize = setsToMaterialize;
@@ -329,20 +337,79 @@ bool PDBJoinAggregationAlgorithm::setupLead(std::shared_ptr<pdb::PDBStorageManag
                                                       20,
                                                       0);
 
+  /// 4. Init the sending queues
 
+  // this is to transfer left key TIDs
+  leftKeyPageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
+
+  // this is to transfer right key TIDs
+  rightKeyPageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
+
+  // this is to transfer the plan
+  planPageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
+
+  /// 5. Init the senders
+
+  // setup the senders for the left key page
+  if(!setupSenders(job, leftKeySource, storage, leftKeyPageQueues, leftKeySenders, nullptr)) {
+
+    // log the error
+    logger->error("Failed to setup the senders for the left keys");
+
+    // return false
+    return false;
+  }
+
+  // setup the senders for the right key page
+  if(!setupSenders(job, rightKeySource, storage, rightKeyPageQueues, rightKeySenders, nullptr)) {
+
+    // log the error
+    logger->error("Failed to setup the senders for the right keys");
+
+    // return false
+    return false;
+  }
+
+  // setup the senders for the plan
+  if(!setupSenders(job, planSource, storage, planPageQueues, planSenders, nullptr)) {
+
+    // log the error
+    logger->error("Failed to setup the senders for the plan");
+
+    // return false
+    return false;
+  }
+
+  // we succeeded
   return true;
 }
 
 bool PDBJoinAggregationAlgorithm::setupFollower(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                                 Handle<pdb::ExJob> &job,
                                                 const std::string &error) {
-  return false;
+
+  // create to receive the left key page
+  leftKeyToNodePageSet = storage->createFeedingAnonymousPageSet(std::make_pair(leftKeySource->pageSetIdentifier.first,
+                                                                               leftKeySource->pageSetIdentifier.second),
+                                                                job->numberOfProcessingThreads,
+                                                                job->numberOfNodes);
+
+  // create to receive the right key page
+  rightKeyToNodePageSet = storage->createFeedingAnonymousPageSet(std::make_pair(rightKeySource->pageSetIdentifier.first,
+                                                                               rightKeySource->pageSetIdentifier.second),
+                                                                job->numberOfProcessingThreads,
+                                                                job->numberOfNodes);
+
+  // create to receive the plan
+  planPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(planSource->pageSetIdentifier.first,
+                                                                      planSource->pageSetIdentifier.second),
+                                                       job->numberOfProcessingThreads,
+                                                       job->numberOfNodes);
+
+  return true;
 }
 
 bool pdb::PDBJoinAggregationAlgorithm::setup(std::shared_ptr<PDBStorageManagerBackend> &storage, Handle<ExJob> &job, const std::string &error) {
-
-  /// TODO move this somewhere smarter
-  this->numNodes = job->numberOfNodes;
 
   // check if we are the lead node if we are set it up for such
   if(job->isLeadNode) {
@@ -435,7 +502,67 @@ pdb::SourceSetArgPtr PDBJoinAggregationAlgorithm::getKeySourceSetArg(std::shared
   return std::make_shared<pdb::SourceSetArg>(set);
 }
 
-bool pdb::PDBJoinAggregationAlgorithm::run(std::shared_ptr<PDBStorageManagerBackend> &storage) {
+bool pdb::PDBJoinAggregationAlgorithm::run(std::shared_ptr<PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job) {
+
+  // check if this is the lead node if so run the lead
+  if (job->isLeadNode) {
+    return runLead(storage, job);
+  }
+  else {
+    // run the follower
+    return runFollower(storage, job);
+  }
+}
+
+bool pdb::PDBJoinAggregationAlgorithm::runFollower(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job){
+
+  /**
+   * 1. Wait to left and right join map
+   */
+  auto leftKeyPage = leftKeyToNodePageSet->getNextPage(0);
+  auto rightKeyPage = rightKeyToNodePageSet->getNextPage(0);
+
+  /**
+   * 2. Wait to receive the plan
+   */
+  auto planPage = planPageSet->getNextPage(0);
+
+  // get the plan result
+  Handle<PipJoinAggPlanResult> planResult = ((Record<PipJoinAggPlanResult> *) planPage->getBytes())->getRootObject();
+  for(auto it = planResult->leftToNode->begin(); it != planResult->leftToNode->end(); ++it) {
+
+    std::cout << "Left TID " << (*it).key << " goes to:\n";
+    Vector<bool> &nodes = (*it).value;
+    for(int i = 0; i < nodes.size(); ++i) {
+      if(nodes[i]) {
+        std::cout << "\tNode " << i << "\n";
+      }
+    }
+  }
+
+  std::cout << "\n\n";
+
+  for(auto it = planResult->rightToNode->begin(); it != planResult->rightToNode->end(); ++it) {
+
+    std::cout << "Right TID " << (*it).key << " goes to:\n";
+    Vector<bool> &nodes = (*it).value;
+    for(int i = 0; i < nodes.size(); ++i) {
+      if(nodes[i]) {
+        std::cout << "\tNode " << i << "\n";
+      }
+    }
+  }
+
+  std::cout << "\n\n";
+
+  for(auto it = planResult->aggToNode->begin(); it != planResult->aggToNode->end(); ++it) {
+    std::cout << "Aggregation Group" << (*it).key << " goes to " << (*it).value <<"\n";
+  }
+
+  return true;
+}
+
+bool PDBJoinAggregationAlgorithm::runLead(std::shared_ptr<PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job) {
 
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
@@ -443,6 +570,7 @@ bool pdb::PDBJoinAggregationAlgorithm::run(std::shared_ptr<PDBStorageManagerBack
    * 1. Process the left and right key side
    */
 
+  std::string error;
   atomic_bool success;
   success = true;
 
@@ -519,18 +647,170 @@ bool pdb::PDBJoinAggregationAlgorithm::run(std::shared_ptr<PDBStorageManagerBack
   }
 
   /**
-   * 3.
+   * 3. Run the planner
    */
 
   // make the planner
-  JoinAggPlanner planner(joinAggPageSet, this->numNodes);
+  JoinAggPlanner planner(joinAggPageSet, job->numberOfNodes);
 
   // get a page to store the planning result onto
   auto bufferManager = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
-  auto page = bufferManager->getPage();
+  auto planPage = bufferManager->getPage();
 
   // do the planning
-  planner.getPlan(page);
+  planner.getPlan(planPage);
+
+  /**
+   * 4. Broadcast the plan (left key page, right key page)
+   */
+
+  /// 4.1 Start the senders
+
+  counter = 0;
+  PDBBuzzerPtr broadcastKeyPagesBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
+
+    // did we fail?
+    if(myAlarm == PDBAlarm::GenericError) {
+      success = false;
+    }
+
+    // increment the count
+    cnt++;
+  });
+
+
+  /// 4.2 broadcast the left key page
+
+  for(const auto& q : *leftKeyPageQueues) {
+    q->enqueue(leftKeyPage);
+    q->enqueue(nullptr);
+  }
+
+  /// 4.3 broadcast the right key page
+
+  for(const auto& q : *rightKeyPageQueues) {
+    q->enqueue(rightKeyPage);
+    q->enqueue(nullptr);
+  }
+
+  /// 4.4 run the senders for the left side
+
+  for(const auto &sender : *leftKeySenders) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sender, &success, &counter, this](const PDBBuzzerPtr& callerBuzzer) {
+
+      try {
+
+        // run the pipeline
+        sender->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        this->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+    });
+
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
+  /// 4.5 run the senders for the right side
+
+  for(const auto &sender : *rightKeySenders) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sender, &success, &counter, this](const PDBBuzzerPtr& callerBuzzer) {
+
+      try {
+
+        // run the pipeline
+        sender->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        this->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+    });
+
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
+  /**
+   * 5. Broadcast to each node the plan except for this one
+   */
+
+  /// 5.1 Fill up the plan queues
+
+  for(const auto& q : *planPageQueues) {
+    q->enqueue(planPage);
+    q->enqueue(nullptr);
+  }
+
+  /// 5.2 Run the senders
+
+  for(const auto &sender : *planSenders) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sender, &success, &counter, this](const PDBBuzzerPtr& callerBuzzer) {
+
+      try {
+
+        // run the pipeline
+        sender->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        this->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+    });
+
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
+  /**
+   * 6. Wait for everything to finish
+   */
+
+  // wait for all the left senders to finish
+  // for all the right senders to finish
+  // the plan senders
+  while (counter < leftKeySenders->size() + rightKeySenders->size() + planSenders->size()) {
+    tempBuzzer->wait();
+  }
+
 
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
   std::cout << "Run pipeline for " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns]" << '\n';
@@ -538,7 +818,91 @@ bool pdb::PDBJoinAggregationAlgorithm::run(std::shared_ptr<PDBStorageManagerBack
   return true;
 }
 
+bool pdb::PDBJoinAggregationAlgorithm::setupSenders(Handle<pdb::ExJob> &job,
+                                                    pdb::Handle<PDBSourcePageSetSpec> &recvPageSet,
+                                                    std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                                    std::shared_ptr<std::vector<PDBPageQueuePtr>> &pageQueues,
+                                                    std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> &senders,
+                                                    PDBPageSelfReceiverPtr *selfReceiver) {
+
+  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
+
+  senders = std::make_shared<std::vector<PDBPageNetworkSenderPtr>>();
+  for(unsigned i = 0; i < job->nodes.size(); ++i) {
+
+    // check if it is this node or another node
+    if(job->nodes[i]->port == job->thisNode->port &&
+       job->nodes[i]->address == job->thisNode->address &&
+       selfReceiver != nullptr) {
+
+      // create a new queue
+      pageQueues->push_back(std::make_shared<PDBPageQueue>());
+
+      // get the receive page set
+      auto pageSet = storage->createFeedingAnonymousPageSet(std::make_pair(recvPageSet->pageSetIdentifier.first,
+                                                                           recvPageSet->pageSetIdentifier.second),
+                                                                           job->numberOfProcessingThreads,
+                                                                           job->numberOfNodes);
+
+      // make sure we can use them all at the same time
+      pageSet->setUsagePolicy(PDBFeedingPageSetUsagePolicy::KEEP_AFTER_USED);
+
+      // did we manage to get a page set where we receive this? if not the setup failed
+      if(pageSet == nullptr) {
+        return false;
+      }
+
+      // make the self receiver
+      *selfReceiver = std::make_shared<pdb::PDBPageSelfReceiver>(pageQueues->back(), pageSet, myMgr);
+    }
+    else {
+
+      // create a new queue
+      pageQueues->push_back(std::make_shared<PDBPageQueue>());
+
+      // make the sender
+      auto sender = std::make_shared<PDBPageNetworkSender>(job->nodes[i]->address,
+                                                           job->nodes[i]->port,
+                                                           job->numberOfProcessingThreads,
+                                                           job->numberOfNodes,
+                                                           storage->getConfiguration()->maxRetries,
+                                                           logger,
+                                                           std::make_pair(recvPageSet->pageSetIdentifier.first, recvPageSet->pageSetIdentifier.second),
+                                                           pageQueues->back());
+
+      // setup the sender, if we fail return false
+      if(!sender->setup()) {
+        return false;
+      }
+
+      // make the sender
+      senders->emplace_back(sender);
+    }
+  }
+
+  return true;
+}
+
 void pdb::PDBJoinAggregationAlgorithm::cleanup() {
+
+  // invalidate everything
+  labeledLeftPageSet = nullptr;
+  labeledRightPageSet = nullptr;
+  joinAggPageSet = nullptr;
+  leftKeyToNodePageSet = nullptr;
+  rightKeyToNodePageSet = nullptr;
+  planPageSet = nullptr;
+  leftKeyPage = nullptr;
+  rightKeyPage = nullptr;
+  logicalPlan = nullptr;
+  leftKeyPageQueues = nullptr;
+  rightKeyPageQueues = nullptr;
+  planPageQueues = nullptr;
+  leftKeySenders = nullptr;
+  rightKeySenders = nullptr;
+  planSenders = nullptr;
+  joinKeyPipelines = nullptr;
+  joinAggPipeline = nullptr;
 }
 
 pdb::PDBPhysicalAlgorithmType pdb::PDBJoinAggregationAlgorithm::getAlgorithmType() {

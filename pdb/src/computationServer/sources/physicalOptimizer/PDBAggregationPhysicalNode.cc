@@ -144,6 +144,24 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
   joinAggKeySink->pageSetIdentifier = PDBAbstractPageSet::toKeyPageSetIdentifier(std::make_pair(computationID,
                                                                                                 pipeline.back()->getOutputName() + "_join_agg"));
 
+  // the left key source
+  pdb::Handle<PDBSourcePageSetSpec> leftKeySource = pdb::makeObject<PDBSourcePageSetSpec>();
+  leftKeySource->sourceType = PDBSourceType::SinglePageSource;
+  leftKeySource->pageSetIdentifier = PDBAbstractPageSet::toKeyPageSetIdentifier(std::make_pair(computationID,
+                                                                                            this->getPipeComputations().front()->getOutputName() + "s_key_lhs"));
+
+  // the right key source
+  pdb::Handle<PDBSourcePageSetSpec> rightKeySource = pdb::makeObject<PDBSourcePageSetSpec>();
+  rightKeySource->sourceType = PDBSourceType::SinglePageSource;
+  rightKeySource->pageSetIdentifier = PDBAbstractPageSet::toKeyPageSetIdentifier(std::make_pair(computationID,
+                                                                                                this->getPipeComputations().front()->getOutputName() + "s_key_rhs"));
+
+  // the plan source
+  pdb::Handle<PDBSourcePageSetSpec> planSource = pdb::makeObject<PDBSourcePageSetSpec>();
+  planSource->sourceType = PDBSourceType::SinglePageSource;
+  planSource->pageSetIdentifier = PDBAbstractPageSet::toKeyPageSetIdentifier(std::make_pair(computationID,
+                                                                                            this->getPipeComputations().front()->getOutputName() + "s_key_plan"));
+
   // combine the sources from both pipelines
   auto additionalSources = lhs->getAdditionalSources();
   std::vector<pdb::Handle<PDBSourcePageSetSpec>> secondarySources;
@@ -181,6 +199,9 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
                                                                                                     lhsKeySink,
                                                                                                     rhsKeySink,
                                                                                                     joinAggKeySink,
+                                                                                                    leftKeySource,
+                                                                                                    rightKeySource,
+                                                                                                    planSource,
                                                                                                     lhs->getPipeComputations().front(),
                                                                                                     rhs->getPipeComputations().front(),
                                                                                                     this->getPipeComputations().front(),
@@ -196,6 +217,9 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
                                                        hashedRHSKey->pageSetIdentifier,
                                                        lhsKeySink->pageSetIdentifier,
                                                        rhsKeySink->pageSetIdentifier,
+                                                       leftKeySource->pageSetIdentifier,
+                                                       rightKeySource->pageSetIdentifier,
+                                                       planSource->pageSetIdentifier,
                                                        aggregationTID->pageSetIdentifier };
 
   // if there are no consumers, (this happens if all the consumers are materializations), mark the ink set as consumed too
@@ -215,6 +239,9 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
                                                                        std::make_pair(hashedRHSKey->pageSetIdentifier, 1),
                                                                        std::make_pair(lhsKeySink->pageSetIdentifier, 1),
                                                                        std::make_pair(rhsKeySink->pageSetIdentifier, 1),
+                                                                       std::make_pair(leftKeySource->pageSetIdentifier, 1),
+                                                                       std::make_pair(rightKeySource->pageSetIdentifier, 1),
+                                                                       std::make_pair(planSource->pageSetIdentifier, 1),
                                                                        std::make_pair(aggregationTID->pageSetIdentifier, 1) };
 
 

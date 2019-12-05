@@ -39,6 +39,9 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
                               const pdb::Handle<PDBSinkPageSetSpec> &leftKeySink,
                               const pdb::Handle<PDBSinkPageSetSpec> &rightKeySink,
                               const pdb::Handle<PDBSinkPageSetSpec> &joinAggKeySink,
+                              const pdb::Handle<PDBSourcePageSetSpec> &leftKeySource,
+                              const pdb::Handle<PDBSourcePageSetSpec> &rightKeySource,
+                              const pdb::Handle<PDBSourcePageSetSpec> &planSource,
                               const AtomicComputationPtr& leftInputTupleSet,
                               const AtomicComputationPtr& rightInputTupleSet,
                               const AtomicComputationPtr& joinTupleSet,
@@ -63,7 +66,11 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
   /**
    * //TODO
    */
-  bool run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) override;
+  bool run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job) override;
+
+  bool runLead(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job);
+
+  bool runFollower(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job);
 
   /**
    *
@@ -99,14 +106,19 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
  private:
 
   /**
+   *
+   */
+  bool setupSenders(Handle<pdb::ExJob> &job,
+                    pdb::Handle<PDBSourcePageSetSpec> &recvPageSet,
+                    std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                    std::shared_ptr<std::vector<PDBPageQueuePtr>> &pageQueues,
+                    std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> &senders,
+                    PDBPageSelfReceiverPtr *selfReceiver);
+
+  /**
    * This tells us if this node is doing the planning
    */
   uint64_t plannerNodeID;
-
-  /**
-   * Tells us how many nodes are running this
-   */
-  uint64_t numNodes = 0;
 
   /**
    * The lhs input set to the join aggregation pipeline
@@ -162,12 +174,58 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
   /**
    *
    */
+  pdb::PDBFeedingPageSetPtr leftKeyToNodePageSet = nullptr;
+
+  /**
+   *
+   */
+  pdb::PDBFeedingPageSetPtr rightKeyToNodePageSet= nullptr;
+
+  /**
+   *
+   */
+  pdb::PDBFeedingPageSetPtr planPageSet = nullptr;
+
+  /**
+   *
+   */
   PDBPageHandle leftKeyPage = nullptr;
 
   /**
    *
    */
   PDBPageHandle rightKeyPage = nullptr;
+
+  /**
+   *
+   */
+  std::shared_ptr<std::vector<PDBPageQueuePtr>> leftKeyPageQueues = nullptr;
+
+  /**
+   *
+   */
+  std::shared_ptr<std::vector<PDBPageQueuePtr>> rightKeyPageQueues = nullptr;
+
+  /**
+   *
+   */
+  std::shared_ptr<std::vector<PDBPageQueuePtr>> planPageQueues = nullptr;
+
+  /**
+   *
+   */
+  std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> leftKeySenders;
+
+  /**
+   *
+   */
+  std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> rightKeySenders;
+
+  /**
+   * This sends the plan
+   */
+  std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> planSenders;
+
 
   /**
    * The join key side pipelines
