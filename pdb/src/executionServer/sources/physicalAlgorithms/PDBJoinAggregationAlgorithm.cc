@@ -391,19 +391,19 @@ bool PDBJoinAggregationAlgorithm::setupFollower(std::shared_ptr<pdb::PDBStorageM
   // create to receive the left key page
   leftKeyToNodePageSet = storage->createFeedingAnonymousPageSet(std::make_pair(leftKeySource->pageSetIdentifier.first,
                                                                                leftKeySource->pageSetIdentifier.second),
-                                                                job->numberOfProcessingThreads,
+                                                                1,
                                                                 job->numberOfNodes);
 
   // create to receive the right key page
   rightKeyToNodePageSet = storage->createFeedingAnonymousPageSet(std::make_pair(rightKeySource->pageSetIdentifier.first,
                                                                                rightKeySource->pageSetIdentifier.second),
-                                                                job->numberOfProcessingThreads,
-                                                                job->numberOfNodes);
+                                                                 1,
+                                                                 job->numberOfNodes);
 
   // create to receive the plan
   planPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(planSource->pageSetIdentifier.first,
                                                                       planSource->pageSetIdentifier.second),
-                                                       job->numberOfProcessingThreads,
+                                                       1,
                                                        job->numberOfNodes);
 
   return true;
@@ -527,37 +527,17 @@ bool pdb::PDBJoinAggregationAlgorithm::runFollower(std::shared_ptr<pdb::PDBStora
    */
   auto planPage = planPageSet->getNextPage(0);
 
-  // get the plan result
-  Handle<PipJoinAggPlanResult> planResult = ((Record<PipJoinAggPlanResult> *) planPage->getBytes())->getRootObject();
-  for(auto it = planResult->leftToNode->begin(); it != planResult->leftToNode->end(); ++it) {
+  /**
+   * 3. Run real left pipelines
+   */
 
-    std::cout << "Left TID " << (*it).key << " goes to:\n";
-    Vector<bool> &nodes = (*it).value;
-    for(int i = 0; i < nodes.size(); ++i) {
-      if(nodes[i]) {
-        std::cout << "\tNode " << i << "\n";
-      }
-    }
-  }
+  /**
+   * 4. Run real right pipelines
+   */
 
-  std::cout << "\n\n";
-
-  for(auto it = planResult->rightToNode->begin(); it != planResult->rightToNode->end(); ++it) {
-
-    std::cout << "Right TID " << (*it).key << " goes to:\n";
-    Vector<bool> &nodes = (*it).value;
-    for(int i = 0; i < nodes.size(); ++i) {
-      if(nodes[i]) {
-        std::cout << "\tNode " << i << "\n";
-      }
-    }
-  }
-
-  std::cout << "\n\n";
-
-  for(auto it = planResult->aggToNode->begin(); it != planResult->aggToNode->end(); ++it) {
-    std::cout << "Aggregation Group" << (*it).key << " goes to " << (*it).value <<"\n";
-  }
+  /**
+   * 5. Run real aggregation pipeline
+   */
 
   return true;
 }

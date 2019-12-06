@@ -786,3 +786,116 @@ bool pdb::AddJoinTID::canApply() {
   // if it is not a join we can not apply this
   return joinComp->getAtomicComputationTypeID() == ApplyJoinTypeID;
 }
+
+
+pdb::DropToKeyExtractionTransformation::DropToKeyExtractionTransformation(std::string joinTupleSet) : joinTupleSet(std::move(joinTupleSet)) {}
+
+void pdb::DropToKeyExtractionTransformation::apply() {
+
+  // get the computations from the plan
+  auto &computations = logicalPlan->getComputations();
+
+  // get the input computation
+  auto joinComp = std::dynamic_pointer_cast<ApplyJoin>(computations.getProducingAtomicComputation(joinTupleSet));
+
+  // get the right input
+  auto leftInputName = joinComp->getInputName();
+  auto rightInputName = joinComp->getRightInput().getSetName();
+
+  // get the start computation
+  auto currInput = computations.getProducingAtomicComputation(leftInputName);
+
+  /**
+   * 1. Figure out what to remove from the left side
+   */
+
+  // figure out what to remove from the left side
+  std::vector<AtomicComputationPtr> stuffToRemove;
+  bool isKeyExtraction;
+  do {
+
+    // check if this is an extraction lambda
+    isKeyExtraction = currInput->getAtomicComputationTypeID() == ApplyLambdaTypeID &&
+                      ((ApplyLambda*)currInput.get())->isExtractingKey();
+
+    // if it is a key extraction lambda
+    if(!isKeyExtraction) {
+      stuffToRemove.emplace_back(currInput);
+    }
+
+    // go to the next input
+    currInput = computations.getProducingAtomicComputation(currInput->getInputName());
+
+  } while (!isKeyExtraction);
+
+
+  /**
+   * 2. Figure out what to remove for the right side
+   */
+
+  // get the start computation
+  currInput = computations.getProducingAtomicComputation(rightInputName);
+
+  do {
+
+    // check if this is an extraction lambda
+    isKeyExtraction = currInput->getAtomicComputationTypeID() == ApplyLambdaTypeID &&
+        ((ApplyLambda*)currInput.get())->isExtractingKey();
+
+    // if it is a key extraction lambda
+    if(!isKeyExtraction) {
+      stuffToRemove.emplace_back(currInput);
+    }
+
+    // go to the next input
+    currInput = computations.getProducingAtomicComputation(currInput->getInputName());
+
+  } while (!isKeyExtraction);
+
+  /**
+   * 3. Remove them all
+   */
+
+  // remove all the computations
+  for(const auto &it : stuffToRemove) {
+
+    // remove the computation
+    computations.removeAndRelink(it->getOutputName());
+  }
+
+  // get the new input
+  leftInputName = joinComp->getInputName();
+  rightInputName = joinComp->getRightInput().getSetName();
+
+  // left input set
+  auto leftInput = computations.getProducingAtomicComputation(leftInputName);
+  auto key = TupleSpec::complement(leftInput->getOutput(), leftInput->getProjection());
+  auto input = leftInput->getInput();
+
+  // set the attributes
+  leftInput->getOutput().getAtts().clear();
+  leftInput->getOutput().getAtts().emplace_back(input.getAtts()[0]);
+  leftInput->getOutput().getAtts().emplace_back(key.getAtts()[0]);
+
+  // get the right input
+  auto rightInput = computations.getProducingAtomicComputation(leftInputName);
+  key = TupleSpec::complement(leftInput->getOutput(), leftInput->getProjection());
+  input = leftInput->getInput();
+
+  // set the attributes
+  rightInput->getOutput().getAtts().clear();
+  rightInput->getOutput().getAtts().emplace_back(input.getAtts()[0]);
+  rightInput->getOutput().getAtts().emplace_back(key.getAtts()[0]);
+}
+
+bool pdb::DropToKeyExtractionTransformation::canApply() {
+
+  // get the computations from the plan
+  auto &computations = logicalPlan->getComputations();
+
+  // get the input computation
+  auto joinComp = computations.getProducingAtomicComputation(joinTupleSet);
+
+  // if it is not a join we can not apply this
+  return joinComp->getAtomicComputationTypeID() == ApplyJoinTypeID;
+}

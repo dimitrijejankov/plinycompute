@@ -551,7 +551,7 @@ public:
 
   // serializes this atomic computation
   std::ostream &writeOut(std::ostream &os) const override {
-    os << output << " <= AGGREGATE ( '" << input <<  ", '" << computationName << "')\n";
+    os << output << " <= AGGREGATE ( " << input <<  ", '" << computationName << "')\n";
     return os;
   }
 };

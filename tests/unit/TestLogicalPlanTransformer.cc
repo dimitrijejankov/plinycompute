@@ -145,3 +145,32 @@ TEST(TestLogicalPlanTransformer, Test1) {
   std::cout << "The new Plan : \n";
   std::cout << *newPlan << std::endl;
 }
+
+TEST(TestLogicalPlanTransformer, Test2) {
+
+  // make the logical plan
+  auto logicalPlan = makeLogicalPlan();
+
+  // print out the TCAP
+  std::cout << "The original Plan : \n";
+  std::cout << *logicalPlan << std::endl;
+
+  // make the transformer
+  auto transformer = std::make_shared<LogicalPlanTransformer>(logicalPlan);
+
+  // the join tuple set
+  std::string joinTupleSet = "OutForJoinedFor_equals_0JoinComp2";
+
+  // apply all the transformations
+  auto newPlan = transformer->applyTransformations();
+
+  // drop both sides to the key extraction
+  transformer->addTransformation(std::make_shared<DropToKeyExtractionTransformation>(joinTupleSet));
+
+  // apply all the transformations
+  newPlan = transformer->applyTransformations();
+
+  // modified TCAP
+  std::cout << "The new Plan : \n";
+  std::cout << *newPlan << std::endl;
+}

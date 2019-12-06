@@ -173,5 +173,24 @@ class AddJoinTID : public Transformation {
 
 };
 
+/**
+ * Drop DropToKeyExtraction
+ */
+
+class DropToKeyExtractionTransformation : public Transformation {
+ public:
+
+  explicit DropToKeyExtractionTransformation(std::string joinTupleSet);
+
+  void apply() override;
+  bool canApply() override;
+
+ private:
+
+  // the input tuple set
+  std::string joinTupleSet;
+
+};
+
 
 }
