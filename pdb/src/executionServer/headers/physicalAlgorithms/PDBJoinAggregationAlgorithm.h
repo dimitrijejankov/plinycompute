@@ -199,6 +199,11 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
   /**
    *
    */
+  PDBPageHandle planPage;
+
+  /**
+   *
+   */
   std::shared_ptr<std::vector<PDBPageQueuePtr>> leftKeyPageQueues = nullptr;
 
   /**
@@ -235,7 +240,12 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
   /**
    * The join aggregation pipeline
    */
-  PipelinePtr joinAggPipeline = nullptr;
+  PipelinePtr joinKeyAggPipeline = nullptr;
+
+  /**
+   * This runs the left and right side of the join
+   */
+  std::shared_ptr<std::vector<PipelinePtr>> joinPipelines = nullptr;
 
   FRIEND_TEST(TestPhysicalOptimizer, TestKeyedMatrixMultipply);
 };

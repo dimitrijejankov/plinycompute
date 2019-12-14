@@ -47,8 +47,6 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
       pdbClient.sendData<MatrixBlock>("myData", set, data);
     }
   }
-
-
 }
 
 int main(int argc, char* argv[]) {

@@ -1,20 +1,26 @@
 #include "JoinAggPlanner.h"
 
-pdb::JoinAggPlanner::JoinAggPlanner(const pdb::PDBAnonymousPageSetPtr &joinAggPageSet, uint32_t numNodes) : numNodes(numNodes) {
+pdb::JoinAggPlanner::JoinAggPlanner(const pdb::PDBAnonymousPageSetPtr &joinAggPageSet,
+                                    uint32_t numNodes,
+                                    const PDBPageHandle& pageToStore) : numNodes(numNodes) {
 
 
   // get the input page
-  inputPage = joinAggPageSet->getNextPage(0);
-  inputPage->repin();
+  this->inputPage = joinAggPageSet->getNextPage(0);
+  this->inputPage->repin();
+
+  // page to store
+  this->pageToStore = pageToStore;
 
   // grab the copy of the supervisor object
   auto* recordCopy = (Record<TIDIndexMap>*) inputPage->getBytes();
   joinGroups = recordCopy->getRootObject();
 }
 
-void pdb::JoinAggPlanner::getPlan(const PDBPageHandle& pageToStore) {
+void pdb::JoinAggPlanner::doPlanning() {
 
-  // we assume the page is pinned
+  // repin the page
+  pageToStore->repin();
   UseTemporaryAllocationBlock blk{pageToStore->getBytes(), pageToStore->getSize()};
 
   // make the plan result object

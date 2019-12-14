@@ -30,11 +30,16 @@ class JoinAggPlanner {
   // the number of nodes
   int32_t numNodes;
 
+  // the page where we store the result
+  PDBPageHandle pageToStore;
+
 public:
 
-  explicit JoinAggPlanner(const pdb::PDBAnonymousPageSetPtr &joinAggPageSet, uint32_t numNodes);
+  explicit JoinAggPlanner(const pdb::PDBAnonymousPageSetPtr &joinAggPageSet,
+                          uint32_t numNodes,
+                          const PDBPageHandle& pageToStore);
 
-  void getPlan(const PDBPageHandle& pageToStore);
+  void doPlanning();
 
   void print(const Handle<PipJoinAggPlanResult> &planResult);
 };

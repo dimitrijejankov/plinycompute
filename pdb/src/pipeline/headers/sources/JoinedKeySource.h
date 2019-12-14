@@ -3,6 +3,7 @@
 #pragma once
 
 #include "RHSKeyJoinSourceBase.h"
+#include "../../../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlockMeta.h"
 
 #include <utility>
 #include <PDBLabeledPageSet.h>
@@ -106,6 +107,9 @@ public:
 
     // the type we need to hold
     Handle<pdb::Map<decltype(((LHS*) nullptr)->myData), uint32_t>> tidMap = makeObject<pdb::Map<decltype(((LHS*) nullptr)->myData), uint32_t>>();
+
+    // make the tid map the root object of the block
+    getRecord(tidMap);
 
     // clear the counts from the previous call
     counts.clear();
@@ -266,6 +270,14 @@ public:
 
       // increment the idx
       idx++;
+    }
+
+    std::cout << tidMap->size() << "\n";
+    auto it = tidMap->begin();
+
+    while(it != tidMap->end()) {
+      std::cout << (*it).key.rowID << " " << (*it).key.colID  << "\n";
+      ++it;
     }
 
     return output;

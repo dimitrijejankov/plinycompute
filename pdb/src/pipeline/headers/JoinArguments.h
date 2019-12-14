@@ -18,6 +18,28 @@ public:
   bool swapLeftAndRightSide;
 };
 
+// the join agg arguments
+class JoinAggSideArg : public pdb::ComputeInfo {
+ public:
+
+  // the constructor
+  explicit JoinAggSideArg(pdb::PDBPageHandle keyToNode,
+                          pdb::PDBPageHandle plan,
+                          bool isLeft) : keyToNode(std::move(keyToNode)),
+                                         plan(std::move(plan)),
+                                         isLeft(isLeft) {}
+
+  // key to node map is on this page
+  pdb::PDBPageHandle keyToNode;
+
+  // the plan page
+  pdb::PDBPageHandle plan;
+
+  // is this the left or right side
+  bool isLeft;
+};
+using JoinAggSideArgPtr = std::shared_ptr<JoinAggSideArg>;
+
 // used to parameterize joins that are run as part of a pipeline
 class JoinArg {
 public:
@@ -41,6 +63,9 @@ public:
 
   // the list of hash tables
   std::unordered_map<std::string, JoinArgPtr> hashTables;
+
+  // is join agg side (used for the join agg algorithm)
+  bool isJoinAggSide = false;
 };
 
 using JoinArgumentsPtr = std::shared_ptr<JoinArguments>;

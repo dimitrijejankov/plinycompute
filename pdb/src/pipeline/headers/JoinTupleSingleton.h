@@ -19,6 +19,7 @@
 #include <JoinedKeySource.h>
 #include <RHSJoinKeySource.h>
 #include <JoinArguments.h>
+#include <JoinAggSideSink.h>
 
 namespace pdb {
 
@@ -42,6 +43,16 @@ class JoinTupleSingleton {
                                  TupleSpec &projection,
                                  std::vector<int> &whereEveryoneGoes,
                                  uint64_t numPartitions) = 0;
+
+  virtual ComputeSinkPtr getJoinAggSink(TupleSpec &consumeMe,
+                                        TupleSpec &attsToOpOn,
+                                        TupleSpec &projection,
+                                        std::vector<int> &whereEveryoneGoes,
+                                        pdb::PDBPageHandle keyToLeft,
+                                        pdb::PDBPageHandle planPage,
+                                        bool isLeft,
+                                        uint64_t numPartitions) = 0;
+
 
   virtual ComputeSinkPtr getKeySink(TupleSpec &consumeMe,
                                     TupleSpec &attsToOpOn,
@@ -155,6 +166,33 @@ public:
 
     // this is not supposed to happen
     throw runtime_error("The tuple does not have a key. Why are u calling to get the key sink?");
+  }
+
+  ComputeSinkPtr getJoinAggSink(TupleSpec &consumeMe,
+                                TupleSpec &attsToOpOn,
+                                TupleSpec &projection,
+                                std::vector<int> &whereEveryoneGoes,
+                                pdb::PDBPageHandle keyToLeft,
+                                pdb::PDBPageHandle planPage,
+                                bool isLeft,
+                                uint64_t numPartitions) override {
+
+    // check if it has the key
+    if constexpr(pdb::tupleTests::has_get_key<HoldMe>::value) {
+
+      // return the join agg sink
+      return std::make_shared<JoinAggSideSink<HoldMe>>(consumeMe,
+                                                       attsToOpOn,
+                                                       projection,
+                                                       whereEveryoneGoes,
+                                                       keyToLeft,
+                                                       planPage,
+                                                       isLeft,
+                                                       numPartitions);
+    }
+
+    // this is not supposed to happen
+    throw runtime_error("The tuple does not have a key. Why are u calling to get the join agg sink?");
   }
 
   RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,

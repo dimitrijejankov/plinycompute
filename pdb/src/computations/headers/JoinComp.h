@@ -106,7 +106,35 @@ class JoinComp : public JoinCompBase {
     // figure out the right join tuple
     std::vector<int> whereEveryoneGoes;
     JoinTuplePtr correctJoinTuple = findJoinTuple(projection, plan, whereEveryoneGoes);
-    return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+
+    // try to find the join agg arguments
+    auto it = params.find(ComputeInfoType::JOIN_ARGS);
+    if(it == params.end()) {
+      throw runtime_error("Could not find the join arguments");
+    }
+
+    // the join arguments
+    JoinArgumentsPtr joinArgs = dynamic_pointer_cast<JoinArguments>(it->second);
+
+    // check what kind of sink we need
+    if(!joinArgs->isJoinAggSide) {
+      return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+    }
+    else {
+
+      // could not find the
+      it = params.find(ComputeInfoType::JOIN_AGG_SIDE_ARGS);
+      if(it == params.end()) {
+        throw runtime_error("Could not find the join aggregation side arguments");
+      }
+
+      // the join arguments
+      JoinAggSideArgPtr joinSideArgs = dynamic_pointer_cast<JoinAggSideArg>(it->second);
+
+      return correctJoinTuple->getJoinAggSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes,
+                                              joinSideArgs->keyToNode, joinSideArgs->plan,
+                                              joinSideArgs->isLeft, numPartitions);
+    }
   }
 
   // this gets the key sink

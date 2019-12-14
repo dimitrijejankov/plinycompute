@@ -3,6 +3,7 @@
 #include <utility>
 #include "RHSKeyJoinSourceBase.h"
 #include "PDBLabeledPageSet.h"
+#include "../../../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlockMeta.h"
 
 namespace pdb {
 
@@ -160,6 +161,17 @@ public:
     // truncate if we have extra
     eraseEnd<RHS>(count, 0, columns);
     hashColumn.resize((unsigned) count);
+
+    // make this a root object
+    getRecord(tidMap);
+
+    std::cout << tidMap->size() << "\n";
+    auto it = tidMap->begin();
+
+    while(it != tidMap->end()) {
+      std::cout << (*it).key.rowID << " " << (*it).key.colID  << "\n";
+      ++it;
+    }
 
     // return the output
     return std::make_tuple(output, &counts, std::move(rightTDI));

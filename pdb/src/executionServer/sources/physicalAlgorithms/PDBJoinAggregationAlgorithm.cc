@@ -5,6 +5,7 @@
 #include <ComputePlan.h>
 #include <ExJob.h>
 #include <LogicalPlanTransformer.h>
+#include <processors/DismissProcessor.h>
 #include "PDBStorageManagerBackend.h"
 #include "KeyComputePlan.h"
 #include "GenericWork.h"
@@ -178,7 +179,7 @@ bool PDBJoinAggregationAlgorithm::setupLead(std::shared_ptr<pdb::PDBStorageManag
 
   // apply all the transformations
   logicalPlan = transformer->applyTransformations();
-  std::cout << *logicalPlan << '\n';
+  std::cout << "Key only plan : \n" << *logicalPlan << '\n';
 
   // make the compute plan
   auto computePlan = std::make_shared<KeyComputePlan>(logicalPlan);
@@ -320,6 +321,9 @@ bool PDBJoinAggregationAlgorithm::setupLead(std::shared_ptr<pdb::PDBStorageManag
   leftKeyPage = myMgr->getPage();
   rightKeyPage = myMgr->getPage();
 
+  // this page will contain the plan
+  planPage = myMgr->getPage();
+
   // the parameters
   std::map<ComputeInfoType, ComputeInfoPtr> params;
   params = {{ComputeInfoType::PAGE_PROCESSOR, aggComputation->getAggregationKeyProcessor()},
@@ -327,15 +331,15 @@ bool PDBJoinAggregationAlgorithm::setupLead(std::shared_ptr<pdb::PDBStorageManag
             {ComputeInfoType::KEY_JOIN_SOURCE_ARGS, std::make_shared<KeyJoinSourceArgs>(std::vector<PDBPageHandle>({ leftKeyPage, rightKeyPage }))},
             {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(false)}};
 
-  joinAggPipeline = computePlan->buildJoinAggPipeline(joinComp->getOutputName(),
-                                                      sinkComp->getOutputName(),     /* this is the TupleSet the pipeline ends with */
+  joinKeyAggPipeline = computePlan->buildJoinAggPipeline(joinComp->getOutputName(),
+                                                         sinkComp->getOutputName(),     /* this is the TupleSet the pipeline ends with */
                                                       labeledLeftPageSet,
-                                                      joinAggPageSet,
-                                                      params,
-                                                      1,
-                                                      1,
-                                                      20,
-                                                      0);
+                                                         joinAggPageSet,
+                                                         params,
+                                                         1,
+                                                         1,
+                                                         20,
+                                                         0);
 
   /// 4. Init the sending queues
 
@@ -380,6 +384,170 @@ bool PDBJoinAggregationAlgorithm::setupLead(std::shared_ptr<pdb::PDBStorageManag
     return false;
   }
 
+  // init the plan
+  ComputePlan plan(std::make_shared<LogicalPlan>(job->tcap, *job->computations));
+  logicalPlan = plan.getPlan();
+
+  // make the transformer
+  transformer = std::make_shared<LogicalPlanTransformer>(logicalPlan);
+  transformer->addTransformation(std::make_shared<DropToKeyExtractionTransformation>(joinTupleSet));
+
+  // apply all the transformations
+  logicalPlan = transformer->applyTransformations();
+
+  // get the join comp
+  auto joinAtomicComp = dynamic_pointer_cast<ApplyJoin>(logicalPlan->getComputations().getProducingAtomicComputation(joinTupleSet));
+
+  /// 6. the left and right side of the join
+
+  // the join key pipelines
+  joinPipelines = make_shared<std::vector<PipelinePtr>>();
+
+  /// 6.1 Initialize the left sources and the sink
+
+  // we put them here
+  std::vector<PDBAbstractPageSetPtr> leftSourcePageSets;
+  leftSourcePageSets.reserve(sources.size());
+
+  // initialize them
+  for(int i = 0; i < sources.size(); i++) {
+    leftSourcePageSets.emplace_back(getSourcePageSet(storage, i));
+  }
+
+  // get the sink page set
+  auto sinkPageSet = storage->createAnonymousPageSet(std::make_pair(sink->pageSetIdentifier.first, sink->pageSetIdentifier.second));
+
+  // did we manage to get a sink page set? if not the setup failed
+  if(sinkPageSet == nullptr) {
+    return false;
+  }
+
+  /// 6.2. For each node initialize left pipelines
+
+  // initialize all the pipelines
+  for (uint64_t pipelineIndex = 0; pipelineIndex < job->numberOfProcessingThreads; ++pipelineIndex) {
+
+    /// 6.2.1 Figure out what source to use
+
+    // figure out what pipeline
+    auto pipelineSource = pipelineIndex % sources.size();
+
+    // grab these thins from the source we need them
+    bool swapLHSandRHS = sources[pipelineSource].swapLHSandRHS;
+    const pdb::String &firstTupleSet = sources[pipelineSource].firstTupleSet;
+
+    // get the source computation
+    auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
+
+    // go grab the source page set
+    PDBAbstractPageSetPtr sourcePageSet = leftSourcePageSets[pipelineSource];
+
+    // did we manage to get a source page set? if not the setup failed
+    if(sourcePageSet == nullptr) {
+      return false;
+    }
+
+    /// 6.2.2 Figure out the parameters of the pipeline
+
+    // figure out the join arguments
+    auto joinArguments = getJoinArguments (storage);
+
+    // if we could not create them we are out of here
+    if(joinArguments == nullptr) {
+      return false;
+    }
+
+    // mark that this is a join agg side
+    joinArguments->isJoinAggSide = true;
+
+    // empty computations parameters
+    params =  {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<DismissProcessor>()},
+               {ComputeInfoType::JOIN_ARGS, joinArguments},
+               {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)},
+               {ComputeInfoType::JOIN_AGG_SIDE_ARGS, std::make_shared<JoinAggSideArg>(leftKeyPage, planPage, true)},
+               {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient, pipelineSource)}};
+
+    /// 6.2.3 Build the pipeline
+
+    std::cout << "Modified only plan : \n" << *logicalPlan << '\n';
+    // build the join pipeline
+    auto pipeline = plan.buildPipeline(firstTupleSet, /* this is the TupleSet the pipeline starts with */
+                                       joinAtomicComp->getInputName(),     /* this is the TupleSet the pipeline ends with */
+                                       sourcePageSet,
+                                       sinkPageSet,
+                                       params,
+                                       job->numberOfNodes,
+                                       job->numberOfProcessingThreads,
+                                       20,
+                                       pipelineIndex);
+
+    // store the join pipeline
+    joinPipelines->push_back(pipeline);
+  }
+
+  /// 6.3. For each node initialize left pipelines
+
+  // initialize all the pipelines
+  for (uint64_t pipelineIndex = 0; pipelineIndex < job->numberOfProcessingThreads; ++pipelineIndex) {
+
+    /// 6.3.1 Figure out what source to use
+
+    // figure out what pipeline
+    auto pipelineSource = pipelineIndex % sources.size();
+
+    // grab these thins from the source we need them
+    bool swapLHSandRHS = sources[pipelineSource].swapLHSandRHS;
+    const pdb::String &firstTupleSet = sources[pipelineSource].firstTupleSet;
+
+    // get the source computation
+    auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
+
+    // go grab the source page set
+    PDBAbstractPageSetPtr sourcePageSet = leftSourcePageSets[pipelineSource];
+
+    // did we manage to get a source page set? if not the setup failed
+    if(sourcePageSet == nullptr) {
+      return false;
+    }
+
+    /// 6.3.2 Figure out the parameters of the pipeline
+
+    // figure out the join arguments
+    auto joinArguments = getJoinArguments (storage);
+
+    // if we could not create them we are out of here
+    if(joinArguments == nullptr) {
+      return false;
+    }
+
+    // mark that this is a join agg side
+    joinArguments->isJoinAggSide = true;
+
+    // empty computations parameters
+    params =  {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<DismissProcessor>()},
+               {ComputeInfoType::JOIN_ARGS, joinArguments},
+               {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)},
+               {ComputeInfoType::JOIN_AGG_SIDE_ARGS, std::make_shared<JoinAggSideArg>(leftKeyPage, planPage, true)},
+               {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient, pipelineSource)}};
+
+    /// 6.3.3 Build the pipeline
+
+    std::cout << "Modified only plan : \n" << *logicalPlan << '\n';
+    // build the join pipeline
+    auto pipeline = plan.buildPipeline(firstTupleSet, /* this is the TupleSet the pipeline starts with */
+                                       joinAtomicComp->getInputName(),     /* this is the TupleSet the pipeline ends with */
+                                       sourcePageSet,
+                                       sinkPageSet,
+                                       params,
+                                       job->numberOfNodes,
+                                       job->numberOfProcessingThreads,
+                                       20,
+                                       pipelineIndex);
+
+    // store the join pipeline
+    joinPipelines->push_back(pipeline);
+  }
+
   // we succeeded
   return true;
 }
@@ -410,6 +578,12 @@ bool PDBJoinAggregationAlgorithm::setupFollower(std::shared_ptr<pdb::PDBStorageM
 }
 
 bool pdb::PDBJoinAggregationAlgorithm::setup(std::shared_ptr<PDBStorageManagerBackend> &storage, Handle<ExJob> &job, const std::string &error) {
+
+  // check that we have at least one worker per primary source
+  if(job->numberOfProcessingThreads < sources.size() ||
+     job->numberOfProcessingThreads < rightSources.size()) {
+    return false;
+  }
 
   // check if we are the lead node if we are set it up for such
   if(job->isLeadNode) {
@@ -615,7 +789,7 @@ bool PDBJoinAggregationAlgorithm::runLead(std::shared_ptr<PDBStorageManagerBacke
   try {
 
     // run the pipeline
-    joinAggPipeline->run();
+    joinKeyAggPipeline->run();
   }
   catch (std::exception &e) {
 
@@ -631,14 +805,13 @@ bool PDBJoinAggregationAlgorithm::runLead(std::shared_ptr<PDBStorageManagerBacke
    */
 
   // make the planner
-  JoinAggPlanner planner(joinAggPageSet, job->numberOfNodes);
+  JoinAggPlanner planner(joinAggPageSet, job->numberOfNodes,planPage);
 
   // get a page to store the planning result onto
   auto bufferManager = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
-  auto planPage = bufferManager->getPage();
 
   // do the planning
-  planner.getPlan(planPage);
+  planner.doPlanning();
 
   /**
    * 4. Broadcast the plan (left key page, right key page)
@@ -791,6 +964,8 @@ bool PDBJoinAggregationAlgorithm::runLead(std::shared_ptr<PDBStorageManagerBacke
     tempBuzzer->wait();
   }
 
+  // run on of the join pipelines
+  joinPipelines->front()->run();
 
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
   std::cout << "Run pipeline for " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns]" << '\n';
@@ -882,7 +1057,7 @@ void pdb::PDBJoinAggregationAlgorithm::cleanup() {
   rightKeySenders = nullptr;
   planSenders = nullptr;
   joinKeyPipelines = nullptr;
-  joinAggPipeline = nullptr;
+  joinKeyAggPipeline = nullptr;
 }
 
 pdb::PDBPhysicalAlgorithmType pdb::PDBJoinAggregationAlgorithm::getAlgorithmType() {
