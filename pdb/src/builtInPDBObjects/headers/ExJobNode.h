@@ -20,14 +20,21 @@ public:
 
   ExJobNode() = default;
 
-  ExJobNode(uint64_t port, const std::string &address) : port(port), address(address) {}
+  ExJobNode(int32_t port, int32_t backendPort, const std::string &address) : port(port),
+                                                                             backendPort(backendPort),
+                                                                             address(address) {}
 
   ENABLE_DEEP_COPY
 
   /**
    * The port
    */
-  uint64_t port;
+  int32_t port;
+
+  /**
+   * The backend of the port
+   */
+  int32_t backendPort;
 
   /**
    * The address

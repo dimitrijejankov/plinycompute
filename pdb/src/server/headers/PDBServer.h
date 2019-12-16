@@ -22,10 +22,13 @@
  * Created on September 25, 2015, 5:04 PM
  */
 
-#ifndef PDBSERVER_H
-#define PDBSERVER_H
+#pragma once
 
 #include <memory>
+#include <mutex>
+#include "SerConnectToRequest.h"
+
+
 namespace pdb {
 
 // create a smart pointer for PDBServer objects
@@ -42,6 +45,7 @@ typedef std::shared_ptr<PDBServer> PDBServerPtr;
 #include <string>
 #include <map>
 #include <atomic>
+#include <condition_variable>
 
 // This class encapsulates a multi-threaded sever in PDB.  The way it works is that one simply
 // registers
@@ -67,57 +71,106 @@ public:
 
   PDBServer(NodeType type, const NodeConfigPtr &config, const PDBLoggerPtr &logger);
 
-  // a server has many possible functionalities... storage, catalog client, query planning, etc.
-  // to create and add a functionality, call this.  The Functionality class must derive from the
-  // ServerFunctionality class, which means that it must implement the pure virtual function
-  // RegisterHandlers (PDBServer &) that registers any special handlers that the class needs in
-  // order to perform its required tasks, this method adds one server functionality
+  /**
+   * A server has many possible functionalities... storage, catalog client, query planning, etc.
+   * to create and add a functionality, call this.  The Functionality class must derive from the
+   * ServerFunctionality class, which means that it must implement the pure virtual function
+   * RegisterHandlers (PDBServer &) that registers any special handlers that the class needs in
+   * order to perform its required tasks, this method adds one server functionality
+   * @tparam Functionality
+   * @param functionality
+   */
   template<class Functionality>
   void addFunctionality(std::shared_ptr<Functionality> functionality);
 
-  // gets access to a particular functionality... this might be called (for example)
+  /**
+   * gets access to a particular functionality... this might be called (for example)
+   * @tparam Functionality
+   * @return
+   */
   template<class Functionality>
   Functionality &getFunctionality();
 
-  // gets access to a particular functionality as a shared ptr... this might be called (for example)
+  /**
+   * gets access to a particular functionality as a shared ptr... this might be called (for example)
+   * @tparam Functionality
+   * @return
+   */
   template<class Functionality>
   std::shared_ptr<Functionality> getFunctionalityPtr();
 
-  // asks the server to handle a particular request coming over the wire with the particular work
-  // type
+  /**
+   * asks the server to handle a particular request coming over the wire with the particular work type
+   * @param typeID
+   * @param handledBy
+   */
   void registerHandler(int16_t typeID, const PDBCommWorkPtr &handledBy);
 
-  // like registerHandler but repeat the work in a time interval
-  // TODO: to be implemented later.
-  //  void registerTimedHandler (uint32_t intervalInMilliseconds, PDBWorkPtr handledBy);
+  /**
+   * starts the server---this creates all of the threads and lets the server start taking
+   * requests; this call will never return.  Note that if runMeAtStart is not null, then runMeAtStart is executed
+   * before the server starts handling requests
+   * @param runMeAtStart
+   */
+  void startServer(const PDBWorkPtr& runMeAtStart);
 
-  // starts the server---this creates all of the threads and lets the server start taking
-  // requests; this
-  // call will never return.  Note that if runMeAtStart is not null, then runMeAtStart is executed
-  // before the server starts handling requests
-  void startServer(PDBWorkPtr runMeAtStart);
-
-  // asks the server to signal all of the threads activily handling connections that a certain
-  // event
-  // has occured; this effectively just has us call PDBWorker.signal (signalWithMe) for all of the
-  // workers that are currently handling requests.  Any that indicate that they have died as a
-  // result
-  // of the signal are forgotten (allowed to go out of scope) and then replaced with a new
-  // PDBWorker
-  // object
+  /**
+   * Asks the server to signal all of the threads actively handling connections that a certain event
+   * has occurred; this effectively just has us call PDBWorker.signal (signalWithMe) for all of the
+   * workers that are currently handling requests.  Any that indicate that they have died as a
+   * result of the signal are forgotten (allowed to go out of scope) and then replaced with a new PDBWorker object
+   * @param signalWithMe
+   */
   void signal(PDBAlarm signalWithMe);
 
-  // tell the server to start listening for people who want to connect
-  void listen();
+  /**
+   * tell the server to start listening for people who want to connect
+   */
+  void listenTCP();
 
-  // asks us to handle one request that is coming over the given PDBCommunicator; return true if
-  // this
-  // is not the last request over this PDBCommunicator object; buzzMeWhenDone is sent to the
-  // worker that
-  // is spawned to handle the request
-  bool handleOneRequest(PDBBuzzerPtr buzzMeWhenDone, PDBCommunicatorPtr myCommunicator);
+  /**
+   * tell the server to start listening for people who want to connect
+   */
+  void listenIPC();
 
-  void stop();  // added by Jia
+  /**
+   * Waits for somebody to connect to this server with the following connection id
+   * @param connectionID
+   * @return
+   */
+  PDBCommunicatorPtr waitForConnection(const pdb::Handle<SerConnectToRequest> &connectionID);
+
+  /**
+   * Connect to a particular server
+   * @param ip - the ip of the node
+   * @param port - port
+   * @param connectionID - connection id
+   * @return the communicator if we succeed, null otherwise
+   */
+  PDBCommunicatorPtr connectTo(const std::string &ip, int32_t port, const pdb::Handle<SerConnectToRequest> &connectionID);
+
+  /**
+   * Connect to a particular server, through an ipcFile
+   * @param ipcFile - the ipc file of the server
+   * @param connectionID - connection id
+   * @return the communicator if we succeed, null otherwise
+   */
+  PDBCommunicatorPtr connectTo(const std::string &ipcFile, const pdb::Handle<SerConnectToRequest> &connectionID);
+
+  /**
+   * asks us to handle one request that is coming over the given PDBCommunicator; return true if this
+   * is not the last request over this PDBCommunicator object; buzzMeWhenDone is sent to the worker that
+   * is spawned to handle the request
+   * @param buzzMeWhenDone
+   * @param myCommunicator
+   * @return
+   */
+  bool handleOneRequest(const PDBBuzzerPtr& buzzMeWhenDone, const PDBCommunicatorPtr& myCommunicator);
+
+  /**
+   * stops the server
+   */
+  void stop();
 
   /**
    * Sends a request to the manager to shutdown the cluster
@@ -125,16 +178,24 @@ public:
    */
   bool shutdownCluster();
 
-  // Someone added this, but it is BAD!!  This should not be exposed
-  // Jia: I understand it is bad, however we need to create threads in a handler, and I feel you
-  // do
-  //      not want multiple worker queue in one process. So I temprarily enabled this...
+  /**
+   * Someone added this, but it is BAD!!  This should not be exposed
+   * Jia: I understand it is bad, however we need to create threads in a handler, and I feel you
+   * do not want multiple worker queue in one process. So I temporarily enabled this...
+   * @return
+   */
   virtual PDBWorkerQueuePtr getWorkerQueue();
 
-  // gets access to logger
+  /**
+   * gets access to logger
+   * @return
+   */
   virtual PDBLoggerPtr getLogger();
 
-  // returns the configuration of this node
+  /**
+   * returns the configuration of this node
+   * @return
+   */
   virtual pdb::NodeConfigPtr getConfiguration();
 
 private:
@@ -154,32 +215,45 @@ private:
   // this is where all of our workers to handle the server requests live
   PDBWorkerQueuePtr workers;
 
-  // handles a request using the given PDBCommunicator to obtain the data
-  void handleRequest(const PDBCommunicatorPtr &myCommunicator);
-
   // true if we started accepting requests
-  std::atomic_bool startedAcceptingRequests;
+  std::atomic_int startedAcceptingRequests{};
 
   // true when the server is done
-  bool allDone;
+  bool allDone{};
 
   // where to log to
   PDBLoggerPtr logger;
 
-  // used to run the server
-  pthread_t listenerThread;
+  // used get requests from an external server
+  pthread_t externalListenerThread{};
+
+  // used get requests from an internal server
+  pthread_t internalListenerThread{};
 
   // this is the socket we are listening to
-  int sockFD;
+  int internalSocket{};
+
+  // the internal socket we are listening to
+  int externalSocket{};
+
+  // all the connections that have connected to this sever and are waiting for a connection
+  std::unordered_map<SerConnectToRequest, PDBCommunicatorPtr, SerConnectToRequestHasher> pendingConnections;
+
+  // mutex to lock the pending connections
+  std::mutex m;
+
+  // to synchronize connections
+  std::condition_variable cv;
 
   // this maps the name of a functionality class to a position
   std::map<std::string, size_t> functionalityNames;
 
   // this gives us each of the functionalities that the server can perform
   std::vector<shared_ptr<ServerFunctionality>> functionalities;
+
+  // handles a request using the given PDBCommunicator to obtain the data
+  void handleRequest(const PDBCommunicatorPtr &myCommunicator);
 };
 }
 
 #include "ServerTemplates.cc"
-
-#endif /* PDBSERVER_H */

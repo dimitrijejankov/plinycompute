@@ -43,7 +43,7 @@
 namespace pdb {
 
 template <class ObjType>
-bool PDBCommunicator::sendObject(Handle<ObjType>& sendMe, std::string& errMsg) {
+bool PDBCommunicator::sendObject(const Handle<ObjType>& sendMe, std::string& errMsg) {
 
     // first, write the record type
     int16_t recType = getTypeID<ObjType>();

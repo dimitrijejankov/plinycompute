@@ -764,7 +764,7 @@ inline void MultiPolicyAllocator<FirstPolicy, OtherPolicies...>::setupBlock(
 template <typename FirstPolicy, typename... OtherPolicies>
 template <class ObjType>
 inline void* MultiPolicyAllocator<FirstPolicy, OtherPolicies...>::getAllocationBlock(
-    Handle<ObjType>& forMe) {
+    const Handle<ObjType>& forMe) {
 
     // try to find the allocation block
     void* here = forMe.getTarget();

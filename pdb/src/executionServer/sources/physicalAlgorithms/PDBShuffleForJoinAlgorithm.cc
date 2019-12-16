@@ -69,13 +69,15 @@ bool pdb::PDBShuffleForJoinAlgorithm::setup(std::shared_ptr<pdb::PDBStorageManag
 
   /// 3. Create the self receiver to forward pages that are created on this node and the network senders to forward pages for the other nodes
 
+  // get the buffer manager
   auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
 
+  int32_t currNode = job->thisNode;
   senders = std::make_shared<std::vector<PDBPageNetworkSenderPtr>>();
   for(unsigned i = 0; i < job->nodes.size(); ++i) {
 
     // check if it is this node or another node
-    if(job->nodes[i]->port == job->thisNode->port && job->nodes[i]->address == job->thisNode->address) {
+    if(job->nodes[i]->port == job->nodes[currNode]->port && job->nodes[i]->address == job->nodes[currNode]->address) {
 
       // make the self receiver
       selfReceiver = std::make_shared<pdb::PDBPageSelfReceiver>(pageQueues->at(i), recvPageSet, myMgr);

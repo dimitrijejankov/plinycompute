@@ -69,13 +69,11 @@ public:
                   std::vector<int> &whereEveryoneGoes,
                   pdb::PDBPageHandle keyToLeft,
                   pdb::PDBPageHandle planPage,
-                  pdb::PDBPageHandle bufferPage,
                   bool isLeft,
                   size_t numPartitions) : numPartitions(numPartitions),
                                           whereEveryoneGoes(whereEveryoneGoes),
                                           keyToLeft(std::move(keyToLeft)),
                                           planPage(std::move(planPage)),
-                                          bufferPage(std::move(bufferPage)),
                                           isLeft(isLeft) {
 
     // used to manage attributes and set up the output

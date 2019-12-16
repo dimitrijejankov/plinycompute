@@ -73,6 +73,7 @@ std::shared_ptr<Functionality> PDBServer::getFunctionalityPtr() {
     return std::move(std::static_pointer_cast<Functionality>(functionalities[whichIndex]));
 }
 
+
 }
 
 #endif

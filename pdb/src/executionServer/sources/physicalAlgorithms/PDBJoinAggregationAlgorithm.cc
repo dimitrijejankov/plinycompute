@@ -222,6 +222,7 @@ bool PDBJoinAggregationAlgorithm::setupLead(std::shared_ptr<pdb::PDBStorageManag
   /// 1. Initialize the left key pipelines
 
   // the join key pipelines
+  int32_t currNode = job->thisNode;
   joinKeyPipelines = make_shared<std::vector<PipelinePtr>>();
 
   // for each node we create a pipeline
@@ -238,7 +239,7 @@ bool PDBJoinAggregationAlgorithm::setupLead(std::shared_ptr<pdb::PDBStorageManag
       auto lps = labeledLeftPageSet->getLabeledView(n);
 
       // go grab the source page set
-      bool isThisNode = job->thisNode->address == job->nodes[n]->address && job->thisNode->port == job->nodes[n]->port;
+      bool isThisNode = job->nodes[currNode]->address == job->nodes[n]->address && job->nodes[currNode]->port == job->nodes[n]->port;
       PDBAbstractPageSetPtr sourcePageSet = isThisNode ? getKeySourcePageSet(storage, i, sources) :
                                                          getFetchingPageSet(storage, i,sources, job->nodes[n]->address, job->nodes[n]->port);
 
@@ -266,7 +267,7 @@ bool PDBJoinAggregationAlgorithm::setupLead(std::shared_ptr<pdb::PDBStorageManag
       auto rps = labeledRightPageSet->getLabeledView(n);
 
       // go grab the source page set
-      bool isThisNode = job->thisNode->address == job->nodes[n]->address && job->thisNode->port == job->nodes[n]->port;
+      bool isThisNode = job->nodes[currNode]->address == job->nodes[n]->address && job->nodes[currNode]->port == job->nodes[n]->port;
       PDBAbstractPageSetPtr sourcePageSet = isThisNode ? getKeySourcePageSet(storage, i, rightSources) :
                                                          getFetchingPageSet(storage, i,rightSources, job->nodes[n]->address, job->nodes[n]->port);
 
@@ -485,12 +486,162 @@ bool PDBJoinAggregationAlgorithm::setupLead(std::shared_ptr<pdb::PDBStorageManag
     joinPipelines->push_back(pipeline);
   }
 
-  /// 6.3. For each node initialize left pipelines
+  // make the object
+  UseTemporaryAllocationBlock tmp{1024};
+  pdb::Handle<SerConnectToRequest> connectionID = pdb::makeObject<SerConnectToRequest>(job->computationID,
+                                                                                       job->jobID,
+                                                                                       job->thisNode,
+                                                                                       LEFT_JOIN_SIDE_TASK);
+
+  // init the vector for the left sides
+  leftJoinSideCommunicatorsOut = std::make_shared<std::vector<PDBCommunicatorPtr>>();
+  for(int n = 0; n < job->numberOfNodes; n++) {
+
+    // connect to the node
+    leftJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->address,
+                                                             job->nodes[n]->backendPort,
+                                                             connectionID));
+  }
+
+  // init the vector for the right sides
+  connectionID->taskID = RIGHT_JOIN_SIDE_TASK;
+  rightJoinSideCommunicatorsOut = std::make_shared<std::vector<PDBCommunicatorPtr>>();
+  for(int n = 0; n < job->numberOfNodes; n++) {
+
+    // connect to the node
+    rightJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->address,
+                                                              job->nodes[n]->backendPort,
+                                                              connectionID));
+  }
+
+  // wait for left side connections
+  connectionID->taskID = LEFT_JOIN_SIDE_TASK;
+  leftJoinSideCommunicatorsIn = std::make_shared<std::vector<PDBCommunicatorPtr>>();
+  for(int n = 0; n < job->numberOfNodes; n++) {
+
+    // set the node id
+    connectionID->nodeID = n;
+
+    // wait for the connection
+    leftJoinSideCommunicatorsIn->push_back(myMgr->waitForConnection(connectionID));
+
+    // check if the socket is open
+    if(leftJoinSideCommunicatorsIn->back()->isSocketClosed()) {
+
+      // log the error
+      logger->error("Socket for the left side is closed");
+
+      return false;
+    }
+  }
+
+  // wait for the right side connections
+  connectionID->taskID = RIGHT_JOIN_SIDE_TASK;
+  rightJoinSideCommunicatorsIn = std::make_shared<std::vector<PDBCommunicatorPtr>>();
+  for(int n = 0; n < job->numberOfNodes; n++) {
+
+    // set the node id
+    connectionID->nodeID = n;
+
+    // wait for the connection
+    rightJoinSideCommunicatorsIn->push_back(myMgr->waitForConnection(connectionID));
+
+    // check if the socket is open
+    if(rightJoinSideCommunicatorsIn->back()->isSocketClosed()) {
+
+      // log the error
+      logger->error("Socket for the right side is closed");
+
+      return false;
+    }
+  }
+
+  // we succeeded
+  return true;
+}
+
+bool PDBJoinAggregationAlgorithm::setupFollower(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                                Handle<pdb::ExJob> &job,
+                                                const std::string &error) {
+  // init the logger
+  logger = std::make_shared<PDBLogger>("PDBJoinAggregationAlgorithm");
+
+  /// 1. Wait to get the plan
+
+  // create to receive the left key page
+  leftKeyToNodePageSet = storage->createFeedingAnonymousPageSet(std::make_pair(leftKeySource->pageSetIdentifier.first,
+                                                                               leftKeySource->pageSetIdentifier.second),
+                                                                1,
+                                                                job->numberOfNodes);
+
+  // create to receive the right key page
+  rightKeyToNodePageSet = storage->createFeedingAnonymousPageSet(std::make_pair(rightKeySource->pageSetIdentifier.first,
+                                                                               rightKeySource->pageSetIdentifier.second),
+                                                                 1,
+                                                                 job->numberOfNodes);
+
+  // create to receive the plan
+  planPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(planSource->pageSetIdentifier.first,
+                                                                      planSource->pageSetIdentifier.second),
+                                                       1,
+                                                       job->numberOfNodes);
+
+  /// 2.
+
+  // init the plan
+  ComputePlan plan(std::make_shared<LogicalPlan>(job->tcap, *job->computations));
+  logicalPlan = plan.getPlan();
+
+  // make the transformer
+  auto transformer = std::make_shared<LogicalPlanTransformer>(logicalPlan);
+  transformer->addTransformation(std::make_shared<DropToKeyExtractionTransformation>(joinTupleSet));
+
+  // apply all the transformations
+  logicalPlan = transformer->applyTransformations();
+
+  // get the join comp
+  auto joinAtomicComp = dynamic_pointer_cast<ApplyJoin>(logicalPlan->getComputations().getProducingAtomicComputation(joinTupleSet));
+
+  /// 3.
+
+  // get catalog client
+  auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
+  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
+
+  // the join key pipelines
+  joinPipelines = make_shared<std::vector<PipelinePtr>>();
+
+  // get the left and right key page, basically a map of pdb::Map<Key, TID>
+  leftKeyPage = myMgr->getPage();
+  rightKeyPage = myMgr->getPage();
+
+  // this page will contain the plan
+  planPage = myMgr->getPage();
+
+  /// 3.1 Initialize the left sources and the sink
+
+  // we put them here
+  std::vector<PDBAbstractPageSetPtr> leftSourcePageSets;
+  leftSourcePageSets.reserve(sources.size());
+
+  // initialize them
+  for(int i = 0; i < sources.size(); i++) {
+    leftSourcePageSets.emplace_back(getSourcePageSet(storage, i));
+  }
+
+  // get the sink page set
+  auto sinkPageSet = storage->createAnonymousPageSet(std::make_pair(sink->pageSetIdentifier.first, sink->pageSetIdentifier.second));
+
+  // did we manage to get a sink page set? if not the setup failed
+  if(sinkPageSet == nullptr) {
+    return false;
+  }
 
   // initialize all the pipelines
+  std::map<ComputeInfoType, ComputeInfoPtr> params;
   for (uint64_t pipelineIndex = 0; pipelineIndex < job->numberOfProcessingThreads; ++pipelineIndex) {
 
-    /// 6.3.1 Figure out what source to use
+    /// 3.2.1 Figure out what source to use
 
     // figure out what pipeline
     auto pipelineSource = pipelineIndex % sources.size();
@@ -510,7 +661,7 @@ bool PDBJoinAggregationAlgorithm::setupLead(std::shared_ptr<pdb::PDBStorageManag
       return false;
     }
 
-    /// 6.3.2 Figure out the parameters of the pipeline
+    /// 6.2.2 Figure out the parameters of the pipeline
 
     // figure out the join arguments
     auto joinArguments = getJoinArguments (storage);
@@ -530,7 +681,7 @@ bool PDBJoinAggregationAlgorithm::setupLead(std::shared_ptr<pdb::PDBStorageManag
                {ComputeInfoType::JOIN_AGG_SIDE_ARGS, std::make_shared<JoinAggSideArg>(leftKeyPage, planPage, true)},
                {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient, pipelineSource)}};
 
-    /// 6.3.3 Build the pipeline
+    /// 6.2.3 Build the pipeline
 
     std::cout << "Modified only plan : \n" << *logicalPlan << '\n';
     // build the join pipeline
@@ -548,31 +699,78 @@ bool PDBJoinAggregationAlgorithm::setupLead(std::shared_ptr<pdb::PDBStorageManag
     joinPipelines->push_back(pipeline);
   }
 
-  // we succeeded
-  return true;
-}
 
-bool PDBJoinAggregationAlgorithm::setupFollower(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
-                                                Handle<pdb::ExJob> &job,
-                                                const std::string &error) {
+  /// Init the connections to other nodes for the join sides
 
-  // create to receive the left key page
-  leftKeyToNodePageSet = storage->createFeedingAnonymousPageSet(std::make_pair(leftKeySource->pageSetIdentifier.first,
-                                                                               leftKeySource->pageSetIdentifier.second),
-                                                                1,
-                                                                job->numberOfNodes);
+  // make the object
+  UseTemporaryAllocationBlock tmp{1024};
+  pdb::Handle<SerConnectToRequest> connectionID = pdb::makeObject<SerConnectToRequest>(job->computationID,
+                                                                                       job->jobID,
+                                                                                       job->thisNode,
+                                                                                       LEFT_JOIN_SIDE_TASK);
 
-  // create to receive the right key page
-  rightKeyToNodePageSet = storage->createFeedingAnonymousPageSet(std::make_pair(rightKeySource->pageSetIdentifier.first,
-                                                                               rightKeySource->pageSetIdentifier.second),
-                                                                 1,
-                                                                 job->numberOfNodes);
+  // init the vector for the left sides
+  leftJoinSideCommunicatorsOut = std::make_shared<std::vector<PDBCommunicatorPtr>>();
+  for(int n = 0; n < job->numberOfNodes; n++) {
 
-  // create to receive the plan
-  planPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(planSource->pageSetIdentifier.first,
-                                                                      planSource->pageSetIdentifier.second),
-                                                       1,
-                                                       job->numberOfNodes);
+    // connect to the node
+    leftJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->address,
+                                                             job->nodes[n]->backendPort,
+                                                             connectionID));
+  }
+
+  // init the vector for the right sides
+  connectionID->taskID = RIGHT_JOIN_SIDE_TASK;
+  rightJoinSideCommunicatorsOut = std::make_shared<std::vector<PDBCommunicatorPtr>>();
+  for(int n = 0; n < job->numberOfNodes; n++) {
+
+    // connect to the node
+    rightJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->address,
+                                                              job->nodes[n]->backendPort,
+                                                              connectionID));
+  }
+
+  // wait for the connections for the left side
+  connectionID->taskID = LEFT_JOIN_SIDE_TASK;
+  leftJoinSideCommunicatorsIn = std::make_shared<std::vector<PDBCommunicatorPtr>>();
+  for(int n = 0; n < job->numberOfNodes; n++) {
+
+    // set the node id
+    connectionID->nodeID = n;
+
+    // wait for the connection
+    leftJoinSideCommunicatorsIn->push_back(myMgr->waitForConnection(connectionID));
+
+    // check if the socket is open
+    if(leftJoinSideCommunicatorsIn->back()->isSocketClosed()) {
+
+      // log the error
+      logger->error("Socket for the left side is closed");
+
+      return false;
+    }
+  }
+
+  // wait for the connections for the right side
+  connectionID->taskID = RIGHT_JOIN_SIDE_TASK;
+  rightJoinSideCommunicatorsIn = std::make_shared<std::vector<PDBCommunicatorPtr>>();
+  for(int n = 0; n < job->numberOfNodes; n++) {
+
+    // set the node id
+    connectionID->nodeID = n;
+
+    // wait for the connection
+    rightJoinSideCommunicatorsIn->push_back(myMgr->waitForConnection(connectionID));
+
+    // check if the socket is open
+    if(rightJoinSideCommunicatorsIn->back()->isSocketClosed()) {
+
+      // log the error
+      logger->error("Socket for the right side is closed");
+
+      return false;
+    }
+  }
 
   return true;
 }
@@ -693,25 +891,82 @@ bool pdb::PDBJoinAggregationAlgorithm::runFollower(std::shared_ptr<pdb::PDBStora
   /**
    * 1. Wait to left and right join map
    */
-  auto leftKeyPage = leftKeyToNodePageSet->getNextPage(0);
-  auto rightKeyPage = rightKeyToNodePageSet->getNextPage(0);
+  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
+
+  /// TODO this needs to be rewritten using the new methods for direct communication
+  auto tmp = leftKeyToNodePageSet->getNextPage(0);
+  memcpy(leftKeyPage->getBytes(), tmp->getBytes(), tmp->getSize());
+
+  /// TODO this needs to be rewritten using the new methods for direct communication
+  tmp = rightKeyToNodePageSet->getNextPage(0);
+  memcpy(rightKeyPage->getBytes(), tmp->getBytes(), tmp->getSize());
 
   /**
    * 2. Wait to receive the plan
    */
-  auto planPage = planPageSet->getNextPage(0);
+  /// TODO this needs to be rewritten using the new methods for direct communication
+  tmp = planPageSet->getNextPage(0);
+  memcpy(planPage->getBytes(), tmp->getBytes(), tmp->getSize());
 
   /**
-   * 3. Run real left pipelines
+   * 3. Run join pipelines pipelines
    */
 
-  /**
-   * 4. Run real right pipelines
-   */
+  // stats
+  std::string error;
+  atomic_bool success;
+  success = true;
 
-  /**
-   * 5. Run real aggregation pipeline
-   */
+  // create the buzzer
+  atomic_int counter;
+  counter = 0;
+  PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
+
+    // did we fail?
+    if(myAlarm == PDBAlarm::GenericError) {
+      success = false;
+    }
+
+    // increment the count
+    cnt++;
+  });
+
+  // run on of the join pipelines
+  counter = 0;
+  for (int i = 0; i < joinPipelines->size(); ++i) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&counter, &success, i, this](const PDBBuzzerPtr& callerBuzzer) {
+
+      try {
+
+        // run the pipeline
+        (*joinPipelines)[i]->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        this->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+    });
+
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
+  // wait to finish the pipelines
+  while (counter < joinPipelines->size()) {
+    tempBuzzer->wait();
+  }
 
   return true;
 }
@@ -965,7 +1220,41 @@ bool PDBJoinAggregationAlgorithm::runLead(std::shared_ptr<PDBStorageManagerBacke
   }
 
   // run on of the join pipelines
-  joinPipelines->front()->run();
+  counter = 0;
+  for (int i = 0; i < joinPipelines->size(); ++i) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&counter, &success, i, this](const PDBBuzzerPtr& callerBuzzer) {
+
+      try {
+
+        // run the pipeline
+        (*joinPipelines)[i]->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        this->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+    });
+
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
+  // wait to finish the pipelines
+  while (counter < joinPipelines->size()) {
+    tempBuzzer->wait();
+  }
 
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
   std::cout << "Run pipeline for " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns]" << '\n';
@@ -980,14 +1269,17 @@ bool pdb::PDBJoinAggregationAlgorithm::setupSenders(Handle<pdb::ExJob> &job,
                                                     std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> &senders,
                                                     PDBPageSelfReceiverPtr *selfReceiver) {
 
+  // get the buffer manager
   auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
 
+  // go through the nodes and create the page sets
+  int32_t currNode = job->thisNode;
   senders = std::make_shared<std::vector<PDBPageNetworkSenderPtr>>();
   for(unsigned i = 0; i < job->nodes.size(); ++i) {
 
     // check if it is this node or another node
-    if(job->nodes[i]->port == job->thisNode->port &&
-       job->nodes[i]->address == job->thisNode->address &&
+    if(job->nodes[i]->port == job->nodes[currNode]->port &&
+       job->nodes[i]->address == job->nodes[currNode]->address &&
        selfReceiver != nullptr) {
 
       // create a new queue
@@ -1041,6 +1333,7 @@ bool pdb::PDBJoinAggregationAlgorithm::setupSenders(Handle<pdb::ExJob> &job,
 void pdb::PDBJoinAggregationAlgorithm::cleanup() {
 
   // invalidate everything
+  leftJoinSideCommunicatorsOut = nullptr;
   labeledLeftPageSet = nullptr;
   labeledRightPageSet = nullptr;
   joinAggPageSet = nullptr;
@@ -1070,5 +1363,7 @@ pdb::PDBCatalogSetContainerType pdb::PDBJoinAggregationAlgorithm::getOutputConta
   return PDB_CATALOG_SET_MAP_CONTAINER;
 }
 
+const int32_t pdb::PDBJoinAggregationAlgorithm::LEFT_JOIN_SIDE_TASK = 0;
+const int32_t pdb::PDBJoinAggregationAlgorithm::RIGHT_JOIN_SIDE_TASK = 1;
 
 }

@@ -78,7 +78,7 @@ public:
 
     // sends an object over the communication channel... return false on error
     template <class ObjType>
-    bool sendObject(Handle<ObjType>& sendMe, std::string& errMsg);
+    bool sendObject(const Handle<ObjType>& sendMe, std::string& errMsg);
 
     // sends an object over the communication channel that is on a different allocation block... return false on error
     template <class ObjType>

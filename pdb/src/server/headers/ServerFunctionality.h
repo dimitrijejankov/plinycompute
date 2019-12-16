@@ -50,7 +50,37 @@ public:
           return std::move(parent->getFunctionalityPtr<Functionality>());
     }
 
-    // remember the server this is attached to
+  /**
+   * Waits for somebody to connect to this server with the following connection id
+   * @param connectionID
+   * @return
+   */
+  PDBCommunicatorPtr waitForConnection(const pdb::Handle<SerConnectToRequest> &connectionID) {
+    return this->parent->waitForConnection(connectionID);
+  }
+
+  /**
+   * Connect to a particular server
+   * @param ip - the ip of the node
+   * @param port - port
+   * @param connectionID - connection id
+   * @return the communicator if we succeed, null otherwise
+   */
+  PDBCommunicatorPtr connectTo(const std::string &ip, int32_t port, const pdb::Handle<SerConnectToRequest> &connectionID) {
+    return this->parent->connectTo(ip, port, connectionID);
+  }
+
+  /**
+   * Connect to a particular server, through an ipcFile
+   * @param ipcFile - the ipc file of the server
+   * @param connectionID - connection id
+   * @return the communicator if we succeed, null otherwise
+   */
+  PDBCommunicatorPtr connectTo(const std::string &ipcFile, const pdb::Handle<SerConnectToRequest> &connectionID) {
+    return this->parent->connectTo(ipcFile, connectionID);
+  }
+
+  // remember the server this is attached to
     void recordServer(PDBServer& recordMe) {
         parent = &recordMe;
     }

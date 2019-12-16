@@ -56,7 +56,7 @@ class PDBCatalog {
    * Constructor of the catalog opens the location if it exists, otherwise creates a new empty catalog.
    * @param location - the path where our sqlite is/will be stored
    */
-  explicit PDBCatalog(std::string location);
+  explicit PDBCatalog(const std::string& location);
 
   /**
    * Destructor, deletes temporary files.
@@ -104,7 +104,7 @@ class PDBCatalog {
    * @param error - the error if we fail
    * @return true if the node is registered successfully
    */
-  bool updateNode(PDBCatalogNodePtr node, std::string &error);
+  bool updateNode(const PDBCatalogNodePtr& node, std::string &error);
 
   /**
    * Update the status of a node either to active or inactive

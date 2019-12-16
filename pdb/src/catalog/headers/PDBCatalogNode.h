@@ -31,10 +31,12 @@ class PDBCatalogNode {
    * @param nodeID - the identifier of the node it should be created in the format of "ip:port"
    * @param address - the ip address of the node
    * @param port - the port of the node
+   * @param backendPort - the port of backend of the node
    * @param nodeType - and the type of the node { worker, master } I guess
    */
-  PDBCatalogNode(std::string nodeID, std::string address, int port, std::string nodeType, int32_t numCores, int64_t totalMemory, bool active)
-      : nodeID(std::move(nodeID)), address(std::move(address)), port(port), nodeType(std::move(nodeType)), numCores(numCores), totalMemory(totalMemory), active(active) {}
+  PDBCatalogNode(std::string nodeID, std::string address, int port, int backendPort, std::string nodeType, int32_t numCores, int64_t totalMemory, bool active)
+      : nodeID(std::move(nodeID)), address(std::move(address)), port(port), backendPort(backendPort),
+        nodeType(std::move(nodeType)), numCores(numCores), totalMemory(totalMemory), active(active) {}
 
 
   /**
@@ -51,6 +53,11 @@ class PDBCatalogNode {
    * The port of the node
    */
   int port;
+
+  /**
+   * The port of the backend
+   */
+  int backendPort;
 
   /**
    * The node type
@@ -82,6 +89,7 @@ class PDBCatalogNode {
     return sqlite_orm::make_table("nodes", sqlite_orm::make_column("nodeID", &PDBCatalogNode::nodeID),
                                            sqlite_orm::make_column("nodeAddress", &PDBCatalogNode::address),
                                            sqlite_orm::make_column("nodePort", &PDBCatalogNode::port),
+                                           sqlite_orm::make_column("nodeBackendPort", &PDBCatalogNode::backendPort),
                                            sqlite_orm::make_column("nodeType", &PDBCatalogNode::nodeType),
                                            sqlite_orm::make_column("nodeNumCores", &PDBCatalogNode::numCores),
                                            sqlite_orm::make_column("nodeTotalMemory", &PDBCatalogNode::totalMemory),

@@ -126,6 +126,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         auto nodeID = (std::string) request->nodeID;
         auto address = (std::string) request->nodeIP;
         auto port = request->nodePort;
+        auto backendPort = request->backendPort;
         auto type = (std::string) request->nodeType;
         auto numCores = request->numCores;
         auto totalMemory = request->totalMemory;
@@ -138,7 +139,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         std::string errMsg;
 
         // create the node
-        auto node = std::make_shared<pdb::PDBCatalogNode>(nodeID, address, port, type, numCores, totalMemory, true);
+        auto node = std::make_shared<pdb::PDBCatalogNode>(nodeID, address, port, backendPort, type, numCores, totalMemory, true);
 
         // if we are a worker not we simply register the node and that is it.
         if (!getConfiguration()->isManager) {

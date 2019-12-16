@@ -501,7 +501,7 @@ public:
     // allocator, and the next few bytes store an offset to
     // the location of forMe.
     template <class ObjType>
-    void* getAllocationBlock(Handle<ObjType>& forMe);
+    void* getAllocationBlock(const Handle<ObjType>& forMe);
 
     // uses a specified block of memory for all allocations, until
     // restoreAllocationBlock () is called... SHOUD NOT BE USED DIRECTLY

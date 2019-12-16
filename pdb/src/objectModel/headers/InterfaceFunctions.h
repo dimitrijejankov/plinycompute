@@ -233,7 +233,7 @@ RefCountedObject<ObjType>* makeObjectWithExtraStorage(size_t extra, Args&&... ar
 //     managed by the Allocator associated with this thread.
 //
 template <class ObjType>
-Record<ObjType>* getRecord(Handle<ObjType>& forMe);
+Record<ObjType>* getRecord(const Handle<ObjType>& forMe);
 
 // This is like Record <ObjType> *getRecord (Handle <ObjType> &forMe)
 // except that the bytes for the object pointed to by forMe are actually

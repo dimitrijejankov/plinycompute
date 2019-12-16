@@ -248,7 +248,7 @@ RefCountedObject<ObjType>* makeObjectWithExtraStorage(size_t extra, Args&&... ar
 }
 
 template <class ObjType>
-Record<ObjType>* getRecord(Handle<ObjType>& forMe) {
+Record<ObjType>* getRecord(const Handle<ObjType>& forMe) {
 
     // get a pointer to the allocation block for this guy
     void* res = getAllocator().getAllocationBlock(forMe);

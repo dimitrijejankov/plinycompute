@@ -29,6 +29,11 @@ struct NodeConfig {
   int32_t port = -1;
 
   /**
+   * The backend port of the node
+   */
+  int32_t backendPort = -1;
+
+  /**
    * Whether we want to debug the buffer manager or not
    */
   bool debugBufferManager = false;
@@ -77,6 +82,11 @@ struct NodeConfig {
    * File to open a connection to the backend
    */
   std::string ipcFile = "";
+
+  /**
+   * File to open a connection to the frontend
+   */
+  std::string backendIpcFile = "";
 
   /**
    * The catalog file

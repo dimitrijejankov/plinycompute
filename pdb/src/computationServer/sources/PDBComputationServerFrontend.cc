@@ -123,7 +123,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
       auto jobForMe = deepCopyToCurrentAllocationBlock<pdb::ExJob>(job);
 
       // set my node
-      jobForMe->thisNode = job->nodes[i];
+      jobForMe->thisNode = i;
       jobForMe->isLeadNode = i == 0;
 
       if(!scheduleJob(comm, jobForMe, errMsg)) {
@@ -345,7 +345,7 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
 
               // copy the nodes
               for(const auto &node : nodes) {
-                job->nodes.push_back(pdb::makeObject<ExJobNode>(node->port, node->address));
+                job->nodes.push_back(pdb::makeObject<ExJobNode>(node->port, node->backendPort, node->address));
               }
 
               // broadcast the job to each node and run it...

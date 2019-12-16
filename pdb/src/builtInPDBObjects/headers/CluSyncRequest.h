@@ -42,11 +42,13 @@ class CluSyncRequest : public Object {
 
   CluSyncRequest() = default;
 
-  CluSyncRequest(const std::string &nodeIP, int port, const std::string &nodeType, int64_t nodeMemory, int32_t nodeNumCores) {
+  CluSyncRequest(const std::string &nodeIP, int port, int backendPort,
+                 const std::string &nodeType, int64_t nodeMemory, int32_t nodeNumCores) {
 
     // init the fields
     this->nodeIP = nodeIP;
     this->nodePort = port;
+    this->backendPort = backendPort;
     this->nodeType = nodeType;
     this->nodeMemory = nodeMemory;
     this->nodeNumCores = nodeNumCores;
@@ -55,6 +57,7 @@ class CluSyncRequest : public Object {
   explicit CluSyncRequest(const Handle<CluSyncRequest> &requestToCopy) {
     nodeIP = requestToCopy->nodeIP;
     nodePort = requestToCopy->nodePort;
+    backendPort = requestToCopy->backendPort;
     nodeType = requestToCopy->nodeType;
     nodeMemory = requestToCopy->nodeMemory;
     nodeNumCores = requestToCopy->nodeNumCores;
@@ -73,6 +76,11 @@ class CluSyncRequest : public Object {
    * The port of the node
    */
   int nodePort = -1;
+
+  /**
+   * The port of the backend of the node
+   */
+  int backendPort = -1;
 
   /**
    * The type of the node "worker" or "manager"

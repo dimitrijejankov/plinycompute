@@ -21,7 +21,7 @@
 
 using namespace sqlite_orm;
 
-pdb::PDBCatalog::PDBCatalog(std::string location) : storage(makeStorage(&location)) {
+pdb::PDBCatalog::PDBCatalog(const std::string& location) : storage(makeStorage(&location)) {
 
   // sync the schema
   storage.sync_schema();
@@ -176,7 +176,7 @@ bool pdb::PDBCatalog::registerNode(pdb::PDBCatalogNodePtr node, std::string &err
   }
 }
 
-bool pdb::PDBCatalog::updateNode(pdb::PDBCatalogNodePtr node, std::string &error){
+bool pdb::PDBCatalog::updateNode(const pdb::PDBCatalogNodePtr& node, std::string &error){
 
   try {
 
@@ -666,13 +666,15 @@ std::string pdb::PDBCatalog::fromKeySetNameToSetName(const std::string &setName)
 std::vector<pdb::PDBCatalogNodePtr> pdb::PDBCatalog::getWorkerNodes() {
 
   // select all the nodes we need
-  auto rows = storage.select(columns(&PDBCatalogNode::nodeID, &PDBCatalogNode::address, &PDBCatalogNode::port, &PDBCatalogNode::nodeType, &PDBCatalogNode::numCores, &PDBCatalogNode::totalMemory, &PDBCatalogNode::active),
+  auto rows = storage.select(columns(&PDBCatalogNode::nodeID, &PDBCatalogNode::address, &PDBCatalogNode::port, &PDBCatalogNode::backendPort,
+                                     &PDBCatalogNode::nodeType, &PDBCatalogNode::numCores, &PDBCatalogNode::totalMemory, &PDBCatalogNode::active),
                              where(c(&PDBCatalogNode::nodeType) == "worker"));
 
   // copy the stuff
   auto ret = std::vector<pdb::PDBCatalogNodePtr>();
   for(const auto &row : rows) {
-    ret.push_back(std::make_shared<pdb::PDBCatalogNode>(std::get<0>(row), std::get<1>(row), std::get<2>(row), std::get<3>(row), std::get<4>(row), std::get<5>(row), std::get<6>(row)));
+    ret.push_back(std::make_shared<pdb::PDBCatalogNode>(std::get<0>(row), std::get<1>(row), std::get<2>(row), std::get<3>(row),
+                                                        std::get<4>(row), std::get<5>(row), std::get<6>(row), std::get<7>(row)));
   }
 
   // return the nodes

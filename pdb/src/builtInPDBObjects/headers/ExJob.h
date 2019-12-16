@@ -70,9 +70,9 @@ public:
   pdb::Vector<pdb::Handle<ExJobNode>> nodes;
 
   /**
-   * the IP and port of the
+   * the index of the node in the nodes vector
    */
-  pdb::Handle<ExJobNode> thisNode;
+  int32_t thisNode;
 
   /**
    * Is it the lead node? Some algorithms require this to know if they are the leader of the group

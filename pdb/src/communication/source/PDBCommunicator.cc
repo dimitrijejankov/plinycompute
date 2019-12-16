@@ -583,14 +583,41 @@ bool PDBCommunicator::skipTheRead() {
 }
 
 // JiaNote: add following functions to enable a stable long connection:
-
 bool PDBCommunicator::isSocketClosed() {
+
+  int error = 0;
+  socklen_t len = sizeof (error);
+  int retval = getsockopt (socketFD, SOL_SOCKET, SO_ERROR, &error, &len);
+
+  // check the return value
+  if (retval != 0) {
+
+    // there was a problem getting the error code
+    this->logToMe->trace(std::string("error getting socket error code:") + strerror(retval) + "\n");
+
+    // mark the socket as closed
+    socketClosed = true;
     return socketClosed;
+  }
+
+  // check if we got an error
+  if (error != 0) {
+
+    // log the error
+    this->logToMe->trace(std::string("error getting socket error code:") + strerror(retval) + "\n");
+
+    // mark the socket as closed
+    socketClosed = true;
+    return socketClosed;
+  }
+
+  // return the state of the socket
+  return socketClosed;
 }
 
 bool PDBCommunicator::reconnect(std::string& errMsg) {
 
-    if (needToSendDisconnectMsg == true) {
+    if (needToSendDisconnectMsg) {
         // I can reconnect because I'm a client
         PDB_COUT << "To reconnect..." << std::endl;
 
@@ -600,7 +627,7 @@ bool PDBCommunicator::reconnect(std::string& errMsg) {
             socketClosed = true;
         }
 
-        if (isInternet == true) {
+        if (isInternet) {
 
             return connectToInternetServer(logToMe, portNumber, serverAddress, errMsg);
 

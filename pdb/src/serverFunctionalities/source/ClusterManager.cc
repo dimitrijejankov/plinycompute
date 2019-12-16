@@ -80,6 +80,7 @@ void ClusterManager::registerHandlers(PDBServer &forMe) {
             bool success = getFunctionality<PDBCatalogClient>().syncWithNode(std::make_shared<PDBCatalogNode>(nodeIdentifier,
                                                                                                            request->nodeIP,
                                                                                                            request->nodePort,
+                                                                                                           request->backendPort,
                                                                                                            request->nodeType,
                                                                                                            request->nodeNumCores,
                                                                                                            request->nodeMemory,
@@ -141,7 +142,7 @@ bool ClusterManager::syncCluster(std::string &error) {
         error = "ClusterManager : Could not sink with the manager";
         return false;
       },
-      conf->address, conf->port, type, totalMemory, numCores);
+      conf->address, conf->port, conf->backendPort, type, totalMemory, numCores);
 }
 
 void ClusterManager::stopHeartBeat() {

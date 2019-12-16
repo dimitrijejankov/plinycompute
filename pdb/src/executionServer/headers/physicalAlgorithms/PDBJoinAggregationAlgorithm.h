@@ -231,11 +231,36 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
    */
   std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> planSenders;
 
+  /**
+   * Connections to nodes (including self connection to this one) for the left side of the join
+   */
+  std::shared_ptr<std::vector<PDBCommunicatorPtr>> leftJoinSideCommunicatorsOut = nullptr;
+
+  /**
+   * Connections to nodes (including self connection to this one) for the right side of the join
+   */
+  std::shared_ptr<std::vector<PDBCommunicatorPtr>> rightJoinSideCommunicatorsOut = nullptr;
+
+  /**
+   * Connections to nodes (including self connection to this one) for the left side of the join
+   */
+  std::shared_ptr<std::vector<PDBCommunicatorPtr>> leftJoinSideCommunicatorsIn = nullptr;
+
+  /**
+   * Connections to nodes (including self connection to this one) for the right side of the join
+   */
+  std::shared_ptr<std::vector<PDBCommunicatorPtr>> rightJoinSideCommunicatorsIn = nullptr;
 
   /**
    * The join key side pipelines
    */
   std::shared_ptr<std::vector<PipelinePtr>> joinKeyPipelines = nullptr;
+
+  /**
+   * The left and right join side task
+   */
+  static const int32_t LEFT_JOIN_SIDE_TASK;
+  static const int32_t RIGHT_JOIN_SIDE_TASK;
 
   /**
    * The join aggregation pipeline
