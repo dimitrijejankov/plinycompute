@@ -2,7 +2,9 @@
 
 pdb::JoinAggPlanner::JoinAggPlanner(const pdb::PDBAnonymousPageSetPtr &joinAggPageSet,
                                     uint32_t numNodes,
-                                    const PDBPageHandle& pageToStore) : numNodes(numNodes) {
+                                    uint32_t numThreads,
+                                    const PDBPageHandle& pageToStore) : numNodes(numNodes),
+                                                                        numThreads(numThreads) {
 
 
   // get the input page
@@ -13,8 +15,8 @@ pdb::JoinAggPlanner::JoinAggPlanner(const pdb::PDBAnonymousPageSetPtr &joinAggPa
   this->pageToStore = pageToStore;
 
   // grab the copy of the supervisor object
-  auto* recordCopy = (Record<TIDIndexMap>*) inputPage->getBytes();
-  joinGroups = recordCopy->getRootObject();
+  auto* record = (Record<TIDIndexMap>*) inputPage->getBytes();
+  joinGroups = record->getRootObject();
 }
 
 void pdb::JoinAggPlanner::doPlanning() {
@@ -24,7 +26,7 @@ void pdb::JoinAggPlanner::doPlanning() {
   UseTemporaryAllocationBlock blk{pageToStore->getBytes(), pageToStore->getSize()};
 
   // make the plan result object
-  Handle<PipJoinAggPlanResult> planResult = pdb::makeObject<PipJoinAggPlanResult>();
+  Handle<PipJoinAggPlanResult> planResult = pdb::makeObject<PipJoinAggPlanResult>(numThreads);
 
   // the current node
   int32_t curNod = 0;
@@ -45,7 +47,6 @@ void pdb::JoinAggPlanner::doPlanning() {
     for(size_t i = 0; i < joinedTIDs.size(); ++i) {
 
       /// 1.0 Store the left side
-
       {
         // make sure we have it
         if((*planResult->leftToNode).count(joinedTIDs[i].first.first) == 0) {
@@ -67,6 +68,16 @@ void pdb::JoinAggPlanner::doPlanning() {
 
         // grab the vector for the key tid
         (*planResult->rightToNode)[joinedTIDs[i].second.first][curNod] = true;
+      }
+
+      /// 1.2 Store the left key to the aggregation group
+      {
+        (*planResult->leftTidToAggGroup)[curNod][joinedTIDs[i].first.first] = (*it).key;
+      }
+
+      /// 1.3 Store the right key to the aggregation group
+      {
+        (*planResult->rightTidToAggGroup)[curNod][joinedTIDs[i].second.first] = (*it).key;
       }
     }
 

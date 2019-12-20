@@ -37,8 +37,11 @@ private:
   // the number of partitions
   size_t numPartitions;
 
-  // the communicators
-  std::vector<pdb::PDBCommunicatorPtr> communicatorsToNode;
+  // the senders
+  std::shared_ptr<std::vector<JoinAggSideSenderPtr>> sendersToNode;
+
+  // the id we get for waiting
+  std::vector<int32_t> sendingRequestID;
 
   // the left to key page
   pdb::PDBPageHandle keyToLeft;
@@ -51,6 +54,9 @@ private:
 
   // is this initialized or not?
   bool isInitialized = false;
+
+  // basically stores
+  std::vector<std::vector<std::pair<uint32_t, pdb::Handle<pdb::matrix::MatrixBlock>>>> nodeToRecord;
 
   //
   Handle<pdb::Map<pdb::matrix::MatrixBlockMeta, uint32_t>> tidMap;
@@ -68,11 +74,13 @@ public:
                   TupleSpec &additionalAtts,
                   std::vector<int> &whereEveryoneGoes,
                   pdb::PDBPageHandle keyToLeft,
+                  std::shared_ptr<std::vector<JoinAggSideSenderPtr>> senders,
                   pdb::PDBPageHandle planPage,
                   bool isLeft,
                   size_t numPartitions) : numPartitions(numPartitions),
                                           whereEveryoneGoes(whereEveryoneGoes),
                                           keyToLeft(std::move(keyToLeft)),
+                                          sendersToNode(std::move(senders)),
                                           planPage(std::move(planPage)),
                                           isLeft(isLeft) {
 
@@ -121,31 +129,52 @@ public:
       else {
         this->plan = recordCopy->getRootObject()->rightToNode;
       }
+
+      // init the node to record
+      nodeToRecord.resize(sendersToNode->size());
+      sendingRequestID.resize(sendersToNode->size());
     }
 
-    for(auto &m : keyColumns) {
+    // go through all the value
+    for(int i = 0; i < valueColumns.size(); ++i) {
+
+      // get the right key
+      auto &k = keyColumns[i];
+
+      // get the right value
+      auto &v = valueColumns[i];
 
       // get the tid
-      auto tid = (*tidMap)[*m];
-      std::cout << "The tid for " << m->
+      auto tid = (*tidMap)[*k];
+      std::cout << "The tid for " << k->
 
-      rowID << ", " << m->colID << "->" << tid << " is sent to : ";
+      rowID << ", " << k->colID << "->" << tid << " is sent to : ";
 
       // get the nodes vector
       Vector<bool> &nodes = (*plan)[tid];
-      for(int i = 0; i < nodes.size(); ++i) {
-        if(nodes[i]) {
-          std::cout << i << " ";
+      for(int j = 0; j < nodes.size(); ++j) {
+        if(nodes[j]) {
+          nodeToRecord[j].emplace_back(std::pair{tid, v});
+          std::cout << j << " ";
         }
       }
       std::cout << "\n";
     }
-  }
 
-  void sendToNodes(const Vector<bool> &nodes) {
+    // queue them for sending
+    for(int i = 0; i < sendersToNode->size(); ++i) {
+      sendingRequestID[i] = (*sendersToNode)[i]->queueToSend(&nodeToRecord[i]);
+    }
 
+    // wait for all the senders to finish
+    for(int i = 0; i < sendersToNode->size(); ++i) {
 
+      // wait for the senders to finish sending our stuff
+      (*sendersToNode)[i]->waitToFinish(sendingRequestID[i]);
 
+      // clear the nodes
+      nodeToRecord[i].clear();
+    }
   }
 
   void writeOutPage(pdb::PDBPageHandle &page, Handle<Object> &writeToMe) override { throw runtime_error("JoinAggSink sink can not write out a page."); }

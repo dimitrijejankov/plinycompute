@@ -30,6 +30,9 @@ class JoinAggPlanner {
   // the number of nodes
   int32_t numNodes;
 
+  //  the number of threads for each node
+  int32_t numThreads;
+
   // the page where we store the result
   PDBPageHandle pageToStore;
 
@@ -37,6 +40,7 @@ public:
 
   explicit JoinAggPlanner(const pdb::PDBAnonymousPageSetPtr &joinAggPageSet,
                           uint32_t numNodes,
+                          uint32_t numThreads,
                           const PDBPageHandle& pageToStore);
 
   void doPlanning();

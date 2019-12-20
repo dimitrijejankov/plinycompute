@@ -3,6 +3,7 @@
 #include <utility>
 #include <PDBAbstractPageSet.h>
 #include <ComputeInfo.h>
+#include <JoinAggSideSender.h>
 #include <cassert>
 
 namespace pdb {
@@ -24,13 +25,18 @@ class JoinAggSideArg : public pdb::ComputeInfo {
 
   // the constructor
   explicit JoinAggSideArg(pdb::PDBPageHandle keyToNode,
+                          std::shared_ptr<std::vector<JoinAggSideSenderPtr>> &senders,
                           pdb::PDBPageHandle plan,
                           bool isLeft) : keyToNode(std::move(keyToNode)),
                                          plan(std::move(plan)),
+                                         senders(senders),
                                          isLeft(isLeft) {}
 
   // key to node map is on this page
   pdb::PDBPageHandle keyToNode;
+
+  // the senders to nodes
+  std::shared_ptr<std::vector<JoinAggSideSenderPtr>> senders;
 
   // the plan page
   pdb::PDBPageHandle plan;

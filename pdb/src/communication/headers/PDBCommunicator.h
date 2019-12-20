@@ -84,6 +84,11 @@ public:
     template <class ObjType>
     bool sendObject(Handle<ObjType>& sendMe, std::string& errMsg, size_t blockSize);
 
+    // send trivially copyable type
+    template<class ObjType>
+    typename std::enable_if<std::is_trivially_copyable<ObjType>::value, bool>::type
+    sendPrimitiveType(const ObjType &sendMe);
+
     // sends a bunch of binary data over a channel
     bool sendBytes(void* data, size_t size, std::string& errMsg);
 
@@ -92,6 +97,11 @@ public:
 
     // skips a bunch of binary data
     bool skipBytes(std::string& errMsg);
+
+    // recieve a primitive type
+    template<class ObjType>
+    typename std::enable_if<std::is_trivially_copyable<ObjType>::value, ObjType>::type
+    receivePrimitiveType();
 
     // note that the file descriptor corresponding to the socket is always closed by the destructor!
     virtual ~PDBCommunicator();

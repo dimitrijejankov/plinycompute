@@ -10,6 +10,8 @@
 #include "PDBAnonymousPageSet.h"
 #include "JoinAggPlanner.h"
 #include "PDBLabeledPageSet.h"
+#include "JoinAggSideSender.h"
+#include "JoinMapCreator.h"
 
 namespace pdb {
 
@@ -41,6 +43,8 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
                               const pdb::Handle<PDBSinkPageSetSpec> &joinAggKeySink,
                               const pdb::Handle<PDBSourcePageSetSpec> &leftKeySource,
                               const pdb::Handle<PDBSourcePageSetSpec> &rightKeySource,
+                              const pdb::Handle<PDBSourcePageSetSpec> &leftJoinSource,
+                              const pdb::Handle<PDBSourcePageSetSpec> &rightJoinSource,
                               const pdb::Handle<PDBSourcePageSetSpec> &planSource,
                               const AtomicComputationPtr& leftInputTupleSet,
                               const AtomicComputationPtr& rightInputTupleSet,
@@ -93,6 +97,8 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
                                                  pdb::Vector<PDBSourceSpec> &sources,
                                                  size_t idx);
 
+  pdb::SourceSetArgPtr getRightSourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient, size_t idx);
+
   static PDBAbstractPageSetPtr getKeySourcePageSet(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                                    size_t idx,
                                                    pdb::Vector<PDBSourceSpec> &srcs);
@@ -102,6 +108,9 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
                                                   pdb::Vector<PDBSourceSpec> &srcs,
                                                   const std::string &ip,
                                                   int32_t port);
+
+  PDBAbstractPageSetPtr getRightSourcePageSet(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, size_t idx);
+
 
  private:
 
@@ -114,11 +123,6 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
                     std::shared_ptr<std::vector<PDBPageQueuePtr>> &pageQueues,
                     std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> &senders,
                     PDBPageSelfReceiverPtr *selfReceiver);
-
-  /**
-   * This tells us if this node is doing the planning
-   */
-  uint64_t plannerNodeID;
 
   /**
    * The lhs input set to the join aggregation pipeline
@@ -155,6 +159,16 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
    * there are also going to be two anonymous pages with Map<LHSKey, LHS_TID> and Map<RHSKey, RHS_Key>.
    */
   pdb::Handle<PDBSinkPageSetSpec> aggregationTID;
+
+  /**
+   *
+   */
+  pdb::Handle<PDBSourcePageSetSpec> leftJoinSource;
+
+  /**
+   *
+   */
+  pdb::Handle<PDBSourcePageSetSpec> rightJoinSource;
 
   /**
    * The labled left page set of keys
@@ -250,6 +264,21 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
    * Connections to nodes (including self connection to this one) for the right side of the join
    */
   std::shared_ptr<std::vector<PDBCommunicatorPtr>> rightJoinSideCommunicatorsIn = nullptr;
+
+  /**
+   * These send records to the nodes for the left side
+   */
+  std::shared_ptr<std::vector<JoinAggSideSenderPtr>> leftJoinSideSenders = nullptr;
+
+  /**
+   * These send records to the nodes for the right side
+   */
+  std::shared_ptr<std::vector<JoinAggSideSenderPtr>> rightJoinSideSenders = nullptr;
+
+  /**
+   * This takes in the records from the side of the join and makes them into a tuple set
+   */
+  std::shared_ptr<std::vector<JoinMapCreatorPtr>> joinMapCreators = nullptr;
 
   /**
    * The join key side pipelines

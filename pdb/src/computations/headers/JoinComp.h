@@ -132,7 +132,7 @@ class JoinComp : public JoinCompBase {
       JoinAggSideArgPtr joinSideArgs = dynamic_pointer_cast<JoinAggSideArg>(it->second);
 
       return correctJoinTuple->getJoinAggSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes,
-                                              joinSideArgs->keyToNode, joinSideArgs->plan,
+                                              joinSideArgs->keyToNode, joinSideArgs->senders, joinSideArgs->plan,
                                               joinSideArgs->isLeft, numPartitions);
     }
   }

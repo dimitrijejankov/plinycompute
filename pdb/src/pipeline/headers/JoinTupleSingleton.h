@@ -49,6 +49,7 @@ class JoinTupleSingleton {
                                         TupleSpec &projection,
                                         std::vector<int> &whereEveryoneGoes,
                                         pdb::PDBPageHandle keyToLeft,
+                                        const std::shared_ptr<std::vector<JoinAggSideSenderPtr>> &senders,
                                         pdb::PDBPageHandle planPage,
                                         bool isLeft,
                                         uint64_t numPartitions) = 0;
@@ -173,6 +174,7 @@ public:
                                 TupleSpec &projection,
                                 std::vector<int> &whereEveryoneGoes,
                                 pdb::PDBPageHandle keyToLeft,
+                                const std::shared_ptr<std::vector<JoinAggSideSenderPtr>> &senders,
                                 pdb::PDBPageHandle planPage,
                                 bool isLeft,
                                 uint64_t numPartitions) override {
@@ -186,6 +188,7 @@ public:
                                                        projection,
                                                        whereEveryoneGoes,
                                                        keyToLeft,
+                                                       senders,
                                                        planPage,
                                                        isLeft,
                                                        numPartitions);

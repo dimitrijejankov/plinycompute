@@ -506,7 +506,6 @@ bool PDBCommunicator::skipBytes(std::string &errMsg) {
         getSizeOfNextObject();
     }
 
-
     if (!skipTheRead()) {
         errMsg = "Could not read the next object coming over the wire";
         readCurMsgSize = false;
@@ -642,6 +641,7 @@ bool PDBCommunicator::reconnect(std::string& errMsg) {
         return false;
     }
 }
+
 }
 
 #endif

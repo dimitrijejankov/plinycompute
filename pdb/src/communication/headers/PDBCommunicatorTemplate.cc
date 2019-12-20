@@ -138,6 +138,24 @@ bool PDBCommunicator::sendObject(Handle<ObjType>& sendMe, std::string& errMsg, s
     return true;
 }
 
+template<class ObjType>
+typename std::enable_if<std::is_trivially_copyable<ObjType>::value, bool>::type
+PDBCommunicator::sendPrimitiveType(const ObjType &sendMe) {
+
+  std::cout << "sendPrimitiveType" << '\n';
+
+  // write out the record type
+  if (!doTheWrite(((char*)&sendMe), ((char*)&sendMe) + sizeof(ObjType))) {
+    logToMe->error(strerror(errno));
+    return false;
+  }
+
+  // log the info
+  logToMe->info(std::string("Primitive type of size ") + std::to_string(sizeof(ObjType)) + "  sent!");
+
+  return true;
+}
+
 inline bool PDBCommunicator::receiveBytes(void* data, std::string& errMsg) {
 
     // if we have previously gotten the size, just return it
@@ -186,6 +204,23 @@ inline bool PDBCommunicator::sendBytes(void* data, size_t sizeOfBytes, std::stri
     return true;
 }
 
+template<class ObjType>
+typename std::enable_if<std::is_trivially_copyable<ObjType>::value,
+                        ObjType>::type PDBCommunicator::receivePrimitiveType() {
+
+  // the object we are going to return
+  ObjType tmp;
+
+  // for primitive types the message size is implicit
+  readCurMsgSize = true;
+  msgSize = sizeof(ObjType);
+
+  // do the read
+  doTheRead((char*)&tmp);
+
+  // return the value
+  return tmp;
+}
 
 template <class ObjType>
 Handle<ObjType> PDBCommunicator::getNextObject(void* readToHere,
