@@ -14,9 +14,9 @@ pdb::JoinAggPlanner::JoinAggPlanner(const pdb::PDBAnonymousPageSetPtr &joinAggPa
   // page to store
   this->pageToStore = pageToStore;
 
-  // grab the copy of the supervisor object
+  // grab the copy of the aggGroups object
   auto* record = (Record<TIDIndexMap>*) inputPage->getBytes();
-  joinGroups = record->getRootObject();
+  aggGroups = record->getRootObject();
 }
 
 void pdb::JoinAggPlanner::doPlanning() {
@@ -26,14 +26,14 @@ void pdb::JoinAggPlanner::doPlanning() {
   UseTemporaryAllocationBlock blk{pageToStore->getBytes(), pageToStore->getSize()};
 
   // make the plan result object
-  Handle<PipJoinAggPlanResult> planResult = pdb::makeObject<PipJoinAggPlanResult>(numThreads);
+  Handle<PipJoinAggPlanResult> planResult = pdb::makeObject<PipJoinAggPlanResult>(numNodes);
 
   // the current node
   int32_t curNod = 0;
 
   // go through the map and do two things
   // assign aggregation groups to nodes
-  for(auto it = this->joinGroups->begin(); it != this->joinGroups->end(); ++it) {
+  for(auto it = this->aggGroups->begin(); it != this->aggGroups->end(); ++it) {
 
     /// 0. Round robing the aggregation groups
 
@@ -70,14 +70,9 @@ void pdb::JoinAggPlanner::doPlanning() {
         (*planResult->rightToNode)[joinedTIDs[i].second.first][curNod] = true;
       }
 
-      /// 1.2 Store the left key to the aggregation group
+      /// 1.2 Store the join group
       {
-        (*planResult->leftTidToAggGroup)[curNod][joinedTIDs[i].first.first] = (*it).key;
-      }
-
-      /// 1.3 Store the right key to the aggregation group
-      {
-        (*planResult->rightTidToAggGroup)[curNod][joinedTIDs[i].second.first] = (*it).key;
+        (*planResult->joinGroupsPerNode)[curNod].push_back(std::make_pair(joinedTIDs[i].first.first, joinedTIDs[i].second.first));
       }
     }
 

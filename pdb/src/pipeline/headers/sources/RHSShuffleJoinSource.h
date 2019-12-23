@@ -54,6 +54,9 @@ protected:
   // the counts of the same hash
   std::vector<pair<size_t, size_t>> counts;
 
+  // is this source initialized
+  bool isInitialized = false;
+
  public:
 
   RHSShuffleJoinSource() = default;
@@ -94,30 +97,6 @@ protected:
 
     // add the hash column
     output->addColumn(keyAtt, &hashColumn, false);
-
-    PDBPageHandle page;
-    while ((page = pageSet->getNextPage(workerID)) != nullptr) {
-
-      // pin the page
-      page->repin();
-
-      // we grab the vector of hash maps
-      Handle<Vector<Handle<JoinMap<RHS>>>> returnVal = ((Record<Vector<Handle<JoinMap<RHS>>>> *) (page->getBytes()))->getRootObject();
-
-      // next we grab the join map we need
-      maps.push_back((*returnVal)[workerID]);
-
-      // if the map has stuff add it to the queue
-      auto it = maps.back()->begin();
-      if (it != maps.back()->end()) {
-
-        // insert the iterator
-        pageIterators.push(it);
-
-        // push the page
-        pages.push_back(page);
-      }
-    }
   }
 
   ~RHSShuffleJoinSource() override {
@@ -129,6 +108,38 @@ protected:
   }
 
   std::pair<TupleSetPtr, std::vector<pair<size_t, size_t>>*> getNextTupleSet() override {
+
+    if(!isInitialized) {
+
+      // figure out the hash maps
+      PDBPageHandle page;
+      while ((page = pageSet->getNextPage(workerID)) != nullptr) {
+
+        // pin the page
+        page->repin();
+
+        // we grab the vector of hash maps
+        Handle<Vector<Handle<JoinMap<RHS>>>> returnVal = ((Record<Vector<Handle<JoinMap<RHS>>>> *) (page->getBytes()))->getRootObject();
+
+        // next we grab the join map we need
+        maps.push_back((*returnVal)[workerID]);
+
+        // if the map has stuff add it to the queue
+        auto it = maps.back()->begin();
+        if (it != maps.back()->end()) {
+
+          // insert the iterator
+          pageIterators.push(it);
+
+          // push the page
+          pages.push_back(page);
+        }
+      }
+
+      // mark as initialized
+      isInitialized = true;
+    }
+
 
     // if we don't have any pages finish
     if (pageIterators.empty()) {

@@ -31,7 +31,7 @@ public:
 
   PDBAnonymousPageSet() = default;
 
-  explicit PDBAnonymousPageSet(const PDBBufferManagerInterfacePtr &bufferManager);
+  explicit PDBAnonymousPageSet(PDBBufferManagerInterfacePtr bufferManager);
 
   /**
    * Returns the next page for are particular worker. This method is supposed to be used after all the pages have been
@@ -69,6 +69,11 @@ public:
    * Resets the page set so it can be reused
    */
   void resetPageSet() override;
+
+  /**
+   * This removes all the pages from the page set
+   */
+  void clearPageSet();
 
   /**
    * Sets the access order for the page set

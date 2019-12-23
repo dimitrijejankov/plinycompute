@@ -1,3 +1,5 @@
+#include <utility>
+
 #pragma once
 
 #include <ComputeSource.h>
@@ -56,41 +58,27 @@ protected:
   // list of iterators that are
   std::vector<JoinMapIterator<LHS>> currIterators;
 
+  // is this source initialized
+  bool isInitialized = false;
+
+  // the left input page set
+  PDBAbstractPageSetPtr lhsInputPageSet;
+
 public:
 
   JoinedShuffleJoinSource(TupleSpec &inputSchemaRHS,
                           TupleSpec &hashSchemaRHS,
                           TupleSpec &recordSchemaRHS,
-                          const PDBAbstractPageSetPtr &lhsInputPageSet,
+                          PDBAbstractPageSetPtr lhsInputPageSet,
                           const std::vector<int> &lhsRecordOrder,
                           RHSShuffleJoinSourceBasePtr &rhsSource,
                           bool needToSwapLHSAndRhs,
                           uint64_t chunkSize,
                           uint64_t workerID) : lhsRecordOrder(lhsRecordOrder),
                                                rhsMachine(inputSchemaRHS, recordSchemaRHS),
+                                               lhsInputPageSet(std::move(lhsInputPageSet)),
                                                rhsSource(rhsSource),
                                                workerID(workerID) {
-
-    PDBPageHandle page;
-    while((page = lhsInputPageSet->getNextPage(workerID)) != nullptr) {
-
-      // pin the page
-      page->repin();
-
-      // we grab the vector of hash maps
-      Handle<Vector<Handle<JoinMap<LHS>>>> returnVal = ((Record<Vector<Handle<JoinMap<LHS>>>> *) (page->getBytes()))->getRootObject();
-
-      // next we grab the join map we need
-      lhsMaps.push_back((*returnVal)[workerID]);
-
-      if(lhsMaps.back()->size() != 0) {
-        // insert the iterator
-        lhsIterators.push(lhsMaps.back()->begin());
-
-        // push the page
-        lhsPages.push_back(page);
-      }
-    }
 
     // set up the output tuple and buffer
     output = std::make_shared<TupleSet>();
@@ -125,6 +113,35 @@ public:
   }
 
   TupleSetPtr getNextTupleSet(const PDBTupleSetSizePolicy &policy) override {
+
+
+    // if it is not initialized initialize it
+    if(!isInitialized) {
+
+      PDBPageHandle page;
+      while((page = lhsInputPageSet->getNextPage(workerID)) != nullptr) {
+
+        // pin the page
+        page->repin();
+
+        // we grab the vector of hash maps
+        Handle<Vector<Handle<JoinMap<LHS>>>> returnVal = ((Record<Vector<Handle<JoinMap<LHS>>>> *) (page->getBytes()))->getRootObject();
+
+        // next we grab the join map we need
+        lhsMaps.push_back((*returnVal)[workerID]);
+
+        if(lhsMaps.back()->size() != 0) {
+          // insert the iterator
+          lhsIterators.push(lhsMaps.back()->begin());
+
+          // push the page
+          lhsPages.push_back(page);
+        }
+      }
+
+      // mark it as  true
+      isInitialized = true;
+    }
 
 
     /**

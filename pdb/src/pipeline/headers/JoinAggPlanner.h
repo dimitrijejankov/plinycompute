@@ -7,6 +7,18 @@
 namespace pdb {
 
 class JoinAggPlanner {
+public:
+
+  explicit JoinAggPlanner(const pdb::PDBAnonymousPageSetPtr &joinAggPageSet,
+                          uint32_t numNodes,
+                          uint32_t numThreads,
+                          const PDBPageHandle& pageToStore);
+
+  void doPlanning();
+
+  void print(const Handle<PipJoinAggPlanResult> &planResult);
+
+private:
 
   // the page containing the page
   pdb::PDBPageHandle joinAggPageSet;
@@ -18,14 +30,14 @@ class JoinAggPlanner {
   using TIDVector = Vector<std::pair<TIDType, TIDType>>;
 
   // each aggregation group is identified by an unsigned integer
-  // this maps maps the aggregation grup to all the keys that are joined to form it
+  // this maps maps the aggregation group to all the keys that are joined to form it
   using TIDIndexMap = Map<uint32_t, TIDVector>;
 
   // the input page
   PDBPageHandle inputPage;
 
   // the the map
-  Handle<TIDIndexMap> joinGroups;
+  Handle<TIDIndexMap> aggGroups;
 
   // the number of nodes
   int32_t numNodes;
@@ -36,16 +48,7 @@ class JoinAggPlanner {
   // the page where we store the result
   PDBPageHandle pageToStore;
 
-public:
 
-  explicit JoinAggPlanner(const pdb::PDBAnonymousPageSetPtr &joinAggPageSet,
-                          uint32_t numNodes,
-                          uint32_t numThreads,
-                          const PDBPageHandle& pageToStore);
-
-  void doPlanning();
-
-  void print(const Handle<PipJoinAggPlanResult> &planResult);
 };
 
 }

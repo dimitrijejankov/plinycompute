@@ -4,7 +4,9 @@
 
 #include "PDBAnonymousPageSet.h"
 
-pdb::PDBAnonymousPageSet::PDBAnonymousPageSet(const pdb::PDBBufferManagerInterfacePtr &bufferManager) : bufferManager(bufferManager) {}
+#include <utility>
+
+pdb::PDBAnonymousPageSet::PDBAnonymousPageSet(pdb::PDBBufferManagerInterfacePtr bufferManager) : bufferManager(std::move(bufferManager)) {}
 
 pdb::PDBPageHandle pdb::PDBAnonymousPageSet::getNextPage(size_t workerID) {
 
@@ -87,6 +89,15 @@ void pdb::PDBAnonymousPageSet::resetPageSet() {
   nextPageForWorker.clear();
 }
 
+void pdb::PDBAnonymousPageSet::clearPageSet() {
+
+  // lock so we can mess with the data structure
+  std::unique_lock<std::mutex> lck(m);
+
+  pages.clear();
+  nextPageForWorker.clear();
+}
+
 void pdb::PDBAnonymousPageSet::setAccessOrder(PDBAnonymousPageSetAccessPattern pattern) {
 
   // lock the pages struct
@@ -102,3 +113,4 @@ void pdb::PDBAnonymousPageSet::setAccessOrder(PDBAnonymousPageSetAccessPattern p
 size_t pdb::PDBAnonymousPageSet::getMaxPageSize() {
   return bufferManager->getMaxPageSize();
 }
+

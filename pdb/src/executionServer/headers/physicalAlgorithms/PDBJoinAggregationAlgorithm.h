@@ -41,6 +41,7 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
                               const pdb::Handle<PDBSinkPageSetSpec> &leftKeySink,
                               const pdb::Handle<PDBSinkPageSetSpec> &rightKeySink,
                               const pdb::Handle<PDBSinkPageSetSpec> &joinAggKeySink,
+                              const pdb::Handle<PDBSinkPageSetSpec> &intermediateSink,
                               const pdb::Handle<PDBSourcePageSetSpec> &leftKeySource,
                               const pdb::Handle<PDBSourcePageSetSpec> &rightKeySource,
                               const pdb::Handle<PDBSourcePageSetSpec> &leftJoinSource,
@@ -185,6 +186,15 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
    */
   pdb::PDBAnonymousPageSetPtr joinAggPageSet = nullptr;
 
+  pdb::PDBAnonymousPageSetPtr leftShuffledPageSet = nullptr;
+
+  pdb::PDBAnonymousPageSetPtr rightShuffledPageSet = nullptr;
+
+  pdb::PDBAnonymousPageSetPtr intermediatePageSet = nullptr;
+
+  pdb::PDBFeedingPageSetPtr preaggPageSet = nullptr;
+
+
   /**
    *
    */
@@ -284,6 +294,22 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
    * The join key side pipelines
    */
   std::shared_ptr<std::vector<PipelinePtr>> joinKeyPipelines = nullptr;
+
+  /**
+   * The preaggregation pipelines
+   */
+  std::shared_ptr<std::vector<PipelinePtr>> preaggregationPipelines = nullptr;
+
+  /**
+   * The aggregation pipelines
+   */
+  std::shared_ptr<std::vector<PipelinePtr>> aggregationPipelines = nullptr;
+
+  /**
+   *
+   */
+  std::shared_ptr<std::vector<PDBPageQueuePtr>> pageQueues = nullptr;
+
 
   /**
    * The left and right join side task

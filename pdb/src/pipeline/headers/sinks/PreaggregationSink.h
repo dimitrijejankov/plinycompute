@@ -84,6 +84,7 @@ class PreaggregationSink : public ComputeSink {
 
         // try to add the key... this will cause an allocation for a new key/val pair
         try {
+
           // get the location that we need to write to...
           temp = &(myMap[keyColumn[i]]);
 
@@ -99,6 +100,7 @@ class PreaggregationSink : public ComputeSink {
 
         // we were able to fit a new key/value pair, so copy over the value
         try {
+          std::cout << "New\n";
           *temp = valueColumn[i];
 
           // if we could not fit the value...
@@ -122,6 +124,7 @@ class PreaggregationSink : public ComputeSink {
 
         // and add to the old value, producing a new one
         try {
+          std::cout << "Agg\n";
           temp = copy + valueColumn[i];
 
           // if we got here, then it means that we ram out of RAM when we were trying

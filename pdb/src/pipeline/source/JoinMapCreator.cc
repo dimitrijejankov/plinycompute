@@ -25,13 +25,20 @@ void pdb::JoinMapCreator::run() {
   // get the
   auto* recordCopy = (Record<PipJoinAggPlanResult>*) this->planPage->getBytes();
 
+  // left and right hashes will be placed here
+  std::unordered_map<uint32_t, uint32_t> left;
+  std::unordered_map<uint32_t, uint32_t> right;
+
+  // generate the left and right hashes for this node
+  (*recordCopy->getRootObject()).generateHashes(nodeID, left, right);
+
   // depending on the side select the right mapping
-  PipJoinAggPlanResult::TIDtoGroupTIDForNode *plan;
+  std::unordered_map<uint32_t, uint32_t> *joinMapCreatorHashes;
   if(isLeft) {
-    plan = &(*recordCopy->getRootObject()->leftTidToAggGroup)[nodeID];
+    joinMapCreatorHashes = &left;
   }
   else {
-    plan = &(*recordCopy->getRootObject()->rightTidToAggGroup)[nodeID];;
+    joinMapCreatorHashes = &right;
   }
 
   // the join map we need to create
@@ -90,10 +97,10 @@ REDO:
 
         // figure out the aggregation group
         auto tid = (*tuples)[currentTuple].first;
-        auto aggGroup = (*plan)[tid];
+        auto hash = (*joinMapCreatorHashes)[tid];
 
         /// TODO this needs to be generic
-        JoinTuple<matrix::MatrixBlock, char[0]> &temp = (*joinMap)[aggGroup % numThreads]->push(aggGroup);
+        JoinTuple<matrix::MatrixBlock, char[0]> &temp = (*joinMap)[hash % numThreads]->push(hash);
         temp.myData = *(*tuples)[currentTuple].second;
       }
 

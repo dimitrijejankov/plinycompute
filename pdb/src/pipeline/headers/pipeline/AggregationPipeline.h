@@ -30,9 +30,9 @@ private:
 public:
 
   AggregationPipeline(size_t workerID,
-                      const PDBAnonymousPageSetPtr &outputPageSet,
-                      const PDBAbstractPageSetPtr &inputPageSet,
-                      const ComputeSinkPtr &merger);
+                      PDBAnonymousPageSetPtr outputPageSet,
+                      PDBAbstractPageSetPtr inputPageSet,
+                      ComputeSinkPtr merger);
 
   void run() override;
 

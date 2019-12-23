@@ -181,6 +181,11 @@ protected:
   pdb::Handle<PDBSinkPageSetSpec> joinAggKeySink;
 
   /**
+   *
+   */
+  pdb::Handle<PDBSinkPageSetSpec> intermediateSink;
+
+  /**
    * The sets we want to materialize the result of this aggregation to
    */
   pdb::Handle<pdb::Vector<PDBSetObject>> setsToMaterialize;

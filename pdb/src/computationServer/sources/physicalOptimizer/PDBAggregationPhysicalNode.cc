@@ -144,6 +144,12 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
   joinAggKeySink->pageSetIdentifier = PDBAbstractPageSet::toKeyPageSetIdentifier(std::make_pair(computationID,
                                                                                                           pipeline.back()->getOutputName() + "_join_agg"));
 
+  // the intermediate sink, we basically pull pages from this whenever we need
+  pdb::Handle<PDBSinkPageSetSpec> intermediateSink = pdb::makeObject<PDBSinkPageSetSpec>();
+  intermediateSink->sinkType = PDBSinkType::NoSink;
+  intermediateSink->pageSetIdentifier = PDBAbstractPageSet::toKeyPageSetIdentifier(std::make_pair(computationID,pipeline.back()->getOutputName() + "_intermediate"));
+
+
   // the left key source
   pdb::Handle<PDBSourcePageSetSpec> leftKeySource = pdb::makeObject<PDBSourcePageSetSpec>();
   leftKeySource->sourceType = PDBSourceType::SinglePageSource;
@@ -210,6 +216,7 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
                                                                                                     lhsKeySink,
                                                                                                     rhsKeySink,
                                                                                                     joinAggKeySink,
+                                                                                                    intermediateSink,
                                                                                                     leftKeySource,
                                                                                                     rightKeySource,
                                                                                                     leftJoinSource,

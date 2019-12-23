@@ -1,3 +1,7 @@
+#include <utility>
+
+#include <utility>
+
 //
 // Created by dimitrije on 3/27/19.
 //
@@ -40,6 +44,9 @@ void pdb::AggregationPipeline::run() {
 }
 
 pdb::AggregationPipeline::AggregationPipeline(size_t workerID,
-                                              const pdb::PDBAnonymousPageSetPtr &outputPageSet,
-                                              const pdb::PDBAbstractPageSetPtr &inputPageSet,
-                                              const pdb::ComputeSinkPtr &merger) : workerID(workerID), outputPageSet(outputPageSet), inputPageSet(inputPageSet), merger(merger) {}
+                                              pdb::PDBAnonymousPageSetPtr outputPageSet,
+                                              pdb::PDBAbstractPageSetPtr inputPageSet,
+                                              pdb::ComputeSinkPtr merger) : workerID(workerID),
+                                                                            outputPageSet(std::move(outputPageSet)),
+                                                                            inputPageSet(std::move(inputPageSet)),
+                                                                            merger(std::move(merger)) {}
