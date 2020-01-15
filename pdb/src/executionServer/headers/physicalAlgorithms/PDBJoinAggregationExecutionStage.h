@@ -1,0 +1,70 @@
+#pragma once
+
+#include "PDBPhysicalAlgorithmStage.h"
+
+namespace pdb {
+
+class PDBJoinAggregationExecutionStage : public PDBPhysicalAlgorithmStage {
+public:
+
+  PDBJoinAggregationExecutionStage(const PDBSinkPageSetSpec &sink,
+                                   const Vector<PDBSourceSpec> &sources,
+                                   const String &final_tuple_set,
+                                   const Vector<pdb::Handle<PDBSourcePageSetSpec>> &secondary_sources,
+                                   const Vector<PDBSetObject> &sets_to_materialize,
+                                   const String &join_tuple_set,
+                                   const PDBSourcePageSetSpec &left_join_source,
+                                   const PDBSourcePageSetSpec &right_join_source,
+                                   const PDBSinkPageSetSpec &intermediate_sink,
+                                   const Vector<PDBSourceSpec> &right_sources);
+
+  bool setup(const Handle<pdb::ExJob> &job,
+             const PDBPhysicalAlgorithmStatePtr &state,
+             const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+             const std::string &error) override;
+
+  bool run(const Handle<pdb::ExJob> &job,
+           const PDBPhysicalAlgorithmStatePtr &state,
+           const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+           const std::string &error) override;
+
+  void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) override;
+
+ private:
+
+  /**
+   *
+   * @param storage
+   * @param idx
+   * @return
+   */
+  PDBAbstractPageSetPtr getRightSourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                              size_t idx);
+
+  /**
+   *
+   * @param catalogClient
+   * @param idx
+   * @return
+   */
+  pdb::SourceSetArgPtr getRightSourceSetArg(const std::shared_ptr<pdb::PDBCatalogClient> &catalogClient,
+                                            size_t idx);
+
+  // the join tuple set
+  const pdb::String &joinTupleSet;
+
+  //
+  const PDBSourcePageSetSpec &leftJoinSource;
+
+  //
+  const PDBSourcePageSetSpec &rightJoinSource;
+
+  //
+  const PDBSinkPageSetSpec &intermediateSink;
+
+  // The sources of the right side of the merged pipeline
+  const pdb::Vector<PDBSourceSpec> &rightSources;
+};
+
+
+}

@@ -1,22 +1,20 @@
-//
-// Created by dimitrije on 2/25/19.
-//
-
-#ifndef PDB_PDBJOB_H
-#define PDB_PDBJOB_H
+#pragma once
 
 #include <cstdint>
 #include <PDBString.h>
 #include <PDBVector.h>
 #include <Computation.h>
 #include <PDBCatalogSet.h>
-#include <PDBPhysicalAlgorithm.h>
 #include <ExJobNode.h>
+#include <PDBPhysicalAlgorithm.h>
 
 // PRELOAD %ExJob%
 
 namespace pdb {
 
+/**
+ * Object we send to execute algorithm
+ */
 class ExJob : public Object  {
 public:
 
@@ -27,7 +25,7 @@ public:
   /**
    * The physical algorithm we want to run.
    */
-  Handle<PDBPhysicalAlgorithm> physicalAlgorithm;
+  Handle<pdb::PDBPhysicalAlgorithm> physicalAlgorithm;
 
   /**
    * The computations we want to send
@@ -83,53 +81,26 @@ public:
    * Returns all the sets that are going to be materialized after the job is executed
    * @return - a vector of pairs the frist value is the database name, the second value is the set name
    */
-  std::vector<std::pair<std::string, std::string>> getSetsToMaterialize() {
-
-    // get the sets to materialize
-    const auto& sets = physicalAlgorithm->getSetsToMaterialize();
-
-    // allocate the output container
-    std::vector<std::pair<std::string, std::string>> out;
-    out.reserve(sets->size());
-
-    // copy the sets
-    for(int i = 0; i < sets->size(); ++i) {
-      out.emplace_back(make_pair((*sets)[i].database, (*sets)[i].set));
-    }
-
-    // return it
-    return std::move(out);
-  }
+  std::vector<std::pair<std::string, std::string>> getSetsToMaterialize();
 
   /**
    * Returns the actual sets we are scanning, it assumes that we are doing that. Check that with @see isScanningSet
    * @return get the scanning set
    */
-  vector<pair<string, string>> getScanningSets() {
-
-    // return the scanning set
-    return std::move(physicalAlgorithm->getSetsToScan());
-  }
+  vector<pair<string, string>> getScanningSets();
 
   /**
    * True if, the source is an actual set and not an intermediate set
    * @return true if it is, false otherwise
    */
-  bool isScanningSet() {
-    return !physicalAlgorithm->getSetsToScan().empty();
-  }
+  bool isScanningSet();
 
   /**
    * Returns the type of the output container, that the materializing sets are going to have
    * @return the type
    */
-  pdb::PDBCatalogSetContainerType getOutputSetContainer() {
-    return physicalAlgorithm->getOutputContainerType();
-  }
+  pdb::PDBCatalogSetContainerType getOutputSetContainer();
 
 };
 
 }
-
-
-#endif //PDB_PDBJOB_H

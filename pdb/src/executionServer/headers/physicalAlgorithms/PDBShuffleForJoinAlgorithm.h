@@ -6,6 +6,7 @@
 #include "PDBPageSelfReceiver.h"
 #include "PipelineInterface.h"
 #include "Computation.h"
+#include "PDBPhysicalAlgorithmStage.h"
 
 // PRELOAD %PDBShuffleForJoinAlgorithm%
 
@@ -26,47 +27,30 @@ public:
   ENABLE_DEEP_COPY
 
   /**
+   * Returns the initial state for the shuffle for join stage
+   * @return the initial state
+   */
+  [[nodiscard]] PDBPhysicalAlgorithmStatePtr getInitialState(const pdb::Handle<pdb::ExJob> &job) const override;
+
+  /**
+   * Return the one stage of the shuffle for join algorithm
+   * @return the one stage in a vector
+   */
+  [[nodiscard]] vector<PDBPhysicalAlgorithmStagePtr> getStages() const override;
+
+  /**
+   * Returns one since we only have one stage
+   * @return 1
+   */
+  [[nodiscard]] int32_t numStages() const override;
+
+  /**
    * Returns ShuffleForJoinAlgorithm as the type
    * @return the type
    */
   PDBPhysicalAlgorithmType getAlgorithmType() override;
 
-  /**
-   * //TODO
-   */
-  bool setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) override;
-
-  /**
-   * //TODO
-   */
-  bool run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job) override;
-
-  /**
-   * //TODO
-   */
-  void cleanup() override;
-
  private:
-
-  /**
-   * This forwards the preaggregated pages to this node
-   */
-  pdb::PDBPageSelfReceiverPtr selfReceiver;
-
-  /**
-   * These senders forward pages that are for other nodes
-   */
-  std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> senders;
-
-  /**
-   *
-   */
-  std::shared_ptr<std::vector<PipelinePtr>> joinShufflePipelines = nullptr;
-
-  /**
-   *
-   */
-  std::shared_ptr<std::vector<PDBPageQueuePtr>> pageQueues = nullptr;
 
   /**
    * The intermediate page set

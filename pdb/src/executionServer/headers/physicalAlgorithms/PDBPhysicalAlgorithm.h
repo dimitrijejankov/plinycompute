@@ -1,11 +1,6 @@
 #include <utility>
 
-//
-// Created by dimitrije on 2/25/19.
-//
-
-#ifndef PDB_PDBPHYSICALALGORITHM_H
-#define PDB_PDBPHYSICALALGORITHM_H
+#pragma once
 
 #include <Object.h>
 #include <PDBString.h>
@@ -20,6 +15,8 @@
 #include <PDBSourceSpec.h>
 #include <gtest/gtest_prod.h>
 #include <physicalOptimizer/PDBPrimarySource.h>
+#include <PDBPhysicalAlgorithmState.h>
+#include "PDBPhysicalAlgorithmStage.h"
 
 namespace pdb {
 
@@ -35,8 +32,6 @@ enum PDBPhysicalAlgorithmType {
   StraightPipe,
   JoinAggregation
 };
-
-
 
 // PRELOAD %PDBPhysicalAlgorithm%
 
@@ -56,20 +51,32 @@ public:
                        const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
                        const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize);
 
-  /**
-   * Sets up the whole algorithm
-   */
-  virtual bool setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) { throw std::runtime_error("Can not setup PDBPhysicalAlgorithm that is an abstract class"); };
+
 
   /**
-   * Runs the algorithm
+   * Returns the initial state of the algorithm
+   * @return the initial state
    */
-  virtual bool run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job) { throw std::runtime_error("Can not run PDBPhysicalAlgorithm that is an abstract class"); };
+  [[nodiscard]] virtual PDBPhysicalAlgorithmStatePtr getInitialState(const pdb::Handle<pdb::ExJob> &job) const {
+    throw std::runtime_error("Can not get the type of the base class");
+  };
 
   /**
-   * Cleans the algorithm after setup and/or run. This has to be called after the usage!
+   * Returns all the stages of this algorithm
+   * @return
    */
-  virtual void cleanup()  { throw std::runtime_error("Can not clean PDBPhysicalAlgorithm that is an abstract class"); };
+  [[nodiscard]] virtual std::vector<PDBPhysicalAlgorithmStagePtr> getStages() const {
+    throw std::runtime_error("Can not get the type of the base class");
+  };
+
+
+  /**
+   * Returns the number of stages this algorithm has
+   * @return
+   */
+  [[nodiscard]] virtual int32_t numStages() const {
+    throw std::runtime_error("Can not get the type of the base class");
+  };
 
   /**
    * Returns the type of the algorithm we want to run
@@ -109,96 +116,21 @@ public:
 
 protected:
 
-  /**
-   * Returns the source page set we are scanning.
-   * @param storage - a ptr to the storage manager backend so we can grab the page set
-   * @return - the page set
-   */
-  PDBAbstractPageSetPtr getSourcePageSet(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, size_t idx);
 
-  /**
-   * Return the info that is going to be provided to the pipeline about the main source set we are scanning
-   * @return an instance of SourceSetArgPtr
-   */
-  pdb::SourceSetArgPtr getSourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient, size_t idx);
-
-  /**
-   * Returns the additional sources as join arguments, if we can not find a page set that is specified in the additional sources
-   * this method will return null
-   * @param storage - Storage manager backend
-   * @return the arguments if we can create them, null_ptr otherwise
-   */
-  std::shared_ptr<JoinArguments> getJoinArguments(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage);
-
-  /**
-   *
-   */
-  pdb::Vector<PDBSourceSpec> sources;
-
-  /**
-   * The is the tuple set of the atomic computation where we are ending our pipeline
-   */
-  pdb::String finalTupleSet;
-
-  /**
-   * List of secondary sources like hash sets for join etc.. null if there are no secondary sources
-   */
-  pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> secondarySources;
-
-  /**
-   * The sink page set the algorithm should setup
-   */
+  // The sink page set the algorithm should setup
   pdb::Handle<PDBSinkPageSetSpec> sink;
 
-  /**
-   *
-   */
-  pdb::Handle<PDBSinkPageSetSpec> lhsKeySink;
+  // The primary sources of the pipeline
+  pdb::Vector<PDBSourceSpec> sources;
 
-  /**
-   *
-   */
-  pdb::Handle<PDBSinkPageSetSpec> rhsKeySink;
+  // List of secondary sources like hash sets for join etc.. null if there are no secondary sources
+  pdb::Handle<pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>>> secondarySources;
 
-  /**
-   *
-   */
-  pdb::Handle<PDBSourcePageSetSpec> leftKeySource;
+  // The is the tuple set of the atomic computation where we are ending our pipeline
+  pdb::String finalTupleSet;
 
-  /**
-   *
-   */
-  pdb::Handle<PDBSourcePageSetSpec> rightKeySource;
-
-  /**
-   *
-   */
-  pdb::Handle<PDBSourcePageSetSpec> planSource;
-
-  /**
-   *
-   */
-  pdb::Handle<PDBSinkPageSetSpec> joinAggKeySink;
-
-  /**
-   *
-   */
-  pdb::Handle<PDBSinkPageSetSpec> intermediateSink;
-
-  /**
-   * The sets we want to materialize the result of this aggregation to
-   */
+  // The sets we want to materialize the result of this aggregation to
   pdb::Handle<pdb::Vector<PDBSetObject>> setsToMaterialize;
-
-  /**
-   * The logical plan
-   */
-  pdb::LogicalPlanPtr logicalPlan;
-
-  /*
-   * The logger of the algorithm
-   */
-  PDBLoggerPtr logger;
 
   // mark the tests that are testing this algorithm
   FRIEND_TEST(TestPhysicalOptimizer, TestAggregation);
@@ -209,5 +141,3 @@ protected:
 };
 
 }
-
-#endif //PDB_PDBPHYSICALALGORITHM_H

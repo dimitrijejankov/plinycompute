@@ -1,15 +1,9 @@
-//
-// Created by dimitrije on 2/25/19.
-//
-
-#ifndef PDB_PDBJOBNODE_H
-#define PDB_PDBJOBNODE_H
+#pragma once
 
 #include <cstdint>
 #include <PDBString.h>
 #include <PDBVector.h>
 #include <Computation.h>
-#include "PDBPhysicalAlgorithm.h"
 
 // PRELOAD %ExJobNode%
 
@@ -29,12 +23,12 @@ public:
   /**
    * The port
    */
-  int32_t port;
+  int32_t port{};
 
   /**
    * The backend of the port
    */
-  int32_t backendPort;
+  int32_t backendPort{};
 
   /**
    * The address
@@ -43,6 +37,3 @@ public:
 };
 
 }
-
-
-#endif //PDB_PDBJOB_H

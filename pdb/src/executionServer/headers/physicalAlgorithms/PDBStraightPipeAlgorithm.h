@@ -1,12 +1,8 @@
-//
-// Created by dimitrije on 2/25/19.
-//
-
-#ifndef PDB_STRAIGHTPIPEALGORITHM_H
-#define PDB_STRAIGHTPIPEALGORITHM_H
+#pragma once
 
 #include "PDBStorageManagerBackend.h"
 #include "PDBPhysicalAlgorithm.h"
+#include "PDBStraightPipeStage.h"
 #include "Computation.h"
 #include "pipeline/Pipeline.h"
 #include <vector>
@@ -19,6 +15,9 @@ namespace pdb {
 
 // PRELOAD %PDBStraightPipeAlgorithm%
 
+/**
+ * The straight pipeline has only one stage. That runs a pipeline.
+ */
 class PDBStraightPipeAlgorithm : public PDBPhysicalAlgorithm {
 public:
 
@@ -35,19 +34,22 @@ public:
                            const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize);
 
   /**
-   * //TODO
+   * Returns the initial state for the stages of the straight pipeline
+   * @return the initial state
    */
-  bool setup(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job, const std::string &error) override;
+  [[nodiscard]] PDBPhysicalAlgorithmStatePtr getInitialState(const pdb::Handle<pdb::ExJob> &job) const override;
 
   /**
-   * //TODO
+   * Return the one stage of the straight pipeline algorithm
+   * @return the one stage in a vector
    */
-  bool run(std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, Handle<pdb::ExJob> &job) override;
+  [[nodiscard]] vector<PDBPhysicalAlgorithmStagePtr> getStages() const override;
 
   /**
-   *
+   * Returns one since we only have one stage
+   * @return 1
    */
-  void cleanup() override;
+  [[nodiscard]] int32_t numStages() const override;
 
   /**
    * Returns StraightPipe as the type
@@ -63,12 +65,6 @@ public:
 
  private:
 
-  /**
-   * Vector of pipelines that will run this algorithm. The pipelines will be built when you call setup on this object.
-   * This must be null when sending this object.
-   */
-  std::shared_ptr<std::vector<PipelinePtr>> myPipelines = nullptr;
-
 
   FRIEND_TEST(TestPhysicalOptimizer, TestJoin3);
   FRIEND_TEST(TestPhysicalOptimizer, TestTwoSinksSelection);
@@ -77,6 +73,3 @@ public:
 };
 
 }
-
-
-#endif //PDB_STRAIGHTPIPEALGORITHM_H
