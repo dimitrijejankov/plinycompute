@@ -146,9 +146,7 @@ public:
 
       // get the tid
       auto tid = (*tidMap)[*k];
-      std::cout << "The tid for " << k->
-
-      rowID << ", " << k->colID << "->" << tid << " is sent to : ";
+      std::cout << "The tid for " << "(" << k->rowID << ", " << k->colID  << ") ->" << tid << " is sent to : ";
 
       // get the nodes vector
       Vector<bool> &nodes = (*plan)[tid];

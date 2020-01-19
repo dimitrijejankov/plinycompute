@@ -37,7 +37,7 @@ public:
   void generateHashes(int currentNode, std::unordered_map<uint32_t, uint32_t> &left, std::unordered_map<uint32_t, uint32_t> &right) {
 
     uint32_t nextID = 1;
-    for(int i = 0; i < joinGroupsPerNode->size(); ++i) {
+    for(int i = 0; i < (*joinGroupsPerNode)[currentNode].size(); ++i) {
 
       // get the tids that are joined
       auto leftTID = (*joinGroupsPerNode)[currentNode][i].first;
