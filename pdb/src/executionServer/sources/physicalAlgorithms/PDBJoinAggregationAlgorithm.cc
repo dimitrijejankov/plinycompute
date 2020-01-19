@@ -9,7 +9,8 @@
 #include "PDBLabeledPageSet.h"
 #include "PDBBroadcastForJoinState.h"
 #include "AggregateCompBase.h"
-#include "PDBJoinAggregationExecutionStage.h"
+#include "PDBJoinAggregationAggregationStage.h"
+#include "PDBJoinAggregationJoinSideStage.h"
 
 namespace pdb {
 
@@ -150,20 +151,27 @@ vector<PDBPhysicalAlgorithmStagePtr> PDBJoinAggregationAlgorithm::getStages() co
                                                        *leftKeySource,
                                                        *rightKeySource,
                                                        *planSource),
-          std::make_shared<PDBJoinAggregationExecutionStage>(*sink,
-                                                             sources,
-                                                             finalTupleSet,
-                                                             *secondarySources,
-                                                             *setsToMaterialize,
-                                                             joinTupleSet,
-                                                             *leftJoinSource,
-                                                             *rightJoinSource,
-                                                             *intermediateSink,
-                                                             rightSources)};
+          std::make_shared<PDBJoinAggregationJoinSideStage>(*sink,
+                                                            sources,
+                                                            finalTupleSet,
+                                                            *secondarySources,
+                                                            *setsToMaterialize,
+                                                            joinTupleSet,
+                                                            *leftJoinSource,
+                                                            *rightJoinSource,
+                                                            *intermediateSink,
+                                                            rightSources),
+          std::make_shared<PDBJoinAggregationAggregationStage>(*sink,
+                                                              sources,
+                                                              finalTupleSet,
+                                                              *secondarySources,
+                                                              *setsToMaterialize,
+                                                              joinTupleSet)};
+
 }
 
 int32_t PDBJoinAggregationAlgorithm::numStages() const {
-  return 2;
+  return 3;
 }
 
 pdb::PDBPhysicalAlgorithmType pdb::PDBJoinAggregationAlgorithm::getAlgorithmType() {

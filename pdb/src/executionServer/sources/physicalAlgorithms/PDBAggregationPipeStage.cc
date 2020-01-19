@@ -2,6 +2,7 @@
 #include <PDBAggregationPipeState.h>
 #include <PreaggregationPageProcessor.h>
 #include <ComputePlan.h>
+#include <ExJob.h>
 #include <GenericWork.h>
 
 pdb::PDBAggregationPipeStage::PDBAggregationPipeStage(const pdb::PDBSinkPageSetSpec &sink,

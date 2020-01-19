@@ -3,6 +3,7 @@
 #include <BroadcastJoinProcessor.h>
 #include <ComputePlan.h>
 #include <GenericWork.h>
+#include <ExJob.h>
 
 pdb::PDBBroadcastForJoinStage::PDBBroadcastForJoinStage(const pdb::PDBSinkPageSetSpec &sink,
                                                         const pdb::Vector<pdb::PDBSourceSpec> &sources,
