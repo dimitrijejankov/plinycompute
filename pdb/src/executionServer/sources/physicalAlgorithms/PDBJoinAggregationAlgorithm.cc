@@ -124,7 +124,7 @@ PDBJoinAggregationAlgorithm::PDBJoinAggregationAlgorithm(const std::vector<PDBPr
 
 PDBPhysicalAlgorithmStatePtr PDBJoinAggregationAlgorithm::getInitialState(const pdb::Handle<pdb::ExJob> &job) const {
   // init the state
-  auto state = std::make_shared<PDBBroadcastForJoinState>();
+  auto state = std::make_shared<PDBJoinAggregationState>();
 
   // init the logger for this algorithm
   state->logger = make_shared<PDBLogger>("PDBJoinAggregationAlgorithm_" + std::to_string(job->computationID));

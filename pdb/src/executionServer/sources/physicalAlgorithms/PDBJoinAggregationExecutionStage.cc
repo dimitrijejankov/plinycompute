@@ -6,6 +6,7 @@
 #include "LogicalPlanTransformer.h"
 #include "DismissProcessor.h"
 #include "PreaggregationPageProcessor.h"
+#include "GenericWork.h"
 #include "ExJob.h"
 
 pdb::PDBJoinAggregationExecutionStage::PDBJoinAggregationExecutionStage(const pdb::PDBSinkPageSetSpec &sink,
@@ -419,12 +420,356 @@ bool pdb::PDBJoinAggregationExecutionStage::run(const pdb::Handle<pdb::ExJob> &j
                                                 const pdb::PDBPhysicalAlgorithmStatePtr &state,
                                                 const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                                 const std::string &error) {
-  return PDBPhysicalAlgorithmStage::run(job, state, storage, error);
+
+  // cast the state
+  auto s = dynamic_pointer_cast<PDBJoinAggregationState>(state);
+
+  std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+  /**
+   * 1. Run join pipelines pipelines
+   */
+
+  // stats
+  atomic_bool success;
+  success = true;
+
+  // create the buzzer
+  atomic_int counter;
+  counter = 0;
+  PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
+
+    // did we fail?
+    if(myAlarm == PDBAlarm::GenericError) {
+      success = false;
+    }
+
+    // increment the count
+    cnt++;
+  });
+
+  // run on of the join pipelines
+  counter = 0;
+  for (int i = 0; i < s->joinPipelines->size(); ++i) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&counter, &success, i, &s](const PDBBuzzerPtr& callerBuzzer) {
+
+      try {
+
+        // run the pipeline
+        (*s->joinPipelines)[i]->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        s->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+    });
+
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
+  // create the buzzer
+  atomic_int sendCnt;
+  sendCnt = 0;
+
+  for (int i = 0; i < s->leftJoinSideSenders->size(); ++i) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sendCnt, &success, i, s](const PDBBuzzerPtr& callerBuzzer) {
+
+      try {
+
+        // run the pipeline
+        (*s->leftJoinSideSenders)[i]->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        s->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, sendCnt);
+    });
+
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
+  for (int i = 0; i < s->rightJoinSideSenders->size(); ++i) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sendCnt, &success, i, &s](const PDBBuzzerPtr& callerBuzzer) {
+
+      try {
+
+        // run the pipeline
+        (*s->rightJoinSideSenders)[i]->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        s->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, sendCnt);
+    });
+
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
+  // create the buzzer
+  atomic_int commCnt;
+  commCnt = 0;
+
+  for(int i = 0; i < s->joinMapCreators->size(); ++i) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&commCnt, &success, i, &s](const PDBBuzzerPtr& callerBuzzer) {
+
+      // run the join map creator
+      try {
+        // run the join map creator
+        (*s->joinMapCreators)[i]->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        s->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
+
+      // check if the creator succeeded
+      if(!(*s->joinMapCreators)[i]->getSuccess()) {
+
+        // log the error
+        s->logger->error((*s->joinMapCreators)[i]->getError());
+
+        // we failed mark that we have
+        success = false;
+      }
+
+      std::cout << "Ended...\n";
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, commCnt);
+    });
+
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
+  // wait to finish the pipelines
+  while (counter < s->joinPipelines->size()) {
+    tempBuzzer->wait();
+  }
+
+  // shutdown the senders since the pipelines are done
+  for(auto &s : *s->leftJoinSideSenders) {
+    s->shutdown();
+  }
+
+  for(auto &s : *s->rightJoinSideSenders) {
+    s->shutdown();
+  }
+
+  // wait for senders to finish
+  while (sendCnt < s->leftJoinSideSenders->size() + s->rightJoinSideSenders->size()) {
+    tempBuzzer->wait();
+  }
+
+  // wait until the senders finish
+  while (commCnt < s->joinMapCreators->size()) {
+    tempBuzzer->wait();
+  }
+
+  // clear everything
+  s->joinPipelines->clear();
+  s->leftJoinSideSenders->clear();
+  s->rightJoinSideSenders->clear();
+  s->joinMapCreators->clear();
+  s->leftJoinSideCommunicatorsOut->clear();
+  s->rightJoinSideCommunicatorsOut->clear();
+  s->leftJoinSideCommunicatorsIn->clear();
+  s->rightJoinSideCommunicatorsIn->clear();
+
+  // reset the page sets
+  s->leftShuffledPageSet->resetPageSet();
+  s->leftShuffledPageSet->setAccessOrder(PDBAnonymousPageSetAccessPattern::CONCURRENT);
+  s->rightShuffledPageSet->resetPageSet();
+  s->rightShuffledPageSet->setAccessOrder(PDBAnonymousPageSetAccessPattern::CONCURRENT);
+  s->intermediatePageSet->clearPageSet();
+
+  // run the aggregation pipelines
+  atomic_int preaggCnt;
+  preaggCnt = 0;
+
+  for (int i = 0; i < s->preaggregationPipelines->size(); ++i) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&preaggCnt, &success, i, s](const PDBBuzzerPtr& callerBuzzer) {
+
+      try {
+
+        // run the pipeline
+        (*s->preaggregationPipelines)[i]->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        s->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, preaggCnt);
+    });
+
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
+  // make the threads that feed into the feed page set
+  counter = 0;
+  for (int i = 0; i < s->preaggregationPipelines->size(); ++i) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&counter, &success, i, &s](const PDBBuzzerPtr& callerBuzzer) {
+
+      // do this until we get a null
+      PDBPageHandle tmp;
+      while (true) {
+
+        // get the page from the queue
+        (*s->pageQueues)[i]->wait_dequeue(tmp);
+
+        // get out of loop
+        if(tmp == nullptr) {
+          s->preaggPageSet->finishFeeding();
+          break;
+        }
+
+        // feed the page into the page set
+        s->preaggPageSet->feedPage(tmp);
+      }
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+    });
+
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
+  // run the aggregation pipelines
+  for (int i = 0; i < s->aggregationPipelines->size(); ++i) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&counter, &success, i, &s](const PDBBuzzerPtr& callerBuzzer) {
+
+      try {
+
+        // run the pipeline
+        (*s->aggregationPipelines)[i]->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        s->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+    });
+
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
+  // wait for the preaggregation to finish
+  while (preaggCnt < s->preaggregationPipelines->size()) {
+    tempBuzzer->wait();
+  }
+
+  // insert to the page queues
+  for(const auto &q : *s->pageQueues) {
+    q->enqueue(nullptr);
+  }
+
+  // wait until the feeding is finished and the aggregation pipelines are finished
+  while (counter < s->preaggregationPipelines->size() + s->aggregationPipelines->size()) {
+    tempBuzzer->wait();
+  }
+
+  // should we materialize this to a set?
+  for(int j = 0; j < setsToMaterialize.size(); ++j) {
+
+    // get the page set
+    auto sinkPageSet = storage->getPageSet(std::make_pair(sink.pageSetIdentifier.first, sink.pageSetIdentifier.second));
+
+    // if the thing does not exist finish!
+    if(sinkPageSet == nullptr) {
+      success = false;
+      break;
+    }
+
+    // materialize the page set
+    sinkPageSet->resetPageSet();
+    success = storage->materializePageSet(sinkPageSet, std::make_pair<std::string, std::string>(setsToMaterialize[j].database, setsToMaterialize[j].set)) && success;
+  }
+
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  std::cout << "Run pipeline for " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns]" << '\n';
+
+  return true;
 }
 
-void pdb::PDBJoinAggregationExecutionStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
-  PDBPhysicalAlgorithmStage::cleanup(state);
-}
+void pdb::PDBJoinAggregationExecutionStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {}
 
 pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationExecutionStage::getRightSourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                                                                         size_t idx) {

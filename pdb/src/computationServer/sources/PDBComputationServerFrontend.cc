@@ -88,7 +88,8 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
     auto worker = parent->getWorkerQueue()->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = make_shared<pdb::GenericWork>([=, &counter, &job](const PDBBuzzerPtr& callerBuzzer) {
+    auto numStages = job->physicalAlgorithm->numStages();
+    PDBWorkPtr myWork = make_shared<pdb::GenericWork>([=, &counter, &job, &numStages](const PDBBuzzerPtr& callerBuzzer) {
 
       std::string errMsg;
 
@@ -133,12 +134,16 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
         return;
       }
 
-      /// 4. Run the computation and wait for it to finish
-      if(!runScheduledJob(comm, errMsg)) {
+      /// 3.1 Run all the stages
+      for(int s = 0; s < numStages; ++s) {
 
-        // we failed to run the job
-        callerBuzzer->buzz(PDBAlarm::GenericError, counter);
-        return;
+        // run an individual stage
+        if(!runStage(comm, errMsg)) {
+
+          // we failed to run the job
+          callerBuzzer->buzz(PDBAlarm::GenericError, counter);
+          return;
+        }
       }
 
       // excellent everything worked just as expected
@@ -172,10 +177,17 @@ bool pdb::PDBComputationServerFrontend::scheduleJob(pdb::PDBCommunicator &temp, 
     return false;
   }
 
-  /// 2. Wait for ACK
+  // return true
+  return true;
+}
+
+bool pdb::PDBComputationServerFrontend::runStage(pdb::PDBCommunicator &communicator, string &errMsg) {
+
+
+  /// 1. Wait for the stage to be initialized
 
   // get the response and process it
-  size_t objectSize = temp.getSizeOfNextObject();
+  size_t objectSize = communicator.getSizeOfNextObject();
 
   // check if we did get a response
   if (objectSize == 0) {
@@ -203,7 +215,7 @@ bool pdb::PDBComputationServerFrontend::scheduleJob(pdb::PDBCommunicator &temp, 
     bool success;
 
     // want this to be destroyed
-    Handle<SimpleRequestResult> result =  temp.getNextObject<SimpleRequestResult> (memory.get(), success, errMsg);
+    Handle<SimpleRequestResult> result = communicator.getNextObject<SimpleRequestResult> (memory.get(), success, errMsg);
     if (!success) {
 
       // log the error
@@ -215,19 +227,13 @@ bool pdb::PDBComputationServerFrontend::scheduleJob(pdb::PDBCommunicator &temp, 
     }
   }
 
-  // return true
-  return true;
-}
-
-bool pdb::PDBComputationServerFrontend::runScheduledJob(pdb::PDBCommunicator &communicator, string &errMsg) {
+  /// 2. Send the request to run it
 
   // make an allocation block
   const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
   // make a request
   pdb::Handle<ExRunJob> request = pdb::makeObject<ExRunJob>();
-
-  /// 1. Send the request
 
   // send the object
   if (!communicator.sendObject<pdb::ExRunJob>(request, errMsg)) {
@@ -240,10 +246,10 @@ bool pdb::PDBComputationServerFrontend::runScheduledJob(pdb::PDBCommunicator &co
     return false;
   }
 
-  /// 2. Wait for the job to finish
+  /// 3. Wait for the job to finish
 
   // get the response and process it
-  size_t objectSize = communicator.getSizeOfNextObject();
+  objectSize = communicator.getSizeOfNextObject();
 
   // check if we did get a response
   if (objectSize == 0) {
@@ -255,6 +261,7 @@ bool pdb::PDBComputationServerFrontend::runScheduledJob(pdb::PDBCommunicator &co
     return false;
   }
 
+  // get the response
   {
     bool success;
 

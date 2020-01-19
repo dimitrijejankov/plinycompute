@@ -26,7 +26,7 @@ private:
 
   bool scheduleJob(PDBCommunicator &temp, pdb::Handle<ExJob> &job, std::string &errMsg);
 
-  bool runScheduledJob(PDBCommunicator &communicator, string &errMsg);
+  bool runStage(PDBCommunicator &communicator, string &errMsg);
 
   bool removeUnusedPageSets(const std::vector<pair<uint64_t, std::string>>& pageSets);
 

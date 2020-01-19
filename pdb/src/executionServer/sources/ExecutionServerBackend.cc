@@ -92,17 +92,6 @@ void pdb::ExecutionServerBackend::registerHandlers(pdb::PDBServer &forMe) {
 
               // cleanup the stage
               stage->cleanup(state);
-
-              {
-                // want this to be destroyed
-                Handle<pdb::ExRunJob> result = sendUsingMe->getNextObject<pdb::ExRunJob> (success, error);
-                if (!success || !(result->shouldRun)) {
-
-                  // set the error and break out
-                  error = "Job aborted by the computation server.";
-                  break;
-                }
-              }
             }
 
             // just finish
