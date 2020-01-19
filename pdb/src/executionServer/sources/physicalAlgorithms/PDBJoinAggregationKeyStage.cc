@@ -359,10 +359,21 @@ void pdb::PDBJoinAggregationKeyStage::cleanup(const pdb::PDBPhysicalAlgorithmSta
   // cast the state
   auto s = dynamic_pointer_cast<PDBJoinAggregationState>(state);
 
-  // clear the senders and the plan senders they are done
-  s->leftKeySenders->clear();
-  s->rightKeySenders->clear();
-  s->planSenders->clear();
+  // clear the left senders
+  if(s->leftKeySenders != nullptr) {
+    s->leftKeySenders->clear();
+  }
+
+  // clear the right senders
+  if(s->rightKeySenders != nullptr) {
+    s->rightKeySenders->clear();
+  }
+
+  // clear the plan senders
+  if(s->planSenders != nullptr) {
+    s->planSenders->clear();
+  }
+
 }
 
 pdb::SourceSetArgPtr pdb::PDBJoinAggregationKeyStage::getKeySourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient,
