@@ -21,6 +21,7 @@
 
 #include <JoinTupleSingleton.h>
 #include <lambdas/KeyExtractionLambda.h>
+#include <JoinMapCreator.h>
 #include "Computation.h"
 #include "JoinTests.h"
 #include "ComputePlan.h"
@@ -93,6 +94,45 @@ class JoinComp : public JoinCompBase {
   // from the interface: get the i^th input type
   std::string getInputType(int i) final {
     return getInputType<In1, In2, Rest...>(i);
+  }
+
+  JoinAggSideSenderPtr getJoinAggSender(TupleSpec &projection,
+                                        pdb::LogicalPlanPtr &plan,
+                                        PDBPageHandle page,
+                                        PDBCommunicatorPtr comm) override {
+
+    // figure out the right join tuple
+    std::vector<int> whereEveryoneGoes;
+    JoinTuplePtr correctJoinTuple = findJoinTuple(projection, plan, whereEveryoneGoes);
+
+    // check what kind of sink we need
+    return correctJoinTuple->getJoinAggSender(page, comm);
+  }
+
+  JoinMapCreatorPtr getJoinMapCreator(TupleSpec &projection,
+                                      pdb::LogicalPlanPtr &plan,
+                                      int32_t numThreads,
+                                      int32_t nodeId,
+                                      bool isLeft,
+                                      PDBPageHandle planPage,
+                                      PDBAnonymousPageSetPtr pageSet,
+                                      PDBCommunicatorPtr communicator,
+                                      PDBPageHandle page,
+                                      PDBLoggerPtr logger) override {
+
+    // figure out the right join tuple
+    std::vector<int> whereEveryoneGoes;
+    JoinTuplePtr correctJoinTuple = findJoinTuple(projection, plan, whereEveryoneGoes);
+
+    // check what kind of sink we need
+    return correctJoinTuple->getJoinMapCreator(numThreads,
+                                               nodeId,
+                                               isLeft,
+                                               planPage,
+                                               pageSet,
+                                               communicator,
+                                               page,
+                                               logger);
   }
 
   // this gets a compute sink

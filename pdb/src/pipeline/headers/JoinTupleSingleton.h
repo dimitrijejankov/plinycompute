@@ -20,6 +20,7 @@
 #include <RHSJoinKeySource.h>
 #include <JoinArguments.h>
 #include <JoinAggSideSink.h>
+#include "JoinMapCreator.h"
 
 namespace pdb {
 
@@ -27,6 +28,18 @@ namespace pdb {
 class JoinTupleSingleton {
 
  public:
+
+  virtual JoinAggSideSenderPtr getJoinAggSender(PDBPageHandle page,
+                                                PDBCommunicatorPtr comm) = 0;
+
+  virtual JoinMapCreatorPtr getJoinMapCreator(int32_t numThreads,
+                                              int32_t nodeId,
+                                              bool isLeft,
+                                              PDBPageHandle planPage,
+                                              PDBAnonymousPageSetPtr pageSet,
+                                              PDBCommunicatorPtr communicator,
+                                              PDBPageHandle page,
+                                              PDBLoggerPtr logger) = 0;
 
   virtual ComputeExecutorPtr getProber(PDBAbstractPageSetPtr &hashTable,
                                        std::vector<int> &positions,
@@ -111,6 +124,49 @@ class JoinSingleton : public JoinTupleSingleton {
   HoldMe myData;
 
 public:
+
+  JoinAggSideSenderPtr getJoinAggSender(PDBPageHandle page,
+                                        PDBCommunicatorPtr comm) override {
+
+    // check if it has the key and this is a binary join tuple so basically JoinTuple<TypeToHold, char[0]>
+    // the type to hold will be provided to the join agg sink, the type also has to be able to give us the key
+    if constexpr(pdb::tupleTests::has_get_key<HoldMe>::value and
+                 std::is_same<decltype(((HoldMe*) nullptr)->myOtherData), char[0]>::value) {
+      return std::make_shared<JoinAggSideSender<decltype(myData.getKey())>>(page, comm);
+    }
+
+    // this is not supposed to happen
+    throw runtime_error("The tuple does not have a key. Why are u calling to get the join aggregation sender?");
+  }
+
+  JoinMapCreatorPtr getJoinMapCreator(int32_t numThreads,
+                                      int32_t nodeId,
+                                      bool isLeft,
+                                      PDBPageHandle planPage,
+                                      PDBAnonymousPageSetPtr pageSet,
+                                      PDBCommunicatorPtr communicator,
+                                      PDBPageHandle page,
+                                      PDBLoggerPtr logger) override {
+
+    // check if it has the key and this is a binary join tuple so basically JoinTuple<TypeToHold, char[0]>
+    // the type to hold will be provided to the join agg sink, the type also has to be able to give us the key
+    if constexpr(pdb::tupleTests::has_get_key<HoldMe>::value and
+                 std::is_same<decltype(((HoldMe*) nullptr)->myOtherData), char[0]>::value) {
+
+      // return the join agg sink
+      return std::make_shared<JoinMapCreator<decltype(((HoldMe*) nullptr)->myData)>>(numThreads,
+                                                                                     nodeId,
+                                                                                     isLeft,
+                                                                                     planPage,
+                                                                                     pageSet,
+                                                                                     communicator,
+                                                                                     page,
+                                                                                     logger);
+    }
+
+    // this is not supposed to happen
+    throw runtime_error("The tuple does not have a key. Why are u calling to get the join map creator?");
+  }
 
   // gets a hash table prober
   ComputeExecutorPtr getProber(PDBAbstractPageSetPtr &hashTable,

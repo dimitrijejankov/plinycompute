@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PDBPhysicalAlgorithmStage.h"
+#include "JoinCompBase.h"
 
 namespace pdb {
 
@@ -49,6 +50,12 @@ public:
    */
   pdb::SourceSetArgPtr getRightSourceSetArg(const std::shared_ptr<pdb::PDBCatalogClient> &catalogClient,
                                             size_t idx);
+
+  /**
+   * Returns the join computation in this join aggregation pipeline
+   * @return the join comp
+   */
+  JoinCompBase* getJoinComp(const LogicalPlanPtr &logicalPlan);
 
   // the join tuple set
   const pdb::String &joinTupleSet;

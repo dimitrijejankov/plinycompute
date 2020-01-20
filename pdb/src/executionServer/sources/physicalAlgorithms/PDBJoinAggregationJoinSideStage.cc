@@ -8,7 +8,7 @@
 #include "PreaggregationPageProcessor.h"
 #include "GenericWork.h"
 #include "ExJob.h"
-#include "../../../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlock.h"
+//#include "../../../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlock.h"
 
 pdb::PDBJoinAggregationJoinSideStage::PDBJoinAggregationJoinSideStage(const pdb::PDBSinkPageSetSpec &sink,
                                                                       const pdb::Vector<pdb::PDBSourceSpec> &sources,
@@ -132,12 +132,20 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
 
   /// 12. Setup the join side senders
 
+  // get the join computation
+  auto joinComp = getJoinComp(logicalPlan);
+
   // setup the left senders
   s->leftJoinSideSenders = std::make_shared<std::vector<JoinAggSideSenderPtr>>();
 
   // init the senders
   for(auto &comm : *s->leftJoinSideCommunicatorsIn) {
-    s->leftJoinSideSenders->emplace_back(std::make_shared<JoinAggSideSender<matrix::MatrixBlock>>(myMgr->getPage(), comm));
+
+    // init the right senders
+    s->leftJoinSideSenders->emplace_back(joinComp->getJoinAggSender(joinAtomicComp->getProjection(),
+                                                                    logicalPlan,
+                                                                    myMgr->getPage(),
+                                                                    comm));
   }
 
   // setup the right senders
@@ -145,7 +153,12 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
 
   // init the senders
   for(auto &comm : *s->rightJoinSideCommunicatorsIn) {
-    s->rightJoinSideSenders->emplace_back(std::make_shared<JoinAggSideSender<matrix::MatrixBlock>>(myMgr->getPage(), comm));
+
+    // init the right senders
+    s->rightJoinSideSenders->emplace_back(joinComp->getJoinAggSender(joinAtomicComp->getRightProjection(),
+                                                                    logicalPlan,
+                                                                    myMgr->getPage(),
+                                                                    comm));
   }
 
   /// 13. Setup the join map creators
@@ -156,14 +169,16 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
   for(auto &comm : *s->leftJoinSideCommunicatorsOut) {
 
     // make the creators
-    s->joinMapCreators->emplace_back(std::make_shared<JoinMapCreator<matrix::MatrixBlock>>(storage->getConfiguration()->numThreads,
-                                                                   job->thisNode,
-                                                                   true,
-                                                                   s->planPage,
-                                                                   s->leftShuffledPageSet,
-                                                                   comm,
-                                                                   myMgr->getPage(),
-                                                                   s->logger));
+    s->joinMapCreators->emplace_back(joinComp->getJoinMapCreator(joinAtomicComp->getProjection(),
+                                 logicalPlan,
+                                     storage->getConfiguration()->numThreads,
+                                     job->thisNode,
+                                    true,
+                                     s->planPage,
+                                     s->leftShuffledPageSet,
+                                     comm,
+                                     myMgr->getPage(),
+                                     s->logger));
   }
 
   // init the join side creators
@@ -171,14 +186,16 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
   for(auto &comm : *s->rightJoinSideCommunicatorsOut) {
 
     // make the creators
-    s->joinMapCreators->emplace_back(std::make_shared<JoinMapCreator<matrix::MatrixBlock>>(storage->getConfiguration()->numThreads,
-                                                                      job->thisNode,
-                                                                      false,
-                                                                      s->planPage,
-                                                                      s->rightShuffledPageSet,
-                                                                      comm,
-                                                                      myMgr->getPage(),
-                                                                      s->logger));
+    s->joinMapCreators->emplace_back(joinComp->getJoinMapCreator(joinAtomicComp->getProjection(),
+                                                                 logicalPlan,
+                                                                 storage->getConfiguration()->numThreads,
+                                                                 job->thisNode,
+                                                                 false,
+                                                                 s->planPage,
+                                                                 s->rightShuffledPageSet,
+                                                                 comm,
+                                                                 myMgr->getPage(),
+                                                                 s->logger));
   }
 
   /// 14. the left and right side of the join
@@ -610,4 +627,16 @@ pdb::SourceSetArgPtr pdb::PDBJoinAggregationJoinSideStage::getRightSourceSetArg(
   // return the argument
   std::string error;
   return std::make_shared<pdb::SourceSetArg>(catalogClient->getSet(sourceSet->database, sourceSet->set, error));
+}
+
+pdb::JoinCompBase* pdb::PDBJoinAggregationJoinSideStage::getJoinComp(const LogicalPlanPtr &logicalPlan) {
+
+  auto &computations = logicalPlan->getComputations();
+
+  // get the join atomic computation computation
+  auto joinComp = computations.getProducingAtomicComputation(joinTupleSet);
+
+  // get the real computation
+  auto compNode = logicalPlan->getNode(joinComp->getComputationName());
+  return ((JoinCompBase*) &logicalPlan->getNode(joinComp->getComputationName()).getComputation());
 }

@@ -22,6 +22,7 @@
 #include "RHSShuffleJoinSourceBase.h"
 #include "RHSKeyJoinSourceBase.h"
 #include <JoinArguments.h>
+#include <JoinMapCreator.h>
 
 namespace pdb {
 
@@ -45,6 +46,22 @@ class JoinCompBase : public Computation {
                                          TupleSpec &pipelinedInputSchema,
                                          TupleSpec &pipelinedAttsToOperateOn,
                                          TupleSpec &pipelinedAttsToIncludeInOutput) = 0;
+
+  virtual JoinAggSideSenderPtr getJoinAggSender(TupleSpec &projection,
+                                                pdb::LogicalPlanPtr &plan,
+                                                PDBPageHandle page,
+                                                PDBCommunicatorPtr comm) = 0;
+
+  virtual JoinMapCreatorPtr getJoinMapCreator(TupleSpec &projection,
+                                              pdb::LogicalPlanPtr &plan,
+                                              int32_t numThreads,
+                                              int32_t nodeId,
+                                              bool isLeft,
+                                              PDBPageHandle planPage,
+                                              PDBAnonymousPageSetPtr pageSet,
+                                              PDBCommunicatorPtr communicator,
+                                              PDBPageHandle page,
+                                              PDBLoggerPtr logger) = 0;
 
   virtual RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
                                                               TupleSpec &hashSchema,
