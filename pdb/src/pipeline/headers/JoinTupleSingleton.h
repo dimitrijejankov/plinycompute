@@ -179,19 +179,21 @@ public:
                                 bool isLeft,
                                 uint64_t numPartitions) override {
 
-    // check if it has the key
-    if constexpr(pdb::tupleTests::has_get_key<HoldMe>::value) {
+    // check if it has the key and this is a binary join tuple so basically JoinTuple<TypeToHold, char[0]>
+    // the type to hold will be provided to the join agg sink, the type also has to be able to give us the key
+    if constexpr(pdb::tupleTests::has_get_key<HoldMe>::value and
+                 std::is_same<decltype(((HoldMe*) nullptr)->myOtherData), char[0]>::value) {
 
       // return the join agg sink
-      return std::make_shared<JoinAggSideSink<HoldMe>>(consumeMe,
-                                                       attsToOpOn,
-                                                       projection,
-                                                       whereEveryoneGoes,
-                                                       keyToLeft,
-                                                       senders,
-                                                       planPage,
-                                                       isLeft,
-                                                       numPartitions);
+      return std::make_shared<JoinAggSideSink<decltype(((HoldMe*) nullptr)->myData)>>(consumeMe,
+                                                                                      attsToOpOn,
+                                                                                      projection,
+                                                                                      whereEveryoneGoes,
+                                                                                      keyToLeft,
+                                                                                      senders,
+                                                                                      planPage,
+                                                                                      isLeft,
+                                                                                      numPartitions);
     }
 
     // this is not supposed to happen

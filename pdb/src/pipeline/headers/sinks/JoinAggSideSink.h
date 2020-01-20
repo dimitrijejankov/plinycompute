@@ -6,27 +6,26 @@
 #include <JoinMap.h>
 #include <JoinTuple.h>
 #include <PDBCommunicator.h>
-
 #include <utility>
 #include <PipJoinAggPlanResult.h>
-#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlockMeta.h"
-#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlock.h"
-#include "../../../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlockMeta.h"
 
 namespace pdb {
 
 // this class is used to create a ComputeSink object that stores special objects that wrap up multiple columns of a tuple
-template<typename RHSType>
+template<typename record_t>
 class JoinAggSideSink : public ComputeSink {
+
+  // type of the key with the handle
+  using key_handle_t = typename std::remove_reference<decltype(((record_t*) nullptr)->getKey())>::type;
+
+  // type of the key
+  using key_t = typename pdb::remove_handle<key_handle_t>::type;
 
 private:
 
   // tells us which attribute is the key which one the value
   int keyAtt;
   int valAtt;
-
-  // if useTheseAtts[i] = j, it means that the i^th attribute that we need to extract from the input tuple is j
-  std::vector<int> useTheseAtts;
 
   // if whereEveryoneGoes[i] = j, it means that the i^th entry in useTheseAtts goes in the j^th pos in the holder tuple
   std::vector<int> whereEveryoneGoes;
@@ -56,16 +55,13 @@ private:
   bool isInitialized = false;
 
   // basically stores
-  std::vector<std::vector<std::pair<uint32_t, pdb::Handle<pdb::matrix::MatrixBlock>>>> nodeToRecord;
+  std::vector<std::vector<std::pair<uint32_t, pdb::Handle<record_t>>>> nodeToRecord;
 
   //
-  Handle<pdb::Map<pdb::matrix::MatrixBlockMeta, uint32_t>> tidMap;
+  Handle<pdb::Map<key_t, uint32_t>> tidMap;
 
   // the plan of for the
   Handle<PipJoinAggPlanResult::JoinTIDToNode> plan;
-
-  // the buffer page
-  PDBPageHandle bufferPage;
 
 public:
 
@@ -104,8 +100,8 @@ public:
 
   void writeOut(TupleSetPtr input, Handle<Object> &writeToMe) override {
 
-    std::vector<pdb::Handle<pdb::matrix::MatrixBlock>> &valueColumns = input->getColumn<pdb::Handle<pdb::matrix::MatrixBlock>>(valAtt);
-    std::vector<pdb::Handle<pdb::matrix::MatrixBlockMeta>> &keyColumns = input->getColumn<pdb::Handle<pdb::matrix::MatrixBlockMeta>>(keyAtt);
+    std::vector<pdb::Handle<record_t>> &valueColumns = input->getColumn<pdb::Handle<record_t>>(valAtt);
+    std::vector<pdb::Handle<key_t>> &keyColumns = input->getColumn<pdb::Handle<key_t>>(keyAtt);
 
     if(!this->isInitialized) {
 
@@ -113,7 +109,7 @@ public:
       this->keyToLeft->repin();
 
       // grab the tid map from tid
-      auto* tidMapRecord = (Record<pdb::Map<pdb::matrix::MatrixBlockMeta, uint32_t>>*) this->keyToLeft->getBytes();
+      auto* tidMapRecord = (Record<pdb::Map<key_t, uint32_t>>*) this->keyToLeft->getBytes();
       tidMap = tidMapRecord->getRootObject();
 
       // repin the plan page
@@ -146,7 +142,6 @@ public:
 
       // get the tid
       auto tid = (*tidMap)[*k];
-      std::cout << "The tid for " << "(" << k->rowID << ", " << k->colID  << ") ->" << tid << " is sent to : ";
 
       // get the nodes vector
       Vector<bool> &nodes = (*plan)[tid];

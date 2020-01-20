@@ -3,8 +3,6 @@
 #pragma once
 
 #include "RHSKeyJoinSourceBase.h"
-#include "../../../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlockMeta.h"
-
 #include <utility>
 #include <PDBLabeledPageSet.h>
 
@@ -276,7 +274,6 @@ public:
     auto it = tidMap->begin();
 
     while(it != tidMap->end()) {
-      std::cout << (*it).key.rowID << " " << (*it).key.colID  << "\n";
       ++it;
     }
 

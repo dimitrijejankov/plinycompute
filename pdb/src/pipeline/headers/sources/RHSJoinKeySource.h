@@ -3,7 +3,6 @@
 #include <utility>
 #include "RHSKeyJoinSourceBase.h"
 #include "PDBLabeledPageSet.h"
-#include "../../../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlockMeta.h"
 
 namespace pdb {
 
@@ -169,7 +168,6 @@ public:
     auto it = tidMap->begin();
 
     while(it != tidMap->end()) {
-      std::cout << (*it).key.rowID << " " << (*it).key.colID  << "\n";
       ++it;
     }
 

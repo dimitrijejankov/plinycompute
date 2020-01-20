@@ -8,6 +8,7 @@
 #include "PreaggregationPageProcessor.h"
 #include "GenericWork.h"
 #include "ExJob.h"
+#include "../../../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlock.h"
 
 pdb::PDBJoinAggregationJoinSideStage::PDBJoinAggregationJoinSideStage(const pdb::PDBSinkPageSetSpec &sink,
                                                                       const pdb::Vector<pdb::PDBSourceSpec> &sources,
@@ -136,7 +137,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
 
   // init the senders
   for(auto &comm : *s->leftJoinSideCommunicatorsIn) {
-    s->leftJoinSideSenders->emplace_back(std::make_shared<JoinAggSideSender>(myMgr->getPage(), comm));
+    s->leftJoinSideSenders->emplace_back(std::make_shared<JoinAggSideSender<matrix::MatrixBlock>>(myMgr->getPage(), comm));
   }
 
   // setup the right senders
@@ -144,7 +145,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
 
   // init the senders
   for(auto &comm : *s->rightJoinSideCommunicatorsIn) {
-    s->rightJoinSideSenders->emplace_back(std::make_shared<JoinAggSideSender>(myMgr->getPage(), comm));
+    s->rightJoinSideSenders->emplace_back(std::make_shared<JoinAggSideSender<matrix::MatrixBlock>>(myMgr->getPage(), comm));
   }
 
   /// 13. Setup the join map creators
@@ -155,7 +156,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
   for(auto &comm : *s->leftJoinSideCommunicatorsOut) {
 
     // make the creators
-    s->joinMapCreators->emplace_back(std::make_shared<JoinMapCreator>(storage->getConfiguration()->numThreads,
+    s->joinMapCreators->emplace_back(std::make_shared<JoinMapCreator<matrix::MatrixBlock>>(storage->getConfiguration()->numThreads,
                                                                    job->thisNode,
                                                                    true,
                                                                    s->planPage,
@@ -170,7 +171,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
   for(auto &comm : *s->rightJoinSideCommunicatorsOut) {
 
     // make the creators
-    s->joinMapCreators->emplace_back(std::make_shared<JoinMapCreator>(storage->getConfiguration()->numThreads,
+    s->joinMapCreators->emplace_back(std::make_shared<JoinMapCreator<matrix::MatrixBlock>>(storage->getConfiguration()->numThreads,
                                                                       job->thisNode,
                                                                       false,
                                                                       s->planPage,
