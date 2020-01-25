@@ -92,8 +92,9 @@ TEST(SetScannerTest, Test1) {
 
   // and here is the chunk
   TupleSetPtr curChunk;
+  PDBTupleSetSizePolicy curpolicy(myMgr.getMaxPageSize());
 
-  while ((curChunk = dataSource->getNextTupleSet()) != nullptr) {
+  while ((curChunk = dataSource->getNextTupleSet(curpolicy)) != nullptr) {
 
     // check the number of columns
     EXPECT_EQ(curChunk->getNumColumns(), 1);
