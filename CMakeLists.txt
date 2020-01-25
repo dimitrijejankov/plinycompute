@@ -18,6 +18,11 @@ set(CMAKE_CXX_STANDARD 14)
 # check the operating system and add the appropriate flags
 set(CMAKE_CXX_FLAGS "-fPIC -Wno-deprecated-declarations")
 
+# the default build type is debug
+if(CMAKE_BUILD_TYPE MATCHES "")
+    set(CMAKE_BUILD_TYPE "Debug")
+endif()
+
 # if we are compiling for debug add the debug flags
 if(CMAKE_BUILD_TYPE MATCHES Debug)
 
