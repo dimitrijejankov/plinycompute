@@ -198,9 +198,14 @@ class MultiSelectionComp : public Computation {
      * 2. Generate the TCAP for the projection
      */
 
+
+
     // generate the new tuple set name
     mustache::mustache newTupleSetNameTemplate{"filteredInputFor{{computationType}}{{computationLabel}}"};
     multiInputsBase.tupleSetNamesForInputs[0] = newTupleSetNameTemplate.render(selectionCompData);
+    multiInputsBase.inputColumnsForInputs[0] = outputColumns;
+    multiInputsBase.inputColumnsToApplyForInputs[0] = outputColumns;
+    multiInputsBase.inputColumnsToKeep.clear();
 
     Lambda<Vector<Handle<Out>>> projectionLambda = getProjection(checkMe);
     tcapString += "\n/* Apply MultiSelection projection */\n";
