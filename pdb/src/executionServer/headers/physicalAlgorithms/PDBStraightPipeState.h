@@ -13,6 +13,10 @@ struct PDBStraightPipeState : public PDBPhysicalAlgorithmState {
    */
   std::shared_ptr<std::vector<PipelinePtr>> myPipelines = nullptr;
 
+  /**
+   * T
+   */
+  LogicalPlanPtr myPlan;
 };
 
 }

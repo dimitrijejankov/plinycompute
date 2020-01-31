@@ -190,12 +190,6 @@ class SelectionComp : public Computation {
     // get the projection
     Lambda<Handle<OutputClass>> projectionLambda = getProjection(checkMe);
 
-    //TODO this needs to be made nicer
-    std::string outputTupleSetName;
-    std::vector<std::string> outputColumnNames;
-    std::string addedOutputColumnName;
-    std::string newTupleSetName;
-
     // generate the TCAP string for the FILTER
     tcapString += "\n/* Apply selection projection */\n";
     tcapString += projectionLambda.toTCAPString(lambdaLabel,

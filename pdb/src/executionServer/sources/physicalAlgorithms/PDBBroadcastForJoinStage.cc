@@ -27,7 +27,7 @@ bool pdb::PDBBroadcastForJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
 
   // init the plan
   ComputePlan plan(std::make_shared<LogicalPlan>(job->tcap, *job->computations));
-  auto logicalPlan = plan.getPlan();
+  s->logicalPlan = plan.getPlan();
 
   // get the manager
   auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
@@ -78,7 +78,7 @@ bool pdb::PDBBroadcastForJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
     const pdb::String &firstTupleSet = sources[pipelineSource].firstTupleSet;
 
     // get the source computation
-    auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
+    auto srcNode = s->logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
 
     // if this is a scan set get the page set from a real set
     PDBAbstractPageSetPtr sourcePageSet = getSourcePageSet(storage, pipelineIndex);

@@ -46,17 +46,17 @@ bool pdb::PDBJoinAggregationKeyStage::setup(const Handle<ExJob> &job,
   auto s = dynamic_pointer_cast<PDBJoinAggregationState>(state);
 
   // make a logical plan
-  auto logicalPlan = std::make_shared<LogicalPlan>(job->tcap, *job->computations);
+  s->logicalPlan = std::make_shared<LogicalPlan>(job->tcap, *job->computations);
 
   /// 1. Find the aggregation comp
 
   // figure out the aggregation
-  if(!logicalPlan->getComputations().hasConsumer(finalTupleSet)) {
+  if(!s->logicalPlan->getComputations().hasConsumer(finalTupleSet)) {
     throw runtime_error("Aggregation key has to have a consumer!");
   }
 
   // figure out the aggregation computation
-  auto consumers = logicalPlan->getComputations().getConsumingAtomicComputations(finalTupleSet);
+  auto consumers = s->logicalPlan->getComputations().getConsumingAtomicComputations(finalTupleSet);
   if(consumers.size() != 1) {
     throw runtime_error("None or multiple aggregation computations!");
   }
@@ -65,7 +65,7 @@ bool pdb::PDBJoinAggregationKeyStage::setup(const Handle<ExJob> &job,
   /// 2. Find the key extraction
 
   // try to find the key extraction of the key
-  auto comps = logicalPlan->getComputations().findByPredicate([&aggComp](AtomicComputationPtr &c){
+  auto comps = s->logicalPlan->getComputations().findByPredicate([&aggComp](AtomicComputationPtr &c) {
 
     if(c->getComputationName() == aggComp->getComputationName() &&
         c->getAtomicComputationTypeID() == ApplyLambdaTypeID) {
@@ -88,7 +88,7 @@ bool pdb::PDBJoinAggregationKeyStage::setup(const Handle<ExJob> &job,
   /// 3. Run the transformations
 
   // make the transformer
-  auto transformer = std::make_shared<LogicalPlanTransformer>(logicalPlan);
+  auto transformer = std::make_shared<LogicalPlanTransformer>(s->logicalPlan);
 
   // add the transformation
   transformer->addTransformation(std::make_shared<InsertKeyScanSetsTransformation>(leftInputTupleSet));
@@ -101,11 +101,11 @@ bool pdb::PDBJoinAggregationKeyStage::setup(const Handle<ExJob> &job,
   transformer->addTransformation(std::make_shared<AddJoinTID>(joinTupleSet));
 
   // apply all the transformations
-  logicalPlan = transformer->applyTransformations();
-  std::cout << "Key only plan : \n" << *logicalPlan << '\n';
+  s->logicalPlan = transformer->applyTransformations();
+  std::cout << "Key only plan : \n" << *s->logicalPlan << '\n';
 
   // make the compute plan
-  auto computePlan = std::make_shared<KeyComputePlan>(logicalPlan);
+  auto computePlan = std::make_shared<KeyComputePlan>(s->logicalPlan);
 
   // get catalog client
   auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
@@ -204,7 +204,7 @@ bool pdb::PDBJoinAggregationKeyStage::setup(const Handle<ExJob> &job,
 
   /// 7. Initialize the join-agg key pipeline
 
-  auto &computations = logicalPlan->getComputations();
+  auto &computations = s->logicalPlan->getComputations();
 
   // try to find the sink
   auto sinkList = computations.findByPredicate([&computations](AtomicComputationPtr &c){

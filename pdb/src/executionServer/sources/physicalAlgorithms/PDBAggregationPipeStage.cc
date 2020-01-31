@@ -26,7 +26,7 @@ bool pdb::PDBAggregationPipeStage::setup(const pdb::Handle<pdb::ExJob> &job,
 
   // init the plan
   ComputePlan plan(std::make_shared<LogicalPlan>(job->tcap, *job->computations));
-  auto logicalPlan = plan.getPlan();
+  s->logicalPlan = plan.getPlan();
 
   // get the buffer manager
   auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
@@ -84,7 +84,7 @@ bool pdb::PDBAggregationPipeStage::setup(const pdb::Handle<pdb::ExJob> &job,
     const pdb::String &firstTupleSet = sources[pipelineSource].firstTupleSet;
 
     // get the source computation
-    auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
+    auto srcNode = s->logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
 
     // go grab the source page set
     PDBAbstractPageSetPtr sourcePageSet = sourcePageSets[pipelineSource];

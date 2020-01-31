@@ -8,7 +8,6 @@
 #include "PreaggregationPageProcessor.h"
 #include "GenericWork.h"
 #include "ExJob.h"
-//#include "../../../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlock.h"
 
 pdb::PDBJoinAggregationJoinSideStage::PDBJoinAggregationJoinSideStage(const pdb::PDBSinkPageSetSpec &sink,
                                                                       const pdb::Vector<pdb::PDBSourceSpec> &sources,
@@ -42,19 +41,20 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
 
   // init the plan
   ComputePlan plan(std::make_shared<LogicalPlan>(job->tcap, *job->computations));
-  auto logicalPlan = plan.getPlan();
+  s->logicalPlan = plan.getPlan();
 
   // make the transformer
-  auto transformer = std::make_shared<LogicalPlanTransformer>(logicalPlan);
+  auto transformer = std::make_shared<LogicalPlanTransformer>(s->logicalPlan);
   transformer->addTransformation(std::make_shared<DropToKeyExtractionTransformation>(joinTupleSet));
 
   // apply all the transformations
-  logicalPlan = transformer->applyTransformations();
+  s->logicalPlan = transformer->applyTransformations();
 
   // get the join comp
-  auto joinAtomicComp = dynamic_pointer_cast<ApplyJoin>(logicalPlan->getComputations().getProducingAtomicComputation(joinTupleSet));
+  auto joinAtomicComp =
+      dynamic_pointer_cast<ApplyJoin>(s->logicalPlan->getComputations().getProducingAtomicComputation(joinTupleSet));
 
-  std::cout << "Exec plan" << *logicalPlan << '\n';
+  std::cout << "Exec plan" << *s->logicalPlan << '\n';
 
   /// 10. Make outgoing connections to other nodes
 
@@ -67,7 +67,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
 
   // init the vector for the left sides
   s->leftJoinSideCommunicatorsOut = std::make_shared<std::vector<PDBCommunicatorPtr>>();
-  for(int n = 0; n < job->numberOfNodes; n++) {
+  for (int n = 0; n < job->numberOfNodes; n++) {
 
     // connect to the node
     s->leftJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->address,
@@ -78,7 +78,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
   // init the vector for the right sides
   connectionID->taskID = PDBJoinAggregationState::RIGHT_JOIN_SIDE_TASK;
   s->rightJoinSideCommunicatorsOut = std::make_shared<std::vector<PDBCommunicatorPtr>>();
-  for(int n = 0; n < job->numberOfNodes; n++) {
+  for (int n = 0; n < job->numberOfNodes; n++) {
 
     // connect to the node
     s->rightJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->address,
@@ -91,7 +91,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
   // wait for left side connections
   connectionID->taskID = PDBJoinAggregationState::LEFT_JOIN_SIDE_TASK;
   s->leftJoinSideCommunicatorsIn = std::make_shared<std::vector<PDBCommunicatorPtr>>();
-  for(int n = 0; n < job->numberOfNodes; n++) {
+  for (int n = 0; n < job->numberOfNodes; n++) {
 
     // set the node id
     connectionID->nodeID = n;
@@ -100,7 +100,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
     s->leftJoinSideCommunicatorsIn->push_back(myMgr->waitForConnection(connectionID));
 
     // check if the socket is open
-    if(s->leftJoinSideCommunicatorsIn->back()->isSocketClosed()) {
+    if (s->leftJoinSideCommunicatorsIn->back()->isSocketClosed()) {
 
       // log the error
       s->logger->error("Socket for the left side is closed");
@@ -112,7 +112,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
   // wait for the right side connections
   connectionID->taskID = PDBJoinAggregationState::RIGHT_JOIN_SIDE_TASK;
   s->rightJoinSideCommunicatorsIn = std::make_shared<std::vector<PDBCommunicatorPtr>>();
-  for(int n = 0; n < job->numberOfNodes; n++) {
+  for (int n = 0; n < job->numberOfNodes; n++) {
 
     // set the node id
     connectionID->nodeID = n;
@@ -121,7 +121,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
     s->rightJoinSideCommunicatorsIn->push_back(myMgr->waitForConnection(connectionID));
 
     // check if the socket is open
-    if(s->rightJoinSideCommunicatorsIn->back()->isSocketClosed()) {
+    if (s->rightJoinSideCommunicatorsIn->back()->isSocketClosed()) {
 
       // log the error
       s->logger->error("Socket for the right side is closed");
@@ -133,17 +133,17 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
   /// 12. Setup the join side senders
 
   // get the join computation
-  auto joinComp = getJoinComp(logicalPlan);
+  auto joinComp = getJoinComp(s->logicalPlan);
 
   // setup the left senders
   s->leftJoinSideSenders = std::make_shared<std::vector<JoinAggSideSenderPtr>>();
 
   // init the senders
-  for(auto &comm : *s->leftJoinSideCommunicatorsIn) {
+  for (auto &comm : *s->leftJoinSideCommunicatorsIn) {
 
     // init the right senders
     s->leftJoinSideSenders->emplace_back(joinComp->getJoinAggSender(joinAtomicComp->getProjection(),
-                                                                    logicalPlan,
+                                                                    s->logicalPlan,
                                                                     myMgr->getPage(),
                                                                     comm));
   }
@@ -152,13 +152,13 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
   s->rightJoinSideSenders = std::make_shared<std::vector<JoinAggSideSenderPtr>>();
 
   // init the senders
-  for(auto &comm : *s->rightJoinSideCommunicatorsIn) {
+  for (auto &comm : *s->rightJoinSideCommunicatorsIn) {
 
     // init the right senders
     s->rightJoinSideSenders->emplace_back(joinComp->getJoinAggSender(joinAtomicComp->getRightProjection(),
-                                                                    logicalPlan,
-                                                                    myMgr->getPage(),
-                                                                    comm));
+                                                                     s->logicalPlan,
+                                                                     myMgr->getPage(),
+                                                                     comm));
   }
 
   /// 13. Setup the join map creators
@@ -166,28 +166,28 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
 
   // init the join side creators
   s->leftShuffledPageSet = storage->createAnonymousPageSet(leftJoinSource.pageSetIdentifier);
-  for(auto &comm : *s->leftJoinSideCommunicatorsOut) {
+  for (auto &comm : *s->leftJoinSideCommunicatorsOut) {
 
     // make the creators
     s->joinMapCreators->emplace_back(joinComp->getJoinMapCreator(joinAtomicComp->getProjection(),
-                                 logicalPlan,
-                                     storage->getConfiguration()->numThreads,
-                                     job->thisNode,
-                                    true,
-                                     s->planPage,
-                                     s->leftShuffledPageSet,
-                                     comm,
-                                     myMgr->getPage(),
-                                     s->logger));
+                                                                 s->logicalPlan,
+                                                                 storage->getConfiguration()->numThreads,
+                                                                 job->thisNode,
+                                                                 true,
+                                                                 s->planPage,
+                                                                 s->leftShuffledPageSet,
+                                                                 comm,
+                                                                 myMgr->getPage(),
+                                                                 s->logger));
   }
 
   // init the join side creators
   s->rightShuffledPageSet = storage->createAnonymousPageSet(rightJoinSource.pageSetIdentifier);
-  for(auto &comm : *s->rightJoinSideCommunicatorsOut) {
+  for (auto &comm : *s->rightJoinSideCommunicatorsOut) {
 
     // make the creators
     s->joinMapCreators->emplace_back(joinComp->getJoinMapCreator(joinAtomicComp->getProjection(),
-                                                                 logicalPlan,
+                                                                 s->logicalPlan,
                                                                  storage->getConfiguration()->numThreads,
                                                                  job->thisNode,
                                                                  false,
@@ -205,10 +205,10 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
 
   // get the sink page set
   s->intermediatePageSet = storage->createAnonymousPageSet(std::make_pair(intermediateSink.pageSetIdentifier.first,
-                                                                                    intermediateSink.pageSetIdentifier.second));
+                                                                          intermediateSink.pageSetIdentifier.second));
 
   // did we manage to get a sink page set? if not the setup failed
-  if(s->intermediatePageSet == nullptr) {
+  if (s->intermediatePageSet == nullptr) {
     return false;
   }
 
@@ -219,7 +219,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
   leftSourcePageSets.reserve(sources.size());
 
   // initialize them
-  for(int i = 0; i < sources.size(); i++) {
+  for (int i = 0; i < sources.size(); i++) {
     leftSourcePageSets.emplace_back(getSourcePageSet(storage, i));
   }
 
@@ -239,23 +239,23 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
     const pdb::String &firstTupleSet = sources[pipelineSource].firstTupleSet;
 
     // get the source computation
-    auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
+    auto srcNode = s->logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
 
     // go grab the source page set
     PDBAbstractPageSetPtr sourcePageSet = leftSourcePageSets[pipelineSource];
 
     // did we manage to get a source page set? if not the setup failed
-    if(sourcePageSet == nullptr) {
+    if (sourcePageSet == nullptr) {
       return false;
     }
 
     /// 14.2.2 Figure out the parameters of the pipeline
 
     // figure out the join arguments
-    auto joinArguments = getJoinArguments (storage);
+    auto joinArguments = getJoinArguments(storage);
 
     // if we could not create them we are out of here
-    if(joinArguments == nullptr) {
+    if (joinArguments == nullptr) {
       return false;
     }
 
@@ -263,11 +263,12 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
     joinArguments->isJoinAggSide = true;
 
     // empty computations parameters
-    params =  {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<DismissProcessor>()},
-               {ComputeInfoType::JOIN_ARGS, joinArguments},
-               {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)},
-               {ComputeInfoType::JOIN_AGG_SIDE_ARGS, std::make_shared<JoinAggSideArg>(s->leftKeyPage, s->leftJoinSideSenders, s->planPage, true)},
-               {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient, pipelineSource)}};
+    params = {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<DismissProcessor>()},
+              {ComputeInfoType::JOIN_ARGS, joinArguments},
+              {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(swapLHSandRHS)},
+              {ComputeInfoType::JOIN_AGG_SIDE_ARGS,
+               std::make_shared<JoinAggSideArg>(s->leftKeyPage, s->leftJoinSideSenders, s->planPage, true)},
+              {ComputeInfoType::SOURCE_SET_INFO, getSourceSetArg(catalogClient, pipelineSource)}};
 
     /// 14.2.3 Build the pipeline
 
@@ -293,7 +294,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
   rightSourcePageSets.reserve(sources.size());
 
   // initialize them
-  for(int i = 0; i < rightSources.size(); i++) {
+  for (int i = 0; i < rightSources.size(); i++) {
     rightSourcePageSets.emplace_back(getRightSourcePageSet(storage, i));
   }
 
@@ -312,7 +313,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
     const pdb::String &firstTupleSet = rightSources[pipelineSource].firstTupleSet;
 
     // get the source computation
-    auto srcNode = logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
+    auto srcNode = s->logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet);
 
     // go grab the source page set
     PDBAbstractPageSetPtr sourcePageSet = rightSourcePageSets[pipelineSource];
@@ -387,7 +388,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
   PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
 
     // did we fail?
-    if(myAlarm == PDBAlarm::GenericError) {
+    if (myAlarm == PDBAlarm::GenericError) {
       success = false;
     }
 
@@ -403,7 +404,8 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&counter, &success, i, &s](const PDBBuzzerPtr& callerBuzzer) {
+    PDBWorkPtr
+        myWork = std::make_shared<pdb::GenericWork>([&counter, &success, i, &s](const PDBBuzzerPtr &callerBuzzer) {
 
       try {
 
@@ -437,7 +439,8 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sendCnt, &success, i, s](const PDBBuzzerPtr& callerBuzzer) {
+    PDBWorkPtr
+        myWork = std::make_shared<pdb::GenericWork>([&sendCnt, &success, i, s](const PDBBuzzerPtr &callerBuzzer) {
 
       try {
 
@@ -467,7 +470,8 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sendCnt, &success, i, &s](const PDBBuzzerPtr& callerBuzzer) {
+    PDBWorkPtr
+        myWork = std::make_shared<pdb::GenericWork>([&sendCnt, &success, i, &s](const PDBBuzzerPtr &callerBuzzer) {
 
       try {
 
@@ -495,13 +499,14 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
   atomic_int commCnt;
   commCnt = 0;
 
-  for(int i = 0; i < s->joinMapCreators->size(); ++i) {
+  for (int i = 0; i < s->joinMapCreators->size(); ++i) {
 
     // get a worker from the server
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&commCnt, &success, i, &s](const PDBBuzzerPtr& callerBuzzer) {
+    PDBWorkPtr
+        myWork = std::make_shared<pdb::GenericWork>([&commCnt, &success, i, &s](const PDBBuzzerPtr &callerBuzzer) {
 
       // run the join map creator
       try {
@@ -518,7 +523,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
       }
 
       // check if the creator succeeded
-      if(!(*s->joinMapCreators)[i]->getSuccess()) {
+      if (!(*s->joinMapCreators)[i]->getSuccess()) {
 
         // log the error
         s->logger->error((*s->joinMapCreators)[i]->getError());
@@ -543,11 +548,11 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
   }
 
   // shutdown the senders since the pipelines are done
-  for(auto &se : *s->leftJoinSideSenders) {
+  for (auto &se : *s->leftJoinSideSenders) {
     se->shutdown();
   }
 
-  for(auto &se : *s->rightJoinSideSenders) {
+  for (auto &se : *s->rightJoinSideSenders) {
     se->shutdown();
   }
 
@@ -562,7 +567,8 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
   }
 
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-  std::cout << "Run pipeline for " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns]" << '\n';
+  std::cout << "Run pipeline for " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count()
+            << "[ns]" << '\n';
 
   return true;
 }
@@ -620,7 +626,7 @@ pdb::SourceSetArgPtr pdb::PDBJoinAggregationJoinSideStage::getRightSourceSetArg(
   auto &sourceSet = this->rightSources[idx].sourceSet;
 
   // check if we actually have a set
-  if(sourceSet == nullptr) {
+  if (sourceSet == nullptr) {
     return nullptr;
   }
 
@@ -629,7 +635,7 @@ pdb::SourceSetArgPtr pdb::PDBJoinAggregationJoinSideStage::getRightSourceSetArg(
   return std::make_shared<pdb::SourceSetArg>(catalogClient->getSet(sourceSet->database, sourceSet->set, error));
 }
 
-pdb::JoinCompBase* pdb::PDBJoinAggregationJoinSideStage::getJoinComp(const LogicalPlanPtr &logicalPlan) {
+pdb::JoinCompBase *pdb::PDBJoinAggregationJoinSideStage::getJoinComp(const LogicalPlanPtr &logicalPlan) {
 
   auto &computations = logicalPlan->getComputations();
 
@@ -638,5 +644,5 @@ pdb::JoinCompBase* pdb::PDBJoinAggregationJoinSideStage::getJoinComp(const Logic
 
   // get the real computation
   auto compNode = logicalPlan->getNode(joinComp->getComputationName());
-  return ((JoinCompBase*) &logicalPlan->getNode(joinComp->getComputationName()).getComputation());
+  return ((JoinCompBase *) &logicalPlan->getNode(joinComp->getComputationName()).getComputation());
 }
