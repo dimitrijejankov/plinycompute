@@ -36,3 +36,6 @@ applications/TestLinearAlgebra/linearAlgebraDSL/source/LALexer.c
 applications/TestLinearAlgebra/linearAlgebraDSL/source/LAParser.c
 /.autotools
 /.project
+.clangd/
+.vscode/
+build/
