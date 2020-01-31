@@ -15,19 +15,19 @@ class MatrixBlockMeta : public pdb::Object {
    */
   MatrixBlockMeta() = default;
 
-  MatrixBlockMeta(uint32_t col_id, uint32_t row_id) : colID(col_id), rowID(row_id) {}
+  MatrixBlockMeta(uint32_t row_id, uint32_t col_id) : rowID(row_id), colID(col_id) {}
 
   ENABLE_DEEP_COPY
-
-  /**
-   * The column position of the block
-   */
-  uint32_t colID = 0;
 
   /**
    * The row position of the block
    */
   uint32_t rowID = 0;
+
+  /**
+   * The column position of the block
+   */
+  uint32_t colID = 0;
 
   bool operator==(const MatrixBlockMeta &other) const {
     return colID == other.colID && rowID == other.rowID;
