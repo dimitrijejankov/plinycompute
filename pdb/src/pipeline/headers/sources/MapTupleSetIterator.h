@@ -159,6 +159,12 @@ public:
      */
 
     std::vector<Handle<OutputType>> &inputColumn = output->getColumn<Handle<OutputType>>(0);
+
+    // if we shrunk resize
+    if(inputColumn.size() > policy.getChunksSize()) {
+      inputColumn.resize(policy.getChunksSize());
+    }
+
     int limit = (int) inputColumn.size();
 
     // do we even have a map
