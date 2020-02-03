@@ -19,7 +19,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "-fPIC -Wno-deprecated-declarations")
 
 # the default build type is debug
-if(CMAKE_BUILD_TYPE MATCHES "")
+if(CMAKE_BUILD_TYPE STREQUAL "")
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
