@@ -367,37 +367,37 @@ JoinPairArray<ValueType>::~JoinPairArray() {
 
 template <class ValueType>
 Handle<JoinPairArray<ValueType>> JoinPairArray<ValueType>::doubleArray() {
-    PDB_COUT << "bytes available in current allocator block: "
-             << getAllocator().getBytesAvailableInCurrentAllocatorBlock() << std::endl;
-    std::string out = getAllocator().printInactiveBlocks();
-    PDB_COUT << "inactive blocks: " << out << std::endl;
-    PDB_COUT << "usedSlots = " << usedSlots << ", maxSlots = " << maxSlots << std::endl;
-    uint32_t howMany = numSlots * 2;
-    PDB_COUT << "doubleArray to " << howMany << std::endl;
-    // allocate the new Array
-    Handle<JoinPairArray<ValueType>> tempArray =
-        makeObjectWithExtraStorage<JoinPairArray<ValueType>>(objSize * howMany, howMany);
+  PDB_COUT << "bytes available in current allocator block: "
+           << getAllocator().getBytesAvailableInCurrentAllocatorBlock() << std::endl;
+  std::string out = getAllocator().printInactiveBlocks();
+  PDB_COUT << "inactive blocks: " << out << std::endl;
+  PDB_COUT << "usedSlots = " << usedSlots << ", maxSlots = " << maxSlots << std::endl;
+  uint32_t howMany = numSlots * 2;
+  PDB_COUT << "doubleArray to " << howMany << std::endl;
+  // allocate the new Array
+  Handle<JoinPairArray<ValueType>> tempArray =
+      makeObjectWithExtraStorage<JoinPairArray<ValueType>>(objSize * howMany, howMany);
 
-    // first, set everything to unused
-    // now, re-hash everything
-    JoinPairArray<ValueType>& newOne = *tempArray;
+  // first, set everything to unused
+  // now, re-hash everything
+  JoinPairArray<ValueType>& newOne = *tempArray;
 
-    for (uint32_t i = 0; i < numSlots; i++) {
+  for (uint32_t i = 0; i < numSlots; i++) {
 
-        if (JM_GET_HASH(data, i) != JM_UNUSED) {
+    if (JM_GET_HASH(data, i) != JM_UNUSED) {
 
-            // copy the dude over
-            ValueType* temp = &(newOne.push(JM_GET_HASH(data, i)));
-            *temp = JM_GET_VALUE(data, i, ValueType);
+      // copy the dude over
+      ValueType* temp = &(newOne.push(JM_GET_HASH(data, i)));
+      *temp = JM_GET_VALUE(data, i, ValueType);
 
-            char* whereNextIs = ((char*)temp) - sizeof(uint32_t);
-            *((uint32_t*)whereNextIs) = JM_GET_NEXT(data, i);
-        }
-      }
+      char* whereNextIs = ((char*)temp) - sizeof(uint32_t);
+      *((uint32_t*)whereNextIs) = JM_GET_NEXT(data, i);
+    }
+  }
 
-      newOne.overflows = overflows;
-      // and return this guy
-      return tempArray;
+  newOne.overflows = overflows;
+  // and return this guy
+  return tempArray;
 }
 
 template<class ValueType>
@@ -501,10 +501,12 @@ template<class ValueType>
 JoinMapIterator<ValueType>::JoinMapIterator(JoinPairArray<ValueType> *iterateMeIn,
                                             std::shared_ptr<std::vector<std::pair<uint32_t, uint64_t>>> iterationOrder,
                                             bool isDone,
-                                            int position) : iterateMe(iterateMeIn),
-                                                            iterationOrder(std::move(iterationOrder)),
-                                                            done(isDone),
-                                                            pos(position){}
+                                            int position,
+                                            int32_t label) : iterateMe(iterateMeIn),
+                                                             iterationOrder(std::move(iterationOrder)),
+                                                             done(isDone),
+                                                             pos(position),
+                                                             label(label) {}
 
 template<class ValueType>
 JoinMapIterator<ValueType>::JoinMapIterator() : iterationOrder(std::make_shared<std::vector<std::pair<uint32_t, uint64_t>>>()) {
@@ -547,11 +549,11 @@ JoinMapIterator<ValueType> JoinMapIterator<ValueType>::operator+(int howMuch) co
 
   // if we are at the end mark as done
   if ((pos + howMuch) >= iterationOrder->size()) {
-    return JoinMapIterator<ValueType>(iterateMe, iterationOrder, true, (int) iterationOrder->size());
+    return JoinMapIterator<ValueType>(iterateMe, iterationOrder, true, (int) iterationOrder->size(), label);
   }
 
   // return the iterator
-  return JoinMapIterator<ValueType>(iterateMe, iterationOrder, done, pos + howMuch);
+  return JoinMapIterator<ValueType>(iterateMe, iterationOrder, done, pos + howMuch, label);
 }
 
 template<class ValueType>

@@ -73,9 +73,17 @@ public:
       // next we grab the join map we need
       this->lhsMaps.push_back(returnVal);
 
+      // grab the iterator
+      auto it = this->lhsMaps.back()->begin();
+
+      // if we have it store it
       if(this->lhsMaps.back()->size() != 0) {
+
+        // label the iterator
+        it.setLabel(pageSet->getLabel(page));
+
         // insert the iterator
-        this->lhsIterators.push(this->lhsMaps.back()->begin());
+        this->lhsIterators.push(it);
 
         // push the page
         this->lhsPages.push_back(page);

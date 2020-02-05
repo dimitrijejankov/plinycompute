@@ -89,11 +89,11 @@ class JoinMapIterator {
   std::shared_ptr<JoinRecordList<ValueType>> operator*();
   void operator++();
 
-  JoinMapIterator(JoinPairArray<ValueType> *, std::shared_ptr<std::vector<std::pair<uint32_t, uint64_t>>> iterationOrder, bool isDone, int position);
+  JoinMapIterator(JoinPairArray<ValueType> *, std::shared_ptr<std::vector<std::pair<uint32_t, uint64_t>>> iterationOrder, bool isDone, int position, int32_t label);
   JoinMapIterator(Handle<JoinPairArray<ValueType>> iterateMeIn, bool);
   JoinMapIterator(Handle<JoinPairArray<ValueType>> iterateMeIn);
   JoinMapIterator();
-  
+
   bool isDone();
   const size_t getHash() const;
   void setLabel(int32_t value);
@@ -106,7 +106,7 @@ class JoinMapIterator {
 
   // which position in the are we on when we are iterating
   uint32_t pos;
-  
+
   // the join pair array of the join map we are iterating on
   JoinPairArray<ValueType> *iterateMe;
 
