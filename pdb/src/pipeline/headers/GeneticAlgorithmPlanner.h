@@ -144,7 +144,7 @@ struct GeneticAlgorithmPlanner {
       crossover();
       mutation();
       finish();
-      print();
+      //print();
     }
   }
 

@@ -32,13 +32,8 @@ class JoinTupleSingleton {
   virtual JoinAggSideSenderPtr getJoinAggSender(PDBPageHandle page,
                                                 PDBCommunicatorPtr comm) = 0;
 
-  virtual JoinMapCreatorPtr getJoinMapCreator(int32_t numThreads,
-                                              int32_t nodeId,
-                                              bool isLeft,
-                                              PDBPageHandle planPage,
-                                              PDBAnonymousPageSetPtr pageSet,
+  virtual JoinMapCreatorPtr getJoinMapCreator(PDBRandomAccessPageSetPtr pageSet,
                                               PDBCommunicatorPtr communicator,
-                                              PDBPageHandle page,
                                               PDBLoggerPtr logger) = 0;
 
   virtual ComputeExecutorPtr getProber(PDBAbstractPageSetPtr &hashTable,
@@ -139,13 +134,8 @@ public:
     throw runtime_error("The tuple does not have a key. Why are u calling to get the join aggregation sender?");
   }
 
-  JoinMapCreatorPtr getJoinMapCreator(int32_t numThreads,
-                                      int32_t nodeId,
-                                      bool isLeft,
-                                      PDBPageHandle planPage,
-                                      PDBAnonymousPageSetPtr pageSet,
+  JoinMapCreatorPtr getJoinMapCreator(PDBRandomAccessPageSetPtr pageSet,
                                       PDBCommunicatorPtr communicator,
-                                      PDBPageHandle page,
                                       PDBLoggerPtr logger) override {
 
     // check if it has the key and this is a binary join tuple so basically JoinTuple<TypeToHold, char[0]>
@@ -154,13 +144,8 @@ public:
                  std::is_same<decltype(((HoldMe*) nullptr)->myOtherData), char[0]>::value) {
 
       // return the join agg sink
-      return std::make_shared<JoinMapCreator<decltype(((HoldMe*) nullptr)->myData)>>(numThreads,
-                                                                                     nodeId,
-                                                                                     isLeft,
-                                                                                     planPage,
-                                                                                     pageSet,
+      return std::make_shared<JoinMapCreator<decltype(((HoldMe*) nullptr)->myData)>>(pageSet,
                                                                                      communicator,
-                                                                                     page,
                                                                                      logger);
     }
 

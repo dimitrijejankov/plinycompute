@@ -31,12 +31,12 @@ struct PDBJoinAggregationState : public PDBPhysicalAlgorithmState {
   /**
    *
    */
-  pdb::PDBAnonymousPageSetPtr leftShuffledPageSet = nullptr;
+  pdb::PDBRandomAccessPageSetPtr leftShuffledPageSet = nullptr;
 
   /**
    *
    */
-  pdb::PDBAnonymousPageSetPtr rightShuffledPageSet = nullptr;
+  pdb::PDBRandomAccessPageSetPtr rightShuffledPageSet = nullptr;
 
   /**
    *
@@ -78,6 +78,16 @@ struct PDBJoinAggregationState : public PDBPhysicalAlgorithmState {
    *
    */
   PDBPageHandle planPage;
+
+  /**
+   *
+   */
+  std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> leftTIDToRecordMapping;
+
+  /**
+   *
+   */
+  std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> rightTIDToRecordMapping;
 
   /**
    *
@@ -140,9 +150,14 @@ struct PDBJoinAggregationState : public PDBPhysicalAlgorithmState {
   std::shared_ptr<std::vector<JoinAggSideSenderPtr>> rightJoinSideSenders = nullptr;
 
   /**
-   * This takes in the records from the side of the join and makes them into a tuple set
+   * This goes receives join records with their TID, goes through them and keeps track on what page they are.
    */
-  std::shared_ptr<std::vector<JoinMapCreatorPtr>> joinMapCreators = nullptr;
+  std::shared_ptr<std::vector<JoinMapCreatorPtr>> rightJoinMapCreators = nullptr;
+
+  /**
+   * This goes receives join records with their TID, goes through them and keeps track on what page they are.
+   */
+  std::shared_ptr<std::vector<JoinMapCreatorPtr>> leftJoinMapCreators = nullptr;
 
   /**
    * The join key side pipelines

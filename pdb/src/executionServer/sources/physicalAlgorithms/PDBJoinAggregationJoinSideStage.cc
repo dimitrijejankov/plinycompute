@@ -162,40 +162,33 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
   }
 
   /// 13. Setup the join map creators
-  s->joinMapCreators = std::make_shared<std::vector<JoinMapCreatorPtr>>();
+  s->leftJoinMapCreators = std::make_shared<std::vector<JoinMapCreatorPtr>>();
 
   // init the join side creators
-  s->leftShuffledPageSet = storage->createAnonymousPageSet(leftJoinSource.pageSetIdentifier);
+  s->leftShuffledPageSet = storage->createRandomAccessPageSet(leftJoinSource.pageSetIdentifier);
   for (auto &comm : *s->leftJoinSideCommunicatorsOut) {
 
     // make the creators
-    s->joinMapCreators->emplace_back(joinComp->getJoinMapCreator(joinAtomicComp->getProjection(),
-                                                                 s->logicalPlan,
-                                                                 storage->getConfiguration()->numThreads,
-                                                                 job->thisNode,
-                                                                 true,
-                                                                 s->planPage,
-                                                                 s->leftShuffledPageSet,
-                                                                 comm,
-                                                                 myMgr->getPage(),
-                                                                 s->logger));
+    s->leftJoinMapCreators->emplace_back(joinComp->getJoinMapCreator(joinAtomicComp->getProjection(),
+                                                                     s->logicalPlan,
+                                                                     s->leftShuffledPageSet,
+                                                                     comm,
+                                                                     s->logger));
   }
 
+  // setup the right one
+  s->rightJoinMapCreators = std::make_shared<std::vector<JoinMapCreatorPtr>>();
+
   // init the join side creators
-  s->rightShuffledPageSet = storage->createAnonymousPageSet(rightJoinSource.pageSetIdentifier);
+  s->rightShuffledPageSet = storage->createRandomAccessPageSet(rightJoinSource.pageSetIdentifier);
   for (auto &comm : *s->rightJoinSideCommunicatorsOut) {
 
     // make the creators
-    s->joinMapCreators->emplace_back(joinComp->getJoinMapCreator(joinAtomicComp->getProjection(),
-                                                                 s->logicalPlan,
-                                                                 storage->getConfiguration()->numThreads,
-                                                                 job->thisNode,
-                                                                 false,
-                                                                 s->planPage,
-                                                                 s->rightShuffledPageSet,
-                                                                 comm,
-                                                                 myMgr->getPage(),
-                                                                 s->logger));
+    s->rightJoinMapCreators->emplace_back(joinComp->getJoinMapCreator(joinAtomicComp->getProjection(),
+                                                                      s->logicalPlan,
+                                                                      s->rightShuffledPageSet,
+                                                                      comm,
+                                                                      s->logger));
   }
 
   /// 14. the left and right side of the join
@@ -499,19 +492,22 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
   atomic_int commCnt;
   commCnt = 0;
 
-  for (int i = 0; i < s->joinMapCreators->size(); ++i) {
+  // combine them so I don't write this twice
+  std::vector<JoinMapCreatorPtr> joinMapCreators = *s->leftJoinMapCreators;
+  joinMapCreators.insert(joinMapCreators.end(), s->rightJoinMapCreators->begin(), s->rightJoinMapCreators->end());
+
+  for (const auto& joinMapCreator : joinMapCreators) {
 
     // get a worker from the server
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr
-        myWork = std::make_shared<pdb::GenericWork>([&commCnt, &success, i, &s](const PDBBuzzerPtr &callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&commCnt, &success, joinMapCreator, &s](const PDBBuzzerPtr &callerBuzzer) {
 
       // run the join map creator
       try {
         // run the join map creator
-        (*s->joinMapCreators)[i]->run();
+        joinMapCreator->run();
       }
       catch (std::exception &e) {
 
@@ -523,10 +519,10 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
       }
 
       // check if the creator succeeded
-      if (!(*s->joinMapCreators)[i]->getSuccess()) {
+      if (!joinMapCreator->getSuccess()) {
 
         // log the error
-        s->logger->error((*s->joinMapCreators)[i]->getError());
+        s->logger->error(joinMapCreator->getError());
 
         // we failed mark that we have
         success = false;
@@ -562,8 +558,16 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
   }
 
   // wait until the senders finish
-  while (commCnt < s->joinMapCreators->size()) {
+  while (commCnt < joinMapCreators.size()) {
     tempBuzzer->wait();
+  }
+
+  // since this finished copy all the indices to the state
+  for(auto &it : *s->leftJoinMapCreators) {
+    s->leftTIDToRecordMapping.emplace_back(it->extractTIDMap());
+  }
+  for(auto &it : *s->rightJoinMapCreators) {
+    s->rightTIDToRecordMapping.emplace_back(it->extractTIDMap());
   }
 
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -582,7 +586,8 @@ void pdb::PDBJoinAggregationJoinSideStage::cleanup(const pdb::PDBPhysicalAlgorit
   s->joinPipelines->clear();
   s->leftJoinSideSenders->clear();
   s->rightJoinSideSenders->clear();
-  s->joinMapCreators->clear();
+  s->leftJoinMapCreators->clear();
+  s->rightJoinMapCreators->clear();
   s->leftJoinSideCommunicatorsOut->clear();
   s->rightJoinSideCommunicatorsOut->clear();
   s->leftJoinSideCommunicatorsIn->clear();
@@ -590,9 +595,7 @@ void pdb::PDBJoinAggregationJoinSideStage::cleanup(const pdb::PDBPhysicalAlgorit
 
   // reset the page sets
   s->leftShuffledPageSet->resetPageSet();
-  s->leftShuffledPageSet->setAccessOrder(PDBAnonymousPageSetAccessPattern::CONCURRENT);
   s->rightShuffledPageSet->resetPageSet();
-  s->rightShuffledPageSet->setAccessOrder(PDBAnonymousPageSetAccessPattern::CONCURRENT);
   s->intermediatePageSet->clearPageSet();
 }
 

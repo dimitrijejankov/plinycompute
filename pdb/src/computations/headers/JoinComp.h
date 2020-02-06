@@ -110,28 +110,18 @@ class JoinComp : public JoinCompBase {
   }
 
   JoinMapCreatorPtr getJoinMapCreator(TupleSpec &projection,
-                                      pdb::LogicalPlanPtr &plan,
-                                      int32_t numThreads,
-                                      int32_t nodeId,
-                                      bool isLeft,
-                                      PDBPageHandle planPage,
-                                      PDBAnonymousPageSetPtr pageSet,
+                                      pdb::LogicalPlanPtr &logicalPlan,
+                                      PDBRandomAccessPageSetPtr pageSet,
                                       PDBCommunicatorPtr communicator,
-                                      PDBPageHandle page,
                                       PDBLoggerPtr logger) override {
 
     // figure out the right join tuple
     std::vector<int> whereEveryoneGoes;
-    JoinTuplePtr correctJoinTuple = findJoinTuple(projection, plan, whereEveryoneGoes);
+    JoinTuplePtr correctJoinTuple = findJoinTuple(projection, logicalPlan, whereEveryoneGoes);
 
     // check what kind of sink we need
-    return correctJoinTuple->getJoinMapCreator(numThreads,
-                                               nodeId,
-                                               isLeft,
-                                               planPage,
-                                               pageSet,
+    return correctJoinTuple->getJoinMapCreator(pageSet,
                                                communicator,
-                                               page,
                                                logger);
   }
 

@@ -136,6 +136,28 @@ pdb::PDBAnonymousPageSetPtr pdb::PDBStorageManagerBackend::createAnonymousPageSe
   return pageSet;
 }
 
+pdb::PDBRandomAccessPageSetPtr pdb::PDBStorageManagerBackend::createRandomAccessPageSet(const std::pair<uint64_t, std::string> &pageSetID) {
+
+  /// 1. Check if we already have the thing if we do return it
+
+  std::unique_lock<std::mutex> lck(pageSetMutex);
+
+  // try to find the page if it exists return it
+  auto it = pageSets.find(pageSetID);
+  if(it != pageSets.end()) {
+    return std::dynamic_pointer_cast<PDBRandomAccessPageSet>(it->second);
+  }
+
+  /// 2. We don't have it so create it
+
+  // store the page set
+  auto pageSet = std::make_shared<pdb::PDBRandomAccessPageSet>(getFunctionalityPtr<PDBBufferManagerInterface>());
+  pageSets[pageSetID] = pageSet;
+
+  // return it
+  return pageSet;
+}
+
 pdb::PDBFeedingPageSetPtr pdb::PDBStorageManagerBackend::createFeedingAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID, uint64_t numReaders, uint64_t numFeeders) {
 
   /// 1. Check if we already have the thing if we do return it

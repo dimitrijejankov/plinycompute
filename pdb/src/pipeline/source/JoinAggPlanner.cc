@@ -46,6 +46,8 @@ void pdb::JoinAggPlanner::doPlanning() {
     TIDVector &joinedTIDs = (*it).value;
     auto &aggTID = (*it).key;
 
+    std::cout << "Aggregation group : " << aggTID << '\n';
+
     // the join pairs
     std::vector<std::pair<int32_t, int32_t>> aggregation_group(joinedTIDs.size());
 
@@ -58,6 +60,8 @@ void pdb::JoinAggPlanner::doPlanning() {
       // get the right tid
       auto rightTID = joinedTIDs[i].second.first;
       auto rightTIDNode = joinedTIDs[i].second.second;
+
+      std::cout << "Join group ( " << leftTID << ", " << rightTID << ")\n";
 
       // resize if necessary
       if(left_tids.size() <= leftTID) {
@@ -90,6 +94,8 @@ void pdb::JoinAggPlanner::doPlanning() {
     // store the aggregation group
     aggregation_groups[aggTID] = std::move(aggregation_group);
   }
+
+  std::cout << '\n';
 
   auto numLeftRecords = left_tids.size();
   auto numRightRecords = right_tids.size();

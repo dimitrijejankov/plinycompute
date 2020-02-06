@@ -53,14 +53,9 @@ class JoinCompBase : public Computation {
                                                 PDBCommunicatorPtr comm) = 0;
 
   virtual JoinMapCreatorPtr getJoinMapCreator(TupleSpec &projection,
-                                              pdb::LogicalPlanPtr &plan,
-                                              int32_t numThreads,
-                                              int32_t nodeId,
-                                              bool isLeft,
-                                              PDBPageHandle planPage,
-                                              PDBAnonymousPageSetPtr pageSet,
+                                              pdb::LogicalPlanPtr &logicalPlan,
+                                              PDBRandomAccessPageSetPtr pageSet,
                                               PDBCommunicatorPtr communicator,
-                                              PDBPageHandle page,
                                               PDBLoggerPtr logger) = 0;
 
   virtual RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,

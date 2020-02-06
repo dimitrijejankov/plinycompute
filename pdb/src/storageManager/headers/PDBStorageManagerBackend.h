@@ -11,6 +11,7 @@
 #include "StoStartFeedingPageSetRequest.h"
 #include "StoStoreKeysRequest.h"
 #include "PDBFeedingPageSet.h"
+#include "PDBRandomAccessPageSet.h"
 
 namespace pdb {
 
@@ -37,6 +38,15 @@ public:
    * @return
    */
   PDBAnonymousPageSetPtr createAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID);
+
+  /**
+   * Create a random access page set.
+   * @param pageSetID - the id of the page set
+   * @return return the random access page set
+   */
+  PDBRandomAccessPageSetPtr createRandomAccessPageSet(const std::pair<uint64_t, std::string> &pageSetID);
+
+
   /**
    *
    * @param pageSetID
