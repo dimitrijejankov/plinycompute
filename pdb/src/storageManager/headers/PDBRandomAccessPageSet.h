@@ -96,6 +96,17 @@ public:
     return pages[index];
   }
 
+  void repinAll() {
+
+    // lock stuff
+    unique_lock lck(m);
+
+    // repin all the pages
+    for(const auto &page : pages){
+      page->repin();
+    }
+  }
+
 private:
 
   /**

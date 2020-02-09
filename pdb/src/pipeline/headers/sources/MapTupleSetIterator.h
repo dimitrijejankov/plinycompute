@@ -78,7 +78,7 @@ public:
 
   // the first param is a callback function that the iterator will call in order to obtain another vector
   // to iterate over.  The second param tells us how many objects to put into a tuple set
-  MapTupleSetIterator(const PDBAbstractPageSetPtr &pageSet, uint64_t workerID, size_t chunkSize) {
+  MapTupleSetIterator(const PDBAbstractPageSetPtr &pageSet, uint64_t workerID) {
 
     // get the page if we have one if we don't set the hash map to null
     page = pageSet->getNextPage(workerID);

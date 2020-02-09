@@ -39,9 +39,6 @@ protected:
   // pages that contain lhs side pages
   std::vector<PDBPageHandle> pages;
 
-  // the number of tuples in the tuple set
-  uint64_t chunkSize = 0;
-
   // this is the worker we are doing the processing for
   uint64_t workerID = 0;
 
@@ -62,10 +59,9 @@ protected:
   RHSShuffleJoinSource() = default;
 
   RHSShuffleJoinSource(TupleSpec &inputSchema,
-                       PDBAbstractPageSetPtr rightInputPageSet,
-                       uint64_t chunkSize) : myMachine(inputSchema),
+                       PDBAbstractPageSetPtr rightInputPageSet) :
+                       myMachine(inputSchema),
                                              pageSet(std::move(rightInputPageSet)),
-                                             chunkSize(chunkSize),
                                              workerID(0) {};
 
   RHSShuffleJoinSource(TupleSpec &inputSchema,
@@ -73,10 +69,8 @@ protected:
                        TupleSpec &recordSchema,
                        std::vector<int> &recordOrder,
                        PDBAbstractPageSetPtr rightInputPageSet,
-                       uint64_t chunkSize,
                        uint64_t workerID) : myMachine(inputSchema),
                                             pageSet(std::move(rightInputPageSet)),
-                                            chunkSize(chunkSize),
                                             workerID(workerID) {
 
     // create the tuple set that we'll return during iteration
@@ -186,11 +180,6 @@ protected:
 
         // reinsert the iterator
         pageIterators.push(tmp);
-      }
-
-      // did we fill up the tuple set
-      if (!pageIterators.empty() && count > chunkSize && pageIterators.top().getHash() != hash) {
-        break;
       }
     }
 

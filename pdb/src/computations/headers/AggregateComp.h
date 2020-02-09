@@ -224,8 +224,8 @@ class AggregateComp : public AggregateCompBase {
     return std::make_shared<pdb::JoinAggSink<KeyClass>>(consumeMe, whichAttsToOpOn, projection);
   }
 
-  ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, size_t chunkSize, uint64_t workerID, std::map<ComputeInfoType, ComputeInfoPtr> &) override {
-    return std::make_shared<pdb::MapTupleSetIterator<KeyClass, ValueClass, OutputClass>> (pageSet, workerID, chunkSize);
+  ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, uint64_t workerID, std::map<ComputeInfoType, ComputeInfoPtr> &) override {
+    return std::make_shared<pdb::MapTupleSetIterator<KeyClass, ValueClass, OutputClass>> (pageSet, workerID);
   }
 
   ComputeSinkPtr getAggregationHashMapCombiner(uint64_t workerID) override {

@@ -54,7 +54,6 @@ class Computation : public Object {
   // a pointer to a ComputeSource object that can actually produce TupleSet objects corresponding
   // to that particular TupleSpec
   virtual ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet,
-                                            size_t chunkSize,
                                             uint64_t workerID,
                                             std::map<ComputeInfoType, ComputeInfoPtr> &params) { return nullptr; }
 

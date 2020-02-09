@@ -73,7 +73,6 @@ public:
                           const std::vector<int> &lhsRecordOrder,
                           RHSShuffleJoinSourceBasePtr &rhsSource,
                           bool needToSwapLHSAndRhs,
-                          uint64_t chunkSize,
                           uint64_t workerID) : lhsRecordOrder(lhsRecordOrder),
                                                rhsMachine(inputSchemaRHS, recordSchemaRHS),
                                                lhsInputPageSet(std::move(lhsInputPageSet)),

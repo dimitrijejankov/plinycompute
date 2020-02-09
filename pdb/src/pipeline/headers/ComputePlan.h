@@ -36,11 +36,12 @@ class ComputePlan {
   LogicalPlanPtr myPlan;
 
   // returns the source for a pipeline
-  ComputeSourcePtr getComputeSource(AtomicComputationPtr &sourceAtomicComputation,
+  ComputeSourcePtr getComputeSource(int32_t nodeID,
+                                    int32_t workerID,
+                                    int32_t numWorkers,
+                                    AtomicComputationPtr &sourceAtomicComputation,
                                     const PDBAbstractPageSetPtr &inputPageSet,
-                                    std::map<ComputeInfoType, ComputeInfoPtr> &params,
-                                    uint64_t chunkSize,
-                                    uint64_t workerID);
+                                    std::map<ComputeInfoType, ComputeInfoPtr> &params);
 
   // returns the compute sink
   ComputeSinkPtr getComputeSink(AtomicComputationPtr &targetAtomicComp,
@@ -81,13 +82,13 @@ class ComputePlan {
 
   // builds a regular straight pipeline
   PipelinePtr buildPipeline(const std::string& sourceTupleSetName,
-                            const std::string &targetTupleSetName,
+                            const std::string& targetTupleSetName,
                             const PDBAbstractPageSetPtr &inputPageSet,
                             const PDBAnonymousPageSetPtr &outputPageSet,
                             std::map<ComputeInfoType, ComputeInfoPtr> &params,
+                            std::size_t nodeID,
                             size_t numNodes,
                             size_t numProcessingThreads,
-                            uint64_t chunkSize,
                             uint64_t workerID);
 
   // build the aggregation pipeline

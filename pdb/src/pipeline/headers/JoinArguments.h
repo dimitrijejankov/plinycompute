@@ -72,6 +72,16 @@ public:
 
   // is join agg side (used for the join agg algorithm)
   bool isJoinAggSide = false;
+
+  // tells us if this is for the aggregation stage of the join agg algorithm (used for the join agg algorithm)
+  bool isJoinAggAggregation = false;
+
+  // left and right tid mappings (used for the join agg algorithm)
+  std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> *leftTIDToRecordMapping = nullptr;
+  std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> *rightTIDToRecordMapping = nullptr;
+
+  // the page where we keep the plan (used for the join agg algorithm)
+  PDBPageHandle planPage;
 };
 
 using JoinArgumentsPtr = std::shared_ptr<JoinArguments>;

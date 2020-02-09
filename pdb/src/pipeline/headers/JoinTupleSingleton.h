@@ -81,7 +81,6 @@ class JoinTupleSingleton {
                                                               TupleSpec &recordSchema,
                                                               const PDBAbstractPageSetPtr &leftInputPageSet,
                                                               std::vector<int> &recordOrder,
-                                                              uint64_t chunkSize,
                                                               uint64_t workerID) = 0;
 
   virtual ComputeSourcePtr getJoinedSource(TupleSpec &inputSchemaRHS,
@@ -91,7 +90,6 @@ class JoinTupleSingleton {
                                            const PDBAbstractPageSetPtr &lhsInputPageSet,
                                            std::vector<int> &lhsRecordOrder,
                                            bool needToSwapLHSAndRhs,
-                                           uint64_t chunkSize,
                                            uint64_t workerID) = 0;
 
   virtual ComputeSourcePtr getJoinedKeySource(TupleSpec &inputSchemaRHS,
@@ -246,7 +244,6 @@ public:
                                                       TupleSpec &recordSchema,
                                                       const PDBAbstractPageSetPtr &leftInputPageSet,
                                                       std::vector<int> &recordOrder,
-                                                      uint64_t chunkSize,
                                                       uint64_t workerID) override {
 
     // return the join shuffle source
@@ -255,7 +252,6 @@ public:
                                                           recordSchema,
                                                           recordOrder,
                                                           leftInputPageSet,
-                                                          chunkSize,
                                                           workerID);
   }
 
@@ -266,7 +262,6 @@ public:
                                    const PDBAbstractPageSetPtr &lhsInputPageSet,
                                    std::vector<int> &lhsRecordOrder,
                                    bool needToSwapLHSAndRhs,
-                                   uint64_t chunkSize,
                                    uint64_t workerID) override {
 
     // return the shuffle join source
@@ -277,7 +272,6 @@ public:
                                                              lhsRecordOrder,
                                                              rhsSource,
                                                              needToSwapLHSAndRhs,
-                                                             chunkSize,
                                                              workerID);
   }
 

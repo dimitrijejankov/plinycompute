@@ -30,6 +30,7 @@
 #include "JoinCompBase.h"
 #include "LogicalPlan.h"
 #include "MultiInputsBase.h"
+#include "JoinAggSource.h"
 #include "Lambda.h"
 
 namespace pdb {
@@ -44,8 +45,9 @@ class JoinComp : public JoinCompBase {
   void extractLambdas(std::map<std::string, LambdaObjectPtr> &returnVal) override {
 
     // get the selection lambda
-    Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
-    Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, Out, In1, In2, Rest...>(*static_cast<Derived*>(this));
+    Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived *>(this));
+    Lambda<Handle<Out>>
+        projectionLambda = callGetProjection<Derived, Out, In1, In2, Rest...>(*static_cast<Derived *>(this));
 
     // the label we are started labeling
     int32_t startLabel = 0;
@@ -62,7 +64,7 @@ class JoinComp : public JoinCompBase {
 
   // is the key
   bool isKeyed() override {
-    return joinUsesKey<Derived>(*static_cast<Derived*>(this));
+    return joinUsesKey<Derived>(*static_cast<Derived *>(this));
   }
 
   // count the number of inputs
@@ -139,7 +141,7 @@ class JoinComp : public JoinCompBase {
 
     // try to find the join agg arguments
     auto it = params.find(ComputeInfoType::JOIN_ARGS);
-    if(it == params.end()) {
+    if (it == params.end()) {
       throw runtime_error("Could not find the join arguments");
     }
 
@@ -147,14 +149,13 @@ class JoinComp : public JoinCompBase {
     JoinArgumentsPtr joinArgs = dynamic_pointer_cast<JoinArguments>(it->second);
 
     // check what kind of sink we need
-    if(!joinArgs->isJoinAggSide) {
+    if (!joinArgs->isJoinAggSide) {
       return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
-    }
-    else {
+    } else {
 
       // could not find the
       it = params.find(ComputeInfoType::JOIN_AGG_SIDE_ARGS);
-      if(it == params.end()) {
+      if (it == params.end()) {
         throw runtime_error("Could not find the join aggregation side arguments");
       }
 
@@ -181,8 +182,13 @@ class JoinComp : public JoinCompBase {
     return correctJoinTuple->getKeySink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
   }
 
-  ComputeSinkPtr getComputeMerger(TupleSpec &consumeMe, TupleSpec &attsToOpOn, TupleSpec &projection,
-                                  uint64_t workerID, uint64_t numThreads, uint64_t numNodes, pdb::LogicalPlanPtr &plan) override {
+  ComputeSinkPtr getComputeMerger(TupleSpec &consumeMe,
+                                  TupleSpec &attsToOpOn,
+                                  TupleSpec &projection,
+                                  uint64_t workerID,
+                                  uint64_t numThreads,
+                                  uint64_t numNodes,
+                                  pdb::LogicalPlanPtr &plan) override {
 
     // loop through each of the attributes that we are supposed to accept, and for each of them, find the type
     std::vector<std::string> typeList;
@@ -234,7 +240,6 @@ class JoinComp : public JoinCompBase {
                                                       TupleSpec &recordSchema,
                                                       const PDBAbstractPageSetPtr &leftInputPageSet,
                                                       pdb::LogicalPlanPtr &plan,
-                                                      uint64_t chunkSize,
                                                       uint64_t workerID) override {
 
     // figure out the right join tuple
@@ -247,8 +252,30 @@ class JoinComp : public JoinCompBase {
                                                      recordSchema,
                                                      leftInputPageSet,
                                                      whereEveryoneGoes,
-                                                     chunkSize,
                                                      workerID);
+  }
+
+  ComputeSourcePtr getJoinAggSource(int32_t nodeID,
+                                    int32_t workerID,
+                                    int32_t numWorkers,
+                                    std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &leftTIDToRecordMapping,
+                                    std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &rightTIDToRecordMapping,
+                                    const PDBPageHandle &page,
+                                    PDBRandomAccessPageSetPtr leftInputPageSet,
+                                    PDBRandomAccessPageSetPtr rightInputPageSet) override {
+
+    if (sizeof...(Rest) == 0) {
+      return std::make_shared<JoinAggSource<In1, In2>>(nodeID,
+                                                       workerID,
+                                                       numWorkers,
+                                                       leftTIDToRecordMapping,
+                                                       rightTIDToRecordMapping,
+                                                       page,
+                                                       leftInputPageSet,
+                                                       rightInputPageSet);
+    } else {
+      throw runtime_error("");
+    }
   }
 
   ComputeSourcePtr getJoinedSource(TupleSpec &recordSchemaLHS,
@@ -259,7 +286,6 @@ class JoinComp : public JoinCompBase {
                                    const PDBAbstractPageSetPtr &rightInputPageSet,
                                    pdb::LogicalPlanPtr &plan,
                                    bool needToSwapLHSAndRhs,
-                                   uint64_t chunkSize,
                                    uint64_t workerID) override {
 
     // figure out the right join tuple
@@ -267,7 +293,14 @@ class JoinComp : public JoinCompBase {
     JoinTuplePtr correctJoinTuple = findJoinTuple(recordSchemaLHS, plan, whereEveryoneGoes);
 
     // return the lhs join source
-    return correctJoinTuple->getJoinedSource(inputSchemaRHS, hashSchemaRHS, recordSchemaRHS, leftSource, rightInputPageSet, whereEveryoneGoes, needToSwapLHSAndRhs, chunkSize, workerID);
+    return correctJoinTuple->getJoinedSource(inputSchemaRHS,
+                                             hashSchemaRHS,
+                                             recordSchemaRHS,
+                                             leftSource,
+                                             rightInputPageSet,
+                                             whereEveryoneGoes,
+                                             needToSwapLHSAndRhs,
+                                             workerID);
   }
 
   RHSKeyJoinSourceBasePtr getRHSKeyShuffleJoinSource(TupleSpec &inputSchema,
@@ -353,12 +386,13 @@ class JoinComp : public JoinCompBase {
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets, int computationLabel) override {
 
     // if a join is a source we generate a SCAN so that we can refer to this computation and use it's page set
-    if(isSource) {
+    if (isSource) {
       return std::move(toSourceTCAP(computationLabel));
     }
 
     if (inputTupleSets.size() != getNumInputs()) {
-      std::cout << "ERROR: inputTupleSet size is " << inputTupleSets.size() << " and not equivalent with Join's inputs " << getNumInputs() << std::endl;
+      std::cout << "ERROR: inputTupleSet size is " << inputTupleSets.size() << " and not equivalent with Join's inputs "
+                << getNumInputs() << std::endl;
       return "";
     }
 
@@ -393,7 +427,7 @@ class JoinComp : public JoinCompBase {
 
     // get the selection lambda
     std::string tcapString = "\n/* Apply join selection */\n";
-    Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived*>(this));
+    Lambda<bool> selectionLambda = callGetSelection<Derived, In1, In2, Rest...>(*static_cast<Derived *>(this));
     tcapString += selectionLambda.toTCAPString(lambdaLabel,
                                                "JoinComp",
                                                computationLabel,
@@ -409,7 +443,8 @@ class JoinComp : public JoinCompBase {
 
     // get the projection lambda and it's inputs
     tcapString += "\n/* Apply join projection*/\n";
-    Lambda<Handle<Out>> projectionLambda = callGetProjection<Derived, Out, In1, In2, Rest...>(*static_cast<Derived*>(this));
+    Lambda<Handle<Out>>
+        projectionLambda = callGetProjection<Derived, Out, In1, In2, Rest...>(*static_cast<Derived *>(this));
     tcapString += projectionLambda.toTCAPString(lambdaLabel,
                                                 "JoinComp",
                                                 computationLabel,
@@ -455,7 +490,8 @@ class JoinComp : public JoinCompBase {
 
       // and find its type... in the first case, there is not a particular lambda that we need to ask for
       if (res.second.empty()) {
-        typeList.push_back("pdb::Handle<" + computePlan.getPlan()->getNode(res.first).getComputation().getOutputType() + ">");
+        typeList.push_back(
+            "pdb::Handle<" + computePlan.getPlan()->getNode(res.first).getComputation().getOutputType() + ">");
       } else {
         std::string myType = computePlan.getPlan()->getNode(res.first).getLambda(res.second)->getOutputType();
         if (myType.find_first_of("pdb::Handle<") == 0) {

@@ -34,16 +34,28 @@ bool pdb::PDBJoinAggregationAggregationStage::setup(const pdb::Handle<pdb::ExJob
   auto logicalPlan = plan.getPlan();
 
   // get the join computation
-  auto joinAtomicComp = dynamic_pointer_cast<ApplyJoin>(logicalPlan->getComputations().getProducingAtomicComputation(joinTupleSet));
+  auto joinAtomicComp =
+      dynamic_pointer_cast<ApplyJoin>(logicalPlan->getComputations().getProducingAtomicComputation(joinTupleSet));
 
   // the join arguments
-  auto joinArguments = std::make_shared<JoinArguments>(JoinArgumentsInit {{joinAtomicComp->getRightInput().getSetName(),
-                                                                           std::make_shared<JoinArg>(s->rightShuffledPageSet)}});
+  auto joinArguments = std::make_shared<JoinArguments>(JoinArgumentsInit{{joinAtomicComp->getRightInput().getSetName(),
+                                                                          std::make_shared<JoinArg>(s->rightShuffledPageSet)}});
+
+  // mark that this is the join aggregation algorithm
+  joinArguments->isJoinAggAggregation = true;
+
+  // set the left and right mappings
+  joinArguments->leftTIDToRecordMapping = &s->leftTIDToRecordMapping;
+  joinArguments->rightTIDToRecordMapping = &s->rightTIDToRecordMapping;
+
+  // set the plan page
+  joinArguments->planPage = s->planPage;
 
   /// 15.1 Init the preaggregation queues
 
   s->pageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
-  for(int i = 0; i < job->numberOfProcessingThreads; ++i) { s->pageQueues->emplace_back(std::make_shared<PDBPageQueue>()); }
+  for (int i = 0; i < job->numberOfProcessingThreads;
+       ++i) { s->pageQueues->emplace_back(std::make_shared<PDBPageQueue>()); }
 
   // fill uo the vector for each thread
   std::map<ComputeInfoType, ComputeInfoPtr> params;
@@ -53,13 +65,14 @@ bool pdb::PDBJoinAggregationAggregationStage::setup(const pdb::Handle<pdb::ExJob
     /// 15.2. Figure out the parameters of the pipeline
 
     // initialize the parameters
-    params = {{ ComputeInfoType::PAGE_PROCESSOR, std::make_shared<PreaggregationPageProcessor>(1, // we use one since this pipeline is completely local.
-                                                                                               job->numberOfProcessingThreads,
-                                                                                               *s->pageQueues,
-                                                                                               myMgr) },
-              { ComputeInfoType::JOIN_ARGS,  joinArguments},
-              { ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(false)},
-              { ComputeInfoType::SOURCE_SET_INFO, nullptr}};
+    params = {{ComputeInfoType::PAGE_PROCESSOR,
+               std::make_shared<PreaggregationPageProcessor>(1, // we use one since this pipeline is completely local.
+                                                             job->numberOfProcessingThreads,
+                                                             *s->pageQueues,
+                                                             myMgr)},
+              {ComputeInfoType::JOIN_ARGS, joinArguments},
+              {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(false)},
+              {ComputeInfoType::SOURCE_SET_INFO, nullptr}};
 
     /// 15.3. Build the pipeline
 
@@ -68,9 +81,9 @@ bool pdb::PDBJoinAggregationAggregationStage::setup(const pdb::Handle<pdb::ExJob
                                        s->leftShuffledPageSet,
                                        s->intermediatePageSet,
                                        params,
+                                       job->thisNode,
                                        1, // we use one since this pipeline is completely local.
                                        job->numberOfProcessingThreads,
-                                       20,
                                        pipelineIndex);
 
     s->preaggregationPipelines->push_back(pipeline);
@@ -79,13 +92,15 @@ bool pdb::PDBJoinAggregationAggregationStage::setup(const pdb::Handle<pdb::ExJob
   /// 8. Create the aggregation pipeline
 
   // we are putting the pages from the queues here
-  s->preaggPageSet = std::make_shared<PDBFeedingPageSet>(job->numberOfProcessingThreads, job->numberOfProcessingThreads);
+  s->preaggPageSet =
+      std::make_shared<PDBFeedingPageSet>(job->numberOfProcessingThreads, job->numberOfProcessingThreads);
 
   // get the sink page set
-  auto sinkPageSet = storage->createAnonymousPageSet(std::make_pair(sink.pageSetIdentifier.first, sink.pageSetIdentifier.second));
+  auto sinkPageSet =
+      storage->createAnonymousPageSet(std::make_pair(sink.pageSetIdentifier.first, sink.pageSetIdentifier.second));
 
   // did we manage to get a sink page set? if not the setup failed
-  if(sinkPageSet == nullptr) {
+  if (sinkPageSet == nullptr) {
     return false;
   }
 
@@ -126,7 +141,7 @@ bool pdb::PDBJoinAggregationAggregationStage::run(const pdb::Handle<pdb::ExJob> 
   PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
 
     // did we fail?
-    if(myAlarm == PDBAlarm::GenericError) {
+    if (myAlarm == PDBAlarm::GenericError) {
       success = false;
     }
 
@@ -140,7 +155,8 @@ bool pdb::PDBJoinAggregationAggregationStage::run(const pdb::Handle<pdb::ExJob> 
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&preaggCnt, &success, i, s](const PDBBuzzerPtr& callerBuzzer) {
+    PDBWorkPtr
+        myWork = std::make_shared<pdb::GenericWork>([&preaggCnt, &success, i, s](const PDBBuzzerPtr &callerBuzzer) {
 
       try {
 
@@ -172,7 +188,8 @@ bool pdb::PDBJoinAggregationAggregationStage::run(const pdb::Handle<pdb::ExJob> 
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&counter, &success, i, &s](const PDBBuzzerPtr& callerBuzzer) {
+    PDBWorkPtr
+        myWork = std::make_shared<pdb::GenericWork>([&counter, &success, i, &s](const PDBBuzzerPtr &callerBuzzer) {
 
       // do this until we get a null
       PDBPageHandle tmp;
@@ -182,7 +199,7 @@ bool pdb::PDBJoinAggregationAggregationStage::run(const pdb::Handle<pdb::ExJob> 
         (*s->pageQueues)[i]->wait_dequeue(tmp);
 
         // get out of loop
-        if(tmp == nullptr) {
+        if (tmp == nullptr) {
           s->preaggPageSet->finishFeeding();
           break;
         }
@@ -206,7 +223,8 @@ bool pdb::PDBJoinAggregationAggregationStage::run(const pdb::Handle<pdb::ExJob> 
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&counter, &success, i, &s](const PDBBuzzerPtr& callerBuzzer) {
+    PDBWorkPtr
+        myWork = std::make_shared<pdb::GenericWork>([&counter, &success, i, &s](const PDBBuzzerPtr &callerBuzzer) {
 
       try {
 
@@ -236,7 +254,7 @@ bool pdb::PDBJoinAggregationAggregationStage::run(const pdb::Handle<pdb::ExJob> 
   }
 
   // insert to the page queues
-  for(const auto &q : *s->pageQueues) {
+  for (const auto &q : *s->pageQueues) {
     q->enqueue(nullptr);
   }
 
@@ -246,24 +264,28 @@ bool pdb::PDBJoinAggregationAggregationStage::run(const pdb::Handle<pdb::ExJob> 
   }
 
   // should we materialize this to a set?
-  for(int j = 0; j < setsToMaterialize.size(); ++j) {
+  for (int j = 0; j < setsToMaterialize.size(); ++j) {
 
     // get the page set
     auto sinkPageSet = storage->getPageSet(std::make_pair(sink.pageSetIdentifier.first, sink.pageSetIdentifier.second));
 
     // if the thing does not exist finish!
-    if(sinkPageSet == nullptr) {
+    if (sinkPageSet == nullptr) {
       success = false;
       break;
     }
 
     // materialize the page set
     sinkPageSet->resetPageSet();
-    success = storage->materializePageSet(sinkPageSet, std::make_pair<std::string, std::string>(setsToMaterialize[j].database, setsToMaterialize[j].set)) && success;
+    success = storage->materializePageSet(sinkPageSet,
+                                          std::make_pair<std::string, std::string>(setsToMaterialize[j].database,
+                                                                                   setsToMaterialize[j].set))
+        && success;
   }
 
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-  std::cout << "Run pipeline for " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns]" << '\n';
+  std::cout << "Run pipeline for " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count()
+            << "[ns]" << '\n';
 
   return success;
 }

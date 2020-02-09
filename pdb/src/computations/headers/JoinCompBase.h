@@ -63,8 +63,16 @@ class JoinCompBase : public Computation {
                                                               TupleSpec &recordSchema,
                                                               const PDBAbstractPageSetPtr &leftInputPageSet,
                                                               pdb::LogicalPlanPtr &plan,
-                                                              uint64_t chunkSize,
                                                               uint64_t workerID) = 0;
+
+  virtual ComputeSourcePtr getJoinAggSource(int32_t nodeID,
+                                            int32_t workerID,
+                                            int32_t numWorkers,
+                                            std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &leftTIDToRecordMapping,
+                                            std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &rightTIDToRecordMapping,
+                                            const PDBPageHandle &page,
+                                            PDBRandomAccessPageSetPtr leftInputPageSet,
+                                            PDBRandomAccessPageSetPtr rightInputPageSet) = 0;
 
   virtual ComputeSourcePtr getJoinedSource(TupleSpec &recordSchemaLHS,
                                            TupleSpec &inputSchemaRHS,
@@ -74,7 +82,6 @@ class JoinCompBase : public Computation {
                                            const PDBAbstractPageSetPtr &rightInputPageSet,
                                            pdb::LogicalPlanPtr &plan,
                                            bool needToSwapLHSAndRhs,
-                                           uint64_t chunkSize,
                                            uint64_t workerID) = 0;
 
   virtual RHSKeyJoinSourceBasePtr getRHSKeyShuffleJoinSource(TupleSpec &inputSchema,

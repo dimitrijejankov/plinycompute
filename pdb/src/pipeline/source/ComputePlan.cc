@@ -42,11 +42,12 @@ namespace pdb {
 
 ComputePlan::ComputePlan(LogicalPlanPtr myPlan) : myPlan(std::move(myPlan)) {}
 
-ComputeSourcePtr ComputePlan::getComputeSource(AtomicComputationPtr &sourceAtomicComputation,
+ComputeSourcePtr ComputePlan::getComputeSource(int32_t nodeID,
+                                               int32_t workerID,
+                                               int32_t numWorkers,
+                                               AtomicComputationPtr &sourceAtomicComputation,
                                                const PDBAbstractPageSetPtr &inputPageSet,
-                                               std::map<ComputeInfoType, ComputeInfoPtr> &params,
-                                               uint64_t chunkSize,
-                                               uint64_t workerID) {
+                                               std::map<ComputeInfoType, ComputeInfoPtr> &params) {
 
 
   // now we get the name of the actual computation object that corresponds to the producer of this tuple set
@@ -59,7 +60,7 @@ ComputeSourcePtr ComputePlan::getComputeSource(AtomicComputationPtr &sourceAtomi
   if(sourceAtomicComputation->getAtomicComputationTypeID() != ApplyJoinTypeID) {
 
     // our source is a normal source and not a join source, so we just grab it from the computation
-    return myPlan->getNode(producerName).getComputation().getComputeSource(inputPageSet, chunkSize, workerID, params);
+    return myPlan->getNode(producerName).getComputation().getComputeSource(inputPageSet, workerID, params);
   }
 
   // cast the join computation
@@ -69,6 +70,33 @@ ComputeSourcePtr ComputePlan::getComputeSource(AtomicComputationPtr &sourceAtomi
   JoinArgumentsPtr joinArgs = std::dynamic_pointer_cast<JoinArguments>(params[ComputeInfoType::JOIN_ARGS]);
   if(joinArgs == nullptr) {
     throw runtime_error("Join pipeline run without hash tables!");
+  }
+
+  // is this a join aggregation algorithm we are running
+  if(joinArgs->isJoinAggAggregation) {
+
+    // get the right atomic computation
+    AtomicComputationPtr rightAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getRightInput().getSetName());
+
+    // do we have the appropriate join arguments? if not throw an exception
+    auto it = joinArgs->hashTables.find(rightAtomicComp->getOutput().getSetName());
+    if(it == joinArgs->hashTables.end()) {
+      throw runtime_error("Hash table for the output set," + rightAtomicComp->getOutput().getSetName() +  "not found!");
+    }
+
+    // get the left and right input page set
+    auto leftInputPageSet = std::dynamic_pointer_cast<PDBRandomAccessPageSet>(inputPageSet);
+    auto rightInputPageSet = std::dynamic_pointer_cast<PDBRandomAccessPageSet>(it->second->hashTablePageSet);
+
+    // our source is a normal source and not a join source, so we just grab it from the computation
+    return ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getJoinAggSource(nodeID,
+                                                                                                                         workerID,
+                                                                                                                         numWorkers,
+                                                                                                                         *joinArgs->leftTIDToRecordMapping,
+                                                                                                                         *joinArgs->rightTIDToRecordMapping,
+                                                                                                                         joinArgs->planPage,
+                                                                                                                         leftInputPageSet,
+                                                                                                                         rightInputPageSet);
   }
 
   // figure out if the source is the left or right side
@@ -91,7 +119,6 @@ ComputeSourcePtr ComputePlan::getComputeSource(AtomicComputationPtr &sourceAtomi
                                                                                                                                           joinComputation->getRightProjection(),
                                                                                                                                           it->second->hashTablePageSet,
                                                                                                                                           myPlan,
-                                                                                                                                          chunkSize,
                                                                                                                                           workerID);
 
     // init the compute source for the join
@@ -103,7 +130,6 @@ ComputeSourcePtr ComputePlan::getComputeSource(AtomicComputationPtr &sourceAtomi
                                                                                                                         inputPageSet, // the LHS page set
                                                                                                                         myPlan,
                                                                                                                         needsToSwapSides,
-                                                                                                                        chunkSize,
                                                                                                                         workerID);
 
   }
@@ -125,7 +151,6 @@ ComputeSourcePtr ComputePlan::getComputeSource(AtomicComputationPtr &sourceAtomi
                                                                                                                                           joinComputation->getProjection(),
                                                                                                                                           it->second->hashTablePageSet,
                                                                                                                                           myPlan,
-                                                                                                                                          chunkSize,
                                                                                                                                           workerID);
 
     // init the compute source for the join
@@ -137,7 +162,6 @@ ComputeSourcePtr ComputePlan::getComputeSource(AtomicComputationPtr &sourceAtomi
                                                                                                                         inputPageSet, // the LHS page set
                                                                                                                         myPlan,
                                                                                                                         needsToSwapSides,
-                                                                                                                        chunkSize,
                                                                                                                         workerID);
   }
 }
@@ -378,9 +402,9 @@ PipelinePtr ComputePlan::buildPipeline(const std::string& sourceTupleSetName,
                                        const PDBAbstractPageSetPtr &inputPageSet,
                                        const PDBAnonymousPageSetPtr &outputPageSet,
                                        std::map<ComputeInfoType, ComputeInfoPtr> &params,
+                                       std::size_t nodeID,
                                        size_t numNodes,
                                        size_t numProcessingThreads,
-                                       uint64_t chunkSize,
                                        uint64_t workerID) {
 
   // get all of the computations
@@ -395,7 +419,7 @@ PipelinePtr ComputePlan::buildPipeline(const std::string& sourceTupleSetName,
   TupleSpec &origSpec = sourceAtomicComputation->getOutput();
 
   // figure out the source
-  ComputeSourcePtr computeSource = getComputeSource(sourceAtomicComputation, inputPageSet, params, chunkSize, workerID);
+  ComputeSourcePtr computeSource = getComputeSource(nodeID, workerID, numProcessingThreads, sourceAtomicComputation, inputPageSet, params);
 
   /// 1. Find all the computations in the pipeline
 

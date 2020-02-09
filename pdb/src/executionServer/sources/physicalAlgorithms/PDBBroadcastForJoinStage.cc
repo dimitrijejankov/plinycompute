@@ -118,9 +118,9 @@ bool pdb::PDBBroadcastForJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                        sourcePageSet,
                                        intermediatePageSet,
                                        params,
+                                       job->thisNode,
                                        job->numberOfNodes,
                                        job->numberOfProcessingThreads,
-                                       20,
                                        pipelineIndex);
 
     s->prebroadcastjoinPipelines->push_back(pipeline);

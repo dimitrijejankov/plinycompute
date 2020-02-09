@@ -104,7 +104,6 @@ class SetScanner : public Computation {
    * @return can be either @see VectorTupleSetIterator or @see MapTupleSetIterator depending on the type of the set
    */
   pdb::ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet,
-                                         size_t chunkSize,
                                          uint64_t workerID,
                                          std::map<ComputeInfoType, ComputeInfoPtr> &params) override {
 
@@ -116,7 +115,7 @@ class SetScanner : public Computation {
     if(sourceSetInfo->set->containerType == PDB_CATALOG_SET_VECTOR_CONTAINER) {
 
       // return the vector set VectorTupleSetIterator
-      return std::make_shared<pdb::VectorTupleSetIterator>(pageSet, chunkSize, workerID);
+      return std::make_shared<pdb::VectorTupleSetIterator>(pageSet, workerID);
     }
     else if(sourceSetInfo->set->containerType == PDB_CATALOG_SET_MAP_CONTAINER) {
 
@@ -128,7 +127,7 @@ class SetScanner : public Computation {
         using Key = typename std::remove_reference<decltype(std::declval<OutputClass>().getKey())>::type;
 
         // return the map iterator
-        return std::make_shared<pdb::MapTupleSetIterator<typename remove_handle<Key>::type, typename remove_handle<Value>::type, OutputClass>> (pageSet, workerID, chunkSize);
+        return std::make_shared<pdb::MapTupleSetIterator<typename remove_handle<Key>::type, typename remove_handle<Value>::type, OutputClass>> (pageSet, workerID);
       }
       else {
 

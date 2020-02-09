@@ -271,9 +271,9 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
                                        sourcePageSet,
                                        s->intermediatePageSet,
                                        params,
+                                       job->thisNode,
                                        job->numberOfNodes,
                                        job->numberOfProcessingThreads,
-                                       20,
                                        pipelineIndex);
 
     // store the join pipeline
@@ -345,9 +345,9 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
                                        sourcePageSet,
                                        s->intermediatePageSet,
                                        params,
+                                       job->thisNode,
                                        job->numberOfNodes,
                                        job->numberOfProcessingThreads,
-                                       20,
                                        pipelineIndex);
 
     // store the join pipeline

@@ -109,9 +109,9 @@ bool pdb::PDBStraightPipeStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                        sourcePageSet,
                                        sinkPageSet,
                                        params,
+                                       job->thisNode,
                                        job->numberOfNodes,
                                        job->numberOfProcessingThreads,
-                                       20,
                                        pipelineIndex);
     s->myPipelines->push_back(pipeline);
   }

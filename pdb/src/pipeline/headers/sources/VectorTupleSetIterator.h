@@ -71,7 +71,7 @@ public:
   * @param chunkSize - the chunk size tells us how many objects to put into a tuple set
   * @param workerID - the worker id is used a as a parameter @see PDBAbstractPageSetPtr::getNextPage to get a specific page for a worker
   */
-  VectorTupleSetIterator(PDBAbstractPageSetPtr pageSetIn, size_t chunkSize, uint64_t workerID) : pageSet(std::move(pageSetIn)), workerID(workerID) {
+  VectorTupleSetIterator(PDBAbstractPageSetPtr pageSetIn, uint64_t workerID) : pageSet(std::move(pageSetIn)), workerID(workerID) {
 
     // create the tuple set that we'll return during iteration
     output = std::make_shared<TupleSet>();

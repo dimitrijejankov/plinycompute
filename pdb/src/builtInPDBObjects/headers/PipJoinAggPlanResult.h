@@ -24,56 +24,6 @@ public:
 
   ~PipJoinAggPlanResult() = default;
 
-  void merge(std::unordered_map<uint32_t, uint32_t> &m, uint32_t from, uint32_t to) {
-
-    // merge all the from to the to
-    for(auto &v : m) {
-      if(v.second == from) {
-        v.second = to;
-      }
-    }
-  }
-
-  void generateHashes(int currentNode, std::unordered_map<uint32_t, uint32_t> &left, std::unordered_map<uint32_t, uint32_t> &right) {
-
-    uint32_t nextID = 1;
-    for(int i = 0; i < (*joinGroupsPerNode)[currentNode].size(); ++i) {
-
-      // get the tids that are joined
-      auto leftTID = (*joinGroupsPerNode)[currentNode][i].first;
-      auto rightTID = (*joinGroupsPerNode)[currentNode][i].second;
-
-      // if it is zero assign it something
-      if (left[leftTID] == 0 && right[rightTID] == 0) {
-        left[leftTID] = nextID;
-        right[rightTID] = nextID++;
-        continue;
-      }
-
-      // if both of them are set merge them
-      if (left[leftTID] != 0 && right[rightTID] != 0) {
-
-        // we merge the left to right
-        uint32_t from = left[leftTID];
-        uint32_t to = right[rightTID];
-
-        // we are merging both sides
-        merge(left, from, to);
-        merge(right, from, to);
-      }
-
-      // if the first one is zero that means the other is not
-      if (left[leftTID] == 0) {
-        left[leftTID] = right[rightTID];
-      }
-
-      // if the second one is zer that means the other is not
-      if (right[rightTID] == 0) {
-        right[rightTID] = left[leftTID];
-      }
-    }
-  }
-
   ENABLE_DEEP_COPY
 
   // join to node map
