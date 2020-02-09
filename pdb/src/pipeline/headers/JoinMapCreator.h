@@ -61,6 +61,9 @@ public:
       auto record = ((Record<Vector<std::pair<uint32_t, Handle<record_t>>>> *) recordPage->getBytes());
       auto tuples = record->getRootObject();
 
+      // freeze it
+      recordPage->freezeSize(record->numBytes());
+
       // insert the page into the join map
       for(uint32_t currentTuple = 0; currentTuple < tuples->size(); ++currentTuple) {
 
@@ -74,8 +77,6 @@ public:
       // unpin the record page
       recordPage->unpin();
     }
-
-    std::cout << "JoinMapCreator Finished!\n";
   }
 
   bool getSuccess() override {

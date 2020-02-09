@@ -155,7 +155,7 @@ public:
         } catch (pdb::NotEnoughSpace &n) {
 
           // set the root object
-          getRecord(vec);
+          auto record = getRecord(vec);
 
           // send the number of objects
           if(!communicator->sendPrimitiveType(numOnPage)) {
@@ -163,7 +163,7 @@ public:
           }
 
           // send the bytes
-          if(!communicator->sendBytes(page->getBytes(), page->getSize(), error)) {
+          if(!communicator->sendBytes(page->getBytes(), record->numBytes(), error)) {
 
             // finish here we got an error
             return;
@@ -178,7 +178,7 @@ public:
       if(numOnPage != 0) {
 
         // set the root object
-        getRecord(vec);
+        auto record = getRecord(vec);
 
         // send the number of objects
         if(!communicator->sendPrimitiveType(numOnPage)) {
@@ -186,13 +186,11 @@ public:
         }
 
         // send the bytes
-        if(!communicator->sendBytes(page->getBytes(), page->getSize(), error)) {
+        if(!communicator->sendBytes(page->getBytes(), record->numBytes(), error)) {
 
           // finish here we got an error
           return;
         }
-
-        std::cout << "Sent... \n";
       }
 
       // unqueue the identifier
@@ -201,7 +199,6 @@ public:
     }
 
     // that we are done
-    std::cout << "Finished... \n";
     if(!communicator->sendPrimitiveType(-1)) {
       return;
     }
