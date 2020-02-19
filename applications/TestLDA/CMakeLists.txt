@@ -10,7 +10,6 @@ foreach(file ${files})
     get_filename_component(fileName "${file}" NAME_WE)
     add_library(${fileName} MODULE ${file})
     target_link_libraries(${fileName} pdb-shared-common)
-    target_link_libraries(${fileName} ${GSL_LIBRARIES})
     add_dependencies(shared-libraries ${fileName})
 endforeach()
 

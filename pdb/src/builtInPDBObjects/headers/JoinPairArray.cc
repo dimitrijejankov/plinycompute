@@ -562,7 +562,7 @@ bool JoinMapIterator<ValueType>::isDone() {
 }
 
 template<class ValueType>
-const size_t JoinMapIterator<ValueType>::getHash() const {
+size_t JoinMapIterator<ValueType>::getHash() const {
   // return the hash
   int objSize = iterateMe->objSize;
   return JM_GET_HASH(iterateMe->data, (*iterationOrder)[pos].first);

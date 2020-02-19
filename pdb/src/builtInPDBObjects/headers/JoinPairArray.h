@@ -95,7 +95,7 @@ class JoinMapIterator {
   JoinMapIterator();
 
   bool isDone();
-  const size_t getHash() const;
+  size_t getHash() const;
   void setLabel(int32_t value);
   int32_t getLabel();
 

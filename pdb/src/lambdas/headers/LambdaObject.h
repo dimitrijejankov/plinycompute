@@ -201,14 +201,8 @@ public:
 
   std::string getLambdaName() const {
 
-    // create the data for the lambda so we can generate the strings
-    mustache::data lambdaData;
-    lambdaData.set("typeOfLambda", getTypeOfLambda());
-    lambdaData.set("lambdaLabel", std::to_string(myLambdaLabel));
-
     // return the lambda name
-    mustache::mustache lambdaNameTemplate{"{{typeOfLambda}}_{{lambdaLabel}}"};
-    return std::move(lambdaNameTemplate.render(lambdaData));
+    return getTypeOfLambda() + "_" + std::to_string(myLambdaLabel);
   }
 
   /**

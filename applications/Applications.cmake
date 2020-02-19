@@ -12,7 +12,6 @@ function(add_pdb_application test-name)
 
     # link it to the required libraries
     target_link_libraries(${test-name} pdb-tests-common)
-    target_link_libraries(${test-name} ${GSL_LIBRARIES})
 endfunction(add_pdb_application)
 
 

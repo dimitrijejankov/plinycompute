@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 3.5.1)
-
-# set clang as the default compiler
-set(CMAKE_C_COMPILER "clang")
-set(CMAKE_CXX_COMPILER "clang++")
+cmake_minimum_required(VERSION 3.12)
 
 project(pdb)
+
+# suppress some warning if intel
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+    set(CMAKE_CXX_FLAGS "-wd873,2196")
+endif()
 
 # set the output directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  "${PROJECT_SOURCE_DIR}/bin")
@@ -16,7 +17,7 @@ set(CTEST_BINARY_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 set(CMAKE_CXX_STANDARD 17)
 
 # check the operating system and add the appropriate flags
-set(CMAKE_CXX_FLAGS "-fPIC -Wno-deprecated-declarations")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wno-deprecated-declarations")
 
 # the default build type is debug
 if(CMAKE_BUILD_TYPE STREQUAL "")
@@ -204,9 +205,9 @@ IF (BISON_FOUND)
     )
 ENDIF ()
 
-# find gsl
-FIND_PACKAGE(GSL REQUIRED)
-include_directories(${GSL_INCLUDE_DIRS} ${GSLCBLAS_INCLUDE_DIRS})
+# find blas
+find_package(MKL)
+INCLUDE_DIRECTORIES(${MKL_INCLUDE_PATH})
 
 #find snappy
 FIND_PACKAGE(Snappy REQUIRED)
@@ -349,8 +350,6 @@ else()
     set(SOURCE_FILES_PDB_CLUSTER ${PROJECT_SOURCE_DIR}/pdb/src/mainServer/source/NodeMain.cc $<TARGET_OBJECTS:logical-plan-parser>)
     add_executable(pdb-node ${SOURCE_FILES_PDB_CLUSTER})
     target_link_libraries(pdb-node pdb-server-common)
-    target_link_libraries(pdb-node ${GSL_LIBRARIES})
-    target_link_libraries(pdb-node ${Boost_LIBRARIES})
 
     # set dependencies for pdb-main
     add_custom_target(pdb-main)

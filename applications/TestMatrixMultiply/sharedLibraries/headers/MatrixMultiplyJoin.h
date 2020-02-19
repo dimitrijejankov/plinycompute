@@ -1,12 +1,11 @@
 #pragma once
 
 #include <LambdaCreationFunctions.h>
+#include <mkl.h>
 #include "JoinComp.h"
 #include "MatrixBlock.h"
 
-namespace pdb {
-
-namespace matrix {
+namespace pdb::matrix {
 
 class MatrixMultiplyJoin : public JoinComp <MatrixMultiplyJoin, MatrixBlock, MatrixBlock, MatrixBlock> {
  public:
@@ -42,14 +41,8 @@ class MatrixMultiplyJoin : public JoinComp <MatrixMultiplyJoin, MatrixBlock, Mat
       float *in1Data = in1->data->c_ptr();
       float *in2Data = in2->data->c_ptr();
 
-      //TODO replace this with mkl
-      for (uint32_t i = 0; i < I; ++i) {
-        for (uint32_t j = 0; j < J; ++j) {
-          for (uint32_t k = 0; k < K; ++k) {
-            outData[i * J + j] += in1Data[i * K + k] * in2Data[k * J + j];
-          }
-        }
-      }
+      // do the multiply
+      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, I, J, K, 1.0f, in1Data, K, in2Data, J, 0.0f, outData, J);
 
       // return the output
       return out;
@@ -57,7 +50,5 @@ class MatrixMultiplyJoin : public JoinComp <MatrixMultiplyJoin, MatrixBlock, Mat
   }
 };
 
-
-}
 
 }
