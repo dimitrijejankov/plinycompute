@@ -138,7 +138,8 @@ public:
       int32_t numOnPage = 0;
 
       // go through the records and put them on a page
-      for(int i = 0; i < recs.second->size(); ++i) {
+      size_t numRec = recs.second->size();
+      for(int i = 0; i < numRec; ++i) {
 
         // try to insert the record
         try {

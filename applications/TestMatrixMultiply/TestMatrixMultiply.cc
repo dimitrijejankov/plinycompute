@@ -19,34 +19,56 @@ const uint32_t numCols = 2;
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
   // fill the vector up
+  std::vector<std::pair<uint32_t, uint32_t>> tuplesToSend;
   for (uint32_t r = 0; r < numRows; r++) {
-
     for (uint32_t c = 0; c < numCols; c++) {
-
-      // make the allocation block
-      const pdb::UseTemporaryAllocationBlock tempBlock{blockSize * 1024 * 1024};
-
-      // put the chunks here
-      Handle<Vector<Handle<MatrixBlock>>> data = pdb::makeObject<Vector<Handle<MatrixBlock>>>();
-
-      // allocate a matrix
-      Handle<MatrixBlock> myInt = makeObject<MatrixBlock>(r, c, matrixRows / numRows, matrixColumns / numCols);
-
-      // init the values
-      float *vals = myInt->data->data->c_ptr();
-      for (int v = 0; v < (matrixRows / numRows) * (matrixColumns / numCols); ++v) {
-        vals[v] = 1.0f * v;
-      }
-
-      data->push_back(myInt);
-
-      // init the records
-      getRecord(data);
-
-      // send the data a bunch of times
-      pdbClient.sendData<MatrixBlock>("myData", set, data);
+      tuplesToSend.emplace_back(std::make_pair(r, c));
     }
   }
+
+  // make the allocation block
+  size_t i = 0;
+  while(i != tuplesToSend.size()) {
+
+    // use temporary allocation block
+    const pdb::UseTemporaryAllocationBlock tempBlock{blockSize * 1024 * 1024};
+
+    // put the chunks here
+    Handle<Vector<Handle<MatrixBlock>>> data = pdb::makeObject<Vector<Handle<MatrixBlock>>>();
+
+    try {
+
+      // put stuff into the vector
+      for(; i < tuplesToSend.size(); ++i) {
+
+        // allocate a matrix
+        Handle<MatrixBlock> myInt = makeObject<MatrixBlock>(tuplesToSend[i].first,
+                                                            tuplesToSend[i].second,
+                                                            matrixRows / numRows,
+                                                            matrixColumns / numCols);
+
+        // init the values
+        float *vals = myInt->data->data->c_ptr();
+        for (int v = 0; v < (matrixRows / numRows) * (matrixColumns / numCols); ++v) {
+          vals[v] = 1.0f * v;
+        }
+
+        // we add the matrix to the block
+        data->push_back(myInt);
+      }
+    }
+    catch (pdb::NotEnoughSpace &n) {}
+
+    // init the records
+    getRecord(data);
+
+    // send the data a bunch of times
+    pdbClient.sendData<MatrixBlock>("myData", set, data);
+
+    // log that we stored stuff
+    std::cout << "Stored " << data->size() << " !\n";
+  }
+
 }
 
 int main(int argc, char* argv[]) {
