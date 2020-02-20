@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 #include "PDBDistributedStorage.h"
+#include "PDBDispatchRoundRobinPolicy.h"
 #include <snappy.h>
 #include <HeapRequestHandler.h>
 #include <DisAddData.h>
@@ -39,7 +40,7 @@ namespace fs = boost::filesystem;
 void PDBDistributedStorage::init() {
 
   // init the policy
-  policy = std::make_shared<PDBDispatchRandomPolicy>();
+  policy = std::make_shared<PDBDispatchRoundRobinPolicy>();
 
   // init the class
   logger = make_shared<pdb::PDBLogger>((fs::path(getConfiguration()->rootDirectory) / "logs").string(), "PDBDistributedStorage.log");

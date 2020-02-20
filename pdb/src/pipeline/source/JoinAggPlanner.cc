@@ -114,7 +114,7 @@ void pdb::JoinAggPlanner::doPlanning() {
 
 
   // run for a number of iterations
-  planner.run(1000);
+  planner.run(50);
 
   // get the result of the planning
   auto result = planner.getResult();
