@@ -284,9 +284,8 @@ bool pdb::PDBJoinAggregationAggregationStage::run(const pdb::Handle<pdb::ExJob> 
   }
 
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-  std::cout << "Run pipeline for " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count()
+  std::cout << "AggregationStage run for " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count()
             << "[ns]" << '\n';
-
   return success;
 }
 

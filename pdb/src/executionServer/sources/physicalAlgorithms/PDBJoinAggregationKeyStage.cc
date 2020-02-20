@@ -533,6 +533,8 @@ bool pdb::PDBJoinAggregationKeyStage::runLead(const Handle<pdb::ExJob> &job,
                                               const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                               const std::string &error) {
 
+  std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
   // cast the state
   auto s = dynamic_pointer_cast<PDBJoinAggregationState>(state);
 
@@ -622,15 +624,21 @@ bool pdb::PDBJoinAggregationKeyStage::runLead(const Handle<pdb::ExJob> &job,
    * 3. Run the planner
    */
 
+
+  std::chrono::steady_clock::time_point planner_begin = std::chrono::steady_clock::now();
+
   // make the planner
   JoinAggPlanner planner(s->joinAggPageSet, job->numberOfNodes, job->numberOfProcessingThreads, s->planPage);
-
-  // get a page to store the planning result onto
-  auto bufferManager = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
 
   // do the planning
   planner.doPlanning();
 
+  std::chrono::steady_clock::time_point planner_end = std::chrono::steady_clock::now();
+  std::cout << "Run planner for " << std::chrono::duration_cast<std::chrono::nanoseconds>(planner_end - planner_begin).count()
+            << "[ns]" << '\n';
+
+  // get a page to store the planning result onto
+  auto bufferManager = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
   /**
    * 4. Broadcast the plan (left key page, right key page)
    */
@@ -781,6 +789,10 @@ bool pdb::PDBJoinAggregationKeyStage::runLead(const Handle<pdb::ExJob> &job,
   while (counter < s->leftKeySenders->size() + s->rightKeySenders->size() + s->planSenders->size()) {
     tempBuzzer->wait();
   }
+
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  std::cout << "KeyStage run for " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count()
+            << "[ns]" << '\n';
 
   return true;
 }

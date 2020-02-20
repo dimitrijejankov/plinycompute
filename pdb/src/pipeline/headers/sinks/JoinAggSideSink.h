@@ -148,10 +148,8 @@ public:
       for(int j = 0; j < nodes.size(); ++j) {
         if(nodes[j]) {
           nodeToRecord[j].emplace_back(std::pair{tid, v});
-          std::cout << j << " ";
         }
       }
-      std::cout << "\n";
     }
 
     // queue them for sending

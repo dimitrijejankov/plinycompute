@@ -571,7 +571,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
   }
 
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-  std::cout << "Run pipeline for " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count()
+  std::cout << "JoinSideStage run for " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count()
             << "[ns]" << '\n';
 
   return true;

@@ -142,16 +142,11 @@ template<class ObjType>
 typename std::enable_if<std::is_trivially_copyable<ObjType>::value, bool>::type
 PDBCommunicator::sendPrimitiveType(const ObjType &sendMe) {
 
-  std::cout << "sendPrimitiveType" << '\n';
-
   // write out the record type
   if (!doTheWrite(((char*)&sendMe), ((char*)&sendMe) + sizeof(ObjType))) {
     logToMe->error(strerror(errno));
     return false;
   }
-
-  // log the info
-  logToMe->info(std::string("Primitive type of size ") + std::to_string(sizeof(ObjType)) + "  sent!");
 
   return true;
 }

@@ -114,7 +114,6 @@ public:
       // wait till we have something to send, or we are done sending
       cv.wait(lk, [&]{ return !toSend.empty() || !stillSending; });
 
-      std::cout << "Sending...\n";
       // break if we are done sending
       if(!stillSending && toSend.empty()) {
         break;

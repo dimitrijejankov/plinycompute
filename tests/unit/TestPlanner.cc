@@ -81,8 +81,8 @@ TEST(TestPlanner, Test1) {
     planner.crossover();
     planner.mutation();
     planner.finish();
-    planner.print();
   }
+  //planner.print();
 
 
 }
