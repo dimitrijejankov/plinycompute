@@ -148,13 +148,23 @@ void pdb::Pipeline::run() {
     initialFree = getAllocator().getFreeBytesAtTheEnd();
     additionalPagesUsed = 0;
 
+    // should we get a new page? we do this to try to avoid throwing an exception
+    if(tupleSetSizePolicy.shouldGetNewPage(initialFree)) {
+
+      // we add the current page to the list of output pages and then we grab a new one
+      addPageToIteration(ram, iteration);
+      ram = std::make_shared<MemoryHolder>(outputPageSet->getNewPage());
+
+      // we just grabbed a new page
+      initialFree = getAllocator().getFreeBytesAtTheEnd();
+    }
+
     /**
      * 1. First we go through each computation in the pipeline and apply it
      *    what can happen is basically that stuff can not fit on a single page so we are going to get a bunch of pages
      *    that are connected somehow to do this computation.
      *    If the pipeline can not be processed we need to reduce the number of rows. This is going to be repeated
      */
-    int stage = 0;
     for(const auto &q : pipeline) {
 
       // this value indicates whether we need to reapply this computation

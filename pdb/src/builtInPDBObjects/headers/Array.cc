@@ -114,7 +114,7 @@ Array<TypeContained>::Array(uint32_t numSlotsIn, uint32_t numUsedSlots) {
         // std :: cout << "sizeof(TypeContained)=" << sizeof(TypeContained) << std :: endl;
         // zero out everything
         // std :: cout << "Just b-zeroing everything.\n";
-        bzero(data, numUsedSlots * sizeof(TypeContained));
+        // bzero(data, numUsedSlots * sizeof(TypeContained));
     }
 }
 template <class TypeContained>

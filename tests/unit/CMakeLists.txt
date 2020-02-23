@@ -35,3 +35,5 @@ foreach(file ${files})
     add_dependencies(unit-tests ${fileName})
 
 endforeach()
+
+target_link_libraries(TestMKL ${MKL_LIBRARIES})

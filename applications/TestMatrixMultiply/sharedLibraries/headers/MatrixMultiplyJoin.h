@@ -1,7 +1,7 @@
 #pragma once
 
 #include <LambdaCreationFunctions.h>
-#include <mkl.h>
+#include <mkl_cblas.h>
 #include "JoinComp.h"
 #include "MatrixBlock.h"
 

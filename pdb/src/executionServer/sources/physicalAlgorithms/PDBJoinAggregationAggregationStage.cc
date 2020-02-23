@@ -263,6 +263,11 @@ bool pdb::PDBJoinAggregationAggregationStage::run(const pdb::Handle<pdb::ExJob> 
     tempBuzzer->wait();
   }
 
+
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  std::cout << "AggregationStage run for " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << "[ns]" << '\n';
+  begin = end;
+
   // should we materialize this to a set?
   for (int j = 0; j < setsToMaterialize.size(); ++j) {
 
@@ -283,9 +288,8 @@ bool pdb::PDBJoinAggregationAggregationStage::run(const pdb::Handle<pdb::ExJob> 
         && success;
   }
 
-  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-  std::cout << "AggregationStage run for " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count()
-            << "[ns]" << '\n';
+  end = std::chrono::steady_clock::now();
+  std::cout << "Materialization run for " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << "[ns]" << '\n';
   return success;
 }
 

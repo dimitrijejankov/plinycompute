@@ -42,12 +42,19 @@ public:
    */
   [[nodiscard]] int32_t getChunksSize() const;
 
-protected:
+
+  /**
+   * Tells us if we need to get a new output page
+   * @return
+   */
+  [[nodiscard]] bool shouldGetNewPage(uint64_t freeLeft) const;
+
+ protected:
 
   /**
    * This is the size the policy has at the beginning of pipeline
    */
-  int32_t chunkSize = 50;
+  int32_t chunkSize = 1;
 
   /**
    * Setting a max chunk size makes it so that we prevent, the chunk size from exploding.
@@ -55,7 +62,7 @@ protected:
    * case 1/maxChunkSize, if virtual functions calls are more expensive than processing 100 tuples that might
    * be problem with the computation.
    */
-  int32_t maxChunkSize = 100;
+  int32_t maxChunkSize = 4;
 
   /**
    * The the last known chunk size we know the write succeeded.
@@ -114,6 +121,9 @@ protected:
 
   // the size of the page
   uint64_t pageSize;
+
+  // how much do we increment per tuple
+  uint64_t bytesAddedPerTuple = 0;
 };
 
 }

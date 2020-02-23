@@ -47,6 +47,18 @@ void PDBTupleSetSizePolicy::writeToPageSucceeded(uint64_t additionalPages, uint6
   writeStats.finalFree = finalFree;
   writeStats.numAdditionalPages = additionalPages;
 
+  // track the maximum tuple size
+  size_t numBytesUsed = ((int64_t)pipeline.initialFree - (int64_t) writeStats.finalFree) + (pipeline.numAdditionalPages + writeStats.numAdditionalPages) * pageSize;
+  bytesAddedPerTuple = std::max(numBytesUsed / getChunksSize(), bytesAddedPerTuple);
+
+  // figure out what the max is we can add
+  if(bytesAddedPerTuple != 0) {
+
+    // either cap it at 90% of the approximate number of tuples we can process, or 100 tuples
+    maxChunkSize = std::min(90 * (pageSize / bytesAddedPerTuple) / 100 , 100ul);
+  }
+
+  // if the pipeline succeeded we don't need to make it succeed
   if(pipeline.succeeded && pipeline.numAdditionalPages == 0 && additionalPages == 0) {
     tryToMakePipelineSucceed = false;
   }
@@ -55,12 +67,12 @@ void PDBTupleSetSizePolicy::writeToPageSucceeded(uint64_t additionalPages, uint6
   // can possibly increase the chunk size
   if(allowIncrements && pipeline.succeeded && pipeline.numAdditionalPages == 0 && additionalPages == 0) {
 
-    // so the rule is if we only used less than 20% of the page in total
+    // so the rule is if we only used less than 75% of the page in total
     // increase chunk size 3 times because we expect the usage to go up to 60%
     auto percentage = ((pipeline.initialFree - writeStats.finalFree) * 100) / pageSize;
 
     // do the check and increment if it works
-    if(percentage < 20) {
+    if(percentage < 75) {
       chunkSize = std::min<uint64_t>(((uint64_t) chunkSize) * 3, maxChunkSize);
     }
 
@@ -116,6 +128,12 @@ bool PDBTupleSetSizePolicy::inputWasProcessed() const {
 
 int32_t PDBTupleSetSizePolicy::getChunksSize() const {
   return this->chunkSize;
+}
+
+bool PDBTupleSetSizePolicy::shouldGetNewPage(uint64_t freeLeft) const {
+
+  // if the free memory is less than 75% of the estimated required memory grab a new page just to be sure...
+  return  (3 * freeLeft) / 4 < chunkSize * bytesAddedPerTuple;
 }
 
 }
