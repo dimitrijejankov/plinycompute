@@ -181,6 +181,9 @@ REAPPLY:
 
       } catch (NotEnoughSpace &n) {
 
+        //
+        std::cout << "This is bad\n";
+
         // if we already reapplied then we can obviously not do the processing of this tuple set
         // we need to have less rows to finish this pipeline
         if(reapply) {
@@ -236,6 +239,8 @@ REAPPLY:
       dataSink->writeOut(curChunk, ram->outputSink);
 
     } catch (NotEnoughSpace &n) {
+
+      std::cout << "This is bad\n";
 
       // increment the number of records if needed
       incrementRecordNumber(ram);

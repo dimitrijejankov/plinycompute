@@ -208,7 +208,7 @@ ENDIF ()
 # find blas
 set(MKL_ROOT /opt/intel/mkl)
 find_package(MKL)
-INCLUDE_DIRECTORIES(${MKL_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(${MKL_INCLUDE_PATH})
 
 #find snappy
 FIND_PACKAGE(Snappy REQUIRED)
