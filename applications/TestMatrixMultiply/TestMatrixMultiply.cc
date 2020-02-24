@@ -11,8 +11,8 @@ using namespace pdb::matrix;
 
 // some constants for the test
 const size_t blockSize = 64;
-const uint32_t matrixRows = 40000;
-const uint32_t matrixColumns = 40000;
+const uint32_t matrixRows = 4000;
+const uint32_t matrixColumns = 4000;
 const uint32_t numRows = 40;
 const uint32_t numCols = 40;
 
@@ -148,6 +148,9 @@ int main(int argc, char* argv[]) {
 //
 //    std::cout << "\n\n";
 //  }
+
+  // wait a bit before the shutdown
+  sleep(4);
 
   // shutdown the server
   pdbClient.shutDownServer();

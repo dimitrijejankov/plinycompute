@@ -67,7 +67,7 @@ public:
     nextID = nextID + 1 < 0 ? 0 : nextID + 1;
 
     // store the records
-    toSend.push({currID, records});
+    toSend.push_back({currID, records});
 
     // queue the identifier
     queuedIdentifiers.insert(currID);
@@ -102,11 +102,22 @@ public:
    */
   void run() override {
 
-    // the error is stored here if any
-    std::string error;
-
     // lock the structure
     std::unique_lock<std::mutex> lk(m);
+
+REDO:
+
+    // how many did we put on a page
+    int32_t numOnPage = 0;
+
+    // use the page
+    const UseTemporaryAllocationBlock tempBlock{page->getBytes(), page->getSize()};
+
+    // empty out the page
+    getAllocator().emptyOutBlock(page->getBytes());
+
+    // create a vector to store stuff
+    Handle<Vector<std::pair<uint32_t, recordHandle>>> vec = pdb::makeObject<Vector<std::pair<uint32_t, recordHandle>>>();
 
     // do the sending
     while(true) {
@@ -121,20 +132,7 @@ public:
 
       // grab it from the queue
       auto recs = toSend.front();
-      toSend.pop();
-
-      // use the page
-      const UseTemporaryAllocationBlock tempBlock{page->getBytes(), page->getSize()};
-
-      REDO:
-      // empty out the page
-      getAllocator().emptyOutBlock(page->getBytes());
-
-      // create a vector to store stuff
-      Handle<Vector<std::pair<uint32_t, recordHandle>>> vec = pdb::makeObject<Vector<std::pair<uint32_t, recordHandle>>>();
-
-      // how many did we put on a page
-      int32_t numOnPage = 0;
+      toSend.pop_front();
 
       // go through the records and put them on a page
       size_t numRec = recs.second->size();
@@ -169,13 +167,27 @@ public:
             return;
           }
 
+          // move them to the frond
+          toSend.push_front(recs);
+
+          // empty out the page
+          getAllocator().emptyOutBlock(page->getBytes());
+
           // redo since we have stuff left
           goto REDO;
         }
       }
 
-      // if there are records on the page send them
-      if(numOnPage != 0) {
+      // unqueue the identifier
+      queuedIdentifiers.erase(recs.first);
+      cv.notify_all();
+
+      // get how much there is left till we reach the end of the page
+      auto freePercentage = (100 * getAllocator().getFreeBytesAtTheEnd()) / page->getSize();
+
+      // if there are records on the page and we are over 90% (less than 10% free) send the page
+      // or if we are done sending and this is the last batch just send them over
+      if(numOnPage != 0 && freePercentage <= 10) {
 
         // set the root object
         auto record = getRecord(vec);
@@ -191,11 +203,36 @@ public:
           // finish here we got an error
           return;
         }
+
+        // empty out the page
+        getAllocator().emptyOutBlock(page->getBytes());
+
+        // go to redo since we need a new page
+        goto REDO;
       }
 
-      // unqueue the identifier
-      queuedIdentifiers.erase(recs.first);
-      cv.notify_all();
+    }
+
+    // if something is left send it
+    if(numOnPage != 0) {
+
+      // set the root object
+      auto record = getRecord(vec);
+
+      // send the number of objects
+      if(!communicator->sendPrimitiveType(numOnPage)) {
+        return;
+      }
+
+      // send the bytes
+      if(!communicator->sendBytes(page->getBytes(), record->numBytes(), error)) {
+
+        // finish here we got an error
+        return;
+      }
+
+      // we just sent the page empty it out
+      getAllocator().emptyOutBlock(page->getBytes());
     }
 
     // that we are done
@@ -223,6 +260,11 @@ public:
  private:
 
   /**
+   * the error is stored here if any
+   */
+  std::string error;
+
+  /**
    * This indicates whether we are sending it
    */
   bool stillSending = true;
@@ -230,7 +272,7 @@ public:
   /**
    * the queue of record vectors with their identifiers
    */
-  std::queue<std::pair<int32_t, std::vector<std::pair<uint32_t, recordHandle>>*>> toSend;
+  std::deque<std::pair<int32_t, std::vector<std::pair<uint32_t, recordHandle>>*>> toSend;
 
   /**
    * the identifiers that are currently queued
