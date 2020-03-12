@@ -5,15 +5,15 @@
 int main() {
 
   // get the sizes
-  uint32_t I = 10000;
-  uint32_t J = 10000;
-  uint32_t K = 10000;
+  uint32_t I = 40000;
+  uint32_t J = 40000;
+  uint32_t K = 40000;
 
 
   // get the ptrs
-  auto *outData = new float[10000 * 10000];
-  auto *in1Data = new float[10000 * 10000];
-  auto *in2Data = new float[10000 * 10000];
+  auto *outData = new float[40000 * 40000];
+  auto *in1Data = new float[40000 * 40000];
+  auto *in2Data = new float[40000 * 40000];
 
   for(int i = 0; i < I; i++) {
     for(int j = 0; j < J; j++) {

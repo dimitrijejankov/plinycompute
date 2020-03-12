@@ -19,23 +19,13 @@
 
 #include <gtest/gtest.h>
 #include <QueryGraphAnalyzer.h>
-
-
-#include <ReadInt.h>
-#include <ReadStringIntPair.h>
-#include <SillyJoinIntString.h>
-#include <SillyWriteIntString.h>
-
-
-
-#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlock.h"
-#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixScanner.h"
-#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixMultiplyJoin.h"
-#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixMultiplyAggregation.h"
-#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixWriter.h"
+#include <../../../applications/TestConvolution/sharedLibraries/headers/Matrix3DScanner.h>
+#include <../../../applications/TestConvolution/sharedLibraries/headers/Matrix3DWriter.h>
+#include <../../../applications/TestConvolution/sharedLibraries/headers/MatrixConv3DJoin.h>
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 using namespace pdb;
-using namespace pdb::matrix;
 
 //TEST(TestTcapGeneration, Test1) {
 //
@@ -150,25 +140,33 @@ using namespace pdb::matrix;
 //}
 //
 
-#include <ScanEmployeeSet.h>
-#include <EmployeeBuiltInIdentitySelection.h>
-#include <WriteBuiltinEmployeeSet.h>
-#include <FinalQuery.h>
-#include <WriteSalaries.h>
-#include <SillyReadOfC.h>
-#include <WriteStringIntPair.h>
-#include <StringIntPairMultiSelection.h>
-
 TEST(TestTcapGeneration, Test5) {
 
   const pdb::UseTemporaryAllocationBlock tempBlock{1024 * 1024};
 
   // create all of the computation objects
-  Handle <Computation> readStringIntPair = pdb::makeObject <ReadStringIntPair>();
-  Handle <Computation> multiSelection = pdb::makeObject <StringIntPairMultiSelection>();
-  multiSelection->setInput(0, readStringIntPair);
-  Handle <Computation> writeStringIntPair = pdb::makeObject <WriteStringIntPair>();
-  writeStringIntPair->setInput(0, multiSelection);
+  Handle <Computation> a1 = pdb::makeObject <pdb::matrix_3d::Matrix3DScanner>();
+  Handle <Computation> a2 = pdb::makeObject <pdb::matrix_3d::Matrix3DScanner>();
+  Handle <Computation> a3 = pdb::makeObject <pdb::matrix_3d::Matrix3DScanner>();
+  Handle <Computation> a4 = pdb::makeObject <pdb::matrix_3d::Matrix3DScanner>();
+  Handle <Computation> a5 = pdb::makeObject <pdb::matrix_3d::Matrix3DScanner>();
+  Handle <Computation> a6 = pdb::makeObject <pdb::matrix_3d::Matrix3DScanner>();
+  Handle <Computation> a7 = pdb::makeObject <pdb::matrix_3d::Matrix3DScanner>();
+  Handle <Computation> a8 = pdb::makeObject <pdb::matrix_3d::Matrix3DScanner>();
+
+  // g
+  Handle <Computation> join = pdb::makeObject <pdb::matrix_3d::MatrixConv3DJoin>();
+  join->setInput(0, a1);
+  join->setInput(1, a2);
+  join->setInput(2, a3);
+  join->setInput(3, a4);
+  join->setInput(4, a5);
+  join->setInput(5, a6);
+  join->setInput(6, a7);
+  join->setInput(7, a8);
+
+  Handle <Computation> writeStringIntPair = pdb::makeObject <pdb::matrix_3d::Matrix3DWriter>();
+  writeStringIntPair->setInput(0, join);
 
   // the query graph has only the aggregation
   std::vector<Handle<Computation>> queryGraph = { writeStringIntPair };

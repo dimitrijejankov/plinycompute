@@ -140,6 +140,34 @@ struct HasFiveArgs {
   }
 };
 
+struct HasEightArgs {
+
+  template<typename U>
+  static auto testSelection(U *x) -> decltype(x->getSelection(foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo)) {
+    return x->getSelection(foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo);
+  }
+
+  template<typename U>
+  static auto testKeySelection(U *x) -> decltype(x->getKeySelection(foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo)) {
+    return x->getKeySelection(foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo);
+  }
+
+  template<typename U>
+  static auto testProjection(U *x) -> decltype(x->getProjection(foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo)) {
+    return x->getProjection(foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo);
+  }
+
+  template<typename U>
+  static auto testKeyProjection(U *x) -> decltype(x->getKeyProjection(foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo)) {
+    return x->getKeyProjection(foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo);
+  }
+
+  template<typename U>
+  static auto testValueProjection(U *x) -> decltype(x->getValueProjection(foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo)) {
+    return x->getValueProjection(foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo, foofoo);
+  }
+};
+
 /**
  *
  */
@@ -320,6 +348,13 @@ auto joinUsesKey(TypeToCallMethodOn &a,
   return true;
 }
 
+template<typename TypeToCallMethodOn>
+auto joinUsesKey(TypeToCallMethodOn &a,
+                 decltype(HasEightArgs::testKeySelection(&a)) *arg1 = nullptr,
+                 decltype(HasEightArgs::testKeyProjection(&a)) *arg2 = nullptr) {
+  return true;
+}
+
 /**
  *
  */
@@ -494,6 +529,62 @@ auto callGetSelection(TypeToCallMethodOn &a, decltype(HasFiveArgs::testKeySelect
   return predicate;
 }
 
+template<typename TypeToCallMethodOn, typename In1, typename In2, typename ...Rest>
+auto callGetSelection(TypeToCallMethodOn &a, decltype(HasEightArgs::testKeySelection(&a)) *arg = nullptr) {
+
+  // the arguments
+  GenericHandle first(1);
+  GenericHandle second(2);
+  GenericHandle third(3);
+  GenericHandle fourth(4);
+  GenericHandle fifth(5);
+  GenericHandle six(6);
+  GenericHandle seven(7);
+  GenericHandle eight(8);
+
+  // call the selection
+  auto predicate = a.getKeySelection(first, second, third, fourth, fifth, six, seven, eight);
+
+  // inject the key extraction into the predicate
+  injectKeyExtraction<decltype(predicate), In1, In2, Rest...>(predicate, 0);
+
+  // get the third input
+  using In3 = typename std::tuple_element<0, std::tuple<Rest...>>::type;
+  using In4 = typename std::tuple_element<0, std::tuple<Rest...>>::type;
+  using In5 = typename std::tuple_element<0, std::tuple<Rest...>>::type;
+  using In6 = typename std::tuple_element<0, std::tuple<Rest...>>::type;
+  using In7 = typename std::tuple_element<0, std::tuple<Rest...>>::type;
+  using In8 = typename std::tuple_element<0, std::tuple<Rest...>>::type;
+
+  static_assert(std::is_base_of<HandleBase,
+                                typename std::remove_reference<decltype(((In1 *) nullptr)->getKey())>::type>::value,
+                "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase,
+                                typename std::remove_reference<decltype(((In2 *) nullptr)->getKey())>::type>::value,
+                "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase,
+                                typename std::remove_reference<decltype(((In3 *) nullptr)->getKey())>::type>::value,
+                "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase,
+                                typename std::remove_reference<decltype(((In4 *) nullptr)->getKey())>::type>::value,
+                "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase,
+                                typename std::remove_reference<decltype(((In5 *) nullptr)->getKey())>::type>::value,
+                "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase,
+                                typename std::remove_reference<decltype(((In6 *) nullptr)->getKey())>::type>::value,
+                "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase,
+                                typename std::remove_reference<decltype(((In7 *) nullptr)->getKey())>::type>::value,
+                "The key of the input has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase,
+                                typename std::remove_reference<decltype(((In8 *) nullptr)->getKey())>::type>::value,
+                "The key of the input has to be a Handle!");
+
+  // return the predicate
+  return predicate;
+}
+
 /**
  *
  */
@@ -650,6 +741,46 @@ auto callGetProjection(TypeToCallMethodOn &a,
   // get the key and value projections
   auto valueProjection = a.getValueProjection(first, second, third, fourth, fifth);
   auto keyProjection = a.getKeyProjection(first, second, third, fourth, fifth);
+
+  // inject the key extraction into the predicate
+  injectKeyExtraction<decltype(keyProjection), In1, In2, Rest...>(keyProjection, 0);
+
+  // inject the key extraction into the predicate
+  injectValueExtraction<decltype(valueProjection), In1, In2, Rest...>(valueProjection, 0);
+
+  // the types for key and value
+  using key = typename std::remove_reference<decltype(((Out *) nullptr)->getKey())>::type;
+  using value = typename std::remove_reference<decltype(((Out *) nullptr)->getValue())>::type;
+
+  // make sure the the type is fine
+  static_assert(std::is_base_of<HandleBase, key>::value, "The key has to be a Handle!");
+  static_assert(std::is_base_of<HandleBase, value>::value, "The value has to be a Handle!");
+
+  // make the join record lambda
+  auto lambda = std::make_shared<JoinRecordLambda<Out, key, value>>(keyProjection.tree, valueProjection.tree);
+
+  // create
+  return LambdaTree<Handle<Out>>(lambda);
+}
+
+template<typename TypeToCallMethodOn, typename Out, typename In1, typename In2, typename ...Rest>
+auto callGetProjection(TypeToCallMethodOn &a,
+                       decltype(HasEightArgs::testKeyProjection(&a)) *arg1 = nullptr,
+                       decltype(HasEightArgs::testValueProjection(&a)) *arg2 = nullptr) {
+
+  // make the input handles
+  GenericHandle first(1);
+  GenericHandle second(2);
+  GenericHandle third(3);
+  GenericHandle fourth(4);
+  GenericHandle fifth(5);
+  GenericHandle six(6);
+  GenericHandle seven(7);
+  GenericHandle eight(8);
+
+  // get the key and value projections
+  auto valueProjection = a.getValueProjection(first, second, third, fourth, fifth, six, seven, eight);
+  auto keyProjection = a.getKeyProjection(first, second, third, fourth, fifth, six, seven, eight);
 
   // inject the key extraction into the predicate
   injectKeyExtraction<decltype(keyProjection), In1, In2, Rest...>(keyProjection, 0);

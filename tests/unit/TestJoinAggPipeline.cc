@@ -179,14 +179,14 @@ TEST(PipelineTest, TestJoinAggPipeline) {
   // for allocations
   const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
-  Handle <Computation> readA = makeObject <MatrixScanner>("myData", "A");
-  Handle <Computation> readB = makeObject <MatrixScanner>("myData", "B");
+  Handle <Computation> readA = makeObject <Matrix3DScanner>("myData", "A");
+  Handle <Computation> readB = makeObject <Matrix3DScanner>("myData", "B");
   Handle <Computation> join = makeObject <MatrixMultiplyJoin>();
   join->setInput(0, readA);
   join->setInput(1, readB);
   Handle<Computation> myAggregation = makeObject<MatrixMultiplyAggregation>();
   myAggregation->setInput(join);
-  Handle<Computation> myWriter = makeObject<MatrixWriter>("myData", "C");
+  Handle<Computation> myWriter = makeObject<Matrix3DWriter>("myData", "C");
   myWriter->setInput(myAggregation);
 
   // here is the list of computations
