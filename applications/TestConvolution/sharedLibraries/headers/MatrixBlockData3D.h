@@ -33,12 +33,12 @@ class MatrixBlockData3D : public pdb::Object {
   // the values of the block
   Handle<Vector<float>> data;
 
-  bool isLeftBorder;
-  bool isRightBorder;
-  bool isTopBorder;
-  bool isBottomBorder;
-  bool isFrontBorder;
-  bool isBackBorder;
+  bool isLeftBorder{false};
+  bool isRightBorder{false};
+  bool isTopBorder{false};
+  bool isBottomBorder{false};
+  bool isFrontBorder{false};
+  bool isBackBorder{false};
 
   /**
    * Does the summation of the data

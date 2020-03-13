@@ -229,6 +229,7 @@ public:
     lambdaData.set("typeOfLambda", getTypeOfLambda());
     lambdaData.set("lambdaLabel", std::to_string(myLambdaLabel));
     lambdaData.set("tupleSetMidTag", myPrefix);
+    lambdaData.set("timesCreated", std::to_string(timesCreated++));
 
     // create the computation name with label
     mustache::mustache computationNameWithLabelTemplate{"{{computationName}}_{{computationLabel}}"};
@@ -236,7 +237,7 @@ public:
 
     // create the output tuple set name
     mustache::mustache outputTupleSetNameTemplate
-        {"{{tupleSetMidTag}}_{{typeOfLambda}}_{{lambdaLabel}}{{computationName}}{{computationLabel}}"};
+        {"{{tupleSetMidTag}}_{{timesCreated}}_{{typeOfLambda}}_{{lambdaLabel}}{{computationName}}{{computationLabel}}"};
     outputTupleSetName = outputTupleSetNameTemplate.render(lambdaData);
 
     // create the output columns
@@ -732,5 +733,10 @@ public:
    * The name of the lambda
    */
   int32_t myLambdaLabel;
+
+  /**
+   * The number of times this lambda object was created
+   */
+  int32_t timesCreated = 0;
 };
 }

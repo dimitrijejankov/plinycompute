@@ -19,4 +19,10 @@ endforeach()
 add_dependencies(TestConvolution MatrixBlock3D)
 
 
+add_dependencies(TestConvolution Matrix3DScanner)
+add_dependencies(TestConvolution Matrix3DWriter)
+add_dependencies(TestConvolution MatrixBlock3D)
+add_dependencies(TestConvolution MatrixBlockData3D)
+add_dependencies(TestConvolution MatrixBlockMeta3D)
 add_dependencies(TestConvolution MatrixConv3DJoin)
+add_dependencies(TestConvolution MatrixConvResult)

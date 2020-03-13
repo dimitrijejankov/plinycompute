@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Object.h>
+#include <Handle.h>
 
 namespace pdb::matrix_3d {
 
