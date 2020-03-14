@@ -62,7 +62,6 @@ void pdb::PDBStorageManagerBackend::registerHandlers(PDBServer &forMe) {
 
 pdb::PDBSetPageSetPtr pdb::PDBStorageManagerBackend::createPageSetFromPDBSet(const std::string &db, const std::string &set, bool isKeyed) {
 
-
   // get the configuration
   auto conf = this->getConfiguration();
 

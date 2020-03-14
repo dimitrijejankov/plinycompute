@@ -30,7 +30,8 @@ enum PDBPhysicalAlgorithmType {
   BroadcastForJoin,
   DistributedAggregation,
   StraightPipe,
-  JoinAggregation
+  JoinAggregation,
+  EightWayJoin
 };
 
 // PRELOAD %PDBPhysicalAlgorithm%
