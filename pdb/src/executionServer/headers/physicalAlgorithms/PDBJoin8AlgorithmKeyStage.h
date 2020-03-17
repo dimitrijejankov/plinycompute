@@ -4,6 +4,7 @@
 #include "PDBPageNetworkSender.h"
 #include "PDBPageSelfReceiver.h"
 #include "PDBJoinAggregationState.h"
+#include <physicalAlgorithms/PDBJoin8AlgorithmState.h>
 
 namespace pdb {
 
@@ -58,6 +59,14 @@ class PDBJoin8AlgorithmKeyStage : public PDBPhysicalAlgorithmStage {
                                            const pdb::Vector<PDBSourceSpec> &srcs,
                                            const std::string &ip,
                                            int32_t port);
+
+  static bool setupSenders(const Handle<pdb::ExJob> &job,
+                           const std::shared_ptr<PDBJoin8AlgorithmState> &state,
+                           const PDBSourcePageSetSpec &recvPageSet,
+                           const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                           std::shared_ptr<std::vector<PDBPageQueuePtr>> &pageQueues,
+                           std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> &senders,
+                           PDBPageSelfReceiverPtr *selfReceiver);
 
   bool setup(const Handle<pdb::ExJob> &job,
              const PDBPhysicalAlgorithmStatePtr &state,

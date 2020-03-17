@@ -1,7 +1,8 @@
 #include <PDBJoin8AlgorithmKeyStage.h>
 #include <ExJob.h>
-#include <physicalAlgorithms/PDBJoin8AlgorithmState.h>
 #include <GenericWork.h>
+#include <JoinPlanner.h>
+#include <JoinPlannerResult.h>
 
 bool pdb::PDBJoin8AlgorithmKeyStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                            const pdb::PDBPhysicalAlgorithmStatePtr &state,
@@ -11,32 +12,136 @@ bool pdb::PDBJoin8AlgorithmKeyStage::setup(const pdb::Handle<pdb::ExJob> &job,
   // cast the state
   auto s = dynamic_pointer_cast<PDBJoin8AlgorithmState>(state);
 
+  // get a page to store the planning result onto
+  auto bufferManager = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
+
   // make a logical plan
   s->logicalPlan = std::make_shared<LogicalPlan>(job->tcap, *job->computations);
 
   // get catalog client
   auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
 
+  // this page will contain the plan
+  s->planPage = bufferManager->getPage();
+
   // the current node
   int32_t currNode = job->thisNode;
 
-  // go through each node
-  for(int n = 0; n < job->numberOfNodes; n++) {
+  PDBSourcePageSetSpec planSource;
+  planSource.sourceType = SinglePageSource;
+  planSource.pageSetIdentifier.first = 0;
+  planSource.pageSetIdentifier.second = "";
 
-      // make the parameters for the first set
-      std::map<ComputeInfoType, ComputeInfoPtr> params = {{ ComputeInfoType::SOURCE_SET_INFO,
-                                                            getKeySourceSetArg(catalogClient)} };
+  if(job->isLeadNode) {
 
-      // go grab the source page set
-      bool isThisNode = job->nodes[currNode]->address == job->nodes[n]->address && job->nodes[currNode]->port == job->nodes[n]->port;
-      PDBAbstractPageSetPtr sourcePageSet = isThisNode ? getKeySourcePageSet(storage, sources) :
-                                                         getFetchingPageSet(storage, sources, job->nodes[n]->address, job->nodes[n]->port);
+    // this is to transfer the plan
+    s->planPageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
 
-      // store the pipeline
-      s->keySourcePageSets[n] = sourcePageSet;
+    // go through each node
+    for(int n = 0; n < job->numberOfNodes; n++) {
+
+        // make the parameters for the first set
+        std::map<ComputeInfoType, ComputeInfoPtr> params = {{ ComputeInfoType::SOURCE_SET_INFO,
+                                                              getKeySourceSetArg(catalogClient)} };
+
+        // go grab the source page set
+        bool isThisNode = job->nodes[currNode]->address == job->nodes[n]->address && job->nodes[currNode]->port == job->nodes[n]->port;
+        PDBAbstractPageSetPtr sourcePageSet = isThisNode ? getKeySourcePageSet(storage, sources) :
+                                                           getFetchingPageSet(storage, sources, job->nodes[n]->address, job->nodes[n]->port);
+
+        // store the pipeline
+        s->keySourcePageSets[n] = sourcePageSet;
+    }
+
+    // this is the pipeline that runs the key join
+    s->keyPipeline = std::make_shared<EightWayJoinPipeline>(s->keySourcePageSets);
+
+    // setup the senders for the plan
+    if(!setupSenders(job, s, planSource, storage, s->planPageQueues, s->planSenders, nullptr)) {
+
+      // log the error
+      s->logger->error("Failed to setup the senders for the plan");
+
+      // return false
+      return false;
+    }
   }
+  else {
 
-  s->keyPipeline = std::make_shared<EightWayJoinPipeline>(s->keySourcePageSets);
+    // create to receive the plan
+    s->planPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(planSource.pageSetIdentifier.first,
+                                                                           planSource.pageSetIdentifier.second),
+                                                            1,
+                                                            job->numberOfNodes);
+  }
+  return true;
+}
+
+bool pdb::PDBJoin8AlgorithmKeyStage::setupSenders(const Handle<pdb::ExJob> &job,
+                                                  const std::shared_ptr<PDBJoin8AlgorithmState> &state,
+                                                  const PDBSourcePageSetSpec &recvPageSet,
+                                                  const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                                  std::shared_ptr<std::vector<PDBPageQueuePtr>> &pageQueues,
+                                                  std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> &senders,
+                                                  PDBPageSelfReceiverPtr *selfReceiver) {
+
+  // get the buffer manager
+  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
+
+  // go through the nodes and create the page sets
+  int32_t currNode = job->thisNode;
+  senders = std::make_shared<std::vector<PDBPageNetworkSenderPtr>>();
+  for(unsigned i = 0; i < job->nodes.size(); ++i) {
+
+    // check if it is this node or another node
+    if(job->nodes[i]->port == job->nodes[currNode]->port &&
+        job->nodes[i]->address == job->nodes[currNode]->address &&
+        selfReceiver != nullptr) {
+
+      // create a new queue
+      pageQueues->push_back(std::make_shared<PDBPageQueue>());
+
+      // get the receive page set
+      auto pageSet = storage->createFeedingAnonymousPageSet(std::make_pair(recvPageSet.pageSetIdentifier.first,
+                                                                           recvPageSet.pageSetIdentifier.second),
+                                                            job->numberOfProcessingThreads,
+                                                            job->numberOfNodes);
+
+      // make sure we can use them all at the same time
+      pageSet->setUsagePolicy(PDBFeedingPageSetUsagePolicy::KEEP_AFTER_USED);
+
+      // did we manage to get a page set where we receive this? if not the setup failed
+      if(pageSet == nullptr) {
+        return false;
+      }
+
+      // make the self receiver
+      *selfReceiver = std::make_shared<pdb::PDBPageSelfReceiver>(pageQueues->back(), pageSet, myMgr);
+    }
+    else {
+
+      // create a new queue
+      pageQueues->push_back(std::make_shared<PDBPageQueue>());
+
+      // make the sender
+      auto sender = std::make_shared<PDBPageNetworkSender>(job->nodes[i]->address,
+                                                           job->nodes[i]->port,
+                                                           job->numberOfProcessingThreads,
+                                                           job->numberOfNodes,
+                                                           storage->getConfiguration()->maxRetries,
+                                                           state->logger,
+                                                           std::make_pair(recvPageSet.pageSetIdentifier.first, recvPageSet.pageSetIdentifier.second),
+                                                           pageQueues->back());
+
+      // setup the sender, if we fail return false
+      if(!sender->setup()) {
+        return false;
+      }
+
+      // make the sender
+      senders->emplace_back(sender);
+    }
+  }
 
   return true;
 }
@@ -136,6 +241,73 @@ bool pdb::PDBJoin8AlgorithmKeyStage::runLead(const pdb::Handle<pdb::ExJob> &job,
     tempBuzzer->wait();
   }
 
+  // run the join
+  s->keyPipeline->runJoin();
+
+  // make the join planner
+  JoinPlanner planner(job->numberOfNodes,
+                      job->numberOfProcessingThreads,
+                      s->keyPipeline->nodeRecords,
+                      s->keyPipeline->joined);
+
+  // do the planning
+  planner.doPlanning(s->planPage);
+
+  /**
+   * 5. Broadcast to each node the plan except for this one
+   */
+
+  /// 5.1 Fill up the plan queues
+
+  for(const auto& q : *s->planPageQueues) {
+    q->enqueue(s->planPage);
+    q->enqueue(nullptr);
+  }
+
+  /// 5.2 Run the senders
+
+  counter = 0;
+  for(const auto &sender : *s->planSenders) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sender, &success, &counter, s](const PDBBuzzerPtr& callerBuzzer) {
+
+      try {
+
+        // run the pipeline
+        sender->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        s->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+    });
+
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
+  /**
+   * 6. Wait for everything to finish
+   */
+
+  // wait for all the left senders to finish
+  // for all the right senders to finish
+  // the plan senders
+  while (counter < s->planSenders->size()) {
+    tempBuzzer->wait();
+  }
+
   return true;
 }
 
@@ -143,6 +315,25 @@ bool pdb::PDBJoin8AlgorithmKeyStage::runFollower(const pdb::Handle<pdb::ExJob> &
                                                  const pdb::PDBPhysicalAlgorithmStatePtr &state,
                                                  const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                                  const std::string &error) {
+  // cast the state
+  auto s = dynamic_pointer_cast<PDBJoin8AlgorithmState>(state);
+
+  /**
+   * 2. Wait to receive the plan
+   */
+  /// TODO this needs to be rewritten using the new methods for direct communication
+  auto tmp = s->planPageSet->getNextPage(0);
+  memcpy(s->planPage->getBytes(), tmp->getBytes(), tmp->getSize());
+
+  //
+  Handle<JoinPlannerResult> hashTable = ((Record<JoinPlannerResult> *) s->planPage->getBytes())->getRootObject();
+  for(auto i = 0; i < hashTable->records->size(); ++i) {
+    std::cout << std::get<0>((*hashTable->records)[i]) << " " << std::get<1>((*hashTable->records)[i]) << " " << std::get<2>((*hashTable->records)[i]) << '\n';
+  }
+
+  std::cout << hashTable->joinedRecords->size() << '\n';
+  std::cout << hashTable->mapping->size() << '\n';
+
   return true;
 }
 

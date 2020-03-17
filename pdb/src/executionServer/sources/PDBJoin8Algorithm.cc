@@ -1,6 +1,7 @@
 #include <PDBJoin8Algorithm.h>
 #include <physicalAlgorithms/PDBJoin8AlgorithmKeyStage.h>
 #include <physicalAlgorithms/PDBJoin8AlgorithmState.h>
+#include <ExJob.h>
 
 pdb::PDBJoin8Algorithm::PDBJoin8Algorithm(const std::pair<std::string, std::string> &sourceSet,
                                           const std::pair<std::string, std::string> &sinkSet,
@@ -47,7 +48,14 @@ pdb::PDBJoin8Algorithm::PDBJoin8Algorithm(const std::pair<std::string, std::stri
 }
 
 pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBJoin8Algorithm::getInitialState(const pdb::Handle<pdb::ExJob> &job) const {
-  return std::make_shared<PDBJoin8AlgorithmState>();
+
+  //
+  auto state = std::make_shared<PDBJoin8AlgorithmState>();
+
+  // init the logger for this algorithm
+  state->logger = make_shared<PDBLogger>("PDBJoin8Algorithm_" + std::to_string(job->computationID));
+
+  return state;
 }
 
 vector<pdb::PDBPhysicalAlgorithmStagePtr> pdb::PDBJoin8Algorithm::getStages() const {
