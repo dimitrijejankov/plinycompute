@@ -1,5 +1,6 @@
 #include <PDBJoin8Algorithm.h>
 #include <physicalAlgorithms/PDBJoin8AlgorithmKeyStage.h>
+#include <physicalAlgorithms/PDBJoin8AlgorithmJoinStage.h>
 #include <physicalAlgorithms/PDBJoin8AlgorithmState.h>
 #include <ExJob.h>
 
@@ -76,11 +77,29 @@ vector<pdb::PDBPhysicalAlgorithmStagePtr> pdb::PDBJoin8Algorithm::getStages() co
                                                       in6,
                                                       out6,
                                                       in7,
-                                                      out7)};
+                                                      out7),
+          std::make_shared<PDBJoin8AlgorithmJoinStage>(source,
+                                                       sink,
+                                                       in0,
+                                                       out0,
+                                                       in1,
+                                                       out1,
+                                                       in2,
+                                                       out2,
+                                                       in3,
+                                                       out3,
+                                                       in4,
+                                                       out4,
+                                                       in5,
+                                                       out5,
+                                                       in6,
+                                                       out6,
+                                                       in7,
+                                                       out7)};
 }
 
 int32_t pdb::PDBJoin8Algorithm::numStages() const {
-  return 1;
+  return 2;
 }
 
 pdb::PDBPhysicalAlgorithmType pdb::PDBJoin8Algorithm::getAlgorithmType() {
@@ -91,4 +110,4 @@ pdb::PDBCatalogSetContainerType pdb::PDBJoin8Algorithm::getOutputContainerType()
   return pdb::PDBCatalogSetContainerType::PDB_CATALOG_SET_VECTOR_CONTAINER;
 }
 
-pdb::PDBJoin8Algorithm::PDBJoin8Algorithm() {}
+pdb::PDBJoin8Algorithm::PDBJoin8Algorithm() = default;

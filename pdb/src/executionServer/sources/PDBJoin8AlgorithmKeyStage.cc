@@ -325,15 +325,6 @@ bool pdb::PDBJoin8AlgorithmKeyStage::runFollower(const pdb::Handle<pdb::ExJob> &
   auto tmp = s->planPageSet->getNextPage(0);
   memcpy(s->planPage->getBytes(), tmp->getBytes(), tmp->getSize());
 
-  //
-  Handle<JoinPlannerResult> hashTable = ((Record<JoinPlannerResult> *) s->planPage->getBytes())->getRootObject();
-  for(auto i = 0; i < hashTable->records->size(); ++i) {
-    std::cout << std::get<0>((*hashTable->records)[i]) << " " << std::get<1>((*hashTable->records)[i]) << " " << std::get<2>((*hashTable->records)[i]) << '\n';
-  }
-
-  std::cout << hashTable->joinedRecords->size() << '\n';
-  std::cout << hashTable->mapping->size() << '\n';
-
   return true;
 }
 

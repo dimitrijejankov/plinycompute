@@ -1,9 +1,12 @@
 #pragma once
 
+#include <Join8SideReader.h>
 #include "PDBPhysicalAlgorithmState.h"
 #include "PDBPageSelfReceiver.h"
 #include "PDBPageNetworkSender.h"
 #include "EightWayJoinPipeline.h"
+#include "Join8SideSender.h"
+#include "Join8MapCreator.h"
 #include "Pipeline.h"
 
 namespace pdb {
@@ -20,7 +23,21 @@ struct PDBJoin8AlgorithmState : public PDBPhysicalAlgorithmState {
 
   std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> planSenders;
 
+  std::shared_ptr<std::vector<PDBCommunicatorPtr>> joinSideCommunicatorsOut = nullptr;
+
+  std::shared_ptr<std::vector<PDBCommunicatorPtr>> joinSideCommunicatorsIn = nullptr;
+
+  std::shared_ptr<std::vector<Join8SideSenderPtr>> joinSideSenders = nullptr;
+
+  std::shared_ptr<std::vector<Join8SideReaderPtr>> joinSideReader = nullptr;
+
+  std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> TIDToRecordMapping;
+
   pdb::PDBFeedingPageSetPtr planPageSet = nullptr;
+
+  std::shared_ptr<std::vector<Join8MapCreatorPtr>> joinMapCreators = nullptr;
+
+  pdb::PDBRandomAccessPageSetPtr shuffledPageSet = nullptr;
 
   PDBPageHandle planPage;
 };

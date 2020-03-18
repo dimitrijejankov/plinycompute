@@ -15,6 +15,8 @@ class MatrixBlockMeta3D : public pdb::Object {
 
   MatrixBlockMeta3D(uint32_t x_id, uint32_t y_id, uint32_t z_id) : x_id(x_id), y_id(y_id), z_id(z_id) {}
 
+  MatrixBlockMeta3D(const std::tuple<int32_t, int32_t, int32_t> &val) : x_id(std::get<0>(val)), y_id(std::get<1>(val)), z_id(std::get<2>(val)) {}
+
   ENABLE_DEEP_COPY
 
   // the id of the block along the x axis

@@ -5,6 +5,8 @@
 #include <JoinPlannerResult.h>
 #include "../../../../applications/TestConvolution/sharedLibraries/headers/MatrixBlockMeta3D.h"
 
+using namespace pdb::matrix_3d;
+
 pdb::JoinPlanner::JoinPlanner(uint32_t numNodes,
                               uint32_t numThreads,
                               std::unordered_map<EightWayJoinPipeline::key, pair<int32_t, int32_t>, EightWayJoinPipeline::HashFunction> &nodeRecords,
@@ -52,7 +54,7 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
   // this is the stuff we need to execute the query
   out->mapping = pdb::makeObject<pdb::Vector<int32_t>>(joined.size(), joined.size());
   out->joinedRecords = pdb::makeObject<pdb::Vector<EightWayJoinPipeline::joined_record>>(joined.size(), joined.size());
-  out->records = pdb::makeObject<pdb::Vector<std::tuple<int32_t, int32_t, int32_t>>>(nodeRecords.size(), nodeRecords.size());
+  out->records = pdb::makeObject<pdb::Map<MatrixBlockMeta3D, int32_t>>();
 
   // go through the result
   for(int jg = 0; jg < result.size(); ++jg) {
@@ -76,7 +78,7 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
 
   // copy the records with tid mappings
   for(auto &r : nodeRecords) {
-    (*out->records)[r.second.first] = r.first;
+    (*out->records)[MatrixBlockMeta3D(r.first)] = r.second.first;
   }
 
   // set the root object

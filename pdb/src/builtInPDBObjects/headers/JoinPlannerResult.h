@@ -3,6 +3,10 @@
 //  PRELOAD %JoinPlannerResult%
 
 #include <EightWayJoinPipeline.h>
+#include <PDBVector.h>
+#include "../../../applications/TestConvolution/sharedLibraries/headers/MatrixBlockMeta3D.h"
+
+using namespace pdb::matrix_3d;
 
 namespace pdb {
 
@@ -18,7 +22,7 @@ namespace pdb {
     // this is the stuff we need to execute the query
     Handle<pdb::Vector<int32_t>> mapping;
     Handle<pdb::Vector<EightWayJoinPipeline::joined_record>> joinedRecords;
-    Handle<pdb::Vector<EightWayJoinPipeline::key>> records;
+    Handle<pdb::Map<MatrixBlockMeta3D, int32_t>> records;
   };
 
 }
