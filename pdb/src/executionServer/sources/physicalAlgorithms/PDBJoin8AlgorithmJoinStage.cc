@@ -78,6 +78,8 @@ bool pdb::PDBJoin8AlgorithmJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
     s->joinSideSenders->push_back(std::make_shared<Join8SideSender>(myMgr->getPage(), comm));
   }
 
+  s->joinSideReader = std::make_shared<std::vector<Join8SideReaderPtr>>();
+
   // get the source page set
   auto sourcePageSet = storage->createPageSetFromPDBSet(sourceSet.database, sourceSet.set, false);
   sourcePageSet->resetPageSet();
@@ -98,7 +100,7 @@ bool pdb::PDBJoin8AlgorithmJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
     s->joinMapCreators->emplace_back(std::make_shared<Join8MapCreator>(s->shuffledPageSet, comm, s->logger, s->planPage));
   }
 
-  return PDBPhysicalAlgorithmStage::setup(job, state, storage, error);
+  return true;
 }
 
 bool pdb::PDBJoin8AlgorithmJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
@@ -271,5 +273,7 @@ bool pdb::PDBJoin8AlgorithmJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
     s->TIDToRecordMapping.emplace_back(it->extractTIDMap());
   }
 
-  return PDBPhysicalAlgorithmStage::run(job, state, storage, error);
+  return true;
 }
+
+void pdb::PDBJoin8AlgorithmJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {}

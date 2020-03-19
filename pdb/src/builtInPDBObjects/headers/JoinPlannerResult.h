@@ -21,6 +21,7 @@ namespace pdb {
 
     // this is the stuff we need to execute the query
     Handle<pdb::Vector<int32_t>> mapping;
+    Handle<pdb::Vector<bool>> recordToNode;
     Handle<pdb::Vector<EightWayJoinPipeline::joined_record>> joinedRecords;
     Handle<pdb::Map<MatrixBlockMeta3D, int32_t>> records;
   };

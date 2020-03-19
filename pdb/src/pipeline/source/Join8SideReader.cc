@@ -16,7 +16,7 @@ pdb::Join8SideReader::Join8SideReader(pdb::PDBAbstractPageSetPtr pageSet,
 
   // resize so we have stuff to send
   toSend.resize(numNodes);
-  for(int i = 0; i < 100; ++i) {
+  for(int i = 0; i < numNodes; ++i) {
     toSend[i].reserve(100);
   }
 }
@@ -29,6 +29,11 @@ void pdb::Join8SideReader::run() {
 
   PDBPageHandle page;
   while((page = pageSet->getNextPage(workerID)) != nullptr) {
+
+    // clear all vectors
+    for(auto &s : toSend) {
+      s.clear();
+    }
 
     // get the bytes of the page
     page->repin();
@@ -46,9 +51,16 @@ void pdb::Join8SideReader::run() {
       auto tid = (*planResult->records)[*matrix->getKey()];
 
       // get the node based on the tid
-      auto node = (*planResult->mapping)[tid];
+      auto node = &(*planResult->recordToNode)[tid * numNodes];
 
-      toSend[node].push_back(matrix);
+      // go and figure out what nodes we need to put his on
+      for(int n = 0; n < numNodes; ++n) {
+
+        // if we need to send this to this node
+        if(node[n]){
+          toSend[n].push_back(matrix);
+        }
+      }
     }
 
     // send them all

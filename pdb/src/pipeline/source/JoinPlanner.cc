@@ -53,14 +53,20 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
 
   // this is the stuff we need to execute the query
   out->mapping = pdb::makeObject<pdb::Vector<int32_t>>(joined.size(), joined.size());
+  out->recordToNode = pdb::makeObject<pdb::Vector<bool>>(nodeRecords.size() * numNodes, nodeRecords.size() * numNodes);
   out->joinedRecords = pdb::makeObject<pdb::Vector<EightWayJoinPipeline::joined_record>>(joined.size(), joined.size());
   out->records = pdb::makeObject<pdb::Map<MatrixBlockMeta3D, int32_t>>();
+
+  // zero out the record to node
+  bzero(out->recordToNode->c_ptr(), sizeof(bool) * nodeRecords.size() * numNodes);
 
   // go through the result
   for(int jg = 0; jg < result.size(); ++jg) {
 
+    auto node = result[jg];
+
     // set the mapping
-    (*out->mapping)[jg] = result[jg];
+    (*out->mapping)[jg] = node;
 
     // get the joined record
     auto record = joined[jg];
@@ -74,6 +80,16 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
     std::get<5>((*out->joinedRecords)[jg]) = std::get<5>(record);
     std::get<6>((*out->joinedRecords)[jg]) = std::get<6>(record);
     std::get<7>((*out->joinedRecords)[jg]) = std::get<7>(record);
+
+    // do the record to node mapping
+    (*out->recordToNode)[std::get<0>(record) * numNodes + node] = true;
+    (*out->recordToNode)[std::get<1>(record) * numNodes + node] = true;
+    (*out->recordToNode)[std::get<2>(record) * numNodes + node] = true;
+    (*out->recordToNode)[std::get<3>(record) * numNodes + node] = true;
+    (*out->recordToNode)[std::get<4>(record) * numNodes + node] = true;
+    (*out->recordToNode)[std::get<5>(record) * numNodes + node] = true;
+    (*out->recordToNode)[std::get<6>(record) * numNodes + node] = true;
+    (*out->recordToNode)[std::get<7>(record) * numNodes + node] = true;
   }
 
   // copy the records with tid mappings
