@@ -55,7 +55,7 @@ void pdb::EightWayJoinPipeline::runJoin() {
 
     // get the top right front
     auto top_right_front = top_left_front->first;
-    get<1>(top_right_front)++;
+    get<0>(top_right_front)++;
 
     // check if we have the top right front
     auto it = nodeRecords.find(top_right_front);
@@ -69,7 +69,7 @@ void pdb::EightWayJoinPipeline::runJoin() {
 
     // get the top right front
     auto bottom_left_front = top_left_front->first;
-    get<0>(bottom_left_front)--;
+    get<1>(bottom_left_front)--;
 
     // check if we have the top right front
     it = nodeRecords.find(bottom_left_front);
@@ -81,7 +81,7 @@ void pdb::EightWayJoinPipeline::runJoin() {
     /// 3. Do it for the bottom right front
 
     auto bottom_right_front = top_right_front;
-    get<0>(bottom_right_front)--;
+    get<1>(bottom_right_front)--;
 
     // check if we have the top right front
     it = nodeRecords.find(bottom_right_front);

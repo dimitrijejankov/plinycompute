@@ -40,6 +40,11 @@ struct PDBJoin8AlgorithmState : public PDBPhysicalAlgorithmState {
   pdb::PDBRandomAccessPageSetPtr shuffledPageSet = nullptr;
 
   PDBPageHandle planPage;
+
+  std::shared_ptr<std::vector<PipelinePtr>> myPipelines = nullptr;
+
+  std::vector<EightWayJoinPipeline::joined_record> joinedRecords;
+
 };
 
 }

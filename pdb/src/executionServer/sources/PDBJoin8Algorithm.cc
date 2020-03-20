@@ -1,7 +1,8 @@
 #include <PDBJoin8Algorithm.h>
 #include <physicalAlgorithms/PDBJoin8AlgorithmKeyStage.h>
-#include <physicalAlgorithms/PDBJoin8AlgorithmJoinStage.h>
+#include <physicalAlgorithms/PDBJoin8AlgorithmShuffleStage.h>
 #include <physicalAlgorithms/PDBJoin8AlgorithmState.h>
+#include <physicalAlgorithms/PDBJoin8AlgorithmJoinStage.h>
 #include <ExJob.h>
 
 pdb::PDBJoin8Algorithm::PDBJoin8Algorithm(const std::pair<std::string, std::string> &sourceSet,
@@ -78,28 +79,46 @@ vector<pdb::PDBPhysicalAlgorithmStagePtr> pdb::PDBJoin8Algorithm::getStages() co
                                                       out6,
                                                       in7,
                                                       out7),
+          std::make_shared<PDBJoin8AlgorithmShuffleStage>(source,
+                                                          sink,
+                                                          in0,
+                                                          out0,
+                                                          in1,
+                                                          out1,
+                                                          in2,
+                                                          out2,
+                                                          in3,
+                                                          out3,
+                                                          in4,
+                                                          out4,
+                                                          in5,
+                                                          out5,
+                                                          in6,
+                                                          out6,
+                                                          in7,
+                                                          out7),
           std::make_shared<PDBJoin8AlgorithmJoinStage>(source,
-                                                       sink,
-                                                       in0,
-                                                       out0,
-                                                       in1,
-                                                       out1,
-                                                       in2,
-                                                       out2,
-                                                       in3,
-                                                       out3,
-                                                       in4,
-                                                       out4,
-                                                       in5,
-                                                       out5,
-                                                       in6,
-                                                       out6,
-                                                       in7,
-                                                       out7)};
+                                                          sink,
+                                                          in0,
+                                                          out0,
+                                                          in1,
+                                                          out1,
+                                                          in2,
+                                                          out2,
+                                                          in3,
+                                                          out3,
+                                                          in4,
+                                                          out4,
+                                                          in5,
+                                                          out5,
+                                                          in6,
+                                                          out6,
+                                                          in7,
+                                                          out7)};
 }
 
 int32_t pdb::PDBJoin8Algorithm::numStages() const {
-  return 2;
+  return 3;
 }
 
 pdb::PDBPhysicalAlgorithmType pdb::PDBJoin8Algorithm::getAlgorithmType() {

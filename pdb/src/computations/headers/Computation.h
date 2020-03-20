@@ -53,9 +53,10 @@ class Computation : public Object {
   // as well as the actual TupleSpec that this guy is supposed to produce, and then returns
   // a pointer to a ComputeSource object that can actually produce TupleSet objects corresponding
   // to that particular TupleSpec
-  virtual ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet,
-                                            uint64_t workerID,
-                                            std::map<ComputeInfoType, ComputeInfoPtr> &params) { return nullptr; }
+  virtual pdb::ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet,
+                                                 uint64_t workerID,
+                                                 uint64_t numWorkers,
+                                                 std::map<ComputeInfoType, ComputeInfoPtr> &params) { return nullptr; }
 
   // likewise, if this particular computation can be used as a compute sink in a pipeline, this
   // method will return the compute sink object associated with the computation.  It requires the

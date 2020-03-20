@@ -5,6 +5,7 @@
 #include <ComputeInfo.h>
 #include <JoinAggSideSender.h>
 #include <cassert>
+#include <pipeline/EightWayJoinPipeline.h>
 
 namespace pdb {
 
@@ -73,6 +74,12 @@ public:
   // is join agg side (used for the join agg algorithm)
   bool isJoinAggSide = false;
 
+  bool isJoin8 = false;
+
+  // used for
+  const std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> *mappings;
+  const std::vector<EightWayJoinPipeline::joined_record> *joinedRecords;
+
   // tells us if this is for the aggregation stage of the join agg algorithm (used for the join agg algorithm)
   bool isJoinAggAggregation = false;
 
@@ -82,6 +89,8 @@ public:
 
   // the page where we keep the plan (used for the join agg algorithm)
   PDBPageHandle planPage;
+
+  std::vector<std::string> inputs;
 };
 
 using JoinArgumentsPtr = std::shared_ptr<JoinArguments>;

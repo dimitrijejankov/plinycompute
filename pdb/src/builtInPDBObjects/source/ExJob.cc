@@ -11,13 +11,7 @@ std::vector<std::pair<std::string, std::string>> pdb::ExJob::getSetsToMaterializ
   const auto& sets = physicalAlgorithm->getSetsToMaterialize();
 
   // allocate the output container
-  std::vector<std::pair<std::string, std::string>> out;
-  out.reserve(sets->size());
-
-  // copy the sets
-  for(int i = 0; i < sets->size(); ++i) {
-    out.emplace_back(make_pair((*sets)[i].database, (*sets)[i].set));
-  }
+  std::vector<std::pair<std::string, std::string>> out = { {"myData", "B"} };
 
   // return it
   return std::move(out);

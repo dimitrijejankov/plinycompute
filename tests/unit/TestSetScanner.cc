@@ -88,7 +88,7 @@ TEST(SetScannerTest, Test1) {
   // get the compute source
   std::map<ComputeInfoType, ComputeInfoPtr> params = {{ ComputeInfoType::SOURCE_SET_INFO,
                                                         std::make_shared<pdb::SourceSetArg>(std::make_shared<PDBCatalogSet>("", "", "", 0, PDBCatalogSetContainerType::PDB_CATALOG_SET_VECTOR_CONTAINER))}};
-  auto dataSource = scanner.getComputeSource(ptr, 15, 0, params);
+  auto dataSource = scanner.getComputeSource(ptr, 15, 0, 0);
 
   // and here is the chunk
   TupleSetPtr curChunk;

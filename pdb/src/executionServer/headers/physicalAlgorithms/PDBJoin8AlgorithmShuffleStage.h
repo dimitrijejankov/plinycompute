@@ -5,10 +5,10 @@
 
 namespace pdb {
 
-class PDBJoin8AlgorithmJoinStage : public PDBPhysicalAlgorithmStage {
- public:
+class PDBJoin8AlgorithmShuffleStage : public PDBPhysicalAlgorithmStage {
+public:
 
-  PDBJoin8AlgorithmJoinStage(const PDBSetObject &sourceSet,
+  PDBJoin8AlgorithmShuffleStage(const PDBSetObject &sourceSet,
                                 const PDBSetObject &sinkSet,
                                 const pdb::String &in0,
                                 const pdb::String &out0,
@@ -26,28 +26,28 @@ class PDBJoin8AlgorithmJoinStage : public PDBPhysicalAlgorithmStage {
                                 const pdb::String &out6,
                                 const pdb::String &in7,
                                 const pdb::String &out7) : sourceSet(sourceSet),
-                                                           sinkSet(sinkSet),
-                                                           in0(in0),
-                                                           in1(in1),
-                                                           in2(in2),
-                                                           in3(in3),
-                                                           in4(in4),
-                                                           in5(in5),
-                                                           in6(in6),
-                                                           in7(in7),
-                                                           out0(out0),
-                                                           out1(out1),
-                                                           out2(out2),
-                                                           out3(out3),
-                                                           out4(out4),
-                                                           out5(out5),
-                                                           out6(out6),
-                                                           out7(out7),
-                                                           PDBPhysicalAlgorithmStage(PDBSinkPageSetSpec(),
-                                                                                     Vector<PDBSourceSpec>(),
-                                                                                     out0,
-                                                                                     Vector<pdb::Handle<PDBSourcePageSetSpec>>(),
-                                                                                     Vector<PDBSetObject>()) {
+                                                        sinkSet(sinkSet),
+                                                        in0(in0),
+                                                        in1(in1),
+                                                        in2(in2),
+                                                        in3(in3),
+                                                        in4(in4),
+                                                        in5(in5),
+                                                        in6(in6),
+                                                        in7(in7),
+                                                        out0(out0),
+                                                        out1(out1),
+                                                        out2(out2),
+                                                        out3(out3),
+                                                        out4(out4),
+                                                        out5(out5),
+                                                        out6(out6),
+                                                        out7(out7),
+                                                        PDBPhysicalAlgorithmStage(PDBSinkPageSetSpec(),
+                                                                          Vector<PDBSourceSpec>(),
+                                                                                  out0,
+                                                                                  Vector<pdb::Handle<PDBSourcePageSetSpec>>(),
+                                                                                  Vector<PDBSetObject>()) {
 
   }
 

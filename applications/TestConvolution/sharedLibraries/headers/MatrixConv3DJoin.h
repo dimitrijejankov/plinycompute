@@ -42,14 +42,14 @@ class MatrixConv3DJoin : public JoinComp<MatrixConv3DJoin, MatrixConvResult, /**
   MatrixConv3DJoin() = default;
 
   // we match the top left front record to the rest
-  static Lambda<bool> getKeySelection(Handle<MatrixBlockMeta3D> top_left_front,
-                                      Handle<MatrixBlockMeta3D> top_right_front,
-                                      Handle<MatrixBlockMeta3D> bottom_left_front,
-                                      Handle<MatrixBlockMeta3D> bottom_right_front,
-                                      Handle<MatrixBlockMeta3D> top_left_back,
-                                      Handle<MatrixBlockMeta3D> top_right_back,
-                                      Handle<MatrixBlockMeta3D> bottom_left_back,
-                                      Handle<MatrixBlockMeta3D> bottom_right_back) {
+  static Lambda<bool> getKeySelection(Handle<MatrixBlockMeta3D> top_left_front, //
+                                      Handle<MatrixBlockMeta3D> top_right_front, //
+                                      Handle<MatrixBlockMeta3D> bottom_left_front, //
+                                      Handle<MatrixBlockMeta3D> bottom_right_front, //
+                                      Handle<MatrixBlockMeta3D> top_left_back, // in0
+                                      Handle<MatrixBlockMeta3D> top_right_back, //
+                                      Handle<MatrixBlockMeta3D> bottom_left_back, //
+                                      Handle<MatrixBlockMeta3D> bottom_right_back) { //  in1
 
     return (makeLambdaFromMethod (top_left_front, right) == makeLambdaFromSelf(top_right_front)) &&
         (makeLambdaFromMethod (top_left_front, below) == makeLambdaFromSelf(bottom_left_front)) &&

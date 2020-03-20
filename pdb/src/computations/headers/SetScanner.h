@@ -24,6 +24,8 @@
 #include "Computation.h"
 #include "PDBAggregationResultTest.h"
 #include "JoinTupleTests.h"
+#include "JoinArguments.h"
+#include "Join8MainSource.h"
 
 namespace pdb {
 
@@ -105,8 +107,16 @@ class SetScanner : public Computation {
    */
   pdb::ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet,
                                          uint64_t workerID,
+                                         uint64_t numWorkers,
                                          std::map<ComputeInfoType, ComputeInfoPtr> &params) override {
 
+    // get the join arguments
+    JoinArgumentsPtr joinArgs = std::dynamic_pointer_cast<JoinArguments>(params[ComputeInfoType::JOIN_ARGS]);
+
+    // if it is a join 8 create a join 8 main source iterator
+    if(joinArgs->isJoin8) {
+      return std::make_shared<pdb::Join8MainSource>(pageSet, workerID, numWorkers, *joinArgs->mappings, *joinArgs->joinedRecords);
+    }
 
     // get the info about the source set
     auto sourceSetInfo = std::dynamic_pointer_cast<SourceSetArg>(params[ComputeInfoType::SOURCE_SET_INFO]);

@@ -65,7 +65,10 @@ pdb::PipelinePtr pdb::KeyComputePlan::buildHashPipeline(const std::string &sourc
   /// 1. Figure out the source
 
   // our source is a normal source and not a join source, so we just grab it from the computation
-  auto computeSource = myPlan->getNode(source->getComputationName()).getComputation().getComputeSource(inputPageSet, 0, params);
+  auto computeSource = myPlan->getNode(source->getComputationName()).getComputation().getComputeSource(inputPageSet,
+                                                                                                       0,
+                                                                                                       0,
+                                                                                                       params);
 
   /// 2. Figure out the sink
 
@@ -90,6 +93,7 @@ pdb::PipelinePtr pdb::KeyComputePlan::buildHashPipeline(const std::string &sourc
 
   // assemble the whole pipeline
   return assemblePipeline(source->getOutputName(),
+                          inputPageSet,
                           outputPageSet,
                           computeSource,
                           computeSink,
@@ -174,6 +178,7 @@ pdb::PipelinePtr pdb::KeyComputePlan::buildJoinAggPipeline(const std::string& so
 
   // assemble the whole pipeline
   return std::move(assemblePipeline(sourceTupleSetName,
+                                    inputPageSet,
                                     outputPageSet,
                                     computeSource,
                                     computeSink,

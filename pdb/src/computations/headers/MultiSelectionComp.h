@@ -92,6 +92,7 @@ class MultiSelectionComp : public Computation {
 
   pdb::ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet,
                                          uint64_t workerID,
+                                         uint64_t numWorkers,
                                          std::map<ComputeInfoType, ComputeInfoPtr> &) override {
     return std::make_shared<pdb::VectorTupleSetIterator>(pageSet, workerID);
   }

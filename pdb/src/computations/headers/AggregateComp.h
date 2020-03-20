@@ -224,7 +224,10 @@ class AggregateComp : public AggregateCompBase {
     return std::make_shared<pdb::JoinAggSink<KeyClass>>(consumeMe, whichAttsToOpOn, projection);
   }
 
-  ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, uint64_t workerID, std::map<ComputeInfoType, ComputeInfoPtr> &) override {
+  pdb::ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet,
+                                         uint64_t workerID,
+                                         uint64_t numWorkers,
+                                         std::map<ComputeInfoType, ComputeInfoPtr> &) override {
     return std::make_shared<pdb::MapTupleSetIterator<KeyClass, ValueClass, OutputClass>> (pageSet, workerID);
   }
 

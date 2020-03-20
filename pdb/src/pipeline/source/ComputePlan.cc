@@ -1,4 +1,6 @@
 #include <utility>
+#include <executors/JoinProbeExecutor.h>
+#include <executors/Join8ProbeExecution.h>
 
 /*****************************************************************************
  *                                                                           *
@@ -60,7 +62,7 @@ ComputeSourcePtr ComputePlan::getComputeSource(int32_t nodeID,
   if(sourceAtomicComputation->getAtomicComputationTypeID() != ApplyJoinTypeID) {
 
     // our source is a normal source and not a join source, so we just grab it from the computation
-    return myPlan->getNode(producerName).getComputation().getComputeSource(inputPageSet, workerID, params);
+    return myPlan->getNode(producerName).getComputation().getComputeSource(inputPageSet, workerID, numWorkers, params);
   }
 
   // cast the join computation
@@ -236,7 +238,8 @@ ComputeSinkPtr ComputePlan::getComputeSink(AtomicComputationPtr &targetAtomicCom
                                                                                 myPlan);
 }
 
-PipelinePtr ComputePlan::assemblePipeline(const std::string& sourceTupleSetName,
+PipelinePtr ComputePlan::assemblePipeline(const std::string &sourceTupleSetName,
+                                          const PDBAbstractPageSetPtr &sourcePageSet,
                                           const PDBAbstractPageSetPtr &outputPageSet,
                                           ComputeSourcePtr &computeSource,
                                           ComputeSinkPtr &computeSink,
@@ -246,6 +249,8 @@ PipelinePtr ComputePlan::assemblePipeline(const std::string& sourceTupleSetName,
                                           size_t numNodes,
                                           size_t numProcessingThreads,
                                           uint64_t workerID) {
+
+  int nextProbe = 1;
 
   // make the pipeline
   std::shared_ptr<Pipeline> returnVal = std::make_shared<Pipeline>(outputPageSet, computeSource, computeSink, processor);
@@ -322,28 +327,12 @@ PipelinePtr ComputePlan::assemblePipeline(const std::string& sourceTupleSetName,
       TupleSpec pipelinedAttsToOperateOn = needToSwapAtts ? myJoin->getRightInput() : myJoin->getInput();
       TupleSpec pipelinedAttsToIncludeInOutput = needToSwapAtts ? myJoin->getRightProjection() : myJoin->getProjection();
 
-      // do we have the appropriate join arguments? if not throw an exception
-      auto it = joinArgs->hashTables.find(needToSwapAtts ? myJoin->getInput().getSetName() : myJoin->getRightInput().getSetName());
-      if (it == joinArgs->hashTables.end()) {
-        throw runtime_error("Hash table for the output set," + a->getOutput().getSetName() + "not found!");
-      }
-
-      // if this is a keyed join this is bad.
-      if(myJoin->isKeyJoin) {
-        throw runtime_error("The join is keyed for " + a->getOutput().getSetName() + " can not add an executor for that!");
-      }
-
-      // if we are pipelining the right input, then we don't need to switch left and right inputs
-      returnVal->addStage(myComp.getExecutor(needToSwapAtts,
-                                                 hashedInputSchema,
-                                                 pipelinedInputSchema,
-                                                 pipelinedAttsToOperateOn,
-                                                 pipelinedAttsToIncludeInOutput,
-                                                 it->second,
-                                                     numNodes,
-                                                     numProcessingThreads,
-                                                     workerID,
-                                                 *this));
+      returnVal->addStage(std::make_shared<Join8ProbeExecution>(sourcePageSet,
+                                                                nextProbe++,
+                                                                workerID,
+                                                                numProcessingThreads,
+                                                                *joinArgs->mappings,
+                                                                *joinArgs->joinedRecords));
     }
     else if(a->getAtomicComputationType() == "WriteSet") {
 
@@ -429,6 +418,8 @@ PipelinePtr ComputePlan::buildPipeline(const std::string& sourceTupleSetName,
   // and this list stores the computations that we still need to process
   std::vector<AtomicComputationPtr> &nextOnes = myPlan->getComputations().getConsumingAtomicComputations(origSpec.getSetName());
 
+  std::cout << targetTupleSetName << '\n';
+
   // now, see if each of the next guys can get us to the target tuple set
   bool gotIt = false;
   for (auto &a : nextOnes) {
@@ -477,6 +468,7 @@ PipelinePtr ComputePlan::buildPipeline(const std::string& sourceTupleSetName,
 
   // assemble the whole pipeline
   return std::move(assemblePipeline(sourceTupleSetName,
+                                    inputPageSet,
                                     outputPageSet,
                                     computeSource,
                                     computeSink,

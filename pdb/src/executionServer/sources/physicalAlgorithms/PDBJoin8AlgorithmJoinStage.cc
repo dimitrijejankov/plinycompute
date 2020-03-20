@@ -1,10 +1,8 @@
 #include <PDBJoin8AlgorithmJoinStage.h>
 #include <PDBJoin8AlgorithmState.h>
-#include <PDBJoinAggregationState.h>
 #include <ExJob.h>
 #include <ComputePlan.h>
-#include <AtomicComputationClasses.h>
-#include <Join8SideSender.h>
+#include <NullProcessor.h>
 #include <GenericWork.h>
 
 bool pdb::PDBJoin8AlgorithmJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
@@ -12,92 +10,67 @@ bool pdb::PDBJoin8AlgorithmJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                             const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                             const std::string &error) {
 
-
   // cast the state
   auto s = dynamic_pointer_cast<PDBJoin8AlgorithmState>(state);
 
-  // get catalog client
-  auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
-  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
+  // get plan from the page
+  auto* record = (Record<JoinPlannerResult>*) s->planPage->getBytes();
+  auto planResult = record->getRootObject();
+
+  // go through the join records and figure out what are on this node
+  for(int i = 0; i < planResult->joinedRecords->size(); ++i) {
+
+    // get the node
+    auto node = (*planResult->mapping)[i];
+
+    // if this is our node
+    if(node == job->thisNode) {
+      s->joinedRecords.emplace_back((*planResult->joinedRecords)[i]);
+    }
+  }
 
   // init the plan
   ComputePlan plan(std::make_shared<LogicalPlan>(job->tcap, *job->computations));
   s->logicalPlan = plan.getPlan();
 
-  /// 1. Get the incoming connections to this node.
-
-  // make the object
-  UseTemporaryAllocationBlock tmp{1024};
-  pdb::Handle<SerConnectToRequest> connectionID = pdb::makeObject<SerConnectToRequest>(job->computationID,
-                                                                                       job->jobID,
-                                                                                       job->thisNode,
-                                                                                       PDBJoinAggregationState::LEFT_JOIN_SIDE_TASK);
-
-  // init the vector for the join sides
-  s->joinSideCommunicatorsOut = std::make_shared<std::vector<PDBCommunicatorPtr>>();
-  for (int n = 0; n < job->numberOfNodes; n++) {
-
-    // connect to the node
-    s->joinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->address,
-                                                            job->nodes[n]->backendPort,
-                                                            connectionID));
-  }
-
-  /// 2. Setup the join side senders
-
-  // wait for left side connections
-  connectionID->taskID = PDBJoinAggregationState::LEFT_JOIN_SIDE_TASK;
-  s->joinSideCommunicatorsIn = std::make_shared<std::vector<PDBCommunicatorPtr>>();
-  for (int n = 0; n < job->numberOfNodes; n++) {
-
-    // set the node id
-    connectionID->nodeID = n;
-
-    // wait for the connection
-    s->joinSideCommunicatorsIn->push_back(myMgr->waitForConnection(connectionID));
-
-    // check if the socket is open
-    if (s->joinSideCommunicatorsIn->back()->isSocketClosed()) {
-
-      // log the error
-      s->logger->error("Socket for the left side is closed");
-
-      return false;
-    }
-  }
-
-  /// 3. Setup the join side readers
-
-  // setup the left senders
-  s->joinSideSenders = std::make_shared<std::vector<Join8SideSenderPtr>>();
-
-  // init the senders
-  for (auto &comm : *s->joinSideCommunicatorsIn) {
-
-    // init the right senders
-    s->joinSideSenders->push_back(std::make_shared<Join8SideSender>(myMgr->getPage(), comm));
-  }
-
-  s->joinSideReader = std::make_shared<std::vector<Join8SideReaderPtr>>();
+  // make the sink set
+  auto sinkPageSet = storage->createAnonymousPageSet({0, "out"});
 
   // get the source page set
-  auto sourcePageSet = storage->createPageSetFromPDBSet(sourceSet.database, sourceSet.set, false);
+  auto sourcePageSet = storage->getPageSet({0, "intermediate"});
   sourcePageSet->resetPageSet();
 
-  // setup the processing threads
-  for(int i = 0; i < job->numberOfProcessingThreads; ++i) {
-    s->joinSideReader->push_back(std::make_shared<Join8SideReader>(sourcePageSet, i, job->numberOfNodes, s->joinSideSenders, s->planPage));
-  }
+  // make the join arguments
+  auto joinArguments = std::make_shared<JoinArguments>();
 
-  /// 4. Setup the join map creators
-  s->joinMapCreators = std::make_shared<std::vector<Join8MapCreatorPtr>>();
+  // set the plan page and the inputs
+  joinArguments->planPage = s->planPage;
+  joinArguments->inputs = { in0, in1, in2, in3, in4, in5, in6, in7 };
+  joinArguments->isJoin8 = true;
+  joinArguments->joinedRecords = &s->joinedRecords;
+  joinArguments->mappings = &s->TIDToRecordMapping;
 
-  // init the join side creators
-  s->shuffledPageSet = storage->createRandomAccessPageSet({0, "intermediate"});
-  for (auto &comm : *s->joinSideCommunicatorsOut) {
+  // empty computations parameters
+  std::map<ComputeInfoType, ComputeInfoPtr> params =  {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<NullProcessor>()},
+                                                       {ComputeInfoType::JOIN_ARGS, joinArguments}};
 
-    // make the creators
-    s->joinMapCreators->emplace_back(std::make_shared<Join8MapCreator>(s->shuffledPageSet, comm, s->logger, s->planPage));
+  // build the pipelines
+  s->myPipelines = std::make_shared<std::vector<PipelinePtr>>();
+  for (uint64_t pipelineIndex = 0; pipelineIndex < job->numberOfProcessingThreads; ++pipelineIndex) {
+
+    // build the pipelines
+    auto pipeline = plan.buildPipeline(in0, /* this is the TupleSet the pipeline starts with */
+                                       "OutFor_0_joinRec_41JoinComp8_out",     /* this is the TupleSet the pipeline ends with */
+                                       sourcePageSet,
+                                       sinkPageSet,
+                                       params,
+                                       job->thisNode,
+                                       job->numberOfNodes,
+                                       job->numberOfProcessingThreads,
+                                       pipelineIndex);
+
+    // insert the pipeline
+    s->myPipelines->emplace_back(pipeline);
   }
 
   return true;
@@ -108,10 +81,10 @@ bool pdb::PDBJoin8AlgorithmJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
                                           const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                           const std::string &error) {
 
+
   // cast the state
   auto s = dynamic_pointer_cast<PDBJoin8AlgorithmState>(state);
 
-  // stats
   atomic_bool success;
   success = true;
 
@@ -121,7 +94,7 @@ bool pdb::PDBJoin8AlgorithmJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
   PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
 
     // did we fail?
-    if (myAlarm == PDBAlarm::GenericError) {
+    if(myAlarm == PDBAlarm::GenericError) {
       success = false;
     }
 
@@ -129,22 +102,19 @@ bool pdb::PDBJoin8AlgorithmJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
     cnt++;
   });
 
-  /// 1. Run the readers
-
-  // run on of the join pipelines
-  counter = 0;
-  for (int i = 0; i < s->joinSideReader->size(); ++i) {
+  // here we get a worker per pipeline and run them all.
+  for (int i = 0; i < s->myPipelines->size(); ++i) {
 
     // get a worker from the server
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&counter, &success, i, &s](const PDBBuzzerPtr &callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&counter, &success, &s, i](const PDBBuzzerPtr& callerBuzzer) {
 
       try {
 
         // run the pipeline
-        (*s->joinSideReader)[i]->run();
+        (*s->myPipelines)[i]->run();
       }
       catch (std::exception &e) {
 
@@ -163,117 +133,30 @@ bool pdb::PDBJoin8AlgorithmJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
     worker->execute(myWork, tempBuzzer);
   }
 
-  /// 2. Run the senders
-
-  // create the buzzer
-  atomic_int sendCnt;
-  sendCnt = 0;
-
-  for (int i = 0; i < s->joinSideSenders->size(); ++i) {
-
-    // get a worker from the server
-    PDBWorkerPtr worker = storage->getWorker();
-
-    // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sendCnt, &success, i, s](const PDBBuzzerPtr &callerBuzzer) {
-
-      try {
-
-        // run the pipeline
-        (*s->joinSideSenders)[i]->run();
-      }
-      catch (std::exception &e) {
-
-        // log the error
-        s->logger->error(e.what());
-
-        // we failed mark that we have
-        success = false;
-      }
-
-      // signal that the run was successful
-      callerBuzzer->buzz(PDBAlarm::WorkAllDone, sendCnt);
-    });
-
-    // run the work
-    worker->execute(myWork, tempBuzzer);
-  }
-
-  /// 3. Run the join map creators
-
-  // create the buzzer
-  atomic_int commCnt;
-  commCnt = 0;
-
-  for (const auto& joinMapCreator : *s->joinMapCreators) {
-
-    // get a worker from the server
-    PDBWorkerPtr worker = storage->getWorker();
-
-    // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&commCnt, &success, joinMapCreator, &s](const PDBBuzzerPtr &callerBuzzer) {
-
-      // run the join map creator
-      try {
-        // run the join map creator
-        joinMapCreator->run();
-      }
-      catch (std::exception &e) {
-
-        // log the error
-        s->logger->error(e.what());
-
-        // we failed mark that we have
-        success = false;
-      }
-
-      // check if the creator succeeded
-      if (!joinMapCreator->getSuccess()) {
-
-        // log the error
-        s->logger->error(joinMapCreator->getError());
-
-        // we failed mark that we have
-        success = false;
-      }
-
-      std::cout << "Ended...\n";
-
-      // signal that the run was successful
-      callerBuzzer->buzz(PDBAlarm::WorkAllDone, commCnt);
-    });
-
-    // run the work
-    worker->execute(myWork, tempBuzzer);
-  }
-
-
-  // wait to finish the pipelines
-  while (counter < s->joinSideReader->size()) {
+  // wait until all the preaggregationPipelines have completed
+  while (counter < s->myPipelines->size()) {
     tempBuzzer->wait();
   }
 
-  // shutdown the senders since the pipelines are done
-  for (auto &se : *s->joinSideSenders) {
-    se->shutdown();
+  // if we failed finish
+  if(!success) {
+    return success;
   }
 
-  // wait for senders to finish
-  while (sendCnt < s->joinSideSenders->size()) {
-    tempBuzzer->wait();
+  // get the page set
+  auto sinkPageSet = storage->getPageSet({0, "out"});
+
+  // if the thing does not exist finish!
+  if(sinkPageSet == nullptr) {
+    return false;
   }
 
-  // wait until the senders finish
-  while (commCnt < s->joinMapCreators->size()) {
-    tempBuzzer->wait();
-  }
+  // materialize the page set
+  sinkPageSet->resetPageSet();
+  success = storage->materializePageSet(sinkPageSet, { sinkSet.database, sinkSet.set });
 
-  // since this finished copy all the indices to the state
-  for(auto &it : *s->joinMapCreators) {
-    s->TIDToRecordMapping.emplace_back(it->extractTIDMap());
-  }
-
-  return true;
+  return success;
 }
 
-void pdb::PDBJoin8AlgorithmJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {}
+void pdb::PDBJoin8AlgorithmJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
+}

@@ -179,6 +179,11 @@ bool pdb::PDBJoin8AlgorithmKeyStage::run(const pdb::Handle<pdb::ExJob> &job,
 
 void pdb::PDBJoin8AlgorithmKeyStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
 
+  // cast the state
+  auto s = dynamic_pointer_cast<PDBJoin8AlgorithmState>(state);
+
+  // remove the key pipelines
+  s->keyPipeline = nullptr;
 }
 
 bool pdb::PDBJoin8AlgorithmKeyStage::runLead(const pdb::Handle<pdb::ExJob> &job,

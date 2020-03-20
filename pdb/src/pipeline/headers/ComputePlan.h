@@ -51,7 +51,8 @@ class ComputePlan {
                                 size_t numProcessingThreads);
 
   // assembles the pipeline with everything
-  PipelinePtr assemblePipeline(const std::string& sourceTupleSetName,
+  PipelinePtr assemblePipeline(const std::string &sourceTupleSetName,
+                               const PDBAbstractPageSetPtr &sourcePageSet,
                                const PDBAbstractPageSetPtr &outputPageSet,
                                ComputeSourcePtr &computeSource,
                                ComputeSinkPtr &computeSink,

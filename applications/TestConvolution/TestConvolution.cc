@@ -153,24 +153,17 @@ int main(int argc, char *argv[]) {
 
   /// 5. Get the set from the
 
-//  // grab the iterator
-//  auto it = pdbClient.getSetIterator<MatrixBlock>("myData", "C");
-//  while(it->hasNextRecord()) {
-//
-//    // grab the record
-//    auto r = it->getNextRecord();
-//
-//    // write out the values
-//    float *values = r->data->data->c_ptr();
-//    for(int i = 0; i < r->data->numRows; ++i) {
-//      for(int j = 0; j < r->data->numCols; ++j) {
-//        std::cout << values[i * r->data->numCols + j] << ", ";
-//      }
-//      std::cout << "\n";
-//    }
-//
-//    std::cout << "\n\n";
-//  }
+  // grab the iterator
+  int count = 0;
+  auto it = pdbClient.getSetIterator<MatrixConvResult>("myData", "B");
+  while(it->hasNextRecord()) {
+
+    // grab the record
+    auto r = it->getNextRecord();
+    count++;
+  }
+
+  std::cout << count << "\n";
 
   // wait a bit before the shutdown
   sleep(4);
