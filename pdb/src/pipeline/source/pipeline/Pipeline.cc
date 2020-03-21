@@ -214,6 +214,11 @@ REAPPLY:
       }
     }
 
+    // mark as processed
+    for(const auto &q : pipeline) {
+      q->markAsProcessed();
+    }
+
     // mark how much memory we have at the end in the last page we used
     finalFree = getAllocator().getFreeBytesAtTheEnd();
 

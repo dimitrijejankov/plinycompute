@@ -55,6 +55,8 @@ private:
   // the current record
   uint64_t currentRecord;
 
+  uint64_t numRecords;
+
  public:
 
   ~Join8ProbeExecution() = default;
@@ -149,6 +151,12 @@ private:
 
   }
 
+  void markAsProcessed() override {
+
+    // move the current record
+    currentRecord += numRecords;
+  }
+
   TupleSetPtr process(TupleSetPtr input) override {
 
     for(int i = 0; i < position; ++i) {
@@ -161,7 +169,7 @@ private:
     }
 
     // how many records are there
-    auto numRecords = columns[position - 1].size();
+    numRecords = columns[position - 1].size();
 
     // resize
     columns[position].resize(numRecords);
@@ -189,9 +197,6 @@ private:
       // set the column
       columns[position][i] = (*iterateOverThese[pageID])[recordID];
     }
-
-    // move the current record
-    currentRecord += numRecords;
 
     //print_first();
 

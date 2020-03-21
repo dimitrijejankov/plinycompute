@@ -37,6 +37,7 @@ public:
   // precess a tuple set
   virtual TupleSetPtr process(TupleSetPtr input) = 0;
 
+  virtual void markAsProcessed() {}
 };
 
 }
