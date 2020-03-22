@@ -1,5 +1,5 @@
 #include "JoinAggPlanner.h"
-#include "GeneticAlgorithmPlanner.h"
+#include "GeneticAggGroupPlanner.h"
 
 pdb::JoinAggPlanner::JoinAggPlanner(const pdb::PDBAnonymousPageSetPtr &joinAggPageSet,
                                     uint32_t numNodes,
@@ -95,16 +95,16 @@ void pdb::JoinAggPlanner::doPlanning() {
   auto numRightRecords = right_tids.size();
   auto numAggregationRecords = aggregation_groups.size();
 
-  pdb::GeneticAlgorithmPlanner planner(numLeftRecords,
-                                       numRightRecords,
-                                       numNodes,
-                                       numAggregationRecords,
-                                       1, // need to get this parameter
+  pdb::GeneticAggGroupPlanner planner(numLeftRecords,
+                                      numRightRecords,
+                                      numNodes,
+                                      numAggregationRecords,
+                                      1, // need to get this parameter
                                        1, // need to get this parameter
                                        std::move(left_tids),
-                                       std::move(right_tids),
-                                       std::move(aggregation_groups),
-                                       40);
+                                      std::move(right_tids),
+                                      std::move(aggregation_groups),
+                                      40);
 
 
   // run for a number of iterations

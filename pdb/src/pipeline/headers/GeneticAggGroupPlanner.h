@@ -4,7 +4,7 @@
 
 namespace pdb {
 
-struct GeneticAlgorithmPlanner {
+struct GeneticAggGroupPlanner {
 
   struct genome_t {
 
@@ -19,16 +19,16 @@ struct GeneticAlgorithmPlanner {
     gene_t genes;
   };
 
-  GeneticAlgorithmPlanner(int32_t num_lhs_records,
-                          int32_t num_rhs_records,
-                          int32_t num_nodes,
-                          int32_t num_agg_groups,
-                          int32_t lhs_record_size,
-                          int32_t rhs_record_size,
-                          std::vector<std::vector<bool>> lhs_record_positions,
-                          std::vector<std::vector<bool>> rhs_record_positions,
-                          std::vector<std::vector<std::pair<int32_t, int32_t>>> aggregation_groups,
-                          int32_t init_population_size) : node_dist(0, num_nodes - 1),
+  GeneticAggGroupPlanner(int32_t num_lhs_records,
+                         int32_t num_rhs_records,
+                         int32_t num_nodes,
+                         int32_t num_agg_groups,
+                         int32_t lhs_record_size,
+                         int32_t rhs_record_size,
+                         std::vector<std::vector<bool>> lhs_record_positions,
+                         std::vector<std::vector<bool>> rhs_record_positions,
+                         std::vector<std::vector<std::pair<int32_t, int32_t>>> aggregation_groups,
+                         int32_t init_population_size) : node_dist(0, num_nodes - 1),
                                                           selection_dist(0, (init_population_size - 1) / 2),
                                                           aggregation_group_dist(0, num_agg_groups - 1),
                                                           num_lhs_records(num_lhs_records),

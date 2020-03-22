@@ -5,7 +5,7 @@
 #include <chrono>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include <GeneticAlgorithmPlanner.h>
+#include <GeneticAggGroupPlanner.h>
 
 
 TEST(TestPlanner, Test1) {
@@ -71,7 +71,7 @@ TEST(TestPlanner, Test1) {
                                                                               {{12, 2}, {13, 6}, {14, 10}, {15, 14}},
                                                                               {{12, 3}, {13, 7}, {14, 11}, {15, 15}}};
 
-  pdb::GeneticAlgorithmPlanner planner(16, 16, 3, 16, 1, 1, lhs_record_positions, rhs_record_positions, aggregation_groups, 40);
+  pdb::GeneticAggGroupPlanner planner(16, 16, 3, 16, 1, 1, lhs_record_positions, rhs_record_positions, aggregation_groups, 40);
 
   planner.init();
 
@@ -82,7 +82,6 @@ TEST(TestPlanner, Test1) {
     planner.mutation();
     planner.finish();
   }
-  //planner.print();
 
-
+  planner.print();
 }
