@@ -353,6 +353,7 @@ class GeneticAlgorithm {
       nextGeneration[i] =  currentGeneration[i];
     }
 
+    //#pragma omp parallel for
     for (int i = elite_num; i < nextGeneration.size(); ++i) {
 
       // get l and r
@@ -362,6 +363,7 @@ class GeneticAlgorithm {
       // make l and r
       mate(nextGeneration[i], l, r, seed);
     }
+
   }
 
   void finish() {
@@ -472,10 +474,10 @@ class GeneticAlgorithm {
 
 int main() {
 
-  int32_t num_blocks = 16;
+  int32_t num_blocks = 40;
   int32_t num_lhs_records = num_blocks * num_blocks;
   int32_t num_rhs_records = num_blocks * num_blocks;
-  int32_t num_nodes = 16;
+  int32_t num_nodes = 40;
   int32_t num_agg_groups = num_blocks * num_blocks;
 
   std::vector<char> lhs_record_positions;
@@ -500,6 +502,7 @@ int main() {
         int l = i * num_blocks + k;
         int r = k * num_blocks + j;
         join_groups.emplace_back(l, r);
+        std::cout << l << " " << r << '\n';
       }
     }
   }
@@ -512,6 +515,7 @@ int main() {
     int start = i * num_blocks;
     for(int j = 0; j < num_blocks; ++j) {
       aggregation_groups[i][j] = start + j;
+      std::cout << aggregation_groups[i][j] << '\n';
     }
   }
 
@@ -538,7 +542,7 @@ int main() {
                            aggregation_groups,
                            join_groups);
 
-  planner.run(100);
+  planner.run(1000);
 
   return 0;
 }
