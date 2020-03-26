@@ -195,6 +195,9 @@ PDBDistributedStorageSetLockPtr pdb::PDBDistributedStorage::tryUsingSet(const st
       return std::make_shared<PDBDistributedStorageSetLock>(dbName, setName, PDBDistributedStorageSetState::NONE, distStorage);
     }
   }
+
+  // just to silance the compilers
+  return nullptr;
 }
 
 void pdb::PDBDistributedStorage::finishUsingSet(const std::string &dbName, const std::string &setName, PDBDistributedStorageSetState stateRequested) {
