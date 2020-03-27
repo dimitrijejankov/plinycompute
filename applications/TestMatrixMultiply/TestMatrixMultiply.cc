@@ -11,10 +11,10 @@ using namespace pdb::matrix;
 
 // some constants for the test
 const size_t blockSize = 64;
-const uint32_t matrixRows = 4000;
-const uint32_t matrixColumns = 4000;
-const uint32_t numRows = 40;
-const uint32_t numCols = 40;
+const uint32_t matrixRows = 100;
+const uint32_t matrixColumns = 100;
+const uint32_t numRows = 10;
+const uint32_t numCols = 10;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
@@ -130,27 +130,31 @@ int main(int argc, char* argv[]) {
 
   /// 5. Get the set from the
 
-//  // grab the iterator
-//  auto it = pdbClient.getSetIterator<MatrixBlock>("myData", "C");
-//  while(it->hasNextRecord()) {
-//
-//    // grab the record
-//    auto r = it->getNextRecord();
-//
-//    // write out the values
-//    float *values = r->data->data->c_ptr();
-//    for(int i = 0; i < r->data->numRows; ++i) {
-//      for(int j = 0; j < r->data->numCols; ++j) {
-//        std::cout << values[i * r->data->numCols + j] << ", ";
-//      }
-//      std::cout << "\n";
-//    }
-//
-//    std::cout << "\n\n";
-//  }
+  // grab the iterator
+  auto it = pdbClient.getSetIterator<MatrixBlock>("myData", "C");
+  int32_t count = 0;
+  while(it->hasNextRecord()) {
+
+    // grab the record
+    auto r = it->getNextRecord();
+    count++;
+
+    // write out the values
+    float *values = r->data->data->c_ptr();
+    for(int i = 0; i < r->data->numRows; ++i) {
+      for(int j = 0; j < r->data->numCols; ++j) {
+        std::cout << values[i * r->data->numCols + j] << ", ";
+      }
+      std::cout << "\n";
+    }
+
+    std::cout << "\n\n";
+  }
 
   // wait a bit before the shutdown
   sleep(4);
+
+  std::cout << count << '\n';
 
   // shutdown the server
   pdbClient.shutDownServer();

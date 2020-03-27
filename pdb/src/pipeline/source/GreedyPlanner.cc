@@ -129,6 +129,23 @@ void pdb::GreedyPlanner::run_join_first_only() {
     }
 }
 
+std::vector<int32_t> pdb::GreedyPlanner::get_agg_result() {
+
+    std::vector<int32_t> result;
+    result.resize(num_agg_groups);
+
+    // go through the assignments
+    for(int i = 0; i < num_agg_groups; ++i) {
+        for(int j = 0; j < num_nodes; j++) {
+            if(aggregation_positions[i * num_nodes + j]) {
+                result[i] = j;
+            }
+        }
+    }
+
+    return std::move(result);
+}
+
 pdb::GreedyPlanner::agg_plan_t pdb::GreedyPlanner::try_assign_agg_group(std::vector<int32_t> &joinGroups) {
 
     // go through all nodes and try to figure out here to place the aggregation group

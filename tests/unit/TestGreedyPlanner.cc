@@ -12,7 +12,7 @@
 
 int main() {
 
-    int32_t num_blocks = 3;
+    int32_t num_blocks = 40;
     int32_t num_lhs_records = num_blocks * num_blocks;
     int32_t num_rhs_records = num_blocks * num_blocks;
     int32_t num_nodes = 40;
@@ -66,11 +66,11 @@ int main() {
     c.aggregation_rec_size = 1;
 
     pdb::GreedyPlanner planner(num_nodes,
-                          c,
-                          lhs_record_positions,
-                          rhs_record_positions,
-                          aggregation_groups,
-                          join_groups);
+                               c,
+                               lhs_record_positions,
+                               rhs_record_positions,
+                               aggregation_groups,
+                               join_groups);
 
     planner.run();
 

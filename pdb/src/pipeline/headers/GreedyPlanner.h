@@ -86,6 +86,8 @@ public:
 
     void run_join_first_only();
 
+    std::vector<int32_t> get_agg_result();
+
     agg_plan_t try_assign_agg_group(std::vector<int32_t> &joinGroups);
 
     void apply_agg(const agg_plan_t &pl, std::vector<int32_t> &joinGroups, int32_t aggGroup);
