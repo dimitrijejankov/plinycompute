@@ -1,19 +1,19 @@
 #include <GreedyPlanner.h>
 
 pdb::GreedyPlanner::GreedyPlanner(int32_t numNodes, pdb::GreedyPlanner::costs_t costs,
-                                  std::vector<char> lhsRecordPositions, std::vector<char> rhsRecordPositions,
-                                  std::vector<std::vector<int32_t>> aggregationGroups,
-                                  std::vector<std::pair<int32_t, int32_t>> joinGroups)
+                                  const std::vector<char> &lhsRecordPositions, const std::vector<char> &rhsRecordPositions,
+                                  const std::vector<std::vector<int32_t>> &aggregationGroups,
+                                  const std::vector<std::pair<int32_t, int32_t>> &joinGroups)
         : num_nodes(numNodes),
           num_agg_groups(aggregationGroups.size()),
           num_join_groups(joinGroups.size()),
           num_lhs_records(lhsRecordPositions.size() / num_nodes),
           num_rhs_records(rhsRecordPositions.size() / num_nodes),
           c(costs),
-          lhs_record_positions(std::move(lhsRecordPositions)),
-          rhs_record_positions(std::move(rhsRecordPositions)),
-          aggregation_groups(std::move(aggregationGroups)),
-          join_groups(std::move(joinGroups)) {
+          lhs_record_positions(lhsRecordPositions),
+          rhs_record_positions(rhsRecordPositions),
+          aggregation_groups(aggregationGroups),
+          join_groups(joinGroups) {
 
 
     max_join_projection_cost = 0;
@@ -144,6 +144,23 @@ std::vector<int32_t> pdb::GreedyPlanner::get_agg_result() {
     }
 
     return std::move(result);
+}
+
+pdb::GreedyPlanner::planning_result pdb::GreedyPlanner::get_result() {
+
+    std::vector<int32_t> result;
+    result.resize(num_agg_groups);
+
+    // go through the assignments
+    for(int i = 0; i < num_agg_groups; ++i) {
+        for(int j = 0; j < num_nodes; j++) {
+            if(aggregation_positions[i * num_nodes + j]) {
+                result[i] = j;
+            }
+        }
+    }
+
+    return {std::move(result), std::move(join_group_positions)};
 }
 
 pdb::GreedyPlanner::agg_plan_t pdb::GreedyPlanner::try_assign_agg_group(std::vector<int32_t> &joinGroups) {
@@ -490,4 +507,9 @@ void pdb::GreedyPlanner::print() {
             }
         }
     }
+}
+
+
+int32_t pdb::GreedyPlanner::getCost() const {
+  return max_side_shuffling_cost + max_join_projection_cost + max_join_shuffling_cost + max_agg_projection_cost;
 }
