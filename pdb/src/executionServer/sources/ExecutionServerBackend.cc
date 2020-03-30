@@ -34,13 +34,21 @@ void pdb::ExecutionServerBackend::registerHandlers(pdb::PDBServer &forMe) {
             // this gives us the initial state
             auto state = request->physicalAlgorithm->getInitialState(request);
 
-            // get the stages we need to execute
-            auto stages = request->physicalAlgorithm->getStages();
+            // reset the algorithm stages
+            request->physicalAlgorithm->resetStages();
 
             /// 2. Run all the stages
 
             // go through each stage and run it
-            for(const auto &stage : stages) {
+            PDBPhysicalAlgorithmStagePtr stage;
+            for(;;) {
+
+              /// 2.0 Get the next algorithm
+
+              stage = request->physicalAlgorithm->getNextStage();
+              if(stage == nullptr) {
+                break;
+              }
 
               /// 2.1 Setup the stage
 

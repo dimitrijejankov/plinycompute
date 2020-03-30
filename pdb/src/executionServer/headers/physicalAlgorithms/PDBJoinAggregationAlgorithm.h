@@ -61,7 +61,7 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
 
   [[nodiscard]] PDBPhysicalAlgorithmStatePtr getInitialState(const pdb::Handle<pdb::ExJob> &job) const override;
 
-  [[nodiscard]] vector<PDBPhysicalAlgorithmStagePtr> getStages() const override;
+  [[nodiscard]] PDBPhysicalAlgorithmStagePtr getNextStage() override;
 
   [[nodiscard]] int32_t numStages() const override;
 

@@ -16,8 +16,9 @@ pdb::PDBAggregationPipeAlgorithm::PDBAggregationPipeAlgorithm(const std::vector<
                                                               const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
                                                               const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize)
 
-    : PDBPhysicalAlgorithm(primarySource, finalAtomicComputation, sink, secondarySources, setsToMaterialize), hashedToSend(hashedToSend), hashedToRecv(hashedToRecv) {}
-
+    : PDBPhysicalAlgorithm(primarySource, finalAtomicComputation, sink, secondarySources, setsToMaterialize),
+      hashedToSend(hashedToSend),
+      hashedToRecv(hashedToRecv) {}
 
 pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBAggregationPipeAlgorithm::getInitialState(const pdb::Handle<pdb::ExJob> &job) const {
 
@@ -31,14 +32,24 @@ pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBAggregationPipeAlgorithm::getInitialSt
   return state;
 }
 
-vector<pdb::PDBPhysicalAlgorithmStagePtr> pdb::PDBAggregationPipeAlgorithm::getStages() const {
-  return { std::make_shared<PDBAggregationPipeStage>(*sink,
-                                                     sources,
-                                                     finalTupleSet,
-                                                     *secondarySources,
-                                                     *setsToMaterialize,
-                                                     *hashedToSend,
-                                                     *hashedToRecv) };
+pdb::PDBPhysicalAlgorithmStagePtr pdb::PDBAggregationPipeAlgorithm::getNextStage() {
+
+  // we are done if we already served a stage
+  if(currentStage == 1) {
+    return nullptr;
+  }
+
+  // go to the next stage
+  currentStage++;
+
+  // return the aggregation pipe stage
+  return std::make_shared<PDBAggregationPipeStage>(*sink,
+                                                   sources,
+                                                   finalTupleSet,
+                                                   *secondarySources,
+                                                   *setsToMaterialize,
+                                                   *hashedToSend,
+                                                   *hashedToRecv);
 }
 
 int32_t pdb::PDBAggregationPipeAlgorithm::numStages() const {

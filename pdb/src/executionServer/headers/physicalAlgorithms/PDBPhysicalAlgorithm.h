@@ -65,10 +65,9 @@ public:
    * Returns all the stages of this algorithm
    * @return
    */
-  [[nodiscard]] virtual std::vector<PDBPhysicalAlgorithmStagePtr> getStages() const {
+  [[nodiscard]] virtual PDBPhysicalAlgorithmStagePtr getNextStage() {
     throw std::runtime_error("Can not get the type of the base class");
   };
-
 
   /**
    * Returns the number of stages this algorithm has
@@ -77,6 +76,11 @@ public:
   [[nodiscard]] virtual int32_t numStages() const {
     throw std::runtime_error("Can not get the type of the base class");
   };
+
+  /**
+   * Resets the stages to zero so we can use the algorithm again
+   */
+  void resetStages() { currentStage = 0; }
 
   /**
    * Returns the type of the algorithm we want to run
@@ -131,6 +135,9 @@ protected:
 
   // The sets we want to materialize the result of this aggregation to
   pdb::Handle<pdb::Vector<PDBSetObject>> setsToMaterialize;
+
+  // the current stage
+  int32_t currentStage = 0;
 
   // mark the tests that are testing this algorithm
   FRIEND_TEST(TestPhysicalOptimizer, TestAggregation);

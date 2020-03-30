@@ -8,14 +8,15 @@ pdb::PDBBroadcastForJoinAlgorithm::PDBBroadcastForJoinAlgorithm(const std::vecto
                                                                 const pdb::Handle<pdb::PDBSourcePageSetSpec> &hashedToRecv,
                                                                 const pdb::Handle<pdb::PDBSinkPageSetSpec> &sink,
                                                                 const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
-                                                                const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize):
-                                                                PDBPhysicalAlgorithm(primarySource,
-                                                                                     finalAtomicComputation,
-                                                                                     sink,
-                                                                                     secondarySources,
-                                                                                     setsToMaterialize),
-                                                                                     hashedToSend(hashedToSend),
-                                                                                     hashedToRecv(hashedToRecv) {
+                                                                const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize)
+    :
+    PDBPhysicalAlgorithm(primarySource,
+                         finalAtomicComputation,
+                         sink,
+                         secondarySources,
+                         setsToMaterialize),
+    hashedToSend(hashedToSend),
+    hashedToRecv(hashedToRecv) {
 }
 
 pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBBroadcastForJoinAlgorithm::getInitialState(const pdb::Handle<pdb::ExJob> &job) const {
@@ -30,15 +31,24 @@ pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBBroadcastForJoinAlgorithm::getInitialS
   return state;
 }
 
-vector<pdb::PDBPhysicalAlgorithmStagePtr> pdb::PDBBroadcastForJoinAlgorithm::getStages() const {
+pdb::PDBPhysicalAlgorithmStagePtr pdb::PDBBroadcastForJoinAlgorithm::getNextStage() {
 
-  return { std::make_shared<PDBBroadcastForJoinStage>(*sink,
-                                                      sources,
-                                                      finalTupleSet,
-                                                      *secondarySources,
-                                                      *setsToMaterialize,
-                                                      *hashedToSend,
-                                                      *hashedToRecv) };
+  // we are done if we already served a stage
+  if(currentStage == 1) {
+    return nullptr;
+  }
+
+  // go to the next stage
+  currentStage++;
+
+  // return the broadcast pipe stage
+  return std::make_shared<PDBBroadcastForJoinStage>(*sink,
+                                                    sources,
+                                                    finalTupleSet,
+                                                    *secondarySources,
+                                                    *setsToMaterialize,
+                                                    *hashedToSend,
+                                                    *hashedToRecv);
 }
 
 int32_t pdb::PDBBroadcastForJoinAlgorithm::numStages() const {

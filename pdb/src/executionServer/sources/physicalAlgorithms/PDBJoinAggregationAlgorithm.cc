@@ -134,40 +134,71 @@ PDBPhysicalAlgorithmStatePtr PDBJoinAggregationAlgorithm::getInitialState(const 
   return state;
 }
 
-vector<PDBPhysicalAlgorithmStagePtr> PDBJoinAggregationAlgorithm::getStages() const {
+PDBPhysicalAlgorithmStagePtr PDBJoinAggregationAlgorithm::getNextStage() {
 
-  return {std::make_shared<PDBJoinAggregationKeyStage>(*sink,
-                                                       sources,
-                                                       finalTupleSet,
-                                                       *secondarySources,
-                                                       *setsToMaterialize,
-                                                       leftInputTupleSet,
-                                                       rightInputTupleSet,
-                                                       joinTupleSet,
-                                                       *lhsKeySink,
-                                                       *rhsKeySink,
-                                                       *joinAggKeySink,
-                                                       rightSources,
-                                                       *leftKeySource,
-                                                       *rightKeySource,
-                                                       *planSource),
-          std::make_shared<PDBJoinAggregationJoinSideStage>(*sink,
-                                                            sources,
-                                                            finalTupleSet,
-                                                            *secondarySources,
-                                                            *setsToMaterialize,
-                                                            joinTupleSet,
-                                                            *leftJoinSource,
-                                                            *rightJoinSource,
-                                                            *intermediateSink,
-                                                            rightSources),
-          std::make_shared<PDBJoinAggregationAggregationStage>(*sink,
-                                                              sources,
-                                                              finalTupleSet,
-                                                              *secondarySources,
-                                                              *setsToMaterialize,
-                                                              joinTupleSet)};
+  // we are done if we already served a stage
+  if(currentStage == 3) {
+    return nullptr;
+  }
 
+  // create the right stages
+  switch (currentStage) {
+
+    case 0: {
+
+      // go to the next stage
+      currentStage++;
+
+      // return the key stage
+      return std::make_shared<PDBJoinAggregationKeyStage>(*sink,
+                                                   sources,
+                                                   finalTupleSet,
+                                                   *secondarySources,
+                                                   *setsToMaterialize,
+                                                   leftInputTupleSet,
+                                                   rightInputTupleSet,
+                                                   joinTupleSet,
+                                                   *lhsKeySink,
+                                                   *rhsKeySink,
+                                                   *joinAggKeySink,
+                                                   rightSources,
+                                                   *leftKeySource,
+                                                   *rightKeySource,
+                                                   *planSource);
+    }
+    case 1: {
+
+      // go to the next stage
+      currentStage++;
+
+      // return the join side stage
+      return std::make_shared<PDBJoinAggregationJoinSideStage>(*sink,
+                                                               sources,
+                                                               finalTupleSet,
+                                                               *secondarySources,
+                                                               *setsToMaterialize,
+                                                               joinTupleSet,
+                                                               *leftJoinSource,
+                                                               *rightJoinSource,
+                                                               *intermediateSink,
+                                                               rightSources);
+    }
+    case 2: {
+
+      // go to the next stage
+      currentStage++;
+
+      // return the aggregation stage
+      return std::make_shared<PDBJoinAggregationAggregationStage>(*sink,
+                                                                  sources,
+                                                                  finalTupleSet,
+                                                                  *secondarySources,
+                                                                  *setsToMaterialize,
+                                                                  joinTupleSet);
+    }
+  }
+
+  throw runtime_error("Unrecognized stage. How did we get here?");
 }
 
 int32_t PDBJoinAggregationAlgorithm::numStages() const {

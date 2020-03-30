@@ -42,7 +42,17 @@ pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBShuffleForJoinAlgorithm::getInitialSta
   return state;
 }
 
-vector<pdb::PDBPhysicalAlgorithmStagePtr> pdb::PDBShuffleForJoinAlgorithm::getStages() const {
+pdb::PDBPhysicalAlgorithmStagePtr pdb::PDBShuffleForJoinAlgorithm::getNextStage() {
+
+  // we are done if we already served a stage
+  if(currentStage == 1) {
+    return nullptr;
+  }
+
+  // go to the next stage
+  currentStage++;
+
+  // return the shuffle join pipe stage
   return { pdb::make_shared<PDBShuffleForJoinStage>(*sink,
                                                     sources,
                                                     finalTupleSet,

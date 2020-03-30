@@ -35,8 +35,17 @@ pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBStraightPipeAlgorithm::getInitialState
   return state;
 }
 
-vector<pdb::PDBPhysicalAlgorithmStagePtr> pdb::PDBStraightPipeAlgorithm::getStages() const {
+pdb::PDBPhysicalAlgorithmStagePtr pdb::PDBStraightPipeAlgorithm::getNextStage() {
 
+  // we are done if we already served a stage
+  if(currentStage == 1) {
+    return nullptr;
+  }
+
+  // go to the next stage
+  currentStage++;
+
+  // return the straight pipe stage
   return { std::make_shared<PDBStraightPipeStage>(*sink,
                                                  sources,
                                                  finalTupleSet,
