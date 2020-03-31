@@ -32,7 +32,7 @@ pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBAggregationPipeAlgorithm::getInitialSt
   return state;
 }
 
-pdb::PDBPhysicalAlgorithmStagePtr pdb::PDBAggregationPipeAlgorithm::getNextStage() {
+pdb::PDBPhysicalAlgorithmStagePtr pdb::PDBAggregationPipeAlgorithm::getNextStage(const PDBPhysicalAlgorithmStatePtr &state) {
 
   // we are done if we already served a stage
   if(currentStage == 1) {

@@ -5,7 +5,7 @@
 #include "TupleSetMachine.h"
 #include "TupleSet.h"
 #include <vector>
-
+#include <UseTemporaryAllocationBlock.h>
 
 namespace pdb {
 
@@ -35,9 +35,15 @@ private:
   // make sure we only create one one join aggregation map
   bool mapCreated = false;
 
+  // the page we store the mappings for the agg key
+  PDBPageHandle aggKeyPage;
+
  public:
 
-  JoinAggSink(TupleSpec &outputSchema, TupleSpec &attsToOperateOn, TupleSpec &projection) {
+  JoinAggSink(TupleSpec &outputSchema,
+              TupleSpec &attsToOperateOn,
+              TupleSpec &projection,
+              const PDBPageHandle &page) {
 
     // to setup the output tuple set
     TupleSpec empty{};
@@ -54,6 +60,9 @@ private:
     matches = myMachine.match(projection);
     leftKeyTIDAttribute = matches[0];
     rightKeyTIDAttribute = matches[1];
+
+    // the agg key page
+    aggKeyPage = page;
   }
 
   ~JoinAggSink() override = default;
@@ -115,6 +124,22 @@ private:
   }
 
   void writeOutPage(pdb::PDBPageHandle &page, Handle<Object> &writeToMe) override { throw runtime_error("JoinAggSink can not write out a page."); }
+
+  void finalize() override {
+
+    // repin the page
+    aggKeyPage->repin();
+
+    // use it
+    const UseTemporaryAllocationBlock tempBlock{aggKeyPage->getBytes(), aggKeyPage->getSize()};
+
+    // copy the map
+    Handle<Map<KeyType, uint32_t>> copiedKeys = pdb::makeObject<Map<KeyType, uint32_t>>();
+    *copiedKeys = aggTIDs;
+
+    // set the record
+    getRecord(copiedKeys);
+  }
 
   // returns the number of records in the join agg sink
   uint64_t getNumRecords(Handle<Object> &writeToMe) override {

@@ -35,7 +35,7 @@ pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBStraightPipeAlgorithm::getInitialState
   return state;
 }
 
-pdb::PDBPhysicalAlgorithmStagePtr pdb::PDBStraightPipeAlgorithm::getNextStage() {
+pdb::PDBPhysicalAlgorithmStagePtr pdb::PDBStraightPipeAlgorithm::getNextStage(const PDBPhysicalAlgorithmStatePtr &state) {
 
   // we are done if we already served a stage
   if(currentStage == 1) {

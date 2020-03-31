@@ -45,7 +45,7 @@ void pdb::ExecutionServerBackend::registerHandlers(pdb::PDBServer &forMe) {
 
               /// 2.0 Get the next algorithm
 
-              stage = request->physicalAlgorithm->getNextStage();
+              stage = request->physicalAlgorithm->getNextStage(state);
               if(stage == nullptr) {
                 break;
               }

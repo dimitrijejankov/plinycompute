@@ -219,9 +219,10 @@ class AggregateComp : public AggregateCompBase {
   ComputeSinkPtr getKeyJoinAggSink(TupleSpec &consumeMe,
                                    TupleSpec &whichAttsToOpOn,
                                    TupleSpec &projection,
+                                   const PDBPageHandle &aggKeyPage,
                                    std::map<ComputeInfoType, ComputeInfoPtr> &params,
                                    pdb::LogicalPlanPtr &plan) override {
-    return std::make_shared<pdb::JoinAggSink<KeyClass>>(consumeMe, whichAttsToOpOn, projection);
+    return std::make_shared<pdb::JoinAggSink<KeyClass>>(consumeMe, whichAttsToOpOn, projection, aggKeyPage);
   }
 
   ComputeSourcePtr getComputeSource(const PDBAbstractPageSetPtr &pageSet, uint64_t workerID, std::map<ComputeInfoType, ComputeInfoPtr> &) override {

@@ -65,7 +65,7 @@ public:
    * Returns all the stages of this algorithm
    * @return
    */
-  [[nodiscard]] virtual PDBPhysicalAlgorithmStagePtr getNextStage() {
+  [[nodiscard]] virtual PDBPhysicalAlgorithmStagePtr getNextStage(const PDBPhysicalAlgorithmStatePtr &state) {
     throw std::runtime_error("Can not get the type of the base class");
   };
 

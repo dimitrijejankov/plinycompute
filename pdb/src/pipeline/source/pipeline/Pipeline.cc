@@ -98,6 +98,9 @@ void pdb::Pipeline::cleanPages(int iteration) {
 // cleans the pipeline
 void pdb::Pipeline::cleanPipeline() {
 
+  // finalize the sink
+  dataSink->finalize();
+
   // first, reverse the queue so we go oldest to newest
   // this ensures that everything is deleted in the reverse order that it was created
   std::vector<MemoryHolderPtr> reverser;

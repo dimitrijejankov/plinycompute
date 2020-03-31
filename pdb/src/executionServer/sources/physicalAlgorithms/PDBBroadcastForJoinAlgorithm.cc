@@ -31,7 +31,7 @@ pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBBroadcastForJoinAlgorithm::getInitialS
   return state;
 }
 
-pdb::PDBPhysicalAlgorithmStagePtr pdb::PDBBroadcastForJoinAlgorithm::getNextStage() {
+pdb::PDBPhysicalAlgorithmStagePtr pdb::PDBBroadcastForJoinAlgorithm::getNextStage(const PDBPhysicalAlgorithmStatePtr &state) {
 
   // we are done if we already served a stage
   if(currentStage == 1) {

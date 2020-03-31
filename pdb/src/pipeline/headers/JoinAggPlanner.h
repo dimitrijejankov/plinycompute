@@ -18,6 +18,8 @@ class JoinAggPlanner {
 
   void print(const Handle<PipJoinAggPlanResult> &planResult);
 
+  bool isLocalAggregation();
+
  private:
 
   // we use this to deduplicate the join groups

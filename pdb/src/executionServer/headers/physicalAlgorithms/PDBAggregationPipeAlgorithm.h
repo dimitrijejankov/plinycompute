@@ -40,7 +40,7 @@ public:
    *
    * @return
    */
-  [[nodiscard]] PDBPhysicalAlgorithmStagePtr getNextStage() override;
+  [[nodiscard]] PDBPhysicalAlgorithmStagePtr getNextStage(const PDBPhysicalAlgorithmStatePtr &state) override;
 
   /**
    *

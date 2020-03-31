@@ -9,6 +9,7 @@
 #include "PDBLabeledPageSet.h"
 #include "PDBBroadcastForJoinState.h"
 #include "AggregateCompBase.h"
+#include "PDBJoinAggregationLocalAggregationStage.h"
 #include "PDBJoinAggregationAggregationStage.h"
 #include "PDBJoinAggregationJoinSideStage.h"
 
@@ -134,7 +135,7 @@ PDBPhysicalAlgorithmStatePtr PDBJoinAggregationAlgorithm::getInitialState(const 
   return state;
 }
 
-PDBPhysicalAlgorithmStagePtr PDBJoinAggregationAlgorithm::getNextStage() {
+pdb::PDBPhysicalAlgorithmStagePtr PDBJoinAggregationAlgorithm::getNextStage(const PDBPhysicalAlgorithmStatePtr &state) {
 
   // we are done if we already served a stage
   if(currentStage == 3) {
@@ -185,16 +186,32 @@ PDBPhysicalAlgorithmStagePtr PDBJoinAggregationAlgorithm::getNextStage() {
     }
     case 2: {
 
+      // cast the state
+      auto s = dynamic_pointer_cast<PDBJoinAggregationState>(state);
+
       // go to the next stage
       currentStage++;
 
-      // return the aggregation stage
-      return std::make_shared<PDBJoinAggregationAggregationStage>(*sink,
-                                                                  sources,
-                                                                  finalTupleSet,
-                                                                  *secondarySources,
-                                                                  *setsToMaterialize,
-                                                                  joinTupleSet);
+      if(s->localAggregation) {
+
+        // return the local aggregation stage
+        return std::make_shared<PDBJoinAggregationLocalAggregationStage>(*sink,
+                                                                         sources,
+                                                                         finalTupleSet,
+                                                                         *secondarySources,
+                                                                         *setsToMaterialize,
+                                                                         joinTupleSet);
+      }
+      else {
+
+        // return the aggregation stage
+        return std::make_shared<PDBJoinAggregationAggregationStage>(*sink,
+                                                                    sources,
+                                                                    finalTupleSet,
+                                                                    *secondarySources,
+                                                                    *setsToMaterialize,
+                                                                    joinTupleSet);
+      }
     }
   }
 

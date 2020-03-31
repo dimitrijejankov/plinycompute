@@ -43,7 +43,7 @@ public:
    * Return the one stage of the straight pipeline algorithm
    * @return the one stage in a vector
    */
-  [[nodiscard]] PDBPhysicalAlgorithmStagePtr getNextStage() override;
+  [[nodiscard]] PDBPhysicalAlgorithmStagePtr getNextStage(const PDBPhysicalAlgorithmStatePtr &state) override;
 
   /**
    * Returns one since we only have one stage

@@ -1,4 +1,4 @@
-#include "physicalAlgorithms/PDBJoinAggregationAggregationStage.h"
+#include "physicalAlgorithms/PDBJoinAggregationLocalAggregationStage.h"
 #include "PDBJoinAggregationState.h"
 #include "GenericWork.h"
 #include "ExJob.h"
@@ -6,17 +6,17 @@
 #include "AtomicComputationClasses.h"
 #include "PreaggregationPageProcessor.h"
 
-pdb::PDBJoinAggregationAggregationStage::PDBJoinAggregationAggregationStage(const pdb::PDBSinkPageSetSpec &sink,
+pdb::PDBJoinAggregationLocalAggregationStage::PDBJoinAggregationLocalAggregationStage(const pdb::PDBSinkPageSetSpec &sink,
                                                                                       const pdb::Vector<pdb::PDBSourceSpec> &sources,
                                                                                       const pdb::String &final_tuple_set,
                                                                                       const pdb::Vector<pdb::Handle<
-                                                                                          PDBSourcePageSetSpec>> &secondary_sources,
+                                                                                PDBSourcePageSetSpec>> &secondary_sources,
                                                                                       const pdb::Vector<pdb::PDBSetObject> &sets_to_materialize,
                                                                                       const pdb::String &join_tuple_set)
     : PDBPhysicalAlgorithmStage(sink, sources, final_tuple_set, secondary_sources, sets_to_materialize),
       joinTupleSet(join_tuple_set) {}
 
-bool pdb::PDBJoinAggregationAggregationStage::setup(const pdb::Handle<pdb::ExJob> &job,
+bool pdb::PDBJoinAggregationLocalAggregationStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                                          const pdb::PDBPhysicalAlgorithmStatePtr &state,
                                                          const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                                          const std::string &error) {
@@ -117,7 +117,7 @@ bool pdb::PDBJoinAggregationAggregationStage::setup(const pdb::Handle<pdb::ExJob
   return true;
 }
 
-bool pdb::PDBJoinAggregationAggregationStage::run(const pdb::Handle<pdb::ExJob> &job,
+bool pdb::PDBJoinAggregationLocalAggregationStage::run(const pdb::Handle<pdb::ExJob> &job,
                                                        const pdb::PDBPhysicalAlgorithmStatePtr &state,
                                                        const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                                        const std::string &error) {
@@ -293,4 +293,4 @@ bool pdb::PDBJoinAggregationAggregationStage::run(const pdb::Handle<pdb::ExJob> 
   return success;
 }
 
-void pdb::PDBJoinAggregationAggregationStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {}
+void pdb::PDBJoinAggregationLocalAggregationStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {}

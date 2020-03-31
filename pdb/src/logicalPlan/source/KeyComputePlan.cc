@@ -105,6 +105,7 @@ pdb::PipelinePtr pdb::KeyComputePlan::buildJoinAggPipeline(const std::string& so
                                                            const std::string& targetTupleSetName,
                                                            const PDBAbstractPageSetPtr &inputPageSet,
                                                            const PDBAnonymousPageSetPtr &outputPageSet,
+                                                           const PDBPageHandle &aggKeyPage,
                                                            std::map<ComputeInfoType, ComputeInfoPtr> &params,
                                                            size_t numNodes,
                                                            size_t numProcessingThreads,
@@ -164,6 +165,7 @@ pdb::PipelinePtr pdb::KeyComputePlan::buildJoinAggPipeline(const std::string& so
 
   // get the compute sink
   auto computeSink = getJoinAggSink(targetAtomicComp,
+                                    aggKeyPage,
                                     targetComputationName,
                                     params);
 
@@ -186,6 +188,7 @@ pdb::PipelinePtr pdb::KeyComputePlan::buildJoinAggPipeline(const std::string& so
 }
 
 pdb::ComputeSinkPtr pdb::KeyComputePlan::getJoinAggSink(AtomicComputationPtr &targetAtomicComp,
+                                                        const PDBPageHandle &aggKeyPage,
                                                         const std::string &targetComputationName,
                                                         std::map<ComputeInfoType, ComputeInfoPtr> &params) {
 
@@ -199,6 +202,7 @@ pdb::ComputeSinkPtr pdb::KeyComputePlan::getJoinAggSink(AtomicComputationPtr &ta
   return ((AggregateCompBase*) &comp)->getKeyJoinAggSink(targetAtomicComp->getOutput(),
                                                          targetAtomicComp->getInput(),
                                                          targetAtomicComp->getProjection(),
+                                                         aggKeyPage,
                                                          params,
                                                          myPlan);
 }

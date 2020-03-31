@@ -18,6 +18,7 @@ public:
 
   // returns the compute sink
   ComputeSinkPtr getJoinAggSink(AtomicComputationPtr &targetAtomicComp,
+                                const PDBPageHandle &aggPage,
                                 const std::string &targetComputationName,
                                 std::map<ComputeInfoType, ComputeInfoPtr> &params);
 
@@ -31,6 +32,7 @@ public:
                                    const std::string& targetTupleSetName,
                                    const PDBAbstractPageSetPtr &inputPageSet,
                                    const PDBAnonymousPageSetPtr &outputPageSet,
+                                   const PDBPageHandle &aggPage,
                                    std::map<ComputeInfoType, ComputeInfoPtr> &params,
                                    size_t numNodes,
                                    size_t numProcessingThreads,

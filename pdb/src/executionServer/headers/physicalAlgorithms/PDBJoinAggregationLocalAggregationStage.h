@@ -4,15 +4,15 @@
 
 namespace pdb {
 
-class PDBJoinAggregationAggregationStage : public PDBPhysicalAlgorithmStage {
- public:
+class PDBJoinAggregationLocalAggregationStage : public PDBPhysicalAlgorithmStage {
+public:
 
-  PDBJoinAggregationAggregationStage(const PDBSinkPageSetSpec &sink,
-                                     const Vector<PDBSourceSpec> &sources,
-                                     const String &final_tuple_set,
-                                     const Vector<pdb::Handle<PDBSourcePageSetSpec>> &secondary_sources,
-                                     const Vector<PDBSetObject> &sets_to_materialize,
-                                     const String &join_tuple_set);
+  PDBJoinAggregationLocalAggregationStage(const PDBSinkPageSetSpec &sink,
+                                          const Vector<PDBSourceSpec> &sources,
+                                          const String &final_tuple_set,
+                                          const Vector<pdb::Handle<PDBSourcePageSetSpec>> &secondary_sources,
+                                          const Vector<PDBSetObject> &sets_to_materialize,
+                                          const String &join_tuple_set);
 
   bool setup(const Handle<pdb::ExJob> &job,
              const PDBPhysicalAlgorithmStatePtr &state,
@@ -26,7 +26,7 @@ class PDBJoinAggregationAggregationStage : public PDBPhysicalAlgorithmStage {
 
   void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) override;
 
- private:
+private:
 
   // the join tuple set
   const pdb::String &joinTupleSet;

@@ -245,6 +245,9 @@ bool pdb::PDBJoinAggregationKeyStage::setup(const Handle<ExJob> &job,
   s->leftKeyPage = myMgr->getPage();
   s->rightKeyPage = myMgr->getPage();
 
+  // get the agg key page
+  s->aggKeyPage = myMgr->getPage();
+
   // this page will contain the plan
   s->planPage = myMgr->getPage();
 
@@ -259,6 +262,7 @@ bool pdb::PDBJoinAggregationKeyStage::setup(const Handle<ExJob> &job,
                                                             sinkComp->getOutputName(),     /* this is the TupleSet the pipeline ends with */
                                                             s->labeledLeftPageSet,
                                                             s->joinAggPageSet,
+                                                            s->aggKeyPage,
                                                             params,
                                                             1,
                                                             1,
@@ -632,6 +636,9 @@ bool pdb::PDBJoinAggregationKeyStage::runLead(const Handle<pdb::ExJob> &job,
 
   // do the planning
   planner.doPlanning();
+
+  //
+  s->localAggregation = planner.isLocalAggregation();
 
   std::chrono::steady_clock::time_point planner_end = std::chrono::steady_clock::now();
   std::cout << "Run planner for " << std::chrono::duration_cast<std::chrono::nanoseconds>(planner_end - planner_begin).count()

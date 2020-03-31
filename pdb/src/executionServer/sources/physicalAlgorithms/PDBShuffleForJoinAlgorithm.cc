@@ -42,7 +42,7 @@ pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBShuffleForJoinAlgorithm::getInitialSta
   return state;
 }
 
-pdb::PDBPhysicalAlgorithmStagePtr pdb::PDBShuffleForJoinAlgorithm::getNextStage() {
+pdb::PDBPhysicalAlgorithmStagePtr pdb::PDBShuffleForJoinAlgorithm::getNextStage(const PDBPhysicalAlgorithmStatePtr &state) {
 
   // we are done if we already served a stage
   if(currentStage == 1) {

@@ -47,6 +47,9 @@ public:
   	// this returns the number of records written by this sink
   	virtual uint64_t getNumRecords(Handle<Object> &writeToMe) = 0;
 
+  	// this is called when we are done with the pipeline
+  	virtual void finalize() {}
+
 	virtual ~ComputeSink () = default;
 
 };

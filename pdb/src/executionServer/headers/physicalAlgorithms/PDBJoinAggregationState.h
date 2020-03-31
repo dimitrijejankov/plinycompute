@@ -77,6 +77,11 @@ struct PDBJoinAggregationState : public PDBPhysicalAlgorithmState {
   /**
    *
    */
+  PDBPageHandle aggKeyPage = nullptr;
+
+  /**
+   *
+   */
   PDBPageHandle planPage;
 
   /**
@@ -188,6 +193,11 @@ struct PDBJoinAggregationState : public PDBPhysicalAlgorithmState {
    * This runs the left and right side of the join
    */
   std::shared_ptr<std::vector<PipelinePtr>> joinPipelines = nullptr;
+
+  /**
+   * Is a local aggregation enough
+   */
+  bool localAggregation = false;
 
   /**
    * The left and right join side task

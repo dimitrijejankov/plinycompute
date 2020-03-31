@@ -424,6 +424,10 @@ void pdb::JoinAggPlanner::doFullPlanning(const std::vector<char> &lhsRecordPosit
   }
 }
 
+bool pdb::JoinAggPlanner::isLocalAggregation() {
+  return selectedAlgorithm == AlgorithmID::AGG_FIRST_ONLY;
+}
+
 pdb::JoinAggPlanner::AlgorithmID pdb::JoinAggPlanner::selectAlgorithm() {
 
   // we prefer the agg first planning since it does not have a later shuffling phase
@@ -469,4 +473,3 @@ void pdb::JoinAggPlanner::print(const Handle<PipJoinAggPlanResult> &planResult) 
     std::cout << "Aggregation Group" << (*it).key << " goes to " << (*it).value << "\n";
   }
 }
-
