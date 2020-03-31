@@ -139,6 +139,9 @@ private:
 
     // set the record
     getRecord(copiedKeys);
+
+    // unpin the page
+    aggKeyPage->unpin();
   }
 
   // returns the number of records in the join agg sink

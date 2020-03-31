@@ -751,6 +751,7 @@ bool pdb::PDBJoinAggregationKeyStage::runLead(const Handle<pdb::ExJob> &job,
 
   for(const auto& q : *s->planPageQueues) {
     q->enqueue(s->planPage);
+    q->enqueue(s->aggKeyPage);
     q->enqueue(nullptr);
   }
 
@@ -826,11 +827,15 @@ bool pdb::PDBJoinAggregationKeyStage::runFollower(const Handle<pdb::ExJob> &job,
   memcpy(s->rightKeyPage->getBytes(), tmp->getBytes(), tmp->getSize());
 
   /**
-   * 2. Wait to receive the plan
+   * 2. Wait to receive the plan and the join agg page
    */
   /// TODO this needs to be rewritten using the new methods for direct communication
   tmp = s->planPageSet->getNextPage(0);
   memcpy(s->planPage->getBytes(), tmp->getBytes(), tmp->getSize());
+
+  // get the join agg key page
+  tmp = s->planPageSet->getNextPage(0);
+  memcpy(s->aggKeyPage->getBytes(), tmp->getBytes(), tmp->getSize());
 
   return true;
 }
