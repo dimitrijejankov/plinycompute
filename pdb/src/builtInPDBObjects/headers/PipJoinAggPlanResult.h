@@ -47,6 +47,9 @@ public:
 
   // the aggregation group mappings
   Handle<AggGroupToNode> aggToNode;
+
+  // is it local only
+  bool isLocalAggregation = false;
 };
 
 }

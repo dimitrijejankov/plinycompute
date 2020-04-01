@@ -43,6 +43,10 @@ bool pdb::PDBJoinAggregationLocalAggregationStage::setup(const pdb::Handle<pdb::
 
   // mark that this is the join aggregation algorithm
   joinArguments->isJoinAggAggregation = true;
+  joinArguments->isLocalJoinAggAggregation = true;
+
+  // we don't need this for the local aggregation
+  s->aggKeyPage = nullptr;
 
   // set the left and right mappings
   joinArguments->leftTIDToRecordMapping = &s->leftTIDToRecordMapping;

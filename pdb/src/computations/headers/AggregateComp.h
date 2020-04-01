@@ -19,6 +19,8 @@
 #ifndef AGG_COMP
 #define AGG_COMP
 
+#include <JoinArguments.h>
+#include <sinks/JoinAggPreaggregationSink.h>
 #include "AggregateCompBase.h"
 #include "MapTupleSetIterator.h"
 #include "DepartmentTotal.h"
@@ -212,8 +214,19 @@ class AggregateComp : public AggregateCompBase {
   }
 
   ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &, TupleSpec &projection, uint64_t numberOfPartitions,
-                                std::map<ComputeInfoType, ComputeInfoPtr> &, pdb::LogicalPlanPtr &) override {
-    return std::make_shared<pdb::PreaggregationSink<KeyClass, ValueClass>>(consumeMe, projection, numberOfPartitions);
+                                std::map<ComputeInfoType, ComputeInfoPtr> &params, pdb::LogicalPlanPtr &) override {
+
+    // make the pre-aggregation sink
+    JoinArgumentsPtr joinArgs = std::dynamic_pointer_cast<JoinArguments>(params[ComputeInfoType::JOIN_ARGS]);
+    if(joinArgs == nullptr || (joinArgs->isJoinAggAggregation && joinArgs->isLocalJoinAggAggregation)) {
+      return std::make_shared<pdb::PreaggregationSink<KeyClass, ValueClass>>(consumeMe, projection, numberOfPartitions);
+    }
+
+    // create the pre-aggregation sink for the full join aggregation algorithm
+    return std::make_shared<pdb::JoinAggPreaggregationSink<KeyClass, ValueClass>>(consumeMe,
+                                                                                  projection,
+                                                                                  numberOfPartitions,
+                                                                                  joinArgs->aggKeyPage);
   }
 
   ComputeSinkPtr getKeyJoinAggSink(TupleSpec &consumeMe,

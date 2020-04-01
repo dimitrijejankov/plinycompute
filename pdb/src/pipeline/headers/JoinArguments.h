@@ -76,6 +76,12 @@ public:
   // tells us if this is for the aggregation stage of the join agg algorithm (used for the join agg algorithm)
   bool isJoinAggAggregation = false;
 
+  // is this an only local aggregation
+  bool isLocalJoinAggAggregation = false;
+
+  // contains the mapping from aggregation key to the tid
+  PDBPageHandle aggKeyPage;
+
   // left and right tid mappings (used for the join agg algorithm)
   std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> *leftTIDToRecordMapping = nullptr;
   std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> *rightTIDToRecordMapping = nullptr;

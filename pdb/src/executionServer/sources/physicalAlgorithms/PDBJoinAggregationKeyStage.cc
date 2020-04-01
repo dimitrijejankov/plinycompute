@@ -837,5 +837,16 @@ bool pdb::PDBJoinAggregationKeyStage::runFollower(const Handle<pdb::ExJob> &job,
   tmp = s->planPageSet->getNextPage(0);
   memcpy(s->aggKeyPage->getBytes(), tmp->getBytes(), tmp->getSize());
 
+  /**
+   * 3. Get the planning result decision from the plan
+   */
+
+  // grab the copy of the aggGroups object
+  auto *record = (Record<PipJoinAggPlanResult> *) s->planPage->getBytes();
+  auto plan = record->getRootObject();
+
+  // copy the value into the state this tells us how we are going to proceed further
+  s->localAggregation = plan->isLocalAggregation;
+
   return true;
 }

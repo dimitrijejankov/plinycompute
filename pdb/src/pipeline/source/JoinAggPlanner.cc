@@ -66,7 +66,8 @@ void pdb::JoinAggPlanner::doPlanning() {
       auto jg_it = deduplicatedGroups.find(jg);
 
       // if we don't have a id assigned to the join group assign one
-      if (jg_it != deduplicatedGroups.end()) {
+      if (jg_it == deduplicatedGroups.end()) {
+        joinGroups[currentJoinTID] = jg;
         deduplicatedGroups[jg] = currentJoinTID++;
       }
 
@@ -211,6 +212,9 @@ void pdb::JoinAggPlanner::doAggFirstPlanning(const std::vector<char> &lhsRecordP
       }
     }
 
+    // if did the agg only planning then the aggregation is logcal
+    planResult->isLocalAggregation = true;
+
     // set the main record of the page
     getRecord(planResult);
 
@@ -318,7 +322,7 @@ void pdb::JoinAggPlanner::doJoinFirstPlanning(const std::vector<char> &lhsRecord
     getRecord(planResult);
 
     // store the choice
-    selectedAlgorithm = AlgorithmID::AGG_FIRST_ONLY;
+    selectedAlgorithm = AlgorithmID::JOIN_FIRST_ONLY;
   }
 }
 
@@ -341,6 +345,8 @@ void pdb::JoinAggPlanner::doFullPlanning(const std::vector<char> &lhsRecordPosit
   // run for a number of iterations
   planner.run();
 
+  planner.print();
+
   // get the result of the planning
   auto result = planner.get_result();
 
@@ -355,7 +361,7 @@ void pdb::JoinAggPlanner::doFullPlanning(const std::vector<char> &lhsRecordPosit
   auto choice = selectAlgorithm();
 
   //
-  if (choice == AlgorithmID::JOIN_FIRST_ONLY) {
+  if (choice == AlgorithmID::FULL) {
 
     // repin the page
     pageToStore->repin();
@@ -420,7 +426,7 @@ void pdb::JoinAggPlanner::doFullPlanning(const std::vector<char> &lhsRecordPosit
     getRecord(planResult);
 
     // store the choice
-    selectedAlgorithm = AlgorithmID::AGG_FIRST_ONLY;
+    selectedAlgorithm = AlgorithmID::FULL;
   }
 }
 
@@ -430,15 +436,16 @@ bool pdb::JoinAggPlanner::isLocalAggregation() {
 
 pdb::JoinAggPlanner::AlgorithmID pdb::JoinAggPlanner::selectAlgorithm() {
 
-  // we prefer the agg first planning since it does not have a later shuffling phase
-  if (planning_costs[(int32_t) AlgorithmID::AGG_FIRST_ONLY] <= planning_costs[(int32_t) AlgorithmID::JOIN_FIRST_ONLY] &&
-      planning_costs[(int32_t) AlgorithmID::AGG_FIRST_ONLY] <= planning_costs[(int32_t) AlgorithmID::FULL]) {
-    return AlgorithmID::AGG_FIRST_ONLY;
-  } else if (planning_costs[(int32_t) AlgorithmID::JOIN_FIRST_ONLY] < planning_costs[(int32_t) AlgorithmID::FULL]) {
-    return AlgorithmID::JOIN_FIRST_ONLY;
-  } else {
-    return AlgorithmID::FULL;
-  }
+  return AlgorithmID::FULL;
+//  // we prefer the agg first planning since it does not have a later shuffling phase
+//  if (planning_costs[(int32_t) AlgorithmID::AGG_FIRST_ONLY] <= planning_costs[(int32_t) AlgorithmID::JOIN_FIRST_ONLY] &&
+//      planning_costs[(int32_t) AlgorithmID::AGG_FIRST_ONLY] <= planning_costs[(int32_t) AlgorithmID::FULL]) {
+//    return AlgorithmID::AGG_FIRST_ONLY;
+//  } else if (planning_costs[(int32_t) AlgorithmID::JOIN_FIRST_ONLY] < planning_costs[(int32_t) AlgorithmID::FULL]) {
+//    return AlgorithmID::JOIN_FIRST_ONLY;
+//  } else {
+//    return AlgorithmID::FULL;
+//  }
 }
 
 void pdb::JoinAggPlanner::print(const Handle<PipJoinAggPlanResult> &planResult) {

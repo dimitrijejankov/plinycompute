@@ -74,6 +74,6 @@ int main() {
 
     planner.run();
 
-    //planner.print();
+    planner.print();
     return 0;
 }

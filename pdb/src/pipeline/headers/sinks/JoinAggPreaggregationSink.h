@@ -1,14 +1,11 @@
-//
-// Created by dimitrije on 3/26/19.
-//
+#pragma once
+
 #include "EqualsLambda.h"
 #include "ComputeSink.h"
 #include "TupleSetMachine.h"
 #include "TupleSet.h"
 #include <vector>
 
-#ifndef PDB_JoinAggPreaggregationSink_H
-#define PDB_JoinAggPreaggregationSink_H
 
 namespace pdb {
 
@@ -25,9 +22,19 @@ class JoinAggPreaggregationSink : public ComputeSink {
   // how many partitions do we have
   size_t numPartitions;
 
+  // the mapping from key to the TID
+  PDBPageHandle keyToTIDPage;
+
+  //
+  Handle<Map<KeyType, uint32_t>> keyToTID;
+
  public:
 
-  JoinAggPreaggregationSink(TupleSpec &inputSchema, TupleSpec &attsToOperateOn, size_t numPartitions) : numPartitions(numPartitions) {
+  JoinAggPreaggregationSink(TupleSpec &inputSchema,
+                            TupleSpec &attsToOperateOn,
+                            size_t numPartitions,
+                            const PDBPageHandle &keyToTIDPage) : numPartitions(numPartitions),
+                                                                 keyToTIDPage(keyToTIDPage) {
 
     // to setup the output tuple set
     TupleSpec empty{};
@@ -37,6 +44,13 @@ class JoinAggPreaggregationSink : public ComputeSink {
     std::vector<int> matches = myMachine.match(attsToOperateOn);
     whichAttToHash = matches[0];
     whichAttToAggregate = matches[1];
+
+    // repin the key to tid page
+    keyToTIDPage->repin();
+
+    // the mapping from key to tid
+    auto *record = (Record<Map<KeyType, uint32_t>> *) keyToTIDPage->getBytes();
+    keyToTID = record->getRootObject();
   }
 
   ~JoinAggPreaggregationSink() override = default;
@@ -72,6 +86,9 @@ class JoinAggPreaggregationSink : public ComputeSink {
 
       // hash the key
       auto hash = hashHim(keyColumn[i]);
+
+      int32_t t = (*keyToTID)[keyColumn[i]];
+      std::cout << "TID we got : " << t << '\n';
 
       // get the map we are adding to
       Map<KeyType, ValueType> &myMap = (*(*vectorOfMaps)[hash % numPartitions]);
@@ -161,5 +178,3 @@ class JoinAggPreaggregationSink : public ComputeSink {
 };
 
 }
-
-#endif //PDB_JoinAggPreaggregationSink_H

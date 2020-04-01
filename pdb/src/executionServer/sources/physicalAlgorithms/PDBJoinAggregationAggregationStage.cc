@@ -43,6 +43,10 @@ bool pdb::PDBJoinAggregationAggregationStage::setup(const pdb::Handle<pdb::ExJob
 
   // mark that this is the join aggregation algorithm
   joinArguments->isJoinAggAggregation = true;
+  joinArguments->isLocalJoinAggAggregation = false;
+
+  // set the page that contains the mapping from aggregation key to tid
+  joinArguments->aggKeyPage = s->aggKeyPage;
 
   // set the left and right mappings
   joinArguments->leftTIDToRecordMapping = &s->leftTIDToRecordMapping;
