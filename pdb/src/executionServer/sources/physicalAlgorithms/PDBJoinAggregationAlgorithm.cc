@@ -22,6 +22,7 @@ PDBJoinAggregationAlgorithm::PDBJoinAggregationAlgorithm(const std::vector<PDBPr
                                                          const pdb::Handle<PDBSinkPageSetSpec> &rightKeySink,
                                                          const pdb::Handle<PDBSinkPageSetSpec> &joinAggKeySink,
                                                          const pdb::Handle<PDBSinkPageSetSpec> &intermediateSink,
+                                                         const pdb::Handle<PDBSinkPageSetSpec> &preaggIntermediate,
                                                          const pdb::Handle<PDBSourcePageSetSpec> &leftKeySource,
                                                          const pdb::Handle<PDBSourcePageSetSpec> &rightKeySource,
                                                          const pdb::Handle<PDBSourcePageSetSpec> &leftJoinSource,
@@ -51,6 +52,7 @@ PDBJoinAggregationAlgorithm::PDBJoinAggregationAlgorithm(const std::vector<PDBPr
   this->rhsKeySink = rightKeySink;
   this->joinAggKeySink = joinAggKeySink;
   this->intermediateSink = intermediateSink;
+  this->preaggIntermediate = preaggIntermediate;
 
   // set the key sources
   this->leftKeySource = leftKeySource;
@@ -206,6 +208,7 @@ pdb::PDBPhysicalAlgorithmStagePtr PDBJoinAggregationAlgorithm::getNextStage(cons
 
         // return the aggregation stage
         return std::make_shared<PDBJoinAggregationAggregationStage>(*sink,
+                                                                    *preaggIntermediate,
                                                                     sources,
                                                                     finalTupleSet,
                                                                     *secondarySources,

@@ -149,6 +149,10 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
   intermediateSink->sinkType = PDBSinkType::NoSink;
   intermediateSink->pageSetIdentifier = PDBAbstractPageSet::toKeyPageSetIdentifier(std::make_pair(computationID,pipeline.back()->getOutputName() + "_intermediate"));
 
+  // the intermediate sink, we basically pull pages from this whenever we need
+  pdb::Handle<PDBSinkPageSetSpec> preaggIntermediate = pdb::makeObject<PDBSinkPageSetSpec>();
+  preaggIntermediate->sinkType = PDBSinkType::NoSink;
+  preaggIntermediate->pageSetIdentifier = PDBAbstractPageSet::toKeyPageSetIdentifier(std::make_pair(computationID,pipeline.back()->getOutputName() + "_preagg"));
 
   // the left key source
   pdb::Handle<PDBSourcePageSetSpec> leftKeySource = pdb::makeObject<PDBSourcePageSetSpec>();
@@ -217,6 +221,7 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
                                                                                                     rhsKeySink,
                                                                                                     joinAggKeySink,
                                                                                                     intermediateSink,
+                                                                                                    preaggIntermediate,
                                                                                                     leftKeySource,
                                                                                                     rightKeySource,
                                                                                                     leftJoinSource,
@@ -261,6 +266,7 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
                                                                        std::make_pair(hashedRHSKey->pageSetIdentifier, 1),
                                                                        std::make_pair(lhsKeySink->pageSetIdentifier, 1),
                                                                        std::make_pair(rhsKeySink->pageSetIdentifier, 1),
+                                                                       std::make_pair(preaggIntermediate->pageSetIdentifier, 1),
                                                                        std::make_pair(leftKeySource->pageSetIdentifier, 1),
                                                                        std::make_pair(rightKeySource->pageSetIdentifier, 1),
                                                                        std::make_pair(leftJoinSource->pageSetIdentifier, 1),

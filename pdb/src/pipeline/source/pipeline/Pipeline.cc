@@ -255,7 +255,7 @@ REAPPLY:
       ram = std::make_shared<MemoryHolder>(outputPageSet->getNewPage());
 
       // and again, try to write back the output
-      ram->outputSink = dataSink->createNewOutputContainer();
+      ram ->outputSink = dataSink->createNewOutputContainer();
       dataSink->writeOut(curChunk, ram->outputSink);
     }
 

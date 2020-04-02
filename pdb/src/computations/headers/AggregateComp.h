@@ -213,19 +213,21 @@ class AggregateComp : public AggregateCompBase {
     return tcapString;
   }
 
-  ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &, TupleSpec &projection, uint64_t numberOfPartitions,
+  ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &, TupleSpec &projection, uint64_t numNodes, uint64_t numThreads,
                                 std::map<ComputeInfoType, ComputeInfoPtr> &params, pdb::LogicalPlanPtr &) override {
 
     // make the pre-aggregation sink
     JoinArgumentsPtr joinArgs = std::dynamic_pointer_cast<JoinArguments>(params[ComputeInfoType::JOIN_ARGS]);
     if(joinArgs == nullptr || (joinArgs->isJoinAggAggregation && joinArgs->isLocalJoinAggAggregation)) {
-      return std::make_shared<pdb::PreaggregationSink<KeyClass, ValueClass>>(consumeMe, projection, numberOfPartitions);
+      return std::make_shared<pdb::PreaggregationSink<KeyClass, ValueClass>>(consumeMe, projection, numThreads * numNodes);
     }
 
     // create the pre-aggregation sink for the full join aggregation algorithm
     return std::make_shared<pdb::JoinAggPreaggregationSink<KeyClass, ValueClass>>(consumeMe,
                                                                                   projection,
-                                                                                  numberOfPartitions,
+                                                                                  numNodes,
+                                                                                  numThreads,
+                                                                                  joinArgs->planPage,
                                                                                   joinArgs->aggKeyPage);
   }
 

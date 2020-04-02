@@ -70,7 +70,7 @@ class SelectionComp : public Computation {
     return std::make_shared<pdb::VectorTupleSetIterator>(pageSet, workerID);
   }
 
-  pdb::ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &, TupleSpec &projection, uint64_t,
+  pdb::ComputeSinkPtr getComputeSink(TupleSpec &consumeMe, TupleSpec &, TupleSpec &projection, uint64_t, uint64_t,
                                      std::map<ComputeInfoType, ComputeInfoPtr> &, pdb::LogicalPlanPtr &) override {
     return std::make_shared<pdb::VectorSink<OutputClass>>(consumeMe, projection);
   }

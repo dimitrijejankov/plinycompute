@@ -131,7 +131,8 @@ class JoinComp : public JoinCompBase {
   ComputeSinkPtr getComputeSink(TupleSpec &consumeMe,
                                 TupleSpec &attsToOpOn,
                                 TupleSpec &projection,
-                                uint64_t numPartitions,
+                                uint64_t numNodes,
+                                uint64_t numThreads,
                                 std::map<ComputeInfoType, ComputeInfoPtr> &params,
                                 pdb::LogicalPlanPtr &plan) override {
 
@@ -150,7 +151,7 @@ class JoinComp : public JoinCompBase {
 
     // check what kind of sink we need
     if (!joinArgs->isJoinAggSide) {
-      return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numPartitions);
+      return correctJoinTuple->getSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes, numNodes * numThreads);
     } else {
 
       // could not find the
@@ -164,7 +165,7 @@ class JoinComp : public JoinCompBase {
 
       return correctJoinTuple->getJoinAggSink(consumeMe, attsToOpOn, projection, whereEveryoneGoes,
                                               joinSideArgs->keyToNode, joinSideArgs->senders, joinSideArgs->plan,
-                                              joinSideArgs->isLeft, numPartitions);
+                                              joinSideArgs->isLeft, numNodes * numThreads);
     }
   }
 

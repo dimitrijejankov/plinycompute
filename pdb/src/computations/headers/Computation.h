@@ -64,7 +64,8 @@ class Computation : public Object {
   virtual ComputeSinkPtr getComputeSink(TupleSpec &consumeMe,
                                         TupleSpec &whichAttsToOpOn,
                                         TupleSpec &projection,
-                                        uint64_t numberOfPartitions,
+                                        uint64_t numNodes,
+                                        uint64_t numProcessingThreads,
                                         std::map<ComputeInfoType, ComputeInfoPtr> &params,
                                         pdb::LogicalPlanPtr &plan) { return nullptr; }
 

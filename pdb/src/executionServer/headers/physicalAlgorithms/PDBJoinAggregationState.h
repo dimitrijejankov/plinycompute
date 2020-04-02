@@ -1,5 +1,6 @@
 #pragma once
 
+#include <PDBPageSelfReceiver.h>
 #include "PDBPhysicalAlgorithmState.h"
 #include "PDBLabeledPageSet.h"
 #include "PDBFeedingPageSet.h"
@@ -173,6 +174,16 @@ struct PDBJoinAggregationState : public PDBPhysicalAlgorithmState {
    * The preaggregation pipelines
    */
   std::shared_ptr<std::vector<PipelinePtr>> preaggregationPipelines = nullptr;
+
+  /**
+   * This forwards the preaggregated pages to this node
+   */
+  pdb::PDBPageSelfReceiverPtr selfReceiver;
+
+  /**
+   * These senders forward pages that are for other nodes
+   */
+  std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> senders;
 
   /**
    * The aggregation pipelines

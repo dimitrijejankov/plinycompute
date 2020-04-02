@@ -5,7 +5,7 @@
 #include "TupleSetMachine.h"
 #include "TupleSet.h"
 #include <vector>
-
+#include <PipJoinAggPlanResult.h>
 
 namespace pdb {
 
@@ -25,16 +25,32 @@ class JoinAggPreaggregationSink : public ComputeSink {
   // the mapping from key to the TID
   PDBPageHandle keyToTIDPage;
 
+  PDBPageHandle planPage;
+
   //
   Handle<Map<KeyType, uint32_t>> keyToTID;
+
+  // the plan
+  Handle<PipJoinAggPlanResult> plan;
+
+  // the number of nodes
+  uint64_t numNodes;
+
+  // the number of processing threads
+  uint64_t numThreads;
 
  public:
 
   JoinAggPreaggregationSink(TupleSpec &inputSchema,
                             TupleSpec &attsToOperateOn,
-                            size_t numPartitions,
-                            const PDBPageHandle &keyToTIDPage) : numPartitions(numPartitions),
-                                                                 keyToTIDPage(keyToTIDPage) {
+                            uint64_t numNodes,
+                            uint64_t numThreads,
+                            const PDBPageHandle &planPage,
+                            const PDBPageHandle &keyToTIDPage) : numPartitions(numNodes * numThreads),
+                                                                 keyToTIDPage(keyToTIDPage),
+                                                                 planPage(planPage),
+                                                                 numNodes(numNodes),
+                                                                 numThreads(numThreads) {
 
     // to setup the output tuple set
     TupleSpec empty{};
@@ -51,6 +67,13 @@ class JoinAggPreaggregationSink : public ComputeSink {
     // the mapping from key to tid
     auto *record = (Record<Map<KeyType, uint32_t>> *) keyToTIDPage->getBytes();
     keyToTID = record->getRootObject();
+
+    // the plan page
+    planPage->repin();
+
+    // the extract the page
+    auto *planRecord = (Record<PipJoinAggPlanResult> *) this->planPage->getBytes();
+    plan = planRecord->getRootObject();
   }
 
   ~JoinAggPreaggregationSink() override = default;
@@ -87,11 +110,12 @@ class JoinAggPreaggregationSink : public ComputeSink {
       // hash the key
       auto hash = hashHim(keyColumn[i]);
 
-      int32_t t = (*keyToTID)[keyColumn[i]];
-      std::cout << "TID we got : " << t << '\n';
+      // figure out the tid of the key and where it is supposed to go
+      int32_t tid = (*keyToTID)[keyColumn[i]];
+      int32_t node = (*plan->aggToNode)[tid];
 
       // get the map we are adding to
-      Map<KeyType, ValueType> &myMap = (*(*vectorOfMaps)[hash % numPartitions]);
+      Map<KeyType, ValueType> &myMap = (*(*vectorOfMaps)[node * numThreads + (hash % numThreads)]);
 
       // if this key is not already there...
       if (myMap.count(keyColumn[i]) == 0) {

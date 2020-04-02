@@ -42,6 +42,7 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
                               const pdb::Handle<PDBSinkPageSetSpec> &rightKeySink,
                               const pdb::Handle<PDBSinkPageSetSpec> &joinAggKeySink,
                               const pdb::Handle<PDBSinkPageSetSpec> &intermediateSink,
+                              const pdb::Handle<PDBSinkPageSetSpec> &preaggIntermediate,
                               const pdb::Handle<PDBSourcePageSetSpec> &leftKeySource,
                               const pdb::Handle<PDBSourcePageSetSpec> &rightKeySource,
                               const pdb::Handle<PDBSourcePageSetSpec> &leftJoinSource,
@@ -114,6 +115,11 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
    *
    */
   pdb::Handle<PDBSinkPageSetSpec> intermediateSink;
+
+  /**
+   *
+   */
+  pdb::Handle<PDBSinkPageSetSpec> preaggIntermediate;
 
   /**
    *

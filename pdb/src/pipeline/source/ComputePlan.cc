@@ -231,7 +231,8 @@ ComputeSinkPtr ComputePlan::getComputeSink(AtomicComputationPtr &targetAtomicCom
   return myPlan->getNode(targetComputationName).getComputation().getComputeSink(std::get<0>(specifier),
                                                                                 std::get<1>(specifier),
                                                                                 std::get<2>(specifier),
-                                                                                numProcessingThreads * numNodes,
+                                                                                numNodes,
+                                                                                numProcessingThreads,
                                                                                 params,
                                                                                 myPlan);
 }

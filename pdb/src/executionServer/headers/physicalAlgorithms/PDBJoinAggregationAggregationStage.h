@@ -8,6 +8,7 @@ class PDBJoinAggregationAggregationStage : public PDBPhysicalAlgorithmStage {
  public:
 
   PDBJoinAggregationAggregationStage(const PDBSinkPageSetSpec &sink,
+                                     const PDBSinkPageSetSpec &preaggIntermediate,
                                      const Vector<PDBSourceSpec> &sources,
                                      const String &final_tuple_set,
                                      const Vector<pdb::Handle<PDBSourcePageSetSpec>> &secondary_sources,
@@ -31,6 +32,8 @@ class PDBJoinAggregationAggregationStage : public PDBPhysicalAlgorithmStage {
   // the join tuple set
   const pdb::String &joinTupleSet;
 
+  //
+  const PDBSinkPageSetSpec &preaggIntermediate;
 };
 
 }
