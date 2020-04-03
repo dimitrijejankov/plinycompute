@@ -72,7 +72,7 @@ int main() {
                                aggregation_groups,
                                join_groups);
 
-    planner.run();
+    planner.run_join_first_only();
 
     planner.print();
     return 0;

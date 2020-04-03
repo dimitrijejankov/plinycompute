@@ -36,12 +36,13 @@ void pdb::JoinAggPlanner::doPlanning() {
   aggregationGroups.resize(this->aggGroups->size());
 
   std::vector<std::pair<int32_t, int32_t>> joinGroups;
-  joinGroups.resize(1000);
+  joinGroups.reserve(4000);
 
   //
   int32_t currentJoinTID = 0;
   unordered_map<pair<int32_t, int32_t>, int32_t, join_group_hasher> deduplicatedGroups;
 
+  auto currentAggGroup = 0;
   for (auto it = this->aggGroups->begin(); it != this->aggGroups->end(); ++it) {
 
     /// 0. Round robing the aggregation groups
@@ -67,6 +68,11 @@ void pdb::JoinAggPlanner::doPlanning() {
 
       // if we don't have a id assigned to the join group assign one
       if (jg_it == deduplicatedGroups.end()) {
+
+        // resize the tid
+        joinGroups.resize(currentJoinTID + 1);
+
+        // store the join group
         joinGroups[currentJoinTID] = jg;
         deduplicatedGroups[jg] = currentJoinTID++;
       }
@@ -89,8 +95,11 @@ void pdb::JoinAggPlanner::doPlanning() {
       rhsRecordPositions[rightTID * numNodes + rightTIDNode] = true;
 
       // set the tid to the group
-      aggregationGroups[i].emplace_back(jg_tid);
+      aggregationGroups[currentAggGroup].emplace_back(jg_tid);
     }
+
+    // we finished processing an aggregation group
+    currentAggGroup++;
   }
 
   // do the planning with just aggregation
