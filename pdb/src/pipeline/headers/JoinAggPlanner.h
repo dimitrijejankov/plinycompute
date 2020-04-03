@@ -86,13 +86,10 @@ class JoinAggPlanner {
   AlgorithmID selectedAlgorithm;
 
   // how many planners have finished we will run three at the same time
-  int32_t num_finished = 0;
+  atomic_int32_t num_finished;
 
   // the planning costs each planner could come up with
   int32_t planning_costs[3];
-
-  // the to sync stuff
-  atomic_int32_t spinOnMe;
 };
 
 }

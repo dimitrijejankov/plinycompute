@@ -11,10 +11,11 @@ using namespace pdb::matrix;
 
 // some constants for the test
 const size_t blockSize = 64;
-const uint32_t matrixRows = 100;
-const uint32_t matrixColumns = 100;
+const uint32_t matrixRows = 10000;
+const uint32_t matrixColumns = 10000;
 const uint32_t numRows = 10;
 const uint32_t numCols = 10;
+const bool doNotPrint = true;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
@@ -138,6 +139,11 @@ int main(int argc, char* argv[]) {
     // grab the record
     auto r = it->getNextRecord();
     count++;
+
+    // skip if we do not need to print
+    if(doNotPrint) {
+      continue;
+    }
 
     // write out the values
     float *values = r->data->data->c_ptr();

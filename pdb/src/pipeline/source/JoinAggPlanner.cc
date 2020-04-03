@@ -16,7 +16,7 @@ pdb::JoinAggPlanner::JoinAggPlanner(const pdb::PDBAnonymousPageSetPtr &joinAggPa
   this->pageToStore = pageToStore;
 
   // we have not executed anything
-  this->spinOnMe = 0;
+  this->num_finished = 0;
 
   // grab the copy of the aggGroups object
   auto *record = (Record<TIDIndexMap> *) inputPage->getBytes();
