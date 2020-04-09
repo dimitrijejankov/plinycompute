@@ -140,8 +140,6 @@ class JoinAggSource : public ComputeSource {
   std::vector<Handle < Vector < std::pair<uint32_t, Handle < IN1>>>>> leftTuples;
   std::vector<Handle < Vector < std::pair<uint32_t, Handle < IN2>>>>> rightTuples;
 
-  PipJoinAggPlanResult::JoinGroups *allJoinGroups;
-
   // the id of this node
   int32_t nodeID{};
 

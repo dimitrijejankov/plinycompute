@@ -84,8 +84,8 @@ void JoinAggTupleEmitter::gotLHS(const Handle<Vector<std::pair<uint32_t, Handle<
         auto assignedThread = threadAssigned[record.agg_group];
 
         // set the last page
-        threadsWaiting[assignedThread].lastLHSPage = pageIndex + 1;
-        threadsWaiting[assignedThread].lastRHSPage = pageIndex + 1;
+        threadsWaiting[assignedThread].lastLHSPage = std::max(threadsWaiting[assignedThread].lastLHSPage, record.lhs_page + 1);
+        threadsWaiting[assignedThread].lastRHSPage = std::max(threadsWaiting[assignedThread].lastRHSPage, record.rhs_page + 1);
 
         // emit the record
         numEms++;
@@ -133,8 +133,8 @@ void JoinAggTupleEmitter::gotRHS(const Handle<Vector<std::pair<uint32_t, Handle<
         auto assignedThread = threadAssigned[record.agg_group];
 
         // set the last page
-        threadsWaiting[assignedThread].lastLHSPage = pageIndex + 1;
-        threadsWaiting[assignedThread].lastRHSPage = pageIndex + 1;
+        threadsWaiting[assignedThread].lastRHSPage = std::max(threadsWaiting[assignedThread].lastRHSPage, record.rhs_page + 1);
+        threadsWaiting[assignedThread].lastLHSPage = std::max(threadsWaiting[assignedThread].lastLHSPage, record.lhs_page + 1);
 
         // emit the record
         numEms++;

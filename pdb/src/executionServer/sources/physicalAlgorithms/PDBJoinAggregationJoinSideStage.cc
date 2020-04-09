@@ -630,39 +630,6 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
     worker->execute(myWork, tempBuzzer);
   }
 
-  // wait to finish the pipelines
-  while (counter < s->joinPipelines->size()) {
-    tempBuzzer->wait();
-  }
-
-  // shutdown the senders since the pipelines are done
-  for (auto &se : *s->leftJoinSideSenders) {
-    se->shutdown();
-  }
-
-  for (auto &se : *s->rightJoinSideSenders) {
-    se->shutdown();
-  }
-
-  // wait for senders to finish
-  while (sendCnt < s->leftJoinSideSenders->size() + s->rightJoinSideSenders->size()) {
-    tempBuzzer->wait();
-  }
-
-  // wait until the senders finish
-  while (commCnt < joinMapCreators.size()) {
-    tempBuzzer->wait();
-  }
-
-  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-  std::cout << "JoinSideStage run for " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count()
-            << "[ns]" << '\n';
-
-  s->emitter->printEms();
-  s->emitter->end();
-
-  begin = std::chrono::steady_clock::now();
-
   // run the aggregation pipelines
   atomic_int preaggCnt;
   preaggCnt = 0;
@@ -705,14 +672,14 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
   }
 
   // make the threads that feed into the feed page set
-  counter = 0;
+  atomic_int32_t secondCounter = 0;
   for (int i = 0; i < s->preaggregationPipelines->size(); ++i) {
 
     // get a worker from the server
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&counter, &success, i, &s](const PDBBuzzerPtr &callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&secondCounter, &success, i, &s](const PDBBuzzerPtr &callerBuzzer) {
 
       // do this until we get a null
       PDBPageHandle tmp;
@@ -732,7 +699,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
       }
 
       // signal that the run was successful
-      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, secondCounter);
     });
 
     // run the work
@@ -747,7 +714,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
 
     // make the work
     PDBWorkPtr
-        myWork = std::make_shared<pdb::GenericWork>([&counter, &success, i, &s](const PDBBuzzerPtr &callerBuzzer) {
+        myWork = std::make_shared<pdb::GenericWork>([&secondCounter, &success, i, &s](const PDBBuzzerPtr &callerBuzzer) {
 
       try {
 
@@ -764,12 +731,45 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
       }
 
       // signal that the run was successful
-      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, secondCounter);
     });
 
     // run the work
     worker->execute(myWork, tempBuzzer);
   }
+
+  // wait to finish the pipelines
+  while (counter < s->joinPipelines->size()) {
+    tempBuzzer->wait();
+  }
+
+  // shutdown the senders since the pipelines are done
+  for (auto &se : *s->leftJoinSideSenders) {
+    se->shutdown();
+  }
+
+  for (auto &se : *s->rightJoinSideSenders) {
+    se->shutdown();
+  }
+
+  // wait for senders to finish
+  while (sendCnt < s->leftJoinSideSenders->size() + s->rightJoinSideSenders->size()) {
+    tempBuzzer->wait();
+  }
+
+  // wait until the senders finish
+  while (commCnt < joinMapCreators.size()) {
+    tempBuzzer->wait();
+  }
+
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  std::cout << "JoinSideStage run for " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count()
+            << "[ns]" << '\n';
+
+  s->emitter->printEms();
+  s->emitter->end();
+
+  begin = std::chrono::steady_clock::now();
 
   // wait for the preaggregation to finish
   while (preaggCnt < s->preaggregationPipelines->size()) {
@@ -782,7 +782,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
   }
 
   // wait until the feeding is finished and the aggregation pipelines are finished
-  while (counter < s->preaggregationPipelines->size() + s->aggregationPipelines->size()) {
+  while (secondCounter < s->preaggregationPipelines->size() + s->aggregationPipelines->size()) {
     tempBuzzer->wait();
   }
 
