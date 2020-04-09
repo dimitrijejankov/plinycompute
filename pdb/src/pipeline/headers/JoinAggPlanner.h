@@ -34,15 +34,15 @@ class JoinAggPlanner {
   void doAggFirstPlanning(const std::vector<char> &lhsRecordPositions,
                           const std::vector<char> &rhsRecordPositions,
                           const std::vector<std::vector<int32_t>> &aggregationGroups,
-                          const std::vector<std::pair<int32_t, int32_t>> &joinGroups);
+                          const std::vector<PipJoinAggPlanResult::JoinedRecord> &joinGroups);
 
   void doJoinFirstPlanning(const std::vector<char> &lhsRecordPositions, const std::vector<char> &rhsRecordPositions,
                            const std::vector<std::vector<int32_t>> &aggregationGroups,
-                           const std::vector<std::pair<int32_t, int32_t>> &joinGroups);
+                           const std::vector<PipJoinAggPlanResult::JoinedRecord> &joinGroups);
 
   void doFullPlanning(const std::vector<char> &lhsRecordPositions, const std::vector<char> &rhsRecordPositions,
                       const std::vector<std::vector<int32_t>> &aggregationGroups,
-                      const std::vector<std::pair<int32_t, int32_t>> &joinGroups);
+                      const std::vector<PipJoinAggPlanResult::JoinedRecord> &joinGroups);
 
   // the page containing the page
   pdb::PDBPageHandle joinAggPageSet;

@@ -11,62 +11,17 @@ class JoinAggSource : public ComputeSource {
   JoinAggSource(int32_t nodeID,
                 int32_t workerID,
                 int32_t numWorkers,
-                std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &leftTIDToRecordMapping,
-                std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &rightTIDToRecordMapping,
-                const PDBPageHandle &page,
+                JoinAggTupleEmitterPtr emitter,
                 PDBRandomAccessPageSetPtr lhsPageSet,
                 PDBRandomAccessPageSetPtr rhsPageSet) : nodeID(nodeID),
-                                                               workerID(workerID),
-                                                               numWorkers(numWorkers),
-                                                               planPage(page),
-                                                               leftTIDToRecordMapping(leftTIDToRecordMapping),
-                                                               rightTIDToRecordMapping(rightTIDToRecordMapping),
-                                                               leftInputPageSet(std::move(lhsPageSet)),
-                                                               rightInputPageSet(std::move(rhsPageSet)) {
-
-    // get the plan result so we can do stuff
-    page->repin();
-    auto *recordCopy = (Record<PipJoinAggPlanResult> *) this->planPage->getBytes();
-    plan = recordCopy->getRootObject();
-
-    // extract the input vectors
-    leftInputPageSet->repinAll();
-    for (int i = 0; i < leftInputPageSet->getNumPages(); ++i) {
-
-      //
-      auto record = ((Record<Vector<std::pair<uint32_t, Handle<IN1>>>> *) (*leftInputPageSet)[i]->getBytes());
-
-      // the
-      leftTuples.emplace_back(record->getRootObject());
-    }
-
-
-    // extract the input vectors
-    rightInputPageSet->repinAll();
-    for (int i = 0; i < rightInputPageSet->getNumPages(); ++i) {
-
-      //
-      auto record = ((Record<Vector<std::pair<uint32_t, Handle<IN2>>>> *) (*rightInputPageSet)[i]->getBytes());
-
-      // the
-      rightTuples.emplace_back(record->getRootObject());
-    }
-
-    // the join group nodes
-    allJoinGroups = &((*plan->joinGroupsPerNode)[nodeID]);
-
-    // how much per worker
-    int stride = (int32_t) allJoinGroups->size() / numWorkers;
-
-    // figure out the start and the end
-    joinGroupStart = workerID * stride;
-    joinGroupEnd = (workerID + 1) * stride;
-
-    // if this is the last worker
-    joinGroupEnd += workerID == (numWorkers - 1) ? (int32_t) allJoinGroups->size() % numWorkers : 0;
-
-    // we start from record zero
-    currentRecord = 0;
+                                                        workerID(workerID),
+                                                        numWorkers(numWorkers),
+                                                        emitter(std::move(emitter)),
+                                                        leftInputPageSet(std::move(lhsPageSet)),
+                                                        rightInputPageSet(std::move(rhsPageSet)),
+                                                        currentRecord(0),
+                                                        lastLHSPage(0),
+                                                        lastRHSPage(0) {
 
     // create the tuple set that we'll return during iteration
     output = std::make_shared<TupleSet>();
@@ -75,9 +30,12 @@ class JoinAggSource : public ComputeSource {
     lhsColumn = new std::vector<Handle<IN1>>;
     output->addColumn(0, lhsColumn, true);
 
-    // the lhs column
+    // the rhs column
     rhsColumn = new std::vector<Handle<IN2>>;
     output->addColumn(1, rhsColumn, true);
+
+    // reserve some records
+    records.reserve(1000);
   }
 
   TupleSetPtr getNextTupleSet(const PDBTupleSetSizePolicy &policy) override {
@@ -89,82 +47,86 @@ class JoinAggSource : public ComputeSource {
         currentRecord -= lhsColumn->size();
     }
 
-    // figure out the offset
-    auto start = joinGroupStart + currentRecord;
-    auto end = std::min(joinGroupEnd, start + policy.getChunksSize());
-
     // if we are done here return null
-    if (start >= end) {
-      return nullptr;
+    if (records.size() == end) {
+
+      // get the records
+      int lhsPage = lastLHSPage;
+      int rhsPage = lastRHSPage;
+      emitter->getRecords(records, lastLHSPage, lastRHSPage, workerID);
+
+      // we are done if we could not get any new records
+      if(records.empty()) {
+        return nullptr;
+      }
+
+      // we start from record zero
+      currentRecord = 0;
+
+      // go through the pages and get the vectors
+      for (int i = lhsPage; i < lastLHSPage; ++i) {
+
+        // pin this page
+        (*leftInputPageSet)[i]->repin();
+
+        // get the vector from the left page
+        auto record = ((Record<Vector<std::pair<uint32_t, Handle<IN1>>>> *) (*leftInputPageSet)[i]->getBytes());
+
+        // store it
+        leftTuples.emplace_back(record->getRootObject());
+      }
+
+      // go through the pages and the record
+      for (int i = rhsPage; i < lastRHSPage; ++i) {
+
+        // pin this page
+        (*rightInputPageSet)[i]->repin();
+
+        // get the vector from the right page
+        auto record = ((Record<Vector<std::pair<uint32_t, Handle<IN2>>>> *) (*rightInputPageSet)[i]->getBytes());
+
+        // store it
+        rightTuples.emplace_back(record->getRootObject());
+      }
     }
 
+    // figure out the offset
+    end = std::min<uint32_t>(records.size(), currentRecord + policy.getChunksSize());
+
     // the number of rows we have
-    auto numRows = end - start;
+    auto numRows = end - currentRecord;
 
     // resize the columns
     lhsColumn->resize(numRows);
     rhsColumn->resize(numRows);
 
     // go through all the records we need to copy
-    for (auto i = start; i < end; ++i) {
-
-      // get the tids
-      auto leftTID = (*allJoinGroups)[i].first;
-      auto rightTID = (*allJoinGroups)[i].second;
-
-      // find all the left ones we ned to join
-      auto [lhsPage, lhsRecord] = findLeftRecord(leftTID);
-      auto [rhsPage, rhsRecord] = findRightRecord(rightTID);
+    for(int i = currentRecord; i < end; i++) {
 
       // set the columns
-      (*lhsColumn)[i - start] = (*leftTuples[lhsPage])[lhsRecord].second;
-      (*rhsColumn)[i - start] = (*rightTuples[rhsPage])[rhsRecord].second;
+      (*lhsColumn)[i - currentRecord] = (*leftTuples[records[i].lhs_page])[records[i].lhs_record].second;
+      (*rhsColumn)[i - currentRecord] = (*rightTuples[records[i].rhs_page])[records[i].rhs_record].second;
+
+      //std::cout << (*lhsColumn)[i - currentRecord]->getKeyRef().rowID << ", " << (*lhsColumn)[i - currentRecord]->getKeyRef().colID << '\n';
+      //std::cout << (*rhsColumn)[i - currentRecord]->getKeyRef().rowID << ", " << (*rhsColumn)[i - currentRecord]->getKeyRef().colID << '\n';
     }
 
     // move the current record
     currentRecord += numRows;
 
+    std::cout << "Emitted " << numRows << " : " << currentRecord << "/" << records.size() << '\n';
     // return the output
     return output;
   }
 
  private:
 
-  // helper functions to find a record
-  std::tuple<uint32_t, uint32_t> findLeftRecord(uint32_t tid) {
-
-    for (auto &m : leftTIDToRecordMapping) {
-      auto it = m.find(tid);
-      if(it != m.end()){
-        return it->second;
-      }
-    }
-
-    throw runtime_error("This is bad we did not find a left record");
-  }
-
-  // helper functions to find a record
-  std::tuple<uint32_t, uint32_t> findRightRecord(uint32_t tid) {
-
-    for (auto &m : rightTIDToRecordMapping) {
-      auto it = m.find(tid);
-      if(it != m.end()){
-        return it->second;
-      }
-    }
-
-    throw runtime_error("This is bad we did not find a right record");
-  }
-
-  // the right tid to record mappings
-  std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &leftTIDToRecordMapping;
-
-  // the left tid to record mappings
-  std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &rightTIDToRecordMapping;
+  // the records we want to emmit
+  std::vector<JoinAggTupleEmitter::JoinedRecord> records;
 
   // the two columns
-  std::vector<Handle < IN1>> * lhsColumn;
-  std::vector<Handle < IN2>> * rhsColumn;
+  std::vector<Handle<IN1>> *lhsColumn;
+  std::vector<Handle<IN2>> *rhsColumn;
 
   // and the tuple set we return
   TupleSetPtr output;
@@ -172,9 +134,7 @@ class JoinAggSource : public ComputeSource {
   // the current record
   uint64_t currentRecord;
 
-  // the start and the end join groups
-  uint64_t joinGroupStart;
-  uint64_t joinGroupEnd;
+  uint64_t end = 0;
 
   // these are the vectors from where we grab all the tuples
   std::vector<Handle < Vector < std::pair<uint32_t, Handle < IN1>>>>> leftTuples;
@@ -191,6 +151,9 @@ class JoinAggSource : public ComputeSource {
   // the number of workers
   int32_t numWorkers{};
 
+  // the join record emitter
+  JoinAggTupleEmitterPtr emitter;
+
   // the plan
   Handle<PipJoinAggPlanResult> plan;
 
@@ -203,6 +166,10 @@ class JoinAggSource : public ComputeSource {
   // the right page set
   PDBRandomAccessPageSetPtr rightInputPageSet;
 
+  //
+  int32_t lastLHSPage;
+
+  int32_t lastRHSPage;
 };
 
 }

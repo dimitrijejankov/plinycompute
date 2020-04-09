@@ -95,6 +95,7 @@ ComputeSourcePtr ComputePlan::getComputeSource(int32_t nodeID,
                                                                                                                          *joinArgs->leftTIDToRecordMapping,
                                                                                                                          *joinArgs->rightTIDToRecordMapping,
                                                                                                                          joinArgs->planPage,
+                                                                                                                         joinArgs->emitter,
                                                                                                                          leftInputPageSet,
                                                                                                                          rightInputPageSet);
   }

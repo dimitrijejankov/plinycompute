@@ -6,6 +6,9 @@
 #include <JoinMap.h>
 #include <PDBRandomAccessPageSet.h>
 
+#include <utility>
+#include "JoinAggTupleEmitter.h"
+
 namespace pdb {
 
 // the base class so we can run it
@@ -35,9 +38,13 @@ public:
 
   JoinMapCreator(PDBRandomAccessPageSetPtr pageSet,
                  PDBCommunicatorPtr communicator,
+                 JoinAggTupleEmitterPtr emitter,
+                 bool isLHS,
                  PDBLoggerPtr logger) : pageSet(std::move(pageSet)),
                                         communicator(std::move(communicator)),
-                                        logger(std::move(logger)) {}
+                                        logger(std::move(logger)),
+                                        emitter(std::move(emitter)),
+                                        joinSide(isLHS ? LHS : RHS) {}
 
 
   void run() override {
@@ -58,24 +65,19 @@ public:
       communicator->receiveBytes(recordPage->getBytes(), error);
 
       // get the records from it
-      auto record = ((Record<Vector<std::pair<uint32_t, Handle<record_t>>>> *) recordPage->getBytes());
+      auto record = ((Record<Vector<std::pair<uint32_t, Handle<Nothing>>>> *) recordPage->getBytes());
       auto tuples = record->getRootObject();
 
       // freeze it
       recordPage->freezeSize(record->numBytes());
 
-      // insert the page into the join map
-      for(uint32_t currentTuple = 0; currentTuple < tuples->size(); ++currentTuple) {
-
-        // figure out the aggregation group
-        auto tid = (*tuples)[currentTuple].first;
-
-        // insert into the mapping
-        tidToRecordMapping.insert(std::pair(tid, std::make_tuple(pageIndex, currentTuple)));
+      // forward the stuff to the emitter
+      if(joinSide == LHS) {
+        emitter->gotLHS(tuples, pageIndex);
       }
-
-      // unpin the record page
-      recordPage->unpin();
+      else {
+        emitter->gotRHS(tuples, pageIndex);
+      }
     }
   }
 
@@ -92,6 +94,12 @@ public:
   }
 
 private:
+
+  // what side of the join is this
+  enum {LHS, RHS} joinSide;
+
+  // the emitter
+  JoinAggTupleEmitterPtr emitter;
 
   // we are mapping the tid to the
   std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>> tidToRecordMapping;

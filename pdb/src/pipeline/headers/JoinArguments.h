@@ -5,6 +5,7 @@
 #include <ComputeInfo.h>
 #include <JoinAggSideSender.h>
 #include <cassert>
+#include "JoinAggTupleEmitter.h"
 
 namespace pdb {
 
@@ -81,6 +82,9 @@ public:
 
   // contains the mapping from aggregation key to the tid
   PDBPageHandle aggKeyPage;
+
+  // the join record emitter
+  JoinAggTupleEmitterPtr emitter;
 
   // left and right tid mappings (used for the join agg algorithm)
   std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> *leftTIDToRecordMapping = nullptr;

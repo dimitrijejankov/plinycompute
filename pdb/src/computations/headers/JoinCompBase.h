@@ -23,6 +23,7 @@
 #include "RHSKeyJoinSourceBase.h"
 #include <JoinArguments.h>
 #include <JoinMapCreator.h>
+#include <JoinAggTupleEmitter.h>
 
 namespace pdb {
 
@@ -56,6 +57,8 @@ class JoinCompBase : public Computation {
                                               pdb::LogicalPlanPtr &logicalPlan,
                                               PDBRandomAccessPageSetPtr pageSet,
                                               PDBCommunicatorPtr communicator,
+                                              const JoinAggTupleEmitterPtr &emitter,
+                                              bool isLHS,
                                               PDBLoggerPtr logger) = 0;
 
   virtual RHSShuffleJoinSourceBasePtr getRHSShuffleJoinSource(TupleSpec &inputSchema,
@@ -71,6 +74,7 @@ class JoinCompBase : public Computation {
                                             std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &leftTIDToRecordMapping,
                                             std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &rightTIDToRecordMapping,
                                             const PDBPageHandle &page,
+                                            const JoinAggTupleEmitterPtr &emitter,
                                             PDBRandomAccessPageSetPtr leftInputPageSet,
                                             PDBRandomAccessPageSetPtr rightInputPageSet) = 0;
 

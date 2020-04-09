@@ -35,7 +35,7 @@ void pdb::JoinAggPlanner::doPlanning() {
   std::vector<std::vector<int32_t>> aggregationGroups;
   aggregationGroups.resize(this->aggGroups->size());
 
-  std::vector<std::pair<int32_t, int32_t>> joinGroups;
+  std::vector<PipJoinAggPlanResult::JoinedRecord> joinGroups;
   joinGroups.reserve(4000);
 
   //
@@ -73,7 +73,7 @@ void pdb::JoinAggPlanner::doPlanning() {
         joinGroups.resize(currentJoinTID + 1);
 
         // store the join group
-        joinGroups[currentJoinTID] = jg;
+        joinGroups[currentJoinTID] = { jg.first, jg.second, aggTID };
         deduplicatedGroups[jg] = currentJoinTID++;
       }
 
@@ -128,7 +128,7 @@ void pdb::JoinAggPlanner::doPlanning() {
 void pdb::JoinAggPlanner::doAggFirstPlanning(const std::vector<char> &lhsRecordPositions,
                                              const std::vector<char> &rhsRecordPositions,
                                              const std::vector<std::vector<int32_t>> &aggregationGroups,
-                                             const std::vector<std::pair<int32_t, int32_t>> &joinGroups) {
+                                             const std::vector<PipJoinAggPlanResult::JoinedRecord> &joinGroups) {
 
   pdb::GreedyPlanner::costs_t c{};
   c.agg_cost = 1;
@@ -167,6 +167,9 @@ void pdb::JoinAggPlanner::doAggFirstPlanning(const std::vector<char> &lhsRecordP
 
     // make the plan result object
     Handle<PipJoinAggPlanResult> planResult = pdb::makeObject<PipJoinAggPlanResult>(numNodes);
+
+    // set the number of aggregation groups
+    planResult->numAggGroups = this->aggGroups->size();
 
     // go through the map and do two things
     // assign aggregation groups to nodes
@@ -215,8 +218,7 @@ void pdb::JoinAggPlanner::doAggFirstPlanning(const std::vector<char> &lhsRecordP
 
         /// 1.2 Store the join group
         {
-          (*planResult->joinGroupsPerNode)[assignedNode].push_back(
-              std::make_pair(joinedTIDs[i].first.first, joinedTIDs[i].second.first));
+          (*planResult->joinGroupsPerNode)[assignedNode].push_back({joinedTIDs[i].first.first, joinedTIDs[i].second.first, aggTID});
         }
       }
     }
@@ -235,7 +237,7 @@ void pdb::JoinAggPlanner::doAggFirstPlanning(const std::vector<char> &lhsRecordP
 void pdb::JoinAggPlanner::doJoinFirstPlanning(const std::vector<char> &lhsRecordPositions,
                                               const std::vector<char> &rhsRecordPositions,
                                               const std::vector<std::vector<int32_t>> &aggregationGroups,
-                                              const std::vector<std::pair<int32_t, int32_t>> &joinGroups) {
+                                              const std::vector<PipJoinAggPlanResult::JoinedRecord> &joinGroups) {
 
   pdb::GreedyPlanner::costs_t c{};
   c.agg_cost = 1;
@@ -251,6 +253,9 @@ void pdb::JoinAggPlanner::doJoinFirstPlanning(const std::vector<char> &lhsRecord
 
   // run for a number of iterations
   planner.run_join_first_only();
+
+  // print the plan
+  planner.print();
 
   // get the result of the planning
   auto result = planner.get_result();
@@ -275,6 +280,9 @@ void pdb::JoinAggPlanner::doJoinFirstPlanning(const std::vector<char> &lhsRecord
     // make the plan result object
     Handle<PipJoinAggPlanResult> planResult = pdb::makeObject<PipJoinAggPlanResult>(numNodes);
 
+    // set the number of aggregation groups
+    planResult->numAggGroups = this->aggGroups->size();
+
     // go through the map and do two things
     // assign aggregation groups to nodes
     for (auto it = this->aggGroups->begin(); it != this->aggGroups->end(); ++it) {
@@ -293,37 +301,43 @@ void pdb::JoinAggPlanner::doJoinFirstPlanning(const std::vector<char> &lhsRecord
 
     // go through each join group
     for(auto jg = 0; jg < joinGroups.size(); ++jg) {
-
+      int num_assigned = 0;
       for(auto node = 0; node < numNodes; ++node) {
+
         if (result.join_groups_to_node[jg * numNodes + node]) {
 
           /// 1.0 Store the left side
           {
             // make sure we have it
-            if ((*planResult->leftToNode).count(joinGroups[jg].first) == 0) {
-              (*planResult->leftToNode)[joinGroups[jg].first] = Vector<bool>(numNodes, numNodes);
-              (*planResult->leftToNode)[joinGroups[jg].first].fill(false);
+            if ((*planResult->leftToNode).count(joinGroups[jg].lhsTID) == 0) {
+              (*planResult->leftToNode)[joinGroups[jg].lhsTID] = Vector<bool>(numNodes, numNodes);
+              (*planResult->leftToNode)[joinGroups[jg].lhsTID].fill(false);
             }
 
             // grab the vector for the key tid
-            (*planResult->leftToNode)[joinGroups[jg].first][node] = true;
+            (*planResult->leftToNode)[joinGroups[jg].lhsTID][node] = true;
           }
 
           /// 1.1 Store the right side
           {
             // make sure we have it
-            if ((*planResult->rightToNode).count(joinGroups[jg].second) == 0) {
-              (*planResult->rightToNode)[joinGroups[jg].second] = Vector<bool>(numNodes, numNodes);
-              (*planResult->rightToNode)[joinGroups[jg].second].fill(false);
+            if ((*planResult->rightToNode).count(joinGroups[jg].rhsTID) == 0) {
+              (*planResult->rightToNode)[joinGroups[jg].rhsTID] = Vector<bool>(numNodes, numNodes);
+              (*planResult->rightToNode)[joinGroups[jg].rhsTID].fill(false);
             }
 
             // grab the vector for the key tid
-            (*planResult->rightToNode)[joinGroups[jg].second][node] = true;
+            (*planResult->rightToNode)[joinGroups[jg].rhsTID][node] = true;
           }
 
           /// 1.2 Store the join group
-          (*planResult->joinGroupsPerNode)[node].push_back(std::make_pair(joinGroups[jg].first, joinGroups[jg].second));
+          (*planResult->joinGroupsPerNode)[node].push_back({joinGroups[jg].lhsTID, joinGroups[jg].rhsTID, joinGroups[jg].aggTID});
+          num_assigned++;
         }
+      }
+
+      if(num_assigned != 1) {
+        std::cout << "Ninja\n";
       }
     }
 
@@ -338,7 +352,7 @@ void pdb::JoinAggPlanner::doJoinFirstPlanning(const std::vector<char> &lhsRecord
 void pdb::JoinAggPlanner::doFullPlanning(const std::vector<char> &lhsRecordPositions,
                                          const std::vector<char> &rhsRecordPositions,
                                          const std::vector<std::vector<int32_t>> &aggregationGroups,
-                                         const std::vector<std::pair<int32_t, int32_t>> &joinGroups) {
+                                         const std::vector<PipJoinAggPlanResult::JoinedRecord> &joinGroups) {
   pdb::GreedyPlanner::costs_t c{};
   c.agg_cost = 1;
   c.join_cost = 1;
@@ -377,6 +391,9 @@ void pdb::JoinAggPlanner::doFullPlanning(const std::vector<char> &lhsRecordPosit
     // make the plan result object
     Handle<PipJoinAggPlanResult> planResult = pdb::makeObject<PipJoinAggPlanResult>(numNodes);
 
+    // set the number of aggregation groups
+    planResult->numAggGroups = this->aggGroups->size();
+
     // go through the map and do two things
     // assign aggregation groups to nodes
     for (auto it = this->aggGroups->begin(); it != this->aggGroups->end(); ++it) {
@@ -402,29 +419,29 @@ void pdb::JoinAggPlanner::doFullPlanning(const std::vector<char> &lhsRecordPosit
           /// 1.0 Store the left side
           {
             // make sure we have it
-            if ((*planResult->leftToNode).count(joinGroups[jg].first) == 0) {
-              (*planResult->leftToNode)[joinGroups[jg].first] = Vector<bool>(numNodes, numNodes);
-              (*planResult->leftToNode)[joinGroups[jg].first].fill(false);
+            if ((*planResult->leftToNode).count(joinGroups[jg].lhsTID) == 0) {
+              (*planResult->leftToNode)[joinGroups[jg].lhsTID] = Vector<bool>(numNodes, numNodes);
+              (*planResult->leftToNode)[joinGroups[jg].lhsTID].fill(false);
             }
 
             // grab the vector for the key tid
-            (*planResult->leftToNode)[joinGroups[jg].first][node] = true;
+            (*planResult->leftToNode)[joinGroups[jg].lhsTID][node] = true;
           }
 
           /// 1.1 Store the right side
           {
             // make sure we have it
-            if ((*planResult->rightToNode).count(joinGroups[jg].second) == 0) {
-              (*planResult->rightToNode)[joinGroups[jg].second] = Vector<bool>(numNodes, numNodes);
-              (*planResult->rightToNode)[joinGroups[jg].second].fill(false);
+            if ((*planResult->rightToNode).count(joinGroups[jg].rhsTID) == 0) {
+              (*planResult->rightToNode)[joinGroups[jg].rhsTID] = Vector<bool>(numNodes, numNodes);
+              (*planResult->rightToNode)[joinGroups[jg].rhsTID].fill(false);
             }
 
             // grab the vector for the key tid
-            (*planResult->rightToNode)[joinGroups[jg].second][node] = true;
+            (*planResult->rightToNode)[joinGroups[jg].rhsTID][node] = true;
           }
 
           /// 1.2 Store the join group
-          (*planResult->joinGroupsPerNode)[node].push_back(std::make_pair(joinGroups[jg].first, joinGroups[jg].second));
+          (*planResult->joinGroupsPerNode)[node].push_back({joinGroups[jg].lhsTID, joinGroups[jg].rhsTID, joinGroups[jg].aggTID});
         }
       }
     }
@@ -443,15 +460,15 @@ bool pdb::JoinAggPlanner::isLocalAggregation() {
 
 pdb::JoinAggPlanner::AlgorithmID pdb::JoinAggPlanner::selectAlgorithm() {
 
-  // we prefer the agg first planning since it does not have a later shuffling phase
-  if (planning_costs[(int32_t) AlgorithmID::AGG_FIRST_ONLY] <= planning_costs[(int32_t) AlgorithmID::JOIN_FIRST_ONLY] &&
-      planning_costs[(int32_t) AlgorithmID::AGG_FIRST_ONLY] <= planning_costs[(int32_t) AlgorithmID::FULL]) {
+//  // we prefer the agg first planning since it does not have a later shuffling phase
+//  if (planning_costs[(int32_t) AlgorithmID::AGG_FIRST_ONLY] <= planning_costs[(int32_t) AlgorithmID::JOIN_FIRST_ONLY] &&
+//      planning_costs[(int32_t) AlgorithmID::AGG_FIRST_ONLY] <= planning_costs[(int32_t) AlgorithmID::FULL]) {
     return AlgorithmID::AGG_FIRST_ONLY;
-  } else if (planning_costs[(int32_t) AlgorithmID::JOIN_FIRST_ONLY] < planning_costs[(int32_t) AlgorithmID::FULL]) {
-    return AlgorithmID::JOIN_FIRST_ONLY;
-  } else {
-    return AlgorithmID::FULL;
-  }
+//  } else if (planning_costs[(int32_t) AlgorithmID::JOIN_FIRST_ONLY] < planning_costs[(int32_t) AlgorithmID::FULL]) {
+//    return AlgorithmID::JOIN_FIRST_ONLY;
+//  } else {
+//    return AlgorithmID::FULL;
+//  }
 }
 
 void pdb::JoinAggPlanner::print(const Handle<PipJoinAggPlanResult> &planResult) {

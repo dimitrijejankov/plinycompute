@@ -115,6 +115,8 @@ class JoinComp : public JoinCompBase {
                                       pdb::LogicalPlanPtr &logicalPlan,
                                       PDBRandomAccessPageSetPtr pageSet,
                                       PDBCommunicatorPtr communicator,
+                                      const JoinAggTupleEmitterPtr &emitter,
+                                      bool isLHS,
                                       PDBLoggerPtr logger) override {
 
     // figure out the right join tuple
@@ -124,6 +126,8 @@ class JoinComp : public JoinCompBase {
     // check what kind of sink we need
     return correctJoinTuple->getJoinMapCreator(pageSet,
                                                communicator,
+                                               emitter,
+                                               isLHS,
                                                logger);
   }
 
@@ -262,6 +266,7 @@ class JoinComp : public JoinCompBase {
                                     std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &leftTIDToRecordMapping,
                                     std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &rightTIDToRecordMapping,
                                     const PDBPageHandle &page,
+                                    const JoinAggTupleEmitterPtr &emitter,
                                     PDBRandomAccessPageSetPtr leftInputPageSet,
                                     PDBRandomAccessPageSetPtr rightInputPageSet) override {
 
@@ -269,9 +274,7 @@ class JoinComp : public JoinCompBase {
       return std::make_shared<JoinAggSource<In1, In2>>(nodeID,
                                                        workerID,
                                                        numWorkers,
-                                                       leftTIDToRecordMapping,
-                                                       rightTIDToRecordMapping,
-                                                       page,
+                                                       emitter,
                                                        leftInputPageSet,
                                                        rightInputPageSet);
     } else {

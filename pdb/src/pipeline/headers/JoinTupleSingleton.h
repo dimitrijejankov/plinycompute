@@ -21,6 +21,7 @@
 #include <JoinArguments.h>
 #include <JoinAggSideSink.h>
 #include "JoinMapCreator.h"
+#include "JoinAggTupleEmitter.h"
 
 namespace pdb {
 
@@ -34,6 +35,8 @@ class JoinTupleSingleton {
 
   virtual JoinMapCreatorPtr getJoinMapCreator(PDBRandomAccessPageSetPtr pageSet,
                                               PDBCommunicatorPtr communicator,
+                                              const JoinAggTupleEmitterPtr &emitter,
+                                              bool isLHS,
                                               PDBLoggerPtr logger) = 0;
 
   virtual ComputeExecutorPtr getProber(PDBAbstractPageSetPtr &hashTable,
@@ -134,6 +137,8 @@ public:
 
   JoinMapCreatorPtr getJoinMapCreator(PDBRandomAccessPageSetPtr pageSet,
                                       PDBCommunicatorPtr communicator,
+                                      const JoinAggTupleEmitterPtr &emitter,
+                                      bool isLHS,
                                       PDBLoggerPtr logger) override {
 
     // check if it has the key and this is a binary join tuple so basically JoinTuple<TypeToHold, char[0]>
@@ -144,6 +149,8 @@ public:
       // return the join agg sink
       return std::make_shared<JoinMapCreator<decltype(((HoldMe*) nullptr)->myData)>>(pageSet,
                                                                                      communicator,
+                                                                                     emitter,
+                                                                                     isLHS,
                                                                                      logger);
     }
 

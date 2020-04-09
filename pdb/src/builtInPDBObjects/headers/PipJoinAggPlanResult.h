@@ -1,5 +1,9 @@
 #pragma once
 
+#include <Object.h>
+#include <PDBString.h>
+#include <PDBMap.h>
+#include <PDBVector.h>
 
 // PRELOAD %PipJoinAggPlanResult%
 
@@ -26,14 +30,20 @@ public:
 
   ENABLE_DEEP_COPY
 
+  struct JoinedRecord {
+    uint32_t lhsTID;
+    uint32_t rhsTID;
+    uint32_t aggTID;
+  };
+
   // join to node map
   using JoinTIDToNode = Map<uint32_t, Vector<bool>>;
 
   // aggregation group to node map1
   using AggGroupToNode = Map<uint32_t, int32_t>;
 
-  // the mapping of the join tid to the agg tid, for each node
-  using JoinGroups = Vector<std::pair<uint32_t, uint32_t>>;
+  // join groups have lhsTID, rhsTID and the aggregation group TID
+  using JoinGroups = Vector<JoinedRecord>;
   using JoinGroupsPerNode = Vector<JoinGroups>;
 
   // the left side record mappings
@@ -50,6 +60,9 @@ public:
 
   // is it local only
   bool isLocalAggregation = false;
+
+  // how many aggregation groups are there
+  int32_t numAggGroups = 0;
 };
 
 }

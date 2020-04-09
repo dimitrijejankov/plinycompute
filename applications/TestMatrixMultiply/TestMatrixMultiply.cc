@@ -1,5 +1,6 @@
 #include <PDBClient.h>
 #include <GenericWork.h>
+#include <random>
 #include "sharedLibraries/headers/MatrixBlock.h"
 #include "sharedLibraries/headers/MatrixScanner.h"
 #include "sharedLibraries/headers/MatrixMultiplyJoin.h"
@@ -11,10 +12,10 @@ using namespace pdb::matrix;
 
 // some constants for the test
 const size_t blockSize = 64;
-const uint32_t matrixRows = 10000;
-const uint32_t matrixColumns = 10000;
-const uint32_t numRows = 1000;
-const uint32_t numCols = 1000;
+const uint32_t matrixRows = 400;
+const uint32_t matrixColumns = 400;
+const uint32_t numRows = 40;
+const uint32_t numCols = 40;
 const bool doNotPrint = true;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
@@ -40,7 +41,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
     try {
 
       // put stuff into the vector
-      for(; i < tuplesToSend.size(); ++i) {
+      for(; i < tuplesToSend.size();) {
 
         // allocate a matrix
         Handle<MatrixBlock> myInt = makeObject<MatrixBlock>(tuplesToSend[i].first,
@@ -56,6 +57,13 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
         // we add the matrix to the block
         data->push_back(myInt);
+
+        // go to the next one
+        ++i;
+
+        if(data->size() == 50) {
+          break;
+        }
       }
     }
     catch (pdb::NotEnoughSpace &n) {}

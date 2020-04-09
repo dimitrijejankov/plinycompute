@@ -6,6 +6,7 @@
 #include <random>
 #include <algorithm>
 #include <iostream>
+#include <PipJoinAggPlanResult.h>
 
 namespace pdb {
 
@@ -91,7 +92,7 @@ class GreedyPlanner {
   GreedyPlanner(int32_t numNodes, pdb::GreedyPlanner::costs_t costs,
                 const std::vector<char> &lhsRecordPositions, const std::vector<char> &rhsRecordPositions,
                 const std::vector<std::vector<int32_t>> &aggregationGroups,
-                const std::vector<std::pair<int32_t, int32_t>> &joinGroups);
+                const std::vector<PipJoinAggPlanResult::JoinedRecord> &joinGroups);
 
   void run();
 
@@ -169,7 +170,7 @@ class GreedyPlanner {
   std::vector<std::vector<int32_t>> aggregation_groups;
 
   // tells us what lhs and rhs record each join group consists of
-  std::vector<std::pair<int32_t, int32_t>> join_groups;
+  const std::vector<PipJoinAggPlanResult::JoinedRecord> &join_groups;
 
   // the costs of performing each stuff
   costs_t c;

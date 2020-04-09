@@ -73,6 +73,9 @@ class PreaggregationSink : public ComputeSink {
       // hash the key
       auto hash = hashHim(keyColumn[i]);
 
+      auto s = &keyColumn[i];
+      //std::cout << "aggregated " << s->rowID << ", " << s->colID << '\n';
+
       // get the map we are adding to
       Map<KeyType, ValueType> &myMap = (*(*vectorOfMaps)[hash % numPartitions]);
 

@@ -119,6 +119,10 @@ private:
 
       // store the pair
       (*outputMap)[myTID].push_back({ leftTIDColumn[i], rightTIDColumn[i] });
+//
+//      if((*outputMap)[myTID].size() > 40) {
+//        std::cout << "This sucks " << (*outputMap)[myTID].size() << '\n';
+//      }
     }
 
   }

@@ -6,6 +6,7 @@
 #include "PDBFeedingPageSet.h"
 #include "PDBPageNetworkSender.h"
 #include "JoinAggSideSender.h"
+#include "JoinAggTupleEmitter.h"
 #include "JoinMapCreator.h"
 #include "Pipeline.h"
 
@@ -204,6 +205,11 @@ struct PDBJoinAggregationState : public PDBPhysicalAlgorithmState {
    * This runs the left and right side of the join
    */
   std::shared_ptr<std::vector<PipelinePtr>> joinPipelines = nullptr;
+
+  /**
+   * This is used to emit join tuples
+   */
+  std::shared_ptr<JoinAggTupleEmitter> emitter = nullptr;
 
   /**
    * Is a local aggregation enough

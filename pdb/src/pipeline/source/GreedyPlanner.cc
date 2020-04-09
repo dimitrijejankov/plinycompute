@@ -3,7 +3,7 @@
 pdb::GreedyPlanner::GreedyPlanner(int32_t numNodes, pdb::GreedyPlanner::costs_t costs,
                                   const std::vector<char> &lhsRecordPositions, const std::vector<char> &rhsRecordPositions,
                                   const std::vector<std::vector<int32_t>> &aggregationGroups,
-                                  const std::vector<std::pair<int32_t, int32_t>> &joinGroups)
+                                  const std::vector<PipJoinAggPlanResult::JoinedRecord> &joinGroups)
         : num_nodes(numNodes),
           num_agg_groups(aggregationGroups.size()),
           num_join_groups(joinGroups.size()),
@@ -184,10 +184,10 @@ pdb::GreedyPlanner::agg_plan_t pdb::GreedyPlanner::try_assign_agg_group(std::vec
             auto &p = join_groups[jg];
 
             // ok now tha te go them assign them to this node
-            lhs_tmp[p.first] = 1;
-            lhs_tmp_rst.emplace_back(p.first);
-            rhs_tmp[p.second] = 1;
-            rhs_tmp_rst.emplace_back(p.second);
+            lhs_tmp[p.lhsTID] = 1;
+            lhs_tmp_rst.emplace_back(p.lhsTID);
+            rhs_tmp[p.rhsTID] = 1;
+            rhs_tmp_rst.emplace_back(p.rhsTID);
         }
 
         // sum the costs for the left side
@@ -266,8 +266,8 @@ void pdb::GreedyPlanner::apply_agg(const pdb::GreedyPlanner::agg_plan_t &pl, std
         auto &p = join_groups[jg];
 
         // mark that we have
-        lhs_record_positions[p.first * num_nodes + pl.node] = true;
-        rhs_record_positions[p.second * num_nodes + pl.node] = true;
+        lhs_record_positions[p.lhsTID * num_nodes + pl.node] = true;
+        rhs_record_positions[p.rhsTID * num_nodes + pl.node] = true;
 
         // assign join group
         join_group_positions[jg * num_nodes + pl.node] = true;
@@ -318,10 +318,10 @@ pdb::GreedyPlanner::join_plan_t pdb::GreedyPlanner::try_assign_join_group(std::v
             int32_t rhs_cost = 0;
 
             // is the rhs of the join group off this node
-            auto lhsOffNode = lhs_record_positions[p.first * num_nodes + node] == 0;
+            auto lhsOffNode = lhs_record_positions[p.lhsTID * num_nodes + node] == 0;
 
             // is the lhs of the join group off this node
-            auto rhsOffNode = rhs_record_positions[p.second * num_nodes + node] == 0;
+            auto rhsOffNode = rhs_record_positions[p.rhsTID * num_nodes + node] == 0;
 
             // if the lhs is of the node mark that we fetched it and update the cost
             if(lhsOffNode) {
@@ -354,15 +354,15 @@ pdb::GreedyPlanner::join_plan_t pdb::GreedyPlanner::try_assign_join_group(std::v
         }
 
         // store the proposed change for lhs
-        if(lhs_record_positions[p.first * num_nodes + best_node] == 0) {
-            tmpLHSFetches[best_node].emplace_back(p.first);
-            lhs_record_positions[p.first * num_nodes + best_node] = true;
+        if(lhs_record_positions[p.lhsTID * num_nodes + best_node] == 0) {
+            tmpLHSFetches[best_node].emplace_back(p.lhsTID);
+            lhs_record_positions[p.lhsTID * num_nodes + best_node] = true;
         }
 
         // store the proposed change for lhs
-        if(rhs_record_positions[p.second * num_nodes + best_node] == 0) {
-            tmpRHSFetches[best_node].emplace_back(p.second);
-            rhs_record_positions[p.second * num_nodes + best_node] = true;
+        if(rhs_record_positions[p.rhsTID * num_nodes + best_node] == 0) {
+            tmpRHSFetches[best_node].emplace_back(p.rhsTID);
+            rhs_record_positions[p.rhsTID * num_nodes + best_node] = true;
         }
 
         // update the overhead
@@ -456,8 +456,8 @@ void pdb::GreedyPlanner::apply_join(const pdb::GreedyPlanner::join_plan_t &pl, s
         auto &p = join_groups[joinGroups[i]];
 
         // set the assignments
-        lhs_record_positions[p.first * num_nodes + pl.join_assignments[i]] = true;
-        rhs_record_positions[p.second * num_nodes + pl.join_assignments[i]] = true;
+        lhs_record_positions[p.lhsTID * num_nodes + pl.join_assignments[i]] = true;
+        rhs_record_positions[p.rhsTID * num_nodes + pl.join_assignments[i]] = true;
 
         // assign join group
         join_group_positions[joinGroups[i] * num_nodes + pl.join_assignments[i]] = true;
