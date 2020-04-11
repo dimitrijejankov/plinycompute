@@ -110,6 +110,9 @@ public:
     uint32_t numUsedSlots();
     void setUsed(uint32_t toMe);
 
+    // return the capacity; the number of available slots
+    uint32_t numAvailableSlots();
+
     // beause the communicator needs to see inside to do efficient sends
     friend class PDBCommunicator;
 

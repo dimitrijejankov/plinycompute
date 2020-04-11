@@ -62,6 +62,7 @@ public:
     // these operations all have the same semantics as in std :: vector
     Vector();
     size_t size() const;
+    size_t capacity() const;
     TypeContained& operator[](uint32_t which);
     TypeContained& operator[](uint32_t which) const;
     void assign(uint32_t which, const TypeContained& val);
@@ -71,6 +72,8 @@ public:
     void clear();
     TypeContained* c_ptr() const;
     void resize(uint32_t toMe);
+    void reserve(uint32_t newCap);
+    void shrink_to_fit();
 
     // added by Shangyu
     void print() const;

@@ -68,6 +68,12 @@ size_t Vector<TypeContained>::size() const {
 }
 
 template <class TypeContained>
+size_t Vector<TypeContained>::capacity() const {
+    return myArray->numAvailableSlots();
+}
+
+
+template <class TypeContained>
 TypeContained& Vector<TypeContained>::operator[](uint32_t which) {
     return myArray->getObj(which);
 }
@@ -110,7 +116,41 @@ void Vector<TypeContained>::clear() {
 
 template <class TypeContained>
 void Vector<TypeContained>::resize(uint32_t toMe) {
-    myArray = myArray->resize(toMe);
+    // If the current size is greater than toMe, the container
+    // is reduced to its first toMe elements
+    if(size() > toMe) {
+        while(size() != toMe) {
+            pop_back();
+        }
+    }
+
+    // If the current size is less than toMe, additional
+    // elements are appended and default-initialized
+    if(size() < toMe) {
+        reserve(toMe);
+
+        while(size() != toMe) {
+            push_back();
+        }
+        return;
+    }
+}
+
+template <class TypeContained>
+void Vector<TypeContained>::reserve(uint32_t newCap) {
+    // Only do something if we need more space
+    if(capacity() < newCap) {
+        // myArray's resize will copy over the current
+        // values and leave the rest of the space uninitialized
+        myArray = myArray->resize(newCap);
+    }
+}
+
+template <class TypeContained>
+void Vector<TypeContained>::shrink_to_fit() {
+    if(size() < capacity()) {
+        myArray = myArray->resize(size());
+    }
 }
 
 template <class TypeContained>

@@ -176,10 +176,6 @@ Handle<Array<TypeContained>> Array<TypeContained>::resize(uint32_t howMany) {
     // copy everything over
     TypeContained* newLoc = (TypeContained*)(tempArray->data);
 
-    uint32_t max = usedSlots;
-    if (max < howMany)
-        max = howMany;
-
     uint32_t min = usedSlots;
     if (min > howMany)
         min = howMany;
@@ -253,6 +249,11 @@ void Array<TypeContained>::pop_back() {
 template <class TypeContained>
 uint32_t Array<TypeContained>::numUsedSlots() {
     return usedSlots;
+}
+
+template <class TypeContained>
+uint32_t Array<TypeContained>::numAvailableSlots() {
+    return numSlots;
 }
 
 template <class TypeContained>
