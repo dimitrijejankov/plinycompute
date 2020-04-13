@@ -482,7 +482,6 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
   });
 
   // run on of the join pipelines
-  counter = 0;
   for (int i = 0; i < s->joinPipelines->size(); ++i) {
 
     // get a worker from the server
@@ -513,6 +512,8 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
     // run the work
     worker->execute(myWork, tempBuzzer);
   }
+
+  std::cout << "Run the join pipelines\n";
 
   // create the buzzer
   atomic_int sendCnt;
@@ -549,6 +550,8 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
     worker->execute(myWork, tempBuzzer);
   }
 
+  std::cout << "Run the join left senders\n";
+
   for (int i = 0; i < s->rightJoinSideSenders->size(); ++i) {
 
     // get a worker from the server
@@ -579,6 +582,8 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
     // run the work
     worker->execute(myWork, tempBuzzer);
   }
+
+  std::cout << "Run the join right pipelines\n";
 
   // create the buzzer
   atomic_int commCnt;
@@ -630,13 +635,14 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
     worker->execute(myWork, tempBuzzer);
   }
 
+  std::cout << "Run the join map creators\n";
+
   // run the aggregation pipelines
   atomic_int preaggCnt;
   preaggCnt = 0;
 
   // stats
   success = true;
-  counter = 0;
 
   for (int i = 0; i < s->preaggregationPipelines->size(); ++i) {
 
@@ -670,6 +676,8 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
     // run the work
     worker->execute(myWork, tempBuzzer);
   }
+
+  std::cout << "Run the preagg pipelines\n";
 
   // make the threads that feed into the feed page set
   atomic_int32_t secondCounter = 0;
@@ -706,6 +714,8 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
     worker->execute(myWork, tempBuzzer);
   }
 
+  std::cout << "Run the feeders\n";
+
   // run the aggregation pipelines
   for (int i = 0; i < s->aggregationPipelines->size(); ++i) {
 
@@ -738,10 +748,13 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
     worker->execute(myWork, tempBuzzer);
   }
 
+  std::cout << "Run the aggregation\n";
+
   // wait to finish the pipelines
   while (counter < s->joinPipelines->size()) {
     tempBuzzer->wait();
   }
+  std::cout << "Finished the join pipelines\n";
 
   // shutdown the senders since the pipelines are done
   for (auto &se : *s->leftJoinSideSenders) {
@@ -752,15 +765,21 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
     se->shutdown();
   }
 
+  std::cout << "Shutdown the senders\n";
+
   // wait for senders to finish
   while (sendCnt < s->leftJoinSideSenders->size() + s->rightJoinSideSenders->size()) {
     tempBuzzer->wait();
   }
 
+  std::cout << "Run the join senders\n";
+
   // wait until the senders finish
   while (commCnt < joinMapCreators.size()) {
     tempBuzzer->wait();
   }
+
+  std::cout << "Finished the join map creators\n";
 
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
   std::cout << "JoinSideStage run for " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count()
@@ -775,6 +794,8 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
   while (preaggCnt < s->preaggregationPipelines->size()) {
     tempBuzzer->wait();
   }
+
+  std::cout << "Run the preagg\n";
 
   // insert to the page queues
   for (const auto &q : *s->pageQueues) {
