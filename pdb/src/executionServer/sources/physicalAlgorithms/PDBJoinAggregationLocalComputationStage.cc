@@ -1,6 +1,6 @@
 #include <AtomicComputationClasses.h>
 #include <PDBPhysicalAlgorithm.h>
-#include "PDBJoinAggregationJoinSideStage.h"
+#include "PDBJoinAggregationLocalComputationStage.h"
 #include "PDBJoinAggregationState.h"
 #include "ComputePlan.h"
 #include "LogicalPlanTransformer.h"
@@ -9,16 +9,16 @@
 #include "GenericWork.h"
 #include "ExJob.h"
 
-pdb::PDBJoinAggregationJoinSideStage::PDBJoinAggregationJoinSideStage(const pdb::PDBSinkPageSetSpec &sink,
-                                                                      const pdb::Vector<pdb::PDBSourceSpec> &sources,
-                                                                      const pdb::String &final_tuple_set,
-                                                                      const pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>> &secondary_sources,
-                                                                      const pdb::Vector<pdb::PDBSetObject> &sets_to_materialize,
-                                                                      const pdb::String &join_tuple_set,
-                                                                      const pdb::PDBSourcePageSetSpec &left_join_source,
-                                                                      const pdb::PDBSourcePageSetSpec &right_join_source,
-                                                                      const pdb::PDBSinkPageSetSpec &intermediate_sink,
-                                                                      const pdb::Vector<PDBSourceSpec> &right_sources)
+pdb::PDBJoinAggregationLocalComputationStage::PDBJoinAggregationLocalComputationStage(const pdb::PDBSinkPageSetSpec &sink,
+                                                                                      const pdb::Vector<pdb::PDBSourceSpec> &sources,
+                                                                                      const pdb::String &final_tuple_set,
+                                                                                      const pdb::Vector<pdb::Handle<PDBSourcePageSetSpec>> &secondary_sources,
+                                                                                      const pdb::Vector<pdb::PDBSetObject> &sets_to_materialize,
+                                                                                      const pdb::String &join_tuple_set,
+                                                                                      const pdb::PDBSourcePageSetSpec &left_join_source,
+                                                                                      const pdb::PDBSourcePageSetSpec &right_join_source,
+                                                                                      const pdb::PDBSinkPageSetSpec &intermediate_sink,
+                                                                                      const pdb::Vector<PDBSourceSpec> &right_sources)
     : PDBPhysicalAlgorithmStage(sink, sources, final_tuple_set, secondary_sources, sets_to_materialize),
       joinTupleSet(join_tuple_set),
       leftJoinSource(left_join_source),
@@ -26,10 +26,10 @@ pdb::PDBJoinAggregationJoinSideStage::PDBJoinAggregationJoinSideStage(const pdb:
       intermediateSink(intermediate_sink),
       rightSources(right_sources) {}
 
-bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &job,
-                                                 const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                                 const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
-                                                 const std::string &error) {
+bool pdb::PDBJoinAggregationLocalComputationStage::setup(const pdb::Handle<pdb::ExJob> &job,
+                                                         const pdb::PDBPhysicalAlgorithmStatePtr &state,
+                                                         const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                                         const std::string &error) {
 
 
   // cast the state
@@ -449,10 +449,10 @@ bool pdb::PDBJoinAggregationJoinSideStage::setup(const pdb::Handle<pdb::ExJob> &
   return true;
 }
 
-bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &job,
-                                               const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                               const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
-                                               const std::string &error) {
+bool pdb::PDBJoinAggregationLocalComputationStage::run(const pdb::Handle<pdb::ExJob> &job,
+                                                       const pdb::PDBPhysicalAlgorithmStatePtr &state,
+                                                       const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                                       const std::string &error) {
 
   // cast the state
   auto s = dynamic_pointer_cast<PDBJoinAggregationState>(state);
@@ -837,7 +837,7 @@ bool pdb::PDBJoinAggregationJoinSideStage::run(const pdb::Handle<pdb::ExJob> &jo
   return true;
 }
 
-void pdb::PDBJoinAggregationJoinSideStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
+void pdb::PDBJoinAggregationLocalComputationStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
 
   // cast the state
   auto s = dynamic_pointer_cast<PDBJoinAggregationState>(state);
@@ -859,8 +859,8 @@ void pdb::PDBJoinAggregationJoinSideStage::cleanup(const pdb::PDBPhysicalAlgorit
   s->intermediatePageSet->clearPageSet();
 }
 
-pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationJoinSideStage::getRightSourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
-                                                                                       size_t idx) {
+pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationLocalComputationStage::getRightSourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                                                                               size_t idx) {
   // grab the source set from the right sources
   auto &sourceSet = this->rightSources[idx].sourceSet;
 
@@ -883,8 +883,8 @@ pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationJoinSideStage::getRightSourceP
   return sourcePageSet;
 }
 
-pdb::SourceSetArgPtr pdb::PDBJoinAggregationJoinSideStage::getRightSourceSetArg(const std::shared_ptr<pdb::PDBCatalogClient> &catalogClient,
-                                                                                size_t idx) {
+pdb::SourceSetArgPtr pdb::PDBJoinAggregationLocalComputationStage::getRightSourceSetArg(const std::shared_ptr<pdb::PDBCatalogClient> &catalogClient,
+                                                                                        size_t idx) {
   // grab the source set from the sources
   auto &sourceSet = this->rightSources[idx].sourceSet;
 
@@ -898,7 +898,7 @@ pdb::SourceSetArgPtr pdb::PDBJoinAggregationJoinSideStage::getRightSourceSetArg(
   return std::make_shared<pdb::SourceSetArg>(catalogClient->getSet(sourceSet->database, sourceSet->set, error));
 }
 
-pdb::JoinCompBase *pdb::PDBJoinAggregationJoinSideStage::getJoinComp(const LogicalPlanPtr &logicalPlan) {
+pdb::JoinCompBase *pdb::PDBJoinAggregationLocalComputationStage::getJoinComp(const LogicalPlanPtr &logicalPlan) {
 
   auto &computations = logicalPlan->getComputations();
 

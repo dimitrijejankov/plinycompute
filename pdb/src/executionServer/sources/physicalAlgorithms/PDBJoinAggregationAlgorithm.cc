@@ -11,7 +11,7 @@
 #include "AggregateCompBase.h"
 #include "PDBJoinAggregationLocalAggregationStage.h"
 #include "PDBJoinAggregationAggregationStage.h"
-#include "PDBJoinAggregationJoinSideStage.h"
+#include "PDBJoinAggregationLocalComputationStage.h"
 
 namespace pdb {
 
@@ -175,16 +175,16 @@ pdb::PDBPhysicalAlgorithmStagePtr PDBJoinAggregationAlgorithm::getNextStage(cons
       currentStage++;
 
       // return the join side stage
-      return std::make_shared<PDBJoinAggregationJoinSideStage>(*sink,
-                                                               sources,
-                                                               finalTupleSet,
-                                                               *secondarySources,
-                                                               *setsToMaterialize,
-                                                               joinTupleSet,
-                                                               *leftJoinSource,
-                                                               *rightJoinSource,
-                                                               *intermediateSink,
-                                                               rightSources);
+      return std::make_shared<PDBJoinAggregationLocalComputationStage>(*sink,
+                                                                       sources,
+                                                                       finalTupleSet,
+                                                                       *secondarySources,
+                                                                       *setsToMaterialize,
+                                                                       joinTupleSet,
+                                                                       *leftJoinSource,
+                                                                       *rightJoinSource,
+                                                                       *intermediateSink,
+                                                                       rightSources);
     }
 //    case 2: {
 //

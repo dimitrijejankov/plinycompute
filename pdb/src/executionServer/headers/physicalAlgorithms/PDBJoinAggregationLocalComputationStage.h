@@ -5,19 +5,19 @@
 
 namespace pdb {
 
-class PDBJoinAggregationJoinSideStage : public PDBPhysicalAlgorithmStage {
+class PDBJoinAggregationLocalComputationStage : public PDBPhysicalAlgorithmStage {
 public:
 
-  PDBJoinAggregationJoinSideStage(const PDBSinkPageSetSpec &sink,
-                                  const Vector<PDBSourceSpec> &sources,
-                                  const String &final_tuple_set,
-                                  const Vector<pdb::Handle<PDBSourcePageSetSpec>> &secondary_sources,
-                                  const Vector<PDBSetObject> &sets_to_materialize,
-                                  const String &join_tuple_set,
-                                  const PDBSourcePageSetSpec &left_join_source,
-                                  const PDBSourcePageSetSpec &right_join_source,
-                                  const PDBSinkPageSetSpec &intermediate_sink,
-                                  const Vector<PDBSourceSpec> &right_sources);
+  PDBJoinAggregationLocalComputationStage(const PDBSinkPageSetSpec &sink,
+                                          const Vector<PDBSourceSpec> &sources,
+                                          const String &final_tuple_set,
+                                          const Vector<pdb::Handle<PDBSourcePageSetSpec>> &secondary_sources,
+                                          const Vector<PDBSetObject> &sets_to_materialize,
+                                          const String &join_tuple_set,
+                                          const PDBSourcePageSetSpec &left_join_source,
+                                          const PDBSourcePageSetSpec &right_join_source,
+                                          const PDBSinkPageSetSpec &intermediate_sink,
+                                          const Vector<PDBSourceSpec> &right_sources);
 
   bool setup(const Handle<pdb::ExJob> &job,
              const PDBPhysicalAlgorithmStatePtr &state,
