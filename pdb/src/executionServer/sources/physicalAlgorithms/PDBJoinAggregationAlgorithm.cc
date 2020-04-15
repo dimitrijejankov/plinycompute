@@ -208,37 +208,6 @@ pdb::PDBPhysicalAlgorithmStagePtr PDBJoinAggregationAlgorithm::getNextStage(cons
                                                                     rightSources);
       }
   }
-//    case 2: {
-//
-//      // cast the state
-//      auto s = dynamic_pointer_cast<PDBJoinAggregationState>(state);
-//
-//      // go to the next stage
-//      currentStage++;
-//
-//      if(s->localAggregation) {
-//
-//        // return the local aggregation stage
-//        return std::make_shared<PDBJoinAggregationLocalAggregationStage>(*sink,
-//                                                                         sources,
-//                                                                         finalTupleSet,
-//                                                                         *secondarySources,
-//                                                                         *setsToMaterialize,
-//                                                                         joinTupleSet);
-//      }
-//      else {
-//
-//        // return the aggregation stage
-//        return std::make_shared<PDBJoinAggregationAggregationStage>(*sink,
-//                                                                    *preaggIntermediate,
-//                                                                    sources,
-//                                                                    finalTupleSet,
-//                                                                    *secondarySources,
-//                                                                    *setsToMaterialize,
-//                                                                    joinTupleSet);
-//      }
-//    }
-//}
 
   throw runtime_error("Unrecognized stage. How did we get here?");
 }
