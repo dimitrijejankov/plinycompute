@@ -4,6 +4,7 @@
 #include "PDBJoinAggregationAlgorithm.h"
 #include "PDBJoinAggregationKeyStage.h"
 #include <ExJob.h>
+#include <physicalAlgorithms/PDBJoinAggregationComputationStage.h>
 #include "PDBStorageManagerBackend.h"
 #include "GenericWork.h"
 #include "PDBLabeledPageSet.h"
@@ -140,7 +141,7 @@ PDBPhysicalAlgorithmStatePtr PDBJoinAggregationAlgorithm::getInitialState(const 
 pdb::PDBPhysicalAlgorithmStagePtr PDBJoinAggregationAlgorithm::getNextStage(const PDBPhysicalAlgorithmStatePtr &state) {
 
   // we are done if we already served a stage
-  if(currentStage == 2) {
+  if (currentStage == 2) {
     return nullptr;
   }
 
@@ -154,38 +155,59 @@ pdb::PDBPhysicalAlgorithmStagePtr PDBJoinAggregationAlgorithm::getNextStage(cons
 
       // return the key stage
       return std::make_shared<PDBJoinAggregationKeyStage>(*sink,
-                                                   sources,
-                                                   finalTupleSet,
-                                                   *secondarySources,
-                                                   *setsToMaterialize,
-                                                   leftInputTupleSet,
-                                                   rightInputTupleSet,
-                                                   joinTupleSet,
-                                                   *lhsKeySink,
-                                                   *rhsKeySink,
-                                                   *joinAggKeySink,
-                                                   rightSources,
-                                                   *leftKeySource,
-                                                   *rightKeySource,
-                                                   *planSource);
+                                                          sources,
+                                                          finalTupleSet,
+                                                          *secondarySources,
+                                                          *setsToMaterialize,
+                                                          leftInputTupleSet,
+                                                          rightInputTupleSet,
+                                                          joinTupleSet,
+                                                          *lhsKeySink,
+                                                          *rhsKeySink,
+                                                          *joinAggKeySink,
+                                                          rightSources,
+                                                          *leftKeySource,
+                                                          *rightKeySource,
+                                                          *planSource);
     }
     case 1: {
+
+    }
+      // cast the state
+      auto s = dynamic_pointer_cast<PDBJoinAggregationState>(state);
 
       // go to the next stage
       currentStage++;
 
-      // return the join side stage
-      return std::make_shared<PDBJoinAggregationLocalComputationStage>(*sink,
-                                                                       sources,
-                                                                       finalTupleSet,
-                                                                       *secondarySources,
-                                                                       *setsToMaterialize,
-                                                                       joinTupleSet,
-                                                                       *leftJoinSource,
-                                                                       *rightJoinSource,
-                                                                       *intermediateSink,
-                                                                       rightSources);
-    }
+      if (s->localAggregation) {
+
+        // return the computation
+        return std::make_shared<PDBJoinAggregationLocalComputationStage>(*sink,
+                                                                         sources,
+                                                                         finalTupleSet,
+                                                                         *secondarySources,
+                                                                         *setsToMaterialize,
+                                                                         joinTupleSet,
+                                                                         *leftJoinSource,
+                                                                         *rightJoinSource,
+                                                                         *intermediateSink,
+                                                                         rightSources);
+      } else {
+
+        // return the computation
+        return std::make_shared<PDBJoinAggregationComputationStage>(*sink,
+                                                                    *preaggIntermediate,
+                                                                    sources,
+                                                                    finalTupleSet,
+                                                                    *secondarySources,
+                                                                    *setsToMaterialize,
+                                                                    joinTupleSet,
+                                                                    *leftJoinSource,
+                                                                    *rightJoinSource,
+                                                                    *intermediateSink,
+                                                                    rightSources);
+      }
+  }
 //    case 2: {
 //
 //      // cast the state
@@ -216,7 +238,7 @@ pdb::PDBPhysicalAlgorithmStagePtr PDBJoinAggregationAlgorithm::getNextStage(cons
 //                                                                    joinTupleSet);
 //      }
 //    }
-  }
+//}
 
   throw runtime_error("Unrecognized stage. How did we get here?");
 }

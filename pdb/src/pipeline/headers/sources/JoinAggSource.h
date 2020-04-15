@@ -114,7 +114,7 @@ class JoinAggSource : public ComputeSource {
     // move the current record
     currentRecord += numRows;
 
-    std::cout << "Emitted " << numRows << " : " << currentRecord << "/" << records.size() << '\n';
+    // std::cout << "Emitted " << numRows << " : " << currentRecord << "/" << records.size() << '\n';
     // return the output
     return output;
   }

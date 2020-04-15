@@ -110,7 +110,6 @@ class JoinAggPreaggregationSink : public ComputeSink {
 
       // hash the key
       auto hash = hashHim(keyColumn[i]);
-
       auto s = (pdb::matrix::MatrixBlockMeta *)&keyColumn[i];
       //std::cout << "aggregated " << s->rowID << ", " << s->colID << '\n';
 
