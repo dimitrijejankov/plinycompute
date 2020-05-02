@@ -68,14 +68,14 @@ public:
       auto node = genome.genes[i];
 
       // get where all the records are
-      auto j1 = std::get<0>(jr);
-      auto j2 = std::get<1>(jr);
-      auto j3 = std::get<2>(jr);
-      auto j4 = std::get<3>(jr);
-      auto j5 = std::get<4>(jr);
-      auto j6 = std::get<5>(jr);
-      auto j7 = std::get<6>(jr);
-      auto j8 = std::get<7>(jr);
+      auto j1 = jr.first;
+      auto j2 = jr.second;
+      auto j3 = jr.third;
+      auto j4 = jr.fourth;
+      auto j5 = jr.fifth;
+      auto j6 = jr.sixth;
+      auto j7 = jr.seventh;
+      auto j8 = jr.eight;
 
       tempRequirements[node][j1] = true;
       tempRequirements[node][j2] = true;

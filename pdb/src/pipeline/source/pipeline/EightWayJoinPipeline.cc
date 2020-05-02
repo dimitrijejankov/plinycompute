@@ -27,7 +27,7 @@ void pdb::EightWayJoinPipeline::runSide(int node) {
 
     // go through the vector
     for(int i = 0; i < inVec->size(); ++i) {
-      myRecords.emplace_back(std::make_tuple((*inVec)[i]->x_id, (*inVec)[i]->y_id, (*inVec)[i]->z_id));
+      myRecords.push_back({(int32_t)(*inVec)[i]->x_id, (int32_t)(*inVec)[i]->y_id, (int32_t)(*inVec)[i]->z_id});
     }
   }
 
@@ -49,97 +49,121 @@ void pdb::EightWayJoinPipeline::runJoin() {
     /// 0. Do it for the top left right
 
     // set the tid for this one
-    get<0>(r) = top_left_front->second.first;
+    r.first = top_left_front->second.first;
 
     /// 1. Do it for the top right front
 
     // get the top right front
     auto top_right_front = top_left_front->first;
-    get<0>(top_right_front)++;
+    top_right_front.first++;
 
     // check if we have the top right front
     auto it = nodeRecords.find(top_right_front);
     if(it == nodeRecords.end()) {
       continue;
     }
-    get<1>(r) = it->second.first;
+    r.second = it->second.first;
 
 
     /// 2. Do it for the bottom left front
 
     // get the top right front
     auto bottom_left_front = top_left_front->first;
-    get<1>(bottom_left_front)--;
+    bottom_left_front.second--;
 
     // check if we have the top right front
     it = nodeRecords.find(bottom_left_front);
     if(it == nodeRecords.end()) {
       continue;
     }
-    get<2>(r) = it->second.first;
+    r.third = it->second.first;
 
     /// 3. Do it for the bottom right front
 
     auto bottom_right_front = top_right_front;
-    get<1>(bottom_right_front)--;
+    bottom_right_front.second--;
 
     // check if we have the top right front
     it = nodeRecords.find(bottom_right_front);
     if(it == nodeRecords.end()) {
       continue;
     }
-    get<3>(r) = it->second.first;
+    r.fourth = it->second.first;
 
     /// 4. Do it for the top left back
 
     auto top_left_back = top_left_front->first;
-    get<2>(top_left_back)--;
+    top_left_back.third--;
 
     // check if we have the top right front
     it = nodeRecords.find(top_left_back);
     if(it == nodeRecords.end()) {
       continue;
     }
-    get<4>(r) = it->second.first;
+    r.fifth = it->second.first;
 
     /// 4. Do it for the top right back
 
     auto top_right_back = top_right_front;
-    get<2>(top_right_back)--;
+    top_right_back.third--;
 
     // check if we have the top right front
     it = nodeRecords.find(top_right_back);
     if(it == nodeRecords.end()) {
       continue;
     }
-    get<5>(r) = it->second.first;
+    r.sixth = it->second.first;
 
     /// 5. Do it for the bottom left back
 
     auto bottom_left_back = bottom_left_front;
-    get<2>(bottom_left_back)--;
+    bottom_left_back.third--;
 
     // check if we have the top right front
     it = nodeRecords.find(bottom_left_back);
     if(it == nodeRecords.end()) {
       continue;
     }
-    get<6>(r) = it->second.first;
+    r.seventh = it->second.first;
 
 
     /// 6. Do it for the bottom right front
 
     auto bottom_right_back = bottom_right_front;
-    get<2>(bottom_right_back)--;
+    bottom_right_back.third--;
 
     // check if we have the top right front
     it = nodeRecords.find(bottom_right_back);
     if(it == nodeRecords.end()) {
       continue;
     }
-    get<7>(r) = it->second.first;
+    r.eight = it->second.first;
 
     //// 7. Insert it
     joined.emplace_back(r);
   }
+}
+
+bool pdb::operator==(const pdb::EightWayJoinPipeline::joined_record &lhs,
+                     const pdb::EightWayJoinPipeline::joined_record &rhs) {
+  return lhs.first == rhs.first &&
+      lhs.second == rhs.second &&
+      lhs.third == rhs.third &&
+      lhs.fourth == rhs.fourth &&
+      lhs.fifth == rhs.fifth &&
+      lhs.sixth == rhs.sixth &&
+      lhs.seventh == rhs.seventh &&
+      lhs.eight == rhs.eight;
+}
+bool pdb::operator!=(const pdb::EightWayJoinPipeline::joined_record &lhs,
+                     const pdb::EightWayJoinPipeline::joined_record &rhs) {
+  return !(rhs == lhs);
+}
+bool pdb::operator==(const pdb::EightWayJoinPipeline::key &lhs, const pdb::EightWayJoinPipeline::key &rhs) {
+  return lhs.first == rhs.first &&
+      lhs.second == rhs.second &&
+      lhs.third == rhs.third;
+}
+bool pdb::operator!=(const pdb::EightWayJoinPipeline::key &lhs, const pdb::EightWayJoinPipeline::key &rhs) {
+  return !(rhs == lhs);
 }

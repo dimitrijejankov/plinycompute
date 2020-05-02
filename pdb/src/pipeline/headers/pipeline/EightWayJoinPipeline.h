@@ -17,9 +17,25 @@ public:
   // where we get the keys
   std::unordered_map<int32_t , PDBAbstractPageSetPtr> &keySourcePageSets;
 
-  using key = std::tuple<int32_t, int32_t, int32_t>;
+  struct key{
+    int32_t first;
+    int32_t second;
+    int32_t third;
+    friend bool operator==(const key &lhs, const key &rhs);
+    friend bool operator!=(const key &lhs, const key &rhs);
+  };
 
-  using joined_record = std::tuple<int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t>;
+  struct joined_record{int32_t first;
+                                int32_t second;
+                                int32_t third;
+                                int32_t fourth;
+                                int32_t fifth;
+                                int32_t sixth;
+                                int32_t seventh;
+                                int32_t eight;
+    friend bool operator==(const joined_record &lhs, const joined_record &rhs);
+    friend bool operator!=(const joined_record &lhs, const joined_record &rhs);
+  };
 
   class HashFunction {
    public:
@@ -28,7 +44,7 @@ public:
     // as hash function.
     size_t operator()(const key& k) const
     {
-      return std::get<0>(k) + std::get<1>(k) * 100 + std::get<2>(k) * 10000;
+      return k.first + k.second * 100 + k.third * 10000;
     }
   };
 

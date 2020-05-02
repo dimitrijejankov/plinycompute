@@ -180,14 +180,14 @@ private:
       // figure out the tid
       int32_t tid;
       switch (position) {
-        case 0: { tid = std::get<0>((joinedRecords)[currentRecord + i]); break; }
-        case 1: { tid = std::get<1>((joinedRecords)[currentRecord + i]); break; }
-        case 2: { tid = std::get<2>((joinedRecords)[currentRecord + i]); break; }
-        case 3: { tid = std::get<3>((joinedRecords)[currentRecord + i]); break; }
-        case 4: { tid = std::get<4>((joinedRecords)[currentRecord + i]); break; }
-        case 5: { tid = std::get<5>((joinedRecords)[currentRecord + i]); break; }
-        case 6: { tid = std::get<6>((joinedRecords)[currentRecord + i]); break; }
-        case 7: { tid = std::get<7>((joinedRecords)[currentRecord + i]); break; }
+        case 0: { tid = (joinedRecords)[currentRecord + i].first; break; }
+        case 1: { tid = (joinedRecords)[currentRecord + i].second; break; }
+        case 2: { tid = (joinedRecords)[currentRecord + i].third; break; }
+        case 3: { tid = (joinedRecords)[currentRecord + i].fourth; break; }
+        case 4: { tid = (joinedRecords)[currentRecord + i].fifth; break; }
+        case 5: { tid = (joinedRecords)[currentRecord + i].sixth; break; }
+        case 6: { tid = (joinedRecords)[currentRecord + i].seventh; break; }
+        case 7: { tid = (joinedRecords)[currentRecord + i].eight; break; }
         default: { throw runtime_error("Not good!"); }
       }
 

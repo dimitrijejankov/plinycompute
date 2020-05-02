@@ -182,7 +182,7 @@ public:
     for (auto i = start; i < end; ++i) {
 
       // get the tids
-      auto tid = std::get<0>((joinedRecords)[i]);
+      auto tid = (joinedRecords)[i].first;
 
       // find all the left ones we ned to join
       auto [pageID, recordID] = findRecord(tid);

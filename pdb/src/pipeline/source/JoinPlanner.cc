@@ -72,29 +72,29 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
     auto record = joined[jg];
 
     // copy the stuff
-    std::get<0>((*out->joinedRecords)[jg]) = std::get<0>(record);
-    std::get<1>((*out->joinedRecords)[jg]) = std::get<1>(record);
-    std::get<2>((*out->joinedRecords)[jg]) = std::get<2>(record);
-    std::get<3>((*out->joinedRecords)[jg]) = std::get<3>(record);
-    std::get<4>((*out->joinedRecords)[jg]) = std::get<4>(record);
-    std::get<5>((*out->joinedRecords)[jg]) = std::get<5>(record);
-    std::get<6>((*out->joinedRecords)[jg]) = std::get<6>(record);
-    std::get<7>((*out->joinedRecords)[jg]) = std::get<7>(record);
+    (*out->joinedRecords)[jg].first = record.first;
+    (*out->joinedRecords)[jg].second = record.second;
+    (*out->joinedRecords)[jg].third = record.third;
+    (*out->joinedRecords)[jg].fourth = record.fourth;
+    (*out->joinedRecords)[jg].fifth = record.fifth;
+    (*out->joinedRecords)[jg].sixth = record.sixth;
+    (*out->joinedRecords)[jg].seventh = record.seventh;
+    (*out->joinedRecords)[jg].eight = record.eight;
 
     // do the record to node mapping
-    (*out->recordToNode)[std::get<0>(record) * numNodes + node] = true;
-    (*out->recordToNode)[std::get<1>(record) * numNodes + node] = true;
-    (*out->recordToNode)[std::get<2>(record) * numNodes + node] = true;
-    (*out->recordToNode)[std::get<3>(record) * numNodes + node] = true;
-    (*out->recordToNode)[std::get<4>(record) * numNodes + node] = true;
-    (*out->recordToNode)[std::get<5>(record) * numNodes + node] = true;
-    (*out->recordToNode)[std::get<6>(record) * numNodes + node] = true;
-    (*out->recordToNode)[std::get<7>(record) * numNodes + node] = true;
+    (*out->recordToNode)[record.first * numNodes + node] = true;
+    (*out->recordToNode)[record.second * numNodes + node] = true;
+    (*out->recordToNode)[record.third * numNodes + node] = true;
+    (*out->recordToNode)[record.fourth * numNodes + node] = true;
+    (*out->recordToNode)[record.fifth * numNodes + node] = true;
+    (*out->recordToNode)[record.sixth * numNodes + node] = true;
+    (*out->recordToNode)[record.seventh * numNodes + node] = true;
+    (*out->recordToNode)[record.eight * numNodes + node] = true;
   }
 
   // copy the records with tid mappings
   for(auto &r : nodeRecords) {
-    (*out->records)[MatrixBlockMeta3D(r.first)] = r.second.first;
+    (*out->records)[MatrixBlockMeta3D(r.first.first, r.first.second, r.first.third)] = r.second.first;
   }
 
   // set the root object
