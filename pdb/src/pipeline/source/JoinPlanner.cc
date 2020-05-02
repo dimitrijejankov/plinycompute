@@ -3,6 +3,7 @@
 #include <UseTemporaryAllocationBlock.h>
 #include <PDBVector.h>
 #include <JoinPlannerResult.h>
+#include <GreedyPlanner.h>
 #include "../../../../applications/TestConvolution/sharedLibraries/headers/MatrixBlockMeta3D.h"
 
 using namespace pdb::matrix_3d;
@@ -19,32 +20,27 @@ pdb::JoinPlanner::JoinPlanner(uint32_t numNodes,
 void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
 
   // we need this for the planner
-  std::vector<std::vector<bool>> side_tids;
+  std::vector<char> side_tids;
 
   // allocate the side tids per node
-  side_tids.resize(numNodes);
-  for(int i = 0; i < numNodes; ++i) {
-    side_tids[i].resize(nodeRecords.size());
-  }
+  side_tids.resize(numNodes * nodeRecords.size());
 
   // mark it as true
   for(auto &r : nodeRecords) {
-    side_tids[r.second.second][r.second.first] = true;
+    side_tids[r.second.second * numNodes + r.second.first] = true;
   }
 
-  pdb::GeneticJoinPlanner planner(nodeRecords.size(),
-                                  joined.size(),
-                                  numNodes,
-                                  1, // need to get this parameter
-                                  side_tids,
-                                  joined,
-                                  40);
+  GreedyPlanner::costs_t c({1, 1, 2});
+  pdb::GreedyPlanner  planner(numNodes, c, side_tids, joined);
 
   // run for a number of iterations
-  planner.run(100);
+  planner.run_join_first_only();
+
+  // print it
+  planner.print();
 
   // get the result of the planning
-  auto result = planner.getResult();
+  auto result = planner.get_result();
 
   // write stuff to the page
   UseTemporaryAllocationBlock blk{page->getBytes(), page->getSize()};
@@ -69,7 +65,7 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
     (*out->mapping)[jg] = node;
 
     // get the joined record
-    auto record = joined[jg];
+    auto &record = joined[jg];
 
     // copy the stuff
     (*out->joinedRecords)[jg].first = record.first;
@@ -79,7 +75,7 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
     (*out->joinedRecords)[jg].fifth = record.fifth;
     (*out->joinedRecords)[jg].sixth = record.sixth;
     (*out->joinedRecords)[jg].seventh = record.seventh;
-    (*out->joinedRecords)[jg].eight = record.eight;
+    (*out->joinedRecords)[jg].eigth = record.eigth;
 
     // do the record to node mapping
     (*out->recordToNode)[record.first * numNodes + node] = true;
@@ -89,7 +85,7 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
     (*out->recordToNode)[record.fifth * numNodes + node] = true;
     (*out->recordToNode)[record.sixth * numNodes + node] = true;
     (*out->recordToNode)[record.seventh * numNodes + node] = true;
-    (*out->recordToNode)[record.eight * numNodes + node] = true;
+    (*out->recordToNode)[record.eigth * numNodes + node] = true;
   }
 
   // copy the records with tid mappings

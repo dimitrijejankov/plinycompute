@@ -137,15 +137,15 @@ void pdb::EightWayJoinPipeline::runJoin() {
     if(it == nodeRecords.end()) {
       continue;
     }
-    r.eight = it->second.first;
+    r.eigth = it->second.first;
 
     //// 7. Insert it
     joined.emplace_back(r);
   }
 }
 
-bool pdb::operator==(const pdb::EightWayJoinPipeline::joined_record &lhs,
-                     const pdb::EightWayJoinPipeline::joined_record &rhs) {
+bool pdb::operator==(const EightWayJoinPipeline::joined_record &lhs,
+                     const EightWayJoinPipeline::joined_record &rhs) {
   return lhs.first == rhs.first &&
       lhs.second == rhs.second &&
       lhs.third == rhs.third &&
@@ -153,12 +153,13 @@ bool pdb::operator==(const pdb::EightWayJoinPipeline::joined_record &lhs,
       lhs.fifth == rhs.fifth &&
       lhs.sixth == rhs.sixth &&
       lhs.seventh == rhs.seventh &&
-      lhs.eight == rhs.eight;
+      lhs.eigth == rhs.eigth;
 }
-bool pdb::operator!=(const pdb::EightWayJoinPipeline::joined_record &lhs,
-                     const pdb::EightWayJoinPipeline::joined_record &rhs) {
+bool pdb::operator!=(const EightWayJoinPipeline::joined_record &lhs,
+                     const EightWayJoinPipeline::joined_record &rhs) {
   return !(rhs == lhs);
 }
+
 bool pdb::operator==(const pdb::EightWayJoinPipeline::key &lhs, const pdb::EightWayJoinPipeline::key &rhs) {
   return lhs.first == rhs.first &&
       lhs.second == rhs.second &&

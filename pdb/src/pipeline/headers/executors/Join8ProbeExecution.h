@@ -187,7 +187,7 @@ private:
         case 4: { tid = (joinedRecords)[currentRecord + i].fifth; break; }
         case 5: { tid = (joinedRecords)[currentRecord + i].sixth; break; }
         case 6: { tid = (joinedRecords)[currentRecord + i].seventh; break; }
-        case 7: { tid = (joinedRecords)[currentRecord + i].eight; break; }
+        case 7: { tid = (joinedRecords)[currentRecord + i].eigth; break; }
         default: { throw runtime_error("Not good!"); }
       }
 

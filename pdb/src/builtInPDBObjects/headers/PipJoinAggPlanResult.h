@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Handle.h>
+#include <PDBVector.h>
 
 // PRELOAD %PipJoinAggPlanResult%
 

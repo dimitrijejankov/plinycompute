@@ -6,18 +6,34 @@
 namespace pdb {
 
 class EightWayJoinPipeline {
-public:
+ public:
 
-  explicit EightWayJoinPipeline(std::unordered_map<int32_t , PDBAbstractPageSetPtr> &keySourcePageSets) : keySourcePageSets(keySourcePageSets) {}
+  explicit EightWayJoinPipeline(std::unordered_map<int32_t, PDBAbstractPageSetPtr> &keySourcePageSets)
+      : keySourcePageSets(keySourcePageSets) {}
 
   void runSide(int node);
 
   void runJoin();
 
   // where we get the keys
-  std::unordered_map<int32_t , PDBAbstractPageSetPtr> &keySourcePageSets;
+  std::unordered_map<int32_t, PDBAbstractPageSetPtr> &keySourcePageSets;
 
-  struct key{
+  struct joined_record {
+    int32_t first;
+    int32_t second;
+    int32_t third;
+    int32_t fourth;
+    int32_t fifth;
+    int32_t sixth;
+    int32_t seventh;
+    int32_t eigth;
+    friend bool operator==(const joined_record &lhs, const joined_record &rhs);
+    friend bool operator!=(const joined_record &lhs, const joined_record &rhs);
+    joined_record() = default;
+  };
+
+
+  struct key {
     int32_t first;
     int32_t second;
     int32_t third;
@@ -25,25 +41,12 @@ public:
     friend bool operator!=(const key &lhs, const key &rhs);
   };
 
-  struct joined_record{int32_t first;
-                                int32_t second;
-                                int32_t third;
-                                int32_t fourth;
-                                int32_t fifth;
-                                int32_t sixth;
-                                int32_t seventh;
-                                int32_t eight;
-    friend bool operator==(const joined_record &lhs, const joined_record &rhs);
-    friend bool operator!=(const joined_record &lhs, const joined_record &rhs);
-  };
-
   class HashFunction {
    public:
 
     // Use sum of lengths of first and last names
     // as hash function.
-    size_t operator()(const key& k) const
-    {
+    size_t operator()(const key &k) const {
       return k.first + k.second * 100 + k.third * 10000;
     }
   };
@@ -59,7 +62,6 @@ public:
 
   // assign a tid
   int tid = 0;
-
 
 };
 

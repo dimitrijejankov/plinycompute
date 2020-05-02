@@ -64,7 +64,7 @@ public:
     for (int i = 0; i < joinedRecords.size(); ++i) {
 
       // get the join record and the node
-      auto jr = joinedRecords[i];
+      auto &jr = joinedRecords[i];
       auto node = genome.genes[i];
 
       // get where all the records are
@@ -75,7 +75,7 @@ public:
       auto j5 = jr.fifth;
       auto j6 = jr.sixth;
       auto j7 = jr.seventh;
-      auto j8 = jr.eight;
+      auto j8 = jr.eigth;
 
       tempRequirements[node][j1] = true;
       tempRequirements[node][j2] = true;
