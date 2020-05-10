@@ -8,6 +8,7 @@ using namespace pdb;
 using namespace pdb::matrix_3d;
 
 // some constants for the test
+const uint32_t numChannels = 3;
 const size_t blockSize = 6;
 const uint32_t matrixRows = 4000;
 const uint32_t matrixColumns = 4000;
@@ -48,7 +49,8 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
                                                                 std::get<2>(tuplesToSend[i]),
                                                                 blockSize,
                                                                 blockSize,
-                                                                blockSize);
+                                                                blockSize,
+                                                                numChannels);
 
         myInt->data->isTopBorder = std::get<1>(tuplesToSend[i]) == 0;
         myInt->data->isLeftBorder = std::get<0>(tuplesToSend[i]) == 0;
@@ -59,7 +61,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
         // init the values
         float *vals = myInt->data->data->c_ptr();
-        for (int v = 0; v < blockSize * blockSize * blockSize; ++v) {
+        for (uint32_t v = 0; v < blockSize * blockSize * blockSize * numChannels; ++v) {
           vals[v] = 1.0f * v;
         }
 

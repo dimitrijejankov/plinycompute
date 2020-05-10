@@ -29,7 +29,7 @@ void write_to_tensor(float *out, int x_out_stride, int y_out_stride, int z_out_s
     }
 
     // move to next channel
-    out = &get_out(out, x_out_stride, y_out_stride, z_out_stride);
+    out = out + (x_out_stride * y_out_stride * z_out_stride);
   }
 }
 
@@ -80,7 +80,7 @@ void _process(float *top_left_front,
   /// 1. Form the input tensor
 
   // allocate the memory
-  auto *in_tmp = (float *) calloc(x_in_size * y_in_size * z_in_size, sizeof(float));
+  auto *in_tmp = (float *) calloc(x_in_size * y_in_size * z_in_size * input_channels, sizeof(float));
 
   // -------------------------------------------------TOP-------------------------------------------------------------
 

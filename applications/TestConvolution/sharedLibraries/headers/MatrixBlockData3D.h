@@ -13,6 +13,12 @@ class MatrixBlockData3D : public pdb::Object {
    */
   MatrixBlockData3D() = default;
 
+  MatrixBlockData3D(uint32_t x_size, uint32_t y_size, uint32_t z_size, uint32_t channels) : x_size(x_size), y_size(y_size), z_size(z_size) {
+
+    // allocate the data
+    data = makeObject<Vector<float>>(x_size * y_size * z_size * channels, x_size * y_size * z_size * channels);
+  }
+
   MatrixBlockData3D(uint32_t x_size, uint32_t y_size, uint32_t z_size) : x_size(x_size), y_size(y_size), z_size(z_size) {
 
     // allocate the data

@@ -42,7 +42,12 @@ class MatrixBlock3D : public pdb::Object {
    */
   MatrixBlock3D(uint32_t x_id, uint32_t y_id, uint32_t z_id, uint32_t x_size, uint32_t y_size, uint32_t z_size) {
     metaData = makeObject<MatrixBlockMeta3D>(x_id, y_id, z_id),
-    data = makeObject<MatrixBlockData3D>(x_size, y_size, z_size);
+    data = makeObject<MatrixBlockData3D>(x_size, y_size, z_size, 1);
+  }
+
+  MatrixBlock3D(uint32_t x_id, uint32_t y_id, uint32_t z_id, uint32_t x_size, uint32_t y_size, uint32_t z_size, uint32_t channels) {
+    metaData = makeObject<MatrixBlockMeta3D>(x_id, y_id, z_id),
+    data = makeObject<MatrixBlockData3D>(x_size, y_size, z_size, channels);
   }
 
   ENABLE_DEEP_COPY

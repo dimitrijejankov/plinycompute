@@ -153,7 +153,7 @@ class MatrixConv3DJoin : public JoinComp<MatrixConv3DJoin, MatrixConvResult, /**
           Handle<Vector<MatrixBlockData3D>> out = makeObject<Vector<MatrixBlockData3D>>(1, 1);
 
           // init the filters
-          (*out)[0] = MatrixBlockData3D(x_in_size - 3 + 1, y_in_size - 3 + 1, z_in_size - 3 + 1);
+          (*out)[0] = MatrixBlockData3D(x_in_size - 3 + 1, y_in_size - 3 + 1, z_in_size - 3 + 1, num_out_channels);
 
           process(top_left_front->data->c_ptr(),
                   top_right_front->data->c_ptr(),
@@ -177,8 +177,8 @@ class MatrixConv3DJoin : public JoinComp<MatrixConv3DJoin, MatrixConvResult, /**
                   3,
                   3,
                   3,
-                  1,
-                  5);
+                  num_in_channels,
+                  num_out_channels);
 
           // return the output
           return out;
@@ -186,6 +186,8 @@ class MatrixConv3DJoin : public JoinComp<MatrixConv3DJoin, MatrixConvResult, /**
   }
 
   uint32_t block_size;
+  uint32_t num_out_channels = 5;
+  uint32_t num_in_channels = 3;
 };
 
 }
