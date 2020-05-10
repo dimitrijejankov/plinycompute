@@ -25,7 +25,10 @@ class MatrixConv3DJoin : public JoinComp<MatrixConv3DJoin, MatrixConvResult, /**
 
   ENABLE_DEEP_COPY
 
-  MatrixConv3DJoin(uint32_t block_size) : block_size(block_size) {}
+  MatrixConv3DJoin(uint32_t block_size_x, uint32_t block_size_y, uint32_t block_size_z, uint32_t num_channels) : block_size_x(block_size_x),
+                                                                                                                 block_size_y(block_size_y),
+                                                                                                                 block_size_z(block_size_z),
+                                                                                                                 num_in_channels(num_channels) {}
 
   MatrixConv3DJoin() = default;
 
@@ -40,12 +43,12 @@ class MatrixConv3DJoin : public JoinComp<MatrixConv3DJoin, MatrixConvResult, /**
                                       Handle<MatrixBlockMeta3D> bottom_right_back) { //  in1
 
     return (makeLambdaFromMethod (top_left_front, right) == makeLambdaFromSelf(top_right_front)) &&
-        (makeLambdaFromMethod (top_left_front, below) == makeLambdaFromSelf(bottom_left_front)) &&
-        (makeLambdaFromMethod (top_left_front, right) == makeLambdaFromMethod (bottom_right_front, above)) &&
-        (makeLambdaFromMethod (top_left_front, back) == makeLambdaFromSelf(top_left_back)) &&
-        (makeLambdaFromMethod (top_left_back, right) == makeLambdaFromSelf(top_right_back)) &&
-        (makeLambdaFromMethod (top_left_back, below) == makeLambdaFromSelf(bottom_left_back)) &&
-        (makeLambdaFromMethod (top_left_back, right) == makeLambdaFromMethod (bottom_right_back, above));
+           (makeLambdaFromMethod (top_left_front, below) == makeLambdaFromSelf(bottom_left_front)) &&
+           (makeLambdaFromMethod (top_left_front, right) == makeLambdaFromMethod (bottom_right_front, above)) &&
+           (makeLambdaFromMethod (top_left_front, back) == makeLambdaFromSelf(top_left_back)) &&
+           (makeLambdaFromMethod (top_left_back, right) == makeLambdaFromSelf(top_right_back)) &&
+           (makeLambdaFromMethod (top_left_back, below) == makeLambdaFromSelf(bottom_left_back)) &&
+           (makeLambdaFromMethod (top_left_back, right) == makeLambdaFromMethod (bottom_right_back, above));
   }
 
   Lambda<Handle<MatrixBlockMeta3D>> getKeyProjection(Handle<MatrixBlockMeta3D> top_left_front,
@@ -93,60 +96,60 @@ class MatrixConv3DJoin : public JoinComp<MatrixConv3DJoin, MatrixConvResult, /**
                       top_right_back,
                       bottom_left_back,
                       bottom_right_back, [&](Handle<MatrixBlockData3D> &top_left_front,
-                                             Handle<MatrixBlockData3D> &top_right_front,
-                                             Handle<MatrixBlockData3D> &bottom_left_front,
-                                             Handle<MatrixBlockData3D> &bottom_right_front,
-                                             Handle<MatrixBlockData3D> &top_left_back,
-                                             Handle<MatrixBlockData3D> &top_right_back,
-                                             Handle<MatrixBlockData3D> &bottom_left_back,
-                                             Handle<MatrixBlockData3D> &bottom_right_back) {
+                                                     Handle<MatrixBlockData3D> &top_right_front,
+                                                     Handle<MatrixBlockData3D> &bottom_left_front,
+                                                     Handle<MatrixBlockData3D> &bottom_right_front,
+                                                     Handle<MatrixBlockData3D> &top_left_back,
+                                                     Handle<MatrixBlockData3D> &top_right_back,
+                                                     Handle<MatrixBlockData3D> &bottom_left_back,
+                                                     Handle<MatrixBlockData3D> &bottom_right_back) {
 
-          int my_x_offset = block_size / 2;
-          int my_y_offset = block_size / 2;
-          int my_z_offset = block_size / 2;
+          int my_x_offset = block_size_x / 2;
+          int my_y_offset = block_size_y / 2;
+          int my_z_offset = block_size_z / 2;
 
-          int my_x_boundary = block_size / 2;
-          int my_y_boundary = block_size / 2;
-          int my_z_boundary = block_size / 2;
+          int my_x_boundary = block_size_x / 2;
+          int my_y_boundary = block_size_y / 2;
+          int my_z_boundary = block_size_z / 2;
 
-          auto x_in_size = block_size;
-          auto y_in_size = block_size;
-          auto z_in_size = block_size;
+          auto x_in_size = block_size_x;
+          auto y_in_size = block_size_y;
+          auto z_in_size = block_size_z;
 
           // if the left ones are on the left boundary
           if (top_left_front->isLeftBorder) {
-            x_in_size += block_size / 2;
-            my_x_offset -= block_size / 2;
+            x_in_size += block_size_x / 2;
+            my_x_offset -= block_size_x / 2;
           }
 
           // if the right ones are the the right boundary
           if (top_right_front->isRightBorder) {
-            x_in_size += block_size / 2;
-            my_x_boundary -= block_size / 2;
+            x_in_size += block_size_x / 2;
+            my_x_boundary -= block_size_x / 2;
           }
 
           // if the top ones are on the top boundary
           if (top_left_front->isTopBorder) {
-            y_in_size += block_size / 2;
-            my_y_offset -= block_size / 2;
+            y_in_size += block_size_y / 2;
+            my_y_offset -= block_size_y / 2;
           }
 
           // if the bottom ones are on the bottom boundary
           if (bottom_left_front->isBottomBorder) {
-            y_in_size += block_size / 2;
-            my_y_boundary -= block_size / 2;
+            y_in_size += block_size_y / 2;
+            my_y_boundary -= block_size_y / 2;
           }
 
           // figure out the boundary for the z axis
           if (bottom_left_front->isFrontBorder) {
-            z_in_size += block_size / 2;
-            my_z_offset -= block_size / 2;
+            z_in_size += block_size_z / 2;
+            my_z_offset -= block_size_z / 2;
           }
 
           // figure out the boundary for the z axis
-          if (bottom_left_front->isBackBorder) {
-            z_in_size += block_size / 2;
-            my_z_boundary -= block_size / 2;
+          if (bottom_left_back->isBackBorder) {
+            z_in_size += block_size_z / 2;
+            my_z_boundary -= block_size_z / 2;
           }
 
           // make an output
@@ -164,7 +167,9 @@ class MatrixConv3DJoin : public JoinComp<MatrixConv3DJoin, MatrixConvResult, /**
                   bottom_left_back->data->c_ptr(),
                   bottom_right_back->data->c_ptr(),
                   (*out)[0].data->c_ptr(),
-                  block_size,
+                  block_size_x,
+                  block_size_y,
+                  block_size_z,
                   x_in_size,
                   y_in_size,
                   z_in_size,
@@ -185,7 +190,9 @@ class MatrixConv3DJoin : public JoinComp<MatrixConv3DJoin, MatrixConvResult, /**
         });
   }
 
-  uint32_t block_size;
+  uint32_t block_size_x;
+  uint32_t block_size_y;
+  uint32_t block_size_z;
   uint32_t num_out_channels = 5;
   uint32_t num_in_channels = 3;
 };

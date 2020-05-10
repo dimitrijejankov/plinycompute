@@ -9,7 +9,9 @@ using namespace pdb::matrix_3d;
 
 // some constants for the test
 const uint32_t numChannels = 3;
-const size_t blockSize = 6;
+const size_t block_size_x = 4;
+const size_t block_size_y = 6;
+const size_t block_size_z = 8;
 const uint32_t matrixRows = 4000;
 const uint32_t matrixColumns = 4000;
 const uint32_t numX = 4;
@@ -28,12 +30,12 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
     }
   }
 
-  // make the allocation block
+    // make the allocation block
   size_t i = 0;
   while (i != tuplesToSend.size()) {
 
     // use temporary allocation block
-    const pdb::UseTemporaryAllocationBlock tempBlock{blockSize * 1024 * 1024};
+    const pdb::UseTemporaryAllocationBlock tempBlock{64 * 1024 * 1024};
 
     // put the chunks here
     Handle<Vector<Handle<MatrixBlock3D>>> data = pdb::makeObject<Vector<Handle<MatrixBlock3D>>>();
@@ -47,22 +49,23 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
         Handle<MatrixBlock3D> myInt = makeObject<MatrixBlock3D>(std::get<0>(tuplesToSend[i]),
                                                                 std::get<1>(tuplesToSend[i]),
                                                                 std::get<2>(tuplesToSend[i]),
-                                                                blockSize,
-                                                                blockSize,
-                                                                blockSize,
+                                                                block_size_x,
+                                                                block_size_y,
+                                                                block_size_z,
                                                                 numChannels);
 
-        myInt->data->isTopBorder = std::get<1>(tuplesToSend[i]) == 0;
         myInt->data->isLeftBorder = std::get<0>(tuplesToSend[i]) == 0;
-        myInt->data->isFrontBorder = std::get<2>(tuplesToSend[i]) == 0;
-        myInt->data->isBottomBorder = std::get<1>(tuplesToSend[i]) == numX - 1;
-        myInt->data->isRightBorder = std::get<0>(tuplesToSend[i]) == numY - 1;
-        myInt->data->isBackBorder = std::get<2>(tuplesToSend[i]) == numZ - 1;
+        myInt->data->isBottomBorder = std::get<1>(tuplesToSend[i]) == 0;
+        myInt->data->isBackBorder = std::get<2>(tuplesToSend[i]) == 0;
+
+        myInt->data->isRightBorder = std::get<0>(tuplesToSend[i]) == numX - 1;
+        myInt->data->isTopBorder = std::get<1>(tuplesToSend[i]) == numY - 1;
+        myInt->data->isFrontBorder = std::get<2>(tuplesToSend[i]) == numZ - 1;
 
         // init the values
         float *vals = myInt->data->data->c_ptr();
-        for (uint32_t v = 0; v < blockSize * blockSize * blockSize * numChannels; ++v) {
-          vals[v] = 1.0f * v;
+        for (uint32_t v = 0; v < block_size_x * block_size_y * block_size_z * numChannels; ++v) {
+          vals[v] = 1.0f * i + 1;
         }
 
         // we add the matrix to the block
@@ -129,7 +132,7 @@ int main(int argc, char *argv[]) {
   Handle<Computation> a8 = pdb::makeObject<pdb::matrix_3d::Matrix3DScanner>("myData", "A");
 
   // g
-  Handle<Computation> join = pdb::makeObject<pdb::matrix_3d::MatrixConv3DJoin>(blockSize);
+  Handle<Computation> join = pdb::makeObject<pdb::matrix_3d::MatrixConv3DJoin>(block_size_x, block_size_y, block_size_z, numChannels);
   join->setInput(0, a1);
   join->setInput(1, a2);
   join->setInput(2, a3);
