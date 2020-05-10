@@ -8,7 +8,7 @@ using namespace pdb;
 using namespace pdb::matrix_3d;
 
 // some constants for the test
-const size_t blockSize = 64;
+const size_t blockSize = 6;
 const uint32_t matrixRows = 4000;
 const uint32_t matrixColumns = 4000;
 const uint32_t numX = 4;
@@ -50,11 +50,11 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
                                                                 blockSize,
                                                                 blockSize);
 
-        myInt->data->isLeftBorder = std::get<0>(tuplesToSend[i]) == 0;
         myInt->data->isTopBorder = std::get<1>(tuplesToSend[i]) == 0;
+        myInt->data->isLeftBorder = std::get<0>(tuplesToSend[i]) == 0;
         myInt->data->isFrontBorder = std::get<2>(tuplesToSend[i]) == 0;
-        myInt->data->isBottomBorder = std::get<0>(tuplesToSend[i]) == numX - 1;
-        myInt->data->isRightBorder = std::get<1>(tuplesToSend[i]) == numY - 1;
+        myInt->data->isBottomBorder = std::get<1>(tuplesToSend[i]) == numX - 1;
+        myInt->data->isRightBorder = std::get<0>(tuplesToSend[i]) == numY - 1;
         myInt->data->isBackBorder = std::get<2>(tuplesToSend[i]) == numZ - 1;
 
         // init the values
@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
   Handle<Computation> a8 = pdb::makeObject<pdb::matrix_3d::Matrix3DScanner>("myData", "A");
 
   // g
-  Handle<Computation> join = pdb::makeObject<pdb::matrix_3d::MatrixConv3DJoin>();
+  Handle<Computation> join = pdb::makeObject<pdb::matrix_3d::MatrixConv3DJoin>(blockSize);
   join->setInput(0, a1);
   join->setInput(1, a2);
   join->setInput(2, a3);

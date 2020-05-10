@@ -2,9 +2,12 @@ cmake_minimum_required(VERSION 3.12)
 
 project(pdb)
 
+# for aten
+set(CMAKE_PREFIX_PATH /home/dimitrije/applications/libtorch)
+
 # suppress some warning if intel
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-    set(CMAKE_CXX_FLAGS "-wd873,2196")
+    set(CMAKE_CXX_FLAGS "-wd873,2196 -qopenmp")
 endif()
 
 # set the output directory
@@ -17,7 +20,8 @@ set(CTEST_BINARY_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 set(CMAKE_CXX_STANDARD 17)
 
 # check the operating system and add the appropriate flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wno-deprecated-declarations")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wno-deprecated-declarations -g3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 # the default build type is debug
 if(CMAKE_BUILD_TYPE STREQUAL "")
@@ -161,12 +165,10 @@ FIND_PACKAGE(FLEX REQUIRED)
 set(LogicalPlanFlexOutput ${CMAKE_SOURCE_DIR}/pdb/src/logicalPlan/source/Lexer.c)
 
 # if you want to use a custom version of boost set -DUSE_CUSTOM_BOOST=ON and -DCUSTOM_BOOST_LOCATION=/path/to/boost
-IF(USE_CUSTOM_BOOST)
 
-   # set the custom location
-   set(Boost_INCLUDE_DIRS ${CUSTOM_BOOST_LOCATION}/include)
-   set(Boost_LIBRARY_DIRS ${CUSTOM_BOOST_LOCATION}/lib)
-ENDIF()
+# set the custom location
+set(Boost_INCLUDE_DIRS /home/dimitrije/applications/boost_1_73_0)
+set(Boost_LIBRARY_DIRS /home/dimitrije/applications/boost_1_73_0/stage/lib)
 
 # find the boost package
 set(Boost_NO_BOOST_CMAKE ON)
@@ -204,11 +206,6 @@ IF (BISON_FOUND)
             BUILD_BYPRODUCTS ${LogicalPlanParserOutput}
     )
 ENDIF ()
-
-# find blas
-set(MKL_ROOT /opt/intel/mkl)
-find_package(MKL)
-INCLUDE_DIRECTORIES(${MKL_INCLUDE_PATH})
 
 #find snappy
 FIND_PACKAGE(Snappy REQUIRED)
