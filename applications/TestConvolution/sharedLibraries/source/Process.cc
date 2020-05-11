@@ -61,25 +61,6 @@ void _process(float *top_left_front,
               int input_channels,
               int output_channels) {
 
-  std::cout << "block_size : " << block_size_x << '\n';
-  std::cout << "block_size : " << block_size_y << '\n';
-  std::cout << "block_size : " << block_size_z << '\n';
-  std::cout << "x_in_size : " << x_in_size << '\n';
-  std::cout << "y_in_size : " << y_in_size << '\n';
-  std::cout << "z_in_size : " << z_in_size << '\n';
-  std::cout << "my_x_offset : " << my_x_offset << '\n';
-  std::cout << "my_y_offset : " << my_y_offset << '\n';
-  std::cout << "my_z_offset : " << my_z_offset << '\n';
-  std::cout << "my_x_boundary : " << my_x_boundary << '\n';
-  std::cout << "my_y_boundary : " << my_y_boundary << '\n';
-  std::cout << "my_z_boundary : " << my_z_boundary << '\n';
-  std::cout << "x_kernel_size : " << x_kernel_size << '\n';
-  std::cout << "y_kernel_size : " << y_kernel_size << '\n';
-  std::cout << "z_kernel_size : " << z_kernel_size << '\n';
-  std::cout << "input_channels : " << input_channels << '\n';
-  std::cout << "output_channels : " << output_channels << '\n';
-
-
   /// 1. Form the input tensor
 
   // allocate the memory
@@ -145,8 +126,6 @@ void _process(float *top_left_front,
   // make an output
   at::Tensor b = at::rand({output_channels, input_channels, 3, 3, 3});
   auto c = at::conv3d(a, b);
-
-  std::cout << a << "\n";
 
   /// 3. Make the output
   // do the copy

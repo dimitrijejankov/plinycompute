@@ -1,5 +1,6 @@
 #include <PDBClient.h>
 #include <GenericWork.h>
+#include <fstream>
 #include "sharedLibraries/headers/Matrix3DScanner.h"
 #include "sharedLibraries/headers/Matrix3DWriter.h"
 #include "sharedLibraries/headers/MatrixConv3DJoin.h"
@@ -9,28 +10,41 @@ using namespace pdb::matrix_3d;
 
 // some constants for the test
 const uint32_t numChannels = 3;
-const size_t block_size_x = 4;
-const size_t block_size_y = 6;
-const size_t block_size_z = 8;
-const uint32_t matrixRows = 4000;
-const uint32_t matrixColumns = 4000;
-const uint32_t numX = 4;
-const uint32_t numY = 4;
-const uint32_t numZ = 4;
+
+size_t block_size_x = 4;
+size_t block_size_y = 6;
+size_t block_size_z = 8;
+
+int32_t numX = 4;
+int32_t numY = 4;
+int32_t numZ = 4;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
+  std::ifstream myFile ("/home/dimitrije/PycharmProjects/gen/out.bin", ios::in | ios::binary);
+
+  // read the header
+  myFile.read((char*) &numX, 4);
+  myFile.read((char*) &numY, 4);
+  myFile.read((char*) &numZ, 4);
+  myFile.read((char*) &block_size_x, 4);
+  myFile.read((char*) &block_size_y, 4);
+  myFile.read((char*) &block_size_z, 4);
+
   // fill the vector up
   std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> tuplesToSend;
-  for (uint32_t x = 0; x < numX; x++) {
-    for (uint32_t y = 0; y < numY; y++) {
-      for (uint32_t z = 0; z < numZ; z++) {
+  for (int32_t x = 0; x < numX; x++) {
+    for (int32_t y = 0; y < numY; y++) {
+      for (int32_t z = 0; z < numZ; z++) {
         tuplesToSend.emplace_back(std::make_tuple(x, y, z));
       }
     }
   }
 
-    // make the allocation block
+  // we read stuff in here
+  char tmp;
+
+  // make the allocation block
   size_t i = 0;
   while (i != tuplesToSend.size()) {
 
@@ -65,7 +79,8 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
         // init the values
         float *vals = myInt->data->data->c_ptr();
         for (uint32_t v = 0; v < block_size_x * block_size_y * block_size_z * numChannels; ++v) {
-          vals[v] = 1.0f * i + 1;
+          myFile.read((char*) &tmp, 1);
+          vals[v] = 1.0f * tmp;
         }
 
         // we add the matrix to the block
