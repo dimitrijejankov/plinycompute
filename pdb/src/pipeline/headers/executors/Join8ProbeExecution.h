@@ -123,7 +123,7 @@ private:
     joinGroupEnd += workerID == (numWorkers - 1) ? (int32_t) joinedRecords.size()% numWorkers : 0;
 
     // we start from record zero
-    currentRecord = 0;
+    currentRecord = joinGroupStart;
   }
 
   // helper functions to find a record
