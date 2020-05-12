@@ -232,14 +232,14 @@ ReturnType RequestFactory::dataHeapRequest(PDBLoggerPtr logger, int port, const 
     // get the record
     auto* myRecord = (Record<Vector<Handle<Object>>>*) getRecord(dataToSend);
 
-    auto maxCompressedSize = snappy::MaxCompressedLength(myRecord->numBytes());
+    auto maxCompressedSize = myRecord->numBytes();
 
     // allocate the bytes for the compressed record
     std::unique_ptr<char[]> compressedBytes(new char[maxCompressedSize]);
 
     // compress the record
-    size_t compressedSize;
-    snappy::RawCompress((char*) myRecord, myRecord->numBytes(), compressedBytes.get(), &compressedSize);
+    size_t compressedSize = maxCompressedSize;
+    memcpy(compressedBytes.get(), (char*) myRecord, myRecord->numBytes());
 
     // log what we are doing
     logger->info("size before compression is "  + std::to_string(myRecord->numBytes()) + " and size after compression is " + std::to_string(compressedSize));
@@ -348,14 +348,14 @@ ReturnType RequestFactory::dataKeyHeapRequest(PDBLoggerPtr logger, int port, con
   // get the record
   auto* myRecord = (Record<Vector<Handle<DataType>>>*) getRecord(dataToSend);
 
-  auto maxCompressedSize = snappy::MaxCompressedLength(myRecord->numBytes());
+  auto maxCompressedSize = myRecord->numBytes();
 
   // allocate the bytes for the compressed record
   std::unique_ptr<char[]> compressedBytes(new char[maxCompressedSize]);
 
   // compress the record
-  size_t compressedSize;
-  snappy::RawCompress((char*) myRecord, myRecord->numBytes(), compressedBytes.get(), &compressedSize);
+  size_t compressedSize = maxCompressedSize;
+  memcpy(compressedBytes.get(), (char*) myRecord, myRecord->numBytes());
 
   // log what we are doing
   logger->info("size before compression is "  + std::to_string(myRecord->numBytes()) + " and size after compression is " + std::to_string(compressedSize));
@@ -433,7 +433,8 @@ ReturnType RequestFactory::dataKeyHeapRequest(PDBLoggerPtr logger, int port, con
       auto keyRecord = getRecord(tmp);
 
       // compress the record
-      snappy::RawCompress((char*) keyRecord, keyRecord->numBytes(), compressedBytes.get(), &compressedSize);
+      compressedSize = keyRecord->numBytes();
+      memcpy(compressedBytes.get(), (char*) keyRecord, keyRecord->numBytes());
 
       // now, send the bytes
       if (!temp.sendBytes(compressedBytes.get(), compressedSize, errMsg)) {

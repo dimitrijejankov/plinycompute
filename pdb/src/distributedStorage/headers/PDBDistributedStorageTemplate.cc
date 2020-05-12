@@ -376,11 +376,10 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
   sendUsingMe->receiveBytes(page->getBytes(), error);
 
   // check the uncompressed size
-  size_t uncompressedSize = 0;
-  snappy::GetUncompressedLength((char *) page->getBytes(), numBytes, &uncompressedSize);
+  size_t uncompressedSize = numBytes;
 
   // check the uncompressed size
-  if (bufferManager->getMaxPageSize() < uncompressedSize) {
+  if (bufferManager->getMaxPageSize() <= uncompressedSize) {
 
     // make the error string
     std::string errMsg = "The uncompressed size is larger than the maximum page size";
@@ -460,8 +459,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
     sendUsingMe->receiveBytes(page->getBytes(), error);
 
     // check the uncompressed size
-    uncompressedSize = 0;
-    snappy::GetUncompressedLength((char *) page->getBytes(), numBytes, &uncompressedSize);
+    uncompressedSize = numBytes;
 
     // check the uncompressed size
     if (bufferManager->getMaxPageSize() < uncompressedSize) {

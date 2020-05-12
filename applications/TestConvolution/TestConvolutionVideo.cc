@@ -21,6 +21,16 @@ int32_t numZ = 4;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
+  std::ifstream myFile ("/home/dimitrije/PycharmProjects/gen/out.bin", ios::in | ios::binary);
+
+  // read the header
+  myFile.read((char*) &numX, 4);
+  myFile.read((char*) &numY, 4);
+  myFile.read((char*) &numZ, 4);
+  myFile.read((char*) &block_size_x, 4);
+  myFile.read((char*) &block_size_y, 4);
+  myFile.read((char*) &block_size_z, 4);
+
   // fill the vector up
   std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> tuplesToSend;
   for (int32_t x = 0; x < numX; x++) {
@@ -31,7 +41,8 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
     }
   }
 
-  int x = 0;
+  // we read stuff in here
+  char tmp;
 
   // make the allocation block
   size_t i = 0;
@@ -68,7 +79,8 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
         // init the values
         float *vals = myInt->data->data->c_ptr();
         for (uint32_t v = 0; v < block_size_x * block_size_y * block_size_z * numChannels; ++v) {
-          vals[v] = 1.0f * x++;
+          myFile.read((char*) &tmp, 1);
+          vals[v] = 1.0f * tmp;
         }
 
         // we add the matrix to the block

@@ -207,9 +207,6 @@ IF (BISON_FOUND)
     )
 ENDIF ()
 
-#find snappy
-FIND_PACKAGE(Snappy REQUIRED)
-
 # the files generated from the type codes
 set(BUILT_IN_OBJECT_TYPE_ID        ${CMAKE_SOURCE_DIR}/pdb/src/objectModel/headers/BuiltInObjectTypeIDs.h)
 set(BUILT_IN_PDB_OBJECTS           ${CMAKE_SOURCE_DIR}/pdb/src/objectModel/headers/BuiltinPDBObjects.h)

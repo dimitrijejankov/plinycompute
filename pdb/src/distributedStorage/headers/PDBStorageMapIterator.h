@@ -216,8 +216,7 @@ class PDBStorageMapIterator<T, typename std::enable_if<hasGetKey<T>::value and h
     }
 
     // get the uncompressed size
-    size_t uncompressedSize = 0;
-    snappy::GetUncompressedLength(compressedBuffer.get(), compressedBufferSize, &uncompressedSize);
+    size_t uncompressedSize = compressedBufferSize;
 
     // allocate some memory if we need it
     if (bufferSize < uncompressedSize) {
@@ -232,7 +231,7 @@ class PDBStorageMapIterator<T, typename std::enable_if<hasGetKey<T>::value and h
     }
 
     // uncompress and copy to buffer
-    snappy::RawUncompress((char *) compressedBuffer.get(), compressedBufferSize, (char *) buffer.get());
+    memcpy((char *) buffer.get(), (char *) compressedBuffer.get(), compressedBufferSize);
 
     // grab the current map
     currMap = ((Record<Map<Key, Value>> *) (buffer.get()))->getRootObject();

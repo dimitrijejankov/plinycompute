@@ -5,7 +5,6 @@
 #include <HeapRequest.h>
 #include <StoGetNextPageRequest.h>
 #include <StoGetNextPageResult.h>
-#include <snappy.h>
 
 namespace pdb {
 
@@ -162,11 +161,10 @@ bool PDBStorageVectorIterator<T>::getNextPage(bool isFirst) {
   }
 
   // get the uncompressed size
-  size_t uncompressedSize = 0;
-  snappy::GetUncompressedLength(compressedBuffer.get(), compressedBufferSize, &uncompressedSize);
+  size_t uncompressedSize = readSize;
 
   // allocate some memory if we need it
-  if (bufferSize < uncompressedSize) {
+  if (bufferSize <= uncompressedSize) {
 
     // allocate the memory
     buffer = std::unique_ptr<char[]>(new char[uncompressedSize]);
@@ -178,7 +176,7 @@ bool PDBStorageVectorIterator<T>::getNextPage(bool isFirst) {
   }
 
   // uncompress and copy to buffer
-  snappy::RawUncompress((char *) compressedBuffer.get(), compressedBufferSize, (char *) buffer.get());
+  memcpy((char *) buffer.get(), (char *) compressedBuffer.get(), compressedBufferSize);
 
   // we succeeded
   return true;

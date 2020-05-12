@@ -68,12 +68,11 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageReques
   auto* pageRecord = (pdb::Record<pdb::Vector<pdb::Handle<pdb::Object>>> *) (page->getBytes());
 
   // grab an anonymous page to store the compressed stuff //TODO this kind of sucks since the max compressed size can be larger than the actual size
-  auto maxCompressedSize = std::min<size_t>(snappy::MaxCompressedLength(pageRecord->numBytes()), 128 * 1024 * 1024);
-  auto compressedPage = getFunctionalityPtr<PDBBufferManagerInterface>()->getPage(maxCompressedSize);
+  auto compressedPage = getFunctionalityPtr<PDBBufferManagerInterface>()->getPage(pageRecord->numBytes());
 
   // compress the record
-  size_t compressedSize;
-  snappy::RawCompress((char*) pageRecord, pageRecord->numBytes(), (char*)compressedPage->getBytes(), &compressedSize);
+  size_t compressedSize = pageRecord->numBytes();
+  memcpy(compressedPage->getBytes(), (char*) pageRecord, pageRecord->numBytes());
 
   /// 4. Send the compressed page
 
@@ -137,8 +136,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
 
   // figure out the size so we can increment it
   // check the uncompressed size
-  size_t uncompressedSize = 0;
-  snappy::GetUncompressedLength((char*) page->getBytes(), numBytes, &uncompressedSize);
+  size_t uncompressedSize = numBytes;
 
   /// 2. Figure out the page we want to put this thing onto
 

@@ -18,7 +18,6 @@
 
 #include "PDBDistributedStorage.h"
 #include "PDBDispatchRoundRobinPolicy.h"
-#include <snappy.h>
 #include <HeapRequestHandler.h>
 #include <DisAddData.h>
 #include <DisClearSet.h>

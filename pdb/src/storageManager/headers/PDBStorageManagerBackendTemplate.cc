@@ -23,14 +23,13 @@ std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStoreData(cons
   auto inPage = bufferManager->expectPage(sendUsingMe);
 
   // check the uncompressed size
-  size_t uncompressedSize = 0;
-  snappy::GetUncompressedLength((char*) inPage->getBytes(), request->compressedSize, &uncompressedSize);
+  size_t uncompressedSize = request->compressedSize;
 
   // grab the page
   auto outPage = bufferManager->getPage(make_shared<pdb::PDBSet>(request->databaseName, request->setName), request->page);
 
   // uncompress and copy to page
-  snappy::RawUncompress((char*) inPage->getBytes(), request->compressedSize, (char*) outPage->getBytes());
+  memcpy((char*) outPage->getBytes(), (char*) inPage->getBytes(), request->compressedSize);
 
   // freeze the page
   outPage->freezeSize(uncompressedSize);
@@ -87,14 +86,13 @@ std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handleStoreKeys(cons
   auto inPage = bufferManager->expectPage(sendUsingMe);
 
   // check the uncompressed size
-  size_t uncompressedSize = 0;
-  snappy::GetUncompressedLength((char*) inPage->getBytes(), request->compressedSize, &uncompressedSize);
+  size_t uncompressedSize = request->compressedSize;
 
   // grab the page
   auto outPage = bufferManager->getPage(make_shared<pdb::PDBSet>(request->databaseName, request->setName), request->page);
 
   // uncompress and copy to page
-  snappy::RawUncompress((char*) inPage->getBytes(), request->compressedSize, (char*) outPage->getBytes());
+  memcpy((char*) outPage->getBytes(), (char*) inPage->getBytes(), request->compressedSize);
 
   // freeze the page
   outPage->freezeSize(uncompressedSize);
