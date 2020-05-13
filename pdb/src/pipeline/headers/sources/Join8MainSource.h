@@ -160,7 +160,7 @@ public:
 
     // did we manage to process the input, if not move the records into the buffer
     if(!policy.inputWasProcessed() && output != nullptr) {
-      joinGroupStart -= inputColumn->size();
+      currentRecord -= inputColumn->size();
     }
 
     // figure out the offset
