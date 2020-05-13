@@ -64,7 +64,7 @@ void _process(float *top_left_front,
   /// 1. Form the input tensor
 
   // allocate the memory
-  auto *in_tmp = (float *) calloc(x_in_size * y_in_size * z_in_size * input_channels, sizeof(float));
+  auto *in_tmp = (float *) malloc(x_in_size * y_in_size * z_in_size * input_channels * sizeof(float));
 
   // -------------------------------------------------LEFT-------------------------------------------------------------
 
@@ -127,9 +127,12 @@ void _process(float *top_left_front,
   at::Tensor b = at::rand({output_channels, input_channels, 3, 3, 3});
   auto c = at::conv3d(a, b);
 
+  // free the tmp
+  free(in_tmp);
+
   /// 3. Make the output
   // do the copy
-  memcpy(out, in_tmp,input_channels * (x_in_size - x_kernel_size + 1) * (y_in_size - y_kernel_size + 1) *(z_in_size - z_kernel_size + 1));
+  memcpy(out, c.storage().data(),input_channels * (x_in_size - x_kernel_size + 1) * (y_in_size - y_kernel_size + 1) *(z_in_size - z_kernel_size + 1));
 }
 
 }
