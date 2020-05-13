@@ -62,7 +62,7 @@ public:
    * case 1/maxChunkSize, if virtual functions calls are more expensive than processing 100 tuples that might
    * be problem with the computation.
    */
-  int32_t maxChunkSize = 4;
+  int32_t maxChunkSize = 1;
 
   /**
    * The the last known chunk size we know the write succeeded.

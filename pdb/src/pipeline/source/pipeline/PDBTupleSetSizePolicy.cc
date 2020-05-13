@@ -55,15 +55,12 @@ void PDBTupleSetSizePolicy::writeToPageSucceeded(uint64_t additionalPages, uint6
   if(bytesAddedPerTuple != 0) {
 
     // either cap it at 90% of the approximate number of tuples we can process, or 100 tuples
-    maxChunkSize = std::min(90 * (pageSize / bytesAddedPerTuple) / 100 , 100ul);
-
-    // round to 1 if zero
-    maxChunkSize = std::max(maxChunkSize, 1);
+    maxChunkSize = 1;
   }
   else {
 
     // cap to 100 since we are not caring
-    maxChunkSize = 100;
+    maxChunkSize = 1;
   }
 
   // if the pipeline succeeded we don't need to make it succeed
