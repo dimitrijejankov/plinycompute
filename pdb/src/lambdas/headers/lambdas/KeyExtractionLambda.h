@@ -37,10 +37,12 @@ public:
   using KeyType = std::remove_reference_t<decltype(((ClassType*) nullptr)->getKey())>;
 
   std::string inputTypeName;
+  int keyInput;
 
   // create an att access lambda; offset is the position in the input object where we are going to
   // find the input att
-  KeyExtractionLambda(Handle<ClassType> &input) {
+  KeyExtractionLambda(Handle<ClassType> &input, int keyInputIn) {
+    keyInput = keyInputIn;
     inputTypeName = getTypeName<ClassType>();
     this->setInputIndex(0, -((input.getExactTypeInfoValue() + 1)));
   }
@@ -62,6 +64,10 @@ public:
   }
 
   std::string generateTCAPString(MultiInputsBase *multiInputsComp, bool isPredicate) override {
+    // myPrefix is being appended to so that TCAP node names do not
+    // clash when multiple key extractions are being used, for example
+    // in a join
+    this->myPrefix += "key" + std::to_string(keyInput);
     return LambdaObject::generateTCAPString(multiInputsComp, isPredicate);
   }
 

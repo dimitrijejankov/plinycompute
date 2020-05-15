@@ -222,7 +222,7 @@ injectKeyExtraction(LambdaType predicate, int input) {
   Handle<In1> in = tmp;
 
   // inject the key lambda
-  predicate.inject(input, LambdaTree<Ptr<In1>>(std::make_shared<KeyExtractionLambda<In1>>(in)));
+  predicate.inject(input, LambdaTree<Ptr<In1>>(std::make_shared<KeyExtractionLambda<In1>>(in, input)));
 }
 
 template <typename LambdaType, typename In1>
@@ -233,7 +233,7 @@ void injectKeyExtraction(LambdaType predicate, int input) {
   Handle<In1> in = tmp;
 
   // inject the key lambda
-  predicate.inject(input, LambdaTree<Ptr<In1>>(std::make_shared<KeyExtractionLambda<In1>>(in)));
+  predicate.inject(input, LambdaTree<Ptr<In1>>(std::make_shared<KeyExtractionLambda<In1>>(in, input)));
 }
 
 /**
@@ -336,7 +336,7 @@ auto callGetSelection (TypeToCallMethodOn &a, decltype (HasThreeArgs::testKeySel
   GenericHandle third (3);
 
   // call the selection
-  auto predicate = a.getKeySelection (first, second);
+  auto predicate = a.getKeySelection (first, second, third);
 
   // inject the key extraction into the predicate
   injectKeyExtraction<decltype(predicate), In1, In2, Rest...> (predicate, 0);
@@ -362,7 +362,7 @@ auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFourArgs::testKeySele
   GenericHandle fourth (4);
 
   // call the selection
-  auto predicate = a.getKeySelection (first, second);
+  auto predicate = a.getKeySelection (first, second, third, fourth);
 
   // inject the key extraction into the predicate
   injectKeyExtraction<decltype(predicate), In1, In2, Rest...> (predicate, 0);
@@ -391,7 +391,7 @@ auto callGetSelection (TypeToCallMethodOn &a, decltype (HasFiveArgs::testKeySele
   GenericHandle fifth (5);
 
   // call the selection
-  auto predicate = a.getKeySelection (first, second);
+  auto predicate = a.getKeySelection (first, second, third, fourth, fifth);
 
   // inject the key extraction into the predicate
   injectKeyExtraction<decltype(predicate), In1, In2, Rest...> (predicate, 0);

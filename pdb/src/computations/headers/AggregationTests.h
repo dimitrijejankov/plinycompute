@@ -34,7 +34,7 @@ callGetKeyProjection (Derived* callOnMe) {
   Handle<InputClass> in = first;
 
   // inject the key lambda
-  predicate.inject(0, LambdaTree<Ptr<InputClass>>(std::make_shared<KeyExtractionLambda<InputClass>>(in)));
+  predicate.inject(0, LambdaTree<Ptr<InputClass>>(std::make_shared<KeyExtractionLambda<InputClass>>(in, 0)));
 
   return predicate;
 }
