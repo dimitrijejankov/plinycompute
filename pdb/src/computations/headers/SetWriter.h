@@ -21,6 +21,7 @@
 
 #include "VectorSink.h"
 #include "Computation.h"
+#include <JoinTupleTests.h>
 #include "TypeName.h"
 
 namespace pdb {
@@ -55,6 +56,21 @@ class SetWriter : public Computation {
   // get the number of inputs to this query type
   int getNumInputs() override {
     return 1;
+  }
+
+  // returns the key extractor for the materialized result of this
+  PDBKeyExtractorPtr getKeyExtractor() override {
+
+    // check if we can extract a key
+    constexpr bool hasGetKey = pdb::tupleTests::has_get_key<OutputClass>::value;
+
+    // get the key
+    if constexpr (hasGetKey) {
+      return std::make_shared<pdb::PDBKeyExtractorImpl<OutputClass>>();
+    }
+
+    // we can not do this
+    return nullptr;
   }
 
   // gets the output type of this query as a string

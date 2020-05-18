@@ -49,6 +49,21 @@ class MultiSelectionComp : public Computation {
     projectionLambda.extractLambdas(returnVal, startLabel);
   }
 
+  // returns the key extractor for the materialized result of this
+  PDBKeyExtractorPtr getKeyExtractor() override {
+
+    // check if we can extract a key
+    constexpr bool hasGetKey = pdb::tupleTests::has_get_key<Out>::value;
+
+    // get the key
+    if constexpr (hasGetKey) {
+      return std::make_shared<pdb::PDBKeyExtractorImpl<Out>>();
+    }
+
+    // we can not do this
+    return nullptr;
+  }
+
   /**
    * this is a MultiSelection computation
    * @return

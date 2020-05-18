@@ -20,6 +20,7 @@
 #include <StoClearSetRequest.h>
 #include <StoFetchSetPagesRequest.h>
 #include <StoFetchPageSetPagesRequest.h>
+#include <StoMaterializeKeysRequest.h>
 
 namespace pdb {
 
@@ -113,6 +114,19 @@ public:
    */
   template <class Communicator, class Requests>
   std::pair<bool, std::string> handleMaterializeSet(pdb::Handle<pdb::StoMaterializePageSetRequest> request, std::shared_ptr<Communicator> sendUsingMe);
+
+  /**
+   * Handles the materialization of keys the backend has issued the backend. Basically it forwards a bunch of pages to the backend and check whether the
+   * materialization is successful
+   *
+   * @tparam Communicator - the communicator class
+   * @tparam Requests - the request factor class
+   * @param request - the materialization request has stuff like the number of pages required for materialization etc..
+   * @param sendUsingMe - the communicator to the backend
+   * @return - the result of the handler (success, error)
+   */
+  template <class Communicator, class Requests>
+  std::pair<bool, std::string> handleMaterializeKeysSet(const pdb::Handle<pdb::StoMaterializeKeysRequest>& request, std::shared_ptr<Communicator> sendUsingMe);
 
   /**
    * Handles the request to remove a page set. It basically forwards that request to the backend.

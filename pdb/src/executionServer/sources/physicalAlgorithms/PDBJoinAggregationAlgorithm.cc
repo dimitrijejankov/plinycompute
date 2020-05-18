@@ -33,15 +33,9 @@ PDBJoinAggregationAlgorithm::PDBJoinAggregationAlgorithm(const std::vector<PDBPr
                                                          const AtomicComputationPtr &rightInputTupleSet,
                                                          const AtomicComputationPtr &joinTupleSet,
                                                          const AtomicComputationPtr &aggregationKey,
-                                                         pdb::Handle<PDBSinkPageSetSpec> &hashedLHSKey,
-                                                         pdb::Handle<PDBSinkPageSetSpec> &hashedRHSKey,
-                                                         pdb::Handle<PDBSinkPageSetSpec> &aggregationTID,
                                                          const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
                                                          const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize)
-    : hashedLHSKey(hashedLHSKey),
-      hashedRHSKey(hashedRHSKey),
-      aggregationTID(aggregationTID),
-      leftInputTupleSet(leftInputTupleSet->getOutputName()),
+    : leftInputTupleSet(leftInputTupleSet->getOutputName()),
       rightInputTupleSet(rightInputTupleSet->getOutputName()),
       joinTupleSet(joinTupleSet->getOutputName()) {
 

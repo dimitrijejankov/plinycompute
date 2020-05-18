@@ -9,6 +9,9 @@
 #include "GenericWork.h"
 #include "ExJob.h"
 
+// TODO remove this
+#include "../../../../applications/FFTest/sharedLibraries/headers/FFMatrixBlock.h"
+
 pdb::PDBJoinAggregationLocalComputationStage::PDBJoinAggregationLocalComputationStage(const pdb::PDBSinkPageSetSpec &sink,
                                                                                       const pdb::Vector<pdb::PDBSourceSpec> &sources,
                                                                                       const pdb::String &final_tuple_set,
@@ -446,6 +449,10 @@ bool pdb::PDBJoinAggregationLocalComputationStage::setup(const pdb::Handle<pdb::
     s->aggregationPipelines->push_back(aggPipeline);
   }
 
+  // get the key extractor
+  s->keyExtractor = getKeyExtractor(finalTupleSet, plan);
+
+  // we are done here
   return true;
 }
 
@@ -827,7 +834,15 @@ bool pdb::PDBJoinAggregationLocalComputationStage::run(const pdb::Handle<pdb::Ex
     sinkPageSet->resetPageSet();
     success = storage->materializePageSet(sinkPageSet,
                                           std::make_pair<std::string, std::string>(setsToMaterialize[j].database,
-                                                                                   setsToMaterialize[j].set)) && success;
+                                                                                        setsToMaterialize[j].set)) && success;
+
+    // do we need to extract the keys too
+    if(s->keyExtractor != nullptr) {
+      // materialize the keys
+      sinkPageSet->resetPageSet();
+      success = storage->materializeKeys(sinkPageSet,
+                                         std::make_pair<std::string, std::string>(setsToMaterialize[j].database, setsToMaterialize[j].set), std::make_shared<pdb::PDBMapKeyExtractorImpl<pdb::ff::FFMatrixMeta, pdb::ff::FFMatrixData>>()) && success;
+    }
   }
 
   end = std::chrono::steady_clock::now();

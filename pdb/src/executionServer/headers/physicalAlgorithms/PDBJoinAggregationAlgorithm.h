@@ -52,9 +52,6 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
                               const AtomicComputationPtr& rightInputTupleSet,
                               const AtomicComputationPtr& joinTupleSet,
                               const AtomicComputationPtr& aggregationKey,
-                              pdb::Handle<PDBSinkPageSetSpec> &hashedLHSKey,
-                              pdb::Handle<PDBSinkPageSetSpec> &hashedRHSKey,
-                              pdb::Handle<PDBSinkPageSetSpec> &aggregationTID,
                               const std::vector<pdb::Handle<PDBSourcePageSetSpec>> &secondarySources,
                               const pdb::Handle<pdb::Vector<PDBSetObject>> &setsToMaterialize);
 

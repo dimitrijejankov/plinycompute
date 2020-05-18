@@ -24,6 +24,7 @@
 #include <StoStoreKeysRequest.h>
 #include <StoFetchPagesResponse.h>
 #include <StoFetchNextPageResult.h>
+#include <StoMaterializeKeysRequest.h>
 
 namespace fs = boost::filesystem;
 
@@ -131,6 +132,12 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
       StoGetSetPagesRequest_TYPEID,
       make_shared<pdb::HeapRequestHandler<pdb::StoGetSetPagesRequest>>([&](const pdb::Handle<pdb::StoGetSetPagesRequest>& request, PDBCommunicatorPtr sendUsingMe) {
         return handleGetSetPages<PDBCommunicator, RequestFactory>(request, std::move(sendUsingMe));
+      }));
+
+  forMe.registerHandler(
+      StoMaterializeKeysRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoMaterializeKeysRequest>>([&](const pdb::Handle<pdb::StoMaterializeKeysRequest>& request, PDBCommunicatorPtr sendUsingMe) {
+        return handleMaterializeKeysSet<PDBCommunicator, RequestFactory>(request, std::move(sendUsingMe));
       }));
 
   forMe.registerHandler(

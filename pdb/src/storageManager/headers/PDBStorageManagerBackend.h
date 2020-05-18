@@ -3,6 +3,7 @@
 
 #include <ServerFunctionality.h>
 #include <StoStoreDataRequest.h>
+#include <PDBKeyExtractor.h>
 #include <physicalAlgorithms/PDBSourcePageSetSpec.h>
 #include "PDBAbstractPageSet.h"
 #include "PDBSetPageSet.h"
@@ -104,6 +105,16 @@ public:
    * @return true if it succeeds false otherwise
    */
   bool materializePageSet(const PDBAbstractPageSetPtr& pageSet, const std::pair<std::string, std::string> &set);
+
+  /**
+   * This materializes the keys of a particular page set
+   * @param pageSet - the page set we want to materialize
+   * @param set - the set we want to materialize it to
+   * @return true if it succeeds
+   */
+  bool materializeKeys(const PDBAbstractPageSetPtr& pageSet,
+                       const std::pair<std::string, std::string> &set,
+                       const pdb::PDBKeyExtractorPtr &keyExtractor);
 
  private:
 

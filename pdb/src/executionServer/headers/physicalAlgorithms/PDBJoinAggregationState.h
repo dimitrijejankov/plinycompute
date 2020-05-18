@@ -212,6 +212,11 @@ struct PDBJoinAggregationState : public PDBPhysicalAlgorithmState {
   std::shared_ptr<JoinAggTupleEmitter> emitter = nullptr;
 
   /**
+   * The key extractor
+   */
+  PDBKeyExtractorPtr keyExtractor;
+
+  /**
    * Is a local aggregation enough
    */
   bool localAggregation = false;

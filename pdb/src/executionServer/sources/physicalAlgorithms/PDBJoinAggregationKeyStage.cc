@@ -628,17 +628,27 @@ bool pdb::PDBJoinAggregationKeyStage::runLead(const Handle<pdb::ExJob> &job,
    * 3. Run the planner
    */
 
-
   std::chrono::steady_clock::time_point planner_begin = std::chrono::steady_clock::now();
 
-  // make the planner
-  JoinAggPlanner planner(s->joinAggPageSet, job->numberOfNodes, job->numberOfProcessingThreads, s->planPage);
+  try {
 
-  // do the planning
-  planner.doPlanning();
+    // make the planner
+    JoinAggPlanner planner(s->joinAggPageSet, job->numberOfNodes, job->numberOfProcessingThreads, s->planPage);
 
-  //
-  s->localAggregation = planner.isLocalAggregation();
+    // do the planning
+    planner.doPlanning();
+
+    // check if the aggregation can be local
+    s->localAggregation = planner.isLocalAggregation();
+  }
+  catch (std::exception &e) {
+
+    // log the error
+    s->logger->error(e.what());
+
+    // we failed mark that we have
+    return false;
+  }
 
   std::chrono::steady_clock::time_point planner_end = std::chrono::steady_clock::now();
   std::cout << "Run planner for " << std::chrono::duration_cast<std::chrono::nanoseconds>(planner_end - planner_begin).count()

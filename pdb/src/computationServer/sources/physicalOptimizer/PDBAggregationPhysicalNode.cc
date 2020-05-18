@@ -106,22 +106,6 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
                                                                            const PDBAbstractPhysicalNodePtr &rhs,
                                                                            const PDBPageSetCosts &pageSetCosts) {
 
-  // this page set is going to have the intermediate results of the LHS, the it is going to contain the JoinMap<hash, LHSKey>
-  pdb::Handle<PDBSinkPageSetSpec> hashedLHSKey = pdb::makeObject<PDBSinkPageSetSpec>();
-  hashedLHSKey->sinkType = PDBSinkType::HashedKeySink;
-  hashedLHSKey->pageSetIdentifier = std::make_pair(computationID, (String) (pipeline.back()->getOutputName()  + "_hashed_lhs_key"));
-
-  // this page set is going to have the intermediate results of the RHS, the it is going to contain the JoinMap<hash, RHSKey>
-  pdb::Handle<PDBSinkPageSetSpec> hashedRHSKey = pdb::makeObject<PDBSinkPageSetSpec>();
-  hashedRHSKey->sinkType = PDBSinkType::HashedKeySink;
-  hashedRHSKey->pageSetIdentifier = std::make_pair(computationID, (String) (pipeline.back()->getOutputName() + "_hashed_rhs_key"));
-
-  // this page set is going to have the intermediate results of the Aggregation Keys, the it is going to contain the JoinMap<AGG_TID, Vector<pair<LHS_TID, RHS_TID>>
-  // there are also going to be two anonymous pages with Map<LHSKey, LHS_TID> and Map<RHSKey, RHS_Key>.
-  pdb::Handle<PDBSinkPageSetSpec> aggregationTID = pdb::makeObject<PDBSinkPageSetSpec>();
-  aggregationTID->sinkType = PDBSinkType::JoinAggregationTIDSink;
-  aggregationTID->pageSetIdentifier = std::make_pair(computationID, (String) (pipeline.back()->getOutputName() + "_agg_tid"));
-
   // the join aggregation pipeline will end with end with an aggregation therefore the results will be in an aggregation sink
   pdb::Handle<PDBSinkPageSetSpec> sink = pdb::makeObject<PDBSinkPageSetSpec>();
   sink->sinkType = PDBSinkType::AggregationSink;
@@ -231,23 +215,18 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
                                                                                                     rhs->getPipeComputations().front(),
                                                                                                     this->getPipeComputations().front(),
                                                                                                     this->getPipeComputations().back(),
-                                                                                                    hashedLHSKey,
-                                                                                                    hashedRHSKey,
-                                                                                                    aggregationTID,
                                                                                                     additionalSources,
                                                                                                     setsToMaterialize);
 
 
-  std::list<PDBPageSetIdentifier> consumedPageSets = { hashedLHSKey->pageSetIdentifier,
-                                                       hashedRHSKey->pageSetIdentifier,
-                                                       lhsKeySink->pageSetIdentifier,
+  std::list<PDBPageSetIdentifier> consumedPageSets = { lhsKeySink->pageSetIdentifier,
                                                        rhsKeySink->pageSetIdentifier,
                                                        leftKeySource->pageSetIdentifier,
                                                        rightKeySource->pageSetIdentifier,
+                                                       joinAggKeySink->pageSetIdentifier,
                                                        leftJoinSource->pageSetIdentifier,
                                                        rightJoinSource->pageSetIdentifier,
-                                                       planSource->pageSetIdentifier,
-                                                       aggregationTID->pageSetIdentifier };
+                                                       planSource->pageSetIdentifier};
 
   // if there are no consumers, (this happens if all the consumers are materializations), mark the ink set as consumed too
   size_t sinkConsumers = consumers.size();
@@ -262,17 +241,15 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
 
   // set the page sets created
   std::vector<std::pair<PDBPageSetIdentifier, size_t>> newPageSets = { std::make_pair(sink->pageSetIdentifier, sinkConsumers),
-                                                                       std::make_pair(hashedLHSKey->pageSetIdentifier, 1),
-                                                                       std::make_pair(hashedRHSKey->pageSetIdentifier, 1),
                                                                        std::make_pair(lhsKeySink->pageSetIdentifier, 1),
                                                                        std::make_pair(rhsKeySink->pageSetIdentifier, 1),
                                                                        std::make_pair(preaggIntermediate->pageSetIdentifier, 1),
                                                                        std::make_pair(leftKeySource->pageSetIdentifier, 1),
+                                                                       std::make_pair(joinAggKeySink->pageSetIdentifier, 1),
                                                                        std::make_pair(rightKeySource->pageSetIdentifier, 1),
                                                                        std::make_pair(leftJoinSource->pageSetIdentifier, 1),
                                                                        std::make_pair(rightJoinSource->pageSetIdentifier, 1),
-                                                                       std::make_pair(planSource->pageSetIdentifier, 1),
-                                                                       std::make_pair(aggregationTID->pageSetIdentifier, 1) };
+                                                                       std::make_pair(planSource->pageSetIdentifier, 1)};
 
 
   // return the algorithm and the nodes that consume it's result

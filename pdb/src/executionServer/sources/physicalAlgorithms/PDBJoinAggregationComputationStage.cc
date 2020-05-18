@@ -9,6 +9,9 @@
 #include "GenericWork.h"
 #include "ExJob.h"
 
+// TODO remove this
+#include "../../../../applications/FFTest/sharedLibraries/headers/FFMatrixBlock.h"
+
 pdb::PDBJoinAggregationComputationStage::PDBJoinAggregationComputationStage(const pdb::PDBSinkPageSetSpec &sink,
                                                                             const pdb::PDBSinkPageSetSpec &preaggIntermediate,
                                                                             const pdb::Vector<pdb::PDBSourceSpec> &sources,
@@ -491,6 +494,9 @@ bool pdb::PDBJoinAggregationComputationStage::setup(const pdb::Handle<pdb::ExJob
     s->aggregationPipelines->push_back(aggPipeline);
   }
 
+  // get the key extractor
+  s->keyExtractor = getKeyExtractor(finalTupleSet, plan);
+
   return true;
 }
 
@@ -945,6 +951,14 @@ bool pdb::PDBJoinAggregationComputationStage::run(const pdb::Handle<pdb::ExJob> 
     // materialize the page set
     sinkPageSet->resetPageSet();
     success = storage->materializePageSet(sinkPageSet, std::make_pair<std::string, std::string>(setsToMaterialize[j].database, setsToMaterialize[j].set)) && success;
+
+    // do we need to extract the keys too
+    if(s->keyExtractor != nullptr) {
+      // materialize the keys
+      sinkPageSet->resetPageSet();
+      success = storage->materializeKeys(sinkPageSet,
+                                         std::make_pair<std::string, std::string>(setsToMaterialize[j].database, setsToMaterialize[j].set), std::make_shared<pdb::PDBMapKeyExtractorImpl<pdb::ff::FFMatrixMeta, pdb::ff::FFMatrixData>>()) && success;
+    }
   }
 
   return success;

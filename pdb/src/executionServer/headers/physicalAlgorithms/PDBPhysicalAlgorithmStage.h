@@ -64,6 +64,14 @@ public:
 protected:
 
   /**
+   * Returns a key extractor for the computation that is generating the final tuple set there
+   * @param finalTupleSet - the final tuple set
+   * @param plan - the plan we use for lookup
+   * @return the key extractor
+   */
+  static PDBKeyExtractorPtr getKeyExtractor(const std::string &finalTupleSet, ComputePlan &plan);
+
+  /**
    * Returns the source page set we are scanning.
    * @param storage - a ptr to the storage manager backend so we can grab the page set
    * @return - the page set

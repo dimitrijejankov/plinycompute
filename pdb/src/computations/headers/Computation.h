@@ -28,6 +28,7 @@
 #include "PDBAbstractPageSet.h"
 #include <map>
 #include <physicalAlgorithms/PDBSourcePageSetSpec.h>
+#include <PDBKeyExtractor.h>
 
 namespace pdb {
 
@@ -75,6 +76,9 @@ class Computation : public Object {
                                     uint64_t numberOfPartitions,
                                     std::map<ComputeInfoType, ComputeInfoPtr> &params,
                                     pdb::LogicalPlanPtr &plan) { return nullptr; }
+
+  // returns the key extractor that can extract keys from the materialized result of this computation
+  virtual PDBKeyExtractorPtr getKeyExtractor() = 0;
 
   // returns the type of this Computation
   virtual std::string getComputationType() = 0;

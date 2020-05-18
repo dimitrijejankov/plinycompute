@@ -10,6 +10,9 @@ pdb::JoinAggPlanner::JoinAggPlanner(const pdb::PDBAnonymousPageSetPtr &joinAggPa
                                                                         numThreads(numThreads) {
   // get the input page
   this->inputPage = joinAggPageSet->getNextPage(0);
+  if(this->inputPage == nullptr) {
+    throw runtime_error("There are no keys to do planning...");
+  }
   this->inputPage->repin();
 
   // page to store

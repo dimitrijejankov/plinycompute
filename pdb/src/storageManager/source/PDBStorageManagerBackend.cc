@@ -22,6 +22,7 @@
 #include <StoFetchPageSetPagesRequest.h>
 #include <StoFetchPagesResponse.h>
 #include <PDBLabeledPageSet.h>
+#include <StoMaterializeKeysRequest.h>
 
 void pdb::PDBStorageManagerBackend::init() {
 
@@ -518,8 +519,251 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(const pdb::PDBAbstractPag
     }
   }
 
+  /// 5. Wait for an ACK
+
+  // wait for the storage finish result
+  success = RequestFactory::waitHeapRequest<SimpleRequestResult, bool>(logger, comm, false,[&](const Handle<SimpleRequestResult>& result) {
+
+    // check the result
+    if (result != nullptr && result->getRes().first) {
+
+     // finish
+     return true;
+    }
+
+    // set the error
+    error = result->getRes().second;
+
+    // we failed return so
+    return false;
+  });
+
+  // check if we failed
+  if(!success) {
+
+    // log the error
+    logger->error(error);
+
+    // ok this sucks we are out of here
+    return false;
+  }
+
   // we succeeded
   return true;
 }
 
+bool pdb::PDBStorageManagerBackend::materializeKeys(const pdb::PDBAbstractPageSetPtr &pageSet,
+                                                    const std::pair<std::string, std::string> &mainSet,
+                                                    const pdb::PDBKeyExtractorPtr &keyExtractor) {
 
+  // if the page set is empty no need materialize stuff
+  if(pageSet->getNumPages() == 0) {
+    return true;
+  }
+
+  //
+  auto dbName = mainSet.first;
+  auto setName = PDBCatalog::toKeySetName(mainSet.second);
+
+  // result indicators
+  std::string error;
+  bool success = true;
+
+  /// 1. Connect to the frontend
+
+  // the communicator
+  std::shared_ptr<PDBCommunicator> comm = std::make_shared<PDBCommunicator>();
+
+  // try to connect
+  int numRetries = 0;
+  while (!comm->connectToInternetServer(logger, getConfiguration()->port, getConfiguration()->address, error)) {
+
+    // are we out of retires
+    if(numRetries > getConfiguration()->maxRetries) {
+
+      // log the error
+      logger->error(error);
+      logger->error("Can not connect to remote server with port=" + std::to_string(getConfiguration()->port) + " and address="+ getConfiguration()->address + ");");
+
+      // set the success
+      success = false;
+      break;
+    }
+
+    // increment the number of retries
+    numRetries++;
+  }
+
+  // if we failed
+  if(!success) {
+
+    // log the error
+    logger->error("We failed to to connect to the frontend in order to materialize the page set.");
+
+    // ok this sucks return false
+    return false;
+  }
+
+  /// 2. Make a request to materialize page set
+
+  // make an allocation block
+  const pdb::UseTemporaryAllocationBlock tempBlock{1024};
+
+  // set the stat results
+  pdb::Handle<StoMaterializeKeysRequest> materializeRequest = pdb::makeObject<StoMaterializeKeysRequest>(dbName, setName, pageSet->getNumRecords());
+
+  // sends result to requester
+  success = comm->sendObject(materializeRequest, error);
+
+  // check if we failed
+  if(!success) {
+
+    // log the error
+    logger->error(error);
+
+    // ok this sucks we are out of here
+    return false;
+  }
+
+  /// 3. Wait for an ACK
+
+  // wait for the storage finish result
+  success = RequestFactory::waitHeapRequest<SimpleRequestResult, bool>(logger, comm, false,
+                                                                       [&](const Handle<SimpleRequestResult>& result) {
+
+    // check the result
+    if (result != nullptr && result->getRes().first) {
+
+     // finish
+     return true;
+    }
+
+    // set the error
+    error = result->getRes().second;
+
+    // we failed return so
+    return false;
+  });
+
+  // check if we failed
+  if(!success) {
+
+    // log the error
+    logger->error(error);
+
+    // ok this sucks we are out of here
+    return false;
+  }
+
+  /// 4. Grab the pages from the frontend
+
+  // buffer manager
+  pdb::PDBBufferManagerBackEndPtr bufferManager = std::dynamic_pointer_cast<PDBBufferManagerBackEndImpl>(getFunctionalityPtr<pdb::PDBBufferManagerInterface>());
+  auto setIdentifier = std::make_shared<PDBSet>(dbName, setName);
+
+  // go through each page and materialize
+  PDBPageHandle inputPage;
+  auto numPages = pageSet->getNumPages();
+
+  // while we still have pages and we have processed last one
+  while(numPages != 0 || !keyExtractor->processedLast()) {
+
+    // grab a page
+    auto keyPage = bufferManager->expectPage(comm);
+
+    // check if we got a page
+    if(keyPage == nullptr) {
+
+      // log it
+      logger->error("Failed to get the page from the frontend when materializing a set!");
+
+      // finish
+      return false;
+    }
+
+    // make the allocation block
+    makeObjectAllocatorBlock(keyPage->getBytes(), keyPage->getSize(), true);
+
+    // process all the pages
+    while(numPages != 0) {
+
+      // did we processed the last?
+      if(keyExtractor->processedLast()) {
+
+        // grab the next page
+        inputPage = pageSet->getNextPage(0);
+      }
+
+      // grabbed the next page
+      numPages--;
+
+      // repin the page
+      inputPage->repin();
+
+      // copy the memory to the set page
+      try {
+
+        // extract the keys from the page
+        keyExtractor->extractKeys(inputPage, keyPage);
+      }
+      catch (pdb::NotEnoughSpace &n) {}
+
+      // unpin the page
+      inputPage->unpin();
+    }
+
+    // get the
+    int32_t pageSize = keyExtractor->pageSize(keyPage);
+
+    // make an allocation block to send the response
+    const pdb::UseTemporaryAllocationBlock blk{1024};
+
+    // make a request to mark that we succeeded
+    pdb::Handle<StoMaterializePageResult> materializeResult = pdb::makeObject<StoMaterializePageResult>(dbName, setName, pageSize, true, (numPages != 0 || !keyExtractor->processedLast()) );
+
+    // sends result to requester
+    success = comm->sendObject(materializeResult, error);
+
+    // did the request succeed if so we are done
+    if(!success) {
+
+      // log it
+      logger->error(error);
+
+      // finish here
+      return false;
+    }
+  }
+
+  /// 5. Wait for an ACK
+
+  // wait for the storage finish result
+  success = RequestFactory::waitHeapRequest<SimpleRequestResult, bool>(logger, comm, false,[&](const Handle<SimpleRequestResult>& result) {
+
+    // check the result
+    if (result != nullptr && result->getRes().first) {
+
+      // finish
+      return true;
+    }
+
+    // set the error
+    error = result->getRes().second;
+
+    // we failed return so
+    return false;
+  });
+
+  // check if we failed
+  if(!success) {
+
+    // log the error
+    logger->error(error);
+
+    // ok this sucks we are out of here
+    return false;
+  }
+
+  // we succeeded
+  return true;
+}

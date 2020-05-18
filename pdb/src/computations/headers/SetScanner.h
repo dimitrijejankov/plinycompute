@@ -60,6 +60,10 @@ class SetScanner : public Computation {
     return getTypeName<OutputClass>();
   }
 
+  PDBKeyExtractorPtr getKeyExtractor() override {
+    throw std::runtime_error("Why are you requesting a key extractor for a scan set");
+  }
+
   // below function implements the interface for parsing computation into a TCAP string
   std::string toTCAPString(std::vector<InputTupleSetSpecifier> inputTupleSets,
                            int computationLabel) override {

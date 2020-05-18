@@ -65,6 +65,11 @@ class AggregateComp : public AggregateCompBase {
     valueLambda.extractLambdas(returnVal, startLabel);
   }
 
+  // returns the key extractor for the materialized result of this
+  PDBKeyExtractorPtr getKeyExtractor() override {
+    return std::make_shared<pdb::PDBMapKeyExtractorImpl<KeyClass, ValueClass>>();
+  }
+
   // this is an aggregation comp
   std::string getComputationType() override {
     return std::string("AggregationComp");

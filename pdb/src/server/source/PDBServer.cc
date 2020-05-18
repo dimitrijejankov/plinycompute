@@ -240,7 +240,7 @@ void PDBServer::listenIPC() {
 PDBCommunicatorPtr PDBServer::waitForConnection(const pdb::Handle<SerConnectToRequest> &connectionID) {
 
   // wait till we have the connection
-  std::unique_lock<std::mutex> lk(m);
+  std::unique_lock<std::mutex> lk(this->m);
   cv.wait(lk, [&]{ return pendingConnections.find(*connectionID) != pendingConnections.end(); });
 
   // check if the socket is close if it is return null
@@ -255,6 +255,8 @@ PDBCommunicatorPtr PDBServer::waitForConnection(const pdb::Handle<SerConnectToRe
   // grab the connection and return it
   auto connection = it->second;
   pendingConnections.erase(it);
+
+  std::cout << "Got connection for file : " << connection->getSocketFD() << '\n';
 
   return connection;
 }
@@ -406,7 +408,7 @@ bool PDBServer::handleOneRequest(const PDBBuzzerPtr& callerBuzzer, const PDBComm
       // store te connection
       pendingConnections[*connectRequest] = myCommunicator;
 
-      std::cout << "Connection established from node " << connectRequest->nodeID << " for task " <<  connectRequest->taskID << "\n";
+      std::cout << "Connection established from node " << connectRequest->nodeID << " for task " <<  connectRequest->taskID << " file id " << myCommunicator->getSocketFD()  << "\n";
 
       // notify that we got a new connection
       cv.notify_all();

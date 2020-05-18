@@ -151,7 +151,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerBackend::handlePageSet(const 
   // did we succeed in removing it?
   std::string error;
   if(!success) {
-    error = "Could not find the tuple set";
+    error = "Could not find the page set " + std::to_string(request->pageSetID.first) + ":"+ std::string(request->pageSetID.second) + '\n';
   }
 
   /// 2. Send a response

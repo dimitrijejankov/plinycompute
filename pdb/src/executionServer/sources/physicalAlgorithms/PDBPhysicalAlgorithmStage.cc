@@ -1,5 +1,6 @@
 #include <PDBPhysicalAlgorithmStage.h>
 #include <PDBPhysicalAlgorithm.h>
+#include <ComputePlan.h>
 
 namespace pdb {
 
@@ -62,6 +63,21 @@ std::shared_ptr<JoinArguments> PDBPhysicalAlgorithmStage::getJoinArguments(const
   }
 
   return joinArguments;
+}
+
+PDBKeyExtractorPtr PDBPhysicalAlgorithmStage::getKeyExtractor(const std::string &tupleSet, ComputePlan &plan) {
+
+  // find the target atomic computation
+  auto targetAtomicComp = plan.getPlan()->getComputations().getProducingAtomicComputation(tupleSet);
+
+  // find the target real PDBComputation
+  auto targetComputationName = targetAtomicComp->getComputationName();
+
+  // grab the aggregation combiner
+  Handle<Computation> agg = unsafeCast<Computation>(plan.getPlan()->getNode(targetComputationName).getComputationHandle());
+
+  // get the key extractor
+  return agg->getKeyExtractor();
 }
 
 }
