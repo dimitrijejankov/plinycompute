@@ -42,10 +42,22 @@ namespace pdb {
 // Once aggregation is completed, the key-value pairs are converted into OutputClass objects.  An object
 // of type OutputClass must have two methods defined: KeyClass &getKey (), as well as ValueClass &getValue ().
 // To convert a key-value pair into an OutputClass object, the result of getKey () is set to the desired key,
-// and the result of getValue () is set to the desired value.
+// and the result of getValue () is set to the desired value. The OutputClass must be very simple, it has to have
+// two fields, one for the key one for the value and the type of these fields has to be either a pdb::Handle or
+// is_trivially_copyable type.
 //
 template<typename Derived, class OutputClass, class InputClass, class KeyClass, class ValueClass>
 class AggregateComp : public AggregateCompBase {
+
+  // get the types of the output class, we are using this to figure out if the user used the class correctly
+  using OutputClassKey = std::remove_reference_t<decltype(((OutputClass*) nullptr)->getKey())>;
+  using OutputClassValue = std::remove_reference_t<decltype(((OutputClass*) nullptr)->getValue())>;
+
+  // key must be a handle or trivially copyable
+  static_assert(std::is_base_of<HandleBase, OutputClassKey>::value || std::is_trivially_copyable<OutputClassKey>::value);
+
+  // value must be a handle or trivially copyable
+  static_assert(std::is_base_of<HandleBase, OutputClassValue>::value || std::is_trivially_copyable<OutputClassValue>::value);
 
   // return the page processor
   PageProcessorPtr getAggregationKeyProcessor() override { return std::make_shared<NullProcessor>(); }

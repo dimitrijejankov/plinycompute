@@ -44,7 +44,19 @@ private:
   PDBPageHandle page;
 
   // the buffer where we put records in the case of a failed processing attempt
-  std::vector<Handle<OutputType>> *inputBuffer = nullptr;
+  std::vector<Handle<OutputType>> buffer;
+
+  // here we keep the OutputType object we are emitting from the iterator as RefCountedObjects
+  std::vector<int8_t> bufferStorage;
+
+  // the buffer where we put records in the case of a failed processing attempt
+  std::vector<Handle<OutputType>> column;
+
+  // here we keep the OutputType object we are emitting from the iterator as RefCountedObjects
+  std::vector<int8_t> columnStorage;
+
+  // how much memory do we need
+  const uint64_t REF_COUNTED_OBJECT_SIZE = REF_COUNT_PREAMBLE_SIZE + sizeof(OutputType);
 
   // used to assign rhs to the lhs if the lhs is not a handle
   template<typename LHS, typename RHS>
@@ -57,21 +69,109 @@ private:
   template<typename LHS, typename RHS>
   typename std::enable_if<std::is_base_of<HandleBase, LHS>::value, void>::type
   inline assign(LHS &lhs, RHS &rhs) {
-    *lhs = rhs;
+    lhs.setOffset(-1);
+    lhs = (RefCountedObject<RHS> *)(((int8_t *) &rhs) - REF_COUNT_PREAMBLE_SIZE);
   }
 
-  // used to to create a new key or value if needed
-  template<typename T>
-  typename std::enable_if<!std::is_base_of<HandleBase, T>::value, void>::type
-  inline create(T &) {}
+  // used to allocate a buffer
+  void allocateOutputBuffer(uint64_t numObjects, std::vector<Handle<OutputType>> &c, std::vector<int8_t> &storage) {
 
-  // used to to create a new key or value if needed
-  template<typename T>
-  typename std::enable_if<std::is_base_of<HandleBase, T>::value, void>::type
-  inline create(T &val) {
+    // how much should we allocate
+    storage.resize(numObjects * REF_COUNTED_OBJECT_SIZE);
+    c.resize(numObjects);
 
-    // make the value
-    val = makeObject<typename remove_handle<T>::type>();
+    // do the default constructor here
+    for(int i = 0; i < numObjects; ++i) {
+
+      // make the object with the preamble
+      *((unsigned *) &storage[i * REF_COUNTED_OBJECT_SIZE]) = 1;
+      *((OutputType) &storage[i * REF_COUNTED_OBJECT_SIZE + REF_COUNT_PREAMBLE_SIZE]) = OutputType();
+
+      // make the handle
+      c[i].setOffset(-1);
+      c[i] = ((RefCountedObject<OutputType>*) &storage[i * REF_COUNTED_OBJECT_SIZE]);
+    }
+  }
+
+  void copyToBuffer() {
+
+    // allocate the temporary buffer
+    std::vector<int8_t> tmpBuffer((column.size() + buffer.size()) * REF_COUNTED_OBJECT_SIZE);
+
+    // copy the buffer to the tmp
+    for(int i = 0; i < buffer.size(); ++i) {
+
+      // copy the object with the preamble
+      *((unsigned *) &tmpBuffer[i * REF_COUNTED_OBJECT_SIZE]) = 1;
+      *((OutputType*) &tmpBuffer[i * REF_COUNTED_OBJECT_SIZE + REF_COUNT_PREAMBLE_SIZE]) = *buffer[i];
+    }
+
+    // copy the column to the temp buffer
+    for(int i = buffer.size(); i < (buffer.size() + column.size()); ++i) {
+
+      // copy the object with the preamble
+      *((unsigned *) &tmpBuffer[i * REF_COUNTED_OBJECT_SIZE]) = 1;
+      *((OutputType*) &tmpBuffer[i * REF_COUNTED_OBJECT_SIZE + REF_COUNT_PREAMBLE_SIZE]) = *column[i - buffer.size()];
+    }
+
+    // copy the handles
+    buffer.resize((buffer.size() + column.size()));
+    for(int i = 0; i < (column.size() + column.size()); ++i) {
+      buffer[i].setOffset(-1);
+      buffer[i] = ((RefCountedObject<OutputType>*) &tmpBuffer[i * REF_COUNTED_OBJECT_SIZE + REF_COUNT_PREAMBLE_SIZE]);
+    }
+
+    // swap the storage
+    std::swap(tmpBuffer, bufferStorage);
+
+    // clear
+    column.clear();
+  }
+
+  void fromBufferToColumn(int32_t numObjects) {
+
+    // resize the output column if necessary
+    if(columnStorage.size() < numObjects * REF_COUNTED_OBJECT_SIZE) {
+
+      // resize the storage
+      columnStorage.resize(numObjects * REF_COUNTED_OBJECT_SIZE);
+
+      // make the columns point where they should
+      for(int i = 0; i < numObjects; ++i) {
+        column[i].setOffset(-1);
+        column[i] = ((RefCountedObject<OutputType>*) &columnStorage[i * REF_COUNTED_OBJECT_SIZE]);
+      }
+    }
+    column.resize(numObjects);
+
+    // copy the buffer to the tmp
+    for(int32_t i = buffer.size() - numObjects; i < buffer.size(); ++i) {
+
+      // copy the object with the preamble
+      *((unsigned *) &columnStorage[i * REF_COUNTED_OBJECT_SIZE]) = 1;
+      *((OutputType*) &columnStorage[i * REF_COUNTED_OBJECT_SIZE + REF_COUNT_PREAMBLE_SIZE]) = *buffer[i];
+    }
+
+    // resize the buffer and the storage
+    buffer.resize(buffer.size() - numObjects);
+  }
+
+  void resize_column_storage(int numObjects) {
+
+    // resize the output column
+    if(columnStorage.size() < numObjects * REF_COUNTED_OBJECT_SIZE) {
+
+      // resize the storage
+      columnStorage.resize(numObjects * REF_COUNTED_OBJECT_SIZE);
+
+      // copy the buffer to the tmp
+      for(int32_t i = 0; i < numObjects; ++i) {
+
+        // copy the object with the preamble
+        *((unsigned *) &columnStorage[i * REF_COUNTED_OBJECT_SIZE]) = 1;
+        *((OutputType*) &columnStorage[i * REF_COUNTED_OBJECT_SIZE + REF_COUNT_PREAMBLE_SIZE]) = OutputType();
+      }
+    }
   }
 
 public:
@@ -101,12 +201,10 @@ public:
 
     // make the output set
     output = std::make_shared<TupleSet>();
-    output->addColumn(0, new std::vector<Handle<OutputType>>, true);
+    output->addColumn(0, &column, false);
   }
 
-  ~MapTupleSetIterator() override {
-    delete inputBuffer;
-  };
+  ~MapTupleSetIterator() override = default;
 
   // returns the next tuple set to process, or nullptr if there is not one to process
   TupleSetPtr getNextTupleSet(const PDBTupleSetSizePolicy &policy) override {
@@ -116,38 +214,21 @@ public:
      */
 
     // did we manage to process the input, if not move the records into the buffer
-    if(!policy.inputWasProcessed() && output != nullptr && inputBuffer != nullptr) {
-
-      // get the input column
-      std::vector<Handle<OutputType>> &inputColumn = output->getColumn<Handle<OutputType>>(0);
-
-      // if the buffer is empty we just swap this is an optimization since that means we are not doing a copy
-      if(inputBuffer->empty()) {
-        std::swap(inputColumn, *inputBuffer);
-      } else {
-
-        // copy the input column and clear it
-        inputBuffer->insert(inputBuffer->end(), inputColumn.begin(), inputColumn.end());
-        inputBuffer->clear();
-      }
+    if(!policy.inputWasProcessed() && output != nullptr) {
+      copyToBuffer();
     }
 
     /**
      * 1. We need to check if the buffer has something, if it does we need to process it.
      */
 
-    if(inputBuffer != nullptr && !inputBuffer->empty()) {
-
-      // get the input column
-      std::vector<Handle<Object>> &inputColumn = output->getColumn<Handle<Object>>(0);
+    if(!buffer.empty()) {
 
       // figure out the number to move
-      auto numToCopy = std::min((size_t) policy.getChunksSize(), inputBuffer->size());
+      auto numToCopy = std::min((size_t) policy.getChunksSize(), buffer.size());
 
       // move the stuff out of the buffer
-      inputColumn.clear();
-      inputColumn.insert(inputColumn.end(),inputBuffer->end() - numToCopy,inputBuffer->end());
-      inputBuffer->resize(inputBuffer->size() - numToCopy);
+      fromBufferToColumn(numToCopy);
 
       // return the output
       return output;
@@ -158,14 +239,11 @@ public:
      *    need to grab the records.
      */
 
-    std::vector<Handle<OutputType>> &inputColumn = output->getColumn<Handle<OutputType>>(0);
+    // we always have enough storage allocated to fill the whole chunk
+    resize_column_storage(policy.getChunksSize());
 
-    // if we shrunk resize
-    if(inputColumn.size() > policy.getChunksSize()) {
-      inputColumn.resize(policy.getChunksSize());
-    }
-
-    int limit = (int) inputColumn.size();
+    // assume the column is full
+    column.resize(policy.getChunksSize());
 
     // do we even have a map
     if(iterateOverMe == nullptr) {
@@ -182,24 +260,16 @@ public:
       return nullptr;
     }
 
+    // fill up the column
     for (int i = 0; i < policy.getChunksSize(); i++) {
 
-      if (i >= limit) {
-
-        // make the object
-        Handle<OutputType> temp = (makeObject<OutputType>());
-
-        // make the key and value if needed
-        create(temp->getKey());
-        create(temp->getValue());
-
-        // push the column
-        inputColumn.push_back(temp);
-      }
-
       // key the key/value pair
-      assign(inputColumn[i]->getKey(), (*begin).key);
-      assign(inputColumn[i]->getValue(), (*begin).value);
+      column[i].setOffset(-1);
+      column[i] = ((RefCountedObject<OutputType>*) &columnStorage[i * REF_COUNTED_OBJECT_SIZE]);
+
+      // assign the key and value
+      assign(column[i]->getKey(), (*begin).key);
+      assign(column[i]->getValue(), (*begin).value);
 
       // move on to the next item
       ++begin;
@@ -207,9 +277,13 @@ public:
       // and exit if we are done
       if (!(begin != end)) {
 
-        if (i + 1 < limit) {
-          inputColumn.resize(i + 1);
+        if (i + 1 < column.size()) {
+
+          // resize the output column
+          column.resize(i + 1);
         }
+
+        // return the output
         return output;
       }
     }
