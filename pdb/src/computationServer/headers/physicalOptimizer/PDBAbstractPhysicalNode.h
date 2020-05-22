@@ -265,6 +265,18 @@ public:
     return std::move(tmp);
   }
 
+  bool areSidesSwapped(const PDBAbstractPhysicalNodePtr &lhs) {
+
+    // get the join computation
+    auto applyJoin = (ApplyJoin *) pipeline.front().get();
+
+    // get the tuple set identifier corresponding to the right input of the join
+    auto rhsInput = applyJoin->getRightInput();
+
+    // should we swap the lhs and rhs side, if it is not a hash one or a hash left
+    return lhs->pipeline.back()->getOutput().getSetName() == rhsInput.getSetName();
+  }
+
   std::tuple<pdb::Handle<PDBSourcePageSetSpec>, pdb::Handle<PDBSourcePageSetSpec>, bool> getJoinSources(PDBPageSetCosts &pageSetCosts) {
 
     // make sure we are doing a join

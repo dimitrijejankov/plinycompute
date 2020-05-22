@@ -18,48 +18,27 @@
 
 #pragma once
 
-#include "Object.h"
-#include "Handle.h"
-#include "PDBString.h"
+// PRELOAD %BufMovePageResult%
 
-// PRELOAD %StoMaterializePageSetRequest%
+#include "PDBString.h"
+#include "PDBSet.h"
 
 namespace pdb {
 
-// encapsulates a request to add data to a set in storage
-class StoMaterializePageSetRequest : public Object {
+// request to get an anonymous page
+class BufMovePageResult : public Object {
 
-public:
+ public:
 
-  StoMaterializePageSetRequest() = default;
-  ~StoMaterializePageSetRequest() = default;
+  BufMovePageResult(size_t startBytes, int64_t numBytes, int64_t pageNum, bool success) : success(success) {}
 
-  StoMaterializePageSetRequest(const std::string &db, const std::string &set, uint64_t numRecords, uint64_t numPages) : databaseName(db),
-                                                                                                                        setName(set),
-                                                                                                                        numRecords(numRecords),
-                                                                                                                        numPages(numPages) {}
+  BufMovePageResult() = default;
 
-  ENABLE_DEEP_COPY
+  ~BufMovePageResult() = default;
 
-  /**
-   * The name of the database the set belongs to
-   */
-  String databaseName;
+  ENABLE_DEEP_COPY;
 
-  /**
-   * The name of the set we are storing the stuff
-   */
-  String setName;
-
-  /**
-   * The number of records the page set has that we want to materialize
-   */
-  uint64_t numRecords{};
-
-  /**
-   * The number of pages we want to materialize
-   */
-   uint64_t numPages{};
+  // did we succeed
+  bool success = false;
 };
-
 }

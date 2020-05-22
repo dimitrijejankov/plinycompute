@@ -413,6 +413,63 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
   logClearSet(set);
 }
 
+PDBPageHandle PDBBufferManagerImpl::movePage(const PDBSetPtr& whichSet, uint64_t pageNumber, const PDBPageHandle &anonymousPage) {
+
+  // lock the buffer manager
+  std::unique_lock<std::mutex> lock(m);
+
+  // check if the page already exists at that location
+  auto it = pageLocations.find(std::make_pair(whichSet, pageNumber));
+  if(it != pageLocations.end()) {
+    cerr << "Something went wrong, when moving the set page we are moving to must be empty.";
+    exit(-1);
+  }
+
+  // check if everything is alright
+  if(!anonymousPage->isPinned()) {
+    cerr << "Something went wrong, when moving the page the anonymous page needs to be pinned.";
+    exit(-1);
+  }
+
+  // check if we have the file for this set...
+  checkIfOpen(whichSet);
+
+  // rewire the set
+  auto page = anonymousPage->page;
+  page->setSet(whichSet);
+
+  // return the location if necessary
+  PDBPageInfo temp = page->getLocation();
+  if (temp.startPos != -1) {
+    availablePositions[temp.numBytes].push_back(temp.startPos);
+  }
+
+  // set the new page number
+  page->pageNum = pageNumber;
+
+  // identifier of the page
+  pair<PDBSetPtr, size_t> whichPage = std::make_pair(whichSet, pageNumber);
+
+  // mark that this is now a set page
+  page->setAnonymous(false);
+
+  // if the size is frozen add it to the end of the file
+  if(page->sizeFrozen) {
+
+    // if we don't know where to write it, figure it out
+    page->getLocation().startPos = endOfFiles[page->getSet()];
+    pair<PDBSetPtr, size_t> myIndex = make_pair(page->getSet(), page->whichPage());
+    pageLocations[whichPage] = page->getLocation();
+    endOfFiles[page->getSet()] += (MIN_PAGE_SIZE << page->getLocation().numBytes);
+  }
+
+  // insert the page
+  allPages[whichPage] = page;
+
+  // return the anonymous page now it is update to be a set page
+  return anonymousPage;
+}
+
 void PDBBufferManagerImpl::registerMiniPage(const PDBPagePtr& registerMe) {
 
   // first, compute the page this guy is on
@@ -1198,7 +1255,7 @@ int PDBBufferManagerImpl::getFileDescriptor(const PDBSetPtr &whichSet) {
   return fd;
 }
 
-void PDBBufferManagerImpl::checkIfOpen(PDBSetPtr &whichSet) {
+void PDBBufferManagerImpl::checkIfOpen(const PDBSetPtr &whichSet) {
 
   unique_lock<mutex> blockLck(fdLck);
 

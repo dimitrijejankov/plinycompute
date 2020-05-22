@@ -116,6 +116,13 @@ void pdb::PDBBufferManagerFrontEnd::registerHandlers(pdb::PDBServer &forMe) {
         // call the method to handle it
         return handleUnpinPageRequest(request, sendUsingMe);
       }));
+
+  forMe.registerHandler(BufMovePageRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<BufMovePageRequest>>([&](Handle<BufMovePageRequest> request, PDBCommunicatorPtr sendUsingMe) {
+
+        // call the method to handle it
+        return handleMovePageRequest(request, sendUsingMe);
+      }));
 }
 
 pdb::PDBBufferManagerInterfacePtr pdb::PDBBufferManagerFrontEnd::getBackEnd() {

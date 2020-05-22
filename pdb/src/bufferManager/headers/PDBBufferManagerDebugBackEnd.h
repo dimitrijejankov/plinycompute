@@ -186,6 +186,33 @@ public:
                                                                               request);
   }
 
+  // move
+  template <class RequestType, class ResponseType, class ReturnType>
+  static bool heapRequest(pdb::PDBLoggerPtr &myLogger,
+                          int port,
+                          const std::string &address,
+                          bool onErr,
+                          size_t bytesForRequest,
+                          const std::function<bool(pdb::Handle<pdb::SimpleRequestResult>)> &processResponse,
+                          uint64_t pageNumber,
+                          uint64_t anonymousPageNumber,
+                          const pdb::PDBSetPtr &whichSet) {
+
+    // init the request
+    Handle<RequestType> request = makeObject<RequestType>(pageNumber, anonymousPageNumber, whichSet);
+
+    /// TODO I need to log this...
+
+    // make a request
+    return RequestFactory::heapRequest<RequestType, ResponseType, ReturnType>(myLogger,
+                                                                              port,
+                                                                              address,
+                                                                              onErr,
+                                                                              bytesForRequest,
+                                                                              processResponse,
+                                                                              request);
+  }
+
   // pin page
   template <class RequestType, class ResponseType, class ReturnType>
   static bool heapRequest(pdb::PDBLoggerPtr &myLogger,

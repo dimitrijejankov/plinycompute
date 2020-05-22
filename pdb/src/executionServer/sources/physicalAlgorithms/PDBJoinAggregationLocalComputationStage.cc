@@ -9,9 +9,6 @@
 #include "GenericWork.h"
 #include "ExJob.h"
 
-// TODO remove this
-#include "../../../../applications/FFTest/sharedLibraries/headers/FFMatrixBlock.h"
-
 pdb::PDBJoinAggregationLocalComputationStage::PDBJoinAggregationLocalComputationStage(const pdb::PDBSinkPageSetSpec &sink,
                                                                                       const pdb::Vector<pdb::PDBSourceSpec> &sources,
                                                                                       const pdb::String &final_tuple_set,
@@ -841,7 +838,7 @@ bool pdb::PDBJoinAggregationLocalComputationStage::run(const pdb::Handle<pdb::Ex
       // materialize the keys
       sinkPageSet->resetPageSet();
       success = storage->materializeKeys(sinkPageSet,
-                                         std::make_pair<std::string, std::string>(setsToMaterialize[j].database, setsToMaterialize[j].set), std::make_shared<pdb::PDBMapKeyExtractorImpl<pdb::ff::FFMatrixMeta, pdb::ff::FFMatrixData>>()) && success;
+                                         std::make_pair<std::string, std::string>(setsToMaterialize[j].database, setsToMaterialize[j].set), s->keyExtractor) && success;
     }
   }
 

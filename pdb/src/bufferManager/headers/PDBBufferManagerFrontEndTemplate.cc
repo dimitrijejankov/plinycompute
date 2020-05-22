@@ -10,6 +10,7 @@
 #include <BufGetPageResult.h>
 #include <BufFreezeRequestResult.h>
 #include <BufForwardPageRequest.h>
+#include <BufMovePageResult.h>
 #include "assert.h"
 
 template <class T>
@@ -384,6 +385,87 @@ bool pdb::PDBBufferManagerFrontEnd::handleForwardPage(pdb::PDBPageHandle &page, 
 
   // we are done here
   return success;
+}
+
+template<class T>
+std::pair<bool, std::string> pdb::PDBBufferManagerFrontEnd::handleMovePageRequest(pdb::Handle<pdb::BufMovePageRequest> &request, shared_ptr<T> &sendUsingMe) {
+
+  // make an allocation block
+  const UseTemporaryAllocationBlock tempBlock{1024};
+
+  // create the page key for the anonymous page
+  auto anonymousPageKey = std::make_pair(nullptr, request->anonymousPageNumber);
+
+  // create the set identifier
+  auto set = std::make_shared<PDBSet>(request->dbName, request->setName);
+
+  /// 0. Get the anonymous page
+
+  PDBPageHandle anonymousPage;
+  {
+    // lock the thing
+    unique_lock<mutex> lck(m);
+
+    // find the page
+    auto it = this->sentPages.find(anonymousPageKey);
+
+    // check if the page is really there
+    if(it == this->sentPages.end()) {
+      cerr << "The anonymous page is not on the frontend, something went wrong...\n";
+      exit(-1);
+    }
+
+    // store the anonymous page
+    anonymousPage = it->second;
+  }
+
+  /// 1. Move the page to a new set
+
+  // repin the page
+  anonymousPage->repin();
+
+  // move the page
+  PDBPageHandle setPage = movePage(set, request->pageNumber, anonymousPage);
+
+  // unpin the page
+  anonymousPage->unpin();
+
+  /// 2. Remove the page from the sent pages
+
+  {
+    // lock the thing
+    unique_lock<mutex> lck(m);
+
+    // find the page
+    auto it = this->sentPages.find(anonymousPageKey);
+
+    // check if the page is really there
+    if(it == this->sentPages.end()) {
+      cerr << "The anonymous page is not on the frontend, something went wrong...\n";
+      exit(-1);
+    }
+
+    // mark that that page is not on the backend anymore
+    sentPages.erase(it);
+
+    // add back the set page
+    sentPages[std::make_pair(set, request->pageNumber)] = setPage;
+  }
+
+  /// 3. Send a request that we are done with the request
+
+  // make a response object
+  Handle<pdb::BufMovePageResult> response = pdb::makeObject<BufMovePageResult>(setPage->page->location.startPos,
+                                                                               setPage->page->location.numBytes,
+                                                                               setPage->page->pageNum,
+                                                                               true);
+
+  // sends result to requester
+  std::string errMsg;
+  bool res = sendUsingMe->sendObject(response, errMsg);
+
+  // return
+  return make_pair(res, errMsg);
 }
 
 template <class T>

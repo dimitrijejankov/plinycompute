@@ -52,7 +52,14 @@ pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(PDBAbstractPh
 
     // pipeline this node to the next, it always has to exist and it always has to be one
     auto myHandle = getHandle();
-    return ((PDBAggregationPhysicalNode*) consumers.front().get())->generateMergedAlgorithm(myHandle, otherSidePtr, pageSetCosts);
+
+    // check if the sides are swapped if so merge appropiratly
+    if(((PDBAggregationPhysicalNode*) consumers.front().get())->areSidesSwapped(myHandle)) {
+      return ((PDBAggregationPhysicalNode*) consumers.front().get())->generateMergedAlgorithm(otherSidePtr, myHandle, pageSetCosts);
+    }
+    else {
+      return ((PDBAggregationPhysicalNode*) consumers.front().get())->generateMergedAlgorithm(myHandle, otherSidePtr, pageSetCosts);
+    }
   }
   else if(canMerge) {
 

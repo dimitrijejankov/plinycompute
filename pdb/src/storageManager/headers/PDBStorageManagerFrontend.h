@@ -113,7 +113,7 @@ public:
    * @return - the result of the handler (success, error)
    */
   template <class Communicator, class Requests>
-  std::pair<bool, std::string> handleMaterializeSet(pdb::Handle<pdb::StoMaterializePageSetRequest> request, std::shared_ptr<Communicator> sendUsingMe);
+  std::pair<bool, std::string> handleMaterializeSet(const pdb::Handle<pdb::StoMaterializePageSetRequest>& request, std::shared_ptr<Communicator> sendUsingMe);
 
   /**
    * Handles the materialization of keys the backend has issued the backend. Basically it forwards a bunch of pages to the backend and check whether the

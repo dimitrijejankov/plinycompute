@@ -21,6 +21,7 @@
 
 // this is needed so we can declare friend tests here
 #include <gtest/gtest_prod.h>
+#include <BufMovePageRequest.h>
 
 
 /**
@@ -123,6 +124,11 @@ protected:
   // handles the unpin page request from the backend
   template <class T>
   std::pair<bool, std::string> handleUnpinPageRequest(pdb::Handle<pdb::BufUnpinPageRequest> &request, std::shared_ptr<T> &sendUsingMe);
+
+  // handles the move request from the backend
+  template <class T>
+  std::pair<bool, std::string> handleMovePageRequest(pdb::Handle<pdb::BufMovePageRequest> &request, std::shared_ptr<T> &sendUsingMe);
+
 
   // handles the logic for the forwarding
   template <class T>

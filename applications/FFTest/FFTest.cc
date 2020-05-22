@@ -418,8 +418,8 @@ int main(int argc, char* argv[]) {
 
   // now, create the input and output sets
   pdbClient.createSet<ff::FFMatrixBlock>("ff", "input_batch");
-  pdbClient. createSet<ff::FFMatrixBlock>("ff", "output_batch");
-  pdbClient. createSet<ff::FFMatrixBlock>("ff", "dense_0");
+  pdbClient.createSet<ff::FFMatrixBlock>("ff", "output_batch");
+  pdbClient.createSet<ff::FFMatrixBlock>("ff", "dense_0");
   pdbClient.createSet<ff::FFMatrixBlock>("ff", "dense_1");
   pdbClient.createSet<ff::FFMatrixBlock>("ff", "activation_0");
   pdbClient.createSet<ff::FFMatrixBlock>("ff", "activation_1");
