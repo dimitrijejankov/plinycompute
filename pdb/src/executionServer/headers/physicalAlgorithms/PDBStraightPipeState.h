@@ -17,6 +17,11 @@ struct PDBStraightPipeState : public PDBPhysicalAlgorithmState {
    * T
    */
   LogicalPlanPtr myPlan;
+
+  /**
+   * The key extractor
+   */
+  PDBKeyExtractorPtr keyExtractor;
 };
 
 }

@@ -13,7 +13,7 @@ namespace pdb {
 // the sub namespace
 namespace ff {
 
-class FFLayerAgg : public AggregateComp<FFLayerAgg, FFMatrixBlock, FFMatrixBlock, FFMatrixMeta, FFMatrixData> {
+class FFAggMatrix : public AggregateComp<FFAggMatrix, FFMatrixBlock, FFMatrixBlock, FFMatrixMeta, FFMatrixData> {
  public:
 
   ENABLE_DEEP_COPY

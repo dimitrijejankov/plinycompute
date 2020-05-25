@@ -15,7 +15,7 @@ class FFMatrixMeta : public pdb::Object {
    */
   FFMatrixMeta() = default;
 
-  FFMatrixMeta(uint32_t col_id, uint32_t row_id) : colID(col_id), rowID(row_id) {}
+  FFMatrixMeta(uint32_t row_id, uint32_t col_id) : colID(col_id), rowID(row_id) {}
 
   ENABLE_DEEP_COPY
 

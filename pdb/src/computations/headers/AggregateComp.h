@@ -235,7 +235,7 @@ class AggregateComp : public AggregateCompBase {
 
     // make the pre-aggregation sink
     JoinArgumentsPtr joinArgs = std::dynamic_pointer_cast<JoinArguments>(params[ComputeInfoType::JOIN_ARGS]);
-    if(joinArgs == nullptr || (joinArgs->isJoinAggAggregation && joinArgs->isLocalJoinAggAggregation)) {
+    if(joinArgs == nullptr || (joinArgs->isJoinAggAggregation && joinArgs->isLocalJoinAggAggregation) || !joinArgs->isJoinAggAggregation) {
       return std::make_shared<pdb::PreaggregationSink<KeyClass, ValueClass>>(consumeMe, projection, numThreads * numNodes);
     }
 
