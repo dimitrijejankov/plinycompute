@@ -12,6 +12,7 @@
 #include "sharedLibraries/headers/FFSelectionGradient2.h"
 #include "sharedLibraries/headers/FFGradientJoin.h"
 #include "sharedLibraries/headers/FFUpdateJoin.h"
+#include "sharedLibraries/headers/FFJoinBackMultTranspose.h"
 
 using namespace pdb;
 
@@ -25,7 +26,7 @@ std::vector<std::vector<std::pair<int32_t, int32_t>>> output;
 
 int32_t total_points;
 
-int32_t num_batch = 100;
+int32_t num_batch = 60;
 int32_t batch_block = 10;
 
 int32_t num_features;
@@ -34,7 +35,7 @@ int32_t features_block = 10;
 int32_t num_labels;
 int32_t labels_block = 10;
 
-int32_t embedding_size = 100;
+int32_t embedding_size = 80;
 int32_t embedding_block = 10;
 
 bool read_label(std::ifstream &is, char *buffer, int32_t batch_id) {
@@ -392,6 +393,7 @@ int main(int argc, char *argv[]) {
   pdbClient.registerType("libraries/libFFJoinBackTransposeMult.so");
   pdbClient.registerType("libraries/libFFGradientJoin.so");
   pdbClient.registerType("libraries/libFFUpdateJoin.so");
+  pdbClient.registerType("libraries/libFFJoinBackMultTranspose.so");
 
 
   // now, create a new database
@@ -402,15 +404,16 @@ int main(int argc, char *argv[]) {
   pdbClient.createSet<ff::FFMatrixBlock>("ff", "output_labels");
   pdbClient.createSet<ff::FFMatrixBlock>("ff", "w1");
   pdbClient.createSet<ff::FFMatrixBlock>("ff", "w2");
-  pdbClient.createSet<ff::FFMatrixBlock>("ff", "activation_0");
-  pdbClient.createSet<ff::FFMatrixBlock>("ff", "activation_1");
-  pdbClient.createSet<ff::FFMatrixBlock>("ff", "gradient_2");
-  pdbClient.createSet<ff::FFMatrixBlock>("ff", "d_w2");
-  pdbClient.createSet<ff::FFMatrixBlock>("ff", "gradient_1_tmp");
-  pdbClient.createSet<ff::FFMatrixBlock>("ff", "gradient_1");
-  pdbClient.createSet<ff::FFMatrixBlock>("ff", "d_w1");
-  pdbClient.createSet<ff::FFMatrixBlock>("ff", "w1_updated");
-  pdbClient.createSet<ff::FFMatrixBlock>("ff", "w2_updated");
+
+  pdbClient.createSet<ff::FFMatrixBlock>("ff", "activation_1"); // OK
+  pdbClient.createSet<ff::FFMatrixBlock>("ff", "activation_2"); // OK
+  pdbClient.createSet<ff::FFMatrixBlock>("ff", "gradient_2"); // OK
+  pdbClient.createSet<ff::FFMatrixBlock>("ff", "d_w2"); // OK
+  pdbClient.createSet<ff::FFMatrixBlock>("ff", "gradient_1_tmp"); // OK
+  pdbClient.createSet<ff::FFMatrixBlock>("ff", "gradient_1"); // OK
+  pdbClient.createSet<ff::FFMatrixBlock>("ff", "d_w1"); // OK
+  pdbClient.createSet<ff::FFMatrixBlock>("ff", "w1_updated"); // OK
+  pdbClient.createSet<ff::FFMatrixBlock>("ff", "w2_updated"); // OK
 
 
   // load the input data
@@ -437,7 +440,7 @@ int main(int argc, char *argv[]) {
     myAggregation->setInput(join);
 
     // make the writer
-    Handle<Computation> myWriter = makeObject<ff::FFMatrixWriter>("ff", "activation_0");
+    Handle<Computation> myWriter = makeObject<ff::FFMatrixWriter>("ff", "activation_1");
     myWriter->setInput(myAggregation);
 
     // run the computation
@@ -450,7 +453,7 @@ int main(int argc, char *argv[]) {
     const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
     // make the computation
-    Handle<Computation> readA = makeObject<ff::FFMatrixScanner>("ff", "activation_0");
+    Handle<Computation> readA = makeObject<ff::FFMatrixScanner>("ff", "activation_1");
     Handle<Computation> readB = makeObject<ff::FFMatrixScanner>("ff", "w2");
 
     // make the join
@@ -463,7 +466,7 @@ int main(int argc, char *argv[]) {
     myAggregation->setInput(join);
 
     // make the writer
-    Handle<Computation> myWriter = makeObject<ff::FFMatrixWriter>("ff", "activation_1");
+    Handle<Computation> myWriter = makeObject<ff::FFMatrixWriter>("ff", "activation_2");
     myWriter->setInput(myAggregation);
 
     // run the computation
@@ -476,7 +479,7 @@ int main(int argc, char *argv[]) {
     const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
     // make the computation
-    Handle<Computation> lhs = makeObject<ff::FFMatrixScanner>("ff", "activation_1");
+    Handle<Computation> lhs = makeObject<ff::FFMatrixScanner>("ff", "activation_2");
 
     // make the join
     Handle<Computation> selection = makeObject<ff::FFSelectionGradient2>(num_batch / batch_block,
@@ -492,6 +495,9 @@ int main(int argc, char *argv[]) {
     // run the computation
     bool success = pdbClient.executeComputations({writer});
   }
+
+  // remove activation_2 it is not needed anymore...
+  pdbClient.removeSet("ff", "activation_2");
 
   // calculate d_w2
   {
@@ -519,32 +525,6 @@ int main(int argc, char *argv[]) {
     bool success = pdbClient.executeComputations({myWriter});
   }
 
-  // calculate the temporary result for gradient_1
-  {
-    // do the activation of the first layer
-    const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
-
-    // make the computation
-    Handle<Computation> readA = makeObject<ff::FFMatrixScanner>("ff", "gradient_2");
-    Handle<Computation> readB = makeObject<ff::FFMatrixScanner>("ff", "w2");
-
-    // make the join
-    Handle<Computation> join = makeObject<ff::FFJoinBackTransposeMult>();
-    join->setInput(0, readA);
-    join->setInput(1, readB);
-
-    // make the aggregation
-    Handle<Computation> myAggregation = makeObject<ff::FFAggMatrix>();
-    myAggregation->setInput(join);
-
-    // make the writer
-    Handle<Computation> myWriter = makeObject<ff::FFMatrixWriter>("ff", "gradient_1_tmp");
-    myWriter->setInput(myAggregation);
-
-    // run the computation
-    bool success = pdbClient.executeComputations({myWriter});
-  }
-
   // calculate the gradient_1
   {
     // do the activation of the first layer
@@ -555,7 +535,7 @@ int main(int argc, char *argv[]) {
     Handle<Computation> readB = makeObject<ff::FFMatrixScanner>("ff", "w2");
 
     // make the join
-    Handle<Computation> join = makeObject<ff::FFJoinBackTransposeMult>();
+    Handle<Computation> join = makeObject<ff::FFJoinBackMultTranspose>();
     join->setInput(0, readA);
     join->setInput(1, readB);
 
@@ -570,6 +550,9 @@ int main(int argc, char *argv[]) {
     // run the computation
     bool success = pdbClient.executeComputations({myWriter});
   }
+
+  // remove the gradient_2
+  pdbClient.removeSet("ff", "gradient_2");
 
   // calculate the elementvise
   {
@@ -597,6 +580,10 @@ int main(int argc, char *argv[]) {
     bool success = pdbClient.executeComputations({myWriter});
   }
 
+  // remove the activation_1
+  pdbClient.removeSet("ff", "activation_1");
+  pdbClient.removeSet("ff", "gradient_1_tmp");
+
   // calculate dw1
   {
     // do the activation of the first layer
@@ -622,6 +609,8 @@ int main(int argc, char *argv[]) {
     // run the computation
     bool success = pdbClient.executeComputations({myWriter});
   }
+
+  pdbClient.removeSet("ff", "gradient_1");
 
   // do the update for w1
   {
@@ -649,6 +638,10 @@ int main(int argc, char *argv[]) {
     bool success = pdbClient.executeComputations({myWriter});
   }
 
+  // remove the w1 set
+  pdbClient.removeSet("ff", "w1");
+  pdbClient.removeSet("ff", "d_w1");
+
   // do the update w2
   {
     // do the activation of the first layer
@@ -674,6 +667,10 @@ int main(int argc, char *argv[]) {
     // run the computation
     bool success = pdbClient.executeComputations({myWriter});
   }
+
+  // remove the w1 set
+  pdbClient.removeSet("ff", "w2");
+  pdbClient.removeSet("ff", "d_w2");
 
   /// 5. Get the set from the
 

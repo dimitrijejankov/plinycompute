@@ -14,21 +14,21 @@ namespace pdb {
 // the sub namespace
 namespace ff {
 
-class FFJoinBackTransposeMult : public JoinComp <FFJoinBackTransposeMult, FFMatrixBlock, FFMatrixBlock, FFMatrixBlock> {
+class FFJoinBackMultTranspose : public JoinComp <FFJoinBackMultTranspose, FFMatrixBlock, FFMatrixBlock, FFMatrixBlock> {
  public:
 
   ENABLE_DEEP_COPY
 
-  FFJoinBackTransposeMult() = default;
+  FFJoinBackMultTranspose() = default;
 
   // d_w2 = a_1 * trans(gradient_t)
   static Lambda <bool> getKeySelection (Handle <FFMatrixMeta> in1, Handle <FFMatrixMeta> in2) {
-    return (makeLambdaFromMember (in1, rowID) == makeLambdaFromMember (in2, rowID));
+    return (makeLambdaFromMember (in1, colID) == makeLambdaFromMember (in2, colID));
   }
 
   static Lambda <Handle<FFMatrixMeta>> getKeyProjection(Handle <FFMatrixMeta> in1, Handle <FFMatrixMeta> in2) {
     return makeLambda (in1, in2, [] (Handle <FFMatrixMeta> &in1, Handle <FFMatrixMeta> &in2) {
-      Handle<FFMatrixMeta> out = makeObject<FFMatrixMeta>(in1->colID, in2->colID);
+      Handle<FFMatrixMeta> out = makeObject<FFMatrixMeta>(in1->rowID, in2->rowID);
       return out;
     });
   }
@@ -38,7 +38,7 @@ class FFJoinBackTransposeMult : public JoinComp <FFJoinBackTransposeMult, FFMatr
 
       // get the sizes
       uint32_t I = in1->numRows;
-      uint32_t J = in2->numCols;
+      uint32_t J = in2->numRows;
       uint32_t K = in1->numCols;
 
       // make an output
