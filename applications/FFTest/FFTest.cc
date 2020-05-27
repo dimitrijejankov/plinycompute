@@ -22,7 +22,7 @@ std::vector<std::vector<std::pair<int32_t, int32_t>>> labels;
 std::vector<std::pair<int32_t, int32_t>> labels_meta;
 std::vector<std::pair<int32_t, int32_t>> labels_data;
 
-std::vector<std::vector<std::pair<int32_t, int32_t>>> output;
+std::vector<std::vector<std::pair<int32_t, float>>> features;
 
 int32_t total_points;
 
@@ -84,8 +84,8 @@ void read_feature_idx(std::ifstream &is, char *buffer, int32_t pos) {
 
       // read the label
       char *tmp;
-      output[pos].emplace_back();
-      output[pos].back().first = strtol(buffer, &tmp, 10);
+      features[pos].emplace_back();
+      features[pos].back().first = strtol(buffer, &tmp, 10);
 
       // does not have other labels
       return;
@@ -109,8 +109,8 @@ bool read_feature_value(std::ifstream &is, char *buffer, int32_t pos) {
       buffer[idx + 1] = '\0';
 
       // read the label
-      std::string::size_type sz;
-      output[pos].back().second = std::stof(buffer, &sz);
+      std::string::size_type tmp;
+      features[pos].back().second = stof(buffer, &tmp);
 
       // does not have other labels
       return buffer[idx] == ' ';
@@ -120,6 +120,29 @@ bool read_feature_value(std::ifstream &is, char *buffer, int32_t pos) {
     idx++;
 
   } while (true);
+}
+
+void init_features(int32_t row_id, int32_t col_id, float *values) {
+
+  auto start_r = row_id * batch_block;
+  auto end_r = (row_id + 1) * batch_block;
+
+  for(int r = start_r; r < end_r; ++r) {
+
+    // get the features row
+    auto &features_row = features[r];
+
+    // get the start and end column
+    auto start_c = col_id * features_block;
+    auto end_c = (col_id + 1) * features_block;
+
+    for(const auto &f : features_row) {
+      if(f.first >= start_c && f.first < end_c) {
+        values[(r % batch_block) * features_block + (f.first % features_block)] = f.second;
+      }
+    }
+  }
+
 }
 
 void load_input_data(pdb::PDBClient &pdbClient) {
@@ -152,7 +175,7 @@ void load_input_data(pdb::PDBClient &pdbClient) {
 
   // init the data
   labels.resize((num_batch / batch_block) * (num_labels / labels_block));
-  output.resize(num_batch);
+  features.resize(num_batch);
 
   // load a single batch into memory
   char buffer[1024];
@@ -211,6 +234,8 @@ void load_input_data(pdb::PDBClient &pdbClient) {
         // init the values
         float *vals = myInt->data->data->c_ptr();
         bzero(myInt->data->data->c_ptr(), batch_block * features_block * sizeof(float));
+
+        init_features(tuples_to_send[idx].first, tuples_to_send[idx].second, myInt->data->data->c_ptr());
 
         // we add the matrix to the block
         vec->push_back(myInt);
