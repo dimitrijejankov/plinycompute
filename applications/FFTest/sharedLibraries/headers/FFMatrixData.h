@@ -16,8 +16,10 @@ class FFMatrixData : public pdb::Object {
    */
   FFMatrixData() = default;
 
-  FFMatrixData(uint32_t numRows, uint32_t numCols, uint32_t rowID, uint32_t colID) : numRows(numRows), numCols(numCols) {
-
+  FFMatrixData(uint32_t numRows, uint32_t numCols, uint32_t rowID, uint32_t colID) : numRows(numRows),
+                                                                                     numCols(numCols),
+                                                                                     rowID(rowID),
+                                                                                     colID(colID) {
     // allocate the data
     data = makeObject<Vector<float>>(numRows * numCols, numRows * numCols);
   }

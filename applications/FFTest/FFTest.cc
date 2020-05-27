@@ -706,6 +706,15 @@ int main(int argc, char *argv[]) {
       std::cout << "\n";
     }
 
+    if(r->data->bias != nullptr) {
+
+      //
+      std::cout << "Bias\n";
+      for (int j = 0; j < r->data->numCols * r->data->numRows; ++j) {
+        std::cout << values[j] << ", ";
+      }
+      std::cout << "\n";
+    }
     std::cout << "\n\n";
   }
 

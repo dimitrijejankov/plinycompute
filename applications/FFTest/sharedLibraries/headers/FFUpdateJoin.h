@@ -51,6 +51,19 @@ class FFUpdateJoin : public JoinComp <FFUpdateJoin, FFMatrixBlock, FFMatrixBlock
         data[i] = lhs[i] + rhs[i];
       }
 
+      if(in1->bias != nullptr && in2->bias != nullptr) {
+        std::cout << "Bias updated " << in1->rowID << " " << in2->colID << '\n';
+        out->bias = pdb::makeObject<Vector<float>>(in1->bias->size(), in1->bias->size());
+        float *o = out->bias->c_ptr();
+        float *b1 = in1->bias->c_ptr();
+        float *b2 = in2->bias->c_ptr();
+
+        // sum update the bias
+        for(int i = 0; i < in1->bias->size(); i++) {
+          o[i] = b1[i] + b2[i];
+        }
+      }
+
       // return the output
       return out;
     });
