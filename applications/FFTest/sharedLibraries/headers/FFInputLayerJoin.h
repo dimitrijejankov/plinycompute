@@ -41,7 +41,7 @@ class FFInputLayerJoin : public JoinComp <FFInputLayerJoin, FFMatrixBlock, FFMat
       uint32_t K = in1->numCols;
 
       // make an output
-      Handle<FFMatrixData> out = makeObject<FFMatrixData>(I, J);
+      Handle<FFMatrixData> out = makeObject<FFMatrixData>(I, J, in1->rowID, in2->colID);
 
       // get the ptrs
       float *outData = out->data->c_ptr();
@@ -50,6 +50,18 @@ class FFInputLayerJoin : public JoinComp <FFInputLayerJoin, FFMatrixBlock, FFMat
 
       // do the multiply
       cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, I, J, K, 1.0f, in1Data, K, in2Data, J, 0.0f, outData, J);
+
+      // process the bias if necessary
+      if(in2->bias != nullptr) {
+        auto bias = in2->bias->c_ptr();
+        for(uint32_t r = 0; r < I; r++) {
+          for(uint32_t c = 0; c < J; c++) {
+
+            // add the bias
+            outData[r * J + c] += bias[c];
+          }
+        }
+      }
 
       // return the output
       return out;

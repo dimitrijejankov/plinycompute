@@ -38,7 +38,7 @@ class FFMatrixBlock : public pdb::Object {
    */
   FFMatrixBlock(uint32_t rowID, uint32_t colID, uint32_t numRows, uint32_t numCols) {
     metaData = makeObject<FFMatrixMeta>(rowID, colID),
-        data = makeObject<FFMatrixData>(numRows, numCols);
+        data = makeObject<FFMatrixData>(numRows, numCols, rowID, colID);
   }
 
   ENABLE_DEEP_COPY

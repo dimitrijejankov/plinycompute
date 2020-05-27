@@ -40,7 +40,7 @@ class FFGradientJoin : public JoinComp <FFGradientJoin, FFMatrixBlock, FFMatrixB
       uint32_t K = in1->numCols;
 
       // make an output
-      Handle<FFMatrixData> out = makeObject<FFMatrixData>(I, K);
+      Handle<FFMatrixData> out = makeObject<FFMatrixData>(I, K, in1->rowID, in1->colID);
 
       auto data = out->data->c_ptr();
       auto lhs = in1->data->c_ptr();

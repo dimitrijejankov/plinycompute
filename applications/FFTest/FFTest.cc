@@ -289,6 +289,13 @@ auto init_weights(pdb::PDBClient &pdbClient) {
           vals[v] = (float) drand48() * 0.0001f;
         }
 
+        // check if we need to init the bias here if so do it...
+        if(tuples_to_send[idx].first == (block_f - 1)) {
+
+          // init the bias if necessary
+          myInt->data->bias = makeObject<Vector<float>>(features_block, features_block);
+        }
+
         // we add the matrix to the block
         data->push_back(myInt);
 
@@ -348,6 +355,12 @@ auto init_weights(pdb::PDBClient &pdbClient) {
         float *vals = myInt->data->data->c_ptr();
         for (int v = 0; v < embedding_block * labels_block; ++v) {
           vals[v] = (float) drand48() * 0.0001f;
+        }
+
+        if(tuples_to_send[idx].first == (block_e - 1)) {
+
+          // init the bias if necessary
+          myInt->data->bias = makeObject<Vector<float>>(labels_block, labels_block);
         }
 
         // we add the matrix to the block
@@ -419,7 +432,7 @@ int main(int argc, char *argv[]) {
   // load the input data
   load_input_data(pdbClient);
 
-//  // initialize the weights
+  // initialize the weights
   init_weights(pdbClient);
 
   // do the activation of the first layer
@@ -509,7 +522,7 @@ int main(int argc, char *argv[]) {
     Handle<Computation> readB = makeObject<ff::FFMatrixScanner>("ff", "gradient_2");
 
     // make the join
-    Handle<Computation> join = makeObject<ff::FFJoinBackTransposeMult>();
+    Handle<Computation> join = makeObject<ff::FFJoinBackTransposeMult>(embedding_size / embedding_block);
     join->setInput(0, readA);
     join->setInput(1, readB);
 
@@ -594,7 +607,7 @@ int main(int argc, char *argv[]) {
     Handle<Computation> readB = makeObject<ff::FFMatrixScanner>("ff", "gradient_1");
 
     // make the join
-    Handle<Computation> join = makeObject<ff::FFJoinBackTransposeMult>();
+    Handle<Computation> join = makeObject<ff::FFJoinBackTransposeMult>(num_features / features_block);
     join->setInput(0, readA);
     join->setInput(1, readB);
 

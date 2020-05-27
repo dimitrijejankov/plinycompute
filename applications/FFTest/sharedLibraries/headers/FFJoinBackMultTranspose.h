@@ -42,7 +42,7 @@ class FFJoinBackMultTranspose : public JoinComp <FFJoinBackMultTranspose, FFMatr
       uint32_t K = in1->numCols;
 
       // make an output
-      Handle<FFMatrixData> out = makeObject<FFMatrixData>(I, J);
+      Handle<FFMatrixData> out = makeObject<FFMatrixData>(I, J, in1->rowID, in2->rowID);
 
       // get the ptrs
       float *outData = out->data->c_ptr();
