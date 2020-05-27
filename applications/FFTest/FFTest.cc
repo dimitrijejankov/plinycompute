@@ -135,6 +135,16 @@ void load_input_data(pdb::PDBClient &pdbClient) {
   is >> num_features;
   is >> num_labels;
 
+  // round features so we can pad them
+  if((num_features % features_block) != 0) {
+    num_features += features_block - (num_features % features_block);
+  }
+
+  // round labels so we can pad them
+  if((num_labels % labels_block) != 0) {
+    num_labels += labels_block - (num_labels % labels_block);
+  }
+
   // check that we have enough data points
   if (total_points < num_batch) {
     throw runtime_error("Not enough data points to form a batch.");
@@ -688,7 +698,7 @@ int main(int argc, char *argv[]) {
   /// 5. Get the set from the
 
   // grab the iterator
-  auto it = pdbClient.getSetIterator<ff::FFMatrixBlock>("ff", "w1_updated");
+  auto it = pdbClient.getSetIterator<ff::FFMatrixBlock>("ff", "w2_updated");
   int32_t count = 0;
   while (it->hasNextRecord()) {
 

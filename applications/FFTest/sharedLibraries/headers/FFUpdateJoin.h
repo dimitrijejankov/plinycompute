@@ -52,7 +52,6 @@ class FFUpdateJoin : public JoinComp <FFUpdateJoin, FFMatrixBlock, FFMatrixBlock
       }
 
       if(in1->bias != nullptr && in2->bias != nullptr) {
-        std::cout << "Bias updated " << in1->rowID << " " << in2->colID << '\n';
         out->bias = pdb::makeObject<Vector<float>>(in1->bias->size(), in1->bias->size());
         float *o = out->bias->c_ptr();
         float *b1 = in1->bias->c_ptr();
