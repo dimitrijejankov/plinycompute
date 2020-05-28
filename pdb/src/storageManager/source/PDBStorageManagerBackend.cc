@@ -639,6 +639,9 @@ bool pdb::PDBStorageManagerBackend::materializeKeys(const pdb::PDBAbstractPageSe
     // make the allocation block
     makeObjectAllocatorBlock(keyPage->getBytes(), keyPage->getSize(), true);
 
+    // fetch the first page
+    inputPage = pageSet->getNextPage(0);
+
     // process all the pages
     while(numPages != 0) {
 

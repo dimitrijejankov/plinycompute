@@ -43,6 +43,12 @@ private:
   // the page that contains the map
   PDBPageHandle page;
 
+  // the id of the worker
+  uint64_t workerID;
+
+  // the page set
+  PDBAbstractPageSetPtr pageSet;
+
   // the buffer where we put records in the case of a failed processing attempt
   std::vector<Handle<OutputType>> buffer;
 
@@ -178,7 +184,7 @@ public:
 
   // the first param is a callback function that the iterator will call in order to obtain another vector
   // to iterate over.  The second param tells us how many objects to put into a tuple set
-  MapTupleSetIterator(const PDBAbstractPageSetPtr &pageSet, uint64_t workerID) {
+  MapTupleSetIterator(const PDBAbstractPageSetPtr &pageSet, uint64_t workerID) : pageSet(pageSet), workerID(workerID) {
 
     // get the page if we have one if we don't set the hash map to null
     page = pageSet->getNextPage(workerID);
@@ -256,8 +262,29 @@ public:
       // unpin the page
       page->unpin();
 
-      // finish
-      return nullptr;
+      // we need to grab a new page
+      while(!(begin != end)) {
+
+        // get the page if we have one if we don't set the hash map to null
+        page = pageSet->getNextPage(workerID);
+
+        // if there is no page
+        if(page == nullptr) {
+          iterateOverMe = nullptr;
+          return nullptr;
+        }
+
+        // repin the page
+        page->repin();
+
+        // get the hash table
+        Handle<Object> myHashTable = ((Record<Object> *) page->getBytes())->getRootObject();
+        iterateOverMe = unsafeCast<Map<KeyType, ValueType>>(myHashTable);
+
+        // get the iterators
+        begin = iterateOverMe->begin();
+        end = iterateOverMe->end();
+      }
     }
 
     // fill up the column

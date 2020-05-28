@@ -21,7 +21,7 @@ class PDBKeyExtractorImpl : public PDBKeyExtractor {
  public:
 
   // did we process the records from the last iteration
-  bool _processedLast = true;
+  bool _processedLast = false;
 
   // the index of the current record
   uint64_t _index = 0;
@@ -37,17 +37,17 @@ class PDBKeyExtractorImpl : public PDBKeyExtractor {
   void extractKeys(const PDBPageHandle &inputPage, const PDBPageHandle &keyPage) override {
 
     // did we finish everything the last time?
-    if(_processedLast) {
+    if(!_processedLast) {
 
       // reset the index
       _index = 0;
 
-      // mark that we have more to process now
-      _processedLast = false;
-
       // make a new vector
       _keyVector = pdb::makeObject<Vector<Handle<Object>>>();
     }
+
+    // mark that we have more to process now
+    _processedLast = false;
 
     // cast the place where we copied the thing
     auto* recordCopy = (Record<Vector<Handle<T>>>*) inputPage->getBytes();
@@ -68,7 +68,7 @@ class PDBKeyExtractorImpl : public PDBKeyExtractor {
 
   // returns the current page size
   uint64_t pageSize(const PDBPageHandle &keyPage) override {
-    return ((Record<Vector<Handle<Object>>>*) keyPage->getBytes())->numBytes();
+    return getRecord(_keyVector)->numBytes();
   }
 };
 
@@ -77,7 +77,7 @@ class PDBMapKeyExtractorImpl : public PDBKeyExtractor {
  public:
 
   // did we process the records from the last iteration
-  bool _processedLast = true;
+  bool _processedLast = false;
 
   // the index of the current record
   uint64_t _index = 0;
@@ -93,17 +93,17 @@ class PDBMapKeyExtractorImpl : public PDBKeyExtractor {
   void extractKeys(const PDBPageHandle &inputPage, const PDBPageHandle &keyPage) override {
 
     // did we finish everything the last time?
-    if(_processedLast) {
+    if(!_processedLast) {
 
       // reset the index
       _index = 0;
 
-      // mark that we have more to process now
-      _processedLast = false;
-
       // make a new vector
       _keyVector = pdb::makeObject<Vector<Handle<Object>>>();
     }
+
+    // mark that we have more to process now
+    _processedLast = false;
 
     // cast the place where we copied the thing
     auto* recordCopy = (Record<Map<K, V>>*) inputPage->getBytes();

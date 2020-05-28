@@ -249,7 +249,6 @@ public:
     }
 
     // and return the output TupleSet
-    std::cout << "Wrote : " << pos << '\n';
     return output;
   }
 
