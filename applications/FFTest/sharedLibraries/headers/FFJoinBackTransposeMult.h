@@ -70,7 +70,7 @@ class FFJoinBackTransposeMult : public JoinComp <FFJoinBackTransposeMult, FFMatr
       }
 
       // do the multiply
-      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, I, J, K, 1.0f, in1Data, K, in2Data, J, 0.0f, outData, J);
+      cblas_sgemm(CblasRowMajor, CblasTrans, CblasNoTrans, I, J, K, 1.0f, in1Data, K, in2Data, J, 0.0f, outData, J);
 
       // return the output
       return out;

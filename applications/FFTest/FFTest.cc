@@ -58,7 +58,7 @@ bool read_label(std::ifstream &is, char *buffer, int32_t batch_id) {
       auto col_id = label_id / labels_block;
 
       // store the labels
-      labels[row_id * labels_block + col_id].emplace_back(std::make_pair(batch_id % batch_block,
+      labels[row_id * (num_labels / labels_block) + col_id].emplace_back(std::make_pair(batch_id % batch_block,
                                                                          label_id % labels_block));
 
       // does not have other labels
@@ -429,19 +429,19 @@ int main(int argc, char *argv[]) {
 
   // now, register a type for user data
   pdbClient.registerType("libraries/libFFHiddenLayerJoin.so");
-  pdbClient.registerType("libraries/libFFInputLayerJoin.so");
   pdbClient.registerType("libraries/libFFAggMatrix.so");
+  pdbClient.registerType("libraries/libFFGradientJoin.so");
+  pdbClient.registerType("libraries/libFFHiddenLayerJoin.so");
+  pdbClient.registerType("libraries/libFFInputLayerJoin.so");
+  pdbClient.registerType("libraries/libFFJoinBackMultTranspose.so");
+  pdbClient.registerType("libraries/libFFJoinBackTransposeMult.so");
   pdbClient.registerType("libraries/libFFMatrixBlock.so");
   pdbClient.registerType("libraries/libFFMatrixData.so");
   pdbClient.registerType("libraries/libFFMatrixMeta.so");
   pdbClient.registerType("libraries/libFFMatrixScanner.so");
   pdbClient.registerType("libraries/libFFMatrixWriter.so");
-  pdbClient.registerType("libraries/libFFSoftmaxAggregation.so");
   pdbClient.registerType("libraries/libFFSelectionGradient2.so");
-  pdbClient.registerType("libraries/libFFJoinBackTransposeMult.so");
-  pdbClient.registerType("libraries/libFFGradientJoin.so");
   pdbClient.registerType("libraries/libFFUpdateJoin.so");
-  pdbClient.registerType("libraries/libFFJoinBackMultTranspose.so");
 
 
   // now, create a new database
