@@ -26,16 +26,16 @@ std::vector<std::vector<std::pair<int32_t, float>>> features;
 
 int32_t total_points;
 
-int32_t num_batch = 60;
+int32_t num_batch = 100;
 int32_t batch_block = 10;
 
 int32_t num_features;
-int32_t features_block = 10;
+int32_t features_block = 12;
 
 int32_t num_labels;
 int32_t labels_block = 10;
 
-int32_t embedding_size = 80;
+int32_t embedding_size = 100;
 int32_t embedding_block = 10;
 
 bool read_label(std::ifstream &is, char *buffer, int32_t batch_id) {
@@ -321,7 +321,7 @@ auto init_weights(pdb::PDBClient &pdbClient) {
         // init the values
         float *vals = myInt->data->data->c_ptr();
         for (int v = 0; v < features_block * embedding_block; ++v) {
-          vals[v] = (float) drand48() * 0.0001f;
+          vals[v] = (float) drand48() * 0.1f;
         }
 
         // check if we need to init the bias here if so do it...
@@ -389,7 +389,7 @@ auto init_weights(pdb::PDBClient &pdbClient) {
         // init the values
         float *vals = myInt->data->data->c_ptr();
         for (int v = 0; v < embedding_block * labels_block; ++v) {
-          vals[v] = (float) drand48() * 0.0001f;
+          vals[v] = (float) drand48() * 0.1f;
         }
 
         if(tuples_to_send[idx].first == (block_e - 1)) {

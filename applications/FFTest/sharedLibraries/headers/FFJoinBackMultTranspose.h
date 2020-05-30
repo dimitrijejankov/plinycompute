@@ -40,6 +40,7 @@ class FFJoinBackMultTranspose : public JoinComp <FFJoinBackMultTranspose, FFMatr
       uint32_t I = in1->numRows;
       uint32_t J = in2->numRows;
       uint32_t K = in1->numCols;
+      uint32_t L = in2->numCols;
 
       // make an output
       Handle<FFMatrixData> out = makeObject<FFMatrixData>(I, J, in1->rowID, in2->rowID);
@@ -50,7 +51,7 @@ class FFJoinBackMultTranspose : public JoinComp <FFJoinBackMultTranspose, FFMatr
       float *in2Data = in2->data->c_ptr();
 
       // do the multiply
-      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, I, J, K, 1.0f, in1Data, K, in2Data, J, 0.0f, outData, J);
+      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, I, J, K, 1.0f, in1Data, K, in2Data, L, 0.0f, outData, J);
 
       // return the output
       return out;
