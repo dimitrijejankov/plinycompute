@@ -365,7 +365,7 @@ pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationKeyStage::getFetchingPageSet(c
   return sourcePageSet;
 }
 
-bool pdb::PDBJoinAggregationKeyStage::sendPlan(const std::string &ip, int32_t port,
+bool pdb::PDBJoinAggregationKeyStage::sendPlan(int32_t node,
                                                const PDBBufferManagerInterfacePtr &mgr,
                                                const Handle<pdb::ExJob> &job,
                                                const PDBPhysicalAlgorithmStatePtr &state) {
@@ -379,10 +379,11 @@ bool pdb::PDBJoinAggregationKeyStage::sendPlan(const std::string &ip, int32_t po
   // make the connect request
   pdb::Handle<SerConnectToRequest> connectionID = pdb::makeObject<SerConnectToRequest>(job->computationID,
                                                                                        job->jobID,
-                                                                                       0,
+                                                                                       node,
                                                                                        PDBJoinAggregationState::PLAN_TASK);
-  // connection
-  auto connection = mgr->connectTo(ip, port, connectionID);
+
+  // wait for a connection
+  auto connection = mgr->waitForConnection(connectionID);
 
   // check if we could connect
   if(connection == nullptr) {
@@ -393,6 +394,7 @@ bool pdb::PDBJoinAggregationKeyStage::sendPlan(const std::string &ip, int32_t po
   s->planPage->repin();
   s->leftKeyPage->repin();
   s->rightKeyPage->repin();
+  s->aggKeyPage->repin();
 
   // send the plan page
   std::string error;
@@ -404,7 +406,7 @@ bool pdb::PDBJoinAggregationKeyStage::sendPlan(const std::string &ip, int32_t po
   }
 
   // send the left key page
-  success = connection->sendBytes(s->leftKeyPage->getBytes(), s->planPage->getSize(), error);
+  success = connection->sendBytes(s->leftKeyPage->getBytes(), s->leftKeyPage->getSize(), error);
 
   // we failed here
   if(!success) {
@@ -412,13 +414,22 @@ bool pdb::PDBJoinAggregationKeyStage::sendPlan(const std::string &ip, int32_t po
   }
 
   // send the right key page
-  success = connection->sendBytes(s->rightKeyPage->getBytes(), s->planPage->getSize(), error);
+  success = connection->sendBytes(s->rightKeyPage->getBytes(), s->rightKeyPage->getSize(), error);
+
+  // we failed here
+  if(!success) {
+    return false;
+  }
+
+  // send the right key page
+  success = connection->sendBytes(s->aggKeyPage->getBytes(), s->aggKeyPage->getSize(), error);
 
   // return the result
   return success;
 }
 
-bool pdb::PDBJoinAggregationKeyStage::receivePlan(const PDBBufferManagerInterfacePtr &mgr,
+bool pdb::PDBJoinAggregationKeyStage::receivePlan(const std::string &ip, int32_t port,
+                                                  const PDBBufferManagerInterfacePtr &mgr,
                                                   const Handle<pdb::ExJob> &job,
                                                   const PDBPhysicalAlgorithmStatePtr &state) {
   // cast the state
@@ -428,6 +439,7 @@ bool pdb::PDBJoinAggregationKeyStage::receivePlan(const PDBBufferManagerInterfac
   s->planPage->repin();
   s->leftKeyPage->repin();
   s->rightKeyPage->repin();
+  s->aggKeyPage->repin();
 
   // we store our request here
   UseTemporaryAllocationBlock tmp{1024};
@@ -435,11 +447,10 @@ bool pdb::PDBJoinAggregationKeyStage::receivePlan(const PDBBufferManagerInterfac
   // make the connect request
   pdb::Handle<SerConnectToRequest> connectionID = pdb::makeObject<SerConnectToRequest>(job->computationID,
                                                                                        job->jobID,
-                                                                                       0,
+                                                                                       job->thisNode,
                                                                                        PDBJoinAggregationState::PLAN_TASK);
-
-  // wait for a connection
-  auto connection = mgr->waitForConnection(connectionID);
+  // connection
+  auto connection = mgr->connectTo(ip, port, connectionID);
 
   // wait for the plan
   std::string error;
@@ -460,6 +471,14 @@ bool pdb::PDBJoinAggregationKeyStage::receivePlan(const PDBBufferManagerInterfac
 
   // wait for the right key page
   success = connection->receiveBytes(s->rightKeyPage->getBytes(), error);
+
+  // we failed here
+  if(!success) {
+    return false;
+  }
+
+  // wait for the left key page
+  success = connection->receiveBytes(s->aggKeyPage->getBytes(), error);
 
   // return the indicator
   return success;
@@ -612,7 +631,7 @@ bool pdb::PDBJoinAggregationKeyStage::runLead(const Handle<pdb::ExJob> &job,
         if(job->nodes[i]->port != job->nodes[currNode]->port || job->nodes[i]->address != job->nodes[currNode]->address) {
 
           // send the plan
-          success = sendPlan(job->nodes[i]->address, job->nodes[i]->backendPort, mgr, job, s);
+          success = sendPlan(i, mgr, job, s) && success;
         }
       }
       catch (std::exception &e) {
@@ -661,7 +680,7 @@ bool pdb::PDBJoinAggregationKeyStage::runFollower(const Handle<pdb::ExJob> &job,
   auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
 
   // receive the plan
-  receivePlan(myMgr, job, state);
+  receivePlan(job->nodes[0]->address, job->nodes[0]->backendPort, myMgr, job, state);
 
   /**
    * 3. Get the planning result decision from the plan

@@ -57,13 +57,14 @@ public:
   const pdb::Vector<PDBSourceSpec> &rightSources;
 
   // this sends the plan
-  static bool sendPlan(const std::string &ip, int32_t port,
+  static bool sendPlan(int32_t node,
                        const PDBBufferManagerInterfacePtr &mgr,
                        const Handle<pdb::ExJob> &job,
                        const PDBPhysicalAlgorithmStatePtr &state);
 
   // recieve the plan
-  static bool receivePlan(const PDBBufferManagerInterfacePtr &mgr,
+  static bool receivePlan(const std::string &ip, int32_t port,
+                          const PDBBufferManagerInterfacePtr &mgr,
                           const Handle<pdb::ExJob> &job,
                           const PDBPhysicalAlgorithmStatePtr &state);
 
