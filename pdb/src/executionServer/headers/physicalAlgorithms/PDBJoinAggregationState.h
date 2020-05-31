@@ -50,22 +50,6 @@ struct PDBJoinAggregationState : public PDBPhysicalAlgorithmState {
    */
   pdb::PDBFeedingPageSetPtr preaggPageSet = nullptr;
 
-
-  /**
-   *
-   */
-  pdb::PDBFeedingPageSetPtr leftKeyToNodePageSet = nullptr;
-
-  /**
-   *
-   */
-  pdb::PDBFeedingPageSetPtr rightKeyToNodePageSet= nullptr;
-
-  /**
-   *
-   */
-  pdb::PDBFeedingPageSetPtr planPageSet = nullptr;
-
   /**
    *
    */
@@ -95,36 +79,6 @@ struct PDBJoinAggregationState : public PDBPhysicalAlgorithmState {
    *
    */
   std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> rightTIDToRecordMapping;
-
-  /**
-   *
-   */
-  std::shared_ptr<std::vector<PDBPageQueuePtr>> leftKeyPageQueues = nullptr;
-
-  /**
-   *
-   */
-  std::shared_ptr<std::vector<PDBPageQueuePtr>> rightKeyPageQueues = nullptr;
-
-  /**
-   *
-   */
-  std::shared_ptr<std::vector<PDBPageQueuePtr>> planPageQueues = nullptr;
-
-  /**
-   *
-   */
-  std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> leftKeySenders;
-
-  /**
-   *
-   */
-  std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> rightKeySenders;
-
-  /**
-   * This sends the plan
-   */
-  std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> planSenders;
 
   /**
    * Connections to nodes (including self connection to this one) for the left side of the join
@@ -226,6 +180,7 @@ struct PDBJoinAggregationState : public PDBPhysicalAlgorithmState {
    */
   static const int32_t LEFT_JOIN_SIDE_TASK;
   static const int32_t RIGHT_JOIN_SIDE_TASK;
+  static const int32_t PLAN_TASK;
 };
 
 }

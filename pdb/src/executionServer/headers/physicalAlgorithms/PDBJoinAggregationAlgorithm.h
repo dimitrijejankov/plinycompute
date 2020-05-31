@@ -43,11 +43,8 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
                               const pdb::Handle<PDBSinkPageSetSpec> &joinAggKeySink,
                               const pdb::Handle<PDBSinkPageSetSpec> &intermediateSink,
                               const pdb::Handle<PDBSinkPageSetSpec> &preaggIntermediate,
-                              const pdb::Handle<PDBSourcePageSetSpec> &leftKeySource,
-                              const pdb::Handle<PDBSourcePageSetSpec> &rightKeySource,
                               const pdb::Handle<PDBSourcePageSetSpec> &leftJoinSource,
                               const pdb::Handle<PDBSourcePageSetSpec> &rightJoinSource,
-                              const pdb::Handle<PDBSourcePageSetSpec> &planSource,
                               const AtomicComputationPtr& leftInputTupleSet,
                               const AtomicComputationPtr& rightInputTupleSet,
                               const AtomicComputationPtr& joinTupleSet,
@@ -127,21 +124,6 @@ class PDBJoinAggregationAlgorithm : public PDBPhysicalAlgorithm {
    *
    */
   pdb::Handle<PDBSourcePageSetSpec> rightJoinSource;
-
-  /**
- *
- */
-  pdb::Handle<PDBSourcePageSetSpec> leftKeySource;
-
-  /**
-   *
-   */
-  pdb::Handle<PDBSourcePageSetSpec> rightKeySource;
-
-  /**
-   *
-   */
-  pdb::Handle<PDBSourcePageSetSpec> planSource;
 
 
   FRIEND_TEST(TestPhysicalOptimizer, TestKeyedMatrixMultipply);

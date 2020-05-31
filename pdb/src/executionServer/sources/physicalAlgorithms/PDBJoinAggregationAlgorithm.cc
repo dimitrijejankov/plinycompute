@@ -24,11 +24,8 @@ PDBJoinAggregationAlgorithm::PDBJoinAggregationAlgorithm(const std::vector<PDBPr
                                                          const pdb::Handle<PDBSinkPageSetSpec> &joinAggKeySink,
                                                          const pdb::Handle<PDBSinkPageSetSpec> &intermediateSink,
                                                          const pdb::Handle<PDBSinkPageSetSpec> &preaggIntermediate,
-                                                         const pdb::Handle<PDBSourcePageSetSpec> &leftKeySource,
-                                                         const pdb::Handle<PDBSourcePageSetSpec> &rightKeySource,
                                                          const pdb::Handle<PDBSourcePageSetSpec> &leftJoinSource,
                                                          const pdb::Handle<PDBSourcePageSetSpec> &rightJoinSource,
-                                                         const pdb::Handle<PDBSourcePageSetSpec> &planSource,
                                                          const AtomicComputationPtr &leftInputTupleSet,
                                                          const AtomicComputationPtr &rightInputTupleSet,
                                                          const AtomicComputationPtr &joinTupleSet,
@@ -48,11 +45,6 @@ PDBJoinAggregationAlgorithm::PDBJoinAggregationAlgorithm(const std::vector<PDBPr
   this->joinAggKeySink = joinAggKeySink;
   this->intermediateSink = intermediateSink;
   this->preaggIntermediate = preaggIntermediate;
-
-  // set the key sources
-  this->leftKeySource = leftKeySource;
-  this->rightKeySource = rightKeySource;
-  this->planSource = planSource;
 
   // set the join sources
   this->leftJoinSource = leftJoinSource;
@@ -159,10 +151,7 @@ pdb::PDBPhysicalAlgorithmStagePtr PDBJoinAggregationAlgorithm::getNextStage(cons
                                                           *lhsKeySink,
                                                           *rhsKeySink,
                                                           *joinAggKeySink,
-                                                          rightSources,
-                                                          *leftKeySource,
-                                                          *rightKeySource,
-                                                          *planSource);
+                                                          rightSources);
     }
     case 1: {
 

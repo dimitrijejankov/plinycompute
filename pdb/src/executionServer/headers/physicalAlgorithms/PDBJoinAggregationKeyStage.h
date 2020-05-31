@@ -21,10 +21,7 @@ public:
                              const PDBSinkPageSetSpec &lhs_key_sink,
                              const PDBSinkPageSetSpec &rhs_key_sink,
                              const PDBSinkPageSetSpec &join_agg_key_sink,
-                             const Vector<PDBSourceSpec> &right_sources,
-                             const PDBSourcePageSetSpec &left_key_source,
-                             const PDBSourcePageSetSpec &right_key_source,
-                             const PDBSourcePageSetSpec &plan_source);
+                             const Vector<PDBSourceSpec> &right_sources);
 
   bool setup(const Handle<pdb::ExJob> &job,
              const PDBPhysicalAlgorithmStatePtr &state,
@@ -59,14 +56,16 @@ public:
   // The sources of the right side of the merged pipeline
   const pdb::Vector<PDBSourceSpec> &rightSources;
 
-  //
-  const PDBSourcePageSetSpec &leftKeySource;
+  // this sends the plan
+  static bool sendPlan(const std::string &ip, int32_t port,
+                       const PDBBufferManagerInterfacePtr &mgr,
+                       const Handle<pdb::ExJob> &job,
+                       const PDBPhysicalAlgorithmStatePtr &state);
 
-  //
-  const PDBSourcePageSetSpec &rightKeySource;
-
-  //
-  const PDBSourcePageSetSpec &planSource;
+  // recieve the plan
+  static bool receivePlan(const PDBBufferManagerInterfacePtr &mgr,
+                          const Handle<pdb::ExJob> &job,
+                          const PDBPhysicalAlgorithmStatePtr &state);
 
  private:
 
@@ -94,14 +93,6 @@ public:
                                                   const pdb::Vector<PDBSourceSpec> &srcs,
                                                   const std::string &ip,
                                                   int32_t port);
-
-  static bool setupSenders(const Handle<pdb::ExJob> &job,
-                           const std::shared_ptr<PDBJoinAggregationState> &state,
-                           const PDBSourcePageSetSpec &recvPageSet,
-                           const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
-                           std::shared_ptr<std::vector<PDBPageQueuePtr>> &pageQueues,
-                           std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> &senders,
-                           PDBPageSelfReceiverPtr *selfReceiver);
 };
 
 }

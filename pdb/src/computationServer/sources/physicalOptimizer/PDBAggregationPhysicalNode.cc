@@ -138,24 +138,6 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
   preaggIntermediate->sinkType = PDBSinkType::NoSink;
   preaggIntermediate->pageSetIdentifier = PDBAbstractPageSet::toKeyPageSetIdentifier(std::make_pair(computationID,pipeline.back()->getOutputName() + "_preagg"));
 
-  // the left key source
-  pdb::Handle<PDBSourcePageSetSpec> leftKeySource = pdb::makeObject<PDBSourcePageSetSpec>();
-  leftKeySource->sourceType = PDBSourceType::SinglePageSource;
-  leftKeySource->pageSetIdentifier = PDBAbstractPageSet::toKeyPageSetIdentifier(std::make_pair(computationID,
-                                                                                                         this->getPipeComputations().front()->getOutputName() + "s_key_lhs"));
-
-  // the right key source
-  pdb::Handle<PDBSourcePageSetSpec> rightKeySource = pdb::makeObject<PDBSourcePageSetSpec>();
-  rightKeySource->sourceType = PDBSourceType::SinglePageSource;
-  rightKeySource->pageSetIdentifier = PDBAbstractPageSet::toKeyPageSetIdentifier(std::make_pair(computationID,
-                                                                                                          this->getPipeComputations().front()->getOutputName() + "s_key_rhs"));
-
-  // the plan source
-  pdb::Handle<PDBSourcePageSetSpec> planSource = pdb::makeObject<PDBSourcePageSetSpec>();
-  planSource->sourceType = PDBSourceType::SinglePageSource;
-  planSource->pageSetIdentifier = PDBAbstractPageSet::toKeyPageSetIdentifier(std::make_pair(computationID,
-                                                                                                      this->getPipeComputations().front()->getOutputName() + "s_key_plan"));
-
   // the right key source
   pdb::Handle<PDBSourcePageSetSpec> leftJoinSource = pdb::makeObject<PDBSourcePageSetSpec>();
   leftJoinSource->sourceType = PDBSourceType::ShuffledJoinTuplesSource;
@@ -206,11 +188,8 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
                                                                                                     joinAggKeySink,
                                                                                                     intermediateSink,
                                                                                                     preaggIntermediate,
-                                                                                                    leftKeySource,
-                                                                                                    rightKeySource,
                                                                                                     leftJoinSource,
                                                                                                     rightJoinSource,
-                                                                                                    planSource,
                                                                                                     lhs->getPipeComputations().front(),
                                                                                                     rhs->getPipeComputations().front(),
                                                                                                     this->getPipeComputations().front(),
@@ -221,12 +200,9 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
 
   std::list<PDBPageSetIdentifier> consumedPageSets = { lhsKeySink->pageSetIdentifier,
                                                        rhsKeySink->pageSetIdentifier,
-                                                       leftKeySource->pageSetIdentifier,
-                                                       rightKeySource->pageSetIdentifier,
                                                        joinAggKeySink->pageSetIdentifier,
                                                        leftJoinSource->pageSetIdentifier,
-                                                       rightJoinSource->pageSetIdentifier,
-                                                       planSource->pageSetIdentifier};
+                                                       rightJoinSource->pageSetIdentifier};
 
   // if there are no consumers, (this happens if all the consumers are materializations), mark the ink set as consumed too
   size_t sinkConsumers = consumers.size();
@@ -244,12 +220,9 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
                                                                        std::make_pair(lhsKeySink->pageSetIdentifier, 1),
                                                                        std::make_pair(rhsKeySink->pageSetIdentifier, 1),
                                                                        std::make_pair(preaggIntermediate->pageSetIdentifier, 1),
-                                                                       std::make_pair(leftKeySource->pageSetIdentifier, 1),
                                                                        std::make_pair(joinAggKeySink->pageSetIdentifier, 1),
-                                                                       std::make_pair(rightKeySource->pageSetIdentifier, 1),
                                                                        std::make_pair(leftJoinSource->pageSetIdentifier, 1),
-                                                                       std::make_pair(rightJoinSource->pageSetIdentifier, 1),
-                                                                       std::make_pair(planSource->pageSetIdentifier, 1)};
+                                                                       std::make_pair(rightJoinSource->pageSetIdentifier, 1) };
 
 
   // return the algorithm and the nodes that consume it's result

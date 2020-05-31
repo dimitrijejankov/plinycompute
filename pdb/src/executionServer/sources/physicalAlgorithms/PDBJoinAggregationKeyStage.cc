@@ -21,10 +21,7 @@ pdb::PDBJoinAggregationKeyStage::PDBJoinAggregationKeyStage(const pdb::PDBSinkPa
                                                             const pdb::PDBSinkPageSetSpec &lhs_key_sink,
                                                             const pdb::PDBSinkPageSetSpec &rhs_key_sink,
                                                             const pdb::PDBSinkPageSetSpec &join_agg_key_sink,
-                                                            const pdb::Vector<PDBSourceSpec> &right_sources,
-                                                            const PDBSourcePageSetSpec &left_key_source,
-                                                            const PDBSourcePageSetSpec &right_key_source,
-                                                            const PDBSourcePageSetSpec &plan_source)
+                                                            const pdb::Vector<PDBSourceSpec> &right_sources)
     : PDBPhysicalAlgorithmStage(sink, sources, final_tuple_set, secondary_sources, sets_to_materialize),
       leftInputTupleSet(left_input_tuple_set),
       rightInputTupleSet(right_input_tuple_set),
@@ -32,10 +29,7 @@ pdb::PDBJoinAggregationKeyStage::PDBJoinAggregationKeyStage(const pdb::PDBSinkPa
       lhsKeySink(lhs_key_sink),
       rhsKeySink(rhs_key_sink),
       joinAggKeySink(join_agg_key_sink),
-      rightSources(right_sources),
-      leftKeySource(left_key_source),
-      rightKeySource(right_key_source),
-      planSource(plan_source) {}
+      rightSources(right_sources) {}
 
 bool pdb::PDBJoinAggregationKeyStage::setup(const Handle<ExJob> &job,
                                             const PDBPhysicalAlgorithmStatePtr &state,
@@ -269,77 +263,6 @@ bool pdb::PDBJoinAggregationKeyStage::setup(const Handle<ExJob> &job,
                                                             20,
                                                             0);
 
-  // if this is the lead node
-  if(job->isLeadNode) {
-
-    /// 8. Init the sending queues
-
-    // this is to transfer left key TIDs
-    s->leftKeyPageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
-
-    // this is to transfer right key TIDs
-    s->rightKeyPageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
-
-    // this is to transfer the plan
-    s->planPageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
-
-
-    /// 9. Init the senders
-
-    // setup the senders for the left key page
-    if(!setupSenders(job, s, leftKeySource, storage, s->leftKeyPageQueues, s->leftKeySenders, nullptr)) {
-
-      // log the error
-      s->logger->error("Failed to setup the senders for the left keys");
-
-      // return false
-      return false;
-    }
-
-    // setup the senders for the right key page
-    if(!setupSenders(job, s, rightKeySource, storage, s->rightKeyPageQueues, s->rightKeySenders, nullptr)) {
-
-      // log the error
-      s->logger->error("Failed to setup the senders for the right keys");
-
-      // return false
-      return false;
-    }
-
-    // setup the senders for the plan
-    if(!setupSenders(job, s, planSource, storage, s->planPageQueues, s->planSenders, nullptr)) {
-
-      // log the error
-      s->logger->error("Failed to setup the senders for the plan");
-
-      // return false
-      return false;
-    }
-  }
-  else {
-
-      /// 1. Wait to get the plan
-
-      // create to receive the left key page
-      s->leftKeyToNodePageSet = storage->createFeedingAnonymousPageSet(std::make_pair(leftKeySource.pageSetIdentifier.first,
-                                                                                                leftKeySource.pageSetIdentifier.second),
-                                                                                        1,
-                                                                                                   job->numberOfNodes);
-
-      // create to receive the right key page
-      s->rightKeyToNodePageSet = storage->createFeedingAnonymousPageSet(std::make_pair(rightKeySource.pageSetIdentifier.first,
-                                                                                                 rightKeySource.pageSetIdentifier.second),
-                                                                                         1,
-                                                                                                    job->numberOfNodes);
-
-      // create to receive the plan
-      s->planPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(planSource.pageSetIdentifier.first,
-                                                                                       planSource.pageSetIdentifier.second),
-                                                                               1,
-                                                                                          job->numberOfNodes);
-  }
-
-
   return true;
 }
 
@@ -358,27 +281,7 @@ bool pdb::PDBJoinAggregationKeyStage::run(const Handle<ExJob> &job,
   return runFollower(job, state, storage, error);
 }
 
-void pdb::PDBJoinAggregationKeyStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
-
-  // cast the state
-  auto s = dynamic_pointer_cast<PDBJoinAggregationState>(state);
-
-  // clear the left senders
-  if(s->leftKeySenders != nullptr) {
-    s->leftKeySenders->clear();
-  }
-
-  // clear the right senders
-  if(s->rightKeySenders != nullptr) {
-    s->rightKeySenders->clear();
-  }
-
-  // clear the plan senders
-  if(s->planSenders != nullptr) {
-    s->planSenders->clear();
-  }
-
-}
+void pdb::PDBJoinAggregationKeyStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {}
 
 pdb::SourceSetArgPtr pdb::PDBJoinAggregationKeyStage::getKeySourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient,
                                                                          const pdb::Vector<PDBSourceSpec> &sources,
@@ -462,74 +365,104 @@ pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationKeyStage::getFetchingPageSet(c
   return sourcePageSet;
 }
 
+bool pdb::PDBJoinAggregationKeyStage::sendPlan(const std::string &ip, int32_t port,
+                                               const PDBBufferManagerInterfacePtr &mgr,
+                                               const Handle<pdb::ExJob> &job,
+                                               const PDBPhysicalAlgorithmStatePtr &state) {
 
-bool pdb::PDBJoinAggregationKeyStage::setupSenders(const Handle<pdb::ExJob> &job,
-                                                   const std::shared_ptr<PDBJoinAggregationState> &state,
-                                                   const PDBSourcePageSetSpec &recvPageSet,
-                                                   const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
-                                                   std::shared_ptr<std::vector<PDBPageQueuePtr>> &pageQueues,
-                                                   std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> &senders,
-                                                   PDBPageSelfReceiverPtr *selfReceiver) {
+  // cast the state
+  auto s = dynamic_pointer_cast<PDBJoinAggregationState>(state);
 
-  // get the buffer manager
-  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
+  // we store our request here
+  UseTemporaryAllocationBlock tmp{1024};
 
-  // go through the nodes and create the page sets
-  int32_t currNode = job->thisNode;
-  senders = std::make_shared<std::vector<PDBPageNetworkSenderPtr>>();
-  for(unsigned i = 0; i < job->nodes.size(); ++i) {
+  // make the connect request
+  pdb::Handle<SerConnectToRequest> connectionID = pdb::makeObject<SerConnectToRequest>(job->computationID,
+                                                                                       job->jobID,
+                                                                                       0,
+                                                                                       PDBJoinAggregationState::PLAN_TASK);
+  // connection
+  auto connection = mgr->connectTo(ip, port, connectionID);
 
-    // check if it is this node or another node
-    if(job->nodes[i]->port == job->nodes[currNode]->port &&
-        job->nodes[i]->address == job->nodes[currNode]->address &&
-        selfReceiver != nullptr) {
-
-      // create a new queue
-      pageQueues->push_back(std::make_shared<PDBPageQueue>());
-
-      // get the receive page set
-      auto pageSet = storage->createFeedingAnonymousPageSet(std::make_pair(recvPageSet.pageSetIdentifier.first,
-                                                                           recvPageSet.pageSetIdentifier.second),
-                                                            job->numberOfProcessingThreads,
-                                                            job->numberOfNodes);
-
-      // make sure we can use them all at the same time
-      pageSet->setUsagePolicy(PDBFeedingPageSetUsagePolicy::KEEP_AFTER_USED);
-
-      // did we manage to get a page set where we receive this? if not the setup failed
-      if(pageSet == nullptr) {
-        return false;
-      }
-
-      // make the self receiver
-      *selfReceiver = std::make_shared<pdb::PDBPageSelfReceiver>(pageQueues->back(), pageSet, myMgr);
-    }
-    else {
-
-      // create a new queue
-      pageQueues->push_back(std::make_shared<PDBPageQueue>());
-
-      // make the sender
-      auto sender = std::make_shared<PDBPageNetworkSender>(job->nodes[i]->address,
-                                                           job->nodes[i]->port,
-                                                           job->numberOfProcessingThreads,
-                                                           job->numberOfNodes,
-                                                           storage->getConfiguration()->maxRetries,
-                                                           state->logger,
-                                                           std::make_pair(recvPageSet.pageSetIdentifier.first, recvPageSet.pageSetIdentifier.second),
-                                                           pageQueues->back());
-
-      // setup the sender, if we fail return false
-      if(!sender->setup()) {
-        return false;
-      }
-
-      // make the sender
-      senders->emplace_back(sender);
-    }
+  // check if we could connect
+  if(connection == nullptr) {
+    return false;
   }
 
-  return true;
+  // repin the pages
+  s->planPage->repin();
+  s->leftKeyPage->repin();
+  s->rightKeyPage->repin();
+
+  // send the plan page
+  std::string error;
+  bool success = connection->sendBytes(s->planPage->getBytes(), s->planPage->getSize(), error);
+
+  // we failed here
+  if(!success) {
+    return false;
+  }
+
+  // send the left key page
+  success = connection->sendBytes(s->leftKeyPage->getBytes(), s->planPage->getSize(), error);
+
+  // we failed here
+  if(!success) {
+    return false;
+  }
+
+  // send the right key page
+  success = connection->sendBytes(s->rightKeyPage->getBytes(), s->planPage->getSize(), error);
+
+  // return the result
+  return success;
+}
+
+bool pdb::PDBJoinAggregationKeyStage::receivePlan(const PDBBufferManagerInterfacePtr &mgr,
+                                                  const Handle<pdb::ExJob> &job,
+                                                  const PDBPhysicalAlgorithmStatePtr &state) {
+  // cast the state
+  auto s = dynamic_pointer_cast<PDBJoinAggregationState>(state);
+
+  // repin the pages
+  s->planPage->repin();
+  s->leftKeyPage->repin();
+  s->rightKeyPage->repin();
+
+  // we store our request here
+  UseTemporaryAllocationBlock tmp{1024};
+
+  // make the connect request
+  pdb::Handle<SerConnectToRequest> connectionID = pdb::makeObject<SerConnectToRequest>(job->computationID,
+                                                                                       job->jobID,
+                                                                                       0,
+                                                                                       PDBJoinAggregationState::PLAN_TASK);
+
+  // wait for a connection
+  auto connection = mgr->waitForConnection(connectionID);
+
+  // wait for the plan
+  std::string error;
+  auto success = connection->receiveBytes(s->planPage->getBytes(), error);
+
+  // we failed here
+  if(!success) {
+    return false;
+  }
+
+  // wait for the left key page
+  success = connection->receiveBytes(s->leftKeyPage->getBytes(), error);
+
+  // we failed here
+  if(!success) {
+    return false;
+  }
+
+  // wait for the right key page
+  success = connection->receiveBytes(s->rightKeyPage->getBytes(), error);
+
+  // return the indicator
+  return success;
 }
 
 bool pdb::PDBJoinAggregationKeyStage::runLead(const Handle<pdb::ExJob> &job,
@@ -655,130 +588,32 @@ bool pdb::PDBJoinAggregationKeyStage::runLead(const Handle<pdb::ExJob> &job,
             << "[ns]" << '\n';
 
   // get a page to store the planning result onto
-  auto bufferManager = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
+  auto mgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
+
   /**
-   * 4. Broadcast the plan (left key page, right key page)
+   * 4. Broadcast the plan (plan, left key page, right key page)
    */
 
-  /// 4.1 Start the senders
-
+  // go through the nodes and create the page sets
   counter = 0;
-  PDBBuzzerPtr broadcastKeyPagesBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
+  int32_t currNode = job->thisNode;
+  for(unsigned i = 0; i < job->nodes.size(); ++i) {
 
-    // did we fail?
-    if(myAlarm == PDBAlarm::GenericError) {
-      success = false;
-    }
-
-    // increment the count
-    cnt++;
-  });
-
-
-  /// 4.2 broadcast the left key page
-
-  for(const auto& q : *s->leftKeyPageQueues) {
-    q->enqueue(s->leftKeyPage);
-    q->enqueue(nullptr);
-  }
-
-  /// 4.3 broadcast the right key page
-
-  for(const auto& q : *s->rightKeyPageQueues) {
-    q->enqueue(s->rightKeyPage);
-    q->enqueue(nullptr);
-  }
-
-  /// 4.4 run the senders for the left side
-
-  for(const auto &sender : *s->leftKeySenders) {
 
     // get a worker from the server
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sender, &success, &counter, s](const PDBBuzzerPtr& callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&job, &success, &counter, s, i, currNode, mgr](const PDBBuzzerPtr& callerBuzzer) {
 
       try {
 
-        // run the pipeline
-        sender->run();
-      }
-      catch (std::exception &e) {
+        // check if it is this node or another node
+        if(job->nodes[i]->port != job->nodes[currNode]->port || job->nodes[i]->address != job->nodes[currNode]->address) {
 
-        // log the error
-        s->logger->error(e.what());
-
-        // we failed mark that we have
-        success = false;
-      }
-
-      // signal that the run was successful
-      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
-    });
-
-    // run the work
-    worker->execute(myWork, tempBuzzer);
-  }
-
-  /// 4.5 run the senders for the right side
-
-  for(const auto &sender : *s->rightKeySenders) {
-
-    // get a worker from the server
-    PDBWorkerPtr worker = storage->getWorker();
-
-    // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sender, &success, &counter, s](const PDBBuzzerPtr& callerBuzzer) {
-
-      try {
-
-        // run the pipeline
-        sender->run();
-      }
-      catch (std::exception &e) {
-
-        // log the error
-        s->logger->error(e.what());
-
-        // we failed mark that we have
-        success = false;
-      }
-
-      // signal that the run was successful
-      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
-    });
-
-    // run the work
-    worker->execute(myWork, tempBuzzer);
-  }
-
-  /**
-   * 5. Broadcast to each node the plan except for this one
-   */
-
-  /// 5.1 Fill up the plan queues
-
-  for(const auto& q : *s->planPageQueues) {
-    q->enqueue(s->planPage);
-    q->enqueue(s->aggKeyPage);
-    q->enqueue(nullptr);
-  }
-
-  /// 5.2 Run the senders
-
-  for(const auto &sender : *s->planSenders) {
-
-    // get a worker from the server
-    PDBWorkerPtr worker = storage->getWorker();
-
-    // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&sender, &success, &counter, s](const PDBBuzzerPtr& callerBuzzer) {
-
-      try {
-
-        // run the pipeline
-        sender->run();
+          // send the plan
+          success = sendPlan(job->nodes[i]->address, job->nodes[i]->backendPort, mgr, job, s);
+        }
       }
       catch (std::exception &e) {
 
@@ -801,10 +636,7 @@ bool pdb::PDBJoinAggregationKeyStage::runLead(const Handle<pdb::ExJob> &job,
    * 6. Wait for everything to finish
    */
 
-  // wait for all the left senders to finish
-  // for all the right senders to finish
-  // the plan senders
-  while (counter < s->leftKeySenders->size() + s->rightKeySenders->size() + s->planSenders->size()) {
+  while (counter < job->nodes.size()) {
     tempBuzzer->wait();
   }
 
@@ -824,28 +656,12 @@ bool pdb::PDBJoinAggregationKeyStage::runFollower(const Handle<pdb::ExJob> &job,
   auto s = dynamic_pointer_cast<PDBJoinAggregationState>(state);
 
   /**
-   * 1. Wait to left and right join map
+   * 1. Wait for plan, left key page, right key page
    */
   auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
 
-  /// TODO this needs to be rewritten using the new methods for direct communication
-  auto tmp = s->leftKeyToNodePageSet->getNextPage(0);
-  memcpy(s->leftKeyPage->getBytes(), tmp->getBytes(), tmp->getSize());
-
-  /// TODO this needs to be rewritten using the new methods for direct communication
-  tmp = s->rightKeyToNodePageSet->getNextPage(0);
-  memcpy(s->rightKeyPage->getBytes(), tmp->getBytes(), tmp->getSize());
-
-  /**
-   * 2. Wait to receive the plan and the join agg page
-   */
-  /// TODO this needs to be rewritten using the new methods for direct communication
-  tmp = s->planPageSet->getNextPage(0);
-  memcpy(s->planPage->getBytes(), tmp->getBytes(), tmp->getSize());
-
-  // get the join agg key page
-  tmp = s->planPageSet->getNextPage(0);
-  memcpy(s->aggKeyPage->getBytes(), tmp->getBytes(), tmp->getSize());
+  // receive the plan
+  receivePlan(myMgr, job, state);
 
   /**
    * 3. Get the planning result decision from the plan
