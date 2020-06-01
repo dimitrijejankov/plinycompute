@@ -80,8 +80,7 @@ public:
       auto data = checkMe->data->data->c_ptr();
       auto outData = out->data->data->c_ptr();
       for(int32_t i = 0; i < checkMe->getNumRows() * checkMe->getNumCols(); i++) {
-        auto tmp = std::exp(data[i]);
-        outData[i] = tmp / (tmp + 1);
+        outData[i] = 1 / (1 + exp(-data[i]));
       }
 
       // do the stuff we need to

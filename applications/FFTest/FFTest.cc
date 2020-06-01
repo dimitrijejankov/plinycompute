@@ -327,8 +327,13 @@ auto init_weights(pdb::PDBClient &pdbClient) {
         // check if we need to init the bias here if so do it...
         if(tuples_to_send[idx].first == (block_f - 1)) {
 
-          // init the bias if necessary
-          myInt->data->bias = makeObject<Vector<float>>(features_block, features_block);
+          // allocate the bias if necessary
+          myInt->data->bias = makeObject<Vector<float>>(embedding_block, embedding_block);
+
+          // init the bias
+          for(int i = 0; i < embedding_block; ++i) {
+            myInt->data->bias->c_ptr()[i] = (float) drand48() * 0.1f;
+          }
         }
 
         // we add the matrix to the block
@@ -396,6 +401,11 @@ auto init_weights(pdb::PDBClient &pdbClient) {
 
           // init the bias if necessary
           myInt->data->bias = makeObject<Vector<float>>(labels_block, labels_block);
+
+                    // init the bias
+          for(int i = 0; i < labels_block; ++i) {
+            myInt->data->bias->c_ptr()[i] = (float) drand48() * 0.1f;
+          }
         }
 
         // we add the matrix to the block
