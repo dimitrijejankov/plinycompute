@@ -339,7 +339,7 @@ bool pdb::PDBShuffleForJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
   return true;
 }
 
-void pdb::PDBShuffleForJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
+void pdb::PDBShuffleForJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
 
   // cast the state
   auto s = dynamic_pointer_cast<PDBShuffleForJoinState>(state);

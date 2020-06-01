@@ -26,7 +26,7 @@ public:
            const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
            const std::string &error) override;
 
-  void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) override;
+  void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) override;
 
   // The sink tuple set where we are putting stuff
   PDBSinkPageSetSpec &hashedToSend;

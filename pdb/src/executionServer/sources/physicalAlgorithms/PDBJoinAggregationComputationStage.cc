@@ -436,12 +436,12 @@ bool pdb::PDBJoinAggregationComputationStage::setup(const pdb::Handle<pdb::ExJob
   }
 
   // we are putting the pages from the queues here
-  auto recvPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(preaggIntermediate.pageSetIdentifier.first, (std::string) preaggIntermediate.pageSetIdentifier.second),
+  s->preaggPageSet = storage->createFeedingAnonymousPageSet(std::make_pair(preaggIntermediate.pageSetIdentifier.first, (std::string) preaggIntermediate.pageSetIdentifier.second),
                                                             job->numberOfProcessingThreads,
                                                             job->numberOfNodes);
 
   // did we manage to get a page set where we receive this? if not the setup failed
-  if(recvPageSet == nullptr) {
+  if(s->preaggPageSet == nullptr) {
     return false;
   }
 
@@ -455,7 +455,7 @@ bool pdb::PDBJoinAggregationComputationStage::setup(const pdb::Handle<pdb::ExJob
     if(job->nodes[i]->port == job->nodes[currNode]->port && job->nodes[i]->address == job->nodes[currNode]->address) {
 
       // make the self receiver
-      s->selfReceiver = std::make_shared<pdb::PDBPageSelfReceiver>(s->pageQueues->at(i), recvPageSet, myMgr);
+      s->selfReceiver = std::make_shared<pdb::PDBPageSelfReceiver>(s->pageQueues->at(i), s->preaggPageSet, myMgr);
     }
     else {
 
@@ -485,7 +485,7 @@ bool pdb::PDBJoinAggregationComputationStage::setup(const pdb::Handle<pdb::ExJob
   for (uint64_t workerID = 0; workerID < job->numberOfProcessingThreads; ++workerID) {
 
     // build the aggregation pipeline
-    auto aggPipeline = plan.buildAggregationPipeline(finalTupleSet, recvPageSet, sinkPageSet, workerID);
+    auto aggPipeline = plan.buildAggregationPipeline(finalTupleSet, s->preaggPageSet, sinkPageSet, workerID);
 
     // store the aggregation pipeline
     s->aggregationPipelines->push_back(aggPipeline);
@@ -961,7 +961,7 @@ bool pdb::PDBJoinAggregationComputationStage::run(const pdb::Handle<pdb::ExJob> 
 
 }
 
-void pdb::PDBJoinAggregationComputationStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
+void pdb::PDBJoinAggregationComputationStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
 
   // cast the state
   auto s = dynamic_pointer_cast<PDBJoinAggregationState>(state);
@@ -976,6 +976,9 @@ void pdb::PDBJoinAggregationComputationStage::cleanup(const pdb::PDBPhysicalAlgo
   s->rightJoinSideCommunicatorsOut->clear();
   s->leftJoinSideCommunicatorsIn->clear();
   s->rightJoinSideCommunicatorsIn->clear();
+
+  // remove the intermediate page set
+  storage->removePageSet(std::make_pair(preaggIntermediate.pageSetIdentifier.first, (std::string) preaggIntermediate.pageSetIdentifier.second));
 
   // reset the page sets
   s->leftShuffledPageSet->resetPageSet();

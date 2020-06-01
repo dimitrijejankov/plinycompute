@@ -215,7 +215,7 @@ bool pdb::PDBStraightPipeStage::run(const pdb::Handle<pdb::ExJob> &request,
   return success;
 }
 
-void pdb::PDBStraightPipeStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
+void pdb::PDBStraightPipeStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
 
   // cast the state
   auto s = dynamic_pointer_cast<PDBStraightPipeState>(state);

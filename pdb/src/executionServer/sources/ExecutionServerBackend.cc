@@ -73,7 +73,7 @@ void pdb::ExecutionServerBackend::registerHandlers(pdb::PDBServer &forMe) {
                 if (!success || !(result->shouldRun)) {
 
                   // cleanup the algorithm
-                  stage->cleanup(state);
+                  stage->cleanup(state, storage);
 
                   // we are done here does not work
                   return make_pair(true, error); // TODO different error message if result->shouldRun is false?
@@ -99,7 +99,7 @@ void pdb::ExecutionServerBackend::registerHandlers(pdb::PDBServer &forMe) {
               /// 2.3 Do the cleanup
 
               // cleanup the stage
-              stage->cleanup(state);
+              stage->cleanup(state, storage);
             }
 
             // just finish

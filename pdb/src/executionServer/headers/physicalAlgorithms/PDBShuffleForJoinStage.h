@@ -25,7 +25,7 @@ class PDBShuffleForJoinStage : public PDBPhysicalAlgorithmStage {
            const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
            const std::string &error) override;
 
-  void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) override;
+  void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) override;
 
   // page set identifier for the intermediate data created by the shuffle
   const PDBSinkPageSetSpec &intermediate;

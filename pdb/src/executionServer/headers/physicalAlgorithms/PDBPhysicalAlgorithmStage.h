@@ -57,7 +57,7 @@ public:
   /**
    * Cleans the stage after setup and/or run. This has to be called after the usage!
    */
-  virtual void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state)  {
+  virtual void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage)  {
     throw std::runtime_error("Can not clean PDBPhysicalAlgorithmStage that is an abstract class");
   };
 

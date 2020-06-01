@@ -281,7 +281,7 @@ bool pdb::PDBJoinAggregationKeyStage::run(const Handle<ExJob> &job,
   return runFollower(job, state, storage, error);
 }
 
-void pdb::PDBJoinAggregationKeyStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {}
+void pdb::PDBJoinAggregationKeyStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {}
 
 pdb::SourceSetArgPtr pdb::PDBJoinAggregationKeyStage::getKeySourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient,
                                                                          const pdb::Vector<PDBSourceSpec> &sources,

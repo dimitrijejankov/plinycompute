@@ -413,7 +413,7 @@ bool pdb::PDBBroadcastForJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
   return true;
 }
 
-void pdb::PDBBroadcastForJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
+void pdb::PDBBroadcastForJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
 
 
   // cast the state

@@ -33,7 +33,7 @@ public:
            const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
            const std::string &error) override;
 
-  void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) override;
+  void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) override;
 
   // the lhs input set to the join aggregation pipeline
   const pdb::String &leftInputTupleSet;
