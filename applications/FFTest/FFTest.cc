@@ -26,17 +26,17 @@ std::vector<std::vector<std::pair<int32_t, float>>> features;
 
 int32_t total_points;
 
-int32_t num_batch = 100;
-int32_t batch_block = 10;
+int32_t num_batch = 40000;
+int32_t batch_block = 1000;
 
 int32_t num_features;
-int32_t features_block = 12;
+int32_t features_block = 500;
 
 int32_t num_labels;
-int32_t labels_block = 10;
+int32_t labels_block = 400;
 
-int32_t embedding_size = 100;
-int32_t embedding_block = 10;
+int32_t embedding_size = 40000;
+int32_t embedding_block = 1000;
 
 bool read_label(std::ifstream &is, char *buffer, int32_t batch_id) {
 
@@ -150,7 +150,7 @@ void load_input_data(pdb::PDBClient &pdbClient) {
   /// 1. Load the data from the file
 
   // open the input file
-  std::ifstream is("./applications/FFTest/input.txt");
+  std::ifstream is("/home/ubuntu/disk/data/input.txt");
   //std::ifstream is("./applications/FFTest/eurlex_train.txt");
 
   // load the data stats
@@ -480,7 +480,10 @@ int main(int argc, char *argv[]) {
   // initialize the weights
   init_weights(pdbClient);
 
+  std::chrono::steady_clock::time_point planner_begin = std::chrono::steady_clock::now();
+
   // do the activation of the first layer
+  std::chrono::steady_clock::time_point stage_begin = std::chrono::steady_clock::now();
   {
     const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
@@ -504,8 +507,11 @@ int main(int argc, char *argv[]) {
     // run the computation
     bool success = pdbClient.executeComputations({myWriter});
   }
+  std::chrono::steady_clock::time_point stage_end = std::chrono::steady_clock::now();
+  std::cout << "Run activation_1 for " << std::chrono::duration_cast<std::chrono::nanoseconds>(stage_end - stage_begin).count() << "[ns]" << '\n';
 
   // do the activation of the second layer
+  stage_begin = std::chrono::steady_clock::now();
   {
     // do the activation of the first layer
     const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
@@ -530,8 +536,11 @@ int main(int argc, char *argv[]) {
     // run the computation
     bool success = pdbClient.executeComputations({myWriter});
   }
+  stage_end = std::chrono::steady_clock::now();
+  std::cout << "Run activation_2 for " << std::chrono::duration_cast<std::chrono::nanoseconds>(stage_end - stage_begin).count() << "[ns]" << '\n';
 
   // calculate the gradient_2
+  stage_begin = std::chrono::steady_clock::now();
   {
     // do the activation of the first layer
     const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
@@ -553,11 +562,14 @@ int main(int argc, char *argv[]) {
     // run the computation
     bool success = pdbClient.executeComputations({writer});
   }
+  stage_end = std::chrono::steady_clock::now();
+  std::cout << "Run gradient_2 for " << std::chrono::duration_cast<std::chrono::nanoseconds>(stage_end - stage_begin).count() << "[ns]" << '\n';
 
   // remove activation_2 it is not needed anymore...
   pdbClient.removeSet("ff", "activation_2");
 
   // calculate d_w2
+  stage_begin = std::chrono::steady_clock::now();
   {
     // do the activation of the first layer
     const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
@@ -582,8 +594,11 @@ int main(int argc, char *argv[]) {
     // run the computation
     bool success = pdbClient.executeComputations({myWriter});
   }
+  stage_end = std::chrono::steady_clock::now();
+  std::cout << "Run d_w2 for " << std::chrono::duration_cast<std::chrono::nanoseconds>(stage_end - stage_begin).count() << "[ns]" << '\n';
 
   // calculate the gradient_1
+  stage_begin = std::chrono::steady_clock::now();
   {
     // do the activation of the first layer
     const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
@@ -608,11 +623,14 @@ int main(int argc, char *argv[]) {
     // run the computation
     bool success = pdbClient.executeComputations({myWriter});
   }
+  stage_end = std::chrono::steady_clock::now();
+  std::cout << "Run gradient_1_tmp for " << std::chrono::duration_cast<std::chrono::nanoseconds>(stage_end - stage_begin).count() << "[ns]" << '\n';
 
   // remove the gradient_2
   pdbClient.removeSet("ff", "gradient_2");
 
   // calculate the elementvise
+  stage_begin = std::chrono::steady_clock::now();
   {
     // do the activation of the first layer
     const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
@@ -637,12 +655,15 @@ int main(int argc, char *argv[]) {
     // run the computation
     bool success = pdbClient.executeComputations({myWriter});
   }
+  stage_end = std::chrono::steady_clock::now();
+  std::cout << "Run gradient_1 for " << std::chrono::duration_cast<std::chrono::nanoseconds>(stage_end - stage_begin).count() << "[ns]" << '\n';
 
   // remove the activation_1
   pdbClient.removeSet("ff", "activation_1");
   pdbClient.removeSet("ff", "gradient_1_tmp");
 
   // calculate dw1
+  stage_begin = std::chrono::steady_clock::now();
   {
     // do the activation of the first layer
     const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
@@ -667,10 +688,13 @@ int main(int argc, char *argv[]) {
     // run the computation
     bool success = pdbClient.executeComputations({myWriter});
   }
+  stage_end = std::chrono::steady_clock::now();
+  std::cout << "Run dw1 for " << std::chrono::duration_cast<std::chrono::nanoseconds>(stage_end - stage_begin).count() << "[ns]" << '\n';
 
   pdbClient.removeSet("ff", "gradient_1");
 
   // do the update for w1
+  stage_begin = std::chrono::steady_clock::now();
   {
     // do the activation of the first layer
     const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
@@ -695,12 +719,15 @@ int main(int argc, char *argv[]) {
     // run the computation
     bool success = pdbClient.executeComputations({myWriter});
   }
+  stage_end = std::chrono::steady_clock::now();
+  std::cout << "Run update w1 for " << std::chrono::duration_cast<std::chrono::nanoseconds>(stage_end - stage_begin).count() << "[ns]" << '\n';
 
   // remove the w1 set
   pdbClient.removeSet("ff", "w1");
   pdbClient.removeSet("ff", "d_w1");
 
   // do the update w2
+  stage_begin = std::chrono::steady_clock::now();
   {
     // do the activation of the first layer
     const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
@@ -725,6 +752,12 @@ int main(int argc, char *argv[]) {
     // run the computation
     bool success = pdbClient.executeComputations({myWriter});
   }
+  stage_end = std::chrono::steady_clock::now();
+  std::cout << "Run update w2 for " << std::chrono::duration_cast<std::chrono::nanoseconds>(stage_end - stage_begin).count() << "[ns]" << '\n';
+
+  std::chrono::steady_clock::time_point planner_end = std::chrono::steady_clock::now();
+  std::cout << "Run ff for " << std::chrono::duration_cast<std::chrono::nanoseconds>(planner_end - planner_begin).count()
+            << "[ns]" << '\n';
 
   // remove the w1 set
   pdbClient.removeSet("ff", "w2");
@@ -740,7 +773,7 @@ int main(int argc, char *argv[]) {
     // grab the record
     auto r = it->getNextRecord();
     count++;
-
+/*
     std::cout << "(" << r->getRowID() << ", " << r->getColID() << ")\n";
     // write out the values
     float *values = r->data->data->c_ptr();
@@ -760,7 +793,7 @@ int main(int argc, char *argv[]) {
       }
       std::cout << "\n";
     }
-    std::cout << "\n\n";
+    std::cout << "\n\n"; */
   }
 
   // wait a bit before the shutdown
