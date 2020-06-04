@@ -201,7 +201,8 @@ public:
     // init the request
     Handle<RequestType> request = makeObject<RequestType>(pageNumber, anonymousPageNumber, whichSet);
 
-    /// TODO I need to log this...
+    // log move
+    instance->logMove(whichSet, pageNumber, anonymousPageNumber, request->currentID);
 
     // make a request
     return RequestFactory::heapRequest<RequestType, ResponseType, ReturnType>(myLogger,
@@ -258,6 +259,7 @@ public:
   void logDownToZeroReferences(const PDBSetPtr &setPtr, size_t pageNum, uint64_t timestamp) override;
   void logClearSet(const PDBSetPtr &set, uint64_t timestamp) override;
   void logExpect(const Handle<BufForwardPageRequest> &result) override;
+  void logMove(const PDBSetPtr &whichSet, size_t pageNumber, size_t anonymousPageNumber, uint64_t currentID) override;
 
 private:
 
@@ -268,7 +270,8 @@ private:
     REPIN,
     FREE,
     CLEAR,
-    EXPECT
+    EXPECT,
+    MOVE
   };
 
   struct traceHasher {

@@ -29,7 +29,7 @@
 namespace pdb {
 
 // encapsulates a request to move an anonymous page to a set
-class BufMovePageRequest : public Object {
+class BufMovePageRequest : public BufManagerRequestBase {
 
  public:
 

@@ -373,6 +373,7 @@ void PDBBufferManagerDebugFrontend::logOperation(uint64_t timestamp,
     case BufferManagerOperationType::HANDLE_RETURN_PAGE : { tmp = 9; break; }
     case BufferManagerOperationType::HANDLE_GET_PAGE : { tmp = 10; break; }
     case BufferManagerOperationType::HANDLE_UNPIN_PAGE : { tmp = 11; break; }
+    case BufferManagerOperationType::HANDLE_MOVE_PAGE : { tmp = 12; break; }
   }
   write(stackTracesTableFile, &tmp, sizeof(tmp));
 
@@ -611,6 +612,41 @@ void PDBBufferManagerDebugFrontend::registerHandlers(PDBServer &forMe) {
           // return the result
           return ret;
       }));
+
+  forMe.registerHandler(BufMovePageRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<BufMovePageRequest>>(
+          [&](Handle<BufMovePageRequest> request, PDBCommunicatorPtr sendUsingMe) {
+
+            // call the method to handle it
+            auto ret =  handleMovePageRequest(request, sendUsingMe);
+            {
+              // lock the buffer manager to avoid concurrency issues
+              std::unique_lock<std::mutex> bufferLock(PDBBufferManagerImpl::m);
+
+              // lock the timeline file
+              std::unique_lock<std::mutex> lck(m);
+
+              // increment the debug tick
+              uint64_t tick = debugTick++;
+
+              // grab the database and set
+              std::string db = request->dbName;
+              std::string set = request->setName;
+              auto pageNum = request->pageNumber;
+
+              // get the anonymous page number
+              auto anonymousPage = request->anonymousPageNumber;
+
+              // log the operation
+              logOperation(tick, BufferManagerOperationType::HANDLE_MOVE_PAGE, db, set, pageNum, anonymousPage, request->currentID);
+
+              // log the timeline
+              logTimeline(tick);
+            }
+
+            // return the result
+            return ret;
+          }));
 }
 
 PDBBufferManagerInterfacePtr PDBBufferManagerDebugFrontend::getBackEnd() {

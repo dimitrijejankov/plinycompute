@@ -131,6 +131,18 @@ void PDBBufferManagerDebugBackEnd::logExpect(const Handle<BufForwardPageRequest>
   logOperation(std::numeric_limits<uint64_t>::max() - result->currentID, BufferManagerOperationType::EXPECT, dbName, setName, result->pageNum, 0);
 }
 
+void PDBBufferManagerDebugBackEnd::logMove(const PDBSetPtr &set,
+                                           size_t pageNumber,
+                                           size_t anonymousPageNumber,
+                                           uint64_t currentID) {
+
+  // lock the buffer manager
+  std::unique_lock<std::mutex> lck(m);
+
+  // log the operation
+  logOperation(currentID, BufferManagerOperationType::MOVE, set->getDBName(), set->getSetName(), pageNumber, anonymousPageNumber);
+}
+
 void PDBBufferManagerDebugBackEnd::logOperation(uint64_t timestamp,
                                                 PDBBufferManagerDebugBackEnd::BufferManagerOperationType operation,
                                                 const string &dbName,
@@ -196,6 +208,7 @@ void PDBBufferManagerDebugBackEnd::logOperation(uint64_t timestamp,
     case BufferManagerOperationType::FREE : { tmp = 4; break; }
     case BufferManagerOperationType::CLEAR : { tmp = 5; break; }
     case BufferManagerOperationType::EXPECT : { tmp = 6; break; }
+    case BufferManagerOperationType::MOVE : { tmp = 7; break; }
   }
 
   write(stackTracesTableFile, &tmp, sizeof(tmp));
@@ -220,6 +233,7 @@ void PDBBufferManagerDebugBackEnd::logOperation(uint64_t timestamp,
   // write out the special value
   write(stackTracesTableFile, &value, sizeof(value));
 }
+
 
 }
 

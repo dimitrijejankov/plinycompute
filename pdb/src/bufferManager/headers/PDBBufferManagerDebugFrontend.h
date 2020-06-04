@@ -54,7 +54,8 @@ protected:
     HANDLE_RETURN_PAGE,
     HANDLE_FREEZE_SIZE,
     HANDLE_PIN_PAGE,
-    HANDLE_UNPIN_PAGE
+    HANDLE_UNPIN_PAGE,
+    HANDLE_MOVE_PAGE
   };
 
   struct traceHasher {
