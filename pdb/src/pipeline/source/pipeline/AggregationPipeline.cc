@@ -33,6 +33,9 @@ void pdb::AggregationPipeline::run() {
   // we only have one iteration
   myRAM->setIteration(0);
 
+  // freeze the page to the right size and make the root object of the page right (getRecord does that later)
+  myRAM->pageHandle->freezeSize(getRecord(myRAM->outputSink)->numBytes());
+
   // and force the reference count for this guy to go to zero
   myRAM->outputSink.emptyOutContainingBlock();
 

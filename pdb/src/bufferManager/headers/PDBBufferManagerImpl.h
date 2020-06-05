@@ -221,6 +221,20 @@ protected:
   void createAdditionalMiniPages(int64_t whichSize, unique_lock<mutex> &lock);
 
   /**
+   * Flushes a page to disk.
+   * @param page - the page we want to page
+   * @param fd - the file descriptor
+   * @param lock - the lock
+   */
+  void flushPage(PDBPagePtr &page, int32_t fd, unique_lock<mutex> &lock);
+
+  /**
+   * Moves a page to a free location to avoid flushing it
+   * @param page - the page we want to move
+   */
+  void movePageFreeLocation(PDBPagePtr &page);
+
+  /**
    * tell the buffer manager that the given page can be truncated at the indicated size
    * @param me - the page we want to freeze
    * @param numBytes - the number of bytes we want to freeze it to. (rounded up to the nearest base 2 exponent)

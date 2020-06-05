@@ -628,6 +628,46 @@ bool PDBBufferManagerImpl::isRemovalStillValid(PDBPagePtr me) {
   return it->second.get() == me.get();
 }
 
+void PDBBufferManagerImpl::flushPage(PDBPagePtr &page, int32_t fd, unique_lock<mutex> &lock) {
+
+  // the page is not unloading unlock the buffer manager so we don't stall
+  lock.unlock();
+
+  PDBPageInfo myInfo = page->getLocation();
+
+  ssize_t write_bytes = pwrite(fd, page->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
+  if (write_bytes == -1) {
+    std::cerr << "error in createAdditionalMiniPages when writing page to disk with errno: " << strerror(errno)
+              << std::endl;
+    exit(1);
+  }
+
+  // lock the thing again
+  lock.lock();
+}
+
+void PDBBufferManagerImpl::movePageFreeLocation(PDBPagePtr &page) {
+
+  // get an empty page of the required size
+  auto ep = emptyMiniPages[page->location.numBytes].back();
+  emptyMiniPages[page->location.numBytes].pop_back();
+
+  // get the parent page of the empty page
+  auto parent = (char *) sharedMemory.memory + ((((char *) ep - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+
+  // remove the empty page from the unused pages since we are using it now
+  auto it = std::find(unusedMiniPages[parent].first.begin(),  unusedMiniPages[parent].first.end(), ep);
+  unusedMiniPages[parent].first.erase(it);
+
+  // do the copy and
+  std::memcpy(ep, page->getBytes(), page->getSize());
+  page->bytes = ep;
+  page->status = PDB_PAGE_LOADED;
+
+  // move the page into constituent pages
+  constituentPages[parent].push_back(page);
+}
+
 // this is only called with a locked buffer manager
 void PDBBufferManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_lock<mutex> &lock) {
 
@@ -696,36 +736,40 @@ void PDBBufferManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_l
           availablePositions[a->getLocation().numBytes].pop_back();
         }
 
-        // the page is not unloading unlock the buffer manager so we don't stall
-        lock.unlock();
+        // do we have some pages we can move this page to
+        if(!emptyMiniPages[a->location.numBytes].empty()) {
 
-        ssize_t write_bytes = pwrite(tempFileFD, a->getBytes(), MIN_PAGE_SIZE << a->getLocation().numBytes, a->getLocation().startPos);
-        if (write_bytes == -1) {
-          std::cerr << "error in createAdditionalMiniPages when writing anonymous page to disk with errno: "
-                    << strerror(errno)
-                    << std::endl;
-          exit(1);
+          // move the page to a free location so that we can delay flushing it
+          movePageFreeLocation(a);
+
+          // we moved it go to the next page
+          continue;
         }
-        // lock it again
-        lock.lock();
+        else {
+
+          // flush the page
+          flushPage(a, tempFileFD, lock);
+        }
 
       } else {
 
+        // check if the page is dirty if it is we either need to flush it or move it to a new location
         if (a->isDirty()) {
 
-          // the page is not unloading unlock the buffer manager so we don't stall
-          lock.unlock();
+          // do we have some pages we can move this page to
+          if(!emptyMiniPages[a->location.numBytes].empty()) {
 
-          PDBPageInfo myInfo = a->getLocation();
+            // move the page to a free location so that we can delay flushing it
+            movePageFreeLocation(a);
 
-          ssize_t write_bytes = pwrite(fds[a->getSet()], a->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
-          if (write_bytes == -1) {
-            std::cerr << "error in createAdditionalMiniPages when writing page to disk with errno: " << strerror(errno)
-                      << std::endl;
-            exit(1);
+            // we moved it go to the next page
+            continue;
           }
-          // lock the thing again
-          lock.lock();
+          else {
+
+            // flush the page to disk
+            flushPage(a, fds[a->getSet()], lock);
+          }
         }
 
         // lock the page so we can check the references
@@ -749,7 +793,7 @@ void PDBBufferManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_l
     // mark all pages as not loaded
     std::for_each(constituentPages[page.first].begin(),
                   constituentPages[page.first].end(),
-                  [](auto &a) { a->status = PDB_PAGE_NOT_LOADED; });
+                  [](auto &a) { if(a->getBytes() == nullptr) { a->status = PDB_PAGE_NOT_LOADED; } });
 
     // notify all the threads that are paused because of a status
     pagesCV.notify_all();
