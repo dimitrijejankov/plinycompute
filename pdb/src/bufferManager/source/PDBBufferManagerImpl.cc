@@ -940,7 +940,95 @@ void PDBBufferManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
   // it is not currently pinned, so see if it is in RAM
   if (me->getBytes() != nullptr) {
 
-    // it is currently pinned, so mark the parent as pinned
+    // if it is a whole a page just repin and return, otherwise we need to check for fragmentation
+    if(me->getSize() == getMaxPageSize()) {
+
+      // it is currently pinned, so mark the parent as pinned
+      me->setPinned();
+      pinParent(me);
+      return;
+    }
+
+    // determine the parent of this guy
+    void *currentParent = (char *) sharedMemory.memory
+        + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+
+    // figure out how many pages are there that are on the same parent page as this page
+    // but are not used
+    auto numUnusedPages = unusedMiniPages[currentParent].first.size();
+
+    // check if this is the only page on the parent page
+    if((sharedMemory.pageSize / me->getSize()) != (numUnusedPages + 1)){
+
+      // if it is not then just repin
+      me->setPinned();
+      pinParent(me);
+      return;
+    }
+
+    // if it is the only page check if we have some pages of the same size that are not
+    // on this parent page
+
+    for(auto ep : emptyMiniPages[me->location.numBytes]){
+
+      // figure out the parent page of the empty mini page
+      void *pp = (char *) sharedMemory.memory + ((((char *) ep - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+
+      // they are on the same page
+      if(pp == currentParent) {
+        continue;
+      }
+
+      // ok they are not on the same page move it there
+      std::memcpy(ep, me->getBytes(), me->getSize());
+
+      // now, add him to the list of constituent pages
+      constituentPages[pp].push_back(me);
+
+      // remove the page from the constituentPages of the previous parent page
+      constituentPages[currentParent].clear();
+
+      // remove the empty pages associated with this page
+      for(auto up : unusedMiniPages[currentParent].first) {
+
+        // remove the unused page
+        auto miniPage = std::find(emptyMiniPages[me->location.numBytes].begin(), emptyMiniPages[me->location.numBytes].end(), up);
+        emptyMiniPages[me->location.numBytes].erase(miniPage);
+      }
+
+      // clear the unused pages from the parent because they don't exist it is a whole page now
+      unusedMiniPages[currentParent].first.clear();
+
+      // mark the parent page as free
+      emptyFullPages.push_back(currentParent);
+      numPinned.erase(currentParent);
+
+      // remove it from the LRU
+      if(numPinned[currentParent] < 0) {
+
+        // remvo the physical page from the LRU
+        lastUsed.erase(lastUsed.find(make_pair(currentParent, -numPinned[currentParent])));
+      }
+
+      // remove the mini page we just used
+      auto miniPage = std::find(emptyMiniPages[me->location.numBytes].begin(), emptyMiniPages[me->location.numBytes].end(), ep);
+      emptyMiniPages[me->location.numBytes].erase(miniPage);
+
+      // remove the unused mini page
+      auto &unused = unusedMiniPages[pp].first;
+      auto it = std::find(unused.begin(), unused.end(), ep);
+      unused.erase(it);
+
+      // update the bytes
+      me->bytes = ep;
+
+      // this guy is now pinned
+      me->setPinned();
+      pinParent(me);
+      return;
+    }
+
+    // if we could not find a place to move it just repin
     me->setPinned();
     pinParent(me);
     return;
