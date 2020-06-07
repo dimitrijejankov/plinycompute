@@ -1098,6 +1098,223 @@ TEST(BufferManagerTest, Test14) {
   }
 }
 
+// test clearing the set while doing other stuff with the other set
+TEST(BufferManagerTest, Test15) {
+
+  // create the buffer manager
+  PDBBufferManagerImpl myMgr;
+  myMgr.initialize("tempDSFSD", 128, 5, "metadata", ".");
+
+  // parameters
+  const int firstSetSize = 8;
+  const int secondSetSize = 32;
+  const int numSetPages = 30;
+  const int numPages = 1000;
+  const int numThreads = 4;
+
+  // some random set
+  PDBSetPtr set = make_shared<PDBSet>("DB", "set1");
+  for(uint64_t i = 0; i < numSetPages; ++i) {
+
+    // init the page of the set
+    PDBPageHandle page = myMgr.getPage(set, i);
+    memset(page->getBytes(), 'V' + (int)i % 10, firstSetSize);
+    page->freezeSize(firstSetSize);
+    page->setDirty();
+    page->unpin();
+  }
+
+  // used to sync
+  std::atomic<std::int32_t> sync;
+  sync = 0;
+
+  // run multiple threads
+  std::vector<std::thread> threads;
+  threads.reserve(numThreads);
+  for(int t = 0; t < numThreads; ++t) {
+
+    threads.emplace_back(std::thread([&](int tmp) {
+
+      // sync the threads to make sure there is more overlapping
+      sync++;
+      while (sync != numThreads) {}
+
+      int offset = 0;
+
+      std::vector<PDBPageHandle> pageHandles;
+
+      // grab anon pages
+      for(int i = 0; i < numPages; ++i) {
+
+        // grab the page
+        auto page = myMgr.getPage();
+
+        // grab the page and fill it in
+        char* bytes = (char*) page->getBytes();
+        for(char j = 0; j < 64; ++j) {
+          bytes[j] = static_cast<char>((j + offset + tmp) % 128);
+        }
+
+        // once it reaches the half of the pages the first thread is going to do a clear of the set
+        if(tmp == 0 && i == numPages / 2) {
+          myMgr.clearSet(set);
+        }
+
+        // store page
+        pageHandles.push_back(page);
+
+        // unpin the page
+        page->unpin();
+
+        // increment the offset
+        offset++;
+      }
+
+      // sync the threads to make sure there is more overlapping
+      sync++;
+      while (sync != 2 * numThreads) {}
+
+      offset = 0;
+      for(auto &page : pageHandles) {
+
+        // repin the page
+        page->repin();
+
+        // grab the page and fill it in
+        char* bytes = (char*) page->getBytes();
+        for(char j = 0; j < 64; ++j) {
+          EXPECT_EQ(bytes[j], static_cast<char>((j + offset + tmp) % 128));
+        }
+
+        // unpin the page
+        page->unpin();
+
+        // increment the offset
+        offset++;
+      }
+
+      // remove all the page handles
+      pageHandles.clear();
+
+    }, t));
+  }
+
+  for(auto &t : threads) {
+    t.join();
+  }
+
+  // fill the set up again
+  for(uint64_t i = 0; i < numSetPages; ++i) {
+
+    // init the page of the set
+    PDBPageHandle page = myMgr.getPage(set, i);
+    memset(page->getBytes(), 'V' + (int)i % 10, secondSetSize);
+    page->freezeSize(secondSetSize);
+    page->setDirty();
+  }
+
+  char tmpBuffer[secondSetSize];
+  for(uint64_t i = 0; i < numSetPages; ++i) {
+    memset(tmpBuffer, 'V' + (int)i % 10, secondSetSize);
+    PDBPageHandle page = myMgr.getPage(set, i);
+    EXPECT_EQ(memcmp(tmpBuffer, page->getBytes(), secondSetSize), 0);
+  }
+}
+
+// same as test 12 but with different page size and same processing page size
+TEST(BufferManagerTest, Test16) {
+
+  // create the buffer manager
+  PDBBufferManagerImpl myMgr;
+  myMgr.initialize("tempDSFSD", 256, 4, "metadata", ".");
+
+  // the page sizes we are testing
+  std::vector<size_t> pageSizes {8, 16, 32, 64, 128};
+
+  const int numRequestsPerPage = 2000;
+  const int numPages = 60;
+
+  // note the number of threads must be less than 8 or equal to 8 or else we can exceed the page size
+  const int numThreads = 4;
+
+  // generate the pages
+  PDBSetPtr set = make_shared<PDBSet>("DB", "set1");
+  for(uint64_t i = 0; i < numPages; ++i) {
+
+    // grab the page
+    auto page = myMgr.getPage(set, i);
+
+    // freeze the size
+    page->freezeSize(pageSizes[i % 5]);
+
+    for(int t = 0; t < numThreads; ++t) {
+      // set the first numThreads bytes to 0
+      ((char *) page->getBytes())[t] = 0;
+    }
+
+    // mark as dirty
+    page->setDirty();
+  }
+
+  std::atomic<std::int32_t> sync;
+  sync = 0;
+
+  std::vector<std::thread> threads;
+  threads.reserve(numThreads);
+  for(int t = 0; t < numThreads; ++t) {
+
+    threads.emplace_back(std::thread([&](int tmp) {
+
+      int myThraed = tmp;
+      int myThreadClamp = ((myThraed + 1) * 100) % 127;
+
+      // generate the page indices
+      std::vector<uint64_t> pageIndices;
+      for(int i = 0; i < numRequestsPerPage; ++i) {
+        for(int j = 0; j < numPages; ++j) {
+          pageIndices.emplace_back(j);
+        }
+      }
+
+      // shuffle the page indices
+      auto seed = std::chrono::system_clock::now().time_since_epoch().count();
+      shuffle (pageIndices.begin(), pageIndices.end(), std::default_random_engine(seed));
+
+      sync++;
+      while (sync != numThreads) {}
+      for(auto it : pageIndices) {
+
+        // grab the page
+        auto page = myMgr.getPage(set, it);
+
+        // increment the page
+        ((char *) page->getBytes())[myThraed] = (char) ((((char *) page->getBytes())[myThraed] + 1) % myThreadClamp);
+
+        // set as dirty
+        page->setDirty();
+      }
+    }, t));
+  }
+
+  for(auto &t : threads) {
+    t.join();
+  }
+
+  for(uint64_t i = 0; i < numPages; ++i) {
+
+    // the page
+    auto page = myMgr.getPage(set, i);
+
+    for(int t = 0; t < numThreads; ++t) {
+
+      int myThreadClamp = ((t + 1) * 100) % 127;
+
+      // check them
+      EXPECT_EQ(((char*) page->getBytes())[t], (numRequestsPerPage % myThreadClamp));
+    }
+  }
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

@@ -17,7 +17,11 @@
 #include <HeapRequestHandler.h>
 #include <BufForwardPageRequest.h>
 
-pdb::PDBBufferManagerFrontEnd::PDBBufferManagerFrontEnd(std::string tempFileIn, size_t pageSizeIn, size_t numPagesIn, std::string metaFile, std::string storageLocIn) {
+pdb::PDBBufferManagerFrontEnd::PDBBufferManagerFrontEnd(std::string tempFileIn,
+                                                        size_t pageSizeIn,
+                                                        size_t numPagesIn,
+                                                        std::string metaFile,
+                                                        std::string storageLocIn) {
 
   // initialize the buffer manager
   initialize(std::move(tempFileIn), pageSizeIn, numPagesIn, std::move(metaFile), std::move(storageLocIn));

@@ -63,7 +63,7 @@ PDBPageHandle createRandomTempPage(PDBBufferManagerDebugFrontend &myMgr, vector<
 
 
 // tests anonymous pages of different sizes 8, 16, 32 when the largest page size is 64
-TEST(BufferManagerTest, Test1) {
+TEST(BufferManagerDebugTest, Test1) {
 
   const int pageSize = 64;
 
@@ -106,6 +106,120 @@ TEST(BufferManagerTest, Test1) {
       EXPECT_EQ(strcmp(buffer, (char*) temp->getBytes()), 0);
     }
   }
+}
+
+// same as test 12 but with different page size and same processing page size and has tracing
+TEST(BufferManagerDebugTest, Test2) {
+
+  // create the buffer manager
+  PDBBufferManagerDebugFrontend myMgr("tempDSFSD", 256, 4, "metadata", ".");
+
+  // the page sizes we are testing
+  std::vector<size_t> pageSizes {8, 16, 32, 64, 128};
+
+  const int numRequestsPerPage = 100;
+  const int numPages = 60;
+
+  // note the number of threads must be less than 8 or equal to 8 or else we can exceed the page size
+  const int numThreads = 4;
+
+  // generate the pages
+  PDBSetPtr set = make_shared<PDBSet>("DB", "set1");
+  for(uint64_t i = 0; i < numPages; ++i) {
+
+    // grab the page
+    auto page = myMgr.getPage(set, i);
+
+    // freeze the size
+    page->freezeSize(pageSizes[i % 5]);
+
+    for(int t = 0; t < numThreads; ++t) {
+      // set the first numThreads bytes to 0
+      ((char *) page->getBytes())[t] = 0;
+    }
+
+    // mark as dirty
+    page->setDirty();
+  }
+
+  std::atomic<std::int32_t> sync;
+  sync = 0;
+
+  std::vector<std::thread> threads;
+  threads.reserve(numThreads);
+  for(int t = 0; t < numThreads; ++t) {
+
+    threads.emplace_back(std::thread([&](int tmp) {
+
+      int myThraed = tmp;
+      int myThreadClamp = ((myThraed + 1) * 100) % 127;
+
+      // generate the page indices
+      std::vector<uint64_t> pageIndices;
+      for(int i = 0; i < numRequestsPerPage; ++i) {
+        for(int j = 0; j < numPages; ++j) {
+          pageIndices.emplace_back(j);
+        }
+      }
+
+      // shuffle the page indices
+      auto seed = std::chrono::system_clock::now().time_since_epoch().count();
+      shuffle (pageIndices.begin(), pageIndices.end(), std::default_random_engine(seed));
+
+      sync++;
+      while (sync != numThreads) {}
+      for(auto it : pageIndices) {
+
+        // grab the page
+        auto page = myMgr.getPage(set, it);
+
+        // increment the page
+        ((char *) page->getBytes())[myThraed] = (char) ((((char *) page->getBytes())[myThraed] + 1) % myThreadClamp);
+
+        // set as dirty
+        page->setDirty();
+      }
+    }, t));
+  }
+
+  for(auto &t : threads) {
+    t.join();
+  }
+
+  for(uint64_t i = 0; i < numPages; ++i) {
+
+    // the page
+    auto page = myMgr.getPage(set, i);
+
+    for(int t = 0; t < numThreads; ++t) {
+
+      int myThreadClamp = ((t + 1) * 100) % 127;
+
+      // check them
+      EXPECT_EQ(((char*) page->getBytes())[t], (numRequestsPerPage % myThreadClamp));
+    }
+  }
+}
+
+// same as test 12 but with different page size and same processing page size and has tracing
+TEST(BufferManagerDebugTest, Test3) {
+
+  // create the buffer manager
+  PDBBufferManagerDebugFrontend myMgr("tempDSFSD", 256, 4, "metadata", ".");
+
+  auto page1 = myMgr.getPage();
+  auto page2 = myMgr.getPage();
+  page1->freezeSize(32);
+  page2->freezeSize(32);
+  page1->unpin();
+  page2->unpin();
+
+  auto page3 = myMgr.getPage();
+  auto page4 = myMgr.getPage();
+  page3->freezeSize(32);
+  page4->freezeSize(32);
+  page3->unpin();
+  page4->unpin();
 }
 
 int main(int argc, char **argv) {

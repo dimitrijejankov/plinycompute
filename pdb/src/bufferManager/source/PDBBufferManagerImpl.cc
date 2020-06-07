@@ -558,7 +558,20 @@ void PDBBufferManagerImpl::freeAnonymousPage(PDBPagePtr me) {
     return;
   }
 
-  // otherwise just add back
+  // if the number of pinned minipages is now zero, put into the LRU structure
+  if (numPinned[parent] == 0) {
+
+    // add it to the LRU
+    numPinned[parent] = -lastTimeTick;
+
+    // add the physical page to the LRU
+    lastUsed.insert(make_pair(parent, lastTimeTick));
+
+    // increment the time tick
+    lastTimeTick++;
+  }
+
+  // add back the unused mini pages
   unusedMiniPages[parent].first.emplace_back(me->getBytes());
   emptyMiniPages[unusedMiniPages[parent].second].emplace_back(me->getBytes());
 
