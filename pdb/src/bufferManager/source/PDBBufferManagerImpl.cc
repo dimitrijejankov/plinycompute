@@ -662,8 +662,18 @@ void PDBBufferManagerImpl::flushPage(PDBPagePtr &page, int32_t fd, unique_lock<m
 void PDBBufferManagerImpl::movePageFreeLocation(PDBPagePtr &page) {
 
   // get an empty page of the required size
-  auto ep = emptyMiniPages[page->location.numBytes].back();
-  emptyMiniPages[page->location.numBytes].pop_back();
+  int32_t pageNum = 0;
+  auto &emptyPages = emptyMiniPages[page->location.numBytes];
+  for(int32_t i = 1; i < emptyPages.size(); i++) {
+    if(emptyPages[i] < emptyPages[pageNum]){
+      pageNum = i;
+    }
+  }
+
+  // swap it to the back and fetch it
+  std::swap(emptyPages[pageNum], emptyPages[emptyMiniPages[page->location.numBytes].size() - 1]);
+  auto ep = emptyPages.back();
+  emptyPages.pop_back();
 
   // get the parent page of the empty page
   auto parent = (char *) sharedMemory.memory + ((((char *) ep - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
@@ -1025,16 +1035,23 @@ void PDBBufferManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
 
     // if it is the only page check if we have some pages of the same size that are not
     // on this parent page
+    void* ep = nullptr;
+    std::for_each(emptyMiniPages[me->location.numBytes].begin(), emptyMiniPages[me->location.numBytes].end(), [&](void * &page) {
 
-    for(auto ep : emptyMiniPages[me->location.numBytes]){
+      // figure out the parent page of the empty mini page
+      void *pp = (char *) sharedMemory.memory + ((((char *) page - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+
+      // skip this
+      if(pp == currentParent)  { return; }
+
+      // we always take the page with the minimum page
+      if(ep != nullptr) { ep = std::min(ep, page); } else { ep = page; }
+    });
+
+    if(ep != nullptr) {
 
       // figure out the parent page of the empty mini page
       void *pp = (char *) sharedMemory.memory + ((((char *) ep - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
-
-      // they are on the same page
-      if(pp == currentParent) {
-        continue;
-      }
 
       // ok they are not on the same page move it there
       std::memcpy(ep, me->getBytes(), me->getSize());
