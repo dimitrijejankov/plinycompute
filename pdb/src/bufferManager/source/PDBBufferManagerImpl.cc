@@ -382,6 +382,11 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
         // increment the time tick
         lastTimeTick++;
       }
+    } else {
+
+      // ok it is not pinned but we still need to free the minipage
+      unusedMiniPages[memLoc].first.emplace_back(it->second->bytes);
+      emptyMiniPages[it->second->location.numBytes].emplace_back(it->second->bytes);
     }
 
     // remove the page from all pages

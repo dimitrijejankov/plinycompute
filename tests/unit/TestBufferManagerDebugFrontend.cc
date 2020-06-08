@@ -201,7 +201,6 @@ TEST(BufferManagerDebugTest, Test2) {
   }
 }
 
-// same as test 12 but with different page size and same processing page size and has tracing
 TEST(BufferManagerDebugTest, Test3) {
 
   // create the buffer manager
@@ -220,6 +219,26 @@ TEST(BufferManagerDebugTest, Test3) {
   page4->freezeSize(32);
   page3->unpin();
   page4->unpin();
+}
+
+TEST(BufferManagerDebugTest, Test4) {
+
+  // create the buffer manager
+  PDBBufferManagerDebugFrontend myMgr("tempDSFSD", 256, 4, "metadata", ".");
+
+  PDBSetPtr set1 = make_shared<PDBSet>("DB", "set1");
+  PDBSetPtr set2 = make_shared<PDBSet>("DB", "set");
+
+  auto page1 = myMgr.getPage(set1, 0);
+  auto page2 = myMgr.getPage(set2, 1);
+  page1->freezeSize(32);
+  page2->freezeSize(32);
+  page1->unpin();
+  page2->unpin();
+  page1->repin();
+  page2->repin();
+
+  myMgr.clearSet(set1);
 }
 
 int main(int argc, char **argv) {
