@@ -26,17 +26,17 @@ std::vector<std::vector<std::pair<int32_t, float>>> features;
 
 int32_t total_points;
 
-int32_t num_batch = 40000;
-int32_t batch_block = 1000;
+int32_t num_batch;
+int32_t batch_block;
 
 int32_t num_features;
-int32_t features_block = 500;
+int32_t features_block;
 
 int32_t num_labels;
-int32_t labels_block = 400;
+int32_t labels_block;
 
-int32_t embedding_size = 40000;
-int32_t embedding_block = 1000;
+int32_t embedding_size;
+int32_t embedding_block;
 
 bool read_label(std::ifstream &is, char *buffer, int32_t batch_id) {
 
@@ -170,7 +170,7 @@ void load_input_data(pdb::PDBClient &pdbClient) {
 
   // check that we have enough data points
   if (total_points < num_batch) {
-    throw runtime_error("Not enough data points to form a batch.");
+    throw runtime_error("Not enough data points to form a batch " + std::to_string(total_points));
   }
 
   // init the data
@@ -276,6 +276,106 @@ void load_input_data(pdb::PDBClient &pdbClient) {
 
       // insert the labels data
       labels_data.insert(labels_data.end(), labels[i * batch_l + j].begin(), labels[i * batch_l + j].end());
+    }
+  }
+}
+
+void generate_input_data(pdb::PDBClient &pdbClient) {
+
+  /// 1. Load the data from the file
+
+  // round features so we can pad them
+  if((num_features % features_block) != 0) {
+    num_features += features_block - (num_features % features_block);
+  }
+
+  // round labels so we can pad them
+  if((num_labels % labels_block) != 0) {
+    num_labels += labels_block - (num_labels % labels_block);
+  }
+
+  /// 2. Send the input batch block to the sever
+
+  // figure out how many blocks we need to generate
+  int32_t batch_s = num_batch / batch_block;
+  int32_t batch_f = num_features / features_block;
+
+  // figure out all the blocks we need to send
+  std::vector<std::pair<int32_t, int32_t>> tuples_to_send(batch_s * batch_f);
+  for (int i = 0; i < batch_s; ++i) {
+    for (int j = 0; j < batch_f; ++j) {
+      tuples_to_send[i * batch_f + j] = {i, j};
+    }
+  }
+
+  size_t idx = 0;
+  while (idx != tuples_to_send.size()) {
+
+    // use temporary allocation block
+    const pdb::UseTemporaryAllocationBlock tempBlock{64 * 1024 * 1024};
+
+    // put the chunks here
+    Handle<Vector<Handle<ff::FFMatrixBlock>>> vec = pdb::makeObject<Vector<Handle<ff::FFMatrixBlock>>>();
+
+    try {
+
+      // put stuff into the vector
+      for (; idx < tuples_to_send.size();) {
+
+        // allocate a matrix
+        Handle<ff::FFMatrixBlock> myInt = makeObject<ff::FFMatrixBlock>(tuples_to_send[idx].first,
+                                                                        tuples_to_send[idx].second,
+                                                                        batch_block,
+                                                                        features_block);
+
+        // init the values
+        float *vals = myInt->data->data->c_ptr();
+        for(int i = 0; i < batch_block * features_block; ++i) {
+          vals[i] = drand48();
+        }
+
+        // we add the matrix to the block
+        vec->push_back(myInt);
+
+        // go to the next one
+        ++idx;
+
+        if (vec->size() == 50) {
+          break;
+        }
+      }
+    }
+    catch (pdb::NotEnoughSpace &n) {}
+
+    // init the records
+    getRecord(vec);
+
+    // send the data a bunch of times
+    pdbClient.sendData<ff::FFMatrixBlock>("ff", "input_batch", vec);
+
+    // log that we stored stuff
+    std::cout << "stored in input batch " << vec->size() << " !\n";
+  }
+
+  /// 3. Send the label batch block to the sever
+
+  int32_t batch_l = num_labels / labels_block;
+
+  // figure out all the blocks we need to send
+  labels_meta.resize(batch_s * batch_l);
+  for (int i = 0; i < batch_s; ++i) {
+    for (int j = 0; j < batch_l; ++j) {
+
+      // make a count
+      int32_t cnt = rand() % 100;
+
+      // fill up random meta data     pos,                num
+      labels_meta[i * batch_l + j] = {labels_data.size(), cnt};
+
+      // fill up some random data
+      for(int32_t t = 0; t < cnt; ++t) {
+        labels_data.emplace_back(rand() % num_batch, rand() % labels_block);
+      }
     }
   }
 }
@@ -473,10 +573,63 @@ int main(int argc, char *argv[]) {
   pdbClient.createSet<ff::FFMatrixBlock>("ff", "w1_updated"); // OK
   pdbClient.createSet<ff::FFMatrixBlock>("ff", "w2_updated"); // OK
 
+  // should we genrate the data
+  bool shouldGenerate;
+  std::cout << "Should generate data : \n";
+  std::cin >> shouldGenerate;
 
-  // load the input data
-  load_input_data(pdbClient);
+  if(shouldGenerate) {
 
+    std::cout << "num_batch : \n";
+    std::cin >> num_batch;
+
+    std::cout << "batch_block : \n";
+    std::cin >> batch_block;
+
+    std::cout << "num_features : \n";
+    std::cin >> num_features;
+
+    std::cout << "features_block : \n";
+    std::cin >> features_block;
+
+    std::cout << "num_labels : \n";
+    std::cin >> num_labels;
+
+    std::cout << "labels_block : \n";
+    std::cin >> labels_block;
+
+    std::cout << "embedding_size : \n";
+    std::cin >> embedding_size;
+
+    std::cout << "embedding_block : \n";
+    std::cin >> embedding_block;
+
+    // generate the input data
+    generate_input_data(pdbClient);
+  }
+  else {
+
+    std::cout << "num_batch : \n";
+    std::cin >> num_batch;
+
+    std::cout << "batch_block : \n";
+    std::cin >> batch_block;
+
+    std::cout << "features_block : \n";
+    std::cin >> features_block;
+
+    std::cout << "labels_block : \n";
+    std::cin >> labels_block;
+
+    std::cout << "embedding_size : \n";
+    std::cin >> embedding_size;
+
+    std::cout << "embedding_block : \n";
+    std::cin >> embedding_block;
+
+    // load the input data
+    load_input_data(pdbClient);
+  }
   // initialize the weights
   init_weights(pdbClient);
 
