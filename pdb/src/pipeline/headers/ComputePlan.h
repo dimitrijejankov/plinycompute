@@ -93,6 +93,7 @@ class ComputePlan {
 
   // build the aggregation pipeline
   PipelinePtr buildAggregationPipeline(const std::string &targetTupleSetName,
+                                       const PDBWorkerQueuePtr &workerQueue,
                                        const PDBAbstractPageSetPtr &inputPageSet,
                                        const PDBAnonymousPageSetPtr &outputPageSet,
                                        uint64_t workerID);

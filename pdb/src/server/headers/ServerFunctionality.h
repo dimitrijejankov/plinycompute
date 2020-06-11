@@ -27,28 +27,28 @@ namespace pdb {
 // catalog server, storage server, etc.).
 class ServerFunctionality {
 
-public:
+ public:
 
-    // registers any particular handlers that this server needs
-    virtual void registerHandlers(PDBServer& forMe) = 0;
+  // registers any particular handlers that this server needs
+  virtual void registerHandlers(PDBServer &forMe) = 0;
 
-    // this method is called by the PDBServer before registering the handlers but after the functionality is created.
-    virtual void init() {};
+  // this method is called by the PDBServer before registering the handlers but after the functionality is created.
+  virtual void init() {};
 
-    // added by Jia, it will be invoked when PDBServer is to be shutdown
-    virtual void cleanup() {}
+  // added by Jia, it will be invoked when PDBServer is to be shutdown
+  virtual void cleanup() {}
 
-    // access a particular functionality on the attached server
-    template <class Functionality>
-    Functionality& getFunctionality() {
-        return parent->getFunctionality<Functionality>();
-    }
+  // access a particular functionality on the attached server
+  template<class Functionality>
+  Functionality &getFunctionality() {
+    return parent->getFunctionality<Functionality>();
+  }
 
-    // access a particular functionality on the attached server as a shared pointer
-    template <class Functionality>
-    std::shared_ptr<Functionality> getFunctionalityPtr() {
-          return std::move(parent->getFunctionalityPtr<Functionality>());
-    }
+  // access a particular functionality on the attached server as a shared pointer
+  template<class Functionality>
+  std::shared_ptr<Functionality> getFunctionalityPtr() {
+    return std::move(parent->getFunctionalityPtr<Functionality>());
+  }
 
   /**
    * Waits for somebody to connect to this server with the following connection id
@@ -66,7 +66,9 @@ public:
    * @param connectionID - connection id
    * @return the communicator if we succeed, null otherwise
    */
-  PDBCommunicatorPtr connectTo(const std::string &ip, int32_t port, const pdb::Handle<SerConnectToRequest> &connectionID) {
+  PDBCommunicatorPtr connectTo(const std::string &ip,
+                               int32_t port,
+                               const pdb::Handle<SerConnectToRequest> &connectionID) {
     return this->parent->connectTo(ip, port, connectionID);
   }
 
@@ -81,25 +83,28 @@ public:
   }
 
   // remember the server this is attached to
-    void recordServer(PDBServer& recordMe) {
-        parent = &recordMe;
-    }
+  void recordServer(PDBServer &recordMe) {
+    parent = &recordMe;
+  }
 
-    PDBWorkerPtr getWorker() {
-        return parent->getWorkerQueue()->getWorker();
-    }
+  PDBWorkerQueuePtr getWorkerQueue() {
+    return parent->getWorkerQueue();
+  }
 
-    PDBLoggerPtr getLogger() {
-        return parent->getLogger();
-    }
+  PDBWorkerPtr getWorker() {
+    return parent->getWorkerQueue()->getWorker();
+  }
 
-    NodeConfigPtr getConfiguration() {
-        return parent->getConfiguration();
-    }
+  PDBLoggerPtr getLogger() {
+    return parent->getLogger();
+  }
 
-protected:
-    PDBServer* parent = nullptr;
+  NodeConfigPtr getConfiguration() {
+    return parent->getConfiguration();
+  }
 
+ protected:
+  PDBServer *parent = nullptr;
 
 };
 }

@@ -485,7 +485,7 @@ bool pdb::PDBJoinAggregationComputationStage::setup(const pdb::Handle<pdb::ExJob
   for (uint64_t workerID = 0; workerID < job->numberOfProcessingThreads; ++workerID) {
 
     // build the aggregation pipeline
-    auto aggPipeline = plan.buildAggregationPipeline(finalTupleSet, s->preaggPageSet, sinkPageSet, workerID);
+    auto aggPipeline = plan.buildAggregationPipeline(finalTupleSet, myMgr->getWorkerQueue(), s->preaggPageSet, sinkPageSet, workerID);
 
     // store the aggregation pipeline
     s->aggregationPipelines->push_back(aggPipeline);

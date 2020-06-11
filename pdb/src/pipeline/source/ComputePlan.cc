@@ -492,9 +492,10 @@ PipelinePtr ComputePlan::buildPipeline(const std::string& sourceTupleSetName,
 
 
 PipelinePtr ComputePlan::buildAggregationPipeline(const std::string &targetTupleSetName,
-                                                         const PDBAbstractPageSetPtr &inputPageSet,
-                                                         const PDBAnonymousPageSetPtr &outputPageSet,
-                                                         uint64_t workerID) {
+                                                  const PDBWorkerQueuePtr &workerQueue,
+                                                  const PDBAbstractPageSetPtr &inputPageSet,
+                                                  const PDBAnonymousPageSetPtr &outputPageSet,
+                                                  uint64_t workerID) {
 
   // get all of the computations
   AtomicComputationList &allComps = myPlan->getComputations();
@@ -509,7 +510,7 @@ PipelinePtr ComputePlan::buildAggregationPipeline(const std::string &targetTuple
   Handle<AggregateCompBase> agg = unsafeCast<AggregateCompBase>(myPlan->getNode(targetComputationName).getComputationHandle());
   auto combiner = agg->getAggregationHashMapCombiner(workerID);
 
-  return std::make_shared<pdb::AggregationPipeline>(workerID, outputPageSet, inputPageSet, combiner);
+  return std::make_shared<pdb::AggregationPipeline>(workerID, outputPageSet, inputPageSet, workerQueue, combiner);
 }
 
 

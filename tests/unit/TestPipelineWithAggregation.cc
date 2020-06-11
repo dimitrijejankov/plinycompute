@@ -353,7 +353,7 @@ TEST(PipelineTest, TestAggregation) {
 
   /// 5. Create the aggregation and run it
 
-  myPipeline = myPlan.buildAggregationPipeline(std::string("OutFor_methodCall_2AggregationComp2"), partitionedHashTable, hashTablePageSet, curThread);
+  myPipeline = myPlan.buildAggregationPipeline(std::string("OutFor_methodCall_2AggregationComp2"), myMgr->getWorkerQueue(), partitionedHashTable, hashTablePageSet, curThread);
 
   // and now, simply run the pipeline and then destroy it!!!
   std::cout << "\nRUNNING PIPELINE\n";

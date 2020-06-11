@@ -1,14 +1,10 @@
-//
-// Created by dimitrije on 3/27/19.
-//
-
-#ifndef PDB_AGGREGATIONPIPELINE_H
-#define PDB_AGGREGATIONPIPELINE_H
+#pragma once
 
 #include <PipelineInterface.h>
 #include <cstdio>
+#include <list>
 #include <PDBAnonymousPageSet.h>
-#include <ComputeSink.h>
+#include <AggregationCombinerSink.h>
 
 namespace pdb {
 
@@ -25,20 +21,21 @@ private:
   pdb::PDBAbstractPageSetPtr inputPageSet;
 
   // the merger sink
-  pdb::ComputeSinkPtr merger;
+  pdb::AggregationCombinerSinkBasePtr merger;
+
+  // worker queue
+  pdb::PDBWorkerQueuePtr workerQueue;
 
 public:
 
   AggregationPipeline(size_t workerID,
                       PDBAnonymousPageSetPtr outputPageSet,
                       PDBAbstractPageSetPtr inputPageSet,
-                      ComputeSinkPtr merger);
+                      PDBWorkerQueuePtr workerQueue,
+                      const pdb::ComputeSinkPtr &merger);
 
   void run() override;
 
 };
 
 }
-
-
-#endif //PDB_AGGREGATIONPIPELINE_H

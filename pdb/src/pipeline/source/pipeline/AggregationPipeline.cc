@@ -8,48 +8,60 @@
 
 #include <AggregationPipeline.h>
 #include <MemoryHolder.h>
+#include <GenericWork.h>
 
 void pdb::AggregationPipeline::run() {
 
-  // this is where we are outputting all of our results to
-  MemoryHolderPtr myRAM = std::make_shared<MemoryHolder>(outputPageSet->getNewPage());
+  // the forewarding queue to the child
+  AggregationCombinerSinkBase::record_forwarding_queue_t child_queue;
 
-  // create an output container create it.
-  myRAM->outputSink = merger->createNewOutputContainer();
+  // the buzzer we use for the child
+  PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {});
 
-  // aggregate all hash maps
+  // get a worker from the server
+  pdb::PDBWorkerPtr worker = workerQueue->getWorker();
+
+  // start a child thread to do the processing
+  pdb::PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&](const PDBBuzzerPtr& callerBuzzer) {
+    merger->processing_thread(outputPageSet, child_queue, workerQueue);
+  });
+
+  // run the work
+  worker->execute(myWork, tempBuzzer);
+
   PDBPageHandle inputPage;
   while ((inputPage = inputPageSet->getNextPage(workerID)) != nullptr) {
 
-    // write out the page
-    merger->writeOutPage(inputPage, myRAM->outputSink);
+    // repin the page
+    inputPage->repin();
+
+    // get the records
+    auto records = merger->getTupleList(inputPage);
+
+    // process
+    child_queue.enqueue(records);
+
+    // wait till everything is processed
+    child_queue.wait_till_processed();
+
+    // unpin the page
+    inputPage->unpin();
   }
 
-  // increment the records in the output set
-  if(myRAM->outputSink != nullptr) {
-    outputPageSet->increaseRecords(merger->getNumRecords(myRAM->outputSink));
-  }
+  // mark that we are done
+  child_queue.enqueue(nullptr);
 
-  // we only have one iteration
-  myRAM->setIteration(0);
-
-  // freeze the page to the right size and make the root object of the page right (getRecord does that later)
-  myRAM->pageHandle->freezeSize(getRecord(myRAM->outputSink)->numBytes());
-
-  // and force the reference count for this guy to go to zero
-  myRAM->outputSink.emptyOutContainingBlock();
-
-  // unpin the page so we don't have problems
-  myRAM->pageHandle->unpin();
-
-  // TODO make this nicer
-  makeObjectAllocatorBlock(1024, true);
+  // wait till we have processed everything
+  child_queue.wait_till_processed();
 }
 
 pdb::AggregationPipeline::AggregationPipeline(size_t workerID,
-                                              pdb::PDBAnonymousPageSetPtr outputPageSet,
-                                              pdb::PDBAbstractPageSetPtr inputPageSet,
-                                              pdb::ComputeSinkPtr merger) : workerID(workerID),
-                                                                            outputPageSet(std::move(outputPageSet)),
-                                                                            inputPageSet(std::move(inputPageSet)),
-                                                                            merger(std::move(merger)) {}
+                                              PDBAnonymousPageSetPtr outputPageSet,
+                                              PDBAbstractPageSetPtr inputPageSet,
+                                              PDBWorkerQueuePtr workerQueue,
+                                              const pdb::ComputeSinkPtr &merger) : workerID(workerID),
+                                                                                   outputPageSet(std::move(outputPageSet)),
+                                                                                   workerQueue(std::move(workerQueue)),
+                                                                                   inputPageSet(std::move(inputPageSet)) {
+  this->merger = std::dynamic_pointer_cast<AggregationCombinerSinkBase>(merger);
+}
