@@ -32,9 +32,6 @@ void pdb::AggregationPipeline::run() {
   PDBPageHandle inputPage;
   while ((inputPage = inputPageSet->getNextPage(workerID)) != nullptr) {
 
-    // repin the page
-    inputPage->repin();
-
     // get the records
     auto records = merger->getTupleList(inputPage);
 
@@ -43,9 +40,6 @@ void pdb::AggregationPipeline::run() {
 
     // wait till everything is processed
     child_queue.wait_till_processed();
-
-    // unpin the page
-    inputPage->unpin();
   }
 
   // mark that we are done
