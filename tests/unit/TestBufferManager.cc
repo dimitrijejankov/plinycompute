@@ -1315,6 +1315,62 @@ TEST(BufferManagerTest, Test16) {
   }
 }
 
+TEST(BufferManagerTest, Test17) {
+
+  const int32_t numThreads = 10;
+
+  // create the buffer manager
+  PDBBufferManagerImpl myMgr;
+  myMgr.initialize("tempDSFSD", 64, 16, "metadata", ".");
+
+  std::vector<std::vector<PDBPageHandle>> pages;
+  pages.resize(numThreads);
+  std::vector<std::thread> threads;
+  threads.reserve(numThreads);
+  for(int i = 0; i < 10; i++) {
+
+    for(int t = 0; t < numThreads; t++) {
+      threads.emplace_back(std::thread([&, t]() {
+        for (int k = 0; k < 1200; ++k) {
+
+          // grab two pages
+          PDBPageHandle page1 = myMgr.getPage();
+          page1->freezeSize(8);
+          memset(page1->getBytes(), 'a', 8);
+          page1->unpin();
+          page1->repin();
+          memset(page1->getBytes(), 'a', 8);
+          page1->unpin();
+
+          pages[t].emplace_back(page1);
+        }
+      }));
+    }
+
+    for(auto &t : threads) {
+      t.join();
+    }
+
+    threads.clear();
+
+    for(int t = 0; t < numThreads; t++) {
+      threads.emplace_back(std::thread([&, t]() {
+        for (const auto &page : pages[t]) {
+          page->repin();
+          memset(page->getBytes(), 'a', 8);
+          page->unpin();
+        }
+      }));
+    }
+
+    for(auto &t : threads) {
+      t.join();
+    }
+    threads.clear();
+  }
+
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

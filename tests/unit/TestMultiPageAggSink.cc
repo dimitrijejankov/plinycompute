@@ -27,7 +27,7 @@ public:
 
   void wait_for_records(std::shared_ptr<std::list<std::pair<void*, void*>>> &records) {
 
-    // lock the buffer manager
+    // lock the queue
     std::unique_lock<std::mutex> lock(m);
 
     // wait to get some records or that we are finished
@@ -39,7 +39,7 @@ public:
 
   void wait_till_processed() {
 
-    // lock the buffer manager
+    // lock the queue
     std::unique_lock<std::mutex> lock(m);
 
     // wait to get some records or that we are finished
@@ -48,7 +48,7 @@ public:
 
   void processed() {
 
-    // lock the buffer manager
+    // lock the queue
     std::unique_lock<std::mutex> lock(m);
 
     // invalidate the records
@@ -60,7 +60,7 @@ public:
 
   void enqueue(const std::shared_ptr<std::list<std::pair<void*, void*>>> &records) {
 
-    // lock the buffer manager
+    // lock the queue
     std::unique_lock<std::mutex> lock(m);
 
     // mark as finished

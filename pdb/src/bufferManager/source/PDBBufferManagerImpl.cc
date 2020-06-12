@@ -1080,7 +1080,6 @@ void PDBBufferManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
 
       // mark the parent page as free
       emptyFullPages.push_back(currentParent);
-      numPinned.erase(currentParent);
 
       // remove it from the LRU
       if(numPinned[currentParent] < 0) {
@@ -1088,6 +1087,9 @@ void PDBBufferManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
         // remvo the physical page from the LRU
         lastUsed.erase(lastUsed.find(make_pair(currentParent, -numPinned[currentParent])));
       }
+
+      // set the number of pinned to zero
+      numPinned[currentParent] = 0;
 
       // remove the mini page we just used
       auto miniPage = std::find(emptyMiniPages[me->location.numBytes].begin(), emptyMiniPages[me->location.numBytes].end(), ep);
