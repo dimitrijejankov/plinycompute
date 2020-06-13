@@ -15,7 +15,7 @@
 namespace pdb {
 
 class AggregationCombinerSinkBase : public ComputeSink {
-public:
+ public:
 
   virtual std::shared_ptr<std::list<std::pair<void*, void*>>> getTupleList(const pdb::PDBPageHandle &page) = 0;
 
@@ -29,7 +29,7 @@ public:
       std::unique_lock<std::mutex> lock(m);
 
       // wait to get some records or that we are finished
-      cv.wait(lock, [&] { return finished || _records != nullptr; });
+      cv.wait(lock, [&] { return state == state_t::DONE || _records != nullptr; });
 
       // give it the records
       records = _records;
@@ -41,13 +41,18 @@ public:
       std::unique_lock<std::mutex> lock(m);
 
       // wait to get some records or that we are finished
-      cv.wait(lock, [&] { return _records == nullptr; });
+      cv.wait(lock, [&] { return (_records == nullptr && state == state_t::RUNNING) || state == state_t::SHUT_DOWN; });
     }
 
     void processed() {
 
       // lock the buffer manager
       std::unique_lock<std::mutex> lock(m);
+
+      // if we are finished and processed set that the thread is shutdown
+      if(state == state_t::DONE) {
+        state = state_t::SHUT_DOWN;
+      }
 
       // invalidate the records
       _records = nullptr;
@@ -63,7 +68,7 @@ public:
 
       // mark as finished
       if(records == nullptr) {
-        finished = true;
+        state = state_t::DONE;
       }
 
       // set the records
@@ -73,10 +78,16 @@ public:
       cv.notify_all();
     }
 
-   private:
+private:
 
-    // did we finish this
-    bool finished{false};
+    enum class state_t {
+      RUNNING,
+      DONE,
+      SHUT_DOWN
+    };
+
+    // the state the queue is in
+    state_t state{state_t::RUNNING};
 
     // we use this for synchronization
     std::mutex m;
@@ -97,7 +108,7 @@ using AggregationCombinerSinkBasePtr = std::shared_ptr<AggregationCombinerSinkBa
 
 template<class KeyType, class ValueType>
 class AggregationCombinerSink : public AggregationCombinerSinkBase {
-public:
+ public:
 
   explicit AggregationCombinerSink(size_t workerID) : workerID(workerID) {
 
@@ -165,7 +176,7 @@ public:
         }
 
         // mark as processed
-        child_queue.processed();
+        records_queue.processed();
 
         // break out of this loop
         break;

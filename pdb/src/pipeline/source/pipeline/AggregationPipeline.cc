@@ -1,11 +1,5 @@
 #include <utility>
 
-#include <utility>
-
-//
-// Created by dimitrije on 3/27/19.
-//
-
 #include <AggregationPipeline.h>
 #include <MemoryHolder.h>
 #include <GenericWork.h>
