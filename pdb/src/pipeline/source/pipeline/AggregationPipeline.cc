@@ -41,6 +41,10 @@ void pdb::AggregationPipeline::run() {
 
   // wait till we have processed everything
   child_queue.wait_till_processed();
+
+  // increase the record count
+  Handle<Object> dummy;
+  outputPageSet->increaseRecords(this->merger->getNumRecords(dummy));
 }
 
 pdb::AggregationPipeline::AggregationPipeline(size_t workerID,

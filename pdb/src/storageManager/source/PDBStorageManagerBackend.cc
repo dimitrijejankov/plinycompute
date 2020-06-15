@@ -480,6 +480,7 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(const pdb::PDBAbstractPag
   // go through each page and materialize
   PDBPageHandle page;
   auto numPages = pageSet->getNumPages();
+  uint64_t size = 0;
   for (int i = 0; i < numPages; ++i) {
 
     /// 4.1 Grab a page from the page set
@@ -487,17 +488,26 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(const pdb::PDBAbstractPag
     // grab the next page
     page = pageSet->getNextPage(0);
 
+    // increment the size
+    size += page->getSize();
+
     /// 4.2 Move the page to set
     bufferManager->moveAnonymousPagesToSet(setIdentifier, pages[i], page);
   }
 
-  /// 5. Finish this, by sending an ack
+  /// 5. Now update the set statistics
+
+  // broadcast the set size change so far
+  PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
+  success = pdbClient.incrementSetRecordInfo(getConfiguration()->getNodeIdentifier(), set.first, set.second, size, pageSet->getNumRecords(), error);
+
+  /// 6. Finish this, by sending an ack
 
   // create an allocation block to hold the response
   Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(success, error);
 
   // set the response
-  simpleResponse->res = true;
+  simpleResponse->res = success;
   simpleResponse->errMsg = error;
 
   // sends result to requester

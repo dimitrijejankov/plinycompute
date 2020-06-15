@@ -281,7 +281,10 @@ class AggregationCombinerSink : public AggregationCombinerSinkBase {
     }
 
     // make this the root object of the allocation block
-    pdb::getRecord(myMap);
+    auto size = pdb::getRecord(myMap)->numBytes();
+
+    // freeze the page
+    outputPage->freezeSize(size);
 
     // TODO make this nicer (invalidates the allocation block)
     pdb::makeObjectAllocatorBlock(1024, true);
