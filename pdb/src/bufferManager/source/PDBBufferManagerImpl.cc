@@ -336,16 +336,39 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
       continue;
     }
 
+    // wait while are doing something with the page
+    pagesCV.wait(lock, [&] { return !(it->second->status == PDB_PAGE_LOADING ||
+                                             it->second->status == PDB_PAGE_UNLOADING ||
+                                             it->second->status == PDB_PAGE_FREEZING ||
+                                             it->second->status == PDB_PAGE_MOVING); });
+
+    // mark that we have found it
+    found = true;
+
     // find the parent page of this page
     void *memLoc = (char *) sharedMemory.memory + ((((char *) it->second->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
-
-    // remove the page from the constituentPages
     auto &siblings = constituentPages[memLoc];
-    auto pagePos = std::find(siblings.begin(), siblings.end(), it->second);
-    siblings.erase(pagePos);
 
-    // decrease the number of pinned pages
-    numPinned[memLoc]--;
+    // if this is not found
+    if (it->second->status == PDB_PAGE_NOT_LOADED) {
+
+      // remove the page from all pages
+      allPages.erase(it++);
+      continue;
+    }
+
+    // decrease the number of pinned pages if needed
+    if(it->second->isPinned()) {
+
+      // remove the page from the constituentPages
+      auto pagePos = std::find(siblings.begin(), siblings.end(), it->second);
+      siblings.erase(pagePos);
+
+      // decrement the number of pinned pages
+      numPinned[memLoc]--;
+    }
+
+    // if we just uppinned the whole page we need to add it back into circulation
     if(numPinned[memLoc] == 0) {
 
       // if by removing the page the constituent pages are empty we can return the whole page back
@@ -369,7 +392,7 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
       }
       else {
 
-        // otherwise reinsert it as a free page
+        // otherwise reinsert it as a free page and add it to the LRU
         unusedMiniPages[memLoc].first.emplace_back(it->second->bytes);
         emptyMiniPages[it->second->location.numBytes].emplace_back(it->second->bytes);
 
@@ -391,9 +414,6 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
 
     // remove the page from all pages
     allPages.erase(it++);
-
-    // mark that we have found it
-    found = true;
   }
 
   // remove all page locations for that set
