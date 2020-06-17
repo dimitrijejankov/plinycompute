@@ -18,7 +18,7 @@ namespace pdb {
  * 
  */
 class PreaggregationPageProcessor : public PageProcessor  {
-public:
+ public:
 
   PreaggregationPageProcessor() = default;
 
@@ -47,24 +47,27 @@ public:
       // get the page
       auto page = bufferManager->getPage();
 
-      // set it as the current allocation block
-      const pdb::UseTemporaryAllocationBlock tempBlock{page->getBytes(), page->getSize()};
+      // I added this block so that the handle for maps goes out of scope first
+      {
+        // set it as the current allocation block
+        const pdb::UseTemporaryAllocationBlock tempBlock{page->getBytes(), page->getSize()};
 
-      // make an object to hold
-      pdb::Handle<pdb::Vector<pdb::Handle<pdb::Map<pdb::Nothing>>>> maps = pdb::makeObject<pdb::Vector<pdb::Handle<pdb::Map<pdb::Nothing>>>>();
+        // make an object to hold
+        pdb::Handle<pdb::Vector<pdb::Handle<pdb::Map<pdb::Nothing>>>> maps = pdb::makeObject<pdb::Vector<pdb::Handle<pdb::Map<pdb::Nothing>>>>();
 
-      // copy all the maps  that we need to
-      for(int t = 0; t < numProcessingThreads; ++t) {
+        // copy all the maps  that we need to
+        for(int t = 0; t < numProcessingThreads; ++t) {
 
-        // copy the map
-        maps->push_back((*allMaps)[node * numProcessingThreads + t]);
+          // copy the map
+          maps->push_back((*allMaps)[node * numProcessingThreads + t]);
+        }
+
+        // get the record (this is important since it makes it the root object of the block)
+        auto record = getRecord(maps);
+
+        // freeze the page
+        page->freezeSize(record->numBytes());
       }
-
-      // get the record (this is important since it makes it the root object of the block)
-      auto record = getRecord(maps);
-
-      // freeze the page
-      page->freezeSize(record->numBytes());
 
       // unpin the page
       page->unpin();
@@ -76,7 +79,7 @@ public:
     return false;
   }
 
-private:
+ private:
 
   /**
    * The number of nodes we have

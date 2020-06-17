@@ -431,7 +431,7 @@ void pdb::PDBBufferManagerBackEnd<T>::downToZeroReferences(pdb::PDBPagePtr me) {
 
     // wait as long as something is happening with the page
     cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_MOVING ||
-                                me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
+        me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
 
     // check the reference count
     {
@@ -523,7 +523,7 @@ void pdb::PDBBufferManagerBackEnd<T>::freezeSize(pdb::PDBPagePtr me, size_t numB
 
     // wait as long as something is happening with the page
     cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_MOVING ||
-                                me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
+        me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
 
     // mark that we are freezing the page
     me->status = PDB_PAGE_FREEZING;
@@ -586,7 +586,7 @@ void pdb::PDBBufferManagerBackEnd<T>::unpin(pdb::PDBPagePtr me) {
 
     // wait as long as something is happening with the page
     cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_MOVING ||
-                                me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
+        me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
 
     // update status
     me->status = PDB_PAGE_UNLOADING;
@@ -665,7 +665,7 @@ void pdb::PDBBufferManagerBackEnd<T>::repin(pdb::PDBPagePtr me) {
 
     // wait as long as something is happening with the page
     cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_MOVING ||
-                                me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
+        me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
 
     // update status
     me->status = PDB_PAGE_LOADING;
@@ -758,20 +758,20 @@ void PDBBufferManagerBackEnd<T>::moveAnonymousPagesToSet(PDBSetPtr &whichSet, ui
 
   // make a request
   auto res = T::template heapRequest<BufMovePageRequest, SimpleRequestResult, bool>(myLogger, port, address, false, 1024,
-  [&](const Handle<SimpleRequestResult> &result) {
+                                                                                    [&](const Handle<SimpleRequestResult> &result) {
 
-    // return the result
-    if (result != nullptr && result->res) {
-      return true;
-    }
+                                                                                      // return the result
+                                                                                      if (result != nullptr && result->res) {
+                                                                                        return true;
+                                                                                      }
 
-    // set the error since we failed
-    errMsg = "Could not return the move the page";
+                                                                                      // set the error since we failed
+                                                                                      errMsg = "Could not return the move the page";
 
-    //  we failed
-    return false;
+                                                                                      //  we failed
+                                                                                      return false;
 
-  }, i, page->pageNum, whichSet);
+                                                                                    }, i, page->pageNum, whichSet);
 
   // did we succeed in moving the page
   if (!res) {
@@ -796,10 +796,17 @@ void PDBBufferManagerBackEnd<T>::moveAnonymousPagesToSet(PDBSetPtr &whichSet, ui
 
     // set the bytes to null
     page->bytes = nullptr;
+    page->isAnon = false;
 
     // update the set
     page->pageNum = i;
     page->whichSet = std::make_shared<PDBSet>(whichSet->getDBName(), whichSet->getSetName());
+
+    // make the key
+    pair<PDBSetPtr, long> key = std::make_pair(whichSet, page->pageNum);
+
+    // insert the page
+    allPages[key] = page;
   }
 
   // notify all threads that the state has changed
@@ -809,5 +816,3 @@ void PDBBufferManagerBackEnd<T>::moveAnonymousPagesToSet(PDBSetPtr &whichSet, ui
 }
 
 #endif
-
-
