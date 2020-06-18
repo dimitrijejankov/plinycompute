@@ -241,6 +241,50 @@ TEST(BufferManagerDebugTest, Test4) {
   myMgr.clearSet(set1);
 }
 
+TEST(BufferManagerDebugTest, Test5) {
+
+  const int32_t numThreads = 7;
+
+  // create the buffer manager
+  PDBBufferManagerDebugFrontend myMgr("tempDSFSD", 64, 8, "metadata", ".");
+
+  std::vector<std::vector<PDBPageHandle>> pages;
+  pages.resize(numThreads);
+  std::vector<std::thread> threads;
+  threads.reserve(numThreads);
+
+  for(int i = 0; i < 1; i++) {
+
+    for(int t = 0; t < numThreads; t++) {
+      threads.emplace_back(std::thread([&, t]() {
+        std::vector<PDBPageHandle> dump;
+        for (int k = 0; k < 100; ++k) {
+
+          // grab two pages
+          PDBPageHandle page1 = myMgr.getPage(8);
+          PDBPageHandle page2 = myMgr.getPage(8);
+          PDBPageHandle page3 = myMgr.getPage(8);
+
+          dump.emplace_back(page1);
+          dump.emplace_back(page2);
+          dump.emplace_back(page3);
+
+          page1->unpin();
+          page2->unpin();
+          page3->unpin();
+        }
+      }));
+    }
+
+    for(auto &t : threads) {
+      t.join();
+    }
+
+    threads.clear();
+  }
+
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

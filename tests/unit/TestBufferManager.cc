@@ -1327,14 +1327,20 @@ TEST(BufferManagerTest, Test17) {
   pages.resize(numThreads);
   std::vector<std::thread> threads;
   threads.reserve(numThreads);
-  for(int i = 0; i < 10; i++) {
+
+  for(int i = 0; i < 1; i++) {
+
+    PDBPageHandle page2 = myMgr.getPage();
+    page2->freezeSize(16);
 
     for(int t = 0; t < numThreads; t++) {
       threads.emplace_back(std::thread([&, t]() {
+
+        PDBSetPtr set = make_shared<PDBSet>("DB", "set" + std::to_string(t));
         for (int k = 0; k < 1200; ++k) {
 
           // grab two pages
-          PDBPageHandle page1 = myMgr.getPage();
+          PDBPageHandle page1 = myMgr.getPage(set, k);
           page1->freezeSize(8);
           memset(page1->getBytes(), 'a', 8);
           page1->unpin();
@@ -1355,10 +1361,120 @@ TEST(BufferManagerTest, Test17) {
 
     for(int t = 0; t < numThreads; t++) {
       threads.emplace_back(std::thread([&, t]() {
-        for (const auto &page : pages[t]) {
-          page->repin();
-          memset(page->getBytes(), 'a', 8);
-          page->unpin();
+        PDBSetPtr set = make_shared<PDBSet>("DB", "set" + std::to_string(t));
+        for (int k = 0; k < 1200; ++k) {
+          PDBPageHandle page1 = myMgr.getPage(set, k);
+          memset(page1->getBytes(), 'a', 8);
+          page1->unpin();
+        }
+        myMgr.clearSet(set);
+
+        pages[t].clear();
+      }));
+    }
+
+    for(auto &t : threads) {
+      t.join();
+    }
+    threads.clear();
+
+    memset(page2->getBytes(), 'a', 16);
+  }
+
+}
+
+
+TEST(BufferManagerTest, Test18) {
+
+  const int32_t numThreads = 7;
+
+  // create the buffer manager
+  PDBBufferManagerImpl myMgr;
+  myMgr.initialize("tempDSFSD", 64, 8, "metadata", ".");
+
+  std::vector<std::vector<PDBPageHandle>> pages;
+  pages.resize(numThreads);
+  std::vector<std::thread> threads;
+  threads.reserve(numThreads);
+
+  for(int i = 0; i < 10; i++) {
+
+    for(int t = 0; t < numThreads; t++) {
+      threads.emplace_back(std::thread([&, t]() {
+        std::vector<PDBPageHandle> dump;
+        for (int k = 0; k < 300; ++k) {
+
+          if(t % 3 == 0) {
+
+            // grab two pages
+            PDBPageHandle page1 = myMgr.getPage();
+            page1->freezeSize(8);
+            memset(page1->getBytes(), 'a', 8);
+            page1->unpin();
+            page1->repin();
+            memset(page1->getBytes(), 'a', 8);
+            page1->unpin();
+
+            PDBPageHandle page2 = myMgr.getPage(8);
+            memset(page2->getBytes(), 'a', 8);
+            page2->unpin();
+
+            PDBPageHandle page3 = myMgr.getPage(8);
+            memset(page3->getBytes(), 'a', 8);
+            page3->unpin();
+
+            dump.emplace_back(page1);
+            dump.emplace_back(page2);
+            dump.emplace_back(page3);
+          }
+          else if(t % 3 == 1) {
+
+            // grab two pages
+            PDBPageHandle page1 = myMgr.getPage();
+            page1->freezeSize(32);
+            memset(page1->getBytes(), 'a', 32);
+            page1->unpin();
+            page1->repin();
+            memset(page1->getBytes(), 'a', 32);
+            page1->unpin();
+
+            PDBPageHandle page2 = myMgr.getPage(32);
+            memset(page2->getBytes(), 'a', 32);
+            page2->unpin();
+
+            PDBPageHandle page3 = myMgr.getPage(32);
+            memset(page3->getBytes(), 'a', 32);
+            page3->unpin();
+
+            dump.emplace_back(page1);
+            dump.emplace_back(page2);
+            dump.emplace_back(page3);
+          }
+          else {
+
+            // grab two pages
+            PDBPageHandle page1 = myMgr.getPage();
+            page1->freezeSize(16);
+            memset(page1->getBytes(), 'a', 16);
+            page1->unpin();
+            page1->repin();
+            memset(page1->getBytes(), 'a', 16);
+            page1->unpin();
+
+            PDBPageHandle page2 = myMgr.getPage(16);
+            memset(page2->getBytes(), 'a', 16);
+            page2->unpin();
+
+            dump.emplace_back(page1);
+            dump.emplace_back(page2);
+          }
+
+          for(const auto& page : dump) {
+            page->repin();
+            memset(page->getBytes(), 'a', page->getSize());
+            page->unpin();
+          }
+
         }
       }));
     }
@@ -1366,6 +1482,7 @@ TEST(BufferManagerTest, Test17) {
     for(auto &t : threads) {
       t.join();
     }
+
     threads.clear();
   }
 
