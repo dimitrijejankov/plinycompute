@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
   config->ipcFile = fs::path(config->rootDirectory).append("/ipcFile").string();
   config->backendIpcFile = fs::path(config->rootDirectory).append("/backendIpcFile").string();
   config->catalogFile = fs::path(config->rootDirectory).append("/catalog").string();
-  config->maxConnections = 100;
+  config->maxConnections = 200;
 
   // init the storage manager, this has to be done before the fork!
   std::shared_ptr<pdb::PDBBufferManagerFrontEnd> bufferManager;

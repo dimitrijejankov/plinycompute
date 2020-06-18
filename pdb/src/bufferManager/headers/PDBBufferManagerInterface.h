@@ -102,6 +102,9 @@ public:
   // gets the page size
   virtual size_t getMaxPageSize() = 0;
 
+  // moves the anonymous page to a set TODO this needs to be pure virtual
+  virtual void moveAnonymousPagesToSet(PDBSetPtr &whichSet, uint64_t i, const PDBPageHandle& anonymousPage) { };
+
   // simply loop through and write back any dirty pages.  
   virtual ~PDBBufferManagerInterface () = default;
 
@@ -151,7 +154,7 @@ public:
   virtual void logFreeAnonymousPage(uint64_t pageNumber, uint64_t timestamp) { logFreeAnonymousPage(pageNumber); };
   virtual void logDownToZeroReferences(const PDBSetPtr &setPtr, size_t pageNum, uint64_t timestamp) { logDownToZeroReferences(setPtr, pageNum); };
   virtual void logClearSet(const PDBSetPtr &set, uint64_t timestamp) { logClearSet(set); };
-
+  virtual void logMove(const PDBSetPtr &whichSet, size_t pageNumber, size_t anonymousPageNumber, uint64_t currentID) {};
 
   // these are virtual so we can hijack the page methods
   virtual void logGetPage(const PDBSetPtr &whichSet, uint64_t i) {};

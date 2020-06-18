@@ -31,7 +31,7 @@ pdb::PDBPageHandle pdb::PDBFeedingPageSet::getNextPage(size_t workerID) {
   cv.wait(lck, [&]{ return numFinishedFeeders == numFeeders || nextPage > page; });
 
   // if we are done here (all feeders have finished and we served the last page) return null
-  if(numFinishedFeeders == numFeeders && nextPage == page) {
+  if(numFinishedFeeders == numFeeders && page >= nextPage) {
     return nullptr;
   }
 
@@ -85,6 +85,8 @@ void pdb::PDBFeedingPageSet::feedPage(const PDBPageHandle &page) {
   unique_lock<std::mutex> lck(m);
 
   if(numFinishedFeeders == numFeeders) {
+    std::cerr << "Number of finished feeders : " << numFinishedFeeders << '\n';
+    std::cerr << "Number feeders : " << numFeeders << '\n';
     throw runtime_error("Trying to feed pages, when all feeders have done feeding.");
   }
 

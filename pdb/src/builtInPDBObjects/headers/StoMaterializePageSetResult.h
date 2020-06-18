@@ -22,44 +22,26 @@
 #include "Handle.h"
 #include "PDBString.h"
 
-// PRELOAD %StoMaterializePageSetRequest%
+// PRELOAD %StoMaterializePageSetResult%
 
 namespace pdb {
 
 // encapsulates a request to add data to a set in storage
-class StoMaterializePageSetRequest : public Object {
+class StoMaterializePageSetResult : public Object {
 
 public:
 
-  StoMaterializePageSetRequest() = default;
-  ~StoMaterializePageSetRequest() = default;
+  StoMaterializePageSetResult() = default;
+  ~StoMaterializePageSetResult() = default;
 
-  StoMaterializePageSetRequest(const std::string &db, const std::string &set, uint64_t numRecords, uint64_t numPages) : databaseName(db),
-                                                                                                                        setName(set),
-                                                                                                                        numRecords(numRecords),
-                                                                                                                        numPages(numPages) {}
+  StoMaterializePageSetResult(int32_t numPages) : pageNumbers(numPages, numPages) {}
 
   ENABLE_DEEP_COPY
 
   /**
    * The name of the database the set belongs to
    */
-  String databaseName;
-
-  /**
-   * The name of the set we are storing the stuff
-   */
-  String setName;
-
-  /**
-   * The number of records the page set has that we want to materialize
-   */
-  uint64_t numRecords{};
-
-  /**
-   * The number of pages we want to materialize
-   */
-   uint64_t numPages{};
+  pdb::Vector<uint64_t> pageNumbers;
 };
 
 }

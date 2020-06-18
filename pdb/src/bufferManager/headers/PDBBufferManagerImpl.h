@@ -170,10 +170,18 @@ class PDBBufferManagerImpl : public PDBBufferManagerInterface {
 protected:
 
   /**
+   * Moves the page to a particular set
+   * @param whichSet - which set should we move it to
+   * @param anonymousPage - the page we want to move
+   * @return the new page of the set
+   */
+  PDBPageHandle movePage(const PDBSetPtr& whichSet, uint64_t pageNumber, const PDBPageHandle &anonymousPage);
+
+  /**
    * Checks if the file of the set is open if it is not then just open it, if it does not exist create it..
    * @param whichSet - the set we want to check the file for.
    */
-  void checkIfOpen(PDBSetPtr &whichSet);
+  void checkIfOpen(const PDBSetPtr &whichSet);
 
   /**
    * Returns the file descriptor for a particular set
@@ -211,6 +219,20 @@ protected:
    * @param lock
    */
   void createAdditionalMiniPages(int64_t whichSize, unique_lock<mutex> &lock);
+
+  /**
+   * Flushes a page to disk.
+   * @param page - the page we want to page
+   * @param fd - the file descriptor
+   * @param lock - the lock
+   */
+  void flushPage(PDBPagePtr &page, int32_t fd, unique_lock<mutex> &lock);
+
+  /**
+   * Moves a page to a free location to avoid flushing it
+   * @param page - the page we want to move
+   */
+  void movePageFreeLocation(PDBPagePtr &page);
 
   /**
    * tell the buffer manager that the given page can be truncated at the indicated size

@@ -22,6 +22,7 @@
 #include <StoFetchPageSetPagesRequest.h>
 #include <StoFetchPagesResponse.h>
 #include <PDBLabeledPageSet.h>
+#include <StoMaterializePageSetResult.h>
 
 void pdb::PDBStorageManagerBackend::init() {
 
@@ -61,6 +62,7 @@ void pdb::PDBStorageManagerBackend::registerHandlers(PDBServer &forMe) {
 }
 
 pdb::PDBSetPageSetPtr pdb::PDBStorageManagerBackend::createPageSetFromPDBSet(const std::string &db, const std::string &set, bool isKeyed) {
+
 
   // get the configuration
   auto conf = this->getConfiguration();
@@ -413,7 +415,10 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(const pdb::PDBAbstractPag
   const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
   // set the stat results
-  pdb::Handle<StoMaterializePageSetRequest> materializeRequest = pdb::makeObject<StoMaterializePageSetRequest>(set.first, set.second, pageSet->getNumRecords());
+  pdb::Handle<StoMaterializePageSetRequest> materializeRequest = pdb::makeObject<StoMaterializePageSetRequest>(set.first,
+                                                                                                               set.second,
+                                                                                                               pageSet->getNumRecords(),
+                                                                                                               pageSet->getNumPages());
 
   // sends result to requester
   success = comm->sendObject(materializeRequest, error);
@@ -431,18 +436,25 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(const pdb::PDBAbstractPag
   /// 3. Wait for an ACK
 
   // wait for the storage finish result
-  success = RequestFactory::waitHeapRequest<SimpleRequestResult, bool>(logger, comm, false,
-    [&](const Handle<SimpleRequestResult>& result) {
+  std::vector<int64_t> pages;
+  success = RequestFactory::waitHeapRequest<StoMaterializePageSetResult, bool>(logger, comm, false,
+    [&](const Handle<StoMaterializePageSetResult>& result) {
 
       // check the result
-      if (result != nullptr && result->getRes().first) {
+      if (result != nullptr) {
+
+        // move the pages
+        pages.resize(result->pageNumbers.size());
+        for(int32_t i = 0; i < result->pageNumbers.size(); ++i) {
+          pages[i] = result->pageNumbers[i];
+        }
 
         // finish
         return true;
       }
 
       // set the error
-      error = result->getRes().second;
+      error = "Failed to get the free pages\n";
 
       // we failed return so
       return false;
@@ -467,58 +479,39 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(const pdb::PDBAbstractPag
   // go through each page and materialize
   PDBPageHandle page;
   auto numPages = pageSet->getNumPages();
+  uint64_t size = 0;
   for (int i = 0; i < numPages; ++i) {
+
+    /// 4.1 Grab a page from the page set
 
     // grab the next page
     page = pageSet->getNextPage(0);
 
-    // repin the page
-    page->repin();
+    // increment the size
+    size += page->getSize();
 
-    // grab a page
-    auto setPage = bufferManager->expectPage(comm);
-
-    // check if we got a page
-    if(setPage == nullptr) {
-
-      // log it
-      logger->error("Failed to get the page from the frontend when materializing a set!");
-
-      // finish
-      return false;
-    }
-
-    // get the size of the page
-    auto pageSize = page->getSize();
-
-    // copy the memory to the set page
-    memcpy(setPage->getBytes(), page->getBytes(), pageSize);
-
-    // unpin the page
-    page->unpin();
-
-    // make an allocation block to send the response
-    const pdb::UseTemporaryAllocationBlock blk{1024};
-
-    // make a request to mark that we succeeded
-    pdb::Handle<StoMaterializePageResult> materializeResult = pdb::makeObject<StoMaterializePageResult>(set.first, set.second, pageSize, true, (i + 1) < numPages);
-
-    // sends result to requester
-    success = comm->sendObject(materializeResult, error);
-
-    // did the request succeed if so we are done
-    if(!success) {
-
-      // log it
-      logger->error(error);
-
-      // finish here
-      return false;
-    }
+    /// 4.2 Move the page to set
+    bufferManager->moveAnonymousPagesToSet(setIdentifier, pages[i], page);
   }
 
+  /// 5. Now update the set statistics
+
+  // broadcast the set size change so far
+  PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
+  success = pdbClient.incrementSetRecordInfo(getConfiguration()->getNodeIdentifier(), set.first, set.second, size, pageSet->getNumRecords(), error);
+
+  /// 6. Finish this, by sending an ack
+
+  // create an allocation block to hold the response
+  Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(success, error);
+
+  // set the response
+  simpleResponse->res = success;
+  simpleResponse->errMsg = error;
+
+  // sends result to requester
+  comm->sendObject(simpleResponse, error);
+
   // we succeeded
-  return true;
+  return success;
 }
-
-

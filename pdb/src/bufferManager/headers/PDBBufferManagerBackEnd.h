@@ -85,6 +85,10 @@ public:
    */
   PDBPageHandle expectPage(std::shared_ptr<PDBCommunicator> &communicator) PDB_BACKEND_EXPECT_POSTFIX;
 
+  /**
+   * This moves anonymous pages to a set
+   */
+  void moveAnonymousPagesToSet(PDBSetPtr &whichSet, uint64_t i, const PDBPageHandle& anonymousPage) override;
 
   /**
    * Returns the maximum page size as set in the configuration

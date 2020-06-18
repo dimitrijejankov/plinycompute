@@ -21,45 +21,58 @@
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
+#include "PDBSet.h"
+#include "BufManagerRequestBase.h"
 
-// PRELOAD %StoMaterializePageSetRequest%
+// PRELOAD %BufMovePageRequest%
 
 namespace pdb {
 
-// encapsulates a request to add data to a set in storage
-class StoMaterializePageSetRequest : public Object {
+// encapsulates a request to move an anonymous page to a set
+class BufMovePageRequest : public BufManagerRequestBase {
 
-public:
+ public:
 
-  StoMaterializePageSetRequest() = default;
-  ~StoMaterializePageSetRequest() = default;
+  BufMovePageRequest() = default;
 
-  StoMaterializePageSetRequest(const std::string &db, const std::string &set, uint64_t numRecords, uint64_t numPages) : databaseName(db),
-                                                                                                                        setName(set),
-                                                                                                                        numRecords(numRecords),
-                                                                                                                        numPages(numPages) {}
+  ~BufMovePageRequest() = default;
+
+  BufMovePageRequest(uint64_t pageNumber, uint64_t anonymousPageNumber, const pdb::PDBSetPtr &whichSet) : pageNumber(pageNumber),
+                                                                                                          anonymousPageNumber(anonymousPageNumber) {
+    dbName = whichSet->getDBName();
+    setName = whichSet->getSetName();
+  }
+
+  explicit BufMovePageRequest(const pdb::Handle<BufMovePageRequest>& copyMe) {
+
+    // copy stuff
+    setName = copyMe->setName;
+    dbName = copyMe->dbName;
+    pageNumber = copyMe->pageNumber;
+    anonymousPageNumber = copyMe->anonymousPageNumber;
+  }
+
 
   ENABLE_DEEP_COPY
 
   /**
-   * The name of the database the set belongs to
-   */
-  String databaseName;
-
-  /**
-   * The name of the set we are storing the stuff
+   * The name of the set we are moving the page to
    */
   String setName;
 
   /**
-   * The number of records the page set has that we want to materialize
+   * The name of the database we are moving the page to
    */
-  uint64_t numRecords{};
+  String dbName;
 
   /**
-   * The number of pages we want to materialize
+   * The page number
    */
-   uint64_t numPages{};
-};
+  uint64_t pageNumber = 0;
 
+  /**
+   * Anonymous page number
+   */
+  uint64_t anonymousPageNumber{};
+};
 }

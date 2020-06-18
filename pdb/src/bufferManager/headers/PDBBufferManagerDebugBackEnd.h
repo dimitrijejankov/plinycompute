@@ -186,6 +186,34 @@ public:
                                                                               request);
   }
 
+  // move
+  template <class RequestType, class ResponseType, class ReturnType>
+  static bool heapRequest(pdb::PDBLoggerPtr &myLogger,
+                          int port,
+                          const std::string &address,
+                          bool onErr,
+                          size_t bytesForRequest,
+                          const std::function<bool(pdb::Handle<pdb::SimpleRequestResult>)> &processResponse,
+                          uint64_t pageNumber,
+                          uint64_t anonymousPageNumber,
+                          const pdb::PDBSetPtr &whichSet) {
+
+    // init the request
+    Handle<RequestType> request = makeObject<RequestType>(pageNumber, anonymousPageNumber, whichSet);
+
+    // log move
+    instance->logMove(whichSet, pageNumber, anonymousPageNumber, request->currentID);
+
+    // make a request
+    return RequestFactory::heapRequest<RequestType, ResponseType, ReturnType>(myLogger,
+                                                                              port,
+                                                                              address,
+                                                                              onErr,
+                                                                              bytesForRequest,
+                                                                              processResponse,
+                                                                              request);
+  }
+
   // pin page
   template <class RequestType, class ResponseType, class ReturnType>
   static bool heapRequest(pdb::PDBLoggerPtr &myLogger,
@@ -231,6 +259,7 @@ public:
   void logDownToZeroReferences(const PDBSetPtr &setPtr, size_t pageNum, uint64_t timestamp) override;
   void logClearSet(const PDBSetPtr &set, uint64_t timestamp) override;
   void logExpect(const Handle<BufForwardPageRequest> &result) override;
+  void logMove(const PDBSetPtr &whichSet, size_t pageNumber, size_t anonymousPageNumber, uint64_t currentID) override;
 
 private:
 
@@ -241,7 +270,8 @@ private:
     REPIN,
     FREE,
     CLEAR,
-    EXPECT
+    EXPECT,
+    MOVE
   };
 
   struct traceHasher {

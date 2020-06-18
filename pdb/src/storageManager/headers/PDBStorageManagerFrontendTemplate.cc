@@ -24,6 +24,7 @@
 #include <StoRemovePageSetRequest.h>
 #include <StoMaterializePageResult.h>
 #include <StoFeedPageRequest.h>
+#include <StoMaterializePageSetResult.h>
 
 template <class T>
 std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageRequest(const pdb::Handle<pdb::StoGetPageRequest> &request,
@@ -339,7 +340,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetSetPages(p
 }
 
 template<class Communicator, class Requests>
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleMaterializeSet(pdb::Handle<pdb::StoMaterializePageSetRequest> request,
+std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleMaterializeSet(const pdb::Handle<pdb::StoMaterializePageSetRequest>& request,
                                                                                   shared_ptr<Communicator> sendUsingMe) {
 
   /// TODO this has to be more robust, right now this is just here to do the job!
@@ -354,187 +355,75 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleMaterializeSe
 
     // set the error
     error = "The set requested to materialize results does not exist!";
-    success = true;
+    success = false;
   }
 
-  /// 2. send an ACK or NACK depending on whether the set exists
+  /// 2. Send all the page numbers that we need to materialize to
 
   // make an allocation block
   const UseTemporaryAllocationBlock tempBlock{1024};
 
-  // create an allocation block to hold the response
-  Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(success, error);
-
-  // sends result to requester
-  sendUsingMe->sendObject(simpleResponse, error);
-
-  // if we failed end here
-  if(!success) {
-
-    // return the result
-    return std::make_pair(success, error);
-  }
-
-  /// 3. Send pages over the wire to the backend
-
-  // grab the buffer manager
-  auto bufferManager = std::dynamic_pointer_cast<pdb::PDBBufferManagerFrontEnd>(getFunctionalityPtr<pdb::PDBBufferManagerInterface>());
+  // make a result
+  pdb::Handle<StoMaterializePageSetResult> materializeResult = pdb::makeObject<StoMaterializePageSetResult>(request->numPages);
 
   // make the set
   auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
 
-  // this is going to count the total size of the pages
-  uint64_t totalSize = 0;
-
-  // this is the count of total records in this page set
-  uint64_t totalRecords = request->numRecords;
-
-  // start forwarding the pages
-  bool hasNext = true;
-  while (hasNext) {
-
-    uint64_t pageNum;
-    {
-      // lock to do the bookkeeping
-      unique_lock<std::mutex> lck(pageMutex);
+  {
+    // lock to do the bookkeeping and get all pages
+    unique_lock<std::mutex> lck(pageMutex);
+    for(int32_t i = 0; i < request->numPages; ++i) {
 
       // get the next page
-      pageNum = getNextFreePage(set);
+      uint64_t pageNum = getNextFreePage(set);
+
+      // store the page
+      materializeResult->pageNumbers[i] = pageNum;
 
       // indicate that we are writing to this page
       startWritingToPage(set, pageNum);
     }
-
-    // get the page
-    auto page = bufferManager->getPage(set, pageNum);
-
-    // forward the page to the backend
-    success = bufferManager->forwardPage(page, sendUsingMe, error);
-
-    // did we fail?
-    if(!success) {
-
-      // lock to do the bookkeeping
-      unique_lock<std::mutex> lck(pageMutex);
-
-      // finish writing to the set
-      endWritingToPage(set, pageNum);
-
-      // return the page to the free list
-      freeSetPage(set, pageNum);
-
-      // free the lock
-      lck.unlock();
-
-      // do we need to update the set size
-      if(totalSize != 0) {
-
-        // broadcast the set size change so far
-        PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
-        pdbClient.incrementSetRecordInfo(getConfiguration()->getNodeIdentifier(),
-                                                      set->getDBName(),
-                                                      set->getSetName(),
-                                                      totalSize,
-                                                      totalRecords,
-                                                      error);
-      }
-
-      // finish here since this is not recoverable on the backend
-      return std::make_pair(success, "Error occurred while forwarding the page to the backend.\n" + error);
-    }
-
-    // the size we want to freeze this thing to
-    size_t freezeSize = 0;
-
-    // wait for the storage finish result
-    success = RequestFactory::waitHeapRequest<StoMaterializePageResult, bool>(logger, sendUsingMe, false,
-      [&](Handle<StoMaterializePageResult> result) {
-
-        // check the result
-        if (result != nullptr && result->success) {
-
-          // set the freeze size
-          freezeSize = result->materializeSize;
-
-          // set the has next
-          hasNext = result->hasNext;
-
-          // finish
-          return result->success;
-        }
-
-        // set the error
-        error = "Backend materializing the page failed!";
-
-        // we failed return so
-        return false;
-      });
-
-    // did we fail?
-    if(!success) {
-
-      // lock to do the bookkeeping
-      unique_lock<std::mutex> lck(pageMutex);
-
-      // finish writing to the set
-      endWritingToPage(set, pageNum);
-
-      // return the page to the free list
-      freeSetPage(set, pageNum);
-
-      // free the lock
-      lck.unlock();
-
-      // do we need to update the set size
-      if(totalSize != 0) {
-
-        // broadcast the set size change so far
-        PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
-        pdbClient.incrementSetRecordInfo(getConfiguration()->getNodeIdentifier(),
-                                         set->getDBName(),
-                                         set->getSetName(),
-                                         totalSize,
-                                         totalRecords,
-                                         error);
-      }
-
-      // finish
-      return std::make_pair(success, error);
-    }
-
-    // ok we did not freeze the page
-    page->freezeSize(freezeSize);
-
-    // end writing to a page
-    {
-      // lock to do the bookkeeping
-      unique_lock<std::mutex> lck(pageMutex);
-
-      // finish writing to the set
-      endWritingToPage(set, pageNum);
-
-      // decrement the size of the set
-      incrementSetSize(set, freezeSize);
-    }
-
-    // increment the set size
-    totalSize += freezeSize;
   }
 
-  /// 4. Update the set size
+  // sends result to requester
+  success = sendUsingMe->sendObject(materializeResult, error);
 
-  // broadcast the set size change so far
-  PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
-  pdbClient.incrementSetRecordInfo(getConfiguration()->getNodeIdentifier(),
-                                   set->getDBName(),
-                                   set->getSetName(),
-                                   totalSize,
-                                   totalRecords,
-                                   error);
+  /// 3. Wait for an ACK or NACK that everything went fine
 
-  /// 5. Finish this
+  if(success) {
 
-  // we succeeded
+    // wait for the storage finish result
+    success = RequestFactory::waitHeapRequest<SimpleRequestResult, bool>(logger, sendUsingMe, false, [&](const Handle<SimpleRequestResult>& result) {
+
+      // check the result
+      if (result != nullptr && result->getRes().first) {
+
+        // finish
+        return true;
+      }
+
+      // set the error
+      error = result->getRes().second;
+
+      // we failed return so
+      return false;
+    });
+  }
+
+  /// 4. End writting to these pages
+
+  // lock to do the bookkeeping
+  {
+    // lock to do the bookkeeping and get all pages
+    unique_lock<std::mutex> lck(pageMutex);
+    for(int32_t i = 0; i < request->numPages; ++i) {
+
+      // end writing to this page
+      endWritingToPage(set, materializeResult->pageNumbers[i]);
+    }
+  }
+
+  // return the result
   return std::make_pair(success, error);
 }
 

@@ -35,6 +35,7 @@ enum PDBPageStatus {
   PDB_PAGE_UNLOADING,
   PDB_PAGE_FREEZING,
   PDB_PAGE_NOT_LOADED,
+  PDB_PAGE_MOVING
 };
 
 // forward definition to handle circular dependencies

@@ -112,7 +112,7 @@ public:
    * @return - the result of the handler (success, error)
    */
   template <class Communicator, class Requests>
-  std::pair<bool, std::string> handleMaterializeSet(pdb::Handle<pdb::StoMaterializePageSetRequest> request, std::shared_ptr<Communicator> sendUsingMe);
+  std::pair<bool, std::string> handleMaterializeSet(const pdb::Handle<pdb::StoMaterializePageSetRequest>& request, std::shared_ptr<Communicator> sendUsingMe);
 
   /**
    * Handles the request to remove a page set. It basically forwards that request to the backend.

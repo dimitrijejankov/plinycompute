@@ -336,16 +336,39 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
       continue;
     }
 
+    // wait while are doing something with the page
+    pagesCV.wait(lock, [&] { return !(it->second->status == PDB_PAGE_LOADING ||
+                                             it->second->status == PDB_PAGE_UNLOADING ||
+                                             it->second->status == PDB_PAGE_FREEZING ||
+                                             it->second->status == PDB_PAGE_MOVING); });
+
+    // mark that we have found it
+    found = true;
+
     // find the parent page of this page
     void *memLoc = (char *) sharedMemory.memory + ((((char *) it->second->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
-
-    // remove the page from the constituentPages
     auto &siblings = constituentPages[memLoc];
-    auto pagePos = std::find(siblings.begin(), siblings.end(), it->second);
-    siblings.erase(pagePos);
 
-    // decrease the number of pinned pages
-    numPinned[memLoc]--;
+    // if this is not found
+    if (it->second->status == PDB_PAGE_NOT_LOADED) {
+
+      // remove the page from all pages
+      allPages.erase(it++);
+      continue;
+    }
+
+    // decrease the number of pinned pages if needed
+    if(it->second->isPinned()) {
+
+      // remove the page from the constituentPages
+      auto pagePos = std::find(siblings.begin(), siblings.end(), it->second);
+      siblings.erase(pagePos);
+
+      // decrement the number of pinned pages
+      numPinned[memLoc]--;
+    }
+
+    // if we just uppinned the whole page we need to add it back into circulation
     if(numPinned[memLoc] == 0) {
 
       // if by removing the page the constituent pages are empty we can return the whole page back
@@ -369,7 +392,7 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
       }
       else {
 
-        // otherwise reinsert it as a free page
+        // otherwise reinsert it as a free page and add it to the LRU
         unusedMiniPages[memLoc].first.emplace_back(it->second->bytes);
         emptyMiniPages[it->second->location.numBytes].emplace_back(it->second->bytes);
 
@@ -382,13 +405,15 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
         // increment the time tick
         lastTimeTick++;
       }
+    } else {
+
+      // ok it is not pinned but we still need to free the minipage
+      unusedMiniPages[memLoc].first.emplace_back(it->second->bytes);
+      emptyMiniPages[it->second->location.numBytes].emplace_back(it->second->bytes);
     }
 
     // remove the page from all pages
     allPages.erase(it++);
-
-    // mark that we have found it
-    found = true;
   }
 
   // remove all page locations for that set
@@ -411,6 +436,63 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
 
   // log the clear set
   logClearSet(set);
+}
+
+PDBPageHandle PDBBufferManagerImpl::movePage(const PDBSetPtr& whichSet, uint64_t pageNumber, const PDBPageHandle &anonymousPage) {
+
+  // lock the buffer manager
+  std::unique_lock<std::mutex> lock(m);
+
+  // check if the page already exists at that location
+  auto it = pageLocations.find(std::make_pair(whichSet, pageNumber));
+  if(it != pageLocations.end()) {
+    cerr << "Something went wrong, when moving the set page we are moving to must be empty.";
+    exit(-1);
+  }
+
+  // check if everything is alright
+  if(!anonymousPage->isPinned()) {
+    cerr << "Something went wrong, when moving the page the anonymous page needs to be pinned.";
+    exit(-1);
+  }
+
+  // check if we have the file for this set...
+  checkIfOpen(whichSet);
+
+  // rewire the set
+  auto page = anonymousPage->page;
+  page->setSet(whichSet);
+
+  // return the location if necessary
+  PDBPageInfo temp = page->getLocation();
+  if (temp.startPos != -1) {
+    availablePositions[temp.numBytes].push_back(temp.startPos);
+  }
+
+  // set the new page number
+  page->pageNum = pageNumber;
+
+  // identifier of the page
+  pair<PDBSetPtr, size_t> whichPage = std::make_pair(whichSet, pageNumber);
+
+  // mark that this is now a set page
+  page->setAnonymous(false);
+
+  // if the size is frozen add it to the end of the file
+  if(page->sizeFrozen) {
+
+    // if we don't know where to write it, figure it out
+    page->getLocation().startPos = endOfFiles[page->getSet()];
+    pair<PDBSetPtr, size_t> myIndex = make_pair(page->getSet(), page->whichPage());
+    pageLocations[whichPage] = page->getLocation();
+    endOfFiles[page->getSet()] += (MIN_PAGE_SIZE << page->getLocation().numBytes);
+  }
+
+  // insert the page
+  allPages[whichPage] = page;
+
+  // return the anonymous page now it is update to be a set page
+  return anonymousPage;
 }
 
 void PDBBufferManagerImpl::registerMiniPage(const PDBPagePtr& registerMe) {
@@ -501,7 +583,20 @@ void PDBBufferManagerImpl::freeAnonymousPage(PDBPagePtr me) {
     return;
   }
 
-  // otherwise just add back
+  // if the number of pinned minipages is now zero, put into the LRU structure
+  if (numPinned[parent] == 0) {
+
+    // add it to the LRU
+    numPinned[parent] = -lastTimeTick;
+
+    // add the physical page to the LRU
+    lastUsed.insert(make_pair(parent, lastTimeTick));
+
+    // increment the time tick
+    lastTimeTick++;
+  }
+
+  // add back the unused mini pages
   unusedMiniPages[parent].first.emplace_back(me->getBytes());
   emptyMiniPages[unusedMiniPages[parent].second].emplace_back(me->getBytes());
 
@@ -569,6 +664,56 @@ bool PDBBufferManagerImpl::isRemovalStillValid(PDBPagePtr me) {
   // was the page removed and then replaced by another one while we were waiting
   // (this is the last check it this works the removal is safe)
   return it->second.get() == me.get();
+}
+
+void PDBBufferManagerImpl::flushPage(PDBPagePtr &page, int32_t fd, unique_lock<mutex> &lock) {
+
+  // the page is not unloading unlock the buffer manager so we don't stall
+  lock.unlock();
+
+  PDBPageInfo myInfo = page->getLocation();
+
+  ssize_t write_bytes = pwrite(fd, page->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
+  if (write_bytes == -1) {
+    std::cerr << "error in createAdditionalMiniPages when writing page to disk with errno: " << strerror(errno)
+              << std::endl;
+    exit(1);
+  }
+
+  // lock the thing again
+  lock.lock();
+}
+
+void PDBBufferManagerImpl::movePageFreeLocation(PDBPagePtr &page) {
+
+  // get an empty page of the required size
+  int32_t pageNum = 0;
+  auto &emptyPages = emptyMiniPages[page->location.numBytes];
+  for(int32_t i = 1; i < emptyPages.size(); i++) {
+    if(emptyPages[i] < emptyPages[pageNum]){
+      pageNum = i;
+    }
+  }
+
+  // swap it to the back and fetch it
+  std::swap(emptyPages[pageNum], emptyPages[emptyMiniPages[page->location.numBytes].size() - 1]);
+  auto ep = emptyPages.back();
+  emptyPages.pop_back();
+
+  // get the parent page of the empty page
+  auto parent = (char *) sharedMemory.memory + ((((char *) ep - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+
+  // remove the empty page from the unused pages since we are using it now
+  auto it = std::find(unusedMiniPages[parent].first.begin(),  unusedMiniPages[parent].first.end(), ep);
+  unusedMiniPages[parent].first.erase(it);
+
+  // do the copy and
+  std::memcpy(ep, page->getBytes(), page->getSize());
+  page->bytes = ep;
+  page->status = PDB_PAGE_LOADED;
+
+  // move the page into constituent pages
+  constituentPages[parent].push_back(page);
 }
 
 // this is only called with a locked buffer manager
@@ -639,36 +784,40 @@ void PDBBufferManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_l
           availablePositions[a->getLocation().numBytes].pop_back();
         }
 
-        // the page is not unloading unlock the buffer manager so we don't stall
-        lock.unlock();
+        // do we have some pages we can move this page to
+        if(!emptyMiniPages[a->location.numBytes].empty()) {
 
-        ssize_t write_bytes = pwrite(tempFileFD, a->getBytes(), MIN_PAGE_SIZE << a->getLocation().numBytes, a->getLocation().startPos);
-        if (write_bytes == -1) {
-          std::cerr << "error in createAdditionalMiniPages when writing anonymous page to disk with errno: "
-                    << strerror(errno)
-                    << std::endl;
-          exit(1);
+          // move the page to a free location so that we can delay flushing it
+          movePageFreeLocation(a);
+
+          // we moved it go to the next page
+          continue;
         }
-        // lock it again
-        lock.lock();
+        else {
+
+          // flush the page
+          flushPage(a, tempFileFD, lock);
+        }
 
       } else {
 
+        // check if the page is dirty if it is we either need to flush it or move it to a new location
         if (a->isDirty()) {
 
-          // the page is not unloading unlock the buffer manager so we don't stall
-          lock.unlock();
+          // do we have some pages we can move this page to
+          if(!emptyMiniPages[a->location.numBytes].empty()) {
 
-          PDBPageInfo myInfo = a->getLocation();
+            // move the page to a free location so that we can delay flushing it
+            movePageFreeLocation(a);
 
-          ssize_t write_bytes = pwrite(fds[a->getSet()], a->getBytes(), MIN_PAGE_SIZE << myInfo.numBytes, myInfo.startPos);
-          if (write_bytes == -1) {
-            std::cerr << "error in createAdditionalMiniPages when writing page to disk with errno: " << strerror(errno)
-                      << std::endl;
-            exit(1);
+            // we moved it go to the next page
+            continue;
           }
-          // lock the thing again
-          lock.lock();
+          else {
+
+            // flush the page to disk
+            flushPage(a, fds[a->getSet()], lock);
+          }
         }
 
         // lock the page so we can check the references
@@ -692,7 +841,7 @@ void PDBBufferManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_l
     // mark all pages as not loaded
     std::for_each(constituentPages[page.first].begin(),
                   constituentPages[page.first].end(),
-                  [](auto &a) { a->status = PDB_PAGE_NOT_LOADED; });
+                  [](auto &a) { if(a->getBytes() == nullptr) { a->status = PDB_PAGE_NOT_LOADED; } });
 
     // notify all the threads that are paused because of a status
     pagesCV.notify_all();
@@ -883,7 +1032,104 @@ void PDBBufferManagerImpl::repin(PDBPagePtr me, unique_lock<mutex> &lock) {
   // it is not currently pinned, so see if it is in RAM
   if (me->getBytes() != nullptr) {
 
-    // it is currently pinned, so mark the parent as pinned
+    // if it is a whole a page just repin and return, otherwise we need to check for fragmentation
+    if(me->getSize() == getMaxPageSize()) {
+
+      // it is currently pinned, so mark the parent as pinned
+      me->setPinned();
+      pinParent(me);
+      return;
+    }
+
+    // determine the parent of this guy
+    void *currentParent = (char *) sharedMemory.memory
+        + ((((char *) me->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+
+    // figure out how many pages are there that are on the same parent page as this page
+    // but are not used
+    auto numUnusedPages = unusedMiniPages[currentParent].first.size();
+
+    // check if this is the only page on the parent page
+    if((sharedMemory.pageSize / me->getSize()) != (numUnusedPages + 1)){
+
+      // if it is not then just repin
+      me->setPinned();
+      pinParent(me);
+      return;
+    }
+
+    // if it is the only page check if we have some pages of the same size that are not
+    // on this parent page
+    void* ep = nullptr;
+    std::for_each(emptyMiniPages[me->location.numBytes].begin(), emptyMiniPages[me->location.numBytes].end(), [&](void * &page) {
+
+      // figure out the parent page of the empty mini page
+      void *pp = (char *) sharedMemory.memory + ((((char *) page - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+
+      // skip this
+      if(pp == currentParent)  { return; }
+
+      // we always take the page with the minimum page
+      if(ep != nullptr) { ep = std::min(ep, page); } else { ep = page; }
+    });
+
+    if(ep != nullptr) {
+
+      // figure out the parent page of the empty mini page
+      void *pp = (char *) sharedMemory.memory + ((((char *) ep - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+
+      // ok they are not on the same page move it there
+      std::memcpy(ep, me->getBytes(), me->getSize());
+
+      // now, add him to the list of constituent pages
+      constituentPages[pp].push_back(me);
+
+      // remove the page from the constituentPages of the previous parent page
+      constituentPages[currentParent].clear();
+
+      // remove the empty pages associated with this page
+      for(auto up : unusedMiniPages[currentParent].first) {
+
+        // remove the unused page
+        auto miniPage = std::find(emptyMiniPages[me->location.numBytes].begin(), emptyMiniPages[me->location.numBytes].end(), up);
+        emptyMiniPages[me->location.numBytes].erase(miniPage);
+      }
+
+      // clear the unused pages from the parent because they don't exist it is a whole page now
+      unusedMiniPages[currentParent].first.clear();
+
+      // mark the parent page as free
+      emptyFullPages.push_back(currentParent);
+
+      // remove it from the LRU
+      if(numPinned[currentParent] < 0) {
+
+        // remvo the physical page from the LRU
+        lastUsed.erase(lastUsed.find(make_pair(currentParent, -numPinned[currentParent])));
+      }
+
+      // set the number of pinned to zero
+      numPinned[currentParent] = 0;
+
+      // remove the mini page we just used
+      auto miniPage = std::find(emptyMiniPages[me->location.numBytes].begin(), emptyMiniPages[me->location.numBytes].end(), ep);
+      emptyMiniPages[me->location.numBytes].erase(miniPage);
+
+      // remove the unused mini page
+      auto &unused = unusedMiniPages[pp].first;
+      auto it = std::find(unused.begin(), unused.end(), ep);
+      unused.erase(it);
+
+      // update the bytes
+      me->bytes = ep;
+
+      // this guy is now pinned
+      me->setPinned();
+      pinParent(me);
+      return;
+    }
+
+    // if we could not find a place to move it just repin
     me->setPinned();
     pinParent(me);
     return;
@@ -1198,7 +1444,7 @@ int PDBBufferManagerImpl::getFileDescriptor(const PDBSetPtr &whichSet) {
   return fd;
 }
 
-void PDBBufferManagerImpl::checkIfOpen(PDBSetPtr &whichSet) {
+void PDBBufferManagerImpl::checkIfOpen(const PDBSetPtr &whichSet) {
 
   unique_lock<mutex> blockLck(fdLck);
 

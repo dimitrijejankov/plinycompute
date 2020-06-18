@@ -14,6 +14,8 @@
 #include <BufUnpinPageRequest.h>
 #include <BufPinPageRequest.h>
 #include <BufPinPageResult.h>
+#include <BufMovePageRequest.h>
+#include <BufMovePageResult.h>
 #include <mutex>
 #include <BufFreezeRequestResult.h>
 
@@ -104,7 +106,7 @@ pdb::PDBPageHandle pdb::PDBBufferManagerBackEnd<T>::getPage(pdb::PDBSetPtr which
   // ok we don't have the page loaded, make a request to get it...
   auto res = T::template heapRequest<BufGetPageRequest, BufGetPageResult, pdb::PDBPageHandle>(
       myLogger, port, address, nullptr, 1024,
-      [&](Handle<BufGetPageResult> result) {
+      [&](const Handle<BufGetPageResult>& result) {
 
         if (result != nullptr) {
 
@@ -375,6 +377,11 @@ void pdb::PDBBufferManagerBackEnd<T>::freeAnonymousPage(pdb::PDBPagePtr me) {
     // lock the pages
     unique_lock<std::mutex> lck(m);
 
+    // check if the page is moved, if it is get out of here
+    if(me->status == PDB_PAGE_MOVING || me->getSet() != nullptr) {
+      return;
+    }
+
     // remove if from all the pages
     auto key = std::make_pair(std::make_shared<PDBSet>("", ""), me->whichPage());
 
@@ -391,7 +398,7 @@ void pdb::PDBBufferManagerBackEnd<T>::freeAnonymousPage(pdb::PDBPagePtr me) {
   // make a request
   auto res = T::template heapRequest<BufReturnAnonPageRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
+      [&](const Handle<SimpleRequestResult>& result) {
 
         // return the result
         if (result != nullptr && result->getRes().first) {
@@ -423,7 +430,8 @@ void pdb::PDBBufferManagerBackEnd<T>::downToZeroReferences(pdb::PDBPagePtr me) {
     unique_lock<std::mutex> lck(m);
 
     // wait as long as something is happening with the page
-    cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
+    cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_MOVING ||
+        me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
 
     // check the reference count
     {
@@ -462,7 +470,7 @@ void pdb::PDBBufferManagerBackEnd<T>::downToZeroReferences(pdb::PDBPagePtr me) {
   // make a request
   auto res = T::template heapRequest<BufReturnPageRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
+      [&](const Handle<SimpleRequestResult>& result) {
 
         // return the result
         if (result != nullptr && result->getRes().first) {
@@ -514,7 +522,8 @@ void pdb::PDBBufferManagerBackEnd<T>::freezeSize(pdb::PDBPagePtr me, size_t numB
     unique_lock<std::mutex> lck(m);
 
     // wait as long as something is happening with the page
-    cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
+    cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_MOVING ||
+        me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
 
     // mark that we are freezing the page
     me->status = PDB_PAGE_FREEZING;
@@ -532,7 +541,7 @@ void pdb::PDBBufferManagerBackEnd<T>::freezeSize(pdb::PDBPagePtr me, size_t numB
   // make a request
   auto res = T::template heapRequest<BufFreezeSizeRequest, BufFreezeRequestResult, bool>(
       myLogger, port, address, false, 1024,
-      [&](Handle<BufFreezeRequestResult> result) {
+      [&](const Handle<BufFreezeRequestResult>& result) {
 
         // return the result
         if (result != nullptr && result->res) {
@@ -576,7 +585,8 @@ void pdb::PDBBufferManagerBackEnd<T>::unpin(pdb::PDBPagePtr me) {
     unique_lock<std::mutex> lck(m);
 
     // wait as long as something is happening with the page
-    cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
+    cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_MOVING ||
+        me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
 
     // update status
     me->status = PDB_PAGE_UNLOADING;
@@ -608,7 +618,7 @@ void pdb::PDBBufferManagerBackEnd<T>::unpin(pdb::PDBPagePtr me) {
   // make a request
   auto res = T::template heapRequest<BufUnpinPageRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
+      [&](const Handle<SimpleRequestResult>& result) {
 
         // return the result
         if (result != nullptr && result->getRes().first) {
@@ -654,7 +664,8 @@ void pdb::PDBBufferManagerBackEnd<T>::repin(pdb::PDBPagePtr me) {
     unique_lock<std::mutex> lck(m);
 
     // wait as long as something is happening with the page
-    cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
+    cv.wait(lck, [&] { return !(me->status == PDB_PAGE_LOADING || me->status == PDB_PAGE_MOVING ||
+        me->status == PDB_PAGE_UNLOADING || me->status == PDB_PAGE_FREEZING); });
 
     // update status
     me->status = PDB_PAGE_LOADING;
@@ -680,7 +691,7 @@ void pdb::PDBBufferManagerBackEnd<T>::repin(pdb::PDBPagePtr me) {
   // make a request
   auto res = T::template heapRequest<BufPinPageRequest, BufPinPageResult, bool>(
       myLogger, port, address, false, 1024,
-      [&](Handle<BufPinPageResult> result) {
+      [&](const Handle<BufPinPageResult>& result) {
 
         // return the result
         if (result != nullptr && result->success) {
@@ -719,10 +730,89 @@ void pdb::PDBBufferManagerBackEnd<T>::repin(pdb::PDBPagePtr me) {
 template <class T>
 void pdb::PDBBufferManagerBackEnd<T>::registerHandlers(pdb::PDBServer &forMe) {}
 
+template<class T>
+void PDBBufferManagerBackEnd<T>::moveAnonymousPagesToSet(PDBSetPtr &whichSet, uint64_t i, const PDBPageHandle& anonymousPage) {
 
+  /// 1. Mark that we are moving a page
+
+  auto page = anonymousPage->page;
+  {
+    // lock the page
+    unique_lock<std::mutex> lck(m);
+
+    // wait as long as something is happening with the page
+    cv.wait(lck, [&] { return !(page->status == PDB_PAGE_LOADING || page->status == PDB_PAGE_UNLOADING || page->status == PDB_PAGE_FREEZING); });
+
+    // update status
+    page->status = PDB_PAGE_MOVING;
+  }
+
+  // grab the address of the frontend
+  auto port = getConfiguration()->port;
+  auto address = getConfiguration()->address;
+
+  // somewhere to put the message.
+  std::string errMsg;
+
+  /// 2. Send a request to move the page to the frontend
+
+  // make a request
+  auto res = T::template heapRequest<BufMovePageRequest, SimpleRequestResult, bool>(myLogger, port, address, false, 1024,
+                                                                                    [&](const Handle<SimpleRequestResult> &result) {
+
+                                                                                      // return the result
+                                                                                      if (result != nullptr && result->res) {
+                                                                                        return true;
+                                                                                      }
+
+                                                                                      // set the error since we failed
+                                                                                      errMsg = "Could not return the move the page";
+
+                                                                                      //  we failed
+                                                                                      return false;
+
+                                                                                    }, i, page->pageNum, whichSet);
+
+  // did we succeed in moving the page
+  if (!res) {
+
+    // ok something is wrong kill the backend...
+    exit(-1);
+  }
+
+  /// 3. Update the set information of the
+  {
+    // lock the page
+    unique_lock<std::mutex> lck(m);
+
+    // wait as long as something is happening with the page
+    cv.wait(lck, [&] { return !(page->status == PDB_PAGE_LOADING || page->status == PDB_PAGE_UNLOADING || page->status == PDB_PAGE_FREEZING); });
+
+    // update status and mark the page as not loaded
+    page->status = PDB_PAGE_NOT_LOADED;
+
+    // remove the page
+    allPages.erase(std::make_pair(nullptr, page->whichPage()));
+
+    // set the bytes to null
+    page->bytes = nullptr;
+    page->isAnon = false;
+
+    // update the set
+    page->pageNum = i;
+    page->whichSet = std::make_shared<PDBSet>(whichSet->getDBName(), whichSet->getSetName());
+
+    // make the key
+    pair<PDBSetPtr, long> key = std::make_pair(whichSet, page->pageNum);
+
+    // insert the page
+    allPages[key] = page;
+  }
+
+  // notify all threads that the state has changed
+  cv.notify_all();
+}
 
 }
 
 #endif
-
-
