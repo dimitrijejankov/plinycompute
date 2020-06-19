@@ -248,7 +248,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleStoFetchSetPa
     auto pageHandle = bufferManager->getPage(storageSet, page);
 
     // set the page size and that we have another page
-    fetchNextPage->pageSize = pageHandle->getSize();
+    fetchNextPage->pageSize = ((Record<Object> *) pageHandle->getBytes())->numBytes();
     fetchNextPage->hasNext = true;
 
     // send the fetch next page

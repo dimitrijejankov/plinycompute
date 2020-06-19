@@ -398,7 +398,7 @@ bool pdb::PDBJoinAggregationKeyStage::sendPlan(int32_t node,
 
   // send the plan page
   std::string error;
-  bool success = connection->sendBytes(s->planPage->getBytes(), s->planPage->getSize(), error);
+  bool success = connection->sendBytes(s->planPage->getBytes(), ((Record<Object> *) s->planPage->getBytes())->numBytes(), error);
 
   // we failed here
   if(!success) {
@@ -406,7 +406,7 @@ bool pdb::PDBJoinAggregationKeyStage::sendPlan(int32_t node,
   }
 
   // send the left key page
-  success = connection->sendBytes(s->leftKeyPage->getBytes(), s->leftKeyPage->getSize(), error);
+  success = connection->sendBytes(s->leftKeyPage->getBytes(), ((Record<Object> *) s->leftKeyPage->getBytes())->numBytes(), error);
 
   // we failed here
   if(!success) {
@@ -414,7 +414,7 @@ bool pdb::PDBJoinAggregationKeyStage::sendPlan(int32_t node,
   }
 
   // send the right key page
-  success = connection->sendBytes(s->rightKeyPage->getBytes(), s->rightKeyPage->getSize(), error);
+  success = connection->sendBytes(s->rightKeyPage->getBytes(), ((Record<Object> *) s->rightKeyPage->getBytes())->numBytes(), error);
 
   // we failed here
   if(!success) {
@@ -422,8 +422,7 @@ bool pdb::PDBJoinAggregationKeyStage::sendPlan(int32_t node,
   }
 
   // send the right key page
-  success = connection->sendBytes(s->aggKeyPage->getBytes(), s->aggKeyPage->getSize(), error);
-
+  success = connection->sendBytes(s->aggKeyPage->getBytes(), ((Record<Object> *) s->aggKeyPage->getBytes())->numBytes(), error);
   // return the result
   return success;
 }
