@@ -44,6 +44,10 @@ class JoinAggPlanner {
                       const std::vector<std::vector<int32_t>> &aggregationGroups,
                       const std::vector<PipJoinAggPlanResult::JoinedRecord> &joinGroups);
 
+  long agg_first_time{};
+  long join_first_time{};
+  long full_first_time{};
+
   // the page containing the page
   pdb::PDBPageHandle joinAggPageSet;
 

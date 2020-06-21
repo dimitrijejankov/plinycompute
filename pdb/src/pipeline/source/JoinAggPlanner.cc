@@ -28,6 +28,8 @@ pdb::JoinAggPlanner::JoinAggPlanner(const pdb::PDBAnonymousPageSetPtr &joinAggPa
 
 void pdb::JoinAggPlanner::doPlanning() {
 
+  std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
   // we need this for the planner
   std::vector<char> lhsRecordPositions;
   lhsRecordPositions.reserve(100 * numNodes);
@@ -38,14 +40,17 @@ void pdb::JoinAggPlanner::doPlanning() {
   std::vector<std::vector<int32_t>> aggregationGroups;
   aggregationGroups.resize(this->aggGroups->size());
 
+  // figure the number of join groups berforehand
+  auto numJoinGroups = 0;
+  for (auto it = this->aggGroups->begin(); it != this->aggGroups->end(); ++it) { numJoinGroups += (*it).value.size(); }
+
+  // resize the join groups the the right size
   std::vector<PipJoinAggPlanResult::JoinedRecord> joinGroups;
-  joinGroups.reserve(4000);
+  joinGroups.resize(numJoinGroups);
 
-  //
+  // I use these to keep track of what
   int32_t currentJoinTID = 0;
-  unordered_map<pair<int32_t, int32_t>, int32_t, join_group_hasher> deduplicatedGroups;
-
-  auto currentAggGroup = 0;
+  int32_t currentAggGroup = 0;
   for (auto it = this->aggGroups->begin(); it != this->aggGroups->end(); ++it) {
 
     /// 0. Round robing the aggregation groups
@@ -65,23 +70,8 @@ void pdb::JoinAggPlanner::doPlanning() {
       auto rightTID = joinedTIDs[i].second.first;
       auto rightTIDNode = joinedTIDs[i].second.second;
 
-      // the join group
-      auto jg = std::make_pair(leftTID, rightTID);
-      auto jg_it = deduplicatedGroups.find(jg);
-
-      // if we don't have a id assigned to the join group assign one
-      if (jg_it == deduplicatedGroups.end()) {
-
-        // resize the tid
-        joinGroups.resize(currentJoinTID + 1);
-
-        // store the join group
-        joinGroups[currentJoinTID] = { jg.first, jg.second, aggTID };
-        deduplicatedGroups[jg] = currentJoinTID++;
-      }
-
-      // the tid
-      int32_t jg_tid = deduplicatedGroups[jg];
+      // store the join group
+      joinGroups[currentJoinTID] = { leftTID, rightTID, aggTID };
 
       // resize if necessary
       if (lhsRecordPositions.size() <= ((leftTID + 1) * numNodes)) {
@@ -98,12 +88,18 @@ void pdb::JoinAggPlanner::doPlanning() {
       rhsRecordPositions[rightTID * numNodes + rightTIDNode] = true;
 
       // set the tid to the group
-      aggregationGroups[currentAggGroup].emplace_back(jg_tid);
+      aggregationGroups[currentAggGroup].emplace_back(currentJoinTID);
+
+      // go to the next join TID
+      currentJoinTID++;
     }
 
     // we finished processing an aggregation group
     currentAggGroup++;
   }
+
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  std::cout << "Prep run : " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << "[ns]" << '\n';
 
   // do the planning with just aggregation
   std::thread th_do_agg_first([&](){
@@ -132,6 +128,8 @@ void pdb::JoinAggPlanner::doAggFirstPlanning(const std::vector<char> &lhsRecordP
                                              const std::vector<char> &rhsRecordPositions,
                                              const std::vector<std::vector<int32_t>> &aggregationGroups,
                                              const std::vector<PipJoinAggPlanResult::JoinedRecord> &joinGroups) {
+
+  std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
   pdb::GreedyPlanner::costs_t c{};
   c.agg_cost = 1;
@@ -235,12 +233,17 @@ void pdb::JoinAggPlanner::doAggFirstPlanning(const std::vector<char> &lhsRecordP
     // store the choice
     selectedAlgorithm = AlgorithmID::AGG_FIRST_ONLY;
   }
+
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  agg_first_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
 }
 
 void pdb::JoinAggPlanner::doJoinFirstPlanning(const std::vector<char> &lhsRecordPositions,
                                               const std::vector<char> &rhsRecordPositions,
                                               const std::vector<std::vector<int32_t>> &aggregationGroups,
                                               const std::vector<PipJoinAggPlanResult::JoinedRecord> &joinGroups) {
+
+  std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
   pdb::GreedyPlanner::costs_t c{};
   c.agg_cost = 1;
@@ -256,9 +259,6 @@ void pdb::JoinAggPlanner::doJoinFirstPlanning(const std::vector<char> &lhsRecord
 
   // run for a number of iterations
   planner.run_join_first_only();
-
-  // print the plan
-  planner.print();
 
   // get the result of the planning
   auto result = planner.get_result();
@@ -350,12 +350,18 @@ void pdb::JoinAggPlanner::doJoinFirstPlanning(const std::vector<char> &lhsRecord
     // store the choice
     selectedAlgorithm = AlgorithmID::JOIN_FIRST_ONLY;
   }
+
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  join_first_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
 }
 
 void pdb::JoinAggPlanner::doFullPlanning(const std::vector<char> &lhsRecordPositions,
                                          const std::vector<char> &rhsRecordPositions,
                                          const std::vector<std::vector<int32_t>> &aggregationGroups,
                                          const std::vector<PipJoinAggPlanResult::JoinedRecord> &joinGroups) {
+
+  std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
   pdb::GreedyPlanner::costs_t c{};
   c.agg_cost = 1;
   c.join_cost = 1;
@@ -455,6 +461,9 @@ void pdb::JoinAggPlanner::doFullPlanning(const std::vector<char> &lhsRecordPosit
     // store the choice
     selectedAlgorithm = AlgorithmID::FULL;
   }
+
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  full_first_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
 }
 
 bool pdb::JoinAggPlanner::isLocalAggregation() {
@@ -505,4 +514,5 @@ void pdb::JoinAggPlanner::print(const Handle<PipJoinAggPlanResult> &planResult) 
   for (auto it = planResult->aggToNode->begin(); it != planResult->aggToNode->end(); ++it) {
     std::cout << "Aggregation Group" << (*it).key << " goes to " << (*it).value << "\n";
   }
+  std::cout << "\n\n";
 }
