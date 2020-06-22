@@ -309,25 +309,17 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
 
-  // close the file if open
-  auto fd = fds.find(set);
-  if(fd != fds.end()) {
-    close(fd->second);
-    fds.erase(fd);
-  }
-
-  // remove the pages from all the pages
-  // the pages are sorted, so there is a optimization that once we find a page then every next page has to
-  // be from the target set otherwise we know that there are not pages from the target set left
+  // figure out all the pages we need to remove
   bool found = false;
-  for(auto it = allPages.begin(); it != allPages.end(); ) {
+  std::vector<std::pair<size_t, PDBPagePtr>> pagesToRemove;
+  for(auto it = allPages.begin(); it != allPages.end(); it++) {
 
     // if the set does not match got to the next
     if(*it->first.first != *set) {
 
       // if we previously found a page then we can safely
       // finish searching for pages since they are sorted
-      if(found) {
+      if (found) {
         break;
       }
 
@@ -336,37 +328,47 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
       continue;
     }
 
-    // wait while are doing something with the page
-    pagesCV.wait(lock, [&] { return !(it->second->status == PDB_PAGE_LOADING ||
-                                             it->second->status == PDB_PAGE_UNLOADING ||
-                                             it->second->status == PDB_PAGE_FREEZING ||
-                                             it->second->status == PDB_PAGE_MOVING); });
-
-    // mark that we have found it
+    // did we find it...
     found = true;
 
+    // store the page
+    pagesToRemove.emplace_back(it->first.second, it->second);
+  }
+
+  // remove the pages from all the pages
+  // the pages are sorted, so there is a optimization that once we find a page then every next page has to
+  // be from the target set otherwise we know that there are not pages from the target set left
+  for(auto &page : pagesToRemove) {
+
+    // wait while are doing something with the page
+    pagesCV.wait(lock, [&] { return !(page.second->status == PDB_PAGE_LOADING ||
+                                             page.second->status == PDB_PAGE_UNLOADING ||
+                                             page.second->status == PDB_PAGE_FREEZING ||
+                                             page.second->status == PDB_PAGE_MOVING); });
+
     // find the parent page of this page
-    void *memLoc = (char *) sharedMemory.memory + ((((char *) it->second->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+    void *memLoc = (char *) sharedMemory.memory + ((((char *) page.second->getBytes() - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
     auto &siblings = constituentPages[memLoc];
 
     // if this is not found
-    if (it->second->status == PDB_PAGE_NOT_LOADED) {
+    if (page.second->status == PDB_PAGE_NOT_LOADED) {
 
       // remove the page from all pages
-      allPages.erase(it++);
+      auto it = allPages.find({set, page.first});
+      allPages.erase(it);
       continue;
     }
 
     // decrease the number of pinned pages if needed
-    if(it->second->isPinned()) {
-
-      // remove the page from the constituentPages
-      auto pagePos = std::find(siblings.begin(), siblings.end(), it->second);
-      siblings.erase(pagePos);
+    if(page.second->isPinned()) {
 
       // decrement the number of pinned pages
       numPinned[memLoc]--;
     }
+
+    // remove the page from the constituentPages
+    auto pagePos = std::find(siblings.begin(), siblings.end(), page.second);
+    siblings.erase(pagePos);
 
     // if we just uppinned the whole page we need to add it back into circulation
     if(numPinned[memLoc] == 0) {
@@ -393,8 +395,8 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
       else {
 
         // otherwise reinsert it as a free page and add it to the LRU
-        unusedMiniPages[memLoc].first.emplace_back(it->second->bytes);
-        emptyMiniPages[it->second->location.numBytes].emplace_back(it->second->bytes);
+        unusedMiniPages[memLoc].first.emplace_back(page.second->bytes);
+        emptyMiniPages[page.second->location.numBytes].emplace_back(page.second->bytes);
 
         // add it to the LRU
         numPinned[memLoc] = -lastTimeTick;
@@ -408,12 +410,13 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
     } else {
 
       // ok it is not pinned but we still need to free the minipage
-      unusedMiniPages[memLoc].first.emplace_back(it->second->bytes);
-      emptyMiniPages[it->second->location.numBytes].emplace_back(it->second->bytes);
+      unusedMiniPages[memLoc].first.emplace_back(page.second->bytes);
+      emptyMiniPages[page.second->location.numBytes].emplace_back(page.second->bytes);
     }
 
     // remove the page from all pages
-    allPages.erase(it++);
+    auto it = allPages.find({set, page.first});
+    allPages.erase(it);
   }
 
   // remove all page locations for that set
@@ -429,6 +432,13 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
 
     // go to next
     ++it;
+  }
+
+  // close the file if open
+  auto fd = fds.find(set);
+  if(fd != fds.end()) {
+    close(fd->second);
+    fds.erase(fd);
   }
 
   // remove the end of files
