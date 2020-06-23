@@ -324,7 +324,6 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
       }
 
       // go to the next page and continue
-      it++;
       continue;
     }
 
