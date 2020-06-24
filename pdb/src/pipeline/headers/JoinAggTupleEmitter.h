@@ -46,18 +46,20 @@ public:
   // got the rhs records
   void gotRHS(const Handle<Vector<std::pair<uint32_t, Handle<Nothing>>>> &rhs, int32_t pageIndex);
 
+  // get to that thread we are assigning the aggregation group
+  uint8_t getAssignedThread(int32_t agg_group);
+
+  // get records to send through the pipeline, blocks if there are none
   void getRecords(std::vector<JoinedRecord> &putHere, int32_t &lastLHSPage, int32_t &lastRHSPage, int32_t threadID);
 
   // print emit stats
   void printEms();
 
-  //
+  // end the emitter
   void end();
 
   // this locks this
   std::mutex m;
-
-  // next
 
   // all the threads that are waiting for records to join
   std::vector<ThreadInfo> threadsWaiting;
@@ -80,6 +82,11 @@ public:
   int32_t numEms = 0;
 
   bool hasEnded = false;
+
+  // do we need to pin aggregation groups to threads
+  // we do that so that we can get better memory efficiency but if there are not enough aggregation
+  // groups for each threads this might be not necessary
+  bool shouldPinThreads = true;
 
   // the mappings for the left and right records
   std::unordered_multimap<uint32_t, int32_t> lhsMappings;

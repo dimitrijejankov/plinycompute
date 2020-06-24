@@ -45,6 +45,7 @@ void pdb::JoinAggPlanner::doPlanning() {
   for (auto it = this->aggGroups->begin(); it != this->aggGroups->end(); ++it) { numJoinGroups += (*it).value.size(); }
 
   // resize the join groups the the right size
+  // join groups belonging to the same aggregation group will be grouped together
   std::vector<PipJoinAggPlanResult::JoinedRecord> joinGroups;
   joinGroups.resize(numJoinGroups);
 
@@ -187,6 +188,9 @@ void pdb::JoinAggPlanner::doAggFirstPlanning(const std::vector<char> &lhsRecordP
       // assign the aggregation group to the node
       (*planResult->aggToNode)[aggTID] = assignedNode;
 
+      // increment the number of aggregation groups
+      (*planResult->numAggGroupsPerNode)[assignedNode]++;
+
       // assign the
       TIDVector &joinedTIDs = (*it).value;
 
@@ -273,7 +277,7 @@ void pdb::JoinAggPlanner::doJoinFirstPlanning(const std::vector<char> &lhsRecord
   // the algorithm we selected
   auto choice = selectAlgorithm();
 
-  //
+  // did we chose the join first only strategy if so init the plan
   if (choice == AlgorithmID::JOIN_FIRST_ONLY) {
 
     // repin the page
@@ -301,6 +305,9 @@ void pdb::JoinAggPlanner::doJoinFirstPlanning(const std::vector<char> &lhsRecord
       // assign the aggregation group to the node
       (*planResult->aggToNode)[aggTID] = assignedNode;
     }
+
+    // keeps track of what the last aggregation group was
+    vector<int32_t> lastAggGroup(numNodes, -1);
 
     // go through each join group
     for(auto jg = 0; jg < joinGroups.size(); ++jg) {
@@ -336,6 +343,10 @@ void pdb::JoinAggPlanner::doJoinFirstPlanning(const std::vector<char> &lhsRecord
           /// 1.2 Store the join group
           (*planResult->joinGroupsPerNode)[node].push_back({joinGroups[jg].lhsTID, joinGroups[jg].rhsTID, joinGroups[jg].aggTID});
           num_assigned++;
+
+          /// 1.3 Update the num of aggregation groups per node if this is a new aggregation group
+          (*planResult->numAggGroupsPerNode)[node] += joinGroups[jg].aggTID != lastAggGroup[node];
+          lastAggGroup[node] = joinGroups[jg].aggTID;
         }
       }
 
@@ -419,6 +430,9 @@ void pdb::JoinAggPlanner::doFullPlanning(const std::vector<char> &lhsRecordPosit
       (*planResult->aggToNode)[aggTID] = assignedNode;
     }
 
+    // keeps track of what the last aggregation group was
+    vector<int32_t> lastAggGroup(numNodes, -1);
+
     // go through each join group
     for(auto jg = 0; jg < joinGroups.size(); ++jg) {
 
@@ -451,6 +465,10 @@ void pdb::JoinAggPlanner::doFullPlanning(const std::vector<char> &lhsRecordPosit
 
           /// 1.2 Store the join group
           (*planResult->joinGroupsPerNode)[node].push_back({joinGroups[jg].lhsTID, joinGroups[jg].rhsTID, joinGroups[jg].aggTID});
+
+          /// 1.3 Update the num of aggregation groups per node if this is a new aggregation group
+          (*planResult->numAggGroupsPerNode)[node] += joinGroups[jg].aggTID != lastAggGroup[node];
+          lastAggGroup[node] = joinGroups[jg].aggTID;
         }
       }
     }
@@ -473,14 +491,14 @@ bool pdb::JoinAggPlanner::isLocalAggregation() {
 pdb::JoinAggPlanner::AlgorithmID pdb::JoinAggPlanner::selectAlgorithm() {
 
   // we prefer the agg first planning since it does not have a later shuffling phase
-  if (planning_costs[(int32_t) AlgorithmID::AGG_FIRST_ONLY] <= planning_costs[(int32_t) AlgorithmID::JOIN_FIRST_ONLY] &&
-      planning_costs[(int32_t) AlgorithmID::AGG_FIRST_ONLY] <= planning_costs[(int32_t) AlgorithmID::FULL]) {
-    return AlgorithmID::AGG_FIRST_ONLY;
-  } else if (planning_costs[(int32_t) AlgorithmID::JOIN_FIRST_ONLY] < planning_costs[(int32_t) AlgorithmID::FULL]) {
+//  if (planning_costs[(int32_t) AlgorithmID::AGG_FIRST_ONLY] <= planning_costs[(int32_t) AlgorithmID::JOIN_FIRST_ONLY] &&
+//      planning_costs[(int32_t) AlgorithmID::AGG_FIRST_ONLY] <= planning_costs[(int32_t) AlgorithmID::FULL]) {
+//    return AlgorithmID::AGG_FIRST_ONLY;
+//  } else if (planning_costs[(int32_t) AlgorithmID::JOIN_FIRST_ONLY] < planning_costs[(int32_t) AlgorithmID::FULL]) {
     return AlgorithmID::JOIN_FIRST_ONLY;
-  } else {
-    return AlgorithmID::FULL;
-  }
+//  } else {
+//    return AlgorithmID::FULL;
+//  }
 }
 
 void pdb::JoinAggPlanner::print(const Handle<PipJoinAggPlanResult> &planResult) {

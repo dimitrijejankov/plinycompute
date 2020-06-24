@@ -20,6 +20,10 @@ pdb::JoinAggTupleEmitter::JoinAggTupleEmitter(PDBPageHandle planPage, int numThr
   threadAssigned.resize(plan->numAggGroups);
   for(auto &g : threadAssigned) { g = -1; }
 
+  // do we need to pin the aggregation groups to threads
+  // we do that only if there are more aggregation groups than threads
+  shouldPinThreads = (*plan->numAggGroupsPerNode)[nodeID] >= numThreads;
+
   // the join groups
   auto myJoinGroups = &((*plan->joinGroupsPerNode)[nodeID]);
 
@@ -70,18 +74,8 @@ void JoinAggTupleEmitter::gotLHS(const Handle<Vector<std::pair<uint32_t, Handle<
       // emit the record
       if(record.rhs_record != -1) {
 
-        // check if we what an assignment
-        if(threadAssigned[record.agg_group] == -1) {
-
-          // assign the thread
-          threadAssigned[record.agg_group] = nextThread;
-
-          // figure out the next thread
-          nextThread = (nextThread + 1) % numThreads;
-        }
-
         // figure out where it is assigned
-        auto assignedThread = threadAssigned[record.agg_group];
+        auto assignedThread = getAssignedThread(record.agg_group);
 
         // set the last page
         threadsWaiting[assignedThread].lastLHSPage = std::max(threadsWaiting[assignedThread].lastLHSPage, record.lhs_page + 1);
@@ -119,18 +113,8 @@ void JoinAggTupleEmitter::gotRHS(const Handle<Vector<std::pair<uint32_t, Handle<
       // emit the record
       if(record.lhs_record != -1) {
 
-        // check if we what an assignment
-        if(threadAssigned[record.agg_group] == -1) {
-
-          // assign the thread
-          threadAssigned[record.agg_group] = nextThread;
-
-          // figure out the next thread
-          nextThread = (nextThread + 1) % numThreads;
-        }
-
         // figure out where it is assigned
-        auto assignedThread = threadAssigned[record.agg_group];
+        auto assignedThread = getAssignedThread(record.agg_group);
 
         // set the last page
         threadsWaiting[assignedThread].lastRHSPage = std::max(threadsWaiting[assignedThread].lastRHSPage, record.rhs_page + 1);
@@ -154,6 +138,30 @@ void JoinAggTupleEmitter::gotRHS(const Handle<Vector<std::pair<uint32_t, Handle<
       t.cv.notify_one();
     }
   }
+}
+
+uint8_t JoinAggTupleEmitter::getAssignedThread(int32_t agg_group) {
+
+  // are we supposed to pin threads
+  if(shouldPinThreads) {
+
+    // check if we what an assignment
+    if(threadAssigned[agg_group] == -1) {
+
+      // assign the thread
+      threadAssigned[agg_group] = nextThread;
+
+      // figure out the next thread
+      nextThread = (nextThread + 1) % numThreads;
+    }
+
+    // figure out where it is assigned
+    return threadAssigned[agg_group];
+  }
+
+  // just assign it to the next thread
+  nextThread = (nextThread + 1) % numThreads;;
+  return nextThread;
 }
 
 void JoinAggTupleEmitter::printEms() {
@@ -207,6 +215,7 @@ void JoinAggTupleEmitter::getRecords(std::vector<JoinedRecord> &putHere, int32_t
     return lhs.group_id < rhs.group_id;
   });
 }
+
 
 
 }

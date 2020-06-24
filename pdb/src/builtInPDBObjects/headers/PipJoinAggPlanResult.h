@@ -23,8 +23,9 @@ public:
     this->rightToNode = pdb::makeObject<PipJoinAggPlanResult::JoinTIDToNode>();
     this->aggToNode = pdb::makeObject<PipJoinAggPlanResult::AggGroupToNode >();
     this->joinGroupsPerNode = pdb::makeObject<PipJoinAggPlanResult::JoinGroupsPerNode>(numNodes, numNodes);
+    this->numAggGroupsPerNode = pdb::makeObject<Vector<uint32_t>>(numNodes, numNodes);
+    bzero(this->numAggGroupsPerNode->c_ptr(), sizeof(uint32_t) * numNodes);
   };
-
 
   ~PipJoinAggPlanResult() = default;
 
@@ -57,6 +58,9 @@ public:
 
   // the aggregation group mappings
   Handle<AggGroupToNode> aggToNode;
+
+  // tell us how many aggregation groups are there for this node
+  Handle<Vector<uint32_t>> numAggGroupsPerNode;
 
   // is it local only
   bool isLocalAggregation = false;
