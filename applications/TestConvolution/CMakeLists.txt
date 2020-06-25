@@ -2,8 +2,6 @@
 add_pdb_integration_test(TestConvolution)
 target_link_libraries(TestConvolution ${MKL_LIBRARIES})
 
-find_package(OpenCV REQUIRED)
-
 # add a build dependency to build-tests target
 add_dependencies(build-integration-tests TestConvolution)
 
