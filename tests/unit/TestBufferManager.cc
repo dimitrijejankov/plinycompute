@@ -1488,6 +1488,87 @@ TEST(BufferManagerTest, Test18) {
 
 }
 
+TEST(BufferManagerTest, Test19) {
+
+  // create the buffer manager
+  PDBBufferManagerImpl myMgr;
+  myMgr.initialize("tempDSFSD", 64, 16, "metadata", ".");
+
+  std::vector<std::vector<PDBPageHandle>> pages;
+  pages.resize(2);
+  std::vector<int32_t> pageSizes = {8};
+
+  PDBPageHandle page2 = myMgr.getPage();
+  page2->freezeSize(16);
+
+  int32_t t = 0;
+  PDBSetPtr set = make_shared<PDBSet>("DB", "set" + std::to_string(t));
+  for (int k = 0; k < 120; ++k) {
+
+    // grab two pages
+    PDBPageHandle page1 = myMgr.getPage(set, k);
+    page1->freezeSize(pageSizes[t % pageSizes.size()]);
+    memset(page1->getBytes(), 'a', pageSizes[t % pageSizes.size()]);
+    page1->unpin();
+    page1->repin();
+    memset(page1->getBytes(), 'a', pageSizes[t % pageSizes.size()]);
+    page1->unpin();
+
+    pages[t].emplace_back(page1);
+  }
+
+  for (int k = 0; k < 120; ++k) {
+    PDBPageHandle page1 = myMgr.getPage(set, k);
+    memset(page1->getBytes(), 'a', pageSizes[t % pageSizes.size()]);
+    page1->unpin();
+    page1->repin();
+    page1->unpin();
+
+    PDBPageHandle page2 = myMgr.getPage(set, 120 + k);
+    page2->freezeSize(pageSizes[t % 3]);
+    memset(page2->getBytes(), 'a', pageSizes[t % pageSizes.size()]);
+    page2->unpin();
+  }
+  myMgr.clearSet(set);
+
+  pages[t].clear();
+  memset(page2->getBytes(), 'a', 16);
+
+  t = 1;
+  set = make_shared<PDBSet>("DB", "set" + std::to_string(t));
+  for (int k = 0; k < 120; ++k) {
+
+    // grab two pages
+    PDBPageHandle page1 = myMgr.getPage(set, k);
+    page1->freezeSize(pageSizes[t % pageSizes.size()]);
+    memset(page1->getBytes(), 'a', pageSizes[t % pageSizes.size()]);
+    page1->unpin();
+    page1->repin();
+    memset(page1->getBytes(), 'a', pageSizes[t % pageSizes.size()]);
+    page1->unpin();
+
+    pages[t].emplace_back(page1);
+  }
+
+  for (int k = 0; k < 120; ++k) {
+    PDBPageHandle page1 = myMgr.getPage(set, k);
+    memset(page1->getBytes(), 'a', pageSizes[t % pageSizes.size()]);
+    page1->unpin();
+    page1->repin();
+    page1->unpin();
+
+    page2 = myMgr.getPage(set, 120 + k);
+    page2->freezeSize(pageSizes[t % 3]);
+    memset(page2->getBytes(), 'a', pageSizes[t % pageSizes.size()]);
+    page2->unpin();
+  }
+  myMgr.clearSet(set);
+  pages[t].clear();
+
+  memset(page2->getBytes(), 'a', 16);
+}
+
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
