@@ -193,7 +193,7 @@ class MatrixConv3DJoin : public JoinComp<MatrixConv3DJoin, MatrixConvResult, /**
   uint32_t block_size_x;
   uint32_t block_size_y;
   uint32_t block_size_z;
-  uint32_t num_out_channels = 5;
+  uint32_t num_out_channels = 10;
   uint32_t num_in_channels = 3;
 };
 
