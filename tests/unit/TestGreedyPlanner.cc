@@ -49,10 +49,10 @@ struct join_group_hasher_t {
 
 int main() {
 
-  uint64_t num_row_ids_a = 80;
-  uint64_t num_col_ids_a = 80;
-  uint64_t num_row_ids_b = 80;
-  uint64_t num_col_ids_b = 80;
+  uint64_t num_row_ids_a = 40;
+  uint64_t num_col_ids_a = 40;
+  uint64_t num_row_ids_b = 40;
+  uint64_t num_col_ids_b = 40;
   uint64_t num_nodes = 10;
 
   // the lhs records
@@ -99,12 +99,12 @@ int main() {
   // set the costs
   pdb::GreedyPlanner::costs_t c{};
   c.agg_cost = 1;
-  c.join_cost = 1;
-  c.join_rec_size = 1;
+  c.join_cost = 10;
+  c.join_rec_size = 10;
   c.send_coef = 1;
-  c.rhs_input_rec_size = 1;
-  c.lhs_input_rec_size = 1;
-  c.aggregation_rec_size = 1;
+  c.rhs_input_rec_size = 10;
+  c.lhs_input_rec_size = 10;
+  c.aggregation_rec_size = 10;
 
   // make the lhs record positions
   std::vector<char> lhs_record_positions;
@@ -137,6 +137,7 @@ int main() {
       aggregation_groups[i].emplace_back(jg);
       join_groups_vec[jg].aggTID = i;
     }
+    ++i;
   }
 
   std::cout << "Join groups size " << join_groups_vec.size() << "\n";
@@ -155,6 +156,5 @@ int main() {
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
   std::cout << "Planner run for " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << "[ns]" << '\n';
 
-  planner.print();
   return 0;
 }

@@ -9,6 +9,20 @@ namespace pdb {
 class JoinAggPlanner {
  public:
 
+  struct planning_result {
+
+    planning_result(std::vector<int32_t> agg_group_assignments,
+                    std::vector<int32_t> join_groups_node)
+        : agg_group_assignments(std::move(agg_group_assignments)),
+          join_groups_to_node(std::move(join_groups_node)) {}
+
+    // tells us what node the aggregation group was assigned
+    std::vector<int32_t> agg_group_assignments;
+
+    // tells us
+    std::vector<int32_t> join_groups_to_node;
+  };
+
   explicit JoinAggPlanner(const pdb::PDBAnonymousPageSetPtr &joinAggPageSet,
                           uint32_t numNodes,
                           uint32_t numThreads,
@@ -30,15 +44,6 @@ class JoinAggPlanner {
       return hash1 ^ hash2;
     }
   };
-
-  void doAggFirstPlanning(const std::vector<char> &lhsRecordPositions,
-                          const std::vector<char> &rhsRecordPositions,
-                          const std::vector<std::vector<int32_t>> &aggregationGroups,
-                          const std::vector<PipJoinAggPlanResult::JoinedRecord> &joinGroups);
-
-  void doJoinFirstPlanning(const std::vector<char> &lhsRecordPositions, const std::vector<char> &rhsRecordPositions,
-                           const std::vector<std::vector<int32_t>> &aggregationGroups,
-                           const std::vector<PipJoinAggPlanResult::JoinedRecord> &joinGroups);
 
   void doFullPlanning(const std::vector<char> &lhsRecordPositions, const std::vector<char> &rhsRecordPositions,
                       const std::vector<std::vector<int32_t>> &aggregationGroups,
@@ -82,9 +87,6 @@ class JoinAggPlanner {
     JOIN_FIRST_ONLY = 1,
     FULL = 2
   };
-
-  // selects the algorithm we are gonna use
-  AlgorithmID selectAlgorithm();
 
   // the algorithm we selected
   AlgorithmID selectedAlgorithm;

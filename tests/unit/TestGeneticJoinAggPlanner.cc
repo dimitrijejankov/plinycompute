@@ -477,7 +477,7 @@ int main() {
   int32_t num_blocks = 40;
   int32_t num_lhs_records = num_blocks * num_blocks;
   int32_t num_rhs_records = num_blocks * num_blocks;
-  int32_t num_nodes = 40;
+  int32_t num_nodes = 10;
   int32_t num_agg_groups = num_blocks * num_blocks;
 
   std::vector<char> lhs_record_positions;
@@ -492,7 +492,7 @@ int main() {
     rhs_record_positions[i] = i % num_nodes;
   }
 
-  std::vector<std::pair<int32_t, int32_t>> join_groups;
+  std::vector<PipJoinAggPlanResult::JoinedRecord> join_groups;
   join_groups.reserve(num_blocks * num_blocks * num_blocks);
 
   for (int i = 0; i < num_blocks; ++i) {
@@ -520,17 +520,17 @@ int main() {
   }
 
 
-  GeneticAlgorithm::costs_t c;
+  GeneticAlgorithm::costs_t c{};
 
-  c.agg_cost = 0;
-  c.join_cost = 0;
-  c.join_rec_size = 1000;
+  c.agg_cost = 1;
+  c.join_cost = 10;
+  c.join_rec_size = 10;
   c.send_coef = 1;
-  c.rhs_input_rec_size = 0;
-  c.lhs_input_rec_size = 0;
-  c.aggregation_rec_size = 0;
+  c.rhs_input_rec_size = 10;
+  c.lhs_input_rec_size = 10;
+  c.aggregation_rec_size = 10;
 
-  GeneticAlgorithm planner(40,
+  GeneticAlgorithm planner(10,
                            num_nodes,
                            aggregation_groups.size(),
                            join_groups.size(),
@@ -541,8 +541,10 @@ int main() {
                            rhs_record_positions,
                            aggregation_groups,
                            join_groups);
-
-  planner.run(1000);
+  std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+  planner.run(1);
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  std::cout << "Planner run for " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << "[ns]" << '\n';
 
   return 0;
 }
