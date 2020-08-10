@@ -43,13 +43,12 @@ public:
   CatSyncRequest() = default;
 
   CatSyncRequest(const std::string &nodeID, const std::string &nodeIP, int port,
-                 int backendPort, const std::string &nodeType, int32_t numCores, int64_t totalMemory) {
+                 const std::string &nodeType, int32_t numCores, int64_t totalMemory) {
 
     // init the fields
     this->nodeID = nodeID;
     this->nodeIP = nodeIP;
     this->nodePort = port;
-    this->backendPort = backendPort;
     this->nodeType = nodeType;
     this->numCores = numCores;
     this->totalMemory = totalMemory;
@@ -59,7 +58,6 @@ public:
     nodeID = requestToCopy->nodeID;
     nodeIP = requestToCopy->nodeIP;
     nodePort = requestToCopy->nodePort;
-    backendPort = requestToCopy->backendPort;
     nodeType = requestToCopy->nodeType;
     numCores = requestToCopy->numCores;
     totalMemory = requestToCopy->totalMemory;
@@ -83,11 +81,6 @@ public:
    * The port of the node
    */
   int nodePort = -1;
-
-  /**
-   * The port of the backend of the node
-   */
-  int backendPort = -1;
 
   /**
    * The type of the node "worker" or "manager"

@@ -5,7 +5,6 @@
 #include <PDBCatalogClient.h>
 #include "ComputePlan.h"
 #include "ExJob.h"
-#include "PDBStorageManagerBackend.h"
 #include "GenericWork.h"
 
 pdb::PDBAggregationPipeAlgorithm::PDBAggregationPipeAlgorithm(const std::vector<PDBPrimarySource> &primarySource,

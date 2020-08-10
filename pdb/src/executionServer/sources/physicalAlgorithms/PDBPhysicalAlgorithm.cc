@@ -1,5 +1,4 @@
 #include <PDBPhysicalAlgorithm.h>
-#include <PDBStorageManagerBackend.h>
 #include <AtomicComputationClasses.h>
 #include <AtomicComputation.h>
 #include <PDBCatalogClient.h>

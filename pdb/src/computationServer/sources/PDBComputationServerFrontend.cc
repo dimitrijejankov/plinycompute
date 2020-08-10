@@ -352,7 +352,7 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
 
               // copy the nodes
               for(const auto &node : nodes) {
-                job->nodes.push_back(pdb::makeObject<ExJobNode>(node->port, node->backendPort, node->address));
+                job->nodes.push_back(pdb::makeObject<ExJobNode>(node->port, node->address));
               }
 
               // broadcast the job to each node and run it...

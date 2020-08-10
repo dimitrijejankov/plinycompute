@@ -2,7 +2,6 @@
 #include <PDBStraightPipeState.h>
 #include <ExJob.h>
 #include <NullProcessor.h>
-#include <PDBStorageManagerBackend.h>
 #include <ComputePlan.h>
 #include <GenericWork.h>
 
@@ -16,7 +15,7 @@ pdb::PDBStraightPipeStage::PDBStraightPipeStage(const pdb::PDBSinkPageSetSpec &s
 
 bool pdb::PDBStraightPipeStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                       const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                      const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                      const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                       const std::string &error) {
 
   // cast the state
@@ -124,7 +123,7 @@ bool pdb::PDBStraightPipeStage::setup(const pdb::Handle<pdb::ExJob> &job,
 
 bool pdb::PDBStraightPipeStage::run(const pdb::Handle<pdb::ExJob> &request,
                                     const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                    const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                    const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                     const std::string &error) {
 
   // cast the state
@@ -215,7 +214,7 @@ bool pdb::PDBStraightPipeStage::run(const pdb::Handle<pdb::ExJob> &request,
   return success;
 }
 
-void pdb::PDBStraightPipeStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
+void pdb::PDBStraightPipeStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage) {
 
   // cast the state
   auto s = dynamic_pointer_cast<PDBStraightPipeState>(state);

@@ -3,7 +3,6 @@
 #ifndef STORAGE_MGR_IFC_H
 #define STORAGE_MGR_IFC_H
 
-#include <BufForwardPageRequest.h>
 #include "PDBPage.h"
 #include "PDBPageHandle.h"
 #include "PDBSet.h"
@@ -165,14 +164,9 @@ public:
   virtual void logFreeAnonymousPage(uint64_t pageNumber) {};
   virtual void logDownToZeroReferences(const PDBSetPtr &setPtr, size_t pageNum) {};
   virtual void logClearSet(const PDBSetPtr &set) {};
-  virtual void logExpect(const Handle<BufForwardPageRequest> &result) {};
-  virtual void logForward(const Handle<pdb::BufForwardPageRequest> &request) {};
 
   // we need to mark the expect page as override so we make it like that
   #define PDB_BACKEND_EXPECT_POSTFIX override
-
-  // just so we can have a debug manager
-  virtual PDBPageHandle expectPage(std::shared_ptr<PDBCommunicator> &communicator) { throw runtime_error("Can't call expect page on this object!"); };
 
 #else
 protected:
@@ -187,7 +181,6 @@ protected:
   static void logDownToZeroReferences(const PDBSetPtr &setPtr, size_t pageNum) {};
   static void logClearSet(const PDBSetPtr &set) {};
   static void logExpect(const Handle<BufForwardPageRequest> &result) {};
-  static void logForward(const Handle<pdb::BufForwardPageRequest> &request) {};
 
   // we should not mark expectPage as override since it is not virtual
   #define PDB_BACKEND_EXPECT_POSTFIX

@@ -5,9 +5,9 @@
 #include <ExJob.h>
 #include <HeapRequestHandler.h>
 #include <ExRunJob.h>
-#include <PDBStorageManagerBackend.h>
 #include <SharedEmployee.h>
 #include <boost/filesystem/path.hpp>
+#include <PDBStorageManagerFrontend.h>
 #include "ExecutionServerFrontend.h"
 #include "SimpleRequestResult.h"
 
@@ -25,157 +25,61 @@ void pdb::ExecutionServerFrontend::registerHandlers(pdb::PDBServer &forMe) {
             // we will use 2 kb just to make sure there is enough space for the requests
             const UseTemporaryAllocationBlock tempBlock{2 * 1024};
 
-            /// 1. Connect to the backend and forward the request
+            // this gives us the initial state
+            auto state = request->physicalAlgorithm->getInitialState(request);
 
-            PDBCommunicatorPtr communicatorToBackend = make_shared<PDBCommunicator>();
-            if (!communicatorToBackend->connectToLocalServer(logger, getConfiguration()->ipcFile, error)) {
+            // grab the storage manager
+            auto storage = this->getFunctionalityPtr<PDBStorageManagerFrontend>();
 
-              // log the error
-              logger->error(error);
-
-              // create an allocation block to hold the response
-              pdb::Handle<pdb::SimpleRequestResult> response = pdb::makeObject<pdb::SimpleRequestResult>(false, error);
-
-              // sends result to requester
-              sendUsingMe->sendObject(response, error);
-
-              // return error
-              return std::make_pair(false, error);
-            }
-
-            /// 2. Forward the request
-
-            // send the object with a buffer of 1mb + computation size should be enough
-            if(!communicatorToBackend->sendObject(request, error, request->computationSize + 1024 * 1024)) {
-
-              // we failed to send a response
-              pdb::Handle<pdb::SimpleRequestResult> response = pdb::makeObject<pdb::SimpleRequestResult>(false, error);
-
-              // sends result to requester
-              sendUsingMe->sendObject(response, error);
-
-              // return error
-              return std::make_pair(false, error);
-            }
-
-            /// 3. wait for all the stages to finish
+            // go through each stage and run it
+            PDBPhysicalAlgorithmStagePtr stage;
             for(int i = 0; i < request->physicalAlgorithm->numStages(); ++i) {
 
-              /// 3.1 Wait for ACK that the algorithm is setup
-              success = RequestFactory::waitHeapRequest<SimpleRequestResult, bool>(logger, communicatorToBackend, false,
-[&](const Handle<SimpleRequestResult>& result) {
+              /// 2.0 Get the next algorithm
 
-                // check the result
-                if (result != nullptr && result->getRes().first) {
-                  return true;
-                }
+              stage = request->physicalAlgorithm->getNextStage(state);
+              if(stage == nullptr) {
+                break;
+              }
 
-                // log the error
-                error = "Error response from distributed-storage: " + result->getRes().second;
-                logger->error("Error response from distributed-storage: " + result->getRes().second);
+              /// 2.1 Setup the stage
 
-                return false;
-              });
+              // setup the stage
+              success = stage->setup(request, state, storage, error);
 
-              /// 3.2 Forward the ack to the computation server
+              /// 2.2 Send the response
 
               // create an allocation block to hold the response
               pdb::Handle<pdb::SimpleRequestResult> response = pdb::makeObject<pdb::SimpleRequestResult>(success, error);
 
+              // log the error
+              logger->error(error);
+
               // sends result to requester
               sendUsingMe->sendObject(response, error);
 
-              // did we fail if so finish this
               if(!success) {
-
-                // make the request to abort to backend server
-                pdb::Handle<ExRunJob> abortRequest = pdb::makeObject<ExRunJob>(false);
-
-                // send the abort request
-                success = communicatorToBackend->sendObject(abortRequest, error, 1024);
-
-                // create the response for the computation server
-                response = pdb::makeObject<pdb::SimpleRequestResult>(false, error);
-
-                // sends result to computation server
-                sendUsingMe->sendObject(response, error);
-
-                // we failed so we are done here
-                break;
+                // return error
+                return std::make_pair(false, error);
               }
 
-              /// 3.3 Wait now for the request from the computation server to run the computation
+              /// 2.3 Wait now for the request from the computation server to run the computation
 
               // want this to be destroyed
               Handle<pdb::ExRunJob> result = sendUsingMe->getNextObject<pdb::ExRunJob> (success, error);
-              if (!success) {
+              if (!success || !result->shouldRun) {
 
                 // we failed so get out of here
                 break;
               }
 
-              /// 3.4 Forward the request to the backend, so we can start the to run the algorithm
+              /// 2.4 if everything went well we simply run it
 
-              success = communicatorToBackend->sendObject(result, error, 1024);
-
-              // if we failed send a request back that we did
-              if(!success) {
-
-                // we failed therefore we are out of here
-                break;
+              // run it
+              if(result->shouldRun) {
+                success = stage->run(request, state, storage, error);
               }
 
-              /// 3.5 Wait for the backend to respond
-
-              success = RequestFactory::waitHeapRequest<SimpleRequestResult, bool>(logger, communicatorToBackend, false,
-                  [&](const Handle<SimpleRequestResult>& result) {
-
-               // check the result
-               if (result != nullptr && result->getRes().first) {
-                 return true;
-               }
-
-               // log the error
-               error = "Error response from distributed-storage: " + result->getRes().second;
-               logger->error("Error response from distributed-storage: " + result->getRes().second);
-
-               return false;
-              });
-
-              // if we failed break out of the loop so that we can respond to the computation server
-              if(!success) {
-
-                // we failed therefore we are out of here
-                break;
-              }
-
-              /// 3.2 Forward status the computation server
-
-              // create an allocation block to hold the response
-              response->res = success;
-              response->errMsg = error;
-
-              // sends result to requester
-              sendUsingMe->sendObject(response, error);
-
-              // did we fail if so finish this
-              if(!success) {
-
-                // make the request to abort to backend server
-                pdb::Handle<ExRunJob> abortRequest = pdb::makeObject<ExRunJob>(false);
-
-                // send the abort request
-                success = communicatorToBackend->sendObject(abortRequest, error, 1024);
-
-                // create the response for the computation server
-                response = pdb::makeObject<pdb::SimpleRequestResult>(false, error);
-
-                // sends result to computation server
-                sendUsingMe->sendObject(response, error);
-
-                // we failed so we are done here
-                break;
-              }
             }
 
             // we are done here does not work

@@ -6,7 +6,6 @@
 #include <PDBCatalogClient.h>
 #include <physicalAlgorithms/PDBShuffleForJoinAlgorithm.h>
 #include <ExJob.h>
-#include <PDBStorageManagerBackend.h>
 #include <PDBPageNetworkSender.h>
 #include <ShuffleJoinProcessor.h>
 #include <PDBPageSelfReceiver.h>

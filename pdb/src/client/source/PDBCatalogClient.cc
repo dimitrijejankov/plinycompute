@@ -175,7 +175,7 @@ std::vector<pdb::PDBCatalogNodePtr> pdb::PDBCatalogClient::getActiveWorkerNodes(
             continue;
           }
 
-          ret.push_back(std::make_shared<pdb::PDBCatalogNode>(node->nodeID, node->nodeAddress, node->nodePort, node->backendPort,
+          ret.push_back(std::make_shared<pdb::PDBCatalogNode>(node->nodeID, node->nodeAddress, node->nodePort,
                                                               node->nodeType, node->numCores, node->totalMemory, node->active));
         }
 
@@ -200,7 +200,7 @@ std::vector<pdb::PDBCatalogNodePtr> pdb::PDBCatalogClient::getWorkerNodes() {
           // grab the node info
           auto &node = (*result->nodes)[i];
 
-          ret.push_back(std::make_shared<pdb::PDBCatalogNode>(node->nodeID, node->nodeAddress, node->nodePort, node->backendPort,
+          ret.push_back(std::make_shared<pdb::PDBCatalogNode>(node->nodeID, node->nodeAddress, node->nodePort,
                                                               node->nodeType, node->numCores, node->totalMemory, node->active));
         }
 
@@ -580,7 +580,7 @@ bool PDBCatalogClient::syncWithNode(PDBCatalogNodePtr nodeData, std::string &err
         errMsg = "Error registering node metadata in the catalog";
         return false;
       },
-      nodeData->nodeID, nodeData->address, nodeData->port, nodeData->backendPort,
+      nodeData->nodeID, nodeData->address, nodeData->port,
       nodeData->nodeType, nodeData->numCores, nodeData->totalMemory);
 }
 

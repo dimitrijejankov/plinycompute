@@ -1,6 +1,5 @@
 #pragma once
 
-#include "PDBStorageManagerBackend.h"
 #include "PDBPhysicalAlgorithm.h"
 #include "PDBStraightPipeStage.h"
 #include "Computation.h"

@@ -18,7 +18,7 @@ pdb::PDBAggregationPipeStage::PDBAggregationPipeStage(const pdb::PDBSinkPageSetS
 
 bool pdb::PDBAggregationPipeStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                          const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                         const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                         const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                          const std::string &error) {
 
   // cast the state
@@ -203,7 +203,7 @@ bool pdb::PDBAggregationPipeStage::setup(const pdb::Handle<pdb::ExJob> &job,
 
 bool pdb::PDBAggregationPipeStage::run(const pdb::Handle<pdb::ExJob> &job,
                                        const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                       const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                       const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                        const std::string &error) {
 
   // cast the state
@@ -432,7 +432,7 @@ bool pdb::PDBAggregationPipeStage::run(const pdb::Handle<pdb::ExJob> &job,
   return true;
 }
 
-void pdb::PDBAggregationPipeStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
+void pdb::PDBAggregationPipeStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage) {
 
   // cast the state
   auto s = dynamic_pointer_cast<PDBAggregationPipeState>(state);

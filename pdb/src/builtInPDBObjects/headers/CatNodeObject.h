@@ -37,12 +37,11 @@ public:
   CatNodeObject() = default;
   ~CatNodeObject() = default;
 
-  CatNodeObject(const std::string &address, int port, int backendPort,
+  CatNodeObject(const std::string &address, int port,
                 const std::string &nodeType, int32_t numCores, int64_t totalMemory, bool active) {
     this->nodeID = address + ":" + std::to_string(port);
     this->nodeAddress = address;
     this->nodePort = port;
-    this->backendPort = backendPort;
     this->nodeType = nodeType;
     this->numCores = numCores;
     this->totalMemory = totalMemory;
@@ -55,7 +54,6 @@ public:
     nodeID = pdbItemToCopy->nodeID;
     nodeAddress = pdbItemToCopy->nodeAddress;
     nodePort = pdbItemToCopy->nodePort;
-    backendPort = pdbItemToCopy->backendPort;
     nodeType = pdbItemToCopy->nodeType;
     numCores = pdbItemToCopy->numCores;
     totalMemory = pdbItemToCopy->totalMemory;
@@ -78,11 +76,6 @@ public:
    * The port of the node
    */
   int nodePort = -1;
-
-  /**
-   * The port of the backend
-   */
-  int backendPort = -1;
 
   /**
    * The node type

@@ -4,7 +4,6 @@
 
 #include <ExecutionServerBackend.h>
 #include <HeapRequestHandler.h>
-#include "PDBStorageManagerBackend.h"
 #include "SimpleRequestResult.h"
 #include "ExRunJob.h"
 #include "ExJob.h"
@@ -29,7 +28,7 @@ void pdb::ExecutionServerBackend::registerHandlers(pdb::PDBServer &forMe) {
             pdb::Handle<pdb::SimpleRequestResult> response = pdb::makeObject<pdb::SimpleRequestResult>(success, error);
 
             // grab the storage manager
-            auto storage = this->getFunctionalityPtr<PDBStorageManagerBackend>();
+            auto storage = this->getFunctionalityPtr<PDBStorageManagerFrontend>();
 
             // this gives us the initial state
             auto state = request->physicalAlgorithm->getInitialState(request);

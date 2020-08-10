@@ -30,7 +30,7 @@ pdb::PDBJoinAggregationComputationStage::PDBJoinAggregationComputationStage(cons
 
 bool pdb::PDBJoinAggregationComputationStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                                     const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                                    const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                                    const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                                     const std::string &error) {
 
 
@@ -73,7 +73,7 @@ bool pdb::PDBJoinAggregationComputationStage::setup(const pdb::Handle<pdb::ExJob
 
     // connect to the node
     s->leftJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->address,
-                                                                job->nodes[n]->backendPort,
+                                                                job->nodes[n]->port,
                                                                 connectionID));
   }
 
@@ -84,7 +84,7 @@ bool pdb::PDBJoinAggregationComputationStage::setup(const pdb::Handle<pdb::ExJob
 
     // connect to the node
     s->rightJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->address,
-                                                                 job->nodes[n]->backendPort,
+                                                                 job->nodes[n]->port,
                                                                  connectionID));
   }
 
@@ -499,7 +499,7 @@ bool pdb::PDBJoinAggregationComputationStage::setup(const pdb::Handle<pdb::ExJob
 
 bool pdb::PDBJoinAggregationComputationStage::run(const pdb::Handle<pdb::ExJob> &job,
                                                   const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                                  const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                                  const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                                   const std::string &error) {
 
   // cast the state
@@ -961,7 +961,7 @@ bool pdb::PDBJoinAggregationComputationStage::run(const pdb::Handle<pdb::ExJob> 
 
 }
 
-void pdb::PDBJoinAggregationComputationStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
+void pdb::PDBJoinAggregationComputationStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage) {
 
   // cast the state
   auto s = dynamic_pointer_cast<PDBJoinAggregationState>(state);
@@ -986,7 +986,7 @@ void pdb::PDBJoinAggregationComputationStage::cleanup(const pdb::PDBPhysicalAlgo
   s->intermediatePageSet->clearPageSet();
 }
 
-pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationComputationStage::getRightSourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationComputationStage::getRightSourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                                                                           size_t idx) {
   // grab the source set from the right sources
   auto &sourceSet = this->rightSources[idx].sourceSet;

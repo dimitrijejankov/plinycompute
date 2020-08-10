@@ -18,7 +18,7 @@ pdb::PDBBroadcastForJoinStage::PDBBroadcastForJoinStage(const pdb::PDBSinkPageSe
 
 bool pdb::PDBBroadcastForJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                           const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                          const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                          const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                           const std::string &error) {
 
 
@@ -206,7 +206,7 @@ bool pdb::PDBBroadcastForJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
 
 bool pdb::PDBBroadcastForJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
                                         const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                        const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                        const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                         const std::string &error) {
 
   // cast the state
@@ -413,7 +413,7 @@ bool pdb::PDBBroadcastForJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
   return true;
 }
 
-void pdb::PDBBroadcastForJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
+void pdb::PDBBroadcastForJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage) {
 
 
   // cast the state

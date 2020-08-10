@@ -4,7 +4,6 @@
 #include <ComputePlan.h>
 #include <PDBCatalogClient.h>
 #include <ExJob.h>
-#include <PDBStorageManagerBackend.h>
 #include <PDBPageNetworkSender.h>
 #include <BroadcastJoinProcessor.h>
 #include <PDBPageSelfReceiver.h>

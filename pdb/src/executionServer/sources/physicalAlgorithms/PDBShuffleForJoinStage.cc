@@ -2,7 +2,6 @@
 #include <PDBShuffleForJoinState.h>
 #include <ComputePlan.h>
 #include <ExJob.h>
-#include <PDBStorageManagerBackend.h>
 #include <GenericWork.h>
 
 pdb::PDBShuffleForJoinStage::PDBShuffleForJoinStage(const pdb::PDBSinkPageSetSpec &sink,
@@ -19,7 +18,7 @@ pdb::PDBShuffleForJoinStage::PDBShuffleForJoinStage(const pdb::PDBSinkPageSetSpe
 
 bool pdb::PDBShuffleForJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                         const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                        const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                        const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                         const std::string &error) {
 
   // cast the state
@@ -183,7 +182,7 @@ bool pdb::PDBShuffleForJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
 
 bool pdb::PDBShuffleForJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
                                       const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                      const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                      const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                       const std::string &error) {
 
   // cast the state
@@ -339,7 +338,7 @@ bool pdb::PDBShuffleForJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
   return true;
 }
 
-void pdb::PDBShuffleForJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
+void pdb::PDBShuffleForJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage) {
 
   // cast the state
   auto s = dynamic_pointer_cast<PDBShuffleForJoinState>(state);

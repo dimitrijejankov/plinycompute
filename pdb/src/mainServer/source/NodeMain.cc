@@ -26,12 +26,10 @@
 #include <ClusterManager.h>
 #include <PDBDistributedStorage.h>
 #include "CatalogServer.h"
-#include <PDBBufferManagerFrontEnd.h>
+#include <PDBBufferManagerImpl.h>
 #include <PDBStorageManagerFrontend.h>
 #include <PDBComputationServerFrontend.h>
 #include <ExecutionServerFrontend.h>
-#include <PDBStorageManagerBackend.h>
-#include <PDBBufferManagerDebugFrontend.h>
 #include <ExecutionServerBackend.h>
 #include <random>
 
@@ -99,7 +97,6 @@ int main(int argc, char *argv[]) {
   desc.add_options()("isManager,m", po::bool_switch(&config->isManager), "Start manager");
   desc.add_options()("address,i", po::value<std::string>(&config->address)->default_value("localhost"), "IP of the node");
   desc.add_options()("port,p", po::value<int32_t>(&config->port)->default_value(8108), "Port of the node");
-  desc.add_options()("backendPort,b", po::value<int32_t>(&config->backendPort)->default_value(8208), "Port of the backend of this node");
   desc.add_options()("debugBufferManager", po::bool_switch(&config->debugBufferManager), "Whether we want to debug the buffer manager or not. (has to be compiled for that)");
   desc.add_options()("managerAddress,d", po::value<std::string>(&config->managerAddress)->default_value("localhost"), "IP of the manager");
   desc.add_options()("managerPort,o", po::value<int32_t>(&config->managerPort)->default_value(8108), "Port of the manager");
@@ -128,91 +125,60 @@ int main(int argc, char *argv[]) {
 
   // init other parameters
   config->ipcFile = fs::path(config->rootDirectory).append("/ipcFile").string();
-  config->backendIpcFile = fs::path(config->rootDirectory).append("/backendIpcFile").string();
   config->catalogFile = fs::path(config->rootDirectory).append("/catalog").string();
   config->maxConnections = 200;
 
   // init the storage manager, this has to be done before the fork!
-  std::shared_ptr<pdb::PDBBufferManagerFrontEnd> bufferManager;
+  std::shared_ptr<pdb::PDBBufferManagerImpl> bufferManager;
   if(!config->debugBufferManager) {
-    bufferManager = std::make_shared<pdb::PDBBufferManagerFrontEnd>(config);
+    bufferManager = std::make_shared<pdb::PDBBufferManagerImpl>(config);
   }
   else {
 
     // if we have compiled with the appropriate flag we can use the debug buffer manager otherwise quit
     #ifdef DEBUG_BUFFER_MANAGER
-      bufferManager = std::make_shared<pdb::PDBBufferManagerDebugFrontend>(config);
+      bufferManager = std::make_shared<pdb::PDBBufferManagerImpl>(config);
     #else
       std::cerr << "In order to use the debugBufferManager you have to compile with the flag -DDEBUG_BUFFER_MANAGER";
       exit(0);
     #endif
   }
 
-  // fork this to split into a frontend and backend
-  pid_t pid = fork();
+  // create the server
+  pdb::PDBLoggerPtr logger = make_shared<pdb::PDBLogger>("manager.log");
+  pdb::PDBServer server(pdb::PDBServer::NodeType::FRONTEND, config, logger);
 
-  // check whether we are the frontend or the backend
-  if(pid != 0) {
+  // add the functionaries
+  server.addFunctionality<pdb::PDBBufferManagerInterface>(bufferManager);
+  server.addFunctionality(std::make_shared<pdb::ClusterManager>());
+  server.addFunctionality(std::make_shared<pdb::CatalogServer>());
+  server.addFunctionality(std::make_shared<pdb::PDBDistributedStorage>());
+  server.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(config->port, config->address, logger));
+  server.addFunctionality(std::make_shared<pdb::PDBStorageManagerFrontend>());
 
-    // do backend setup
-    pdb::PDBLoggerPtr logger = make_shared<pdb::PDBLogger>("manager.log");
-    pdb::PDBServer backEnd(pdb::PDBServer::NodeType::BACKEND, config, logger);
+  // add some more functionaries
+  server.addFunctionality(std::make_shared<pdb::ExecutionServerBackend>());
 
-    // add the functionaries
-    backEnd.addFunctionality<pdb::PDBBufferManagerInterface>(bufferManager->getBackEnd());
-    backEnd.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(config->port, config->address, logger));
-    backEnd.addFunctionality(std::make_shared<pdb::PDBStorageManagerBackend>());
-    backEnd.addFunctionality(std::make_shared<pdb::ExecutionServerBackend>());
-
-    // start the backend
-    backEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
-
-      // sync me with the cluster
-      sleep(5);
-
-      // log that the server has started
-      std::cout << "Distributed storage manager server started!\n";
-
-      // buzz that we are done
-      callerBuzzer->buzz(PDBAlarm::WorkAllDone);
-    }));
+  // on the worker put and execution server
+  if(!config->isManager) {
+    server.addFunctionality(std::make_shared<pdb::ExecutionServerFrontend>());
   }
   else {
-
-    // I'm the frontend server
-    pdb::PDBLoggerPtr logger = make_shared<pdb::PDBLogger>("manager.log");
-    pdb::PDBServer frontEnd(pdb::PDBServer::NodeType::FRONTEND, config, logger);
-
-    // add the functionaries
-    frontEnd.addFunctionality<pdb::PDBBufferManagerInterface>(bufferManager);
-
-    frontEnd.addFunctionality(std::make_shared<pdb::ClusterManager>());
-    frontEnd.addFunctionality(std::make_shared<pdb::CatalogServer>());
-    frontEnd.addFunctionality(std::make_shared<pdb::PDBDistributedStorage>());
-    frontEnd.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(config->port, config->address, logger));
-    frontEnd.addFunctionality(std::make_shared<pdb::PDBStorageManagerFrontend>());
-
-    // on the worker put and execution server
-    if(!config->isManager) {
-      frontEnd.addFunctionality(std::make_shared<pdb::ExecutionServerFrontend>());
-    }
-    else {
-      frontEnd.addFunctionality(std::make_shared<pdb::PDBComputationServerFrontend>());
-    }
-
-    frontEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
-
-      // sync me with the cluster
-      std::string error;
-      frontEnd.getFunctionality<pdb::ClusterManager>().syncCluster(error);
-
-      // log that the server has started
-      std::cout << "Distributed storage manager server started!\n";
-
-      // buzz that we are done
-      callerBuzzer->buzz(PDBAlarm::WorkAllDone);
-    }));
+    server.addFunctionality(std::make_shared<pdb::PDBComputationServerFrontend>());
   }
+
+  server.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
+
+    // sync me with the cluster
+    std::string error;
+    server.getFunctionality<pdb::ClusterManager>().syncCluster(error);
+
+    // log that the server has started
+    std::cout << "Distributed storage manager server started!\n";
+
+    // buzz that we are done
+    callerBuzzer->buzz(PDBAlarm::WorkAllDone);
+  }));
 
   return 0;
 }

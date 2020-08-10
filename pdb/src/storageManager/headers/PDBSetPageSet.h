@@ -11,8 +11,6 @@
 
 namespace pdb {
 
-class PDBStorageManagerBackend;
-
 // make a ptr for this type of page set
 class PDBSetPageSet;
 using PDBSetPageSetPtr = std::shared_ptr<PDBSetPageSet>;

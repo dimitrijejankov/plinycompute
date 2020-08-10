@@ -22,15 +22,15 @@ class PDBJoinAggregationComputationStage : public PDBPhysicalAlgorithmStage {
 
   bool setup(const Handle<pdb::ExJob> &job,
              const PDBPhysicalAlgorithmStatePtr &state,
-             const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+             const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
              const std::string &error) override;
 
   bool run(const Handle<pdb::ExJob> &job,
            const PDBPhysicalAlgorithmStatePtr &state,
-           const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+           const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
            const std::string &error) override;
 
-  void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) override;
+  void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage) override;
 
  private:
 
@@ -40,7 +40,7 @@ class PDBJoinAggregationComputationStage : public PDBPhysicalAlgorithmStage {
    * @param idx
    * @return
    */
-  PDBAbstractPageSetPtr getRightSourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+  PDBAbstractPageSetPtr getRightSourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                               size_t idx);
 
   /**

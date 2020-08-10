@@ -82,16 +82,7 @@ void *callListenIPC(void *serverInstance) {
 void PDBServer::listenTCP() {
 
   // depending of whether we are are the frontend or backend we have different ports we need to listen to,
-  int port;
-  if (nodeType == NodeType::FRONTEND) {
-    port = config->port;
-  }
-  else if(nodeType == NodeType::BACKEND) {
-    port = config->backendPort;
-  }
-  else {
-    throw runtime_error("Not sure what type of node this is, backend or frontend!");
-  }
+  int port = config->port;
 
   // wait for an internet socket
   string errMsg;
@@ -165,12 +156,7 @@ void PDBServer::listenIPC() {
 
   // depending of whether we are are the frontend or backend we have different ipc file we need to listen to.
   std::string ipcFile;
-  if (nodeType == NodeType::FRONTEND) {
-    ipcFile = config->backendIpcFile;
-  }
-  else if(nodeType == NodeType::BACKEND) {
-    ipcFile = config->ipcFile;
-  }
+  ipcFile = config->ipcFile;
 
   // second, we are connecting to a local UNIX socket
   string errMsg;

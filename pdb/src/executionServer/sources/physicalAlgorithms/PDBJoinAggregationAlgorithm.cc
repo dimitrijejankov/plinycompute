@@ -5,7 +5,6 @@
 #include "PDBJoinAggregationKeyStage.h"
 #include <ExJob.h>
 #include <physicalAlgorithms/PDBJoinAggregationComputationStage.h>
-#include "PDBStorageManagerBackend.h"
 #include "GenericWork.h"
 #include "PDBLabeledPageSet.h"
 #include "PDBBroadcastForJoinState.h"

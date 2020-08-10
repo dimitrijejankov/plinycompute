@@ -5,7 +5,6 @@
 #include "PDBJoinAggregationKeyStage.h"
 #include "ExJob.h"
 #include "PDBPhysicalAlgorithmState.h"
-#include "PDBStorageManagerBackend.h"
 #include "PDBJoinAggregationState.h"
 #include "LogicalPlanTransformer.h"
 #include "KeyComputePlan.h"
@@ -33,7 +32,7 @@ pdb::PDBJoinAggregationKeyStage::PDBJoinAggregationKeyStage(const pdb::PDBSinkPa
 
 bool pdb::PDBJoinAggregationKeyStage::setup(const Handle<ExJob> &job,
                                             const PDBPhysicalAlgorithmStatePtr &state,
-                                            const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                            const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                             const std::string &error) {
 
   // cast the state
@@ -268,7 +267,7 @@ bool pdb::PDBJoinAggregationKeyStage::setup(const Handle<ExJob> &job,
 
 bool pdb::PDBJoinAggregationKeyStage::run(const Handle<ExJob> &job,
                                           const PDBPhysicalAlgorithmStatePtr &state,
-                                          const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                          const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                           const std::string &error) {
 
   // check if it is the lead node
@@ -281,7 +280,7 @@ bool pdb::PDBJoinAggregationKeyStage::run(const Handle<ExJob> &job,
   return runFollower(job, state, storage, error);
 }
 
-void pdb::PDBJoinAggregationKeyStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {}
+void pdb::PDBJoinAggregationKeyStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage) {}
 
 pdb::SourceSetArgPtr pdb::PDBJoinAggregationKeyStage::getKeySourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient,
                                                                          const pdb::Vector<PDBSourceSpec> &sources,
@@ -310,7 +309,7 @@ pdb::SourceSetArgPtr pdb::PDBJoinAggregationKeyStage::getKeySourceSetArg(std::sh
   return std::make_shared<pdb::SourceSetArg>(set);
 }
 
-pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationKeyStage::getKeySourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationKeyStage::getKeySourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                                                                 size_t idx,
                                                                                 const pdb::Vector<PDBSourceSpec> &srcs) {
 
@@ -337,7 +336,7 @@ pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationKeyStage::getKeySourcePageSet(
 }
 
 
-pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationKeyStage::getFetchingPageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationKeyStage::getFetchingPageSet(const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                                                                size_t idx,
                                                                                const pdb::Vector<PDBSourceSpec> &srcs,
                                                                                const std::string &ip,
@@ -485,7 +484,7 @@ bool pdb::PDBJoinAggregationKeyStage::receivePlan(const std::string &ip, int32_t
 
 bool pdb::PDBJoinAggregationKeyStage::runLead(const Handle<pdb::ExJob> &job,
                                               const PDBPhysicalAlgorithmStatePtr &state,
-                                              const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                              const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                               const std::string &error) {
 
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -667,7 +666,7 @@ bool pdb::PDBJoinAggregationKeyStage::runLead(const Handle<pdb::ExJob> &job,
 
 bool pdb::PDBJoinAggregationKeyStage::runFollower(const Handle<pdb::ExJob> &job,
                                                   const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                                  const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                                  const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
                                                   const std::string &error) {
 
   // cast the state
@@ -679,7 +678,7 @@ bool pdb::PDBJoinAggregationKeyStage::runFollower(const Handle<pdb::ExJob> &job,
   auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
 
   // receive the plan
-  receivePlan(job->nodes[0]->address, job->nodes[0]->backendPort, myMgr, job, state);
+  receivePlan(job->nodes[0]->address, job->nodes[0]->port, myMgr, job, state);
 
   /**
    * 3. Get the planning result decision from the plan

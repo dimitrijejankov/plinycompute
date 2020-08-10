@@ -14,7 +14,7 @@
 #include <gtest/gtest_prod.h>
 #include <physicalOptimizer/PDBPrimarySource.h>
 #include <PDBPhysicalAlgorithmState.h>
-#include <PDBStorageManagerBackend.h>
+#include <PDBStorageManagerFrontend.h>
 
 namespace pdb {
 
@@ -41,8 +41,8 @@ public:
   /**
    * Sets up the stage
    */
-  virtual bool setup(const Handle<pdb::ExJob> &request, const PDBPhysicalAlgorithmStatePtr &state,
-                     const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, const std::string &error) {
+  virtual bool setup(const Handle<pdb::ExJob> &job, const PDBPhysicalAlgorithmStatePtr &state,
+                     const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage, const std::string &error) {
     throw std::runtime_error("Can not setup PDBPhysicalAlgorithmStage that is an abstract class");
   };
 
@@ -50,14 +50,14 @@ public:
    * Runs the stage
    */
   virtual bool run(const Handle<pdb::ExJob> &request, const PDBPhysicalAlgorithmStatePtr &state,
-                   const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, const std::string &error) {
+                   const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage, const std::string &error) {
     throw std::runtime_error("Can not run PDBPhysicalAlgorithmStage that is an abstract class");
   };
 
   /**
    * Cleans the stage after setup and/or run. This has to be called after the usage!
    */
-  virtual void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage)  {
+  virtual void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage)  {
     throw std::runtime_error("Can not clean PDBPhysicalAlgorithmStage that is an abstract class");
   };
 
@@ -76,7 +76,7 @@ protected:
    * @param storage - a ptr to the storage manager backend so we can grab the page set
    * @return - the page set
    */
-  PDBAbstractPageSetPtr getSourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage, size_t idx);
+  PDBAbstractPageSetPtr getSourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage, size_t idx);
 
   /**
    * Return the info that is going to be provided to the pipeline about the main source set we are scanning
@@ -90,7 +90,7 @@ protected:
    * @param storage - Storage manager backend
    * @return the arguments if we can create them, null_ptr otherwise
    */
-  std::shared_ptr<JoinArguments> getJoinArguments(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage);
+  std::shared_ptr<JoinArguments> getJoinArguments(const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage);
 
   // The sink page set the algorithm should setup
   const PDBSinkPageSetSpec &sink;

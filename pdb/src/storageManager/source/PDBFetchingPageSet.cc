@@ -7,7 +7,6 @@
 #include <StoFetchNextPage.h>
 #include <HeapRequest.h>
 #include <StoFetchNextPageResult.h>
-#include <PDBStorageManagerBackend.h>
 
 namespace pdb {
 
@@ -18,7 +17,7 @@ PDBFetchingPageSet::~PDBFetchingPageSet() {
 }
 
 pdb::PDBFetchingPageSet::PDBFetchingPageSet(PDBCommunicatorPtr comm,
-                                            PDBStorageManagerBackendPtr sto,
+                                            PDBStorageManagerFrontendPtr sto,
                                             PDBBufferManagerInterfacePtr buff,
                                             uint64_t numPages) : communicator(std::move(comm)),
                                                                  bufferManager(std::move(buff)),

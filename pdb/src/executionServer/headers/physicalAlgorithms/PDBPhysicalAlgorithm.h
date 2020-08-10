@@ -22,7 +22,6 @@ namespace pdb {
 
 // predefine this so avoid recursive definition
 class ExJob;
-class PDBStorageManagerBackend;
 
 enum PDBPhysicalAlgorithmType {
 
