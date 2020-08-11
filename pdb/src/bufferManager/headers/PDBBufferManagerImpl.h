@@ -165,7 +165,7 @@ class PDBBufferManagerImpl : public PDBBufferManagerInterface {
    * clears all the info about a particular set
    * @param set - the set we want to clear
    */
-  void clearSet(const PDBSetPtr &set);
+  void clearSet(const PDBSetPtr &set) override;
 
 protected:
 

@@ -120,6 +120,9 @@ public:
   // the node that made the request.
   std::pair<bool, std::string> handleGetPageRequest(const pdb::Handle<pdb::StoGetPageRequest> &request, PDBCommunicatorPtr &sendUsingMe);
 
+  // clear the set from the storage. Removes all the pages, key pages and stats
+  std::pair<bool, std::string> handleClearSetRequest(const pdb::Handle<pdb::StoClearSetRequest> &request, PDBCommunicatorPtr &sendUsingMe);
+
   // the logger
   PDBLoggerPtr logger;
 

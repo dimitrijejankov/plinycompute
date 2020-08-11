@@ -57,9 +57,15 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
   forMe.registerHandler(
       StoGetPageRequest_TYPEID,
       make_shared<pdb::HeapRequestHandler<pdb::StoGetPageRequest>>([&](const Handle<pdb::StoGetPageRequest>& request,
-                                                                       PDBCommunicatorPtr sendUsingMe) {
+                                                                                        PDBCommunicatorPtr sendUsingMe) {
         // handle the get page request
         return handleGetPageRequest(request, sendUsingMe);
+      }));
+
+  forMe.registerHandler(
+      StoClearSetRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoClearSetRequest>>([&](Handle<pdb::StoClearSetRequest> request, PDBCommunicatorPtr sendUsingMe) {
+        return handleClearSetRequest(request, sendUsingMe);
       }));
 }
 
@@ -360,6 +366,49 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageReques
   return make_pair(true, string(""));
 }
 
+std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleClearSetRequest(const pdb::Handle<pdb::StoClearSetRequest> &request,
+                                                                                   pdb::PDBCommunicatorPtr &sendUsingMe) {
+  std::string error;
+  PDBSetPtr set;
+  PDBSetPtr keySet;
+  {
+    // lock the structures
+    unique_lock<std::mutex> lck(this->pageStatsMutex);
+
+    // make the set
+    set = std::make_shared<PDBSet>(request->databaseName, request->setName);
+
+    // if we have keys we need to clear them too
+    if(pageStats[set].numberOfKeys > 0) {
+      keySet = std::make_shared<PDBSet>(request->databaseName, PDBCatalog::toKeySetName(std::string(request->setName)));
+    }
+
+    // remove the stats
+    pageStats.erase(set);
+  }
+
+  // get the buffer manger
+  auto bufferManager = getFunctionalityPtr<pdb::PDBBufferManagerInterface>();
+
+  // clear the set from the buffer manager
+  bufferManager->clearSet(set);
+
+  // clear the keys if we have them too...
+  if(keySet != nullptr) {
+    bufferManager->clearSet(keySet);
+  }
+
+  // create an allocation block to hold the response
+  const UseTemporaryAllocationBlock tempBlock{1024};
+  Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(true, error);
+
+  // sends result to requester
+  sendUsingMe->sendObject(response, error);
+
+  // return
+  return std::make_pair(true, error);
+}
+
 // page set stuff
 pdb::PDBSetPageSetPtr pdb::PDBStorageManagerFrontend::createPageSetFromPDBSet(const std::string &db,
                                                                               const std::string &set,
@@ -418,4 +467,5 @@ bool pdb::PDBStorageManagerFrontend::materializeKeys(const pdb::PDBAbstractPageS
                                                      const pdb::PDBKeyExtractorPtr &keyExtractor) {
   return false;
 }
+
 
