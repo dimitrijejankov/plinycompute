@@ -504,7 +504,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
 
           return false;
         },
-        (char *) page->getBytes(), numBytes, request->databaseName, PDBCatalog::toKeySetName(std::string(request->setName)), request->typeName, numBytes);
+        (char *) page->getBytes(), numBytes, request->databaseName, request->setName, request->typeName, numBytes);
   }
 
   // create an allocation block to hold the response
