@@ -180,7 +180,6 @@ protected:
   static void logFreeAnonymousPage(uint64_t pageNumber) {};
   static void logDownToZeroReferences(const PDBSetPtr &setPtr, size_t pageNum) {};
   static void logClearSet(const PDBSetPtr &set) {};
-  static void logExpect(const Handle<BufForwardPageRequest> &result) {};
 
 #endif
 

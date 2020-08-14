@@ -211,7 +211,7 @@ private:
   std::atomic_int startedAcceptingRequests{};
 
   // true when the server is done
-  bool allDone{};
+  atomic_bool allDone{};
 
   // where to log to
   PDBLoggerPtr logger;
