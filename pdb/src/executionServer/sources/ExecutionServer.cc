@@ -52,13 +52,15 @@ void pdb::ExecutionServer::registerHandlers(pdb::PDBServer &forMe) {
               // create an allocation block to hold the response
               pdb::Handle<pdb::SimpleRequestResult> response = pdb::makeObject<pdb::SimpleRequestResult>(success, error);
 
-              // log the error
-              logger->error(error);
-
               // sends result to requester
               sendUsingMe->sendObject(response, error);
 
+              // check if we succeeded
               if(!success) {
+
+                // log the error
+                logger->error(error);
+
                 // return error
                 return std::make_pair(false, error);
               }
@@ -86,13 +88,13 @@ void pdb::ExecutionServer::registerHandlers(pdb::PDBServer &forMe) {
               response->res = success;
               response->errMsg = error;
 
-              // log the error
-              logger->error(error);
-
               // sends result to requester
               sendUsingMe->sendObject(response, error);
-
               if(!success) {
+
+                // log the error
+                logger->error(error);
+
                 // return error
                 return std::make_pair(false, error);
               }

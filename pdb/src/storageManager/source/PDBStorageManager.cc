@@ -26,6 +26,7 @@
 #include <StoFetchNextPageResult.h>
 #include <StoMaterializeKeysRequest.h>
 #include <PDBFetchingPageSet.h>
+#include <StoFeedPageRequest.h>
 
 namespace fs = boost::filesystem;
 
@@ -139,6 +140,25 @@ void pdb::PDBStorageManager::registerHandlers(PDBServer &forMe) {
       StoClearSetRequest_TYPEID,
       make_shared<pdb::HeapRequestHandler<pdb::StoClearSetRequest>>([&](const Handle<pdb::StoClearSetRequest>& request, PDBCommunicatorPtr sendUsingMe) {
         return handleClearSetRequest(request, sendUsingMe);
+      }));
+
+  forMe.registerHandler(
+      StoStartFeedingPageSetRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoStartFeedingPageSetRequest>>(
+          [&](const Handle<pdb::StoStartFeedingPageSetRequest>& request, const PDBCommunicatorPtr& sendUsingMe) {
+            return handleStartFeedingPageSetRequest(request, sendUsingMe);
+          }));
+
+  forMe.registerHandler(
+      StoFetchSetPagesRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoFetchSetPagesRequest>>([&](const Handle<pdb::StoFetchSetPagesRequest>& request, const PDBCommunicatorPtr& sendUsingMe) {
+        return handleStoFetchSetPages(request, sendUsingMe);
+      }));
+
+  forMe.registerHandler(
+      StoFetchPageSetPagesRequest_TYPEID,
+      make_shared<pdb::HeapRequestHandler<pdb::StoFetchPageSetPagesRequest>>([&](const Handle<pdb::StoFetchPageSetPagesRequest>& request, const PDBCommunicatorPtr& sendUsingMe) {
+        return handleStoFetchPageSetPagesRequest(request, sendUsingMe);
       }));
 }
 
@@ -511,6 +531,197 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleRemovePageSet(const p
   return std::make_pair(success, error);
 }
 
+std::pair<bool, std::string> pdb::PDBStorageManager::handleStoFetchPageSetPagesRequest(const pdb::Handle<pdb::StoFetchPageSetPagesRequest> &request,
+                                                                                       const shared_ptr<PDBCommunicator> &sendUsingMe) {
+  throw runtime_error("Fetching pages from a page set is not yet supported");
+}
+
+std::pair<bool, std::string> pdb::PDBStorageManager::handleStoFetchSetPages(const pdb::Handle<pdb::StoFetchSetPagesRequest> &request,
+                                                                            const shared_ptr<PDBCommunicator> &sendUsingMe) {
+  /// 1. Get all the pages we need from the set
+
+  // get the pages of the set and make the set identifier
+  PDBSetPtr storageSet = nullptr;
+  uint64_t numPages = 0;
+  {
+    // lock the stuff
+    unique_lock<std::mutex> lck(pageSetMutex);
+
+    // try to find the page
+    auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
+    auto it = this->pageStats.find(set);
+    if(it != this->pageStats.end()) {
+
+      // check if we are requesting the keys or not
+      if(!request->forKeys) {
+        numPages = it->second.numberOfPages;
+
+        // we are requesting a regular set
+        storageSet = std::make_shared<PDBSet>(request->databaseName, request->setName);
+      }
+      else {
+        numPages = it->second.numberOfKeyPages;
+
+        // we request the key modify the set name
+        storageSet = std::make_shared<PDBSet>(request->databaseName, PDBCatalog::toKeySetName(request->setName));
+      }
+    }
+  }
+
+  /// 2. Send a response with the number of pages to expect
+
+  // make the allocation
+  const UseTemporaryAllocationBlock tempBlock{1024 * 1024};
+
+  // make the response
+  pdb::Handle<StoFetchPagesResponse> response = pdb::makeObject<StoFetchPagesResponse>(numPages);
+
+  // send it
+  std::string error;
+  sendUsingMe->sendObject(response, error);
+
+  // get the buffer manager
+  auto bufferManager = getFunctionalityPtr<PDBBufferManagerInterface>();
+
+  // make the response
+  pdb::Handle<StoFetchNextPageResult> fetchNextPage = pdb::makeObject<StoFetchNextPageResult>();
+
+  // go through each page
+  for(auto page = 0; page < numPages; ++page) {
+
+    // get the page handle
+    auto pageHandle = bufferManager->getPage(storageSet, page);
+
+    // set the page size and that we have another page
+    fetchNextPage->pageSize = ((Record<Object> *) pageHandle->getBytes())->numBytes();
+    fetchNextPage->hasNext = true;
+
+    // send the fetch next page
+    bool success = sendUsingMe->sendObject(fetchNextPage, error);
+
+    // check if the
+    if(!success) {
+
+      // log the error
+      logger->error(error);
+
+      // we failed
+      return std::make_pair(success, error);
+    }
+
+    // send the bytes
+    success = sendUsingMe->sendBytes((char*) pageHandle->getBytes(), fetchNextPage->pageSize, error);
+
+    // check if we failed to send the bytes
+    if(!success) {
+
+      // log the error
+      logger->error(error);
+
+      // we failed
+      return std::make_pair(success, error);
+    }
+  }
+
+  /// 3. Finish here
+
+  // send the fetch next page
+  fetchNextPage->hasNext = false;
+  bool success = sendUsingMe->sendObject(fetchNextPage, error);
+
+  // check if the
+  if(!success) {
+
+    // log the error
+    logger->error(error);
+  }
+
+  // we failed
+  return std::make_pair(success, error);
+}
+
+std::pair<bool, std::string> pdb::PDBStorageManager::handleStartFeedingPageSetRequest(const pdb::Handle<pdb::StoStartFeedingPageSetRequest> &request,
+                                                                                      const pdb::PDBCommunicatorPtr &sendUsingMe) {
+  bool success = true;
+  std::string error;
+
+  /// 1. Send a response to the other node about the status
+
+  // create or grab the page set
+  auto pageSet = createFeedingAnonymousPageSet(request->getPageSetID(), request->numberOfProcessingThreads, request->numberOfNodes);
+  success = pageSet != nullptr;
+
+  // create an allocation block to hold the response
+  const UseTemporaryAllocationBlock tempBlock{1024};
+
+  // create the response for the other node
+  pdb::Handle<pdb::SimpleRequestResult> simpleResponse = pdb::makeObject<pdb::SimpleRequestResult>(success, error);
+
+  // sends result to requester
+  success = sendUsingMe->sendObject(simpleResponse, error) && success;
+
+  /// 2. If everything went well, start getting the pages from the other node
+
+  // get the buffer manager
+  auto bufferManager = getFunctionalityPtr<pdb::PDBBufferManagerInterface>();
+
+  // if everything went well start receiving the pages
+  while(success) {
+
+    /// 3.1 Get the signal that there are more pages
+
+    // create an allocation block to hold the response
+    const UseTemporaryAllocationBlock localBlock{1024};
+
+    // get the next object
+    auto hasPage = sendUsingMe->template getNextObject<pdb::StoFeedPageRequest>(success, error);
+
+    // if we failed break
+    if(!success) {
+      break;
+    }
+
+    // do we have a page, if we don't finish
+    if(!hasPage->hasNextPage){
+      break;
+    }
+
+    /// 3.2 Get the page from the other node
+
+    // get the page of the size we need
+    auto page = bufferManager->getPage(hasPage->pageSize);
+
+    // grab the bytes
+    success = sendUsingMe->receiveBytes(page->getBytes(), error);
+
+    // if we failed finish
+    if(!success) {
+      break;
+    }
+
+    // freeze the page size
+    //page->freezeSize(hasPage->pageSize);
+
+    /// 3.3 Feed the page
+
+    // unpin the page
+    page->unpin();
+
+    // feed the page to the page set
+    pageSet->feedPage(page);
+  }
+
+  // if we got a page set mark that we are finished feeding
+  if(pageSet != nullptr) {
+
+    // finish feeding
+    pageSet->finishFeeding();
+  }
+
+  // return
+  return std::make_pair(success, error);
+}
+
 // page set stuff
 pdb::PDBSetPageSetPtr pdb::PDBStorageManager::createPageSetFromPDBSet(const std::string &db,
                                                                       const std::string &set,
@@ -523,7 +734,7 @@ pdb::PDBSetPageSetPtr pdb::PDBStorageManager::createPageSetFromPDBSet(const std:
   /// 1. Get to get the number of pages
 
   // copy the stuff
-  std::vector<uint64_t> pages;
+  uint64_t numPages;
   {
     unique_lock<std::mutex> lck(this->pageStatsMutex);
 
@@ -533,21 +744,22 @@ pdb::PDBSetPageSetPtr pdb::PDBStorageManager::createPageSetFromPDBSet(const std:
     // get the number of pages
     auto stats = pageStats.find(setPtr);
     if(stats == pageStats.end()) {
-      return nullptr;
+      // if we don't have any stats we assume that we have no pages
+      numPages = 0;
     }
-
-    // check if we are requesting keys
-    if(!requestingKeys) {
-      pages.resize(stats->second.numberOfPages);
+    else if(!requestingKeys) {
+      // check if we are requesting keys
+      numPages = stats->second.numberOfPages;
     }
     else {
-      pages.resize(stats->second.numberOfKeyPages);
+      numPages = stats->second.numberOfKeyPages;
     }
   }
 
   // go through all the pages and set it to i
   // we do this since we might wanna extend the storage manager to skip pages that
   // might be written to or are not in a constant state, right now this is fine.
+  std::vector<uint64_t> pages(numPages);
   for(auto i = 0; i < pages.size(); ++i) {
     pages[i] = i;
   }
@@ -971,5 +1183,3 @@ bool pdb::PDBStorageManager::materializeKeys(const pdb::PDBAbstractPageSetPtr &p
   // we succeeded yay!
   return success;
 }
-
-

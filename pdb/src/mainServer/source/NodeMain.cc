@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
   // init other parameters
   config->ipcFile = fs::path(config->rootDirectory).append("/ipcFile").string();
   config->catalogFile = fs::path(config->rootDirectory).append("/catalog").string();
-  config->maxConnections = 50;
+  config->maxConnections = 200;
 
   // init the storage manager, this has to be done before the fork!
   std::shared_ptr<pdb::PDBBufferManagerImpl> bufferManager;

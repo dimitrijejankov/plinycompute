@@ -140,6 +140,19 @@ public:
   // removes the page set
   std::pair<bool, std::string> handleRemovePageSet(const pdb::Handle<pdb::StoRemovePageSetRequest> &request,
                                                    const pdb::PDBCommunicatorPtr &sendUsingMe);
+
+  //
+  std::pair<bool, std::string> handleStartFeedingPageSetRequest(const pdb::Handle<pdb::StoStartFeedingPageSetRequest> &request,
+                                                                const pdb::PDBCommunicatorPtr &sendUsingMe);
+
+  // handles the request to fetch the pages of a set
+  std::pair<bool, std::string> handleStoFetchSetPages(const pdb::Handle<pdb::StoFetchSetPagesRequest> &request,
+                                                      const pdb::PDBCommunicatorPtr &sendUsingMe);
+
+  // handles the request to fetch a particular page set
+  static std::pair<bool, std::string> handleStoFetchPageSetPagesRequest(const pdb::Handle<pdb::StoFetchPageSetPagesRequest> &request,
+                                                                        const pdb::PDBCommunicatorPtr &sendUsingMe);
+
   // the logger
   PDBLoggerPtr logger;
 
