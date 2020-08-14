@@ -2,7 +2,7 @@
 // Created by dimitrije on 2/9/19.
 //
 
-#include <PDBStorageManagerFrontend.h>
+#include <PDBStorageManager.h>
 #include <HeapRequestHandler.h>
 #include <StoDispatchData.h>
 #include <PDBBufferManagerInterface.h>
@@ -29,16 +29,83 @@
 
 namespace fs = boost::filesystem;
 
-pdb::PDBStorageManagerFrontend::~PDBStorageManagerFrontend() = default;
+pdb::PDBStorageManager::~PDBStorageManager() {
 
-void pdb::PDBStorageManagerFrontend::init() {
+  // open the output file
+  std::ofstream ofs;
+  ofs.open((boost::filesystem::path(getConfiguration()->rootDirectory) / "storage.pdb").string(),
+           ios::binary | std::ofstream::out | std::ofstream::trunc);
+
+  unsigned long numSets = pageStats.size();
+  ofs.write((char *) &numSets, sizeof(unsigned long));
+
+  // serialize the stuff
+  for (auto &it : pageStats) {
+
+    // write the database name
+    unsigned long size = it.first->getDBName().size();
+    ofs.write((char *) &size, sizeof(unsigned long));
+    ofs.write(it.first->getDBName().c_str(), size);
+
+    // write the set name
+    size = it.first->getSetName().size();
+    ofs.write((char *) &size, sizeof(unsigned long));
+    ofs.write(it.first->getSetName().c_str(), size);
+
+    // write the page stats
+    ofs.write(reinterpret_cast<char *>(&it.second), sizeof(it.second));
+  }
+
+  ofs.close();
+}
+
+void pdb::PDBStorageManager::init() {
 
   // init the class
   logger = make_shared<pdb::PDBLogger>((boost::filesystem::path(getConfiguration()->rootDirectory) / "logs").string(),
                                        "PDBStorageManager.log");
+
+  // do we have the metadata for the storage
+  if (fs::exists(boost::filesystem::path(getConfiguration()->rootDirectory) / "storage.pdb")) {
+
+    // open if stream
+    std::ifstream ifs;
+    ifs.open((boost::filesystem::path(getConfiguration()->rootDirectory) / "storage.pdb").string(),
+             ios::binary | std::ifstream::in);
+
+    size_t numSets;
+    ifs.read((char *) &numSets, sizeof(unsigned long));
+
+    for (int i = 0; i < numSets; ++i) {
+
+      // read the database name
+      unsigned long size;
+      ifs.read((char *) &size, sizeof(unsigned long));
+      std::unique_ptr<char[]> setBuffer(new char[size]);
+      ifs.read(setBuffer.get(), size);
+      std::string dbName(setBuffer.get(), size);
+
+      // read the set name
+      ifs.read((char *) &size, sizeof(unsigned long));
+      std::unique_ptr<char[]> dbBuffer(new char[size]);
+      ifs.read(dbBuffer.get(), size);
+      std::string setName(dbBuffer.get(), size);
+
+      // read the number of pages
+      PDBStorageSetStats pageStat{};
+      ifs.read(reinterpret_cast<char *>(&pageStat), sizeof(pageStat));
+
+      // store the set info
+      auto set = std::make_shared<PDBSet>(dbName, setName);
+      this->pageStats[set] = pageStat;
+    }
+
+    // close
+    ifs.close();
+  }
 }
 
-void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
+void pdb::PDBStorageManager::registerHandlers(PDBServer &forMe) {
 
   forMe.registerHandler(
       StoDispatchData_TYPEID,
@@ -75,7 +142,7 @@ void pdb::PDBStorageManagerFrontend::registerHandlers(PDBServer &forMe) {
       }));
 }
 
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedData(const pdb::Handle<pdb::StoDispatchData>& request,
+std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedData(const pdb::Handle<pdb::StoDispatchData>& request,
                                                                                   const pdb::PDBCommunicatorPtr& sendUsingMe) {
 
   /// 1. Get the page from the distributed storage
@@ -185,7 +252,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedDat
   return std::make_pair(success, error);
 }
 
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedKeys(const pdb::Handle<pdb::StoDispatchKeys>& request,
+std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedKeys(const pdb::Handle<pdb::StoDispatchKeys>& request,
                                                                                   const pdb::PDBCommunicatorPtr& sendUsingMe) {
   /// 1. Get the page from the distributed storage
 
@@ -295,7 +362,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleDispatchedKey
   return std::make_pair(success, error);
 }
 
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageRequest(const pdb::Handle<pdb::StoGetPageRequest> &request,
+std::pair<bool, std::string> pdb::PDBStorageManager::handleGetPageRequest(const pdb::Handle<pdb::StoGetPageRequest> &request,
                                                                                   pdb::PDBCommunicatorPtr &sendUsingMe) {
   /// 1. Check if we have a page
 
@@ -372,7 +439,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleGetPageReques
   return make_pair(true, string(""));
 }
 
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleClearSetRequest(const pdb::Handle<pdb::StoClearSetRequest> &request,
+std::pair<bool, std::string> pdb::PDBStorageManager::handleClearSetRequest(const pdb::Handle<pdb::StoClearSetRequest> &request,
                                                                                    pdb::PDBCommunicatorPtr &sendUsingMe) {
   std::string error;
   PDBSetPtr set;
@@ -415,7 +482,7 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleClearSetReque
   return std::make_pair(true, error);
 }
 
-std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleRemovePageSet(const pdb::Handle<pdb::StoRemovePageSetRequest> &request,
+std::pair<bool, std::string> pdb::PDBStorageManager::handleRemovePageSet(const pdb::Handle<pdb::StoRemovePageSetRequest> &request,
                                                                                  const pdb::PDBCommunicatorPtr &sendUsingMe) {
 
   /// 1. Remove the page set
@@ -445,15 +512,15 @@ std::pair<bool, std::string> pdb::PDBStorageManagerFrontend::handleRemovePageSet
 }
 
 // page set stuff
-pdb::PDBSetPageSetPtr pdb::PDBStorageManagerFrontend::createPageSetFromPDBSet(const std::string &db,
-                                                                              const std::string &set,
-                                                                              bool requestingKeys) {
+pdb::PDBSetPageSetPtr pdb::PDBStorageManager::createPageSetFromPDBSet(const std::string &db,
+                                                                      const std::string &set,
+                                                                      bool requestingKeys) {
 
 
   // get the configuration
   auto conf = this->getConfiguration();
 
-  /// 1. Contact the frontend and to get the number of pages
+  /// 1. Get to get the number of pages
 
   // copy the stuff
   std::vector<uint64_t> pages;
@@ -485,7 +552,7 @@ pdb::PDBSetPageSetPtr pdb::PDBStorageManagerFrontend::createPageSetFromPDBSet(co
     pages[i] = i;
   }
 
-  /// 3. Create it and return it
+  /// 2. Create it and return it
 
   if(!requestingKeys) {
 
@@ -499,7 +566,7 @@ pdb::PDBSetPageSetPtr pdb::PDBStorageManagerFrontend::createPageSetFromPDBSet(co
   }
 }
 
-pdb::PDBAnonymousPageSetPtr pdb::PDBStorageManagerFrontend::createAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID) {
+pdb::PDBAnonymousPageSetPtr pdb::PDBStorageManager::createAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID) {
 
   /// 1. Check if we already have the thing if we do return it
 
@@ -521,7 +588,7 @@ pdb::PDBAnonymousPageSetPtr pdb::PDBStorageManagerFrontend::createAnonymousPageS
   return pageSet;
 }
 
-pdb::PDBRandomAccessPageSetPtr pdb::PDBStorageManagerFrontend::createRandomAccessPageSet(const std::pair<uint64_t, std::string> &pageSetID) {
+pdb::PDBRandomAccessPageSetPtr pdb::PDBStorageManager::createRandomAccessPageSet(const std::pair<uint64_t, std::string> &pageSetID) {
 
   /// 1. Check if we already have the thing if we do return it
 
@@ -543,7 +610,7 @@ pdb::PDBRandomAccessPageSetPtr pdb::PDBStorageManagerFrontend::createRandomAcces
   return pageSet;
 }
 
-pdb::PDBFeedingPageSetPtr pdb::PDBStorageManagerFrontend::createFeedingAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID,
+pdb::PDBFeedingPageSetPtr pdb::PDBStorageManager::createFeedingAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID,
                                                                                         uint64_t numReaders,
                                                                                         uint64_t numFeeders) {
   /// 1. Check if we already have the thing if we do return it
@@ -566,7 +633,7 @@ pdb::PDBFeedingPageSetPtr pdb::PDBStorageManagerFrontend::createFeedingAnonymous
   return pageSet;
 }
 
-pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerFrontend::fetchPDBSet(const std::string &database,
+pdb::PDBAbstractPageSetPtr pdb::PDBStorageManager::fetchPDBSet(const std::string &database,
                                                                        const std::string &set,
                                                                        bool isKey,
                                                                        const std::string &ip,
@@ -574,7 +641,7 @@ pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerFrontend::fetchPDBSet(const std
   // get the configuration
   auto conf = this->getConfiguration();
 
-  /// 1. Contact the frontend to establish a connection
+  /// 1. Contact the node to establish a connection
 
   // create an allocation block to hold the response
   const UseTemporaryAllocationBlock tempBlock{1024};
@@ -638,7 +705,7 @@ pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerFrontend::fetchPDBSet(const std
 
   /// 3. Create the page set since we are about to receive the pages
 
-  auto storageManager = getFunctionalityPtr<PDBStorageManagerFrontend>();
+  auto storageManager = getFunctionalityPtr<PDBStorageManager>();
   auto bufferManager = getFunctionalityPtr<PDBBufferManagerInterface>();
 
   // return the fetching page set
@@ -648,14 +715,14 @@ pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerFrontend::fetchPDBSet(const std
                                                    numPages);
 }
 
-pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerFrontend::fetchPageSet(const pdb::PDBSourcePageSetSpec &pageSetSpec,
-                                                                        bool isKey,
-                                                                        const std::string &ip,
-                                                                        int32_t port) {
+pdb::PDBAbstractPageSetPtr pdb::PDBStorageManager::fetchPageSet(const pdb::PDBSourcePageSetSpec &pageSetSpec,
+                                                                bool isKey,
+                                                                const std::string &ip,
+                                                                int32_t port) {
   // get the configuration
   auto conf = this->getConfiguration();
 
-  /// 1. Contact the frontend to establish a connection
+  /// 1. Contact the node to establish a connection
 
   // create an allocation block to hold the response
   const UseTemporaryAllocationBlock tempBlock{1024};
@@ -723,12 +790,12 @@ pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerFrontend::fetchPageSet(const pd
 
   // return the fetching page set
   return std::make_shared<pdb::PDBFetchingPageSet>(comm,
-                                                   getFunctionalityPtr<PDBStorageManagerFrontend>(),
+                                                   getFunctionalityPtr<PDBStorageManager>(),
                                                    getFunctionalityPtr<PDBBufferManagerInterface>(),
                                                    numPages);
 }
 
-pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerFrontend::getPageSet(const std::pair<uint64_t,
+pdb::PDBAbstractPageSetPtr pdb::PDBStorageManager::getPageSet(const std::pair<uint64_t,
                                                                                       std::string> &pageSetID) {
   // try to find the page if it exists return it
   auto it = pageSets.find(pageSetID);
@@ -740,13 +807,13 @@ pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerFrontend::getPageSet(const std:
   return nullptr;
 }
 
-bool pdb::PDBStorageManagerFrontend::removePageSet(const std::pair<uint64_t, std::string> &pageSetID) {
+bool pdb::PDBStorageManager::removePageSet(const std::pair<uint64_t, std::string> &pageSetID) {
 
   // erase it if it exists
   return pageSets.erase(pageSetID) == 1;
 }
 
-bool pdb::PDBStorageManagerFrontend::materializePageSet(const pdb::PDBAbstractPageSetPtr &pageSet,
+bool pdb::PDBStorageManager::materializePageSet(const pdb::PDBAbstractPageSetPtr &pageSet,
                                                         const std::pair<std::string, std::string> &set) {
 
   // if the page set is empty no need materialize stuff
@@ -804,7 +871,7 @@ bool pdb::PDBStorageManagerFrontend::materializePageSet(const pdb::PDBAbstractPa
   return success;
 }
 
-bool pdb::PDBStorageManagerFrontend::materializeKeys(const pdb::PDBAbstractPageSetPtr &pageSet,
+bool pdb::PDBStorageManager::materializeKeys(const pdb::PDBAbstractPageSetPtr &pageSet,
                                                      const std::pair<std::string, std::string> &set,
                                                      const pdb::PDBKeyExtractorPtr &keyExtractor) {
 

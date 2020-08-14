@@ -74,7 +74,7 @@ struct NodeConfig {
   std::string rootDirectory = "";
 
   /**
-   * File to open a connection to the backend
+   * File to open a connection to the ipc file for inter-node communication
    */
   std::string ipcFile = "";
 

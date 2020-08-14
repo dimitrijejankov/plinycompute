@@ -6,7 +6,7 @@
 #include "PDBAbstractPageSet.h"
 #include "PDBFetchingPageSet.h"
 #include "PDBCommunicator.h"
-#include "PDBStorageManagerFrontend.h"
+#include "PDBStorageManager.h"
 #include <PDBBufferManagerInterface.h>
 
 namespace pdb {
@@ -15,7 +15,7 @@ class PDBFetchingPageSet : public PDBAbstractPageSet {
 public:
 
   explicit PDBFetchingPageSet(PDBCommunicatorPtr communicator,
-                              PDBStorageManagerFrontendPtr storageManager,
+                              PDBStorageManagerPtr storageManager,
                               PDBBufferManagerInterfacePtr bufferManager,
                               uint64_t numPages);
 
@@ -63,7 +63,7 @@ protected:
   /**
    * The storage manager
    */
-  PDBStorageManagerFrontendPtr storageManager;
+  PDBStorageManagerPtr storageManager;
 
   /**
    * This thread is grabbing the pages from the node

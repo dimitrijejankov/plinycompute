@@ -156,7 +156,7 @@ class PDBBufferManagerImpl : public PDBBufferManagerInterface {
   size_t getMaxPageSize() override;
 
   /**
-   * the storage manager does not have any server functionalities, they will be defined in the frontend (makes testing easier)
+   * the storage manager does not have any handlers
    * @param forMe - this is a reference to the PDBServer for which we want to register the handles for
    */
   void registerHandlers(PDBServer &forMe) override {};

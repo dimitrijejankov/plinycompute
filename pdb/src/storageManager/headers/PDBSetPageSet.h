@@ -20,7 +20,7 @@ public:
 
   /**
    * Initializes the page set with the set parameters and the buffer manager.
-   * The buffer manager is used to grab pages from the frontend.
+   * The buffer manager is used to grab pages.
    * @param db - the name of the database the set belongs to
    * @param set - the set name
    * @param pages - the page numbers that are valid for the set

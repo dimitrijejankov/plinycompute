@@ -34,7 +34,7 @@ namespace pdb {
 
 /**
  * This class basically takes in a TCAP and breaks it up into PhysicalAlgorithms, that are going to be sent to,
- * the @see ExecutionServerFrontend
+ * the @see ExecutionServer
  */
 class PDBPhysicalOptimizer {
 public:

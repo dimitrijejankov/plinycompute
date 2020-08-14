@@ -8,6 +8,7 @@
 #include "PreaggregationPageProcessor.h"
 #include "GenericWork.h"
 #include "ExJob.h"
+#include "PDBCatalogClient.h"
 
 pdb::PDBJoinAggregationComputationStage::PDBJoinAggregationComputationStage(const pdb::PDBSinkPageSetSpec &sink,
                                                                             const pdb::PDBSinkPageSetSpec &preaggIntermediate,
@@ -30,7 +31,7 @@ pdb::PDBJoinAggregationComputationStage::PDBJoinAggregationComputationStage(cons
 
 bool pdb::PDBJoinAggregationComputationStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                                     const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                                    const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
+                                                    const std::shared_ptr<pdb::PDBStorageManager> &storage,
                                                     const std::string &error) {
 
 
@@ -499,7 +500,7 @@ bool pdb::PDBJoinAggregationComputationStage::setup(const pdb::Handle<pdb::ExJob
 
 bool pdb::PDBJoinAggregationComputationStage::run(const pdb::Handle<pdb::ExJob> &job,
                                                   const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                                  const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
+                                                  const std::shared_ptr<pdb::PDBStorageManager> &storage,
                                                   const std::string &error) {
 
   // cast the state
@@ -961,7 +962,7 @@ bool pdb::PDBJoinAggregationComputationStage::run(const pdb::Handle<pdb::ExJob> 
 
 }
 
-void pdb::PDBJoinAggregationComputationStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage) {
+void pdb::PDBJoinAggregationComputationStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManager> &storage) {
 
   // cast the state
   auto s = dynamic_pointer_cast<PDBJoinAggregationState>(state);
@@ -986,7 +987,7 @@ void pdb::PDBJoinAggregationComputationStage::cleanup(const pdb::PDBPhysicalAlgo
   s->intermediatePageSet->clearPageSet();
 }
 
-pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationComputationStage::getRightSourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
+pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationComputationStage::getRightSourcePageSet(const std::shared_ptr<pdb::PDBStorageManager> &storage,
                                                                                           size_t idx) {
   // grab the source set from the right sources
   auto &sourceSet = this->rightSources[idx].sourceSet;

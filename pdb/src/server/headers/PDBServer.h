@@ -62,14 +62,9 @@ class ServerFunctionality;
 class PDBServer {
 public:
 
-  enum NodeType {
-    FRONTEND,
-    BACKEND
-  };
-
   PDBServer() = default;
 
-  PDBServer(NodeType type, const NodeConfigPtr &config, const PDBLoggerPtr &logger);
+  PDBServer(const NodeConfigPtr &config, const PDBLoggerPtr &logger);
 
   /**
    * A server has many possible functionalities... storage, catalog client, query planning, etc.
@@ -202,9 +197,6 @@ private:
 
   // used to ask the most recently-added functionality to register its handlers
   void registerHandlersFromLastFunctionality();
-
-  // is this frontend or a backend
-  NodeType nodeType;
 
   // the configuration of this node
   pdb::NodeConfigPtr config;

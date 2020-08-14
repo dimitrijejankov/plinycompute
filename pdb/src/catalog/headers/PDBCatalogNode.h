@@ -31,7 +31,6 @@ class PDBCatalogNode {
    * @param nodeID - the identifier of the node it should be created in the format of "ip:port"
    * @param address - the ip address of the node
    * @param port - the port of the node
-   * @param backendPort - the port of backend of the node
    * @param nodeType - and the type of the node { worker, master } I guess
    */
   PDBCatalogNode(std::string nodeID, std::string address, int port, std::string nodeType, int32_t numCores, int64_t totalMemory, bool active)

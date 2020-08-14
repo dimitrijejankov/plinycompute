@@ -4,6 +4,7 @@
 #include <ComputePlan.h>
 #include <GenericWork.h>
 #include <ExJob.h>
+#include <PDBCatalogClient.h>
 
 pdb::PDBBroadcastForJoinStage::PDBBroadcastForJoinStage(const pdb::PDBSinkPageSetSpec &sink,
                                                         const pdb::Vector<pdb::PDBSourceSpec> &sources,
@@ -18,7 +19,7 @@ pdb::PDBBroadcastForJoinStage::PDBBroadcastForJoinStage(const pdb::PDBSinkPageSe
 
 bool pdb::PDBBroadcastForJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                           const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                          const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
+                                          const std::shared_ptr<pdb::PDBStorageManager> &storage,
                                           const std::string &error) {
 
 
@@ -206,7 +207,7 @@ bool pdb::PDBBroadcastForJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
 
 bool pdb::PDBBroadcastForJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
                                         const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                        const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
+                                        const std::shared_ptr<pdb::PDBStorageManager> &storage,
                                         const std::string &error) {
 
   // cast the state
@@ -413,7 +414,7 @@ bool pdb::PDBBroadcastForJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
   return true;
 }
 
-void pdb::PDBBroadcastForJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage) {
+void pdb::PDBBroadcastForJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManager> &storage) {
 
 
   // cast the state

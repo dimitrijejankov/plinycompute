@@ -27,10 +27,9 @@
 #include <PDBDistributedStorage.h>
 #include "CatalogServer.h"
 #include <PDBBufferManagerImpl.h>
-#include <PDBStorageManagerFrontend.h>
-#include <PDBComputationServerFrontend.h>
-#include <ExecutionServerFrontend.h>
-#include <ExecutionServerBackend.h>
+#include <PDBStorageManager.h>
+#include <PDBComputationServer.h>
+#include <ExecutionServer.h>
 #include <random>
 
 namespace po = boost::program_options;
@@ -146,7 +145,7 @@ int main(int argc, char *argv[]) {
 
   // create the server
   pdb::PDBLoggerPtr logger = make_shared<pdb::PDBLogger>("manager.log");
-  pdb::PDBServer server(pdb::PDBServer::NodeType::FRONTEND, config, logger);
+  pdb::PDBServer server(config, logger);
 
   // add the functionaries
   server.addFunctionality<pdb::PDBBufferManagerInterface>(bufferManager);
@@ -154,17 +153,14 @@ int main(int argc, char *argv[]) {
   server.addFunctionality(std::make_shared<pdb::CatalogServer>());
   server.addFunctionality(std::make_shared<pdb::PDBDistributedStorage>());
   server.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(config->port, config->address, logger));
-  server.addFunctionality(std::make_shared<pdb::PDBStorageManagerFrontend>());
-
-  // add some more functionaries
-  server.addFunctionality(std::make_shared<pdb::ExecutionServerBackend>());
+  server.addFunctionality(std::make_shared<pdb::PDBStorageManager>());
 
   // on the worker put and execution server
   if(!config->isManager) {
-    server.addFunctionality(std::make_shared<pdb::ExecutionServerFrontend>());
+    server.addFunctionality(std::make_shared<pdb::ExecutionServer>());
   }
   else {
-    server.addFunctionality(std::make_shared<pdb::PDBComputationServerFrontend>());
+    server.addFunctionality(std::make_shared<pdb::PDBComputationServer>());
   }
 
   server.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {

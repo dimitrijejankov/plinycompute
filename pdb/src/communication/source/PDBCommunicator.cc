@@ -24,6 +24,7 @@
 #include "BuiltInObjectTypeIDs.h"
 #include "Handle.h"
 #include <iostream>
+#include <utility>
 #include <netdb.h>
 #include <netinet/in.h>
 #include "Object.h"
@@ -59,8 +60,8 @@ PDBCommunicator::PDBCommunicator() {
 
 bool PDBCommunicator::pointToInternet(PDBLoggerPtr logToMeIn, int socketFDIn, std::string& errMsg) {
 
-    // first, connect to the backend
-    logToMe = logToMeIn;
+    // assign the logger
+    logToMe = std::move(logToMeIn);
 
     struct sockaddr_in cli_addr;
     socklen_t clilen = sizeof(cli_addr);
@@ -212,10 +213,10 @@ bool PDBCommunicator::connectToLocalServer(PDBLoggerPtr logToMeIn,
 
 bool PDBCommunicator::pointToFile(PDBLoggerPtr logToMeIn, int socketFDIn, std::string& errMsg) {
 
-    // connect to the backend
+    // make the logger
     logToMe = logToMeIn;
-
     logToMe->trace("PDBCommunicator: about to wait for request from same machine");
+
     socketFD = accept(socketFDIn, 0, 0);
     if (socketFD < 0) {
         logToMe->error("PDBCommunicator: could not get FD to local socket");

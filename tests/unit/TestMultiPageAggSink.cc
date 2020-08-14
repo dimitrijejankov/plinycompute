@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <SingleNodePlanner.h>
-#include <PDBBufferManagerFrontEnd.h>
+#include <PDBBufferManagerImpl.h>
 #include "../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlock.h"
 #include "PDBMap.h"
 
@@ -303,12 +303,13 @@ int main() {
   // make a worker queue
   auto workers = make_shared<pdb::PDBWorkerQueue>(make_shared<pdb::PDBLogger>("worker.log"), 10);
 
-  // create the frontend
-  pdb::PDBBufferManagerInterfacePtr mgr = std::make_shared<pdb::PDBBufferManagerFrontEnd>("tempDSFSD",
-                                                                                          1024u * 1024u,
-                                                                                          16,
-                                                                                          "metadata",
-                                                                                          ".");
+  // create the buffer manager
+  std::shared_ptr<pdb::PDBBufferManagerImpl> mgr = std::make_shared<pdb::PDBBufferManagerImpl>();
+  mgr->initialize("tempDSFSD",
+                  1024u * 1024u,
+                  16,
+                  "metadata",
+                  ".");
 
 
   // filled up the threshold tells when to stop adding new keys, currently set to 15%

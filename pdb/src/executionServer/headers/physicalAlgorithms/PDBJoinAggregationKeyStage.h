@@ -25,15 +25,15 @@ public:
 
   bool setup(const Handle<pdb::ExJob> &job,
              const PDBPhysicalAlgorithmStatePtr &state,
-             const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
+             const std::shared_ptr<pdb::PDBStorageManager> &storage,
              const std::string &error) override;
 
   bool run(const Handle<pdb::ExJob> &job,
            const PDBPhysicalAlgorithmStatePtr &state,
-           const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
+           const std::shared_ptr<pdb::PDBStorageManager> &storage,
            const std::string &error) override;
 
-  void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage) override;
+  void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManager> &storage) override;
 
   // the lhs input set to the join aggregation pipeline
   const pdb::String &leftInputTupleSet;
@@ -72,12 +72,12 @@ public:
 
   static bool runLead(const Handle<pdb::ExJob> &job,
                       const PDBPhysicalAlgorithmStatePtr &state,
-                      const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
+                      const std::shared_ptr<pdb::PDBStorageManager> &storage,
                       const std::string &error);
 
   static bool runFollower(const Handle<pdb::ExJob> &job,
                           const PDBPhysicalAlgorithmStatePtr &state,
-                          const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
+                          const std::shared_ptr<pdb::PDBStorageManager> &storage,
                           const std::string &error);
 
   static pdb::SourceSetArgPtr getKeySourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient,
@@ -85,11 +85,11 @@ public:
                                                  size_t idx);
 
 
-  static PDBAbstractPageSetPtr getKeySourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
+  static PDBAbstractPageSetPtr getKeySourcePageSet(const std::shared_ptr<pdb::PDBStorageManager> &storage,
                                                    size_t idx,
                                                    const pdb::Vector<PDBSourceSpec> &srcs);
 
-  static PDBAbstractPageSetPtr getFetchingPageSet(const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
+  static PDBAbstractPageSetPtr getFetchingPageSet(const std::shared_ptr<pdb::PDBStorageManager> &storage,
                                                   size_t idx,
                                                   const pdb::Vector<PDBSourceSpec> &srcs,
                                                   const std::string &ip,

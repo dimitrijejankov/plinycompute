@@ -7,11 +7,11 @@
 #include <ExRunJob.h>
 #include <SharedEmployee.h>
 #include <boost/filesystem/path.hpp>
-#include <PDBStorageManagerFrontend.h>
-#include "ExecutionServerFrontend.h"
+#include <PDBStorageManager.h>
+#include "ExecutionServer.h"
 #include "SimpleRequestResult.h"
 
-void pdb::ExecutionServerFrontend::registerHandlers(pdb::PDBServer &forMe) {
+void pdb::ExecutionServer::registerHandlers(pdb::PDBServer &forMe) {
 
   forMe.registerHandler(
       ExJob_TYPEID,
@@ -29,7 +29,7 @@ void pdb::ExecutionServerFrontend::registerHandlers(pdb::PDBServer &forMe) {
             auto state = request->physicalAlgorithm->getInitialState(request);
 
             // grab the storage manager
-            auto storage = this->getFunctionalityPtr<PDBStorageManagerFrontend>();
+            auto storage = this->getFunctionalityPtr<PDBStorageManager>();
 
             // go through each stage and run it
             PDBPhysicalAlgorithmStagePtr stage;
@@ -103,10 +103,10 @@ void pdb::ExecutionServerFrontend::registerHandlers(pdb::PDBServer &forMe) {
       }));
 }
 
-void pdb::ExecutionServerFrontend::init() {
+void pdb::ExecutionServer::init() {
 
   // init the class
   logger = make_shared<pdb::PDBLogger>((boost::filesystem::path(getConfiguration()->rootDirectory) / "logs").string(),
-                                       "ExecutionServerFrontend.log");
+                                       "ExecutionServer.log");
 
 }

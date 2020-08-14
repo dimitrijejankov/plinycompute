@@ -37,18 +37,18 @@
 namespace pdb {
 
 
-class PDBStorageManagerFrontend : public ServerFunctionality {
+class PDBStorageManager : public ServerFunctionality {
 
 public:
 
-  virtual ~PDBStorageManagerFrontend();
+  virtual ~PDBStorageManager();
 
-  // initialize the storage manager frontend
+  // initialize the storage manager
   void init() override;
 
   void registerHandlers(PDBServer &forMe) override;
 
-  // This method contacts the frontend to get a PageSet for a particular PDB set
+  // creates a page set from a pdb set
   PDBSetPageSetPtr createPageSetFromPDBSet(const std::string &db, const std::string &set, bool requestingKeys);
 
   // this creates an anonymous page set
@@ -75,8 +75,7 @@ public:
   // removes the page set from the storage.
   bool removePageSet(const std::pair<uint64_t, std::string> &pageSetID);
 
-  // this method materializes a particular page set to a particular set. It contacts the frontend and grabs a bunch of pages
-  // it assumes that the set we are materializing to exists.
+  // this method materializes a particular page set to a particular set.
   bool materializePageSet(const PDBAbstractPageSetPtr& pageSet, const std::pair<std::string, std::string> &set);
 
   // this materializes the keys of a particular page set
@@ -158,8 +157,6 @@ public:
 };
 
 // just make a shared ptr
-using PDBStorageManagerFrontendPtr = std::shared_ptr<PDBStorageManagerFrontend>;
+using PDBStorageManagerPtr = std::shared_ptr<PDBStorageManager>;
 
 }
-
-#include <PDBStorageManagerFrontendTemplate.cc>

@@ -168,9 +168,6 @@ public:
   virtual void logDownToZeroReferences(const PDBSetPtr &setPtr, size_t pageNum) {};
   virtual void logClearSet(const PDBSetPtr &set) {};
 
-  // we need to mark the expect page as override so we make it like that
-  #define PDB_BACKEND_EXPECT_POSTFIX override
-
 #else
 protected:
 
@@ -184,9 +181,6 @@ protected:
   static void logDownToZeroReferences(const PDBSetPtr &setPtr, size_t pageNum) {};
   static void logClearSet(const PDBSetPtr &set) {};
   static void logExpect(const Handle<BufForwardPageRequest> &result) {};
-
-  // we should not mark expectPage as override since it is not virtual
-  #define PDB_BACKEND_EXPECT_POSTFIX
 
 #endif
 

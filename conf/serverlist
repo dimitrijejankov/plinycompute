@@ -1,7 +1,0 @@
-# This file contains the IP addresses of the worker nodes in a cluster
-# of PlinyCompute. The IP address of the manager node is not required.
-
-# Add the public IP address of each machine in a cluster, one entry
-# per line.
-
-

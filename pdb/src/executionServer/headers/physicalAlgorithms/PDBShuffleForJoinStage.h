@@ -17,15 +17,15 @@ class PDBShuffleForJoinStage : public PDBPhysicalAlgorithmStage {
 
   bool setup(const Handle<pdb::ExJob> &job,
              const PDBPhysicalAlgorithmStatePtr &state,
-             const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
+             const std::shared_ptr<pdb::PDBStorageManager> &storage,
              const std::string &error) override;
 
   bool run(const Handle<pdb::ExJob> &job,
            const PDBPhysicalAlgorithmStatePtr &state,
-           const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage,
+           const std::shared_ptr<pdb::PDBStorageManager> &storage,
            const std::string &error) override;
 
-  void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage) override;
+  void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManager> &storage) override;
 
   // page set identifier for the intermediate data created by the shuffle
   const PDBSinkPageSetSpec &intermediate;

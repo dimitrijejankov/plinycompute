@@ -1,10 +1,11 @@
 #include <PDBPhysicalAlgorithmStage.h>
 #include <PDBPhysicalAlgorithm.h>
 #include <ComputePlan.h>
+#include "PDBCatalogClient.h"
 
 namespace pdb {
 
-PDBAbstractPageSetPtr PDBPhysicalAlgorithmStage::getSourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage, size_t idx) {
+PDBAbstractPageSetPtr PDBPhysicalAlgorithmStage::getSourcePageSet(const std::shared_ptr<pdb::PDBStorageManager> &storage, size_t idx) {
 
   // grab the source set from the sources
   auto &sourceSet = this->sources[idx].sourceSet;
@@ -43,7 +44,7 @@ pdb::SourceSetArgPtr PDBPhysicalAlgorithmStage::getSourceSetArg(const std::share
   return std::make_shared<pdb::SourceSetArg>(catalogClient->getSet(sourceSet->database, sourceSet->set, error));
 }
 
-std::shared_ptr<JoinArguments> PDBPhysicalAlgorithmStage::getJoinArguments(const std::shared_ptr<pdb::PDBStorageManagerFrontend> &storage) {
+std::shared_ptr<JoinArguments> PDBPhysicalAlgorithmStage::getJoinArguments(const std::shared_ptr<pdb::PDBStorageManager> &storage) {
 
   // go through each of the additional sources and add them to the join arguments
   auto joinArguments = std::make_shared<JoinArguments>();

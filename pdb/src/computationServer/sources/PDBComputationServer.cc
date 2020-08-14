@@ -4,12 +4,12 @@
 
 #include <boost/filesystem/path.hpp>
 #include <ExJob.h>
-#include <PDBComputationServerFrontend.h>
+#include <PDBComputationServer.h>
 #include <GenericWork.h>
 #include <StoRemovePageSetRequest.h>
 #include <ExJobNode.h>
 
-#include "PDBComputationServerFrontend.h"
+#include "PDBComputationServer.h"
 #include "HeapRequestHandler.h"
 #include "CSExecuteComputation.h"
 #include "PDBPhysicalOptimizer.h"
@@ -17,14 +17,14 @@
 #include "ExRunJob.h"
 #include "SimpleRequestResult.h"
 
-void pdb::PDBComputationServerFrontend::init() {
+void pdb::PDBComputationServer::init() {
 
   // init the class
   logger = make_shared<pdb::PDBLogger>((boost::filesystem::path(getConfiguration()->rootDirectory) / "logs").string(),
-                                       "PDBComputationServerFrontend.log");
+                                       "PDBComputationServer.log");
 }
 
-bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job) {
+bool pdb::PDBComputationServer::executeJob(pdb::Handle<pdb::ExJob> &job) {
 
   // the locks for the sets
   std::vector<PDBDistributedStorageSetLockPtr> locks;
@@ -162,7 +162,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
   return success;
 }
 
-bool pdb::PDBComputationServerFrontend::scheduleJob(pdb::PDBCommunicator &temp, pdb::Handle<pdb::ExJob> &job, std::string &errMsg) {
+bool pdb::PDBComputationServer::scheduleJob(pdb::PDBCommunicator &temp, pdb::Handle<pdb::ExJob> &job, std::string &errMsg) {
 
   /// 1. Send the computation
 
@@ -181,7 +181,7 @@ bool pdb::PDBComputationServerFrontend::scheduleJob(pdb::PDBCommunicator &temp, 
   return true;
 }
 
-bool pdb::PDBComputationServerFrontend::runStage(pdb::PDBCommunicator &communicator, string &errMsg) {
+bool pdb::PDBComputationServer::runStage(pdb::PDBCommunicator &communicator, string &errMsg) {
 
 
   /// 1. Wait for the stage to be initialized
@@ -282,7 +282,7 @@ bool pdb::PDBComputationServerFrontend::runStage(pdb::PDBCommunicator &communica
   return true;
 }
 
-void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) {
+void pdb::PDBComputationServer::registerHandlers(pdb::PDBServer &forMe) {
 
   forMe.registerHandler(
       CSExecuteComputation_TYPEID,
@@ -390,7 +390,7 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
 
 }
 
-bool pdb::PDBComputationServerFrontend::removeUnusedPageSets(const std::vector<pair<uint64_t, std::string>> &pageSets) {
+bool pdb::PDBComputationServer::removeUnusedPageSets(const std::vector<pair<uint64_t, std::string>> &pageSets) {
 
   atomic_bool success;
   success = true;

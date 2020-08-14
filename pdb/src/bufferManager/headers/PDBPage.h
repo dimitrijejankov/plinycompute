@@ -132,11 +132,6 @@ class PDBPage {
 
   friend class PDBPageHandleBase;
   friend class PDBBufferManagerImpl;
-  friend class PDBBufferManagerFrontEnd;
-
-  template <class T>
-  friend class PDBBufferManagerBackEnd;
-  friend class PDBBufferManagerDebugBackEnd;
 };
 
 }

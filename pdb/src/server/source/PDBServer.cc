@@ -45,8 +45,8 @@
 
 namespace pdb {
 
-PDBServer::PDBServer(NodeType type, const NodeConfigPtr &config, const PDBLoggerPtr &logger)
-    : config(config), nodeType(type), logger(logger) {
+PDBServer::PDBServer(const NodeConfigPtr &config, const PDBLoggerPtr &logger)
+    : config(config), logger(logger) {
 
   allDone = false;
   startedAcceptingRequests = 0;
@@ -81,7 +81,7 @@ void *callListenIPC(void *serverInstance) {
 
 void PDBServer::listenTCP() {
 
-  // depending of whether we are are the frontend or backend we have different ports we need to listen to,
+  // get the port we want to lisen to
   int port = config->port;
 
   // wait for an internet socket
@@ -154,7 +154,7 @@ void PDBServer::listenTCP() {
 
 void PDBServer::listenIPC() {
 
-  // depending of whether we are are the frontend or backend we have different ipc file we need to listen to.
+  // grab the ipc file we are listening to
   std::string ipcFile;
   ipcFile = config->ipcFile;
 
@@ -178,7 +178,7 @@ void PDBServer::listenIPC() {
   if (::bind(internalSocket, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr_un))) {
     logger->error("PDBServer: could not bind to local socket");
     logger->error(strerror(errno));
-    // if pathToBackEndServer exists, delete it.
+    // if the ipc file exists, delete it.
     if (unlink(ipcFile.c_str()) == 0) {
       PDB_COUT << "Removed outdated " << ipcFile.c_str() << ".\n";
     }

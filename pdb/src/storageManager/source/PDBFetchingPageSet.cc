@@ -17,7 +17,7 @@ PDBFetchingPageSet::~PDBFetchingPageSet() {
 }
 
 pdb::PDBFetchingPageSet::PDBFetchingPageSet(PDBCommunicatorPtr comm,
-                                            PDBStorageManagerFrontendPtr sto,
+                                            PDBStorageManagerPtr sto,
                                             PDBBufferManagerInterfacePtr buff,
                                             uint64_t numPages) : communicator(std::move(comm)),
                                                                  bufferManager(std::move(buff)),
