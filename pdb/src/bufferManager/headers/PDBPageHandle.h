@@ -29,6 +29,8 @@ class PDBPageHandleBase {
 
  public:
 
+  // TODO have a check that somebody is doing not smart things with this
+  // do not call this on a page u get from getPage(exact number of bytes)
   void freezeSize(size_t numBytes) {
     return page->freezeSize(numBytes);
   }

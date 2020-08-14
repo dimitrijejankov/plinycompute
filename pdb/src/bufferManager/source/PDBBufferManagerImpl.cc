@@ -125,9 +125,10 @@ PDBBufferManagerImpl::~PDBBufferManagerImpl() {
     }
   }
 
-  // and unmap the RAM
-  munmap(sharedMemory.memory, sharedMemory.pageSize * sharedMemory.numPages);
+  // free the memory
+  delete[] static_cast<char*>(sharedMemory.memory);
 
+  // write the new meta data
   remove(metaDataFile.c_str());
   PDBBufferManagerFileWriter myMetaFile(metaDataFile);
 
@@ -277,16 +278,10 @@ void PDBBufferManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn,
 
   // now, allocate the RAM
   char *mapped;
-  mapped = (char *) mmap(nullptr,
-                         sharedMemory.pageSize * sharedMemory.numPages,
-                         PROT_READ | PROT_WRITE,
-                         MAP_SHARED | MAP_ANONYMOUS,
-                         -1,
-                         0);
+  mapped = new char[sharedMemory.pageSize * sharedMemory.numPages];
 
   // make sure that it actually worked
-  if (mapped == MAP_FAILED) {
-    std::cerr << "Could not memory map; error is " << strerror(errno);
+  if (mapped == nullptr) {
     exit(1);
   }
 

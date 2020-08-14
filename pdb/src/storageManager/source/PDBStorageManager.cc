@@ -699,9 +699,6 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleStartFeedingPageSetRe
       break;
     }
 
-    // freeze the page size
-    //page->freezeSize(hasPage->pageSize);
-
     /// 3.3 Feed the page
 
     // unpin the page
