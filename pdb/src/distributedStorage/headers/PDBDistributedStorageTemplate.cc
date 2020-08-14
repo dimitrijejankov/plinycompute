@@ -568,13 +568,36 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleClearSet(const pd
     return make_pair(false, errMsg);
   }
 
-  /// 2. Send concurrently all the worker nodes a request for the storage to clear the set.
+  /// 2. Update the stats after clear
+
+  // broadcast the set size change so far
+  PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
+  atomic_bool success = pdbClient.clearSet(request->databaseName, request->setName, error);
+  if(!success) {
+
+    // make the error string
+    std::string errMsg =
+        "The set requested (" + (std::string) request->databaseName + "," + (std::string) request->setName
+            + ") could not be cleared in the catalog and therefore we can not clear it!. Error was : " + error;
+
+    // log the error
+    logger->error(errMsg);
+
+    // create an allocation block to hold the response
+    const UseTemporaryAllocationBlock tempBlock{1024};
+    Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+
+    // sends result to requester
+    sendUsingMe->sendObject(response, errMsg);
+    return make_pair(false, errMsg);
+  }
+
+  /// 3. Send concurrently all the worker nodes a request for the storage to clear the set.
 
   // grab the nodes we want to forward the request to
   auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
 
   // success indicator
-  atomic_bool success;
   success = true;
 
   // create the buzzer
@@ -621,7 +644,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleClearSet(const pd
     tempBuzzer->wait();
   }
 
-  /// 3. Send back the response to the client
+  /// 4. Send back the response to the client
 
   if (!success) {
     error = "Could not completely clear the set";

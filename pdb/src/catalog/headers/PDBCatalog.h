@@ -323,6 +323,15 @@ class PDBCatalog {
   bool removeSet(const std::string &dbName, const std::string &setName, std::string &error);
 
   /**
+   * Clears the info of a particular set from the catalog, resetting it to thee default tate
+   * @param dbName - the name of the database the set belongs to
+   * @param setName - the name of the set
+   * @param error - the error if any
+   * @return true if we removed it, false otherwise
+   */
+  bool clearSet(const std::string &dbName, const std::string &setName, std::string &error);
+
+  /**
    * Converts the set name to key set name
    * @param setName - the set name
    * @return the set name for the key by convention "setName#keys"

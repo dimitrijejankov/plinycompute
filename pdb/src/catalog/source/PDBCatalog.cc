@@ -634,6 +634,7 @@ bool pdb::PDBCatalog::removeDatabase(const std::string &dbName, std::string &err
 
   return true;
 }
+
 bool pdb::PDBCatalog::removeSet(const std::string &dbName, const std::string &setName, std::string &error) {
 
   // get the set
@@ -650,6 +651,33 @@ bool pdb::PDBCatalog::removeSet(const std::string &dbName, const std::string &se
 
   // remove the set
   storage.remove_all<PDBCatalogSet>(where(c(&PDBCatalogSet::setIdentifier) == setIdentifier));
+
+  // remove all the set info on a node
+  storage.remove_all<PDBCatalogSetOnNode>(where(c(&PDBCatalogSetOnNode::setIdentifier) == setIdentifier));
+
+  return true;
+}
+
+bool pdb::PDBCatalog::clearSet(const std::string &dbName, const std::string &setName, std::string &error) {
+
+  // get the set
+  auto set = getSet(dbName, setName);
+
+  // create the set identifier (this is how it is created inside the catalog)
+  std::string setIdentifier = dbName + ":" + setName;
+
+  // if the set does not exist indicate an error
+  if(set == nullptr) {
+    error = "Set with the identifier " + setIdentifier + " does not exist\n";
+    return false;
+  }
+
+  // change the container type
+  set->containerType = PDB_CATALOG_SET_NO_CONTAINER;
+  storage.replace(*set);
+
+  // remove all the set info on a node
+  storage.remove_all<PDBCatalogSetOnNode>(where(c(&PDBCatalogSetOnNode::setIdentifier) == setIdentifier));
 
   return true;
 }

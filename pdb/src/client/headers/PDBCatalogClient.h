@@ -109,18 +109,16 @@ public:
   template <class DataType>
   bool createSet(std::string databaseName, std::string setName, std::string &errMsg);
 
-  /* same as above, but here we use the type code */
+  // same as above, but here we use the type code
   bool createSet(const std::string &typeName, int16_t typeID, const std::string &databaseName,
                  bool isStoringKeys, const std::string &setName, std::string &errMsg);
 
-  /**
-   * Sends a request to the Catalog Server to delete a set returns true on success, false on fail
-   * @param databaseName
-   * @param setName
-   * @param errMsg
-   * @return
-   */
+  // sends a request to the Catalog Server to delete a set returns true on success, false on fail
   bool removeSet(const std::string &databaseName, const std::string &setName, std::string &errMsg);
+
+  // clears the set
+  bool clearSet(const std::string &databaseName, const std::string &setName, std::string &errMsg);
+
 
   /**
    * Increments the size of a set for a particular set by size

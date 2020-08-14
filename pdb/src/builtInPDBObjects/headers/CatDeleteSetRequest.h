@@ -29,27 +29,33 @@ namespace pdb {
 
 // encapsulates a request to delete a set
 class CatDeleteSetRequest : public Object {
+ public:
 
-public:
-    ~CatDeleteSetRequest() {}
-    CatDeleteSetRequest() {}
-    CatDeleteSetRequest(std::string dbName, std::string setName)
-        : dbName(dbName), setName(setName) {}
+  ~CatDeleteSetRequest() = default;
+  CatDeleteSetRequest() = default;
+  CatDeleteSetRequest(const std::string &dbName, const std::string &setName, bool onlyClear)
+      : dbName(dbName), setName(setName), onlyClear(onlyClear) {}
 
-    CatDeleteSetRequest(const Handle<CatDeleteSetRequest>& requestToCopy) {
-        setName = requestToCopy->setName;
-        dbName = requestToCopy->dbName;
-    }
+  explicit CatDeleteSetRequest(const Handle<CatDeleteSetRequest> &requestToCopy) {
+    setName = requestToCopy->setName;
+    dbName = requestToCopy->dbName;
+    onlyClear = requestToCopy->onlyClear;
+  }
 
-    std::pair<std::string, std::string> whichSet() {
-        return std::make_pair<std::string, std::string>(dbName, setName);
-    }
+  std::pair<std::string, std::string> whichSet() {
+    return std::make_pair<std::string, std::string>(dbName, setName);
+  }
 
-    ENABLE_DEEP_COPY
+  ENABLE_DEEP_COPY
 
-private:
-    String dbName;
-    String setName;
+  // the name of the database the set belongs to
+  String dbName;
+
+  // the name of the set
+  String setName;
+
+  // tells the catalog to only clear the set and not completely remove it
+  bool onlyClear = false;
 };
 }
 

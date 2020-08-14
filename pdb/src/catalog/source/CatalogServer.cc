@@ -887,14 +887,24 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
   forMe.registerHandler(
       CatDeleteSetRequest_TYPEID,
       make_shared<HeapRequestHandler<CatDeleteSetRequest>>([&](Handle<CatDeleteSetRequest> request,
-                                                                                 const PDBCommunicatorPtr& sendUsingMe) {
+                                                                     const PDBCommunicatorPtr& sendUsingMe) {
 
         // invokes deleting Set metadata from catalog
         std::string errMsg;
         auto set = request->whichSet();
 
-        // invokes deleting Set metadata from catalog
-        bool res = pdbCatalog->removeSet(set.first, set.second, errMsg);
+        // check if we only need to clear the set or completely remove it
+        bool res;
+        if(!request->onlyClear) {
+
+          // invokes removing set metadata from catalog
+          res = pdbCatalog->removeSet(set.first, set.second, errMsg);
+        }
+        else {
+
+          // invokes clearing set metadata from catalog
+          res = pdbCatalog->clearSet(set.first, set.second, errMsg);
+        }
 
         // after we deleted the set in the local catalog, if this is the
         // manager catalog iterate over all nodes in the cluster and broadcast the
