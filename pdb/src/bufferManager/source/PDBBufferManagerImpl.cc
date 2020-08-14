@@ -447,7 +447,7 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
   logClearSet(set);
 }
 
-PDBPageHandle PDBBufferManagerImpl::movePage(const PDBSetPtr& whichSet, uint64_t pageNumber, const PDBPageHandle &anonymousPage) {
+void PDBBufferManagerImpl::movePage(const PDBSetPtr& whichSet, uint64_t pageNumber, const PDBPagePtr &anonymousPage) {
 
   // lock the buffer manager
   std::unique_lock<std::mutex> lock(m);
@@ -469,39 +469,35 @@ PDBPageHandle PDBBufferManagerImpl::movePage(const PDBSetPtr& whichSet, uint64_t
   checkIfOpen(whichSet);
 
   // rewire the set
-  auto page = anonymousPage->page;
-  page->setSet(whichSet);
+  anonymousPage->setSet(whichSet);
 
   // return the location if necessary
-  PDBPageInfo temp = page->getLocation();
+  PDBPageInfo temp = anonymousPage->getLocation();
   if (temp.startPos != -1) {
     availablePositions[temp.numBytes].push_back(temp.startPos);
   }
 
   // set the new page number
-  page->pageNum = pageNumber;
+  anonymousPage->pageNum = pageNumber;
 
   // identifier of the page
   pair<PDBSetPtr, size_t> whichPage = std::make_pair(whichSet, pageNumber);
 
   // mark that this is now a set page
-  page->setAnonymous(false);
+  anonymousPage->setAnonymous(false);
 
   // if the size is frozen add it to the end of the file
-  if(page->sizeFrozen) {
+  if(anonymousPage->sizeFrozen) {
 
     // if we don't know where to write it, figure it out
-    page->getLocation().startPos = endOfFiles[page->getSet()];
-    pair<PDBSetPtr, size_t> myIndex = make_pair(page->getSet(), page->whichPage());
-    pageLocations[whichPage] = page->getLocation();
-    endOfFiles[page->getSet()] += (MIN_PAGE_SIZE << page->getLocation().numBytes);
+    anonymousPage->getLocation().startPos = endOfFiles[anonymousPage->getSet()];
+    pair<PDBSetPtr, size_t> myIndex = make_pair(anonymousPage->getSet(), anonymousPage->whichPage());
+    pageLocations[whichPage] = anonymousPage->getLocation();
+    endOfFiles[anonymousPage->getSet()] += (MIN_PAGE_SIZE << anonymousPage->getLocation().numBytes);
   }
 
   // insert the page
-  allPages[whichPage] = page;
-
-  // return the anonymous page now it is update to be a set page
-  return anonymousPage;
+  allPages[whichPage] = anonymousPage;
 }
 
 void PDBBufferManagerImpl::registerMiniPage(const PDBPagePtr& registerMe) {

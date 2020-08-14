@@ -73,7 +73,7 @@ public:
   std::vector<JoinedRecord> recordsToEmit;
 
   // the next thread
-  atomic_int32_t nextThread = 0;
+  atomic<int32_t> nextThread = 0;
 
   // number of threads
   int32_t numThreads = 0;

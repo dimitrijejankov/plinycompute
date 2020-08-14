@@ -60,6 +60,12 @@ public:
   void increaseRecords(uint64_t value) { this->numRecords += value; }
 
   /**
+   * Increases the size stat of the page set
+   * @param value - the number we want to increase by
+   */
+  void increaseSize(uint64_t value) { this->size += value; }
+
+  /**
    * Decreases the number of records in the page set
    * @param numRecords - the number we want to decrease by
    */
@@ -70,6 +76,12 @@ public:
    * @return the number of records
    */
   uint64_t getNumRecords() { return numRecords; }
+
+  /**
+   * Returns the size of the page set
+   * @return the size
+   */
+  [[nodiscard]] uint64_t getSize() const { return size; }
 
   /**
    * Converts a page set identifier to it's key version. We use this method for consistency
@@ -95,6 +107,11 @@ protected:
    * The number of records in this page set, we don't keep the size since pages can be frozen
    */
   atomic_uint_least64_t numRecords = 0;
+
+  /**
+   * Keeps track of the size of the page set
+   */
+  atomic_uint_least64_t size = 0;
 
 };
 

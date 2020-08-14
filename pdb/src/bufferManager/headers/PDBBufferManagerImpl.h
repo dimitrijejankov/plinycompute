@@ -175,7 +175,7 @@ protected:
    * @param anonymousPage - the page we want to move
    * @return the new page of the set
    */
-  PDBPageHandle movePage(const PDBSetPtr& whichSet, uint64_t pageNumber, const PDBPageHandle &anonymousPage);
+  void movePage(const PDBSetPtr& whichSet, uint64_t pageNumber, const PDBPagePtr &anonymousPage) override;
 
   /**
    * Checks if the file of the set is open if it is not then just open it, if it does not exist create it..

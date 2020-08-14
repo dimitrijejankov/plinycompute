@@ -45,6 +45,7 @@ void pdb::JoinBroadcastPipeline::run() {
   // increment the records in the output set
   if(myRAM->outputSink != nullptr) {
     outputPageSet->increaseRecords(merger->getNumRecords(myRAM->outputSink));
+    outputPageSet->increaseSize(myRAM->pageHandle->getSize() - getAllocator().getFreeBytesAtTheEnd());
   }
 
   // we only have one iteration

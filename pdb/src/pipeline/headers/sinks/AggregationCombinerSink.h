@@ -19,6 +19,9 @@ class AggregationCombinerSinkBase : public ComputeSink {
 
   virtual std::shared_ptr<std::list<std::pair<void*, void*>>> getTupleList(const pdb::PDBPageHandle &page) = 0;
 
+  // this returns the number of bytes written to the current output container
+  virtual uint64_t getSizeWritten(Handle<Object> &writeToMe) = 0;
+
   // we use this to forward the page between the workers
   class record_forwarding_queue_t {
    public:
@@ -112,8 +115,9 @@ class AggregationCombinerSink : public AggregationCombinerSinkBase {
 
   explicit AggregationCombinerSink(size_t workerID) : workerID(workerID) {
 
-    // set the count to zero
+    // set the count and size to zero
     counts = 0;
+    size = 0;
   }
 
   Handle<Object> createNewOutputContainer() override {}
@@ -131,6 +135,11 @@ class AggregationCombinerSink : public AggregationCombinerSinkBase {
   // returns the number of records in the aggregation sink
   uint64_t getNumRecords(Handle<Object> &writeToMe) override {
     return counts;
+  }
+
+  // return the number of bytes on the page
+  uint64_t getSizeWritten(Handle<Object> &writeToMe) override {
+    return size;
   }
 
   void processing_thread(const pdb::PDBAnonymousPageSetPtr &mgr,
@@ -174,6 +183,18 @@ class AggregationCombinerSink : public AggregationCombinerSinkBase {
           // wait till processed
           child_queue.wait_till_processed();
         }
+
+        // make this the root object of the allocation block
+        auto mySize = pdb::getRecord(myMap)->numBytes();
+
+        // freeze the page
+        outputPage->freezeSize(mySize);
+
+        // increment the statistics
+        size += mySize;
+
+        // TODO make this nicer (invalidates the allocation block)
+        pdb::makeObjectAllocatorBlock(1024, true);
 
         // mark as processed
         records_queue.processed();
@@ -279,15 +300,6 @@ class AggregationCombinerSink : public AggregationCombinerSinkBase {
       // mark as processed
       records_queue.processed();
     }
-
-    // make this the root object of the allocation block
-    auto size = pdb::getRecord(myMap)->numBytes();
-
-    // freeze the page
-    outputPage->freezeSize(size);
-
-    // TODO make this nicer (invalidates the allocation block)
-    pdb::makeObjectAllocatorBlock(1024, true);
   }
 
   // return the list of all the tuples as void* that need to be aggregated
@@ -310,15 +322,14 @@ class AggregationCombinerSink : public AggregationCombinerSinkBase {
 
 private:
 
-  /**
-   * The id of the worker
-   */
+  // id of the worker
   size_t workerID = 0;
 
-  /**
-   * The number of records stored
-   */
-  atomic_uint64_t counts;
+  // number of records stored
+  atomic<uint64_t> counts;
+
+  // size in bytes
+  atomic<uint64_t> size;
 
 };
 

@@ -154,6 +154,10 @@ void PDBPage :: setClean () {
 	dirty = false;
 }
 
+void PDBPage::move(const PDBSetPtr &set, uint64_t i) {
+	parent.movePage(set, i, me.lock());
+}
+
 }
 
 #endif

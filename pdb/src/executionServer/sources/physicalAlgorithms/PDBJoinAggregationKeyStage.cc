@@ -320,7 +320,7 @@ pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationKeyStage::getKeySourcePageSet(
   PDBAbstractPageSetPtr sourcePageSet;
   if (sourceSet != nullptr) {
 
-    // get the page set
+    // get the page set TODO this can return null fix this
     sourcePageSet = storage->createPageSetFromPDBSet(sourceSet->database, sourceSet->set, true);
     sourcePageSet->resetPageSet();
 

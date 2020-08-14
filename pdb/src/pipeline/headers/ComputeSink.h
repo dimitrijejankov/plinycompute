@@ -35,7 +35,7 @@ class ComputeSink {
 
 public:
 
-	// this creates and returns a new output containter to write to
+	// this creates and returns a new output container to write to
 	virtual Handle <Object> createNewOutputContainer () = 0;
 
 	// this writes the tuple set into the output container

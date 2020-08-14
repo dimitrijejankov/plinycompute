@@ -684,7 +684,7 @@ bool pdb::PDBJoinAggregationLocalComputationStage::run(const pdb::Handle<pdb::Ex
   std::cout << "Run the preagg pipelines\n";
 
   // make the threads that feed into the feed page set
-  atomic_int32_t secondCounter = 0;
+  atomic<int32_t> secondCounter = 0;
   for (int i = 0; i < s->preaggregationPipelines->size(); ++i) {
 
     // get a worker from the server

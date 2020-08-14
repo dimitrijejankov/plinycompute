@@ -104,9 +104,6 @@ public:
   // gets the page size
   virtual size_t getMaxPageSize() = 0;
 
-  // moves the anonymous page to a set TODO this needs to be pure virtual
-  virtual void moveAnonymousPagesToSet(PDBSetPtr &whichSet, uint64_t i, const PDBPageHandle& anonymousPage) { };
-
   // simply loop through and write back any dirty pages.  
   virtual ~PDBBufferManagerInterface () = default;
 
@@ -143,6 +140,9 @@ protected:
   // is located on top of him, so he can't be kicked out while the mini-page is pinned), and
   // then note that this guy is now pinned
   virtual void repin (PDBPagePtr me) = 0;
+
+  // moves an anonymous page into a set
+  virtual void movePage(const PDBSetPtr& whichSet, uint64_t pageNumber, const PDBPagePtr &anonymousPage) = 0;
 
 #ifdef DEBUG_BUFFER_MANAGER
 public:

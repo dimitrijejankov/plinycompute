@@ -105,6 +105,7 @@ class PDBPage {
   void setMe (PDBPagePtr toMe);
   void incRefCount ();
   void decRefCount ();
+  void move (const PDBSetPtr &whichSet, uint64_t i);
 
   // a pointer to the raw bytes
   void *bytes;

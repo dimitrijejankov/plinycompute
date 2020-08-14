@@ -43,15 +43,13 @@ public:
 
   virtual ~PDBStorageManagerFrontend();
 
-  /**
-   * Initialize the storage manager frontend
-   */
+  // initialize the storage manager frontend
   void init() override;
 
   void registerHandlers(PDBServer &forMe) override;
 
   // This method contacts the frontend to get a PageSet for a particular PDB set
-  PDBSetPageSetPtr createPageSetFromPDBSet(const std::string &db, const std::string &set, bool isKeyed);
+  PDBSetPageSetPtr createPageSetFromPDBSet(const std::string &db, const std::string &set, bool requestingKeys);
 
   // this creates an anonymous page set
   PDBAnonymousPageSetPtr createAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID);
@@ -94,20 +92,37 @@ public:
     // the size of the set in bytes
     size_t size{0};
 
+    // the total size of all keys
+    size_t keysSize{0};
+
     // the number of records
     std::size_t numberOfRecords{0};
 
     // the number of keys
     std::size_t numberOfKeys{0};
 
-    // the total size of the keys stored in the set
-    std::size_t keysSize{0};
-
     // this tells us what the past page of the set is
     int64_t numberOfPages{0};
 
     // this tells us the number of key pages
     int64_t numberOfKeyPages{0};
+
+    // checks if the set is empty
+    [[nodiscard]] bool empty() const {
+      return size == 0 && numberOfPages == 0 && numberOfRecords == 0 &&
+             numberOfKeys == 0 && numberOfKeyPages == 0;
+    }
+
+    // check if there are no keys
+    [[nodiscard]] bool keysEmpty() const {
+      return keysSize == 0 && numberOfKeys == 0 && numberOfKeyPages == 0;
+    }
+
+    // return the average tuple size
+    [[nodiscard]] size_t getTupleSize() const { return size / numberOfRecords; }
+
+    // return the average key size
+    [[nodiscard]] size_t getKeySize() const { return size / numberOfKeys; }
   };
 
   // this handler basically accepts the data issued by the dispatcher onto a anonymous page,
@@ -123,6 +138,9 @@ public:
   // clear the set from the storage. Removes all the pages, key pages and stats
   std::pair<bool, std::string> handleClearSetRequest(const pdb::Handle<pdb::StoClearSetRequest> &request, PDBCommunicatorPtr &sendUsingMe);
 
+  // removes the page set
+  std::pair<bool, std::string> handleRemovePageSet(const pdb::Handle<pdb::StoRemovePageSetRequest> &request,
+                                                   const pdb::PDBCommunicatorPtr &sendUsingMe);
   // the logger
   PDBLoggerPtr logger;
 
@@ -132,6 +150,11 @@ public:
   // this locks the page stats generally used during the
   std::mutex pageStatsMutex;
 
+  // keeps track of all the page sets
+  map<std::pair<uint64_t, std::string>, PDBAbstractPageSetPtr> pageSets;
+
+  // the mutex to lock the page sets
+  std::mutex pageSetMutex;
 };
 
 // just make a shared ptr

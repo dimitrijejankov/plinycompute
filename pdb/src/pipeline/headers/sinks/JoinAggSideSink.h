@@ -170,11 +170,12 @@ public:
 
   void writeOutPage(pdb::PDBPageHandle &page, Handle<Object> &writeToMe) override { throw runtime_error("JoinAggSink sink can not write out a page."); }
 
-  // returns the number of records in the join sink
+  // returns the number of records in the join sink /// TODO I think is not important
   uint64_t getNumRecords(Handle<Object> &writeToMe) override {
     // return the size
     return 1;
   }
+
 };
 
 }

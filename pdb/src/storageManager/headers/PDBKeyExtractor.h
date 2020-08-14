@@ -14,6 +14,8 @@ public:
   virtual void extractKeys(const PDBPageHandle &inputPage, const PDBPageHandle &keyPage) = 0;
 
   virtual uint64_t pageSize(const PDBPageHandle &keyPage) = 0;
+
+  virtual uint64_t numTuples(const PDBPageHandle &keyPage) = 0;
 };
 
 template<class T>
@@ -69,6 +71,12 @@ class PDBKeyExtractorImpl : public PDBKeyExtractor {
   // returns the current page size
   uint64_t pageSize(const PDBPageHandle &keyPage) override {
     return getRecord(_keyVector)->numBytes();
+  }
+
+  uint64_t numTuples(const PDBPageHandle &keyPage) override {
+
+    // cast the place where we copied the thing
+    return _keyVector->size();
   }
 };
 
@@ -130,6 +138,12 @@ class PDBMapKeyExtractorImpl : public PDBKeyExtractor {
   // returns the current page size
   uint64_t pageSize(const PDBPageHandle &keyPage) override {
     return getRecord(_keyVector)->numBytes();
+  }
+
+  uint64_t numTuples(const PDBPageHandle &keyPage) override {
+
+    // cast the place where we copied the thing
+    return _keyVector->size();
   }
 };
 

@@ -94,6 +94,10 @@ class PDBPageHandleBase {
     page->incRefCount();
   }
 
+  void move(const PDBSetPtr &set, uint64_t i) {
+    page->move(set, i);
+  }
+
  private:
 
   PDBPagePtr page;

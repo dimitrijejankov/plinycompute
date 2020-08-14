@@ -16,7 +16,7 @@ void pdb::ExecutionServerFrontend::registerHandlers(pdb::PDBServer &forMe) {
   forMe.registerHandler(
       ExJob_TYPEID,
       make_shared<pdb::HeapRequestHandler<pdb::ExJob>>(
-          [&](Handle<pdb::ExJob> request, const PDBCommunicatorPtr& sendUsingMe) {
+          [&](const Handle<pdb::ExJob>& request, const PDBCommunicatorPtr& sendUsingMe) {
 
             // this is where we put the error
             std::string error;
@@ -80,6 +80,22 @@ void pdb::ExecutionServerFrontend::registerHandlers(pdb::PDBServer &forMe) {
                 success = stage->run(request, state, storage, error);
               }
 
+              /// 2.5 Send the response
+
+              // create an allocation block to hold the response
+              response->res = success;
+              response->errMsg = error;
+
+              // log the error
+              logger->error(error);
+
+              // sends result to requester
+              sendUsingMe->sendObject(response, error);
+
+              if(!success) {
+                // return error
+                return std::make_pair(false, error);
+              }
             }
 
             // we are done here does not work

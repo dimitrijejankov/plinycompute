@@ -1,5 +1,5 @@
 #include <utility>
-
+#include <assert.h>
 #include <AggregationPipeline.h>
 #include <MemoryHolder.h>
 #include <GenericWork.h>
@@ -45,6 +45,7 @@ void pdb::AggregationPipeline::run() {
   // increase the record count
   Handle<Object> dummy;
   outputPageSet->increaseRecords(this->merger->getNumRecords(dummy));
+  outputPageSet->increaseSize(this->merger->getSizeWritten(dummy));
 }
 
 pdb::AggregationPipeline::AggregationPipeline(size_t workerID,

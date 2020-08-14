@@ -184,9 +184,6 @@ REAPPLY:
 
       } catch (NotEnoughSpace &n) {
 
-        //
-        std::cout << "This is bad\n";
-
         // if we already reapplied then we can obviously not do the processing of this tuple set
         // we need to have less rows to finish this pipeline
         if(reapply) {
@@ -243,8 +240,6 @@ REAPPLY:
 
     } catch (NotEnoughSpace &n) {
 
-      std::cout << "This is bad\n";
-
       // increment the number of records if needed
       incrementRecordNumber(ram);
 
@@ -296,5 +291,6 @@ void pdb::Pipeline::incrementRecordNumber(const pdb::MemoryHolderPtr &ram) {
   // if we have an output sink on this page update the number of records on the page set
   if (ram->outputSink != nullptr) {
     outputPageSet->increaseRecords(dataSink->getNumRecords(ram->outputSink));
+    outputPageSet->increaseSize(ram->pageHandle->getSize() - getAllocator().getFreeBytesAtTheEnd());
   }
 }
