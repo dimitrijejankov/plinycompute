@@ -34,7 +34,7 @@ public:
    * @param job
    * @return
    */
-  [[nodiscard]] PDBPhysicalAlgorithmStatePtr getInitialState(const pdb::Handle<pdb::ExJob> &job) const override;
+  [[nodiscard]] PDBPhysicalAlgorithmStatePtr getInitialState(const Handle<pdb::ExJob> &job, NodeConfigPtr config) const override;
 
   /**
    *

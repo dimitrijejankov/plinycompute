@@ -56,7 +56,8 @@ public:
    * Returns the initial state of the algorithm
    * @return the initial state
    */
-  [[nodiscard]] virtual PDBPhysicalAlgorithmStatePtr getInitialState(const pdb::Handle<pdb::ExJob> &job) const {
+  [[nodiscard]] virtual PDBPhysicalAlgorithmStatePtr getInitialState(const Handle<pdb::ExJob> &job,
+                                                                     NodeConfigPtr config) const {
     throw std::runtime_error("Can not get the type of the base class");
   };
 

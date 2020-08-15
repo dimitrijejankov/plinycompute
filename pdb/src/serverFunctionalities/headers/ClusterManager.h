@@ -31,7 +31,7 @@ class ClusterManager : public ServerFunctionality {
 public:
 
   ClusterManager();
-
+  void init() override;
 
   void registerHandlers(PDBServer& forMe) override;
 

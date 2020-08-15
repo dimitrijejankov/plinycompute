@@ -21,15 +21,13 @@ class PDBStorageMapIterator<T, typename std::enable_if<hasGetKey<T>::value and h
   using Value = typename pdb::remove_handle<typename std::remove_reference<decltype(std::declval<T>().getValue())>::type>::type;
   using Key = typename pdb::remove_handle<typename std::remove_reference<decltype(std::declval<T>().getKey())>::type>::type;
 
-  PDBStorageMapIterator(std::string address, int port, int maxRetries, std::string set, std::string db) : address(std::move(address)),
-                                                                                                          port(port),
-                                                                                                          maxRetries(maxRetries),
-                                                                                                          set(std::move(set)),
-                                                                                                          db(std::move(db)) {
-
-    // init the logger
-    logger = std::make_shared<PDBLogger>("setIterator");
-  }
+  PDBStorageMapIterator(std::string address, int port, int maxRetries,
+                        std::string set, std::string db, PDBLoggerPtr logger) : address(std::move(address)),
+                                                                                port(port),
+                                                                                logger(std::move(logger)),
+                                                                                maxRetries(maxRetries),
+                                                                                set(std::move(set)),
+                                                                                db(std::move(db)) {}
 
   /**
    * Checks if there is another record that we haven't visited

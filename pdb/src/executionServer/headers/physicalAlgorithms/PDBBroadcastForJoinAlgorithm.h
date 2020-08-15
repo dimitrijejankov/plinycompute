@@ -36,7 +36,7 @@ class PDBBroadcastForJoinAlgorithm : public PDBPhysicalAlgorithm {
    */
   PDBPhysicalAlgorithmType getAlgorithmType() override;
 
-  [[nodiscard]] PDBPhysicalAlgorithmStatePtr getInitialState(const pdb::Handle<pdb::ExJob> &job) const override;
+  [[nodiscard]] PDBPhysicalAlgorithmStatePtr getInitialState(const Handle<pdb::ExJob> &job, NodeConfigPtr config) const override;
 
   [[nodiscard]] PDBPhysicalAlgorithmStagePtr getNextStage(const PDBPhysicalAlgorithmStatePtr &state) override;
 

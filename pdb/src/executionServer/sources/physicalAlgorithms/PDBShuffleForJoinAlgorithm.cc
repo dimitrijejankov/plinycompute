@@ -13,6 +13,7 @@
 #include <PDBShuffleForJoinState.h>
 #include <GenericWork.h>
 #include <memory>
+#include <boost/filesystem/path.hpp>
 
 pdb::PDBShuffleForJoinAlgorithm::PDBShuffleForJoinAlgorithm(const std::vector<PDBPrimarySource> &primarySource,
                                                             const AtomicComputationPtr &finalAtomicComputation,
@@ -29,13 +30,15 @@ pdb::PDBPhysicalAlgorithmType pdb::PDBShuffleForJoinAlgorithm::getAlgorithmType(
   return ShuffleForJoin;
 }
 
-pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBShuffleForJoinAlgorithm::getInitialState(const pdb::Handle<pdb::ExJob> &job) const {
+pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBShuffleForJoinAlgorithm::getInitialState(const Handle<pdb::ExJob> &job,
+                                                                              NodeConfigPtr config) const {
 
   // init the state
   auto state = std::make_shared<PDBShuffleForJoinState>();
 
   // init the logger for this algorithm
-  state->logger = make_shared<PDBLogger>("PDBShuffleForJoinAlgorithm" + std::to_string(job->computationID));
+  state->logger = make_shared<PDBLogger>((boost::filesystem::path(config->rootDirectory) / "logs").string(),
+                                         "PDBShuffleForJoinAlgorithm" + std::to_string(job->computationID));
 
   // return the state
   return state;

@@ -6,6 +6,7 @@
 #include "ComputePlan.h"
 #include "ExJob.h"
 #include "GenericWork.h"
+#include <boost/filesystem/path.hpp>
 
 pdb::PDBAggregationPipeAlgorithm::PDBAggregationPipeAlgorithm(const std::vector<PDBPrimarySource> &primarySource,
                                                               const AtomicComputationPtr &finalAtomicComputation,
@@ -19,13 +20,15 @@ pdb::PDBAggregationPipeAlgorithm::PDBAggregationPipeAlgorithm(const std::vector<
       hashedToSend(hashedToSend),
       hashedToRecv(hashedToRecv) {}
 
-pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBAggregationPipeAlgorithm::getInitialState(const pdb::Handle<pdb::ExJob> &job) const {
+pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBAggregationPipeAlgorithm::getInitialState(const Handle<pdb::ExJob> &job,
+                                                                                    NodeConfigPtr config) const {
 
   // init the state
   auto state = std::make_shared<PDBAggregationPipeState>();
 
   // init the logger for this algorithm
-  state->logger = make_shared<PDBLogger>("PDBAggregationPipeAlgorithm_" + std::to_string(job->computationID));
+  state->logger = make_shared<PDBLogger>((boost::filesystem::path(config->rootDirectory) / "logs").string(),
+                                         "PDBAggregationPipeAlgorithm_" + std::to_string(job->computationID));
 
   // return the state
   return state;

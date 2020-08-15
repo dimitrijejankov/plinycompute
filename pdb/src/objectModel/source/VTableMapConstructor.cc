@@ -39,7 +39,6 @@
 namespace pdb {
 
 VTableMap::VTableMap() {
-    logger = std::make_shared<PDBLogger>("vtablemap.log");
     catalog = nullptr;
     stringstream ss;
     ss << &(myLock);

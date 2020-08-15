@@ -144,7 +144,8 @@ int main(int argc, char *argv[]) {
   }
 
   // create the server
-  pdb::PDBLoggerPtr logger = make_shared<pdb::PDBLogger>("manager.log");
+  pdb::PDBLoggerPtr logger = make_shared<pdb::PDBLogger>((boost::filesystem::path(config->rootDirectory) / "logs").string(),
+                                                         "manager.log");
   pdb::PDBServer server(config, logger);
 
   // add the functionaries

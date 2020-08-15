@@ -14,15 +14,13 @@ PDBStorageVectorIterator<T>::PDBStorageVectorIterator(string address,
                                                       int port,
                                                       int maxRetries,
                                                       string set,
-                                                      string db) : address(std::move(address)),
-                                                                   port(port),
-                                                                   maxRetries(maxRetries),
-                                                                   set(std::move(set)),
-                                                                   db(std::move(db)) {
-
-  // init the logger
-  logger = std::make_shared<PDBLogger>("setIterator");
-}
+                                                      string db,
+                                                      PDBLoggerPtr logger) : address(std::move(address)),
+                                                                             port(port),
+                                                                             logger(std::move(logger)),
+                                                                             maxRetries(maxRetries),
+                                                                             set(std::move(set)),
+                                                                             db(std::move(db)) {}
 
 template<class T>
 bool PDBStorageVectorIterator<T>::hasNextRecord() {

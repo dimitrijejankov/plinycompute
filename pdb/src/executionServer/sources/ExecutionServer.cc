@@ -26,7 +26,7 @@ void pdb::ExecutionServer::registerHandlers(pdb::PDBServer &forMe) {
             const UseTemporaryAllocationBlock tempBlock{2 * 1024};
 
             // this gives us the initial state
-            auto state = request->physicalAlgorithm->getInitialState(request);
+            auto state = request->physicalAlgorithm->getInitialState(request, getConfiguration());
 
             // grab the storage manager
             auto storage = this->getFunctionalityPtr<PDBStorageManager>();

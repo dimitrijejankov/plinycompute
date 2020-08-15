@@ -1,6 +1,7 @@
 #include <physicalAlgorithms/PDBBroadcastForJoinAlgorithm.h>
 #include <physicalAlgorithms/PDBBroadcastForJoinState.h>
 #include <physicalAlgorithms/PDBBroadcastForJoinStage.h>
+#include <boost/filesystem/path.hpp>
 
 pdb::PDBBroadcastForJoinAlgorithm::PDBBroadcastForJoinAlgorithm(const std::vector<PDBPrimarySource> &primarySource,
                                                                 const AtomicComputationPtr &finalAtomicComputation,
@@ -19,13 +20,15 @@ pdb::PDBBroadcastForJoinAlgorithm::PDBBroadcastForJoinAlgorithm(const std::vecto
     hashedToRecv(hashedToRecv) {
 }
 
-pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBBroadcastForJoinAlgorithm::getInitialState(const pdb::Handle<pdb::ExJob> &job) const {
+pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBBroadcastForJoinAlgorithm::getInitialState(const Handle<pdb::ExJob> &job,
+                                                                                NodeConfigPtr config) const {
 
   // init the state
   auto state = std::make_shared<PDBBroadcastForJoinState>();
 
   // init the logger for this algorithm
-  state->logger = make_shared<PDBLogger>("PDBBroadcastForJoinAlgorithm_" + std::to_string(job->computationID));
+  state->logger = make_shared<PDBLogger>((boost::filesystem::path(config->rootDirectory) / "logs").string(),
+                                         "PDBBroadcastForJoinAlgorithm_" + std::to_string(job->computationID));
 
   // return the state
   return state;

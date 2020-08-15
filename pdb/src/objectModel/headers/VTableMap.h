@@ -82,7 +82,7 @@ public:
     static void listVtableLabels();
 
     // use the catalog to look up the type ID for an object
-    static int16_t lookupTypeNameInCatalog(std::string objectTypeName);
+    static int16_t lookupTypeNameInCatalog(const std::string& objectTypeName);
 
     // use to lookup a built-in type... return a -1 if not found
     static int16_t lookupBuiltInType(std::string objectTypeName);
@@ -112,9 +112,6 @@ private:
 
     // this is a pointer to the catalog client that we are using to access the catalog
     PDBCatalogClient* catalog;
-
-    // and a pointer to the logger
-    PDBLoggerPtr logger;
 
     // so that we are thread safe
     pthread_mutex_t myLock;

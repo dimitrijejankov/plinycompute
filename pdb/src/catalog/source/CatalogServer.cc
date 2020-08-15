@@ -27,6 +27,7 @@
 #include <CatGetWorkersRequest.h>
 #include <CatSetUpdateContainerTypeRequest.h>
 #include <CatSetStatsResult.h>
+#include <boost/filesystem/path.hpp>
 
 #include "BuiltInObjectTypeIDs.h"
 #include "CatSyncWorkerRequest.h"
@@ -91,7 +92,8 @@ void CatalogServer::initBuiltInTypes() {
 void CatalogServer::init() {
 
   // create a logger for the catalog server
-  this->logger = make_shared<pdb::PDBLogger>("catalogServer.log");
+  this->logger = make_shared<pdb::PDBLogger>((boost::filesystem::path(getConfiguration()->rootDirectory) / "logs").string(),
+                                             "catalogServer.log");
 
   // set the ip address and port
   this->tempPath = getConfiguration()->rootDirectory + "/tmp_so_files";
@@ -100,7 +102,6 @@ void CatalogServer::init() {
   initDirectories();
 
   // creates instance of catalog
-  PDBLoggerPtr catalogLogger = make_shared<PDBLogger>("catalogLogger");
   this->pdbCatalog = make_shared<PDBCatalog>(getConfiguration()->catalogFile);
 
   // initialize the types

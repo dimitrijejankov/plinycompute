@@ -30,7 +30,7 @@ public:
    * Returns the initial state for the shuffle for join stage
    * @return the initial state
    */
-  [[nodiscard]] PDBPhysicalAlgorithmStatePtr getInitialState(const pdb::Handle<pdb::ExJob> &job) const override;
+  [[nodiscard]] PDBPhysicalAlgorithmStatePtr getInitialState(const Handle<pdb::ExJob> &job, NodeConfigPtr config) const override;
 
   /**
    * Return the one stage of the shuffle for join algorithm

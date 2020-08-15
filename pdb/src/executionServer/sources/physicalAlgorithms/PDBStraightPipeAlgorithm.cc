@@ -10,6 +10,7 @@
 #include <physicalAlgorithms/PDBStraightPipeAlgorithm.h>
 #include <physicalAlgorithms/PDBPhysicalAlgorithmStage.h>
 #include <physicalAlgorithms/PDBStraightPipeStage.h>
+#include <boost/filesystem/path.hpp>
 #include "ExJob.h"
 
 pdb::PDBStraightPipeAlgorithm::PDBStraightPipeAlgorithm(const std::vector<PDBPrimarySource> &primarySource,
@@ -23,13 +24,15 @@ pdb::PDBPhysicalAlgorithmType pdb::PDBStraightPipeAlgorithm::getAlgorithmType() 
   return StraightPipe;
 }
 
-pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBStraightPipeAlgorithm::getInitialState(const pdb::Handle<pdb::ExJob> &job) const {
+pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBStraightPipeAlgorithm::getInitialState(const Handle<pdb::ExJob> &job,
+                                                                                 NodeConfigPtr config) const {
 
   // init the state
   auto state = std::make_shared<PDBStraightPipeState>();
 
   // init the logger for this algorithm
-  state->logger = make_shared<PDBLogger>("PDBStraightPipeAlgorithm" + std::to_string(job->computationID));
+  state->logger = make_shared<PDBLogger>((boost::filesystem::path(config->rootDirectory) / "logs").string(),
+                                         "PDBStraightPipeAlgorithm" + std::to_string(job->computationID));
 
   // return the state
   return state;

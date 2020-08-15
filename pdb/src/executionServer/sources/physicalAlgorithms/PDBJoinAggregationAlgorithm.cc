@@ -12,6 +12,7 @@
 #include "PDBJoinAggregationLocalAggregationStage.h"
 #include "PDBJoinAggregationAggregationStage.h"
 #include "PDBJoinAggregationLocalComputationStage.h"
+#include <boost/filesystem/path.hpp>
 
 namespace pdb {
 
@@ -112,12 +113,14 @@ PDBJoinAggregationAlgorithm::PDBJoinAggregationAlgorithm(const std::vector<PDBPr
   }
 }
 
-PDBPhysicalAlgorithmStatePtr PDBJoinAggregationAlgorithm::getInitialState(const pdb::Handle<pdb::ExJob> &job) const {
+pdb::PDBPhysicalAlgorithmStatePtr PDBJoinAggregationAlgorithm::getInitialState(const Handle<pdb::ExJob> &job,
+                                                                          NodeConfigPtr config) const {
   // init the state
   auto state = std::make_shared<PDBJoinAggregationState>();
 
   // init the logger for this algorithm
-  state->logger = make_shared<PDBLogger>("PDBJoinAggregationAlgorithm_" + std::to_string(job->computationID));
+  state->logger = make_shared<PDBLogger>((boost::filesystem::path(config->rootDirectory) / "logs").string(),
+                                         "PDBJoinAggregationAlgorithm_" + std::to_string(job->computationID));
 
   // return the state
   return state;

@@ -20,6 +20,7 @@
 #include <SimpleRequestResult.h>
 #include <HeapRequest.h>
 #include <PDBHeartBeatWork.h>
+#include <boost/filesystem/path.hpp>
 
 #include "PDBCatalogClient.h"
 #include "ClusterManager.h"
@@ -46,8 +47,13 @@ ClusterManager::ClusterManager() {
   // grab the total memory on this machine
   totalMemory = memoryInfo.totalram / 1024;
 
+}
+
+void ClusterManager::init() {
+
   // create the logger
-  logger = make_shared<PDBLogger>("clusterManager.log");
+  logger = make_shared<PDBLogger>((boost::filesystem::path(getConfiguration()->rootDirectory) / "logs").string(),
+                                  "clusterManager.log");
 }
 
 void ClusterManager::registerHandlers(PDBServer &forMe) {
@@ -165,5 +171,6 @@ void ClusterManager::startHeartBeat() {
     // set the worker
     heartBeatWorker = sender;
 }
+
 
 }
