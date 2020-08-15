@@ -9,7 +9,11 @@
 pdb::PDBFeedingPageInfo::PDBFeedingPageInfo(pdb::PDBPageHandle page, uint64_t numUsers, uint64_t timesServed)
     : page(std::move(page)), numUsers(numUsers), timesServed(timesServed) {}
 
-pdb::PDBFeedingPageSet::PDBFeedingPageSet(uint64_t numReaders, uint64_t numFeeders) : nextPageForWorker(numReaders), numReaders(numReaders), numFeeders(numFeeders), numFinishedFeeders(0), nextPage(0) {}
+pdb::PDBFeedingPageSet::PDBFeedingPageSet(uint64_t numReaders, uint64_t numFeeders) : nextPageForWorker(numReaders),
+                                                                                      numReaders(numReaders),
+                                                                                      numFeeders(numFeeders),
+                                                                                      numFinishedFeeders(0),
+                                                                                      nextPage(0) {}
 
 pdb::PDBPageHandle pdb::PDBFeedingPageSet::getNewPage() {
   throw runtime_error("One can only add the pages to the feeding page set.");

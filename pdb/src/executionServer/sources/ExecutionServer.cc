@@ -79,7 +79,12 @@ void pdb::ExecutionServer::registerHandlers(pdb::PDBServer &forMe) {
 
               // run it
               if(result->shouldRun) {
+
+                // run the stage
                 success = stage->run(request, state, storage, error);
+
+                // perform a cleanup
+                stage->cleanup(state, storage);
               }
 
               /// 2.5 Send the response

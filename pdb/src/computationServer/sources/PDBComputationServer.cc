@@ -421,7 +421,7 @@ bool pdb::PDBComputationServer::removeUnusedPageSets(const std::vector<pair<uint
     auto worker = parent->getWorkerQueue()->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = make_shared<pdb::GenericWork>([=, &counter, &pageSets](PDBBuzzerPtr callerBuzzer) {
+    PDBWorkPtr myWork = make_shared<pdb::GenericWork>([=, &counter, &pageSets](const PDBBuzzerPtr& callerBuzzer) {
 
       std::string errMsg;
       pdb::Handle<pdb::StoRemovePageSetRequest> request = makeObject<pdb::StoRemovePageSetRequest> ();
@@ -433,7 +433,7 @@ bool pdb::PDBComputationServer::removeUnusedPageSets(const std::vector<pair<uint
         // make a request and return the value
         removalSuccess = RequestFactory::heapRequest<pdb::StoRemovePageSetRequest, SimpleRequestResult, bool>(
             logger, node->port, node->address, false, 1024,
-            [&](Handle<SimpleRequestResult> result) {
+            [&](const Handle<SimpleRequestResult>& result) {
               return true;
             },
             pageSet) && removalSuccess;

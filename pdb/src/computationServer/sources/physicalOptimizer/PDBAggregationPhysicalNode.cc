@@ -115,12 +115,12 @@ pdb::PDBPlanningResult PDBAggregationPhysicalNode::generateMergedAlgorithm(const
   pdb::Handle<PDBSinkPageSetSpec> lhsKeySink = pdb::makeObject<PDBSinkPageSetSpec>();
   lhsKeySink->sinkType = PDBSinkType::HashedKeySink;
   lhsKeySink->pageSetIdentifier = PDBAbstractPageSet::toKeyPageSetIdentifier(std::make_pair(computationID,
-                                                                                                      this->getPipeComputations().front()->getOutputName() + "_rhs"));
+                                                                                                      this->getPipeComputations().front()->getOutputName() + "_lhs"));
   // the rhs key sink
   pdb::Handle<PDBSinkPageSetSpec> rhsKeySink = pdb::makeObject<PDBSinkPageSetSpec>();
   rhsKeySink->sinkType = PDBSinkType::HashedKeySink;
-  lhsKeySink->pageSetIdentifier = PDBAbstractPageSet::toKeyPageSetIdentifier(std::make_pair(computationID,
-                                                                                                      this->getPipeComputations().front()->getOutputName() + "_lhs"));
+  rhsKeySink->pageSetIdentifier = PDBAbstractPageSet::toKeyPageSetIdentifier(std::make_pair(computationID,
+                                                                                                      this->getPipeComputations().front()->getOutputName() + "_rhs"));
 
   // the join aggregation key sink
   pdb::Handle<PDBSinkPageSetSpec> joinAggKeySink = pdb::makeObject<PDBSinkPageSetSpec>();
