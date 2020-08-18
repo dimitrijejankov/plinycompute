@@ -44,7 +44,8 @@ public:
 
     // copy the stuff
     for(const auto &node : nodes) {
-      this->nodes->push_back(pdb::makeObject<CatNodeObject>(node->address, node->port, node->nodeType, node->numCores, node->totalMemory, node->active));
+      this->nodes->push_back(pdb::makeObject<CatNodeObject>(node->nodeID, node->address, node->port, node->nodeType,
+                                                            node->numCores, node->totalMemory, node->active));
     }
   }
 

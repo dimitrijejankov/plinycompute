@@ -37,9 +37,9 @@ public:
   CatNodeObject() = default;
   ~CatNodeObject() = default;
 
-  CatNodeObject(const std::string &address, int port,
+  CatNodeObject(int32_t nodeID, const std::string &address, int port,
                 const std::string &nodeType, int32_t numCores, int64_t totalMemory, bool active) {
-    this->nodeID = address + ":" + std::to_string(port);
+    this->nodeID = nodeID;
     this->nodeAddress = address;
     this->nodePort = port;
     this->nodeType = nodeType;
@@ -65,7 +65,7 @@ public:
   /**
    * The id of the node is a combination of the ip address and the port concatenated by a column
    */
-  pdb::String nodeID;
+  int32_t nodeID{};
 
   /**
    * The ip address of the node
@@ -95,7 +95,7 @@ public:
   /**
    * True if the node is still active
    */
-  bool active;
+  bool active{};
 };
 }
 

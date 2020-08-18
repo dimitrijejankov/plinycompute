@@ -54,6 +54,7 @@
 #include "CatPrintCatalogResult.h"
 #include "CatSetIncrementSetRecordInfo.h"
 #include "CatalogServer.h"
+#include "CatSyncResult.h"
 #include "HeapRequestHandler.h"
 #include "VTableMap.h"
 
@@ -64,9 +65,9 @@ void CatalogServer::initDirectories() const {
   // creates temp folder for extracting so_files (only if folder doesn't exist)
   const int folder = mkdir(tempPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   if (folder == -1) {
-    PDB_COUT << "Folder " << tempPath << " was not created, it already exists.\n";
+    logger->info("Folder " + tempPath + " was not created, it already exists.");
   } else {
-    PDB_COUT << "Folder " << tempPath << " for temporary shared libraries was created/opened.\n";
+    logger->info("Folder " + tempPath + " for temporary shared libraries was created/opened.");
   }
 }
 
@@ -83,7 +84,7 @@ void CatalogServer::initBuiltInTypes() {
       if(!pdbCatalog->registerType(std::make_shared<pdb::PDBCatalogType>(type.second, "built-in", type.first, std::vector<char>()), error)) {
 
         // we failed log what happened
-        PDB_COUT << error;
+        logger->info(error);
       }
     }
   }
@@ -107,24 +108,24 @@ void CatalogServer::init() {
   // initialize the types
   initBuiltInTypes();
 
-  PDB_COUT << "Catalog Server successfully initialized!\n";
+  logger->info("Catalog Server successfully initialized!");
 }
 
 // register handlers for processing requests to the Catalog Server
 void CatalogServer::registerHandlers(PDBServer &forMe) {
 
-  PDB_COUT << "Catalog Server registering handlers" << endl;
+  logger->info("Catalog Server registering handlers");
 
   // handles a request to register metadata of a new cluster Node in the catalog
   forMe.registerHandler(
       CatSyncRequest_TYPEID,
-      make_shared<HeapRequestHandler<CatSyncRequest>>([&](Handle<CatSyncRequest> request, PDBCommunicatorPtr sendUsingMe) {
+      make_shared<HeapRequestHandler<CatSyncRequest>>([&](Handle<CatSyncRequest> request, const PDBCommunicatorPtr& sendUsingMe) {
 
         // lock the catalog server
         std::lock_guard<std::mutex> guard(serverMutex);
 
         // grab the relevant node attributes
-        auto nodeID = (std::string) request->nodeID;
+        auto nodeID = request->nodeID;
         auto address = (std::string) request->nodeIP;
         auto port = request->nodePort;
         auto type = (std::string) request->nodeType;
@@ -132,7 +133,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         auto totalMemory = request->totalMemory;
 
         // log what is happening
-        PDB_COUT << "CatalogServer handler CatalogNodeMetadata_TYPEID adding the node with the address " << nodeID << "\n";
+        logger->info("CatalogServer handler CatalogNodeMetadata_TYPEID adding the node with the address " + std::to_string(nodeID));
 
         // adds the node to the catalog
         bool res = true;
@@ -156,10 +157,14 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
           return make_pair(res, errMsg);
         }
 
+        // if the node exists update it if it does not register it
+        res = pdbCatalog->nodeExists(nodeID) ? pdbCatalog->updateNode(node, errMsg) : pdbCatalog->registerNode(node, errMsg);
+
         // to get the results of each broadcast
         map<string, pair<bool, string>> updateResults;
 
         // broadcast the update
+        request->nodeID = node->nodeID;
         broadcastRequest(request, 1024, updateResults, errMsg);
 
         for (auto &item : updateResults) {
@@ -168,11 +173,8 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
           res = item.second.first && res;
 
           // log what is happening
-          PDB_COUT << "Node IP: " << item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") << item.second.second << "\n";
+          logger->info("Node IP: " + item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: " + item.second.second));
         }
-
-        // if the node exists update it if it does not register it
-        res = pdbCatalog->nodeExists(nodeID) ? pdbCatalog->updateNode(node, errMsg) : pdbCatalog->registerNode(node, errMsg);
 
         // grab the catalog bytes
         auto catalogDump = pdbCatalog->serializeToBytes();
@@ -188,7 +190,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
         // create an allocation block to hold the response
         const UseTemporaryAllocationBlock tmp{1024};
-        Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(res, errMsg);
+        Handle<CatSyncResult> response = makeObject<pdb::CatSyncResult>(node->nodeID, res, errMsg);
 
         // sends result to requester
         res = sendUsingMe->sendObject(response, errMsg) && res;
@@ -213,7 +215,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         if(!file.is_open()) {
 
           // log what happened
-          PDB_COUT << "Could not open out the catalog\n";
+          logger->info("Could not open out the catalog");
 
           // create an allocation block to hold the response
           const UseTemporaryAllocationBlock tmp{1024};
@@ -285,13 +287,13 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
             res = item.second.first && res;
 
             // log what is happening
-            PDB_COUT << "Node IP: " << item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") << item.second.second << "\n";
+            logger->info("Node IP: " + item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") + item.second.second);
           }
 
         } else {
 
           // log what happened
-          PDB_COUT << "This is not Manager Catalog Node, thus metadata was only registered locally!\n";
+          logger->info("This is not Manager Catalog Node, thus metadata was only registered locally!");
         }
 
         // sends result to requester
@@ -362,7 +364,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         std::lock_guard<std::mutex> guard(serverMutex);
 
         // log what is happening
-        PDB_COUT << "Received CatGetType message \n";
+        logger->info("Received CatGetType message");
 
         // ask the catalog server for the type ID given the type name
         auto type = this->pdbCatalog->getTypeWithoutLibrary(request->typeName);
@@ -375,7 +377,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         if(type != nullptr) {
 
           // log what is happening
-          PDB_COUT << "Searched for object type name " + (std::string) request->typeName + " got " + std::to_string(type->id) << "\n";
+          logger->info("Searched for object type name " + (std::string) request->typeName + " got " + std::to_string(type->id));
 
           // make a response object
           response = makeObject<CatGetTypeResult>((int16_t) type->id, type->name, type->typeCategory);
@@ -407,7 +409,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         auto type = pdbCatalog->getType(request->getTypeLibraryId());
 
         // log what is happening
-        PDB_COUT << "Triggering Handler CatalogServer CatSharedLibraryByNameRequest for typeID=" << request->getTypeLibraryId() << "\n";
+        logger->info("Triggering Handler CatalogServer CatSharedLibraryByNameRequest for typeID=" + std::to_string(request->getTypeLibraryId()));
 
         // check if the type is in the local catalog!
         if(type != nullptr) {
@@ -421,8 +423,8 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
                                                                                          type->soBytes.size());
 
           // low what is happening
-          PDB_COUT << "Found the type with typeName " << type->name << " for typeId=" + std::to_string(type->id) << "\n";
-          PDB_COUT << "The size of the .so library is : " + std::to_string(type->soBytes.size()) << "\n";
+          logger->info("Found the type with typeName " + type->name + " for typeId=" + std::to_string(type->id));
+          logger->info("The size of the .so library is : " + std::to_string(type->soBytes.size()));
 
           // sends result to requester
           std::string errMsg;
@@ -436,8 +438,8 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         if(!getConfiguration()->isManager) {
 
           // process the case where the type is not registered in this local
-          PDB_COUT << "Connecting to the Remote Catalog Server via Catalog Client\n";
-          PDB_COUT << "Invoking PDBCatalogClient.getSharedLibraryByName(typeName) from CatalogServer b/c this is Local Catalog \n";
+          logger->info("Connecting to the Remote Catalog Server via Catalog Client");
+          logger->info("Invoking PDBCatalogClient.getSharedLibraryByName(typeName) from CatalogServer b/c this is Local Catalog");
 
           // uses a dummyObjectFile since this is just making a remote call to
           // the Catalog Manager Server and what matters is the returned bytes.
@@ -456,7 +458,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
           auto client = PDBCatalogClient(conf->managerPort, conf->managerAddress, make_shared<pdb::PDBLogger>("clientCatalogToServerLog"));
           bool res = client.getSharedLibraryByTypeName(typeId, outTypeName, dummyObjectFile, bytes, errMsg);
 
-          PDB_COUT << "Bytes returned from manager: "  << std::to_string(bytes.size()) << "\n";
+          logger->info("Bytes returned from manager: " + std::to_string(bytes.size()));
 
           // if the library was successfully retrieved, go ahead and resolve
           // vtable fixing in the local catalog, given the library and
@@ -472,9 +474,6 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
           if (!res) {
 
-            // Ok we had an error either we could not grab the .so or we could not fix the vtable log that
-            PDB_COUT << res  << "\n";
-
             // create a not found response
             const UseTemporaryAllocationBlock tempBlock{1024};
             Handle<CatUserTypeMetadata> notFoundResponse = makeObject<CatUserTypeMetadata>();
@@ -484,7 +483,6 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
             // finish this
             return make_pair(res, errMsg);
-
           }
 
           // now grab the type and it better be there
@@ -493,7 +491,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
           if (type != nullptr) {
 
             // if retrieval was successful prepare and send object to caller
-            PDB_COUT << "Fixed the vtable successfully, sending the response !!!!" << endl;
+            logger->info("Fixed the vtable successfully, sending the response !!!!");
 
             // create a block to put the response in..
             const UseTemporaryAllocationBlock tempBlock{1024 * 1024 + bytes.size()};
@@ -517,7 +515,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         std::string errMsg = "CatSharedLibraryByNameRequest Handler Could not find the type with the id" + std::to_string(request->getTypeLibraryId()) + "\n";
 
         // log what is happening
-        PDB_COUT << errMsg;
+        logger->error(errMsg);
 
         // Creates an empty Object just to send the response to caller
         Handle<CatUserTypeMetadata> notFoundResponse = makeObject<CatUserTypeMetadata>();
@@ -565,13 +563,13 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
                 res = item.second.first && res;
 
                 // log what is happening
-                PDB_COUT << "Node IP: " << item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") << item.second.second << "\n";
+                logger->info("Node IP: " + item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") + item.second.second);
               }
 
             } else {
 
               // log what happened
-              PDB_COUT << "This is not Manager Catalog Node, thus metadata was only registered locally!\n";
+              logger->info("This is not Manager Catalog Node, thus metadata was only registered locally!");
             }
 
             // create an allocation block to hold the response
@@ -651,13 +649,13 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
                 res = item.second.first && res;
 
                 // log what is happening
-                PDB_COUT << "Node IP: " << item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") << item.second.second << "\n";
+                logger->info("Node IP: " + item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") + item.second.second);
               }
 
             } else {
 
               // log what happened
-              PDB_COUT << "This is not Manager Catalog Node, thus metadata was only registered locally!\n";
+              logger->info("This is not Manager Catalog Node, thus metadata was only registered locally!");
             }
 
             // create an allocation block to hold the response
@@ -693,7 +691,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
             if (set != nullptr && set->type != nullptr) {
 
               // log what is happening
-              PDB_COUT << "Type for set with dbName=" << request->getDatabaseName() << " and setName=" << request->getSetName() << " is " << *set->type << "\n";
+              logger->info("Type for set with dbName=" + request->getDatabaseName() + " and setName=" + request->getSetName() + " is " + *set->type);
 
               // return the name
               response = makeObject<CatTypeNameSearchResult>(*set->type, true, "success");
@@ -744,13 +742,13 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
                 res = item.second.first && res;
 
                 // log what is happening
-                PDB_COUT << "Node IP: " << item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") << item.second.second << "\n";
+                logger->info("Node IP: " + item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") + item.second.second);
               }
 
             } else {
 
               // log what happened
-              PDB_COUT << "This is not Manager Catalog Node, thus metadata was only registered locally!\n";
+              logger->info("This is not Manager Catalog Node, thus metadata was only registered locally!");
             }
 
             // create an allocation block to hold the response
@@ -814,13 +812,13 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
             res = item.second.first && res;
 
             // log what is happening
-            PDB_COUT << "Node IP: " << item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") << item.second.second << "\n";
+            logger->info("Node IP: " + item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") + item.second.second);
           }
 
         } else {
 
           // log what happened
-          PDB_COUT << "This is not Manager Catalog Node, thus metadata was only registered locally!\n";
+          logger->info("This is not Manager Catalog Node, thus metadata was only registered locally!\n");
         }
 
         // create an allocation block to hold the response
@@ -864,13 +862,13 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
                 res = item.second.first && res;
 
                 // log what is happening
-                PDB_COUT << "Node IP: " << item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") << item.second.second << "\n";
+                logger->info("Node IP: " + item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") + item.second.second);
               }
 
             } else {
 
               // log what happened
-              PDB_COUT << "This is not Manager Catalog Node, thus metadata was only registered locally!\n";
+              logger->info("This is not Manager Catalog Node, thus metadata was only registered locally!");
             }
 
             // allocate a block for the response
@@ -924,13 +922,13 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
             res = item.second.first && res;
 
             // log what is happening
-            PDB_COUT << "Node IP: " << item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") << item.second.second << "\n";
+            logger->info("Node IP: " + item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") + item.second.second);
           }
 
         } else {
 
           // log what happened
-          PDB_COUT << "This is not Manager Catalog Node, thus metadata was only registered locally!\n";
+          logger->info("This is not Manager Catalog Node, thus metadata was only registered locally!");
         }
 
         // create an allocation block for the response
@@ -981,13 +979,13 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
                 res = item.second.first && res;
 
                 // log what is happening
-                PDB_COUT << "Node IP: " << item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") << item.second.second << "\n";
+                logger->info("Node IP: " + item.first + (item.second.first ? " updated correctly!" : " couldn't be updated due to error: ") + item.second.second);
               }
 
             } else {
 
               // log what happened
-              PDB_COUT << "This is not Manager Catalog Node, thus metadata was only registered locally!\n";
+              logger->info("This is not Manager Catalog Node, thus metadata was only registered locally!");
             }
 
             // allocate a block for the response
@@ -1121,7 +1119,7 @@ bool CatalogServer::loadAndRegisterType(int16_t typeIDFromManagerCatalog, const 
 
   // write out the shared library
   auto sizeWritten = write(fileDesc, soFile, soFileSize);
-  PDB_COUT << "For type id : " <<  typeIDFromManagerCatalog << " shared library of size : " << sizeWritten  << "written to disk.\n";
+  logger->info("For type id : " +  std::to_string(typeIDFromManagerCatalog) + " shared library of size : " + std::to_string(sizeWritten) + "written to disk.");
 
   // close the damn thing
   close(fileDesc);
@@ -1142,7 +1140,7 @@ bool CatalogServer::loadAndRegisterType(int16_t typeIDFromManagerCatalog, const 
     errMsg.append("\n");
 
     // log what happened
-    PDB_COUT << errMsg;
+    logger->info(errMsg);
 
     // close the damn thing
     dlclose(so_handle);
@@ -1154,7 +1152,7 @@ bool CatalogServer::loadAndRegisterType(int16_t typeIDFromManagerCatalog, const 
   auto *myFunc = (getObjectTypeNameFunc *) dlsym(so_handle, "getObjectTypeName");
 
   // log what is happening
-  PDB_COUT << "Tried to extract the getObjectTypeName function from the .so file \n";
+  logger->info("Tried to extract the getObjectTypeName function from the .so file \n");
 
   // if the function is not defined or there was an error return
   char *symError;
@@ -1165,28 +1163,28 @@ bool CatalogServer::loadAndRegisterType(int16_t typeIDFromManagerCatalog, const 
     errMsg.append(symError);
     errMsg.append("\n");
 
-    PDB_COUT << errMsg << endl;
+    logger->info(errMsg);
 
     return false;
   }
 
   // log what is happening
-  PDB_COUT << "Successfully extracted the getObjectTypeName function from the .so file" << endl;
+  logger->info("Successfully extracted the getObjectTypeName function from the .so file\n");
 
   // now, get the type name so we can write the appropriate file
   string typeName(myFunc());
   dlclose(so_handle);
 
   // log what is happening
-  PDB_COUT << "typeName returned from SO file: " << typeName << endl;
+  logger->info("typeName returned from SO file: " + typeName);
 
   // rename temporary file
   string newName = tempPath + "/" + typeName + ".so";
   int result = rename(tempFile.c_str(), newName.c_str());
   if (result == 0) {
-    PDB_COUT << "Successfully renaming file " << newName << endl;
+    logger->info("Successfully renaming file " + newName);
   } else {
-    PDB_COUT << "Renaming temp file failed " << newName << endl;
+    logger->info("Renaming temp file failed " + newName);
     return false;
   }
 
@@ -1194,7 +1192,7 @@ bool CatalogServer::loadAndRegisterType(int16_t typeIDFromManagerCatalog, const 
   if(pdbCatalog->getTypeWithoutLibrary(typeName) == nullptr) {
 
     // ok we don't have it log that!
-    PDB_COUT << "Fixing vtable ptr for type " << typeName << " with metadata retrieved from remote Catalog Server." << endl;
+    logger->info("Fixing vtable ptr for type " + typeName + " with metadata retrieved from remote Catalog Server.");
 
     // we are gonna put the type code here
     int16_t typeCode;
@@ -1209,7 +1207,7 @@ bool CatalogServer::loadAndRegisterType(int16_t typeIDFromManagerCatalog, const 
     }
 
     // log what is happening
-    PDB_COUT << "ID Assigned to type " << typeName << " is " << std::to_string(typeCode) << endl;
+    logger->info("ID Assigned to type " + typeName + " is " + std::to_string(typeCode));
 
 
     // copy the type into a vector

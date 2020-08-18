@@ -16,38 +16,58 @@
  *                                                                           *
  *****************************************************************************/
 /*
- * File:   PDBCatalogMsgType.h
+ * CluSyncResult.h
+ *
  */
 
-#ifndef PDBCATALOGMSGTYPE_H
-#define PDBCATALOGMSGTYPE_H
+#pragma once
 
-// this lists all of the identifiers for the different types of Catalog Related
-// Metadata
+#include <iostream>
+#include <utility>
+#include "Object.h"
+#include "PDBString.h"
+#include "PDBVector.h"
 
-enum PDBCatalogMsgType {
-  CatalogPDBNode, // 0
+//  PRELOAD %CluSyncResult%
 
-  CatalogPDBRegisteredObject, // 1
+using namespace std;
 
-  CatalogPDBDatabase, // 2
+namespace pdb {
 
-  CatalogPDBUser, // 3
+/**
+ * The result of syncing
+ */
+class CluSyncResult : public Object {
+ public:
 
-  CatalogGetPDBRegisteredObject, // 4
+  CluSyncResult() = default;
 
-  GetSerializedCatalog, // 5
+  CluSyncResult(int32_t nodeID, bool success, std::string error) {
 
-  SerializedCatalog, // 6
+    // init the fields
+    this->nodeID = nodeID;
+    this->success = success;
+    this->error = std::move(error);
+  }
 
-  GetCatalogMetadataAsString, // 7
+  explicit CluSyncResult(const Handle<CluSyncResult> &requestToCopy) {
+    this->nodeID = requestToCopy->nodeID;
+    this->success = requestToCopy->success;
+    this->error = requestToCopy->error;
+  }
 
-  CatalogPDBSet, // 8
+  ~CluSyncResult() = default;
 
-  CatalogPDBPermissions, // 9
+  ENABLE_DEEP_COPY
 
-  CatalogDataTypeId // 10
+  // ID of the node
+  int32_t nodeID{};
 
+  // did we succeed?
+  bool success{};
+
+  // the error if any
+  std::string error;
 };
 
-#endif /* PDBCATALOGMSGTYPE_H */
+}

@@ -280,7 +280,7 @@ class PDBStorageMapIterator<T, typename std::enable_if<hasGetKey<T>::value and h
   /**
    * The node we want to grab the page from
    */
-  std::string currNode = "none";
+  int32_t currNode = -1;
 
   /**
    * The buffer we are storing the records

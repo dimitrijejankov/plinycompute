@@ -30,8 +30,6 @@
 #include <map>
 #include <pthread.h>
 #include <sstream>
-#include <stdio.h>
-#include <string.h>
 #include <string>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -72,7 +70,7 @@ class PDBCatalog {
    * @param error - the error if we fail
    * @return true if the set is registered successfully
    */
-  bool registerSet(PDBCatalogSetPtr set, std::string &error);
+  bool registerSet(const PDBCatalogSetPtr& set, std::string &error);
 
   /**
    * Registers the provided database
@@ -80,7 +78,7 @@ class PDBCatalog {
    * @param error - the error if we fail
    * @return true if the database is registered successfully
    */
-  bool registerDatabase(PDBCatalogDatabasePtr db, std::string &error);
+  bool registerDatabase(const PDBCatalogDatabasePtr& db, std::string &error);
 
   /**
    * Registers the provided type
@@ -88,7 +86,7 @@ class PDBCatalog {
    * @param error - the error if we fail
    * @return true if the type is registered successfully
    */
-  bool registerType(PDBCatalogTypePtr type, std::string &error);
+  bool registerType(const PDBCatalogTypePtr& type, std::string &error);
 
   /**
    * Registers the node
@@ -96,7 +94,7 @@ class PDBCatalog {
    * @param error - the error if we fail
    * @return true if the node is registered successfully
    */
-  bool registerNode(PDBCatalogNodePtr node, std::string &error);
+  bool registerNode(const PDBCatalogNodePtr& node, std::string &error);
 
   /**
    * Registers the node
@@ -112,7 +110,7 @@ class PDBCatalog {
    * @param isActive - true if the node is active, false otherwise
    * @return true if we succeed false otherwise
    */
-  bool updateNodeStatus(const std::string &nodeID, bool isActive, std::string &error);
+  bool updateNodeStatus(int32_t nodeID, bool isActive, std::string &error);
 
   /**
    * Update the set container type, @see PDBCatalogSetContainerType for valid values
@@ -150,7 +148,7 @@ class PDBCatalog {
    * @param nodeID - the id of the node by aggrement it is a string of the form "ip:port"
    * @return - true if it does false otherwise
    */
-  bool nodeExists(const std::string &nodeID);
+  bool nodeExists(int32_t nodeID);
 
   /**
    * Get the set with the of the provided name in the provided database
@@ -166,7 +164,7 @@ class PDBCatalog {
    * @param setIdentifier
    * @return
    */
-  pdb::PDBCatalogSetOnNodePtr getSetOnNode(const std::string &nodeIdentifier,
+  pdb::PDBCatalogSetOnNodePtr getSetOnNode(int32_t nodeID,
                                            const std::string &setIdentifier);
   /**
    * Finds the set with the provided name and increments the number of bytes the set has.
@@ -180,7 +178,7 @@ class PDBCatalog {
    * @param error - error string if any
    * @return true if the set exists false otherwise
    */
-  bool incrementSetSize(const std::string &nodeID,
+  bool incrementSetSize(int32_t nodeID,
                         const std::string &dbName,
                         const std::string &setName,
                         size_t sizeAdded,
@@ -201,7 +199,7 @@ class PDBCatalog {
    * @param nodeID - the node identifier is a string of the format "ip:port"
    * @return - null if we do not find it, a copy of the node info if we find it
    */
-  PDBCatalogNodePtr getNode(const std::string &nodeID);
+  PDBCatalogNodePtr getNode(int32_t nodeID);
 
   /**
    * Returns all the worker nodes in the catalog
@@ -336,7 +334,7 @@ class PDBCatalog {
    * @param setName - the set name
    * @return the set name for the key by convention "setName#keys"
    */
-  static const std::string toKeySetName(const std::string &setName);
+  static std::string toKeySetName(const std::string &setName);
 
   /**
    * Converts the key set anme to the set name

@@ -34,13 +34,13 @@ class PDBCatalogType {
    * @param name - the name of the type
    * @param soBytes - the bytes of the .so library
    */
-  PDBCatalogType(int id, std::string typeCategory, std::string name, const std::vector<char> &soBytes)
-      : id(id), typeCategory(std::move(typeCategory)), name(std::move(name)), soBytes(soBytes) {}
+  PDBCatalogType(int id, std::string typeCategory, std::string name, std::vector<char> soBytes)
+      : id(id), typeCategory(std::move(typeCategory)), name(std::move(name)), soBytes(std::move(soBytes)) {}
 
   /**
    * The id of the type
    */
-  int id;
+  int id{};
 
   /**
    * The category of the type TODO could be something stupid

@@ -33,15 +33,15 @@ class PDBCatalogNode {
    * @param port - the port of the node
    * @param nodeType - and the type of the node { worker, master } I guess
    */
-  PDBCatalogNode(std::string nodeID, std::string address, int port, std::string nodeType, int32_t numCores, int64_t totalMemory, bool active)
-      : nodeID(std::move(nodeID)), address(std::move(address)), port(port),
+  PDBCatalogNode(int32_t nodeID, std::string address, int port, std::string nodeType, int32_t numCores, int64_t totalMemory, bool active)
+      : nodeID(nodeID), address(std::move(address)), port(port),
         nodeType(std::move(nodeType)), numCores(numCores), totalMemory(totalMemory), active(active) {}
 
 
   /**
    * The id of the node is a combination of the ip address and the port concatenated by a column
    */
-  std::string nodeID;
+  int32_t nodeID{};
 
   /**
    * The ip address of the node
@@ -51,7 +51,7 @@ class PDBCatalogNode {
   /**
    * The port of the node
    */
-  int port;
+  int32_t port{};
 
   /**
    * The node type
@@ -80,14 +80,14 @@ class PDBCatalogNode {
   static auto getSchema() {
 
     // return the schema
-    return sqlite_orm::make_table("nodes", sqlite_orm::make_column("nodeID", &PDBCatalogNode::nodeID),
-                                           sqlite_orm::make_column("nodeAddress", &PDBCatalogNode::address),
-                                           sqlite_orm::make_column("nodePort", &PDBCatalogNode::port),
-                                           sqlite_orm::make_column("nodeType", &PDBCatalogNode::nodeType),
-                                           sqlite_orm::make_column("nodeNumCores", &PDBCatalogNode::numCores),
-                                           sqlite_orm::make_column("nodeTotalMemory", &PDBCatalogNode::totalMemory),
-                                           sqlite_orm::make_column("nodeActive", &PDBCatalogNode::active),
-                                           sqlite_orm::primary_key(&PDBCatalogNode::nodeID));
+    return sqlite_orm::make_table("nodes",
+    sqlite_orm::make_column("nodeID", &PDBCatalogNode::nodeID, sqlite_orm::autoincrement(), sqlite_orm::primary_key()),
+    sqlite_orm::make_column("nodeAddress", &PDBCatalogNode::address),
+    sqlite_orm::make_column("nodePort", &PDBCatalogNode::port),
+    sqlite_orm::make_column("nodeType", &PDBCatalogNode::nodeType),
+    sqlite_orm::make_column("nodeNumCores", &PDBCatalogNode::numCores),
+    sqlite_orm::make_column("nodeTotalMemory", &PDBCatalogNode::totalMemory),
+    sqlite_orm::make_column("nodeActive", &PDBCatalogNode::active));
   }
 
 };

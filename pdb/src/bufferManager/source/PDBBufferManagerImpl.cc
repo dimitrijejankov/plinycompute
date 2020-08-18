@@ -33,7 +33,7 @@ namespace pdb {
 
 namespace fs = boost::filesystem;
 
-PDBBufferManagerImpl::PDBBufferManagerImpl(pdb::NodeConfigPtr config) {
+PDBBufferManagerImpl::PDBBufferManagerImpl(const pdb::NodeConfigPtr& config) {
 
   // create the root directory
   fs::path dataPath(config->rootDirectory);
@@ -76,7 +76,7 @@ PDBBufferManagerImpl::PDBBufferManagerImpl(pdb::NodeConfigPtr config) {
   initialize((dataPath / "tempFile___.tmp").string(),
              pageSize,
              numPages,
-             (dataPath / "metadata").string(),
+             (dataPath / "metadata.pdb").string(),
              dataPath.string());
 }
 
@@ -91,7 +91,7 @@ size_t PDBBufferManagerImpl::getMaxPageSize() {
 }
 
 
-PDBBufferManagerImpl::~PDBBufferManagerImpl() {
+void PDBBufferManagerImpl::cleanup() {
 
   if (!initialized)
     return;
@@ -176,13 +176,13 @@ PDBBufferManagerImpl::~PDBBufferManagerImpl() {
   myMetaFile.save();
 }
 
-void PDBBufferManagerImpl::initialize(std::string metaDataFile) {
+void PDBBufferManagerImpl::initialize(const std::string& meta) {
 
   // mark the manager as initialized
   initialized = true;
 
   // first, get the basic info and initialize everything
-  PDBBufferManagerFileWriter myMetaFile(metaDataFile);
+  PDBBufferManagerFileWriter myMetaFile(meta);
 
   // we use these to grab metadata
   uint64_t utemp;
@@ -196,7 +196,7 @@ void PDBBufferManagerImpl::initialize(std::string metaDataFile) {
   sharedMemory.numPages = utemp;
   myMetaFile.getString("tempFile", tempFile);
   myMetaFile.getString("storageLoc", storageLoc);
-  initialize(tempFile, sharedMemory.pageSize, sharedMemory.numPages, metaDataFile, storageLoc);
+  initialize(tempFile, sharedMemory.pageSize, sharedMemory.numPages, meta, storageLoc);
 
   // now, get everything that we need for the end positions
   vector<string> setNames;
@@ -236,7 +236,7 @@ void PDBBufferManagerImpl::initialize(std::string metaDataFile) {
   }
 }
 
-void PDBBufferManagerImpl::initialize(std::string tempFileIn, size_t pageSizeIn, size_t numPagesIn,
+void PDBBufferManagerImpl::initialize(const std::string& tempFileIn, size_t pageSizeIn, size_t numPagesIn,
                                       std::string metaFile, std::string storageLocIn) {
   initialized = true;
   storageLoc = std::move(storageLocIn);
@@ -307,10 +307,10 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
   // figure out all the pages we need to remove
   bool found = false;
   std::vector<std::pair<size_t, PDBPagePtr>> pagesToRemove;
-  for(auto it = allPages.begin(); it != allPages.end(); it++) {
+  for(auto & allPage : allPages) {
 
     // if the set does not match got to the next
-    if(*it->first.first != *set) {
+    if(*allPage.first.first != *set) {
 
       // if we previously found a page then we can safely
       // finish searching for pages since they are sorted
@@ -326,7 +326,7 @@ void PDBBufferManagerImpl::clearSet(const PDBSetPtr &set) {
     found = true;
 
     // store the page
-    pagesToRemove.emplace_back(it->first.second, it->second);
+    pagesToRemove.emplace_back(allPage.first.second, allPage.second);
   }
 
   // remove the pages from all the pages
@@ -1476,6 +1476,7 @@ size_t PDBBufferManagerImpl::getLogPageSize(size_t numBytes) {
 
   return bytesRequired;
 }
+
 
 }
 

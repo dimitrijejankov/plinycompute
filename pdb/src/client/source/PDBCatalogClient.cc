@@ -18,10 +18,6 @@
  *                                                                           *
  *****************************************************************************/
 
-#ifndef CATALOG_CLIENT_CC
-#define CATALOG_CLIENT_CC
-
-#include <ctime>
 #include <fcntl.h>
 #include <fstream>
 #include <iostream>
@@ -37,6 +33,7 @@
 #include "CatDeleteDatabaseRequest.h"
 #include "CatDeleteSetRequest.h"
 #include "CatRegisterType.h"
+#include "CatSyncResult.h"
 #include "CatSetObjectTypeRequest.h"
 #include "CatGetType.h"
 #include "CatGetSetRequest.h"
@@ -87,7 +84,7 @@ PDBCatalogClient::~PDBCatalogClient() {
 void PDBCatalogClient::registerHandlers(PDBServer &forMe) {}
 
 // sends a request to a Catalog Server to register a Data Type defined in a Shared Library
-bool PDBCatalogClient::registerType(std::string fileContainingSharedLib, std::string &errMsg) {
+bool PDBCatalogClient::registerType(const std::string& fileContainingSharedLib, std::string &errMsg) {
 
   const LockGuard guard{workingMutex};
 
@@ -141,7 +138,7 @@ PDBCatalogTypePtr PDBCatalogClient::getType(const std::string &typeName, std::st
   PDB_COUT << "Searching for type with the name : " << typeName << "\n";
   return RequestFactory::heapRequest< CatGetType, CatGetTypeResult, PDBCatalogTypePtr>(
       myLogger, port, address, nullptr, 1024 * 1024,
-      [&](Handle<CatGetTypeResult> result) {
+      [&](const Handle<CatGetTypeResult>& result) {
         if (result != nullptr) {
           PDB_COUT << "Got a type with the type id :" << result->typeID << "\n";
           return std::make_shared<PDBCatalogType>(result->typeID, (std::string) result->typeCategory, result->typeName, std::vector<char>());
@@ -156,7 +153,7 @@ PDBCatalogTypePtr PDBCatalogClient::getType(const std::string &typeName, std::st
 std::vector<pdb::PDBCatalogNodePtr> pdb::PDBCatalogClient::getActiveWorkerNodes() {
 
   return std::move(RequestFactory::heapRequest< CatGetWorkersRequest, CatGetWorkersResult, std::vector<pdb::PDBCatalogNodePtr>>(
-      myLogger, port, address, std::vector<pdb::PDBCatalogNodePtr>(), 1024 * 1024, [&](Handle<CatGetWorkersResult> result) {
+      myLogger, port, address, std::vector<pdb::PDBCatalogNodePtr>(), 1024 * 1024, [&](const Handle<CatGetWorkersResult>& result) {
 
         if (result == nullptr) {
           PDB_COUT << "Failed to get the workers!" << "\n";
@@ -186,7 +183,7 @@ std::vector<pdb::PDBCatalogNodePtr> pdb::PDBCatalogClient::getActiveWorkerNodes(
 std::vector<pdb::PDBCatalogNodePtr> pdb::PDBCatalogClient::getWorkerNodes() {
 
   return std::move(RequestFactory::heapRequest< CatGetWorkersRequest, CatGetWorkersResult, std::vector<pdb::PDBCatalogNodePtr>>(
-      myLogger, port, address, std::vector<pdb::PDBCatalogNodePtr>(), 1024 * 1024, [&](Handle<CatGetWorkersResult> result) {
+      myLogger, port, address, std::vector<pdb::PDBCatalogNodePtr>(), 1024 * 1024, [&](const Handle<CatGetWorkersResult>& result) {
 
         if (result == nullptr) {
           PDB_COUT << "Failed to get the workers!" << "\n";
@@ -218,7 +215,7 @@ bool PDBCatalogClient::getSharedLibrary(int16_t identifier,
 
   // using an empty Name b/c it's being searched by typeId
   string typeNameToSearch;
-  bool res = getSharedLibraryByTypeName(identifier, typeNameToSearch, sharedLibraryFileName, sharedLibraryBytes, errMsg);
+  bool res = getSharedLibraryByTypeName(identifier, typeNameToSearch, std::move(sharedLibraryFileName), sharedLibraryBytes, errMsg);
 
   PDB_COUT << "PDBCatalogClient: deleted putResultHere " << errMsg << std::endl;
   return res;
@@ -234,7 +231,7 @@ bool PDBCatalogClient::getSharedLibraryByTypeName(
 
   return RequestFactory::heapRequest< CatSharedLibraryByNameRequest, CatUserTypeMetadata, bool>(
       myLogger, port, address, false, 1024 * 1024 * 4,
-      [&](Handle<CatUserTypeMetadata> result) {
+      [&](const Handle<CatUserTypeMetadata>& result) {
 
         PDB_COUT << "In PDBCatalogClient- Handling CatSharedLibraryByNameRequest "
                     "received from "
@@ -295,13 +292,13 @@ bool PDBCatalogClient::getSharedLibraryByTypeName(
 }
 
 // sends a request to obtain the TypeId of a Type, given a database and set
-std::string PDBCatalogClient::getObjectType(std::string databaseName,
-                                         std::string setName,
-                                         std::string &errMsg) {
+std::string PDBCatalogClient::getObjectType(const std::string& databaseName,
+                                            const std::string& setName,
+                                            std::string &errMsg) {
 
   return RequestFactory::heapRequest< CatSetObjectTypeRequest, CatTypeNameSearchResult, std::string>(
       myLogger, port, address, "", 1024,
-      [&](Handle<CatTypeNameSearchResult> result) {
+      [&](const Handle<CatTypeNameSearchResult>& result) {
         if (result != nullptr) {
           auto success = result->wasSuccessful();
           if (!success.first) {
@@ -343,12 +340,11 @@ bool PDBCatalogClient::createSet(const std::string &typeName, int16_t typeID, co
 }
 
 // sends a request to the Catalog Server to create Metadata for a new Database
-bool PDBCatalogClient::createDatabase(std::string databaseName,
-                                   std::string &errMsg) {
+bool PDBCatalogClient::createDatabase(const std::string& databaseName, std::string &errMsg) {
 
   return RequestFactory::heapRequest< CatCreateDatabaseRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
+      [&](const Handle<SimpleRequestResult>& result) {
         if (result != nullptr) {
           if (!result->getRes().first) {
             errMsg = "Error creating database: " + result->getRes().second;
@@ -407,7 +403,7 @@ bool PDBCatalogClient::setExists(const std::string &dbName, const std::string &s
 
   return RequestFactory::heapRequest< CatGetSetRequest, CatGetSetResult, bool>(
       myLogger, port, address, false, 1024 * 1024,
-      [&](Handle<CatGetSetResult> result) {
+      [&](const Handle<CatGetSetResult>& result) {
         return result != nullptr && result->databaseName == dbName && result->setName == setName;
       },
       dbName, setName);
@@ -418,7 +414,7 @@ bool PDBCatalogClient::databaseExists(const std::string &dbName) {
   // make a request and return the value
   return RequestFactory::heapRequest< CatGetDatabaseRequest, CatGetDatabaseResult, bool>(
       myLogger, port, address, false, 1024 * 1024,
-      [&](Handle<CatGetDatabaseResult> result) {
+      [&](const Handle<CatGetDatabaseResult>& result) {
         return result != nullptr && result->database == dbName;
       },
       dbName);
@@ -446,7 +442,7 @@ pdb::PDBCatalogSetPtr PDBCatalogClient::getSet(const std::string &dbName, const 
               dbName, setName);
 }
 
-bool PDBCatalogClient::incrementSetRecordInfo(const std::string &nodeIdentifier,
+bool PDBCatalogClient::incrementSetRecordInfo(int32_t nodeIdentifier,
                                               const std::string &databaseName,
                                               const std::string &setName,
                                               size_t sizeAdded,
@@ -472,7 +468,7 @@ bool PDBCatalogClient::incrementSetRecordInfo(const std::string &nodeIdentifier,
       nodeIdentifier, databaseName, setName, sizeAdded, recordsStored, 0, 0);
 }
 
-bool PDBCatalogClient::incrementKeyRecordInfo(const std::string &nodeIdentifier,
+bool PDBCatalogClient::incrementKeyRecordInfo(int32_t nodeIdentifier,
                                               const std::string &databaseName,
                                               const std::string &setName,
                                               size_t sizeAdded,
@@ -505,7 +501,7 @@ bool PDBCatalogClient::updateSetContainerType(const string &databaseName,
   // make a request and return the value
   return RequestFactory::heapRequest<CatSetUpdateContainerTypeRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
+      [&](const Handle<SimpleRequestResult>& result) {
         if (result != nullptr) {
           if (!result->getRes().first) {
             errMsg = "Error updating set: " + result->getRes().second;
@@ -525,7 +521,7 @@ pdb::PDBCatalogSetStatsPtr PDBCatalogClient::getSetStats(const std::string &dbNa
   // make a request and return the value
   return RequestFactory::heapRequest<CatSetStatsRequest, CatSetStatsResult, pdb::PDBCatalogSetStatsPtr>(
       myLogger, port, address, (pdb::PDBCatalogSetStatsPtr) nullptr, 1024,
-      [&](Handle<CatSetStatsResult> result) {
+      [&](const Handle<CatSetStatsResult>& result) {
 
         if (result != nullptr && !result->hasStats) {
             myLogger->error("Error getting the stats: " + dbName + " : " + setName);
@@ -547,7 +543,7 @@ pdb::PDBCatalogDatabasePtr PDBCatalogClient::getDatabase(const std::string &dbNa
   // make a request and return the value
   return RequestFactory::heapRequest< CatGetDatabaseRequest, CatGetDatabaseResult, pdb::PDBCatalogDatabasePtr>(
       myLogger, port, address, (pdb::PDBCatalogDatabasePtr) nullptr, 1024,
-      [&](Handle<CatGetDatabaseResult> result) {
+      [&](const Handle<CatGetDatabaseResult>& result) {
 
         // do we have the thing
         if(result != nullptr && result->database == dbName) {
@@ -566,7 +562,7 @@ bool PDBCatalogClient::deleteDatabase(const std::string &databaseName, std::stri
 
   return RequestFactory::heapRequest< CatDeleteDatabaseRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
+      [&](const Handle<SimpleRequestResult>& result) {
         if (result != nullptr) {
           if (!result->getRes().first) {
             errMsg = "Error deleting database: " + result->getRes().second;
@@ -583,32 +579,33 @@ bool PDBCatalogClient::deleteDatabase(const std::string &databaseName, std::stri
 }
 
 // sends a request to the Catalog Server to add metadata about a Node
-bool PDBCatalogClient::syncWithNode(PDBCatalogNodePtr nodeData, std::string &errMsg) {
+int32_t PDBCatalogClient::syncWithNode(const PDBCatalogNodePtr& nodeData, std::string &errMsg) {
 
-  return RequestFactory::heapRequest< CatSyncRequest, SimpleRequestResult, bool>(
+  return RequestFactory::heapRequest<CatSyncRequest, CatSyncResult, int32_t>(
       myLogger, port, address, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
+      [&](const Handle<CatSyncResult>& result) {
         if (result != nullptr) {
-          if (!result->getRes().first) {
-            errMsg = "Error registering node metadata: " + result->getRes().second;
-            myLogger->error("Error registering node metadata: " + result->getRes().second);
-            return false;
+          if (!result->success) {
+            errMsg = "Error registering node metadata: " + result->error;
+            myLogger->error(errMsg);
+            return -1;
           }
-          return true;
+          return result->nodeID;
         }
+
         errMsg = "Error registering node metadata in the catalog";
-        return false;
+        return -1;
       },
       nodeData->nodeID, nodeData->address, nodeData->port,
       nodeData->nodeType, nodeData->numCores, nodeData->totalMemory);
 }
 
-bool PDBCatalogClient::updateNodeStatus(const std::string &nodeID, bool nodeActive, std::string &errMsg) {
+bool PDBCatalogClient::updateNodeStatus(int32_t nodeID, bool nodeActive, std::string &errMsg) {
 
   // do the request
   return RequestFactory::heapRequest< CatUpdateNodeStatusRequest, SimpleRequestResult, bool>(
       myLogger, port, address, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
+      [&](const Handle<SimpleRequestResult>& result) {
         if (result != nullptr) {
 
           if (!result->getRes().first) {
@@ -635,7 +632,7 @@ string PDBCatalogClient::printCatalogMetadata(pdb::Handle<pdb::CatPrintCatalogRe
 
   return RequestFactory::heapRequest< pdb::CatPrintCatalogRequest, CatPrintCatalogResult, string>(
       myLogger, port, address, "", 1024,
-      [&](Handle<CatPrintCatalogResult> result) {
+      [&](const Handle<CatPrintCatalogResult>& result) {
         if (result != nullptr) {
           string res = result->output;
           return res;
@@ -652,7 +649,7 @@ string PDBCatalogClient::printCatalogMetadata(std::string &categoryToPrint, std:
   pdb::Handle<pdb::CatPrintCatalogRequest> itemToPrint = pdb::makeObject<CatPrintCatalogRequest>("", categoryToPrint);
 
   return RequestFactory::heapRequest< pdb::CatPrintCatalogRequest, CatPrintCatalogResult, string>(myLogger, port, address, "", 1024,
-      [&](Handle<CatPrintCatalogResult> result) {
+      [&](const Handle<CatPrintCatalogResult>& result) {
         if (result != nullptr) {
           string resultToPrint = result->output;
           return resultToPrint;
@@ -694,4 +691,3 @@ string PDBCatalogClient::listAllRegisteredMetadata(std::string &errMsg) {
 }
 
 }
-#endif

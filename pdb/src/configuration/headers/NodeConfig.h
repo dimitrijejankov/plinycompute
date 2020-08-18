@@ -41,6 +41,11 @@ struct NodeConfig {
   std::string managerAddress = "";
 
   /**
+   * The id of the node
+   */
+  int32_t nodeID = -1;
+
+  /**
    * The port of the manger
    */
   int32_t managerPort = -1;
@@ -90,13 +95,6 @@ struct NodeConfig {
    */
   std::string catalogFile = "";
 
-  /**
-   * The node identifier
-   */
-  [[nodiscard]] std::string getNodeIdentifier() const {
-    return address + ":" + std::to_string(port);
-  }
-
   friend ostream &operator<<(ostream &os, const NodeConfig &config) {
 
     // serialize
@@ -114,7 +112,8 @@ struct NodeConfig {
     os << "nodeLabel" << " \"" << config.nodeLabel << "\"\n";
     os << "rootDirectory" << " \"" << config.rootDirectory << "\"\n";
     os << "ipcFile" << " \"" << config.ipcFile << "\"\n";
-    os << "catalogFile" << " \"" << config.catalogFile << "\"";
+    os << "catalogFile" << " \"" << config.catalogFile << "\"\n";
+    os << "nodeID" << " \"" << config.nodeID << "\"";
 
     return os;
   }
@@ -158,6 +157,7 @@ struct NodeConfig {
       else if (label == "rootDirectory") { std::stringstream(value) >> config.rootDirectory; }
       else if (label == "ipcFile") { std::stringstream(value) >> config.ipcFile; }
       else if (label == "catalogFile") { std::stringstream(value) >> config.catalogFile; }
+      else if (label == "nodeID") { std::stringstream(value) >> config.nodeID; }
 
       if (is.eof()) break;
     }

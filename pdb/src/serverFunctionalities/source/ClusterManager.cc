@@ -24,6 +24,7 @@
 
 #include "PDBCatalogClient.h"
 #include "ClusterManager.h"
+#include "CluSyncResult.h"
 #include "CluSyncRequest.h"
 #include "HeapRequestHandler.h"
 #include "CluHeartBeatRequest.h"
@@ -60,7 +61,7 @@ void ClusterManager::registerHandlers(PDBServer &forMe) {
   forMe.registerHandler(
       CluSyncRequest_TYPEID,
       make_shared<HeapRequestHandler<CluSyncRequest>>(
-          [&](Handle<CluSyncRequest> request, PDBCommunicatorPtr sendUsingMe) {
+          [&](const Handle<CluSyncRequest> &request, const PDBCommunicatorPtr &sendUsingMe) {
 
             // lock the cluster manager
             std::lock_guard<std::mutex> guard(serverMutex);
@@ -78,24 +79,24 @@ void ClusterManager::registerHandlers(PDBServer &forMe) {
               return make_pair(success, error);
             }
 
-            // generate the node identifier
-            std::string nodeIdentifier = (std::string) request->nodeIP + ":" + std::to_string(request->nodePort);
-
             // sync the catalog server on this node with the one on the one that is requesting it.
             std::string error;
-            bool success = getFunctionality<PDBCatalogClient>().syncWithNode(std::make_shared<PDBCatalogNode>(nodeIdentifier,
-                                                                                                           request->nodeIP,
-                                                                                                           request->nodePort,
-                                                                                                           request->nodeType,
-                                                                                                           request->nodeNumCores,
-                                                                                                           request->nodeMemory,
-                                                                                                           true), error);
+            int32_t assignedNodeID = getFunctionality<PDBCatalogClient>().syncWithNode(std::make_shared<PDBCatalogNode>(request->nodeID,
+                                                                                                                                 request->nodeIP,
+                                                                                                                                 request->nodePort,
+                                                                                                                                 request->nodeType,
+                                                                                                                                 request->nodeNumCores,
+                                                                                                                                 request->nodeMemory,
+                                                                                                                                 true), error);
+
+            // check if everything went fine
+            bool success = assignedNodeID != -1;
 
             // create an allocation block to hold the response
             const UseTemporaryAllocationBlock tempBlock{1024};
 
             // create the response
-            Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(success, error);
+            Handle<CluSyncResult> response = makeObject<CluSyncResult>(assignedNodeID, success, error);
 
             // sends result to requester
             success = sendUsingMe->sendObject(response, error) && success;
@@ -107,7 +108,7 @@ void ClusterManager::registerHandlers(PDBServer &forMe) {
   forMe.registerHandler(
       CluHeartBeatRequest_TYPEID,
       make_shared<HeapRequestHandler<CluHeartBeatRequest>>(
-          [&](Handle<CluHeartBeatRequest> request, PDBCommunicatorPtr sendUsingMe) {
+          [&](const Handle<CluHeartBeatRequest> &request, const PDBCommunicatorPtr &sendUsingMe) {
 
             // create an allocation block to hold the response
             const UseTemporaryAllocationBlock tempBlock{1024};
@@ -132,45 +133,48 @@ bool ClusterManager::syncCluster(std::string &error) {
   // figure out the type of the node
   std::string type = getConfiguration()->isManager ? "manager" : "worker";
 
-  return RequestFactory::heapRequest< CluSyncRequest, SimpleRequestResult, bool>(
+  // send the request to sync
+  conf->nodeID = RequestFactory::heapRequest<CluSyncRequest, CluSyncResult, int32_t>(
       logger, conf->managerPort, conf->managerAddress, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
+      [&](const Handle<CluSyncResult> &result) {
         if (result != nullptr) {
-          if (!result->getRes().first) {
+          if (!result->success) {
             error = "ClusterManager : Could not sink with the manager";
             logger->error(error);
-            return false;
+            return -1;
           }
-          return true;
+          return result->nodeID;
         }
 
         error = "ClusterManager : Could not sink with the manager";
-        return false;
+        return -1;
       },
-      conf->address, conf->port, type, totalMemory, numCores);
+      conf->nodeID, conf->address, conf->port, type, totalMemory, numCores);
+
+  // check if we succeeded
+  return conf->nodeID != -1;
 }
 
 void ClusterManager::stopHeartBeat() {
-    heartBeatWorker->stop();
+  heartBeatWorker->stop();
 }
 
 void ClusterManager::startHeartBeat() {
 
-    PDBWorkerPtr worker;
-    // create a flush worker
-    auto sender = make_shared<PDBHeartBeatWork>(&getFunctionality<PDBCatalogClient>());
+  PDBWorkerPtr worker;
+  // create a flush worker
+  auto sender = make_shared<PDBHeartBeatWork>(&getFunctionality<PDBCatalogClient>());
 
-    // find a thread in thread pool, if we can not find a thread, we block.
-    while ((worker = this->getWorker()) == nullptr) {
-        sched_yield();
-    }
+  // find a thread in thread pool, if we can not find a thread, we block.
+  while ((worker = this->getWorker()) == nullptr) {
+    sched_yield();
+  }
 
-    // run the work
-    worker->execute(sender, sender->getLinkedBuzzer());
+  // run the work
+  worker->execute(sender, sender->getLinkedBuzzer());
 
-    // set the worker
-    heartBeatWorker = sender;
+  // set the worker
+  heartBeatWorker = sender;
 }
-
 
 }

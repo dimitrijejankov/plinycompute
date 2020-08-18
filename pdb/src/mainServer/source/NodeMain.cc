@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 #include <boost/program_options.hpp>
+#include <csignal>
 #include <iostream>
 #include <PDBServer.h>
 #include <GenericWork.h>
@@ -30,11 +31,18 @@
 #include <PDBStorageManager.h>
 #include <PDBComputationServer.h>
 #include <ExecutionServer.h>
-#include <random>
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 using namespace pdb;
+
+// this is where our server is gonna be
+pdb::PDBServerPtr server = nullptr;
+
+// the handler for terminating the server
+static void sig_stop(int signum) {
+  server->stop();
+}
 
 int main(int argc, char *argv[]) {
 
@@ -132,17 +140,6 @@ int main(int argc, char *argv[]) {
     std::cout << "Failed to create the root directory!\n";
   }
 
-  // write out the config file to disk
-  {
-    // open the config file
-    std::filebuf fb;
-    fb.open (rootPath / "config.conf", std::ios::out);
-    std::ostream os(&fb);
-
-    // write it out
-    os << *config;
-  }
-
   // init the storage manager, this has to be done before the fork!
   std::shared_ptr<pdb::PDBBufferManagerImpl> bufferManager;
   if(!config->debugBufferManager) {
@@ -162,29 +159,36 @@ int main(int argc, char *argv[]) {
   // create the server
   pdb::PDBLoggerPtr logger = make_shared<pdb::PDBLogger>((boost::filesystem::path(config->rootDirectory) / "logs").string(),
                                                          "manager.log");
-  pdb::PDBServer server(config, logger);
+  server = std::make_shared<pdb::PDBServer>(config, logger);
 
   // add the functionaries
-  server.addFunctionality<pdb::PDBBufferManagerInterface>(bufferManager);
-  server.addFunctionality(std::make_shared<pdb::ClusterManager>());
-  server.addFunctionality(std::make_shared<pdb::CatalogServer>());
-  server.addFunctionality(std::make_shared<pdb::PDBDistributedStorage>());
-  server.addFunctionality(std::make_shared<pdb::PDBCatalogClient>(config->port, config->address, logger));
-  server.addFunctionality(std::make_shared<pdb::PDBStorageManager>());
+  server->addFunctionality<pdb::PDBBufferManagerInterface>(bufferManager);
+  server->addFunctionality(std::make_shared<pdb::ClusterManager>());
+  server->addFunctionality(std::make_shared<pdb::CatalogServer>());
+  server->addFunctionality(std::make_shared<pdb::PDBDistributedStorage>());
+  server->addFunctionality(std::make_shared<pdb::PDBCatalogClient>(config->port, config->address, logger));
+  server->addFunctionality(std::make_shared<pdb::PDBStorageManager>());
 
   // on the worker put and execution server
   if(!config->isManager) {
-    server.addFunctionality(std::make_shared<pdb::ExecutionServer>());
+    server->addFunctionality(std::make_shared<pdb::ExecutionServer>());
   }
   else {
-    server.addFunctionality(std::make_shared<pdb::PDBComputationServer>());
+    server->addFunctionality(std::make_shared<pdb::PDBComputationServer>());
   }
 
-  server.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
+  // set the handler for shutdown
+  struct sigaction action{};
+  memset(&action, 0, sizeof(action));
+  action.sa_handler = sig_stop;
+  sigaction(SIGTERM, &action, nullptr);
+
+  // start the server
+  server->startServer(make_shared<pdb::GenericWork>([&](const PDBBuzzerPtr& callerBuzzer) {
 
     // sync me with the cluster
     std::string error;
-    server.getFunctionality<pdb::ClusterManager>().syncCluster(error);
+    server->getFunctionality<pdb::ClusterManager>().syncCluster(error);
 
     // log that the server has started
     std::cout << "Distributed storage manager server started!\n";

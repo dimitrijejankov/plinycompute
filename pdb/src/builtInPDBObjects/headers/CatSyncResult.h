@@ -15,53 +15,59 @@
  *  limitations under the License.                                           *
  *                                                                           *
  *****************************************************************************/
+/*
+ * CatSyncResult.h
+ *
+ */
 
+#pragma once
 
-#ifndef OBJECTQUERYMODEL_StoGetNextPageResult_H
-#define OBJECTQUERYMODEL_StoGetNextPageResult_H
-
+#include <iostream>
+#include <utility>
 #include "Object.h"
-#include "Handle.h"
 #include "PDBString.h"
+#include "PDBVector.h"
 
-// PRELOAD %StoGetNextPageResult%
+//  PRELOAD %CatSyncResult%
+
+using namespace std;
 
 namespace pdb {
 
-// encapsulates a request to add data to a set in storage
-class StoGetNextPageResult : public Object {
-
+/**
+ * This class is used to sync a worker node with the manager
+ */
+class CatSyncResult : public Object {
 public:
 
-  StoGetNextPageResult() = default;
-  ~StoGetNextPageResult() = default;
+  CatSyncResult() = default;
 
-  StoGetNextPageResult(const uint64_t page, int32_t nodeID, uint64_t pageSize, bool hasNext)
-      : page(page), nodeID(nodeID), hasNext(hasNext), pageSize(pageSize) {}
+  CatSyncResult(int32_t nodeID, bool success, std::string error) {
+
+    // init the fields
+    this->nodeID = nodeID;
+    this->success = success;
+    this->error = std::move(error);
+  }
+
+  explicit CatSyncResult(const Handle<CatSyncResult> &requestToCopy) {
+    this->nodeID = requestToCopy->nodeID;
+    this->success = requestToCopy->success;
+    this->error = requestToCopy->error;
+  }
+
+  ~CatSyncResult() = default;
 
   ENABLE_DEEP_COPY
 
-  /**
-   * page of the set where we are storing the stuff
-   */
-  uint64_t page = 0;
+  // ID of the node
+  int32_t nodeID{};
 
-  /**
-   * The id of the node
-   */
-  int32_t nodeID;
+  // did we succeed?
+  bool success{};
 
-  /**
-   * The size of the page
-   */
-  uint64_t pageSize = 0;
-
-  /**
-   * Do we have another one
-   */
-  bool hasNext = false;
+  // the error if any
+  std::string error;
 };
 
-}
-
-#endif
+} /* namespace pdb */

@@ -41,10 +41,10 @@ class PDBStorageManager : public ServerFunctionality {
 
 public:
 
-  virtual ~PDBStorageManager();
-
   // initialize the storage manager
   void init() override;
+
+  void cleanup() override;
 
   void registerHandlers(PDBServer &forMe) override;
 

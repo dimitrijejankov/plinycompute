@@ -72,7 +72,7 @@ private:
   /**
    * The node we want to grab the page from
    */
-  std::string currNode = "none";
+  int32_t currNode = -1;
 
   /**
    * The current record on the page

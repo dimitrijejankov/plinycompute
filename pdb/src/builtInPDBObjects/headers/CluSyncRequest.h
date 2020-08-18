@@ -42,10 +42,11 @@ class CluSyncRequest : public Object {
 
   CluSyncRequest() = default;
 
-  CluSyncRequest(const std::string &nodeIP, int port, const std::string &nodeType,
+  CluSyncRequest(int32_t nodeID, const std::string &nodeIP, int port, const std::string &nodeType,
                  int64_t nodeMemory, int32_t nodeNumCores) {
 
     // init the fields
+    this->nodeID = nodeID;
     this->nodeIP = nodeIP;
     this->nodePort = port;
     this->nodeType = nodeType;
@@ -54,6 +55,7 @@ class CluSyncRequest : public Object {
   }
 
   explicit CluSyncRequest(const Handle<CluSyncRequest> &requestToCopy) {
+    nodeID = requestToCopy->nodeID;
     nodeIP = requestToCopy->nodeIP;
     nodePort = requestToCopy->nodePort;
     nodeType = requestToCopy->nodeType;
@@ -64,6 +66,11 @@ class CluSyncRequest : public Object {
   ~CluSyncRequest() = default;
 
   ENABLE_DEEP_COPY
+
+  /**
+   * The id of the node
+   */
+  int32_t nodeID = -1;
 
   /**
    * IP address of the node

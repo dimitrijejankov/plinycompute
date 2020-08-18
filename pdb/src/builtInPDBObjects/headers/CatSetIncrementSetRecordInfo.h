@@ -34,7 +34,7 @@ class CatSetIncrementSetRecordInfo : public Object {
 public:
 
   CatSetIncrementSetRecordInfo() = default;
-  CatSetIncrementSetRecordInfo(const string &nodeId,
+  CatSetIncrementSetRecordInfo(int32_t nodeId,
                                const string &databaseName,
                                const string &setName,
                                size_t sizeAdded,
@@ -71,7 +71,7 @@ public:
   /**
    * The ID of the node where stuff is stored
    */
-  String nodeID;
+  int32_t nodeID{};
 
   /**
    * The name of the database

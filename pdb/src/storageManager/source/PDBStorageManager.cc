@@ -30,36 +30,6 @@
 
 namespace fs = boost::filesystem;
 
-pdb::PDBStorageManager::~PDBStorageManager() {
-
-  // open the output file
-  std::ofstream ofs;
-  ofs.open((boost::filesystem::path(getConfiguration()->rootDirectory) / "storage.pdb").string(),
-           ios::binary | std::ofstream::out | std::ofstream::trunc);
-
-  unsigned long numSets = pageStats.size();
-  ofs.write((char *) &numSets, sizeof(unsigned long));
-
-  // serialize the stuff
-  for (auto &it : pageStats) {
-
-    // write the database name
-    unsigned long size = it.first->getDBName().size();
-    ofs.write((char *) &size, sizeof(unsigned long));
-    ofs.write(it.first->getDBName().c_str(), size);
-
-    // write the set name
-    size = it.first->getSetName().size();
-    ofs.write((char *) &size, sizeof(unsigned long));
-    ofs.write(it.first->getSetName().c_str(), size);
-
-    // write the page stats
-    ofs.write(reinterpret_cast<char *>(&it.second), sizeof(it.second));
-  }
-
-  ofs.close();
-}
-
 void pdb::PDBStorageManager::init() {
 
   // init the class
@@ -104,6 +74,36 @@ void pdb::PDBStorageManager::init() {
     // close
     ifs.close();
   }
+}
+
+void pdb::PDBStorageManager::cleanup() {
+
+  // open the output file
+  std::ofstream ofs;
+  ofs.open((boost::filesystem::path(getConfiguration()->rootDirectory) / "storage.pdb").string(),
+           ios::binary | std::ofstream::out | std::ofstream::trunc);
+
+  unsigned long numSets = pageStats.size();
+  ofs.write((char *) &numSets, sizeof(unsigned long));
+
+  // serialize the stuff
+  for (auto &it : pageStats) {
+
+    // write the database name
+    unsigned long size = it.first->getDBName().size();
+    ofs.write((char *) &size, sizeof(unsigned long));
+    ofs.write(it.first->getDBName().c_str(), size);
+
+    // write the set name
+    size = it.first->getSetName().size();
+    ofs.write((char *) &size, sizeof(unsigned long));
+    ofs.write(it.first->getSetName().c_str(), size);
+
+    // write the page stats
+    ofs.write(reinterpret_cast<char *>(&it.second), sizeof(it.second));
+  }
+
+  ofs.close();
 }
 
 void pdb::PDBStorageManager::registerHandlers(PDBServer &forMe) {
@@ -243,7 +243,7 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedData(const 
     // send the catalog that data has been added
     std::string errMsg;
     PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
-    if (!pdbClient.incrementSetRecordInfo(getConfiguration()->getNodeIdentifier(),
+    if (!pdbClient.incrementSetRecordInfo(getConfiguration()->nodeID,
                                           request->databaseName,
                                           request->setName,
                                           uncompressedSize,
@@ -353,7 +353,7 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedKeys(const 
     // send the catalog that data has been added
     std::string errMsg;
     PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
-    if (!pdbClient.incrementKeyRecordInfo(getConfiguration()->getNodeIdentifier(),
+    if (!pdbClient.incrementKeyRecordInfo(getConfiguration()->nodeID,
                                           request->databaseName,
                                           request->setName,
                                           ((Record<Vector<Handle<Object>>> *) newPage->getBytes())->numBytes(),
@@ -1073,7 +1073,7 @@ bool pdb::PDBStorageManager::materializePageSet(const pdb::PDBAbstractPageSetPtr
 
   // broadcast the set size change so far
   PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
-  bool success = pdbClient.incrementSetRecordInfo(getConfiguration()->getNodeIdentifier(), set.first, set.second,
+  bool success = pdbClient.incrementSetRecordInfo(getConfiguration()->nodeID, set.first, set.second,
                                                   pageSet->getSize(), pageSet->getNumRecords(), error);
 
 
@@ -1081,8 +1081,8 @@ bool pdb::PDBStorageManager::materializePageSet(const pdb::PDBAbstractPageSetPtr
 }
 
 bool pdb::PDBStorageManager::materializeKeys(const pdb::PDBAbstractPageSetPtr &pageSet,
-                                                     const std::pair<std::string, std::string> &set,
-                                                     const pdb::PDBKeyExtractorPtr &keyExtractor) {
+                                             const std::pair<std::string, std::string> &set,
+                                             const pdb::PDBKeyExtractorPtr &keyExtractor) {
 
   // make the key set identifier
   auto keySetIdentifier = std::make_shared<PDBSet>(set.first, PDBCatalog::toKeySetName(set.second));
@@ -1169,7 +1169,7 @@ bool pdb::PDBStorageManager::materializeKeys(const pdb::PDBAbstractPageSetPtr &p
   // broadcast the set size change so far
   std::string error;
   PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
-  bool success = pdbClient.incrementKeyRecordInfo(getConfiguration()->getNodeIdentifier(),
+  bool success = pdbClient.incrementKeyRecordInfo(getConfiguration()->nodeID,
                                                   setIdentifier->getDBName(),
                                                   setIdentifier->getSetName(),
                                                   keysSize,

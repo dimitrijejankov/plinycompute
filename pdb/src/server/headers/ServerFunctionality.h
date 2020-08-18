@@ -103,6 +103,10 @@ class ServerFunctionality {
     return parent->getConfiguration();
   }
 
+  int32_t getNodeID() {
+      return parent->getNodeID();
+  };
+
  protected:
   PDBServer *parent = nullptr;
 

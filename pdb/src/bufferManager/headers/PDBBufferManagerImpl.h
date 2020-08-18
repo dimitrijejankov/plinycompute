@@ -86,12 +86,12 @@ class PDBBufferManagerImpl : public PDBBufferManagerInterface {
    * to create a new storage
    * @param config - the configuration of the node we need this so we can figure out where to put the data and metadata
    */
-  explicit PDBBufferManagerImpl(pdb::NodeConfigPtr config);
+  explicit PDBBufferManagerImpl(const pdb::NodeConfigPtr& config);
 
   /**
    * Simply loop through and write back any dirty pages.
    */
-  ~PDBBufferManagerImpl() override;
+  void cleanup() override;
 
   /**
    * Initialize a storage manager.  Anonymous pages will be written to tempFile.  Use the given pageSize.
@@ -103,13 +103,13 @@ class PDBBufferManagerImpl : public PDBBufferManagerInterface {
    * @param metaDataFile - the file where we store the metadata of the buffer manager
    * @param storageLocIn - path to the folder where we store the set data
    */
-  void initialize(std::string tempFile, size_t pageSize, size_t numPages, std::string metaDataFile, std::string storageLocIn);
+  void initialize(const std::string& tempFile, size_t pageSize, size_t numPages, std::string metaDataFile, std::string storageLocIn);
 
   /**
    * initialize the storage manager using the file metaDataFile
-   * @param metaDataFile
+   * @param meta
    */
-  void initialize(std::string metaDataFile);
+  void initialize(const std::string& meta);
 
   /**
    * gets the i^th page in the table whichSet... note that if the page

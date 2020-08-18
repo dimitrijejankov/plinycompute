@@ -42,6 +42,9 @@
 #include "UseTemporaryAllocationBlock.h"
 #include "SimpleRequestResult.h"
 #include <memory>
+#include <fstream>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 
 namespace pdb {
 
@@ -51,6 +54,7 @@ PDBServer::PDBServer(const NodeConfigPtr &config, const PDBLoggerPtr &logger)
   allDone = false;
   startedAcceptingRequests = 0;
 
+  // ignore SIGPIPE
   struct sigaction sa{};
   memset(&sa, '\0', sizeof(sa));
   sa.sa_handler = SIG_IGN;
@@ -157,6 +161,9 @@ void PDBServer::listenIPC() {
   // grab the ipc file we are listening to
   std::string ipcFile;
   ipcFile = config->ipcFile;
+
+  // remove the ipc file if it exists
+  boost::filesystem::remove(ipcFile);
 
   // second, we are connecting to a local UNIX socket
   string errMsg;
@@ -339,6 +346,10 @@ pdb::NodeConfigPtr PDBServer::getConfiguration() {
   return this->config;
 }
 
+int32_t PDBServer::getNodeID() {
+  return this->config->nodeID;
+}
+
 void PDBServer::handleRequest(const PDBCommunicatorPtr &myCommunicator) {
 
   ServerWorkPtr tempWork{make_shared<ServerWork>()};
@@ -422,21 +433,11 @@ bool PDBServer::handleOneRequest(const PDBBuzzerPtr& callerBuzzer, const PDBComm
       logger->error("PDBServer: close connection request, but count not send response: " + errMsg);
     }
 
-    PDB_COUT << "Cleanup server functionalities" << std::endl;
-
-    // for each functionality, invoke its clean() method
-    for (auto &functionality : functionalities) {
-      functionality->cleanup();
-    }
-
-    // kill the FD and let everyone know we are done
+    // let everyone know we are done
     allDone = true;
 
-    // close(sockFD);
-    // we can't simply close socket like this, because there are still incoming
-    // messages in accepted connections
-    // use reuse address option instead
-    return false;
+    // mark that we have handled the request
+    return true;
   }
 
   // and get a worker plus the appropriate work to service it
@@ -514,6 +515,23 @@ void PDBServer::startServer(const PDBWorkPtr& runMeAtStart) {
   while (!allDone) {
     sleep(1);
   }
+
+  // for each functionality, invoke its clean() method
+  for (auto &functionality : functionalities) {
+    functionality->cleanup();
+  }
+
+  // write the configuration to disk
+  std::filebuf fb;
+  boost::filesystem::path rootPath(config->rootDirectory);
+  fb.open (rootPath / "config.conf", std::ios::out);
+  std::ostream os(&fb);
+
+  // write it out
+  os << *config;
+
+  // the shutdown
+  std::cout << "Shutdown Cleanly!\n";
 }
 
 void PDBServer::registerHandlersFromLastFunctionality() {

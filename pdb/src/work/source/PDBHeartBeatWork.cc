@@ -40,7 +40,7 @@ void PDBHeartBeatWork::execute(PDBBuzzerPtr callerBuzzer) {
 
             // did we manage to update it
             if(!success) {
-              logger->error("Could not update the status of the node with identifier : " + node->nodeID + "\n");
+              logger->error("Could not update the status of the node with identifier : " + std::to_string(node->nodeID) + "\n");
             }
 
             // sleep a while between individual pings.

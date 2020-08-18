@@ -42,7 +42,7 @@ public:
 
   CatSyncRequest() = default;
 
-  CatSyncRequest(const std::string &nodeID, const std::string &nodeIP, int port,
+  CatSyncRequest(int32_t nodeID, const std::string &nodeIP, int port,
                  const std::string &nodeType, int32_t numCores, int64_t totalMemory) {
 
     // init the fields
@@ -70,7 +70,7 @@ public:
   /**
    * ID of the node
    */
-  String nodeID;
+  int32_t nodeID;
 
   /**
    * IP address of the node

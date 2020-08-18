@@ -112,7 +112,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleGetNextPage(const
     const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
     // create an allocation block to hold the response
-    pdb::Handle<pdb::StoGetNextPageResult> response = pdb::makeObject<pdb::StoGetNextPageResult>(0, "", 0, false);
+    pdb::Handle<pdb::StoGetNextPageResult> response = pdb::makeObject<pdb::StoGetNextPageResult>(0, -1, 0, false);
 
     // sends result to requester
     sendUsingMe->sendObject(response, error);
@@ -149,7 +149,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleGetNextPage(const
       const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
       // create an allocation block to hold the response
-      pdb::Handle<pdb::StoGetNextPageResult> response = pdb::makeObject<pdb::StoGetNextPageResult>(0, "", 0, false);
+      pdb::Handle<pdb::StoGetNextPageResult> response = pdb::makeObject<pdb::StoGetNextPageResult>(0, -1, 0, false);
 
       // sends result to requester
       sendUsingMe->sendObject(response, error);
@@ -207,7 +207,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleGetNextPage(const
   const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
   // create an allocation block to hold the response
-  pdb::Handle<pdb::StoGetNextPageResult> response = pdb::makeObject<pdb::StoGetNextPageResult>(0, "", 0, false);
+  pdb::Handle<pdb::StoGetNextPageResult> response = pdb::makeObject<pdb::StoGetNextPageResult>(0, -1, 0, false);
 
   // sends result to requester
   string error;

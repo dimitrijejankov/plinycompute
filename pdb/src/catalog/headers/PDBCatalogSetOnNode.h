@@ -24,8 +24,8 @@ class PDBCatalogSetOnNode {
    * @param setIdentifier - the identifier of the set
    * @param nodeID - the identifier of the node
    */
-  PDBCatalogSetOnNode(std::string setIdentifier, std::string nodeID) : setIdentifier(std::move(setIdentifier)),
-                                                                       nodeID(std::move(nodeID)) {}
+  PDBCatalogSetOnNode(std::string setIdentifier, int32_t nodeID) : setIdentifier(std::move(setIdentifier)),
+                                                                                 nodeID(nodeID) {}
 
   /**
    * The initializer constructor
@@ -35,12 +35,12 @@ class PDBCatalogSetOnNode {
    * @param shardSize - how many bytes are there in this shard
    */
   PDBCatalogSetOnNode(std::string setIdentifier,
-                      std::string nodeID,
+                      int32_t nodeID,
                       uint64_t recordCount,
                       uint64_t shardSize,
                       uint64_t keyCount,
                       uint64_t keySize) : setIdentifier(std::move(setIdentifier)),
-                                          nodeID(std::move(nodeID)),
+                                          nodeID(nodeID),
                                           recordCount(recordCount),
                                           shardSize(shardSize),
                                           keyCount(keyCount),
@@ -54,7 +54,7 @@ class PDBCatalogSetOnNode {
   /**
    * The identifier of the node
    */
-  std::string nodeID;
+  int32_t nodeID{};
 
   /**
    * The record count

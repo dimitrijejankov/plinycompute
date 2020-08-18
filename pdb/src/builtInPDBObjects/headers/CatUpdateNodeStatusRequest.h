@@ -35,7 +35,7 @@ class CatUpdateNodeStatusRequest : public Object {
 
   ~CatUpdateNodeStatusRequest() = default;
 
-  CatUpdateNodeStatusRequest(const std::string& nodeID, bool isActive) : nodeID (nodeID), isActive(isActive) {}
+  CatUpdateNodeStatusRequest(int32_t nodeID, bool isActive) : nodeID (nodeID), isActive(isActive) {}
 
   explicit CatUpdateNodeStatusRequest(const Handle<CatUpdateNodeStatusRequest> &requestToCopy) {
     nodeID = requestToCopy->nodeID;
@@ -47,7 +47,7 @@ class CatUpdateNodeStatusRequest : public Object {
   /**
    * The id of the node we are updating
    */
-  String nodeID;
+  int32_t nodeID{};
 
   /**
    * True if the node status is active false otherwise

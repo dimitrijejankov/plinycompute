@@ -46,7 +46,7 @@ public:
   /**
    * The timestamp this database is created on
    */
-  long createdOn;
+  long createdOn{};
 
   /**
    * Return the schema of the database object

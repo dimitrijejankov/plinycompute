@@ -17,7 +17,7 @@ void PDBBufferManagerFileWriter :: putString (string key, string value) {
 void PDBBufferManagerFileWriter :: putStringList (string key, vector <string> value) {
 	string res;
 	for (const string &s : value) {
-		res += s + "#";
+		res += s + "%";
 	}
 	myData [key] = res;
 }
@@ -42,8 +42,8 @@ bool PDBBufferManagerFileWriter :: getStringList (string key, vector <string> &r
 
 	// it is, so parse the other side
 	string res = myData[key];	
-	for (size_t pos = 0; pos < (int) res.size (); pos = res.find ('#', pos + 1) + 1) {
-		string temp = res.substr (pos, res.find ('#', pos + 1) - pos);
+	for (size_t pos = 0; pos < (int) res.size (); pos = res.find ('%', pos + 1) + 1) {
+		string temp = res.substr (pos, res.find ('%', pos + 1) - pos);
 		returnVal.push_back (temp);
 	}
 	return true;
