@@ -167,50 +167,6 @@ void PDBCommunicator::setNeedsToDisconnect(bool option) {
     needToSendDisconnectMsg = option;
 }
 
-bool PDBCommunicator::connectToLocalServer(PDBLoggerPtr logToMeIn,
-                                           std::string fName,
-                                           std::string& errMsg) {
-
-    logToMe = logToMeIn;
-    struct sockaddr_un server;
-    // TODO: add retry logic here
-    // TODO: add retry logic here
-    socketFD = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (socketFD < 0) {
-        logToMe->error("PDBCommunicator: could not get FD to local server socket");
-        logToMe->error(strerror(errno));
-        errMsg = "Could not get FD to local server socket ";
-        errMsg += strerror(errno);
-        close(socketFD);
-        socketFD = -1;
-        socketClosed = true;
-        return false;
-    }
-
-
-    server.sun_family = AF_UNIX;
-    strcpy(server.sun_path, fName.c_str());
-    if (::connect(socketFD, (struct sockaddr*)&server, sizeof(struct sockaddr_un)) < 0) {
-        logToMe->error("PDBCommunicator: could not connect to local server socket");
-        logToMe->error(strerror(errno));
-        errMsg = "Could not connect to local server socket ";
-        errMsg += strerror(errno);
-        close(socketFD);
-        socketFD = -1;
-        socketClosed = true;
-        return false;
-    }
-
-    // Jia: moved automatic tear-down logic from Chris' message-based communication to here
-    // note that we need to close this up when we are done
-    needToSendDisconnectMsg = true;
-    isInternet = false;
-    fileName = fName;
-    // std :: cout << "Connected!!\n";
-    socketClosed = false;
-    return true;
-}
-
 bool PDBCommunicator::pointToFile(PDBLoggerPtr logToMeIn, int socketFDIn, std::string& errMsg) {
 
     // make the logger
@@ -631,9 +587,6 @@ bool PDBCommunicator::reconnect(std::string& errMsg) {
 
             return connectToInternetServer(logToMe, portNumber, serverAddress, errMsg);
 
-        } else {
-
-            return connectToLocalServer(logToMe, fileName, errMsg);
         }
 
     } else {

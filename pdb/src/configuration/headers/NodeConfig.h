@@ -86,11 +86,6 @@ struct NodeConfig {
   std::string rootDirectory = "";
 
   /**
-   * File to open a connection to the ipc file for inter-node communication
-   */
-  std::string ipcFile = "";
-
-  /**
    * The catalog file
    */
   std::string catalogFile = "";
@@ -111,7 +106,6 @@ struct NodeConfig {
     os << "maxRetries" << " \"" << config.maxRetries << "\"\n";
     os << "nodeLabel" << " \"" << config.nodeLabel << "\"\n";
     os << "rootDirectory" << " \"" << config.rootDirectory << "\"\n";
-    os << "ipcFile" << " \"" << config.ipcFile << "\"\n";
     os << "catalogFile" << " \"" << config.catalogFile << "\"\n";
     os << "nodeID" << " \"" << config.nodeID << "\"";
 
@@ -155,7 +149,6 @@ struct NodeConfig {
       else if (label == "maxRetries") { std::stringstream(value) >> config.maxRetries; }
       else if (label == "nodeLabel") { std::stringstream(value) >> config.nodeLabel; }
       else if (label == "rootDirectory") { std::stringstream(value) >> config.rootDirectory; }
-      else if (label == "ipcFile") { std::stringstream(value) >> config.ipcFile; }
       else if (label == "catalogFile") { std::stringstream(value) >> config.catalogFile; }
       else if (label == "nodeID") { std::stringstream(value) >> config.nodeID; }
 

@@ -124,11 +124,6 @@ public:
   void listenTCP();
 
   /**
-   * tell the server to start listening for people who want to connect
-   */
-  void listenIPC();
-
-  /**
    * Waits for somebody to connect to this server with the following connection id
    * @param connectionID
    * @return
@@ -143,14 +138,6 @@ public:
    * @return the communicator if we succeed, null otherwise
    */
   PDBCommunicatorPtr connectTo(const std::string &ip, int32_t port, const pdb::Handle<SerConnectToRequest> &connectionID);
-
-  /**
-   * Connect to a particular server, through an ipcFile
-   * @param ipcFile - the ipc file of the server
-   * @param connectionID - connection id
-   * @return the communicator if we succeed, null otherwise
-   */
-  PDBCommunicatorPtr connectTo(const std::string &ipcFile, const pdb::Handle<SerConnectToRequest> &connectionID);
 
   /**
    * asks us to handle one request that is coming over the given PDBCommunicator; return true if this
@@ -217,7 +204,7 @@ private:
   PDBWorkerQueuePtr workers;
 
   // true if we started accepting requests
-  std::atomic_int startedAcceptingRequests{};
+  std::atomic_bool startedAcceptingRequests{};
 
   // true when the server is done
   atomic_bool allDone{};
@@ -227,12 +214,6 @@ private:
 
   // used get requests from an external server
   pthread_t externalListenerThread{};
-
-  // used get requests from an internal server
-  pthread_t internalListenerThread{};
-
-  // this is the socket we are listening to
-  int internalSocket{};
 
   // the internal socket we are listening to
   int externalSocket{};

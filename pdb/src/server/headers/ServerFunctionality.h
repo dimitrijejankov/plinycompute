@@ -72,16 +72,6 @@ class ServerFunctionality {
     return this->parent->connectTo(ip, port, connectionID);
   }
 
-  /**
-   * Connect to a particular server, through an ipcFile
-   * @param ipcFile - the ipc file of the server
-   * @param connectionID - connection id
-   * @return the communicator if we succeed, null otherwise
-   */
-  PDBCommunicatorPtr connectTo(const std::string &ipcFile, const pdb::Handle<SerConnectToRequest> &connectionID) {
-    return this->parent->connectTo(ipcFile, connectionID);
-  }
-
   // remember the server this is attached to
   void recordServer(PDBServer &recordMe) {
     parent = &recordMe;

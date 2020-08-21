@@ -44,7 +44,6 @@
 #include <memory>
 #include <fstream>
 #include <boost/filesystem/path.hpp>
-#include <boost/filesystem/operations.hpp>
 
 namespace pdb {
 
@@ -52,7 +51,7 @@ PDBServer::PDBServer(const NodeConfigPtr &config, const PDBLoggerPtr &logger)
     : config(config), logger(logger) {
 
   allDone = false;
-  startedAcceptingRequests = 0;
+  startedAcceptingRequests = false;
 
   // ignore SIGPIPE
   struct sigaction sa{};
@@ -74,14 +73,6 @@ void *callListenTCP(void *serverInstance) {
   temp->listenTCP();
   return nullptr;
 }
-
-// this is the entry point for the listener to the ipc file
-void *callListenIPC(void *serverInstance) {
-  auto *temp = static_cast<PDBServer *>(serverInstance);
-  temp->listenIPC();
-  return nullptr;
-}
-
 
 void PDBServer::listenTCP() {
 
@@ -136,7 +127,7 @@ void PDBServer::listenTCP() {
   logger->trace("PDBServer: ready to go!");
 
   // at this point we can say that we started accepting requests
-  this->startedAcceptingRequests += 1;
+  this->startedAcceptingRequests = true;
 
   // wait for someone to try to connect
   while (!allDone) {
@@ -149,80 +140,6 @@ void PDBServer::listenTCP() {
     }
     logger->info(std::string("accepted the connection with sockFD=") +
         std::to_string(myCommunicator->getSocketFD()));
-    PDB_COUT << "||||||||||||||||||||||||||||||||||" << std::endl;
-    PDB_COUT << "accepted the connection with sockFD=" << myCommunicator->getSocketFD()
-             << std::endl;
-    handleRequest(myCommunicator);
-  }
-}
-
-void PDBServer::listenIPC() {
-
-  // grab the ipc file we are listening to
-  std::string ipcFile;
-  ipcFile = config->ipcFile;
-
-  // remove the ipc file if it exists
-  boost::filesystem::remove(ipcFile);
-
-  // second, we are connecting to a local UNIX socket
-  string errMsg;
-  logger->trace("PDBServer: getting socket to file");
-  internalSocket = socket(PF_UNIX, SOCK_STREAM, 0);
-
-  if (internalSocket < 0) {
-    logger->error("PDBServer: could not get FD to local socket");
-    logger->error(strerror(errno));
-    exit(0);
-  }
-
-  // bind the socket FD
-  struct sockaddr_un serv_addr{};
-  bzero((char *) &serv_addr, sizeof(serv_addr));
-  serv_addr.sun_family = AF_UNIX;
-  snprintf(serv_addr.sun_path, sizeof(serv_addr.sun_path), "%s", ipcFile.c_str());
-
-  if (::bind(internalSocket, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr_un))) {
-    logger->error("PDBServer: could not bind to local socket");
-    logger->error(strerror(errno));
-    // if the ipc file exists, delete it.
-    if (unlink(ipcFile.c_str()) == 0) {
-      PDB_COUT << "Removed outdated " << ipcFile.c_str() << ".\n";
-    }
-    if (::bind(internalSocket, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr_un))) {
-      logger->error(
-          "PDBServer: still could not bind to local socket after removing unixFile");
-      logger->error(strerror(errno));
-      exit(0);
-    }
-  }
-
-  logger->debug("PDBServer: socket has name");
-  logger->debug(serv_addr.sun_path);
-
-  logger->trace("PDBServer: about to listen to the file for a connection");
-
-  // set the backlog on the socket
-  if (::listen(internalSocket, 100) != 0) {
-    logger->error("PDBServer: listen error");
-    logger->error(strerror(errno));
-    exit(0);
-  }
-
-  logger->trace("PDBServer: ready to go!");
-
-  // at this point we can say that we started accepting requests
-  this->startedAcceptingRequests += 1;
-
-  // wait for someone to try to connect
-  while (!allDone) {
-
-    PDBCommunicatorPtr myCommunicator;
-    myCommunicator = make_shared<PDBCommunicator>();
-    if (!myCommunicator->pointToFile(logger, internalSocket, errMsg)) {
-      logger->error("PDBServer: could not point to an local UNIX socket: " + errMsg);
-      continue;
-    }
     PDB_COUT << "||||||||||||||||||||||||||||||||||" << std::endl;
     PDB_COUT << "accepted the connection with sockFD=" << myCommunicator->getSocketFD()
              << std::endl;
@@ -252,45 +169,6 @@ PDBCommunicatorPtr PDBServer::waitForConnection(const pdb::Handle<SerConnectToRe
   std::cout << "Got connection for file : " << connection->getSocketFD() << '\n';
 
   return connection;
-}
-
-PDBCommunicatorPtr PDBServer::connectTo(const std::string &ipcFile, const pdb::Handle<SerConnectToRequest> &connectionID) {
-
-  // stuff to keep track of the connecting
-  std::string error;
-  int numRetries = 0;
-
-  // try to connect a bunch of times
-  auto comm = std::make_shared<PDBCommunicator>();
-  while (!comm->connectToLocalServer(logger, ipcFile, error)) {
-
-    // log the error
-    logger->error(error);
-    logger->error("Can not connect to local server with ipc file " + ipcFile + ");");
-
-    // retry
-    numRetries++;
-    if(numRetries < getConfiguration()->maxRetries) {
-      continue;
-    }
-
-    // finish here since we are out of retries
-    return nullptr;
-  }
-
-  // build the request
-  if (!comm->sendObject(connectionID, error)) {
-
-    // log the error
-    logger->error(error);
-    logger->error("Can not establish a connection to node.\n");
-
-    // finish we could not send the object
-    return nullptr;
-  }
-
-  // return the communicator
-  return comm;
 }
 
 PDBCommunicatorPtr PDBServer::connectTo(const std::string &ip, int32_t port, const pdb::Handle<SerConnectToRequest> &connectionID) {
@@ -485,16 +363,9 @@ void PDBServer::startServer(const PDBWorkPtr& runMeAtStart) {
     exit(-1);
   }
 
-  // listen to the ipc socket
-  return_code = pthread_create(&internalListenerThread, nullptr, callListenIPC, this);
-  if (return_code) {
-    logger->error("ERROR; return code from pthread_create () is " + to_string(return_code));
-    exit(-1);
-  }
-
   // wait until the server starts listening to requests
   std::cout << "Waiting for the server to start accepting requests";
-  while (this->startedAcceptingRequests != 2) {
+  while (this->startedAcceptingRequests != true) {
     std::cout << ".";
     usleep(300);
   }

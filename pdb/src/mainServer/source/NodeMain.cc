@@ -132,7 +132,6 @@ int main(int argc, char *argv[]) {
   }
 
   // init other parameters
-  config->ipcFile = fs::path(config->rootDirectory).append("/ipcFile").string();
   config->catalogFile = fs::path(config->rootDirectory).append("/catalog").string();
   config->maxConnections = 200;
 

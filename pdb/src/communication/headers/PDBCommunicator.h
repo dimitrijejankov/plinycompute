@@ -23,14 +23,11 @@
  * Created on September 26, 2015, 9:01 AM
  */
 
-#ifndef PDBCOMMUNICATOR_H
-#define PDBCOMMUNICATOR_H
+#pragma once
 
 #include <memory>
-
 #include "Handle.h"
 #include "PDBLogger.h"
-#include <stdlib.h>
 #include <cstring>
 
 // This class the encoding/decoding of IPC sockets messages in PDB
@@ -60,9 +57,6 @@ public:
                                  int portNumber,
                                  std::string serverAddress,
                                  std::string& errMsg);
-
-    // #4, connect to a local server via a UNIX domain socket
-    bool connectToLocalServer(PDBLoggerPtr logToMeIn, std::string fName, std::string& errMsg);
 
     // see the size of an object that someone is sending us; blocks until the next object shows up
     size_t getSizeOfNextObject();
@@ -130,8 +124,7 @@ private:
     // skips the read of bytes
     bool skipTheRead();
 
-    // the size of the next message; keep these two declarations together so they can be read into
-    // at once!
+    // the size of the next message; keep these two declarations together so they can be read into at once!
     size_t msgSize;
 
     // this points to the location that we read/write from
@@ -165,5 +158,3 @@ private:
 }
 
 #include "PDBCommunicatorTemplate.cc"
-
-#endif /* PDBCOMMUNICATOR_H */
