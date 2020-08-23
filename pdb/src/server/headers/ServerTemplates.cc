@@ -29,48 +29,45 @@ namespace pdb {
 template<class Functionality>
 void PDBServer::addFunctionality(std::shared_ptr<Functionality> functionality) {
 
-    // first, get the name of this type
-    std::string myType = getTypeName<Functionality>();
+  // first, get the name of this type
+  std::string myType = getTypeName<Functionality>();
 
-    // and remember him... map him to a particular index in the list of functionalities
-    if (functionalityNames.count(myType) == 1) {
-        std::cerr << "BAD!  You can't add the same functionality twice.\n";
-    }
+  // try to find one to check if it already exits
+  auto it = functionalities.find(myType);
+  if(it != functionalities.end()) {
+    std::cerr << "BAD!  You can't add the same functionality twice.\n";
+  }
 
-    // add the functionality
-    functionalityNames[myType] = functionalities.size();
-    functionalities.push_back(functionality);
+  // add the functionality
+  functionalities[myType] = functionality;
 
-    // register the handlers
-    registerHandlersFromLastFunctionality();
+  // register the handlers
+  functionality->recordServer(*this);
+  functionality->init();
+  functionality->registerHandlers(*this);
 }
 
 template <class Functionality>
 Functionality& PDBServer::getFunctionality() {
 
-    // first, figure out which index we are
-    static int64_t whichIndex = -1;
-    if (whichIndex == -1) {
-        std::string myType = getTypeName<Functionality>();
-        whichIndex = functionalityNames[myType];
-    }
-
-    // and now, return the functionality
-    return *((Functionality*)functionalities[whichIndex].get());
+  // and now, return the functionality
+  return *getFunctionalityPtr<Functionality>();
 }
 
 template<class Functionality>
 std::shared_ptr<Functionality> PDBServer::getFunctionalityPtr() {
 
-    // first, figure out which index we are
-    static int64_t whichIndex = -1;
-    if (whichIndex == -1) {
-        std::string myType = getTypeName<Functionality>();
-        whichIndex = functionalityNames[myType];
-    }
+  // first, get the name of this type
+  std::string myType = getTypeName<Functionality>();
 
-    // and now, return the functionality
-    return std::move(std::static_pointer_cast<Functionality>(functionalities[whichIndex]));
+  // try to find the functionality
+  auto it = functionalities.find(myType);
+  if(it == functionalities.end()) {
+    std::cerr << "BAD!  Could not find the functionality!\n";
+  }
+
+  // and now, return the functionality
+  return std::dynamic_pointer_cast<Functionality>(it->second);
 }
 
 

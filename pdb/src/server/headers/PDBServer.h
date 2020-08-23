@@ -193,9 +193,6 @@ public:
 
 private:
 
-  // used to ask the most recently-added functionality to register its handlers
-  void registerHandlersFromLastFunctionality();
-
   // the configuration of this node
   pdb::NodeConfigPtr config;
 
@@ -232,11 +229,8 @@ private:
   // to synchronize connections
   std::condition_variable cv;
 
-  // this maps the name of a functionality class to a position
-  std::map<std::string, size_t> functionalityNames;
-
-  // this gives us each of the functionalities that the server can perform
-  std::vector<shared_ptr<ServerFunctionality>> functionalities;
+  // this maps the name of a functionality to an instance of it
+  std::map<std::string, shared_ptr<ServerFunctionality>> functionalities;
 
   // handles a request using the given PDBCommunicator to obtain the data
   void handleRequest(const PDBCommunicatorPtr &myCommunicator);

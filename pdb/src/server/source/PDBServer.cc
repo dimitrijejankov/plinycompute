@@ -346,7 +346,7 @@ void PDBServer::startServer(const PDBWorkPtr& runMeAtStart) {
 
   // for each functionality, invoke its clean() method
   for (auto &functionality : functionalities) {
-    functionality->cleanup();
+    functionality.second->cleanup();
   }
 
   // write the configuration to disk
@@ -360,12 +360,6 @@ void PDBServer::startServer(const PDBWorkPtr& runMeAtStart) {
 
   // the shutdown
   std::cout << "Shutdown Cleanly!\n";
-}
-
-void PDBServer::registerHandlersFromLastFunctionality() {
-  functionalities[functionalities.size() - 1]->recordServer(*this);
-  functionalities[functionalities.size() - 1]->init();
-  functionalities[functionalities.size() - 1]->registerHandlers(*this);
 }
 
 void PDBServer::stop() {
