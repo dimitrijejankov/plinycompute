@@ -25,6 +25,7 @@
 #include "InterfaceFunctions.h"
 #include "UseTemporaryAllocationBlock.h"
 #include "PDBCommunicator.h"
+#include "PDBConnectionManager.h"
 
 using std::function;
 using std::string;
@@ -144,206 +145,132 @@ ReturnType RequestFactory::heapRequest(PDBLoggerPtr myLogger,
     return onErr;
 }
 
-template<class RequestType, class SecondRequestType, class ResponseType, class ReturnType>
-ReturnType RequestFactory::doubleHeapRequest(PDBLoggerPtr logger,
-                                             int port,
-                                             std::string address,
-                                             ReturnType onErr,
-                                             size_t bytesForRequest,
-                                             function<ReturnType(Handle < ResponseType > )> processResponse,
-                                             Handle<RequestType> &firstRequest,
-                                             Handle<SecondRequestType> &secondRequest) {
-    int numRetries = 0;
-    while (numRetries <= MAX_RETRIES) {
+template<class RequestType, class DataType, class ResponseType, class ReturnType, class... RequestTypeParams>
+ReturnType RequestFactory::dataHeapRequest(pdb::PDBConnectionManager &conMgr, int port, const std::string &address,
+                                           ReturnType onErr, size_t bytesForRequest, std::function<ReturnType(pdb::Handle<ResponseType>)> processResponse,
+                                           pdb::Handle<Vector<pdb::Handle<DataType>>> dataToSend, RequestTypeParams&&... args) {
 
-        // used for error handling
-        string errMsg;
-        bool success;
+  // get the logger
+  auto logger = conMgr.getLogger();
 
-        // connect to the server
-        PDBCommunicator temp;
-        if (!temp.connectToInternetServer(logger, port, address, errMsg)) {
+  // get the record
+  auto* myRecord = (Record<Vector<Handle<Object>>>*) getRecord(dataToSend);
 
-            // log the error
-            logger->error(errMsg);
-            logger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
+  auto maxCompressedSize = snappy::MaxCompressedLength(myRecord->numBytes());
 
-            // retry
-            numRetries++;
-            continue;
-        }
+  // allocate the bytes for the compressed record
+  std::unique_ptr<char[]> compressedBytes(new char[maxCompressedSize]);
 
-        // log that we are connected
-        logger->info(std::string("Successfully connected to remote server with port=") + std::to_string(port) + std::string(" and address=") + address);
+  // compress the record
+  size_t compressedSize;
+  snappy::RawCompress((char*) myRecord, myRecord->numBytes(), compressedBytes.get(), &compressedSize);
 
-        // build the request
-        if (!temp.sendObject(firstRequest, errMsg)) {
+  // log what we are doing
+  logger->info("size before compression is "  + std::to_string(myRecord->numBytes()) + " and size after compression is " + std::to_string(compressedSize));
 
-            logger->error(errMsg);
-            logger->error("doubleHeapRequest: not able to send first request to server.\n");
+  int retries = 0;
+  while (retries <= MAX_RETRIES) {
 
-            return onErr;
-        }
+      // used for error handling
+      string errMsg;
+      bool success;
 
-        if (!temp.sendObject(secondRequest, errMsg)) {
-            logger->error(errMsg);
-            logger->error("doubleHeapRequest: not able to send second request to server.\n");
-            return onErr;
-        }
+      // connect to the server
+      auto temp = conMgr.connectToInternetServer(logger, port, address, errMsg);
+      if (temp == nullptr) {
 
-        // get the response and process it
-        ReturnType finalResult;
+          // log the error
+          logger->error(errMsg);
+          logger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
 
-        // allocate the memory
-        std::unique_ptr<char[]> memory(new char[temp.getSizeOfNextObject()]);
-        if (memory == nullptr) {
+          // retry
+          retries++;
+          continue;
+      }
 
-            errMsg = "FATAL ERROR in heapRequest: Can't allocate memory";
-            logger->error(errMsg);
+      // build the request
+      if (bytesForRequest < HEADER_SIZE) {
 
-            /// TODO this needs to be an exception or something
-            // this is a fatal error we should not be running out of memory
-            exit(-1);
-        }
+          // log the error
+          logger->error("block size is too small");
 
-        {
-            Handle<ResponseType> result = temp.getNextObject<ResponseType>(memory.get(), success, errMsg);
-            if (!success) {
-                logger->error(errMsg);
-                logger->error("heapRequest: not able to get next object over the wire.\n");
-                return onErr;
-            }
+          // we are done here
+          return onErr;
+      }
 
-            finalResult = processResponse(result);
-        }
+      const UseTemporaryAllocationBlock tempBlock{bytesForRequest};
+      Handle<RequestType> request = makeObject<RequestType>(args...);
+      if (!temp->sendObject(request, errMsg)) {
 
-        return finalResult;
+          // log the error
+          logger->error(errMsg);
+          logger->error("simpleSendDataRequest: not able to send request to server.\n");
+
+          // we are done here
+          return onErr;
+      }
+
+      // now, send the bytes
+      if (!temp->sendBytes(compressedBytes.get(), compressedSize, errMsg)) {
+
+          logger->error(errMsg);
+          logger->error("simpleSendDataRequest: not able to send data to server.\n");
+
+          // we are done here
+          return onErr;
+      }
+
+      // get the response and process it
+      size_t objectSize = temp->getSizeOfNextObject();
+      if (objectSize == 0) {
+
+          // log the error
+          logger->error("heapRequest: not able to get next object size");
+
+          // we are done here
+          return onErr;
+      }
+
+      std::unique_ptr<char[]> memory(new char[objectSize]);
+      if (memory == nullptr) {
+
+          // log the error
+          logger->error("can't allocate memory");
+
+          /// TODO this needs to be an exception or something
+          // this is a fatal error we should not be running out of memory
+          exit(-1);
+      }
+
+      ReturnType finalResult;
+      {
+          Handle<ResponseType> result = temp->getNextObject<ResponseType>(memory.get(), success, errMsg);
+          if (!success) {
+
+              // log the error
+              logger->error(errMsg);
+              logger->error("heapRequest: not able to get next object over the wire.\n");
+
+              // we are done here
+              return onErr;
+          }
+
+          finalResult = processResponse(result);
+      }
+
+      return finalResult;
   }
 
-  // we default to error all retries have been used
   return onErr;
 }
 
 template<class RequestType, class DataType, class ResponseType, class ReturnType, class... RequestTypeParams>
-ReturnType RequestFactory::dataHeapRequest(PDBLoggerPtr logger, int port, const std::string &address,
-                                           ReturnType onErr, size_t bytesForRequest, function<ReturnType(Handle<ResponseType>)> processResponse,
-                                           Handle<Vector<Handle<DataType>>> dataToSend, RequestTypeParams&&... args) {
-
-    // get the record
-    auto* myRecord = (Record<Vector<Handle<Object>>>*) getRecord(dataToSend);
-
-    auto maxCompressedSize = snappy::MaxCompressedLength(myRecord->numBytes());
-
-    // allocate the bytes for the compressed record
-    std::unique_ptr<char[]> compressedBytes(new char[maxCompressedSize]);
-
-    // compress the record
-    size_t compressedSize;
-    snappy::RawCompress((char*) myRecord, myRecord->numBytes(), compressedBytes.get(), &compressedSize);
-
-    // log what we are doing
-    logger->info("size before compression is "  + std::to_string(myRecord->numBytes()) + " and size after compression is " + std::to_string(compressedSize));
-
-    int retries = 0;
-    while (retries <= MAX_RETRIES) {
-
-        // used for error handling
-        string errMsg;
-        bool success;
-
-        // connect to the server
-        PDBCommunicator temp;
-        if (!temp.connectToInternetServer(logger, port, address, errMsg)) {
-
-            // log the error
-            logger->error(errMsg);
-            logger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
-
-            // retry
-            retries++;
-            continue;
-        }
-
-        // build the request
-        if (bytesForRequest < HEADER_SIZE) {
-
-            // log the error
-            logger->error("block size is too small");
-
-            // we are done here
-            return onErr;
-        }
-
-        const UseTemporaryAllocationBlock tempBlock{bytesForRequest};
-        Handle<RequestType> request = makeObject<RequestType>(args...);
-        if (!temp.sendObject(request, errMsg)) {
-
-            // log the error
-            logger->error(errMsg);
-            logger->error("simpleSendDataRequest: not able to send request to server.\n");
-
-            // we are done here
-            return onErr;
-        }
-
-        // now, send the bytes
-        if (!temp.sendBytes(compressedBytes.get(), compressedSize, errMsg)) {
-
-            logger->error(errMsg);
-            logger->error("simpleSendDataRequest: not able to send data to server.\n");
-
-            // we are done here
-            return onErr;
-        }
-
-        // get the response and process it
-        size_t objectSize = temp.getSizeOfNextObject();
-        if (objectSize == 0) {
-
-            // log the error
-            logger->error("heapRequest: not able to get next object size");
-
-            // we are done here
-            return onErr;
-        }
-
-        std::unique_ptr<char[]> memory(new char[objectSize]);
-        if (memory == nullptr) {
-
-            // log the error
-            logger->error("can't allocate memory");
-
-            /// TODO this needs to be an exception or something
-            // this is a fatal error we should not be running out of memory
-            exit(-1);
-        }
-
-        ReturnType finalResult;
-        {
-            Handle<ResponseType> result = temp.getNextObject<ResponseType>(memory.get(), success, errMsg);
-            if (!success) {
-
-                // log the error
-                logger->error(errMsg);
-                logger->error("heapRequest: not able to get next object over the wire.\n");
-
-                // we are done here
-                return onErr;
-            }
-
-            finalResult = processResponse(result);
-        }
-
-        return finalResult;
-    }
-
-    return onErr;
-}
-
-template<class RequestType, class DataType, class ResponseType, class ReturnType, class... RequestTypeParams>
-ReturnType RequestFactory::dataKeyHeapRequest(PDBLoggerPtr logger, int port, const std::string &address,
+ReturnType RequestFactory::dataKeyHeapRequest(pdb::PDBConnectionManager &conMgr, int port, const std::string &address,
                                               ReturnType onErr, size_t bytesForRequest, function<ReturnType(Handle<ResponseType>)> processResponse,
                                               Handle<Vector<Handle<DataType>>> dataToSend, RequestTypeParams&&... args) {
+
+  // get the logger
+  const auto& logger = conMgr.getLogger();
 
   // get the record
   auto* myRecord = (Record<Vector<Handle<DataType>>>*) getRecord(dataToSend);
@@ -368,8 +295,8 @@ ReturnType RequestFactory::dataKeyHeapRequest(PDBLoggerPtr logger, int port, con
     bool success;
 
     // connect to the server
-    PDBCommunicator temp;
-    if (!temp.connectToInternetServer(logger, port, address, errMsg)) {
+    auto temp = conMgr.connectToInternetServer(logger, port, address, errMsg);
+    if (temp == nullptr) {
 
       // log the error
       logger->error(errMsg);
@@ -392,7 +319,7 @@ ReturnType RequestFactory::dataKeyHeapRequest(PDBLoggerPtr logger, int port, con
 
     const UseTemporaryAllocationBlock tempBlock{bytesForRequest};
     Handle<RequestType> request = makeObject<RequestType>(args...);
-    if (!temp.sendObject(request, errMsg)) {
+    if (!temp->sendObject(request, errMsg)) {
 
       // log the error
       logger->error(errMsg);
@@ -403,7 +330,7 @@ ReturnType RequestFactory::dataKeyHeapRequest(PDBLoggerPtr logger, int port, con
     }
 
     // now, send the bytes
-    if (!temp.sendBytes(compressedBytes.get(), compressedSize, errMsg)) {
+    if (!temp->sendBytes(compressedBytes.get(), compressedSize, errMsg)) {
 
       logger->error(errMsg);
       logger->error("simpleSendDataRequest: not able to send data to server.\n");
@@ -436,7 +363,7 @@ ReturnType RequestFactory::dataKeyHeapRequest(PDBLoggerPtr logger, int port, con
       snappy::RawCompress((char*) keyRecord, keyRecord->numBytes(), compressedBytes.get(), &compressedSize);
 
       // now, send the bytes
-      if (!temp.sendBytes(compressedBytes.get(), compressedSize, errMsg)) {
+      if (!temp->sendBytes(compressedBytes.get(), compressedSize, errMsg)) {
 
         logger->error(errMsg);
         logger->error("simpleSendDataRequest: not able to send key data to server.\n");
@@ -447,7 +374,7 @@ ReturnType RequestFactory::dataKeyHeapRequest(PDBLoggerPtr logger, int port, con
     }
 
     // get the response and process it
-    size_t objectSize = temp.getSizeOfNextObject();
+    size_t objectSize = temp->getSizeOfNextObject();
     if (objectSize == 0) {
 
       // log the error
@@ -470,7 +397,7 @@ ReturnType RequestFactory::dataKeyHeapRequest(PDBLoggerPtr logger, int port, con
 
     ReturnType finalResult;
     {
-      Handle<ResponseType> result = temp.getNextObject<ResponseType>(memory.get(), success, errMsg);
+      Handle<ResponseType> result = temp->getNextObject<ResponseType>(memory.get(), success, errMsg);
       if (!success) {
 
       // log the error
@@ -492,108 +419,114 @@ ReturnType RequestFactory::dataKeyHeapRequest(PDBLoggerPtr logger, int port, con
 
 
 template <class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
-ReturnType RequestFactory::bytesHeapRequest(PDBLoggerPtr logger, int port, std::string address, ReturnType onErr,
+ReturnType RequestFactory::bytesHeapRequest(pdb::PDBConnectionManager &conMgr, int port, const std::string& address, ReturnType onErr,
                                             size_t bytesForRequest, function<ReturnType(Handle<ResponseType>)> processResponse,
                                             char* bytes, size_t numBytes, RequestTypeParams&&... args) {
-    int retries = 0;
-    while (retries <= MAX_RETRIES) {
 
-        // used for error handling
-        string errMsg;
-        bool success;
 
-        // connect to the server
-        PDBCommunicator temp;
-        if (!temp.connectToInternetServer(logger, port, address, errMsg)) {
+  // returns the logger
+  auto &logger = conMgr.getLogger();
 
-            // log the error
-            logger->error(errMsg);
-            logger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
+  // try to connect, if we fail we retry
+  int retries = 0;
+  while (retries <= MAX_RETRIES) {
 
-            // retry
-            retries++;
-            continue;
-        }
+      // used for error handling
+      string errMsg;
+      bool success;
 
-        // build the request
-        if (bytesForRequest < HEADER_SIZE) {
+      // connect to the server
+      auto temp = conMgr.connectToInternetServer(logger, port, address, errMsg);
+      if (temp == nullptr) {
 
-            // log the error
-            logger->error("block size is too small");
+          // log the error
+          logger->error(errMsg);
+          logger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
 
-            // we are done here
-            return onErr;
-        }
+          // retry
+          retries++;
+          continue;
+      }
 
-        const UseTemporaryAllocationBlock tempBlock{bytesForRequest};
-        Handle<RequestType> request = makeObject<RequestType>(args...);
-        if (!temp.sendObject(request, errMsg)) {
+      // build the request
+      if (bytesForRequest < HEADER_SIZE) {
 
-            // log the error
-            logger->error(errMsg);
-            logger->error("simpleSendDataRequest: not able to send request to server.\n");
+          // log the error
+          logger->error("block size is too small");
 
-            // we are done here
-            return onErr;
-        }
+          // we are done here
+          return onErr;
+      }
 
-        // now, send the bytes
-        if (!temp.sendBytes(bytes, numBytes, errMsg)) {
+      const UseTemporaryAllocationBlock tempBlock{bytesForRequest};
+      Handle<RequestType> request = makeObject<RequestType>(args...);
+      if (!temp->sendObject(request, errMsg)) {
 
-            logger->error(errMsg);
-            logger->error("simpleSendDataRequest: not able to send data to server.\n");
+          // log the error
+          logger->error(errMsg);
+          logger->error("simpleSendDataRequest: not able to send request to server.\n");
 
-            // we are done here
-            return onErr;
-        }
+          // we are done here
+          return onErr;
+      }
 
-        // get the response and process it
-        size_t objectSize = temp.getSizeOfNextObject();
-        if (objectSize == 0) {
+      // now, send the bytes
+      if (!temp->sendBytes(bytes, numBytes, errMsg)) {
 
-            // log the error
-            logger->error("heapRequest: not able to get next object size");
+          logger->error(errMsg);
+          logger->error("simpleSendDataRequest: not able to send data to server.\n");
 
-            // we are done here
-            return onErr;
-        }
+          // we are done here
+          return onErr;
+      }
 
-        std::unique_ptr<char[]> memory(new char[objectSize]);
-        if (memory == nullptr) {
+      // get the response and process it
+      size_t objectSize = temp->getSizeOfNextObject();
+      if (objectSize == 0) {
 
-            // log the error
-            logger->error("can't allocate memory");
+          // log the error
+          logger->error("heapRequest: not able to get next object size");
 
-            /// TODO this needs to be an exception or something
-            // this is a fatal error we should not be running out of memory
-            exit(-1);
-        }
+          // we are done here
+          return onErr;
+      }
 
-        ReturnType finalResult;
-        {
-            Handle<ResponseType> result = temp.getNextObject<ResponseType>(memory.get(), success, errMsg);
-            if (!success) {
+      std::unique_ptr<char[]> memory(new char[objectSize]);
+      if (memory == nullptr) {
 
-                // log the error
-                logger->error(errMsg);
-                logger->error("heapRequest: not able to get next object over the wire.\n");
+          // log the error
+          logger->error("can't allocate memory");
 
-                // we are done here
-                return onErr;
-            }
+          /// TODO this needs to be an exception or something
+          // this is a fatal error we should not be running out of memory
+          exit(-1);
+      }
 
-            finalResult = processResponse(result);
-        }
+      ReturnType finalResult;
+      {
+          Handle<ResponseType> result = temp->getNextObject<ResponseType>(memory.get(), success, errMsg);
+          if (!success) {
 
-        return finalResult;
-    }
+              // log the error
+              logger->error(errMsg);
+              logger->error("heapRequest: not able to get next object over the wire.\n");
 
-    return onErr;
+              // we are done here
+              return onErr;
+          }
+
+          finalResult = processResponse(result);
+      }
+
+      return finalResult;
+  }
+
+  return onErr;
 }
 
 template<class ResponseType, class ReturnType, class... RequestTypeParams>
-ReturnType pdb::RequestFactory::waitHeapRequest(pdb::PDBLoggerPtr logger,
-                                                PDBCommunicatorPtr communicatorPtr,
+ReturnType pdb::RequestFactory::waitHeapRequest(const pdb::PDBLoggerPtr& logger,
+                                                const PDBCommunicatorPtr& communicatorPtr,
                                                 ReturnType onErr,
                                                 function<ReturnType(Handle<ResponseType>)> processResponse) {
 

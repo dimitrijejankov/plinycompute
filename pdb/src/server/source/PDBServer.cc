@@ -88,7 +88,7 @@ void PDBServer::listenTCP() {
   while (!allDone) {
 
     // listen for connections
-    PDBCommunicatorPtr myCommunicator = connectionManager->pointToInternet(errMsg);
+    PDBCommunicatorPtr myCommunicator = connectionManager->listen(errMsg);
     if (myCommunicator == nullptr) {
       logger->error("PDBServer: could not point to an internet socket: " + errMsg);
       continue;

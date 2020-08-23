@@ -3,7 +3,7 @@
 #include <HeapRequest.h>
 
 
-int64_t pdb::RequestFactory::waitForBytes(pdb::PDBLoggerPtr logger, pdb::PDBCommunicatorPtr communicatorPtr,
+int64_t pdb::RequestFactory::waitForBytes(const pdb::PDBLoggerPtr& logger, const pdb::PDBCommunicatorPtr& communicatorPtr,
                                           char *buffer, size_t bufferSize, std::string error) {
 
   // get the response and process it

@@ -432,7 +432,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
 
   // time to send the stuff
   auto ret = RequestFactory::bytesHeapRequest<StoDispatchData, SimpleRequestResult, bool>(
-      logger, node->port, node->address, false, 1024,
+      *conMgr, node->port, node->address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
 
         if (result != nullptr && result->getRes().first) {
@@ -492,7 +492,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
 
     // time to send the keys
     ret = RequestFactory::bytesHeapRequest<pdb::StoDispatchKeys, SimpleRequestResult, bool>(
-        logger, node->port, node->address, false, 1024,
+        *conMgr, node->port, node->address, false, 1024,
         [&](const Handle<SimpleRequestResult>& result) {
 
           if (result != nullptr && result->getRes().first) {

@@ -157,7 +157,7 @@ pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::connectToInternetServer(const
   return std::move(comm);
 }
 
-pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::pointToInternet(std::string &errMsg) {
+pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::listen(std::string &errMsg) {
 
   // if there is no port set we need to listen to jump out of it
   if(listenPort == -1 || externalSocket == -1) {
@@ -189,4 +189,8 @@ pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::pointToInternet(std::string &
 
   // return the communicator
   return std::move(comm);
+}
+
+const pdb::PDBLoggerPtr &pdb::PDBConnectionManager::getLogger() const {
+  return logger;
 }
