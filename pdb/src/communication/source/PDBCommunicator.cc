@@ -153,7 +153,6 @@ bool PDBCommunicator::connectToInternetServer(PDBLoggerPtr logToMeIn,
     // Jia: moved automatic tear-down logic from Chris' message-based communication to here
     // note that we need to close this up when we are done
     needToSendDisconnectMsg = true;
-    isInternet = true;
     this->portNumber = portNumber;
     this->serverAddress = serverAddress;
     socketClosed = false;
@@ -165,29 +164,6 @@ bool PDBCommunicator::connectToInternetServer(PDBLoggerPtr logToMeIn,
 
 void PDBCommunicator::setNeedsToDisconnect(bool option) {
     needToSendDisconnectMsg = option;
-}
-
-bool PDBCommunicator::pointToFile(PDBLoggerPtr logToMeIn, int socketFDIn, std::string& errMsg) {
-
-    // make the logger
-    logToMe = logToMeIn;
-    logToMe->trace("PDBCommunicator: about to wait for request from same machine");
-
-    socketFD = accept(socketFDIn, 0, 0);
-    if (socketFD < 0) {
-        logToMe->error("PDBCommunicator: could not get FD to local socket");
-        logToMe->error(strerror(errno));
-        errMsg = "Could not get socket ";
-        errMsg += strerror(errno);
-        close(socketFD);
-        socketFD = -1;
-        socketClosed = true;
-        return false;
-    }
-
-    logToMe->trace("PDBCommunicator: got request from same machine");
-    socketClosed = false;
-    return true;
 }
 
 PDBCommunicator::~PDBCommunicator() {
@@ -569,31 +545,6 @@ bool PDBCommunicator::isSocketClosed() {
 
   // return the state of the socket
   return socketClosed;
-}
-
-bool PDBCommunicator::reconnect(std::string& errMsg) {
-
-    if (needToSendDisconnectMsg) {
-        // I can reconnect because I'm a client
-        PDB_COUT << "To reconnect..." << std::endl;
-
-        if (socketFD >= 0) {
-            close(socketFD);
-            socketFD = -1;
-            socketClosed = true;
-        }
-
-        if (isInternet) {
-
-            return connectToInternetServer(logToMe, portNumber, serverAddress, errMsg);
-
-        }
-
-    } else {
-        errMsg = "Can't reconnect because I'm a server";
-        logToMe->error(errMsg);
-        return false;
-    }
 }
 
 }

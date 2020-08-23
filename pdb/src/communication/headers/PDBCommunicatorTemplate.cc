@@ -320,6 +320,7 @@ Handle<ObjType> PDBCommunicator::getNextObject(bool& success, std::string& errMs
         return nullptr;
     }
 }
+
 }
 
 #endif

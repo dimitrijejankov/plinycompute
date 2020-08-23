@@ -90,7 +90,7 @@ struct NodeConfig {
    */
   std::string catalogFile = "";
 
-  friend ostream &operator<<(ostream &os, const NodeConfig &config) {
+  friend std::ostream &operator<<(std::ostream &os, const NodeConfig &config) {
 
     // serialize
     os << "isManager" << " \"" << config.isManager << "\"\n";
@@ -112,7 +112,7 @@ struct NodeConfig {
     return os;
   }
 
-  friend istream &operator>>(istream &is, NodeConfig &config) {
+  friend std::istream &operator>>(std::istream &is, NodeConfig &config) {
 
     std::string label;
     std::string value;

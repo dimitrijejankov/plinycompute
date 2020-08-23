@@ -43,10 +43,6 @@ public:
     // here are the ways that you can set up a PDBCommunicator...
     // the first two assume that the PDBCommunicator is on the server side:
 
-    // #1, you can connect to a Unix domain socket that is pointed at a file (this returns a true
-    // if there is an error, and in this case it sets errMsg to describe the error)
-    bool pointToFile(PDBLoggerPtr logToMeIn, int socketFDIn, std::string& errMsg);
-
     // #2, you can connect to an internet socket...
     bool pointToInternet(PDBLoggerPtr logToMeIn, int socketFDIn, std::string& errMs);
 
@@ -112,8 +108,6 @@ public:
 
     bool isSocketClosed();
 
-    bool reconnect(std::string& errMsg);
-
 private:
     // write from start to end to the output socket
     bool doTheWrite(char* start, char* end);
@@ -153,7 +147,7 @@ private:
 
     std::string fileName;
 
-    bool isInternet;
+    friend class PDBConnectionManager;
 };
 }
 

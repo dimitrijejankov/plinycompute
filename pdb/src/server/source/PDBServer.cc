@@ -44,14 +44,12 @@
 #include <memory>
 #include <fstream>
 #include <boost/filesystem/path.hpp>
+#include "PDBConnectionManager.h"
 
 namespace pdb {
 
 PDBServer::PDBServer(const NodeConfigPtr &config, const PDBLoggerPtr &logger)
-    : config(config), logger(logger) {
-
-  allDone = false;
-  startedAcceptingRequests = false;
+    : config(config), logger(logger), allDone(false), startedAcceptingRequests(false) {
 
   // ignore SIGPIPE
   struct sigaction sa{};
@@ -61,6 +59,9 @@ PDBServer::PDBServer(const NodeConfigPtr &config, const PDBLoggerPtr &logger)
 
   // init the worker threads of this server
   workers = make_shared<PDBWorkerQueue>(logger, config->maxConnections);
+
+  // init the connection manager
+  connectionManager = std::make_shared<PDBConnectionManager>(config, logger);
 }
 
 void PDBServer::registerHandler(int16_t requestID, const PDBCommWorkPtr &handledBy) {
@@ -76,73 +77,29 @@ void *callListenTCP(void *serverInstance) {
 
 void PDBServer::listenTCP() {
 
-  // get the port we want to lisen to
-  int port = config->port;
-
-  // wait for an internet socket
-  string errMsg;
-  externalSocket = socket(AF_INET, SOCK_STREAM, 0);
-
-  // added by Jia to avoid TimeWait state for old sockets
-  int optval = 1;
-  if (setsockopt(externalSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0) {
-    logger->error("PDBServer: couldn't setsockopt");
-    logger->error(strerror(errno));
-    std::cout << "PDBServer: couldn't setsockopt:" << strerror(errno) << std::endl;
-    close(externalSocket);
-    exit(0);
-  }
-
-  if (externalSocket < 0) {
-    logger->error("PDBServer: could not get FD to internet socket");
-    logger->error(strerror(errno));
-    close(externalSocket);
-    exit(0);
-  }
-
-  // bind the socket FD
-  struct sockaddr_in serverAddress{};
-  bzero((char *) &serverAddress, sizeof(serverAddress));
-  serverAddress.sin_family = AF_INET;
-  serverAddress.sin_addr.s_addr = INADDR_ANY;
-  serverAddress.sin_port = htons((uint16_t) port);
-  int retVal = ::bind(externalSocket, (struct sockaddr *) &serverAddress, sizeof(serverAddress));
-  if (retVal < 0) {
-    logger->error("PDBServer: could not bind to internet socket");
-    logger->error(strerror(errno));
-    close(externalSocket);
-    exit(0);
-  }
-
-  logger->trace("PDBServer: about to listen to the Internet for a connection");
-
-  // set the backlog on the socket
-  if (::listen(externalSocket, 100) != 0) {
-    logger->error("PDBServer: listen error");
-    logger->error(strerror(errno));
-    close(externalSocket);
-    exit(0);
-  }
-
-  logger->trace("PDBServer: ready to go!");
+  // initialize the connection manager
+  connectionManager->init();
 
   // at this point we can say that we started accepting requests
   this->startedAcceptingRequests = true;
 
   // wait for someone to try to connect
+  std::string errMsg;
   while (!allDone) {
 
-    PDBCommunicatorPtr myCommunicator = make_shared<PDBCommunicator>();
-
-    if (!myCommunicator->pointToInternet(logger, externalSocket, errMsg)) {
+    // listen for connections
+    PDBCommunicatorPtr myCommunicator = connectionManager->pointToInternet(errMsg);
+    if (myCommunicator == nullptr) {
       logger->error("PDBServer: could not point to an internet socket: " + errMsg);
       continue;
     }
-    logger->info(std::string("accepted the connection with sockFD=") +
-        std::to_string(myCommunicator->getSocketFD()));
+
+    // log the info
+    logger->info(std::string("accepted the connection with sockFD=") + std::to_string(myCommunicator->getSocketFD()));
     PDB_COUT << "||||||||||||||||||||||||||||||||||" << std::endl;
-    PDB_COUT << "accepted the connection with sockFD=" << myCommunicator->getSocketFD()
-             << std::endl;
+    PDB_COUT << "accepted the connection with sockFD=" << myCommunicator->getSocketFD() << std::endl;
+
+    // handle the request
     handleRequest(myCommunicator);
   }
 }

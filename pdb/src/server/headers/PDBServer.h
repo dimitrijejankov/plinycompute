@@ -57,7 +57,12 @@ typedef std::shared_ptr<PDBServer> PDBServerPtr;
 
 namespace pdb {
 
+// predefine the server functionality
 class ServerFunctionality;
+
+// predefine the connection manager
+class PDBConnectionManager;
+using PDBConnectionManagerPtr = std::shared_ptr<PDBConnectionManager>;
 
 class PDBServer {
 public:
@@ -215,8 +220,8 @@ private:
   // used get requests from an external server
   pthread_t externalListenerThread{};
 
-  // the internal socket we are listening to
-  int externalSocket{};
+  // this manages all the connection
+  PDBConnectionManagerPtr connectionManager;
 
   // all the connections that have connected to this sever and are waiting for a connection
   std::unordered_map<SerConnectToRequest, PDBCommunicatorPtr, SerConnectToRequestHasher> pendingConnections;
