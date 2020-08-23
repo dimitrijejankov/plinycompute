@@ -41,13 +41,13 @@ class ServerFunctionality {
   // access a particular functionality on the attached server
   template<class Functionality>
   Functionality &getFunctionality() {
-    return parent->getFunctionality<Functionality>();
+    return server->getFunctionality<Functionality>();
   }
 
   // access a particular functionality on the attached server as a shared pointer
   template<class Functionality>
   std::shared_ptr<Functionality> getFunctionalityPtr() {
-    return std::move(parent->getFunctionalityPtr<Functionality>());
+    return std::move(server->getFunctionalityPtr<Functionality>());
   }
 
   /**
@@ -56,7 +56,7 @@ class ServerFunctionality {
    * @return
    */
   PDBCommunicatorPtr waitForConnection(const pdb::Handle<SerConnectToRequest> &connectionID) {
-    return this->parent->waitForConnection(connectionID);
+    return this->server->waitForConnection(connectionID);
   }
 
   /**
@@ -69,36 +69,45 @@ class ServerFunctionality {
   PDBCommunicatorPtr connectTo(const std::string &ip,
                                int32_t port,
                                const pdb::Handle<SerConnectToRequest> &connectionID) {
-    return this->parent->connectTo(ip, port, connectionID);
+    return this->server->connectTo(ip, port, connectionID);
   }
 
   // remember the server this is attached to
   void recordServer(PDBServer &recordMe) {
-    parent = &recordMe;
+    server = &recordMe;
+  }
+
+  void recordComMgr(PDBConnectionManager &recordMe) {
+    conMgr = &recordMe;
   }
 
   PDBWorkerQueuePtr getWorkerQueue() {
-    return parent->getWorkerQueue();
+    return server->getWorkerQueue();
   }
 
   PDBWorkerPtr getWorker() {
-    return parent->getWorkerQueue()->getWorker();
+    return server->getWorkerQueue()->getWorker();
   }
 
   PDBLoggerPtr getLogger() {
-    return parent->getLogger();
+    return server->getLogger();
   }
 
   NodeConfigPtr getConfiguration() {
-    return parent->getConfiguration();
+    return server->getConfiguration();
   }
 
   int32_t getNodeID() {
-      return parent->getNodeID();
+      return server->getNodeID();
   };
 
  protected:
-  PDBServer *parent = nullptr;
+
+  // the server
+  PDBServer *server = nullptr;
+
+  // the connection manager
+  PDBConnectionManager *conMgr = nullptr;
 
 };
 }

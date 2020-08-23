@@ -43,6 +43,7 @@ void PDBServer::addFunctionality(std::shared_ptr<Functionality> functionality) {
 
   // register the handlers
   functionality->recordServer(*this);
+  functionality->recordComMgr(*connectionManager);
   functionality->init();
   functionality->registerHandlers(*this);
 }

@@ -8,6 +8,8 @@ public:
 
   PDBConnectionManager(const NodeConfigPtr &config, PDBLoggerPtr logger);
 
+  explicit PDBConnectionManager(PDBLoggerPtr  logger);
+
   // initializes the external socket
   bool init();
 

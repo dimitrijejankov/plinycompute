@@ -22,24 +22,31 @@
 #include <ShutDown.h>
 #include <PDBClient.h>
 #include <QueryGraphAnalyzer.h>
-
+#include <PDBConnectionManager.h>
 #include "PDBClient.h"
 
 namespace pdb {
 
-PDBClient::PDBClient(int portIn, std::string addressIn) : port(portIn), address(addressIn) {
+PDBClient::PDBClient(int portIn, const std::string& addressIn) : port(portIn), address(addressIn) {
 
   // init the logger
   logger = make_shared<PDBLogger>("clientLog");
 
+  // init the communication manager
+  conMgr = std::make_shared<PDBConnectionManager>(logger);
+  conMgr->init();
+
   // init the catalog client
   catalogClient = std::make_shared<pdb::PDBCatalogClient>(portIn, addressIn, logger);
+  catalogClient->recordComMgr(*conMgr);
 
   // init the distributed storage client
   distributedStorage = std::make_shared<pdb::PDBDistributedStorageClient>(portIn, addressIn, logger);
+  distributedStorage->recordComMgr(*conMgr);
 
   // init the computation client
   computationClient = std::make_shared<pdb::PDBComputationClient>(addressIn, portIn, logger);
+  computationClient->recordComMgr(*conMgr);
 }
 
 string PDBClient::getErrorMessage() {

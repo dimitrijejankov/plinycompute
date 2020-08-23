@@ -85,7 +85,7 @@ bool pdb::PDBComputationServer::executeJob(pdb::Handle<pdb::ExJob> &job) {
     /// 1. Start a worker for each node
 
     // grab a worker
-    auto worker = parent->getWorkerQueue()->getWorker();
+    auto worker = server->getWorkerQueue()->getWorker();
 
     // make the work
     auto numStages = job->physicalAlgorithm->numStages();
@@ -418,7 +418,7 @@ bool pdb::PDBComputationServer::removeUnusedPageSets(const std::vector<pair<uint
     /// 0. Start a worker for each node
 
     // grab a worker
-    auto worker = parent->getWorkerQueue()->getWorker();
+    auto worker = server->getWorkerQueue()->getWorker();
 
     // make the work
     PDBWorkPtr myWork = make_shared<pdb::GenericWork>([=, &counter, &pageSets](const PDBBuzzerPtr& callerBuzzer) {

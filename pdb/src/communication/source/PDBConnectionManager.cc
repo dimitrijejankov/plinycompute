@@ -8,7 +8,18 @@ pdb::PDBConnectionManager::PDBConnectionManager(const pdb::NodeConfigPtr &config
   externalSocket = -1;
 }
 
+pdb::PDBConnectionManager::PDBConnectionManager(pdb::PDBLoggerPtr logger) : logger(std::move(logger))  {
+  maxRetries = 5;
+  listenPort = -1;
+  externalSocket = -1;
+}
+
 bool pdb::PDBConnectionManager::init() {
+
+  // we are good no need to setup an external socket
+  if(listenPort == -1) {
+    return true;
+  }
 
   // wait for an internet socket
   std::string errMsg;
@@ -21,6 +32,7 @@ bool pdb::PDBConnectionManager::init() {
     logger->error(strerror(errno));
     std::cout << "PDBServer: couldn't setsockopt:" << strerror(errno) << std::endl;
     close(externalSocket);
+    externalSocket = -1;
     return false;
   }
 
@@ -29,6 +41,7 @@ bool pdb::PDBConnectionManager::init() {
     logger->error("PDBServer: could not get FD to internet socket");
     logger->error(strerror(errno));
     close(externalSocket);
+    externalSocket = -1;
     return false;
   }
 
@@ -43,7 +56,8 @@ bool pdb::PDBConnectionManager::init() {
     logger->error("PDBServer: could not bind to internet socket");
     logger->error(strerror(errno));
     close(externalSocket);
-    exit(0);
+    externalSocket = -1;
+    return false;
   }
   logger->trace("PDBServer: about to listen to the Internet for a connection");
 
@@ -52,7 +66,8 @@ bool pdb::PDBConnectionManager::init() {
     logger->error("PDBServer: listen error");
     logger->error(strerror(errno));
     close(externalSocket);
-    exit(0);
+    externalSocket = -1;
+    return false;
   }
 
   // load that we are ready
@@ -144,6 +159,11 @@ pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::connectToInternetServer(const
 
 pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::pointToInternet(std::string &errMsg) {
 
+  // if there is no port set we need to listen to jump out of it
+  if(listenPort == -1 || externalSocket == -1) {
+    throw std::runtime_error("Can not listen to a closed socket.");
+  }
+
   struct sockaddr_in cli_addr{};
   socklen_t clilen = sizeof(cli_addr);
   bzero((char*)&cli_addr, sizeof(cli_addr));
@@ -170,4 +190,3 @@ pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::pointToInternet(std::string &
   // return the communicator
   return std::move(comm);
 }
-

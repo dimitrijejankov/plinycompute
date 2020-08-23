@@ -49,7 +49,7 @@ class PDBClient : public ServerFunctionality {
    * @param portIn - the port number of the PDB manager server
    * @param addressIn - the IP address of the PDB manager server
    */
-  PDBClient(int portIn, std::string addressIn);
+  PDBClient(int portIn, const std::string& addressIn);
 
   PDBClient() = default;
 
@@ -179,6 +179,9 @@ class PDBClient : public ServerFunctionality {
 
   // Client logger
   PDBLoggerPtr logger;
+
+  // the connection manager
+  PDBConnectionManagerPtr conMgr = nullptr;
 };
 }
 
