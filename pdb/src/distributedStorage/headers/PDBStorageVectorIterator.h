@@ -10,7 +10,7 @@ class PDBStorageVectorIterator : public PDBStorageIterator<T> {
 public:
 
 
-  PDBStorageVectorIterator(std::string address, int port, int maxRetries,
+  PDBStorageVectorIterator(PDBConnectionManager *conMgr, std::string address, int port, int maxRetries,
                            std::string set, std::string db, PDBLoggerPtr logger);
 
 

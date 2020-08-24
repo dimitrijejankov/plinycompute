@@ -15,17 +15,17 @@
 
 #include "PDBPageNetworkSender.h"
 
-pdb::PDBPageNetworkSender::PDBPageNetworkSender(string address, int32_t port, uint64_t numberOfProcessingThreads, uint64_t numberOfNodes,
+pdb::PDBPageNetworkSender::PDBPageNetworkSender(PDBConnectionManager *conMgr, string address, int32_t port, uint64_t numberOfProcessingThreads, uint64_t numberOfNodes,
                                                 uint64_t maxRetries, PDBLoggerPtr logger, std::pair<uint64_t, std::string> pageSetID, pdb::PDBPageQueuePtr queue)
     : address(std::move(address)), port(port), queue(std::move(queue)), numberOfProcessingThreads(numberOfProcessingThreads),
-      numberOfNodes(numberOfNodes), logger(std::move(logger)), pageSetID(std::move(pageSetID)), maxRetries(maxRetries) {}
+      numberOfNodes(numberOfNodes), logger(std::move(logger)), pageSetID(std::move(pageSetID)), maxRetries(maxRetries), conMgr(conMgr) {}
 
 bool pdb::PDBPageNetworkSender::setup() {
 
   // connect to the server
   size_t numRetries = 0;
-  comm = std::make_shared<PDBCommunicator>();
-  while (!comm->connectToInternetServer(logger, port, address, errMsg)) {
+  comm = conMgr->connectToInternetServer(logger, port, address, errMsg);
+  while (comm == nullptr) {
 
     // log the error
     logger->error(errMsg);
@@ -34,6 +34,7 @@ bool pdb::PDBPageNetworkSender::setup() {
     // retry
     numRetries++;
     if(numRetries < maxRetries) {
+      comm = conMgr->connectToInternetServer(logger, port, address, errMsg);
       continue;
     }
 

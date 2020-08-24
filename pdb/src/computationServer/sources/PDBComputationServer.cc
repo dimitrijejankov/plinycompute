@@ -96,9 +96,9 @@ bool pdb::PDBComputationServer::executeJob(pdb::Handle<pdb::ExJob> &job) {
       /// 2. Connect to the node
 
       // connect to the server
-      PDBCommunicator comm;
+      auto comm = conMgr->connectToInternetServer(logger, job->nodes[i]->port, job->nodes[i]->address, errMsg);
       size_t numRetries = 0;
-      while (!comm.connectToInternetServer(logger, job->nodes[i]->port, job->nodes[i]->address, errMsg)) {
+      while (comm == nullptr) {
 
         // log the error
         logger->error(errMsg);
@@ -107,6 +107,7 @@ bool pdb::PDBComputationServer::executeJob(pdb::Handle<pdb::ExJob> &job) {
         // retry
         numRetries++;
         if(numRetries < getConfiguration()->maxRetries) {
+          comm = conMgr->connectToInternetServer(logger, job->nodes[i]->port, job->nodes[i]->address, errMsg);
           continue;
         }
 
@@ -127,7 +128,7 @@ bool pdb::PDBComputationServer::executeJob(pdb::Handle<pdb::ExJob> &job) {
       jobForMe->thisNode = i;
       jobForMe->isLeadNode = i == 0;
 
-      if(!scheduleJob(comm, jobForMe, errMsg)) {
+      if(!scheduleJob(*comm, jobForMe, errMsg)) {
 
         // we failed to schedule the job
         callerBuzzer->buzz(PDBAlarm::GenericError, counter);
@@ -138,7 +139,7 @@ bool pdb::PDBComputationServer::executeJob(pdb::Handle<pdb::ExJob> &job) {
       for(int s = 0; s < numStages; ++s) {
 
         // run an individual stage
-        if(!runStage(comm, errMsg)) {
+        if(!runStage(*comm, errMsg)) {
 
           // we failed to run the job
           callerBuzzer->buzz(PDBAlarm::GenericError, counter);
@@ -432,7 +433,7 @@ bool pdb::PDBComputationServer::removeUnusedPageSets(const std::vector<pair<uint
 
         // make a request and return the value
         removalSuccess = RequestFactory::heapRequest<pdb::StoRemovePageSetRequest, SimpleRequestResult, bool>(
-            logger, node->port, node->address, false, 1024,
+            *conMgr, node->port, node->address, false, 1024,
             [&](const Handle<SimpleRequestResult>& result) {
               return true;
             },

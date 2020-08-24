@@ -165,7 +165,8 @@ bool pdb::PDBBroadcastForJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
     } else {
 
       // make the sender
-      auto sender = std::make_shared<PDBPageNetworkSender>(job->nodes[i]->address,
+      auto sender = std::make_shared<PDBPageNetworkSender>(storage->getConMgr(),
+                                                           job->nodes[i]->address,
                                                            job->nodes[i]->port,
                                                            job->numberOfProcessingThreads,
                                                            job->numberOfNodes,

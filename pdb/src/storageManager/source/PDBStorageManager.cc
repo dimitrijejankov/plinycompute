@@ -243,6 +243,7 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedData(const 
     // send the catalog that data has been added
     std::string errMsg;
     PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
+    pdbClient.recordComMgr(*conMgr);
     if (!pdbClient.incrementSetRecordInfo(getConfiguration()->nodeID,
                                           request->databaseName,
                                           request->setName,
@@ -353,6 +354,7 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedKeys(const 
     // send the catalog that data has been added
     std::string errMsg;
     PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
+    pdbClient.recordComMgr(*conMgr);
     if (!pdbClient.incrementKeyRecordInfo(getConfiguration()->nodeID,
                                           request->databaseName,
                                           request->setName,
@@ -383,7 +385,7 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedKeys(const 
 }
 
 std::pair<bool, std::string> pdb::PDBStorageManager::handleGetPageRequest(const pdb::Handle<pdb::StoGetPageRequest> &request,
-                                                                                  pdb::PDBCommunicatorPtr &sendUsingMe) {
+                                                                          pdb::PDBCommunicatorPtr &sendUsingMe) {
   /// 1. Check if we have a page
 
   // create the set identifier
@@ -460,7 +462,7 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleGetPageRequest(const 
 }
 
 std::pair<bool, std::string> pdb::PDBStorageManager::handleClearSetRequest(const pdb::Handle<pdb::StoClearSetRequest> &request,
-                                                                                   pdb::PDBCommunicatorPtr &sendUsingMe) {
+                                                                           pdb::PDBCommunicatorPtr &sendUsingMe) {
   std::string error;
   PDBSetPtr set;
   PDBSetPtr keySet;
@@ -856,11 +858,11 @@ pdb::PDBAbstractPageSetPtr pdb::PDBStorageManager::fetchPDBSet(const std::string
   const UseTemporaryAllocationBlock tempBlock{1024};
 
   // the communicator
-  PDBCommunicatorPtr comm = make_shared<PDBCommunicator>();
   string errMsg;
+  PDBCommunicatorPtr comm = conMgr->connectToInternetServer(logger, port, ip, errMsg);
 
   // connect to the node
-  if (!comm->connectToInternetServer(logger, port, ip, errMsg)) {
+  if (comm == nullptr) {
 
     // log the error
     logger->error(errMsg);
@@ -937,11 +939,11 @@ pdb::PDBAbstractPageSetPtr pdb::PDBStorageManager::fetchPageSet(const pdb::PDBSo
   const UseTemporaryAllocationBlock tempBlock{1024};
 
   // the communicator
-  PDBCommunicatorPtr comm = make_shared<PDBCommunicator>();
   string errMsg;
+  PDBCommunicatorPtr comm = conMgr->connectToInternetServer(logger, port, ip, errMsg);
 
   // connect to the node
-  if (!comm->connectToInternetServer(logger, port, ip, errMsg)) {
+  if (comm == nullptr) {
 
     // log the error
     logger->error(errMsg);
@@ -1073,6 +1075,7 @@ bool pdb::PDBStorageManager::materializePageSet(const pdb::PDBAbstractPageSetPtr
 
   // broadcast the set size change so far
   PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
+  pdbClient.recordComMgr(*conMgr);
   bool success = pdbClient.incrementSetRecordInfo(getConfiguration()->nodeID, set.first, set.second,
                                                   pageSet->getSize(), pageSet->getNumRecords(), error);
 
@@ -1169,6 +1172,7 @@ bool pdb::PDBStorageManager::materializeKeys(const pdb::PDBAbstractPageSetPtr &p
   // broadcast the set size change so far
   std::string error;
   PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
+  pdbClient.recordComMgr(*conMgr);
   bool success = pdbClient.incrementKeyRecordInfo(getConfiguration()->nodeID,
                                                   setIdentifier->getDBName(),
                                                   setIdentifier->getSetName(),

@@ -79,7 +79,7 @@ bool PDBClient::shutDownServer() {
   // shutdown the workers
   bool success = true;
   for(const auto &w : workers) {
-    success = success && RequestFactory::heapRequest<ShutDown, SimpleRequestResult, bool>(logger, w->port, w->address, false, 1024,
+    success = success && RequestFactory::heapRequest<ShutDown, SimpleRequestResult, bool>(*conMgr, w->port, w->address, false, 1024,
      [&](Handle<SimpleRequestResult> result) {
 
        // do we have a result
@@ -104,7 +104,7 @@ bool PDBClient::shutDownServer() {
   }
 
   // shutdown
-  return success && RequestFactory::heapRequest<ShutDown, SimpleRequestResult, bool>(logger, port, address, false, 1024,
+  return success && RequestFactory::heapRequest<ShutDown, SimpleRequestResult, bool>(*conMgr, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
 
         // do we have a result

@@ -38,116 +38,98 @@ class PDBCommunicator;
 typedef std::shared_ptr<PDBCommunicator> PDBCommunicatorPtr;
 
 class PDBCommunicator {
-
 public:
-    // here are the ways that you can set up a PDBCommunicator...
-    // the first two assume that the PDBCommunicator is on the server side:
 
-    // #2, you can connect to an internet socket...
-    bool pointToInternet(PDBLoggerPtr logToMeIn, int socketFDIn, std::string& errMs);
+  // see the size of an object that someone is sending us; blocks until the next object shows up
+  size_t getSizeOfNextObject();
 
-    // the next two assume we are on the client side:
+  // gets the next object over the communicator... reads the object to the specified location
+  template<class ObjType>
+  Handle<ObjType> getNextObject(void *readToHere, bool &success, std::string &errMsg);
 
-    // #3 connect to a server on the internet...
-    bool connectToInternetServer(PDBLoggerPtr logToMeIn,
-                                 int portNumber,
-                                 std::string serverAddress,
-                                 std::string& errMsg);
+  // gets the next object over the communicator... reads the object to a temporary allocator
+  // with just enough RAM to store the object
+  template<class ObjType>
+  Handle<ObjType> getNextObject(bool &success, std::string &errMsg);
 
-    // see the size of an object that someone is sending us; blocks until the next object shows up
-    size_t getSizeOfNextObject();
+  // sends an object over the communication channel... return false on error
+  template<class ObjType>
+  bool sendObject(const Handle<ObjType> &sendMe, std::string &errMsg);
 
-    // gets the next object over the communicator... reads the object to the specified location
-    template <class ObjType>
-    Handle<ObjType> getNextObject(void* readToHere, bool& success, std::string& errMsg);
+  // sends an object over the communication channel that is on a different allocation block... return false on error
+  template<class ObjType>
+  bool sendObject(Handle<ObjType> &sendMe, std::string &errMsg, size_t blockSize);
 
-    // gets the next object over the communicator... reads the object to a temporary allocator
-    // with just enough RAM to store the object
-    template <class ObjType>
-    Handle<ObjType> getNextObject(bool& success, std::string& errMsg);
+  // send trivially copyable type
+  template<class ObjType>
+  typename std::enable_if<std::is_trivially_copyable<ObjType>::value, bool>::type
+  sendPrimitiveType(const ObjType &sendMe);
 
-    // sends an object over the communication channel... return false on error
-    template <class ObjType>
-    bool sendObject(const Handle<ObjType>& sendMe, std::string& errMsg);
+  // sends a bunch of binary data over a channel
+  bool sendBytes(void *data, size_t size, std::string &errMsg);
 
-    // sends an object over the communication channel that is on a different allocation block... return false on error
-    template <class ObjType>
-    bool sendObject(Handle<ObjType>& sendMe, std::string& errMsg, size_t blockSize);
+  // receives a bunch of binary data over a channel
+  bool receiveBytes(void *data, std::string &errMsg);
 
-    // send trivially copyable type
-    template<class ObjType>
-    typename std::enable_if<std::is_trivially_copyable<ObjType>::value, bool>::type
-    sendPrimitiveType(const ObjType &sendMe);
+  // skips a bunch of binary data
+  bool skipBytes(std::string &errMsg);
 
-    // sends a bunch of binary data over a channel
-    bool sendBytes(void* data, size_t size, std::string& errMsg);
+  // recieve a primitive type
+  template<class ObjType>
+  typename std::enable_if<std::is_trivially_copyable<ObjType>::value, ObjType>::type
+  receivePrimitiveType();
 
-    // receives a bunch of binary data over a channel
-    bool receiveBytes(void* data, std::string& errMsg);
+  // note that the file descriptor corresponding to the socket is always closed by the destructor!
+  virtual ~PDBCommunicator();
 
-    // skips a bunch of binary data
-    bool skipBytes(std::string& errMsg);
+  // gets the type of the next object (calls getTypeID () on it)
+  int16_t getObjectTypeID();
 
-    // recieve a primitive type
-    template<class ObjType>
-    typename std::enable_if<std::is_trivially_copyable<ObjType>::value, ObjType>::type
-    receivePrimitiveType();
+  void setNeedsToDisconnect(bool option);
 
-    // note that the file descriptor corresponding to the socket is always closed by the destructor!
-    virtual ~PDBCommunicator();
+  int getSocketFD();
 
-    // default constructor
-    PDBCommunicator();
+  bool isSocketClosed();
 
-    // gets the type of the next object (calls getTypeID () on it)
-    int16_t getObjectTypeID();
-
-    void setNeedsToDisconnect(bool option);
-
-    int getSocketFD();
-
-    bool isSocketClosed();
+  // default constructor
+  PDBCommunicator();
 
 private:
-    // write from start to end to the output socket
-    bool doTheWrite(char* start, char* end);
 
-    // read the message data from socket
-    bool doTheRead(char* dataIn);
+  // write from start to end to the output socket
+  bool doTheWrite(char *start, char *end);
 
-    // skips the read of bytes
-    bool skipTheRead();
+  // read the message data from socket
+  bool doTheRead(char *dataIn);
 
-    // the size of the next message; keep these two declarations together so they can be read into at once!
-    size_t msgSize;
+  // skips the read of bytes
+  bool skipTheRead();
 
-    // this points to the location that we read/write from
-    int socketFD;
+  // the size of the next message; keep these two declarations together so they can be read into at once!
+  size_t msgSize;
 
-    // for logging
-    PDBLoggerPtr logToMe;
+  // this points to the location that we read/write from
+  int socketFD;
 
-    // remember whether we have read the size of the next message or not
-    bool readCurMsgSize;
+  // for logging
+  PDBLoggerPtr logToMe;
 
-    // record the type of the next object
-    int16_t nextTypeID;
+  // remember whether we have read the size of the next message or not
+  bool readCurMsgSize;
 
-    // This is for automatic connection tear-down.
-    // Moved this logic from Chris' message-based communication framework to here.
-    bool needToSendDisconnectMsg;
+  // record the type of the next object
+  int16_t nextTypeID;
 
-    // JiaNote: to add logic to support long connection
-    bool socketClosed;
+  // This is for automatic connection tear-down.
+  // Moved this logic from Chris' message-based communication framework to here.
+  bool needToSendDisconnectMsg;
 
-    // JiaNote: to add logic to support reconnection
-    int portNumber;
+  // JiaNote: to add logic to support long connection
+  bool socketClosed;
 
-    std::string serverAddress;
+  std::string fileName;
 
-    std::string fileName;
-
-    friend class PDBConnectionManager;
+  friend class PDBConnectionManager;
 };
 }
 

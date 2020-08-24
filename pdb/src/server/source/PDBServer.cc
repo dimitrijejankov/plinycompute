@@ -135,8 +135,8 @@ PDBCommunicatorPtr PDBServer::connectTo(const std::string &ip, int32_t port, con
   int numRetries = 0;
 
   // try to connect a bunch of times
-  auto comm = std::make_shared<PDBCommunicator>();
-  while (!comm->connectToInternetServer(logger, port, ip, error)) {
+  auto comm = connectionManager->connectToInternetServer(logger, port, ip, error);
+  while (comm == nullptr) {
 
     // log the error
     logger->error(error);
@@ -145,6 +145,7 @@ PDBCommunicatorPtr PDBServer::connectTo(const std::string &ip, int32_t port, con
     // retry
     numRetries++;
     if(numRetries < getConfiguration()->maxRetries) {
+      comm = connectionManager->connectToInternetServer(logger, port, ip, error);
       continue;
     }
 
@@ -372,14 +373,11 @@ bool PDBServer::shutdownCluster() {
   const pdb::UseTemporaryAllocationBlock block(1024 * 1024);
 
   // create a communicator
-  pdb::PDBCommunicatorPtr communicator = std::make_shared<pdb::PDBCommunicator>();
-
-  // try to connect to the node
   string errMsg;
-  bool failure = communicator->connectToInternetServer(logger, config->managerPort, config->managerAddress, errMsg);
+  pdb::PDBCommunicatorPtr communicator = connectionManager->connectToInternetServer(logger, config->managerPort, config->managerAddress, errMsg);
 
   // did we fail to connect to the server
-  if(!failure) {
+  if(communicator == nullptr) {
     return false;
   }
 

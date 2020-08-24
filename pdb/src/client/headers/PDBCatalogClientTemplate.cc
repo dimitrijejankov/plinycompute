@@ -56,7 +56,7 @@ bool PDBCatalogClient::createSet(std::string databaseName, std::string setName, 
 
   // make the request
   return RequestFactory::heapRequest<CatCreateSetRequest, SimpleRequestResult, bool>(
-      myLogger, port, address, false, 1024,
+      *conMgr, port, address, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
         if (result != nullptr) {
           if (!result->getRes().first) {

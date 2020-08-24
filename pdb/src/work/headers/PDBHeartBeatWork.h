@@ -7,6 +7,7 @@
 
 #include <PDBCatalogClient.h>
 #include "PDBWork.h"
+#include "PDBConnectionManager.h"
 
 class PDBHeartBeatWork;
 typedef std::shared_ptr<PDBHeartBeatWork> PDBHeartBeatWorkPtr;
@@ -56,7 +57,7 @@ class PDBHeartBeatWork : public pdb::PDBWork {
    * @param address - the address where we want to send
    * @param port - the port where we are sending
    */
-  bool sendHeartBeat(const std::string &address, int32_t port);
+  bool sendHeartBeat(const std::string &address, int32_t port, pdb::PDBConnectionManager *mgr);
 };
 
 #endif //PDB_PDBHEARTBEATWORK_H

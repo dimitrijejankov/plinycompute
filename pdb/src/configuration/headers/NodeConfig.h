@@ -7,6 +7,7 @@
 
 #include <string>
 #include <memory>
+#include <iostream>
 #include <ostream>
 #include <boost/algorithm/string.hpp>
 

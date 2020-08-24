@@ -145,8 +145,6 @@ pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::connectToInternetServer(const
   // create the communicator
   auto comm = std::make_shared<PDBCommunicator>();
   comm->logToMe = logToMe;
-  comm->portNumber = portNumber;
-  comm->serverAddress = serverAddress;
   comm->needToSendDisconnectMsg = true;
   comm->socketFD = socketFD;
 

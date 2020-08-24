@@ -23,24 +23,27 @@ std::pair<pdb::PDBPageHandle, size_t> pdb::PDBDistributedStorage::requestPage(co
                                                                               uint64_t &page) {
 
   // the communicator
-  PDBCommunicatorPtr comm = make_shared<PDBCommunicator>();
   string errMsg;
+  PDBCommunicatorPtr comm;
 
   // try multiple times if we fail to connect
   int numRetries = 0;
   while (numRetries <= getConfiguration()->maxRetries) {
 
     // connect to the server
-    if (!comm->connectToInternetServer(logger, node->port, node->address, errMsg)) {
+    comm = conMgr->connectToInternetServer(logger, node->port, node->address, errMsg);
+    if (comm == nullptr) {
 
       // log the error
       logger->error(errMsg);
-      logger->error(
-          "Can not connect to remote server with port=" + std::to_string(node->port) + " and address=" + node->address
-              + ");");
+      logger->error("Can not connect to remote server with port=" + std::to_string(node->port) + " and address=" + node->address + ");");
 
       // throw an exception
-      throw std::runtime_error(errMsg);
+      if(getConfiguration()->maxRetries == ++numRetries) {
+
+        // throw an exception
+        throw std::runtime_error(errMsg);
+      }
     }
 
     // we connected
@@ -572,6 +575,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleClearSet(const pd
 
   // broadcast the set size change so far
   PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
+  pdbClient.recordComMgr(*conMgr);
   atomic_bool success = pdbClient.clearSet(request->databaseName, request->setName, error);
   if(!success) {
 
@@ -625,7 +629,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleClearSet(const pd
 
       // make a request and return the value
       success = RequestFactory::heapRequest<pdb::StoClearSetRequest, SimpleRequestResult, bool>(
-          logger, nodes[nodeID]->port, nodes[nodeID]->address, false, 1024, [&](Handle<SimpleRequestResult> result) {
+          *conMgr, nodes[nodeID]->port, nodes[nodeID]->address, false, 1024, [&](Handle<SimpleRequestResult> result) {
 
             // check if we got a ACK
             return result != nullptr && result->getRes().first;
@@ -768,7 +772,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleRemoveSet(const p
 
       // make a request and return the value
       success = RequestFactory::heapRequest<pdb::StoClearSetRequest, SimpleRequestResult, bool>(
-          logger, nodes[nodeID]->port, nodes[nodeID]->address, false, 1024, [&](Handle<SimpleRequestResult> result) {
+          *conMgr, nodes[nodeID]->port, nodes[nodeID]->address, false, 1024, [&](Handle<SimpleRequestResult> result) {
 
             // check if we got a ACK
             return result != nullptr && result->getRes().first;

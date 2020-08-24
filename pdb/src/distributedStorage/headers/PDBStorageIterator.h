@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include <Handle.h>
+#include <PDBConnectionManager.h>
 
 namespace pdb {
 
@@ -18,20 +19,18 @@ class PDBStorageIterator {
 
 public:
 
-  PDBStorageIterator() = default;
+  explicit PDBStorageIterator(PDBConnectionManager *conMgr) : conMgr(conMgr) {}
 
-  /**
-   * Checks if there is another record that we haven't visited
-   * @return true if there is false otherwise
-   */
+  // Checks if there is another record that we haven't visited
   virtual bool hasNextRecord() = 0;
 
-  /**
-   * Returns the next record.
-   * @return returns the record if there is one nullptr otherwise
-   */
+  // Returns the next record.
   virtual pdb::Handle<T> getNextRecord() = 0;
 
+protected:
+
+  // manages the connections
+  PDBConnectionManager *conMgr;
 };
 
 }

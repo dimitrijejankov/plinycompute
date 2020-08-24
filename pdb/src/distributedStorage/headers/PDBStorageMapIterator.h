@@ -21,8 +21,9 @@ class PDBStorageMapIterator<T, typename std::enable_if<hasGetKey<T>::value and h
   using Value = typename pdb::remove_handle<typename std::remove_reference<decltype(std::declval<T>().getValue())>::type>::type;
   using Key = typename pdb::remove_handle<typename std::remove_reference<decltype(std::declval<T>().getKey())>::type>::type;
 
-  PDBStorageMapIterator(std::string address, int port, int maxRetries,
-                        std::string set, std::string db, PDBLoggerPtr logger) : address(std::move(address)),
+  PDBStorageMapIterator(PDBConnectionManager *conMgr, std::string address, int port, int maxRetries,
+                        std::string set, std::string db, PDBLoggerPtr logger) : PDBStorageIterator<T>(conMgr),
+                                                                                address(std::move(address)),
                                                                                 port(port),
                                                                                 logger(std::move(logger)),
                                                                                 maxRetries(maxRetries),
@@ -137,22 +138,25 @@ class PDBStorageMapIterator<T, typename std::enable_if<hasGetKey<T>::value and h
     size_t compressedBufferSize;
 
     // the communicator
-    PDBCommunicatorPtr comm = std::make_shared<PDBCommunicator>();
     string errMsg;
+    PDBCommunicatorPtr comm;
 
     // try multiple times if we fail to connect
     int numRetries = 0;
     while (numRetries <= maxRetries) {
 
       // connect to the server
-      if (!comm->connectToInternetServer(logger, port, address, errMsg)) {
+      comm = this->conMgr->connectToInternetServer(logger, port, address, errMsg);
+      if (comm == nullptr) {
 
         // log the error
         logger->error(errMsg);
         logger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
 
         // throw an exception
-        throw std::runtime_error(errMsg);
+        if(maxRetries == ++numRetries) {
+          throw std::runtime_error(errMsg);
+        }
       }
 
       // we connected

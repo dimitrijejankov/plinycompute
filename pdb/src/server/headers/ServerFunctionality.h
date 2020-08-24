@@ -101,6 +101,10 @@ class ServerFunctionality {
       return server->getNodeID();
   };
 
+  PDBConnectionManager *getConMgr() {
+    return conMgr;
+  }
+
  protected:
 
   // the server

@@ -182,7 +182,7 @@ public:
     Handle<Type> requestCopy = makeObject<Type>(request);
 
     return RequestFactory::heapRequest< Type, SimpleRequestResult, bool>(
-        this->logger, port, address, false, bufferSize,
+        *conMgr, port, address, false, bufferSize,
         [&](Handle<SimpleRequestResult> result) {
 
           // if the result is something else null we got a response

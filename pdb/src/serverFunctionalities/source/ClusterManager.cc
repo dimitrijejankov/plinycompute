@@ -135,7 +135,7 @@ bool ClusterManager::syncCluster(std::string &error) {
 
   // send the request to sync
   conf->nodeID = RequestFactory::heapRequest<CluSyncRequest, CluSyncResult, int32_t>(
-      logger, conf->managerPort, conf->managerAddress, false, 1024,
+      *conMgr, conf->managerPort, conf->managerAddress, false, 1024,
       [&](const Handle<CluSyncResult> &result) {
         if (result != nullptr) {
           if (!result->success) {
