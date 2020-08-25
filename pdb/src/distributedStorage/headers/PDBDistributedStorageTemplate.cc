@@ -31,7 +31,7 @@ std::pair<pdb::PDBPageHandle, size_t> pdb::PDBDistributedStorage::requestPage(co
   while (numRetries <= getConfiguration()->maxRetries) {
 
     // connect to the server
-    comm = conMgr->connectToInternetServer(logger, node->port, node->address, errMsg);
+    comm = conMgr->connectTo(logger, node->nodeID, errMsg);
     if (comm == nullptr) {
 
       // log the error
@@ -625,11 +625,11 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleClearSet(const pd
     PDBWorkerPtr worker = this->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&, nodeID = i](PDBBuzzerPtr callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&, nodeID = i](const PDBBuzzerPtr& callerBuzzer) {
 
       // make a request and return the value
       success = RequestFactory::heapRequest<pdb::StoClearSetRequest, SimpleRequestResult, bool>(
-          *conMgr, nodes[nodeID]->port, nodes[nodeID]->address, false, 1024, [&](Handle<SimpleRequestResult> result) {
+          *conMgr, nodes[nodeID]->port, nodes[nodeID]->address, false, 1024, [&](const Handle<SimpleRequestResult>& result) {
 
             // check if we got a ACK
             return result != nullptr && result->getRes().first;
@@ -768,11 +768,11 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleRemoveSet(const p
     PDBWorkerPtr worker = this->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&, nodeID = i](PDBBuzzerPtr callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&, nodeID = i](const PDBBuzzerPtr& callerBuzzer) {
 
       // make a request and return the value
       success = RequestFactory::heapRequest<pdb::StoClearSetRequest, SimpleRequestResult, bool>(
-          *conMgr, nodes[nodeID]->port, nodes[nodeID]->address, false, 1024, [&](Handle<SimpleRequestResult> result) {
+          *conMgr, nodes[nodeID]->port, nodes[nodeID]->address, false, 1024, [&](const Handle<SimpleRequestResult>& result) {
 
             // check if we got a ACK
             return result != nullptr && result->getRes().first;

@@ -35,6 +35,7 @@ PDBClient::PDBClient(int portIn, const std::string& addressIn) : port(portIn), a
   // init the communication manager
   conMgr = std::make_shared<PDBConnectionManager>(logger);
   conMgr->init();
+  conMgr->registerManager(addressIn, portIn);
 
   // init the catalog client
   catalogClient = std::make_shared<pdb::PDBCatalogClient>(portIn, addressIn, logger);

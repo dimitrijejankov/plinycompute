@@ -57,7 +57,7 @@ bool PDBCatalogClient::createSet(std::string databaseName, std::string setName, 
   // make the request
   return RequestFactory::heapRequest<CatCreateSetRequest, SimpleRequestResult, bool>(
       *conMgr, port, address, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
+      [&](const Handle<SimpleRequestResult>& result) {
         if (result != nullptr) {
           if (!result->getRes().first) {
             errMsg = "Error creating set: " + result->getRes().second;
@@ -68,8 +68,7 @@ bool PDBCatalogClient::createSet(std::string databaseName, std::string setName, 
         }
         errMsg = "Error getting type name: got nothing back from catalog";
         return false;
-      },
-      databaseName, setName, typeName, isExtractingKey, typeID);
+      }, databaseName, setName, typeName, isExtractingKey, typeID);
 }
 }
 

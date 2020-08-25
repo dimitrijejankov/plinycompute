@@ -71,9 +71,7 @@ bool pdb::PDBJoinAggregationLocalComputationStage::setup(const pdb::Handle<pdb::
   for (int n = 0; n < job->numberOfNodes; n++) {
 
     // connect to the node
-    s->leftJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->address,
-                                                                job->nodes[n]->port,
-                                                                connectionID));
+    s->leftJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->nodeID, connectionID));
   }
 
   // init the vector for the right sides
@@ -82,9 +80,7 @@ bool pdb::PDBJoinAggregationLocalComputationStage::setup(const pdb::Handle<pdb::
   for (int n = 0; n < job->numberOfNodes; n++) {
 
     // connect to the node
-    s->rightJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->address,
-                                                                 job->nodes[n]->port,
-                                                                 connectionID));
+    s->rightJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->nodeID, connectionID));
   }
 
   /// 11. Get the incoming connections to this node.

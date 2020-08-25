@@ -10,7 +10,7 @@ class PDBStorageVectorIterator : public PDBStorageIterator<T> {
 public:
 
 
-  PDBStorageVectorIterator(PDBConnectionManager *conMgr, std::string address, int port, int maxRetries,
+  PDBStorageVectorIterator(PDBConnectionManager *conMgr, int nodeID, int maxRetries,
                            std::string set, std::string db, PDBLoggerPtr logger);
 
 
@@ -35,14 +35,9 @@ private:
   bool getNextPage(bool isFirst);
 
   /**
-   * the address of the manager
-   */
-  std::string address;
-
-  /**
    * the port of the manager
    */
-  int port = -1;
+  int nodeID = -1;
 
   /**
    * How many times should we retry to connect to the manager if we fail

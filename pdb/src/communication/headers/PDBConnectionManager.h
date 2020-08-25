@@ -1,5 +1,6 @@
 #pragma once
 
+#include <shared_mutex>
 #include "PDBCommunicator.h"
 #include "NodeConfig.h"
 
@@ -21,13 +22,41 @@ public:
   PDBCommunicatorPtr listen(std::string &errMsg);
 
   // this connects to a server
-  PDBCommunicatorPtr connectToInternetServer(const PDBLoggerPtr &logToMe, int portNumber,
-                                             const std::string &serverAddress, std::string &errMsg);
+  PDBCommunicatorPtr connectTo(const PDBLoggerPtr &logToMe, int portNumber,
+                               const std::string &serverAddress, std::string &errMsg);
+
+  // this connects to a server
+  PDBCommunicatorPtr connectTo(const PDBLoggerPtr &logToMe, int nodeID, std::string &errMsg);
+
+  // registers manager address
+  void registerManager(const std::string &serverAddress, int portNumber);
+
+  // register node
+  void registerNode(int32_t nodeID, const std::string &serverAddress, int portNumber);
 
   // get the logger
-  const PDBLoggerPtr &getLogger() const;
+  [[nodiscard]] const PDBLoggerPtr &getLogger() const;
+
+  // returns the id of the manager
+  int32_t getManagerID();
 
  private:
+
+  // represents the address of a node
+  struct NodeAddress {
+
+    // the ip address of a node
+    std::string ip;
+
+    // the port of a node
+    int32_t port;
+  };
+
+  // the nodes in the system
+  std::map<uint32_t, NodeAddress> nodes;
+
+  // mutex to lock the node information
+  std::shared_mutex m;
 
   // listen to this port
   int32_t listenPort;
@@ -40,6 +69,9 @@ public:
 
   // the logger
   PDBLoggerPtr logger;
+
+  // the manager id
+  const int32_t MANAGER_ID = -1;
 };
 
 //

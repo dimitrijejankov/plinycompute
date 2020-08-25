@@ -135,14 +135,8 @@ public:
    */
   PDBCommunicatorPtr waitForConnection(const pdb::Handle<SerConnectToRequest> &connectionID);
 
-  /**
-   * Connect to a particular server
-   * @param ip - the ip of the node
-   * @param port - port
-   * @param connectionID - connection id
-   * @return the communicator if we succeed, null otherwise
-   */
-  PDBCommunicatorPtr connectTo(const std::string &ip, int32_t port, const pdb::Handle<SerConnectToRequest> &connectionID);
+  // Connect to a particular server
+  PDBCommunicatorPtr connectTo(int32_t connectToMe, const pdb::Handle<SerConnectToRequest> &connectionID);
 
   /**
    * asks us to handle one request that is coming over the given PDBCommunicator; return true if this

@@ -159,7 +159,7 @@ bool pdb::PDBJoinAggregationKeyStage::setup(const Handle<ExJob> &job,
       // go grab the source page set
       bool isThisNode = job->nodes[currNode]->address == job->nodes[n]->address && job->nodes[currNode]->port == job->nodes[n]->port;
       PDBAbstractPageSetPtr sourcePageSet = isThisNode ? getKeySourcePageSet(storage, i, sources) :
-                                            getFetchingPageSet(storage, i,sources, job->nodes[n]->address, job->nodes[n]->port);
+                                            getFetchingPageSet(storage, i,sources, job->nodes[n]->nodeID);
 
       // build the pipeline
       auto leftPipeline = computePlan->buildHashPipeline(leftInputTupleSet, sourcePageSet, lps, params);
@@ -187,7 +187,7 @@ bool pdb::PDBJoinAggregationKeyStage::setup(const Handle<ExJob> &job,
       // go grab the source page set
       bool isThisNode = job->nodes[currNode]->address == job->nodes[n]->address && job->nodes[currNode]->port == job->nodes[n]->port;
       PDBAbstractPageSetPtr sourcePageSet = isThisNode ? getKeySourcePageSet(storage, i, rightSources) :
-                                            getFetchingPageSet(storage, i, rightSources, job->nodes[n]->address, job->nodes[n]->port);
+                                            getFetchingPageSet(storage, i, rightSources, job->nodes[n]->nodeID);
 
       // build the pipeline
       auto rightPipeline = computePlan->buildHashPipeline(rightInputTupleSet, sourcePageSet, rps, params);
@@ -341,8 +341,7 @@ pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationKeyStage::getKeySourcePageSet(
 pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationKeyStage::getFetchingPageSet(const std::shared_ptr<pdb::PDBStorageManager> &storage,
                                                                                size_t idx,
                                                                                const pdb::Vector<PDBSourceSpec> &srcs,
-                                                                               const std::string &ip,
-                                                                               int32_t port) {
+                                                                               int32_t nodeID) {
 
   // grab the source set from the sources
   auto &sourceSet = srcs[idx].sourceSet;
@@ -352,13 +351,13 @@ pdb::PDBAbstractPageSetPtr pdb::PDBJoinAggregationKeyStage::getFetchingPageSet(c
   if (sourceSet != nullptr) {
 
     // get the page set
-    sourcePageSet = storage->fetchPDBSet(sourceSet->database, sourceSet->set, true, ip, port);
+    sourcePageSet = storage->fetchPDBSet(sourceSet->database, sourceSet->set, true, nodeID);
     sourcePageSet->resetPageSet();
 
   } else {
 
     // we are reading from an existing page set get it
-    sourcePageSet = storage->fetchPageSet(*srcs[idx].pageSet, true, ip, port);
+    sourcePageSet = storage->fetchPageSet(*srcs[idx].pageSet, true, nodeID);
     sourcePageSet->resetPageSet();
   }
 
@@ -428,7 +427,7 @@ bool pdb::PDBJoinAggregationKeyStage::sendPlan(int32_t node,
   return success;
 }
 
-bool pdb::PDBJoinAggregationKeyStage::receivePlan(const std::string &ip, int32_t port,
+bool pdb::PDBJoinAggregationKeyStage::receivePlan(int32_t nodeID,
                                                   const PDBBufferManagerInterfacePtr &mgr,
                                                   const Handle<pdb::ExJob> &job,
                                                   const PDBPhysicalAlgorithmStatePtr &state) {
@@ -450,7 +449,7 @@ bool pdb::PDBJoinAggregationKeyStage::receivePlan(const std::string &ip, int32_t
                                                                                        job->thisNode,
                                                                                        PDBJoinAggregationState::PLAN_TASK);
   // connection
-  auto connection = mgr->connectTo(ip, port, connectionID);
+  auto connection = mgr->connectTo(nodeID, connectionID);
 
   // wait for the plan
   std::string error;
@@ -680,7 +679,7 @@ bool pdb::PDBJoinAggregationKeyStage::runFollower(const Handle<pdb::ExJob> &job,
   auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
 
   // receive the plan
-  receivePlan(job->nodes[0]->address, job->nodes[0]->port, myMgr, job, state);
+  receivePlan(job->nodes[0]->nodeID, myMgr, job, state);
 
   /**
    * 3. Get the planning result decision from the plan

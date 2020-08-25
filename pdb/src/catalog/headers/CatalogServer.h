@@ -181,9 +181,10 @@ public:
     // copy the request we want to forward
     Handle<Type> requestCopy = makeObject<Type>(request);
 
-    return RequestFactory::heapRequest< Type, SimpleRequestResult, bool>(
+    //
+    return RequestFactory::heapRequest<Type, SimpleRequestResult, bool>(
         *conMgr, port, address, false, bufferSize,
-        [&](Handle<SimpleRequestResult> result) {
+        [&](const Handle<SimpleRequestResult>& result) {
 
           // if the result is something else null we got a response
           if (result != nullptr) {
@@ -209,8 +210,7 @@ public:
           errMsg = "Error failed request to node : " + address + ":" + std::to_string(port) + ". Error is :" + result->getRes().second;
 
           return false;
-        },
-        requestCopy);
+        }, requestCopy);
   }
 };
 }

@@ -148,6 +148,11 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
           // if the node exists update it if it does not register it
           res = pdbCatalog->nodeExists(nodeID) ? pdbCatalog->updateNode(node, errMsg) : pdbCatalog->registerNode(node, errMsg);
 
+          // register the node
+          if (node->nodeType == "worker"){
+            conMgr->registerNode(node->nodeID, node->address, node->port);
+          }
+
           // create an allocation block to hold the response
           const UseTemporaryAllocationBlock tempBlock{1024};
           Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(res, errMsg);
@@ -159,6 +164,11 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
         // if the node exists update it if it does not register it
         res = pdbCatalog->nodeExists(nodeID) ? pdbCatalog->updateNode(node, errMsg) : pdbCatalog->registerNode(node, errMsg);
+
+        // register the node
+        if (node->nodeType == "worker"){
+          conMgr->registerNode(node->nodeID, node->address, node->port);
+        }
 
         // to get the results of each broadcast
         map<string, pair<bool, string>> updateResults;
@@ -200,7 +210,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
   // basically this copies the received catalog and reloads it
   forMe.registerHandler(CatSyncWorkerRequest_TYPEID, make_shared<HeapRequestHandler<CatSyncWorkerRequest>>([&](const Handle<CatSyncWorkerRequest>& request,
-                                                                                                                                 const PDBCommunicatorPtr& sendUsingMe) {
+                                                                                                                                const PDBCommunicatorPtr& sendUsingMe) {
 
         // lock the catalog server
         std::lock_guard<std::mutex> guard(serverMutex);
@@ -239,6 +249,16 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
         // load the catalog again
         pdbCatalog = make_shared<PDBCatalog>(getConfiguration()->catalogFile);
+
+        // get the nodes
+        auto nodes = pdbCatalog->getNodes();
+        for(auto &node : nodes) {
+
+          // register the node
+          if(node.nodeType == "worker") {
+            conMgr->registerNode(node.nodeID, node.address, node.port);
+          }
+        }
 
         // create an allocation block to hold the response
         const UseTemporaryAllocationBlock tmp{1024};

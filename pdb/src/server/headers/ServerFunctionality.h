@@ -66,10 +66,8 @@ class ServerFunctionality {
    * @param connectionID - connection id
    * @return the communicator if we succeed, null otherwise
    */
-  PDBCommunicatorPtr connectTo(const std::string &ip,
-                               int32_t port,
-                               const pdb::Handle<SerConnectToRequest> &connectionID) {
-    return this->server->connectTo(ip, port, connectionID);
+  PDBCommunicatorPtr connectTo(int32_t connectToMe, const pdb::Handle<SerConnectToRequest> &connectionID) {
+    return this->server->connectTo(connectToMe, connectionID);
   }
 
   // remember the server this is attached to

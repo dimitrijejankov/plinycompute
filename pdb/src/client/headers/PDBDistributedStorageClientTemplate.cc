@@ -74,13 +74,13 @@ bool PDBDistributedStorageClient::sendDataWithKey(const std::string &db,
 template<class DataType>
 PDBStorageIteratorPtr<DataType> PDBDistributedStorageClient::getVectorIterator(const std::string &database, const std::string &set) {
 
-  return std::make_shared<PDBStorageVectorIterator<DataType>>(conMgr, address, port, 5, set, database, logger);
+  return std::make_shared<PDBStorageVectorIterator<DataType>>(conMgr, conMgr->getManagerID(), 5, set, database, logger);
 }
 
 template<class DataType>
 PDBStorageIteratorPtr<DataType> PDBDistributedStorageClient::getMapIterator(const std::string &database, const std::string &set) {
 
-  return std::make_shared<PDBStorageMapIterator<DataType>>(conMgr, address, port, 5, set, database, logger);
+  return std::make_shared<PDBStorageMapIterator<DataType>>(conMgr, conMgr->getManagerID(), 5, set, database, logger);
 }
 
 }

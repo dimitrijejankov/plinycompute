@@ -54,7 +54,7 @@ ReturnType RequestFactory::heapRequest(pdb::PDBConnectionManager &conMgr, int po
       bool success;
 
       // connect to the server
-      auto temp = conMgr.connectToInternetServer(myLogger, port, address, errMsg);
+      auto temp = conMgr.connectTo(myLogger, port, address, errMsg);
       if (temp == nullptr) {
 
           // log the error
@@ -175,7 +175,7 @@ ReturnType RequestFactory::dataHeapRequest(pdb::PDBConnectionManager &conMgr, in
       bool success;
 
       // connect to the server
-      auto temp = conMgr.connectToInternetServer(logger, port, address, errMsg);
+      auto temp = conMgr.connectTo(logger, port, address, errMsg);
       if (temp == nullptr) {
 
           // log the error
@@ -294,7 +294,7 @@ ReturnType RequestFactory::dataKeyHeapRequest(pdb::PDBConnectionManager &conMgr,
     bool success;
 
     // connect to the server
-    auto temp = conMgr.connectToInternetServer(logger, port, address, errMsg);
+    auto temp = conMgr.connectTo(logger, port, address, errMsg);
     if (temp == nullptr) {
 
       // log the error
@@ -435,7 +435,7 @@ ReturnType RequestFactory::bytesHeapRequest(pdb::PDBConnectionManager &conMgr, i
       bool success;
 
       // connect to the server
-      auto temp = conMgr.connectToInternetServer(logger, port, address, errMsg);
+      auto temp = conMgr.connectTo(logger, port, address, errMsg);
       if (temp == nullptr) {
 
           // log the error

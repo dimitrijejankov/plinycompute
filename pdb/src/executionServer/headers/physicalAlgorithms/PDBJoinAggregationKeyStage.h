@@ -63,7 +63,7 @@ public:
                        const PDBPhysicalAlgorithmStatePtr &state);
 
   // recieve the plan
-  static bool receivePlan(const std::string &ip, int32_t port,
+  static bool receivePlan(int32_t nodeID,
                           const PDBBufferManagerInterfacePtr &mgr,
                           const Handle<pdb::ExJob> &job,
                           const PDBPhysicalAlgorithmStatePtr &state);
@@ -92,8 +92,7 @@ public:
   static PDBAbstractPageSetPtr getFetchingPageSet(const std::shared_ptr<pdb::PDBStorageManager> &storage,
                                                   size_t idx,
                                                   const pdb::Vector<PDBSourceSpec> &srcs,
-                                                  const std::string &ip,
-                                                  int32_t port);
+                                                  int32_t nodeID);
 };
 
 }

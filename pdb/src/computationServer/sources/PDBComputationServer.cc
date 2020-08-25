@@ -96,7 +96,7 @@ bool pdb::PDBComputationServer::executeJob(pdb::Handle<pdb::ExJob> &job) {
       /// 2. Connect to the node
 
       // connect to the server
-      auto comm = conMgr->connectToInternetServer(logger, job->nodes[i]->port, job->nodes[i]->address, errMsg);
+      auto comm = conMgr->connectTo(logger, job->nodes[i]->nodeID, errMsg);
       size_t numRetries = 0;
       while (comm == nullptr) {
 
@@ -107,7 +107,7 @@ bool pdb::PDBComputationServer::executeJob(pdb::Handle<pdb::ExJob> &job) {
         // retry
         numRetries++;
         if(numRetries < getConfiguration()->maxRetries) {
-          comm = conMgr->connectToInternetServer(logger, job->nodes[i]->port, job->nodes[i]->address, errMsg);
+          comm = conMgr->connectTo(logger, job->nodes[i]->nodeID, errMsg);
           continue;
         }
 
@@ -353,7 +353,7 @@ void pdb::PDBComputationServer::registerHandlers(pdb::PDBServer &forMe) {
 
               // copy the nodes
               for(const auto &node : nodes) {
-                job->nodes.push_back(pdb::makeObject<ExJobNode>(node->port, node->address));
+                job->nodes.push_back(pdb::makeObject<ExJobNode>(node->nodeID, node->port, node->address));
               }
 
               // broadcast the job to each node and run it...

@@ -21,10 +21,9 @@ class PDBStorageMapIterator<T, typename std::enable_if<hasGetKey<T>::value and h
   using Value = typename pdb::remove_handle<typename std::remove_reference<decltype(std::declval<T>().getValue())>::type>::type;
   using Key = typename pdb::remove_handle<typename std::remove_reference<decltype(std::declval<T>().getKey())>::type>::type;
 
-  PDBStorageMapIterator(PDBConnectionManager *conMgr, std::string address, int port, int maxRetries,
+  PDBStorageMapIterator(PDBConnectionManager *conMgr, int32_t nodeID, int maxRetries,
                         std::string set, std::string db, PDBLoggerPtr logger) : PDBStorageIterator<T>(conMgr),
-                                                                                address(std::move(address)),
-                                                                                port(port),
+                                                                                nodeID(nodeID),
                                                                                 logger(std::move(logger)),
                                                                                 maxRetries(maxRetries),
                                                                                 set(std::move(set)),
@@ -146,12 +145,12 @@ class PDBStorageMapIterator<T, typename std::enable_if<hasGetKey<T>::value and h
     while (numRetries <= maxRetries) {
 
       // connect to the server
-      comm = this->conMgr->connectToInternetServer(logger, port, address, errMsg);
+      comm = this->conMgr->connectTo(logger, nodeID, errMsg);
       if (comm == nullptr) {
 
         // log the error
         logger->error(errMsg);
-        logger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
+        logger->error("Can not connect to remote server with port=" + std::to_string(nodeID) + ");");
 
         // throw an exception
         if(maxRetries == ++numRetries) {
@@ -247,14 +246,9 @@ class PDBStorageMapIterator<T, typename std::enable_if<hasGetKey<T>::value and h
   }
 
   /**
-   * the address of the manager
+   * the id of the of the manager
    */
-  std::string address;
-
-  /**
-   * the port of the manager
-   */
-  int port = -1;
+  int nodeID = -1;
 
   /**
    * How many times should we retry to connect to the manager if we fail

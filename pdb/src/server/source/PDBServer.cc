@@ -62,6 +62,7 @@ PDBServer::PDBServer(const NodeConfigPtr &config, const PDBLoggerPtr &logger)
 
   // init the connection manager
   connectionManager = std::make_shared<PDBConnectionManager>(config, logger);
+  connectionManager->registerManager(config->managerAddress, config->managerPort);
 }
 
 void PDBServer::registerHandler(int16_t requestID, const PDBCommWorkPtr &handledBy) {
@@ -128,24 +129,24 @@ PDBCommunicatorPtr PDBServer::waitForConnection(const pdb::Handle<SerConnectToRe
   return connection;
 }
 
-PDBCommunicatorPtr PDBServer::connectTo(const std::string &ip, int32_t port, const pdb::Handle<SerConnectToRequest> &connectionID) {
+PDBCommunicatorPtr PDBServer::connectTo(int32_t connectToMe, const pdb::Handle<SerConnectToRequest> &connectionID) {
 
   // stuff to keep track of the connecting
   std::string error;
   int numRetries = 0;
 
   // try to connect a bunch of times
-  auto comm = connectionManager->connectToInternetServer(logger, port, ip, error);
+  auto comm = connectionManager->connectTo(logger, connectToMe, error);
   while (comm == nullptr) {
 
     // log the error
     logger->error(error);
-    logger->error("Can not connect to remove server with ip " + ip + " and port " + std::to_string(port) + ";");
+    logger->error("Can not connect to remove server with ID "+ std::to_string(connectToMe) + ";");
 
     // retry
     numRetries++;
     if(numRetries < getConfiguration()->maxRetries) {
-      comm = connectionManager->connectToInternetServer(logger, port, ip, error);
+      comm = connectionManager->connectTo(logger, connectToMe, error);
       continue;
     }
 
@@ -374,7 +375,7 @@ bool PDBServer::shutdownCluster() {
 
   // create a communicator
   string errMsg;
-  pdb::PDBCommunicatorPtr communicator = connectionManager->connectToInternetServer(logger, config->managerPort, config->managerAddress, errMsg);
+  pdb::PDBCommunicatorPtr communicator = connectionManager->connectTo(logger, config->nodeID, errMsg);
 
   // did we fail to connect to the server
   if(communicator == nullptr) {

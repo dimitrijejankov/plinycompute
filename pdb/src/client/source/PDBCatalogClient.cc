@@ -107,7 +107,7 @@ bool PDBCatalogClient::registerType(const std::string& fileContainingSharedLib, 
   in.readsome(fileBytes, fileLen);
 
   bool res = RequestFactory::heapRequest< CatRegisterType, SimpleRequestResult, bool>(*conMgr, port, address, false, 1024 + fileLen,
-      [&](Handle<SimpleRequestResult> result) {
+      [&](const Handle<SimpleRequestResult>& result) {
 
         if (result != nullptr) {
           if (!result->getRes().first) {

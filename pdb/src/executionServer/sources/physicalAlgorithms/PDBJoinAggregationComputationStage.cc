@@ -73,9 +73,7 @@ bool pdb::PDBJoinAggregationComputationStage::setup(const pdb::Handle<pdb::ExJob
   for (int n = 0; n < job->numberOfNodes; n++) {
 
     // connect to the node
-    s->leftJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->address,
-                                                                job->nodes[n]->port,
-                                                                connectionID));
+    s->leftJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->nodeID, connectionID));
   }
 
   // init the vector for the right sides
@@ -84,9 +82,7 @@ bool pdb::PDBJoinAggregationComputationStage::setup(const pdb::Handle<pdb::ExJob
   for (int n = 0; n < job->numberOfNodes; n++) {
 
     // connect to the node
-    s->rightJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->address,
-                                                                 job->nodes[n]->port,
-                                                                 connectionID));
+    s->rightJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->nodeID, connectionID));
   }
 
   /// 11. Get the incoming connections to this node.
@@ -462,8 +458,7 @@ bool pdb::PDBJoinAggregationComputationStage::setup(const pdb::Handle<pdb::ExJob
 
       // make the sender
       auto sender = std::make_shared<PDBPageNetworkSender>(storage->getConMgr(),
-                                                           job->nodes[i]->address,
-                                                           job->nodes[i]->port,
+                                                           job->nodes[i]->nodeID,
                                                            job->numberOfProcessingThreads,
                                                            job->numberOfNodes,
                                                            storage->getConfiguration()->maxRetries,

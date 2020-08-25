@@ -10,11 +10,10 @@
 namespace pdb {
 
 template<class T>
-PDBStorageVectorIterator<T>::PDBStorageVectorIterator(PDBConnectionManager *conMgr, string address, int port,
+PDBStorageVectorIterator<T>::PDBStorageVectorIterator(PDBConnectionManager *conMgr, int nodeID,
                                                       int maxRetries, string set, string db,
                                                       PDBLoggerPtr logger) : PDBStorageIterator<T>(conMgr),
-                                                                             address(std::move(address)),
-                                                                             port(port),
+                                                                             nodeID(nodeID),
                                                                              logger(std::move(logger)),
                                                                              maxRetries(maxRetries),
                                                                              set(std::move(set)),
@@ -86,12 +85,12 @@ bool PDBStorageVectorIterator<T>::getNextPage(bool isFirst) {
   while (numRetries <= maxRetries) {
 
     // connect to the server
-    comm = this->conMgr->connectToInternetServer(logger, port, address, errMsg);
+    comm = this->conMgr->connectTo(logger, nodeID, errMsg);
     if (comm == nullptr) {
 
       // log the error
       logger->error(errMsg);
-      logger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
+      logger->error("Can not connect to remote server with port=" + std::to_string(nodeID) + ");");
 
       // throw an exception
       if(maxRetries == ++numRetries) {

@@ -15,26 +15,26 @@
 
 #include "PDBPageNetworkSender.h"
 
-pdb::PDBPageNetworkSender::PDBPageNetworkSender(PDBConnectionManager *conMgr, string address, int32_t port, uint64_t numberOfProcessingThreads, uint64_t numberOfNodes,
+pdb::PDBPageNetworkSender::PDBPageNetworkSender(PDBConnectionManager *conMgr, int32_t nodeID, uint64_t numberOfProcessingThreads, uint64_t numberOfNodes,
                                                 uint64_t maxRetries, PDBLoggerPtr logger, std::pair<uint64_t, std::string> pageSetID, pdb::PDBPageQueuePtr queue)
-    : address(std::move(address)), port(port), queue(std::move(queue)), numberOfProcessingThreads(numberOfProcessingThreads),
+    : nodeID(nodeID), queue(std::move(queue)), numberOfProcessingThreads(numberOfProcessingThreads),
       numberOfNodes(numberOfNodes), logger(std::move(logger)), pageSetID(std::move(pageSetID)), maxRetries(maxRetries), conMgr(conMgr) {}
 
 bool pdb::PDBPageNetworkSender::setup() {
 
   // connect to the server
   size_t numRetries = 0;
-  comm = conMgr->connectToInternetServer(logger, port, address, errMsg);
+  comm = conMgr->connectTo(logger, nodeID, errMsg);
   while (comm == nullptr) {
 
     // log the error
     logger->error(errMsg);
-    logger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
+    logger->error("Can not connect to remote server with ID " + std::to_string(nodeID) + ");");
 
     // retry
     numRetries++;
     if(numRetries < maxRetries) {
-      comm = conMgr->connectToInternetServer(logger, port, address, errMsg);
+      comm = conMgr->connectTo(logger, nodeID, errMsg);
       continue;
     }
 

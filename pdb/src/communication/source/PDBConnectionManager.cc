@@ -77,9 +77,14 @@ bool pdb::PDBConnectionManager::init() {
   return true;
 }
 
-pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::connectToInternetServer(const pdb::PDBLoggerPtr& logToMe,
-                                                                           int portNumber, const std::string& serverAddress,
-                                                                           std::string &errMsg) {
+pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::connectTo(const pdb::PDBLoggerPtr& logToMe,
+                                                             int portNumber, const std::string& serverAddress,
+                                                             std::string &errMsg) {
+
+  {
+    // lock this
+    std::shared_lock<std::shared_mutex> lk(m);
+  }
 
   //
   logToMe->trace("PDBCommunicator: About to connect to the remote host");
@@ -155,6 +160,109 @@ pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::connectToInternetServer(const
   return std::move(comm);
 }
 
+pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::connectTo(const pdb::PDBLoggerPtr &logToMe, int nodeID, std::string &errMsg) {
+
+  NodeAddress *address;
+  {
+    // lock this
+    std::shared_lock<std::shared_mutex> lk(m);
+
+    // get the address
+    address = &nodes[nodeID];
+  }
+
+  // log stuff
+  logToMe->trace("PDBCommunicator: About to connect to the remote host");
+
+  struct addrinfo hints{};
+  struct addrinfo *result, *rp;
+  char port[10];
+  sprintf(port, "%d", address->port);
+
+  memset(&hints, 0, sizeof(struct addrinfo));
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = 0;
+  hints.ai_protocol = 0;
+
+  int s = getaddrinfo(address->ip.c_str(), port, &hints, &result);
+  if (s != 0) {
+    logToMe->error("PDBCommunicator: could not get addr info");
+    logToMe->error(strerror(errno));
+    errMsg = "Could not get addr info ";
+    errMsg += strerror(errno);
+    std::cout << errMsg << std::endl;
+    return nullptr;
+  }
+
+  bool connected = false;
+  int32_t socketFD = -1;
+  for (rp = result; rp != nullptr; rp = rp->ai_next) {
+    int count = 0;
+    while (count <= maxRetries) {
+      logToMe->trace("PDBCommunicator: creating socket....");
+      socketFD = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+      if (socketFD == -1) {
+        continue;
+      }
+      if (::connect(socketFD, rp->ai_addr, rp->ai_addrlen) != -1) {
+        connected = true;
+        break;
+      }
+      count++;
+      std::cout << "Connection error, to retry..." << std::endl;
+      sleep(1);
+      close(socketFD);
+      socketFD = -1;
+    }
+    if (connected) {
+      break;
+    }
+  }
+
+  // check for error
+  if (rp == nullptr) {
+    logToMe->error("PDBCommunicator: could not connect to server: address info is null");
+    logToMe->error(strerror(errno));
+    errMsg = "Could not connect to server: address info is null with ip=" + address->ip +
+        ", and port=" + port;
+    errMsg += strerror(errno);
+    std::cout << errMsg << std::endl;
+    return nullptr;
+  }
+  freeaddrinfo(result);
+
+  // create the communicator
+  auto comm = std::make_shared<PDBCommunicator>();
+  comm->logToMe = logToMe;
+  comm->needToSendDisconnectMsg = true;
+  comm->socketFD = socketFD;
+
+  logToMe->trace("PDBCommunicator: Successfully connected to the remote host");
+  logToMe->trace("PDBCommunicator: Socket FD is " + std::to_string(socketFD));
+
+  // return the communicator
+  return std::move(comm);
+}
+
+void pdb::PDBConnectionManager::registerManager(const std::string &serverAddress, int portNumber) {
+
+  // lock the stuff
+  std::lock_guard<std::shared_mutex> g(m);
+
+  // set the node id
+  nodes[MANAGER_ID] = {serverAddress, portNumber};
+}
+
+void pdb::PDBConnectionManager::registerNode(int32_t nodeID, const std::string &serverAddress, int portNumber) {
+
+  // lock the stuff
+  std::lock_guard<std::shared_mutex> g(m);
+
+  // set the node id
+  nodes[nodeID] = {serverAddress, portNumber};
+}
+
 pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::listen(std::string &errMsg) {
 
   // if there is no port set we need to listen to jump out of it
@@ -192,3 +300,10 @@ pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::listen(std::string &errMsg) {
 const pdb::PDBLoggerPtr &pdb::PDBConnectionManager::getLogger() const {
   return logger;
 }
+
+int32_t pdb::PDBConnectionManager::getManagerID() {
+
+  // return the manager id
+  return MANAGER_ID;
+}
+

@@ -169,8 +169,7 @@ bool pdb::PDBAggregationPipeStage::setup(const pdb::Handle<pdb::ExJob> &job,
 
       // make the sender
       auto sender = std::make_shared<PDBPageNetworkSender>(storage->getConMgr(),
-                                                           job->nodes[i]->address,
-                                                           job->nodes[i]->port,
+                                                           job->nodes[i]->nodeID,
                                                            job->numberOfProcessingThreads,
                                                            job->numberOfNodes,
                                                            storage->getConfiguration()->maxRetries,

@@ -61,13 +61,11 @@ public:
   PDBFeedingPageSetPtr createFeedingAnonymousPageSet(const std::pair<uint64_t, std::string> &pageSetID, uint64_t numReaders, uint64_t numFeeders);
 
   // this makes a page set that fetches pages of a given set from a particular node
-  PDBAbstractPageSetPtr fetchPDBSet(const std::string &database, const std::string &set, bool isKey, const std::string &ip, int32_t port);
+  PDBAbstractPageSetPtr fetchPDBSet(const std::string &database, const std::string &set, bool isKey, int32_t nodeID);
 
   // this makes a page se that fetches pages of a given page set from a particular node
   PDBAbstractPageSetPtr fetchPageSet(const PDBSourcePageSetSpec &pageSetSpec,
-                                     bool isKey,
-                                     const std::string &ip,
-                                     int32_t port);
+                                     bool isKey, int32_t nodeID);
 
   // returns a pages set that already exists
   PDBAbstractPageSetPtr getPageSet(const std::pair<uint64_t, std::string> &pageSetID);

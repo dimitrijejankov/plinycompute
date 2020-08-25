@@ -62,7 +62,7 @@ bool PDBHeartBeatWork::sendHeartBeat(const std::string &address, int32_t port, p
 
     return pdb::RequestFactory::heapRequest<pdb::CatSetObjectTypeRequest, pdb::SimpleRequestResult, bool>(
         *mgr, port, address, false, 1024,
-        [&](pdb::Handle<pdb::SimpleRequestResult> result) {
+        [&](const pdb::Handle<pdb::SimpleRequestResult>& result) {
 
           // did we get something back or not
           return result != nullptr;

@@ -847,8 +847,7 @@ pdb::PDBFeedingPageSetPtr pdb::PDBStorageManager::createFeedingAnonymousPageSet(
 pdb::PDBAbstractPageSetPtr pdb::PDBStorageManager::fetchPDBSet(const std::string &database,
                                                                        const std::string &set,
                                                                        bool isKey,
-                                                                       const std::string &ip,
-                                                                       int32_t port) {
+                                                                       int32_t nodeID) {
   // get the configuration
   auto conf = this->getConfiguration();
 
@@ -859,14 +858,14 @@ pdb::PDBAbstractPageSetPtr pdb::PDBStorageManager::fetchPDBSet(const std::string
 
   // the communicator
   string errMsg;
-  PDBCommunicatorPtr comm = conMgr->connectToInternetServer(logger, port, ip, errMsg);
+  PDBCommunicatorPtr comm = conMgr->connectTo(logger, nodeID, errMsg);
 
   // connect to the node
   if (comm == nullptr) {
 
     // log the error
     logger->error(errMsg);
-    logger->error("Could not connect node " + ip + ":" + std::to_string(port) + " to fetch the set (" +  database + ":" + set + ").\n");
+    logger->error("Could not connect node " + std::to_string(nodeID) + " to fetch the set (" +  database + ":" + set + ").\n");
 
     // return null
     return nullptr;
@@ -928,8 +927,7 @@ pdb::PDBAbstractPageSetPtr pdb::PDBStorageManager::fetchPDBSet(const std::string
 
 pdb::PDBAbstractPageSetPtr pdb::PDBStorageManager::fetchPageSet(const pdb::PDBSourcePageSetSpec &pageSetSpec,
                                                                 bool isKey,
-                                                                const std::string &ip,
-                                                                int32_t port) {
+                                                                int32_t nodeID) {
   // get the configuration
   auto conf = this->getConfiguration();
 
@@ -940,14 +938,14 @@ pdb::PDBAbstractPageSetPtr pdb::PDBStorageManager::fetchPageSet(const pdb::PDBSo
 
   // the communicator
   string errMsg;
-  PDBCommunicatorPtr comm = conMgr->connectToInternetServer(logger, port, ip, errMsg);
+  PDBCommunicatorPtr comm = conMgr->connectTo(logger, nodeID, errMsg);
 
   // connect to the node
   if (comm == nullptr) {
 
     // log the error
     logger->error(errMsg);
-    logger->error("Could not connect node " + ip + ":" + std::to_string(port) +
+    logger->error("Could not connect node " + std::to_string(nodeID) +
         " to fetch the page set (" +  std::to_string(pageSetSpec.pageSetIdentifier.first) +
         ":" + (std::string)pageSetSpec.pageSetIdentifier.second + ").\n");
 
