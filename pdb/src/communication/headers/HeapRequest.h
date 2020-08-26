@@ -34,7 +34,7 @@ public:
   // This templated function makes it easy to write a simple network client that asks a request,
   // then gets a result.  See, for example, CatalogClient.cc for an example of how to use.
   template <class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
-  static ReturnType heapRequest(pdb::PDBConnectionManager &conMgr, int port, const std::string& address,
+  static ReturnType heapRequest(pdb::PDBConnectionManager &conMgr, int nodeID,
                                 ReturnType onErr, size_t bytesForRequest,
                                 std::function<ReturnType(pdb::Handle<ResponseType>)> processResponse,
                                 RequestTypeParams&&... args);
@@ -42,21 +42,19 @@ public:
 
   // This method a vector of data in addition to the object of RequestType to the particular node.
   template <class RequestType, class DataType, class ResponseType, class ReturnType, class... RequestTypeParams>
-  static ReturnType dataHeapRequest(pdb::PDBConnectionManager &conMgr, int port, const std::string &address,
+  static ReturnType dataHeapRequest(pdb::PDBConnectionManager &conMgr, int nodeID,
                                     ReturnType onErr, size_t bytesForRequest, std::function<ReturnType(pdb::Handle<ResponseType>)> processResponse,
                                     pdb::Handle<Vector<pdb::Handle<DataType>>> dataToSend, RequestTypeParams&&... args);
 
   //
   template <class RequestType, class DataType, class ResponseType, class ReturnType, class... RequestTypeParams>
-  static ReturnType dataKeyHeapRequest(pdb::PDBConnectionManager &conMgr, int port, const std::string &address,
+  static ReturnType dataKeyHeapRequest(pdb::PDBConnectionManager &conMgr, int nodeID,
                                        ReturnType onErr, size_t bytesForRequest, std::function<ReturnType(pdb::Handle<ResponseType>)> processResponse,
                                        pdb::Handle<Vector<pdb::Handle<DataType>>> dataToSend, RequestTypeParams&&... args);
 
   // This method send raw bytes in addition to the object of RequestType to the particular node.
   template <class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
-  static ReturnType bytesHeapRequest(pdb::PDBConnectionManager &conMgr,
-                                     int port,
-                                     const std::string& address,
+  static ReturnType bytesHeapRequest(pdb::PDBConnectionManager &conMgr, int nodeID,
                                      ReturnType onErr,
                                      size_t bytesForRequest,
                                      std::function<ReturnType(pdb::Handle<ResponseType>)> processResponse,

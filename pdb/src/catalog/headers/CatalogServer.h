@@ -153,7 +153,7 @@ public:
       if (node.nodeType != "manager") {
 
         // sends the request to a node in the cluster
-        bool res = forwardRequest(request, bufferSize, ip, port, errMsg);
+        bool res = forwardRequest(request, bufferSize, node.nodeID, errMsg);
 
         // adds the result of the update
         broadcastResults.insert(make_pair(ip, make_pair(res, errMsg)));
@@ -173,7 +173,7 @@ public:
    * @return - true if we succeed, false otherwise
    */
   template <class Type>
-  bool forwardRequest(pdb::Handle<Type> &request, size_t bufferSize, const std::string &address, int port, std::string &errMsg) {
+  bool forwardRequest(pdb::Handle<Type> &request, size_t bufferSize, int nodeID, std::string &errMsg) {
 
     // make an allocation block
     const UseTemporaryAllocationBlock tempBlock{bufferSize};
@@ -183,7 +183,7 @@ public:
 
     //
     return RequestFactory::heapRequest<Type, SimpleRequestResult, bool>(
-        *conMgr, port, address, false, bufferSize,
+        *conMgr, nodeID, false, bufferSize,
         [&](const Handle<SimpleRequestResult>& result) {
 
           // if the result is something else null we got a response
@@ -193,7 +193,7 @@ public:
             if (!result->getRes().first) {
 
               // we failed set the error and return false
-              errMsg = "Error failed request to node : " + address + ":" + std::to_string(port) + ". Error is :" + result->getRes().second;
+              errMsg = "Error failed request to node : " + std::to_string(nodeID) + ". Error is :" + result->getRes().second;
 
               // log the error
               this->logger->error("Error registering node metadata: " + result->getRes().second);
@@ -207,7 +207,7 @@ public:
           }
 
           // set an error and return false
-          errMsg = "Error failed request to node : " + address + ":" + std::to_string(port) + ". Error is :" + result->getRes().second;
+          errMsg = "Error failed request to node : " + std::to_string(nodeID) + ". Error is :" + result->getRes().second;
 
           return false;
         }, requestCopy);

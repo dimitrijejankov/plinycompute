@@ -5,7 +5,7 @@ namespace pdb {
 
 bool PDBDistributedStorageClient::clearSet(const string &dbName, const string &setName, std::string &errMsg) {
   return RequestFactory::heapRequest<DisClearSet, SimpleRequestResult, bool>(
-      *conMgr, port, address, false, 1024,
+      *conMgr, conMgr->getManagerID(), false, 1024,
       [&](const Handle<SimpleRequestResult>& result) {
 
         // check if the result is correct
@@ -25,7 +25,7 @@ bool PDBDistributedStorageClient::clearSet(const string &dbName, const string &s
 
 bool PDBDistributedStorageClient::removeSet(const string &dbName, const string &setName, std::string &errMsg) {
   return RequestFactory::heapRequest<DisRemoveSet, SimpleRequestResult, bool>(
-      *conMgr, port, address, false, 1024,
+      *conMgr, conMgr->getManagerID(), false, 1024,
       [&](const Handle<SimpleRequestResult>& result) {
 
         // check if the result is correct

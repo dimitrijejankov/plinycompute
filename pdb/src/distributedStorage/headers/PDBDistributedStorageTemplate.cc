@@ -435,7 +435,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
 
   // time to send the stuff
   auto ret = RequestFactory::bytesHeapRequest<StoDispatchData, SimpleRequestResult, bool>(
-      *conMgr, node->port, node->address, false, 1024,
+      *conMgr, node->nodeID, false, 1024,
       [&](Handle<SimpleRequestResult> result) {
 
         if (result != nullptr && result->getRes().first) {
@@ -495,7 +495,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
 
     // time to send the keys
     ret = RequestFactory::bytesHeapRequest<pdb::StoDispatchKeys, SimpleRequestResult, bool>(
-        *conMgr, node->port, node->address, false, 1024,
+        *conMgr, node->nodeID, false, 1024,
         [&](const Handle<SimpleRequestResult>& result) {
 
           if (result != nullptr && result->getRes().first) {
@@ -629,7 +629,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleClearSet(const pd
 
       // make a request and return the value
       success = RequestFactory::heapRequest<pdb::StoClearSetRequest, SimpleRequestResult, bool>(
-          *conMgr, nodes[nodeID]->port, nodes[nodeID]->address, false, 1024, [&](const Handle<SimpleRequestResult>& result) {
+          *conMgr, nodes[nodeID]->nodeID, false, 1024, [&](const Handle<SimpleRequestResult>& result) {
 
             // check if we got a ACK
             return result != nullptr && result->getRes().first;
@@ -772,7 +772,7 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleRemoveSet(const p
 
       // make a request and return the value
       success = RequestFactory::heapRequest<pdb::StoClearSetRequest, SimpleRequestResult, bool>(
-          *conMgr, nodes[nodeID]->port, nodes[nodeID]->address, false, 1024, [&](const Handle<SimpleRequestResult>& result) {
+          *conMgr, nodes[nodeID]->nodeID, false, 1024, [&](const Handle<SimpleRequestResult>& result) {
 
             // check if we got a ACK
             return result != nullptr && result->getRes().first;

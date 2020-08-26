@@ -77,89 +77,6 @@ bool pdb::PDBConnectionManager::init() {
   return true;
 }
 
-pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::connectTo(const pdb::PDBLoggerPtr& logToMe,
-                                                             int portNumber, const std::string& serverAddress,
-                                                             std::string &errMsg) {
-
-  {
-    // lock this
-    std::shared_lock<std::shared_mutex> lk(m);
-  }
-
-  //
-  logToMe->trace("PDBCommunicator: About to connect to the remote host");
-
-  struct addrinfo hints{};
-  struct addrinfo *result, *rp;
-  char port[10];
-  sprintf(port, "%d", portNumber);
-
-  memset(&hints, 0, sizeof(struct addrinfo));
-  hints.ai_family = AF_INET;
-  hints.ai_socktype = SOCK_STREAM;
-  hints.ai_flags = 0;
-  hints.ai_protocol = 0;
-
-  int s = getaddrinfo(serverAddress.c_str(), port, &hints, &result);
-  if (s != 0) {
-    logToMe->error("PDBCommunicator: could not get addr info");
-    logToMe->error(strerror(errno));
-    errMsg = "Could not get addr info ";
-    errMsg += strerror(errno);
-    std::cout << errMsg << std::endl;
-    return nullptr;
-  }
-
-  bool connected = false;
-  int32_t socketFD = -1;
-  for (rp = result; rp != nullptr; rp = rp->ai_next) {
-    int count = 0;
-    while (count <= maxRetries) {
-      logToMe->trace("PDBCommunicator: creating socket....");
-      socketFD = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-      if (socketFD == -1) {
-        continue;
-      }
-      if (::connect(socketFD, rp->ai_addr, rp->ai_addrlen) != -1) {
-        connected = true;
-        break;
-      }
-      count++;
-      std::cout << "Connection error, to retry..." << std::endl;
-      sleep(1);
-      close(socketFD);
-      socketFD = -1;
-    }
-    if (connected) {
-      break;
-    }
-  }
-
-  // check for error
-  if (rp == nullptr) {
-    logToMe->error("PDBCommunicator: could not connect to server: address info is null");
-    logToMe->error(strerror(errno));
-    errMsg = "Could not connect to server: address info is null with ip=" + serverAddress +
-        ", and port=" + port;
-    errMsg += strerror(errno);
-    std::cout << errMsg << std::endl;
-    return nullptr;
-  }
-  freeaddrinfo(result);
-
-  // create the communicator
-  auto comm = std::make_shared<PDBCommunicator>();
-  comm->logToMe = logToMe;
-  comm->needToSendDisconnectMsg = true;
-  comm->socketFD = socketFD;
-
-  logToMe->trace("PDBCommunicator: Successfully connected to the remote host");
-  logToMe->trace("PDBCommunicator: Socket FD is " + std::to_string(socketFD));
-
-  // return the communicator
-  return std::move(comm);
-}
-
 pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::connectTo(const pdb::PDBLoggerPtr &logToMe, int nodeID, std::string &errMsg) {
 
   NodeAddress *address;
@@ -236,6 +153,7 @@ pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::connectTo(const pdb::PDBLogge
   auto comm = std::make_shared<PDBCommunicator>();
   comm->logToMe = logToMe;
   comm->needToSendDisconnectMsg = true;
+  comm->socketClosed = false;
   comm->socketFD = socketFD;
 
   logToMe->trace("PDBCommunicator: Successfully connected to the remote host");

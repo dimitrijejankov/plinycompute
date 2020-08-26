@@ -433,7 +433,7 @@ bool pdb::PDBComputationServer::removeUnusedPageSets(const std::vector<pair<uint
 
         // make a request and return the value
         removalSuccess = RequestFactory::heapRequest<pdb::StoRemovePageSetRequest, SimpleRequestResult, bool>(
-            *conMgr, node->port, node->address, false, 1024,
+            *conMgr, node->nodeID, false, 1024,
             [&](const Handle<SimpleRequestResult>& result) {
               return true;
             },

@@ -52,12 +52,8 @@ class PDBHeartBeatWork : public pdb::PDBWork {
     */
   pdb::PDBLoggerPtr logger;
 
-  /**
-   * This will be sending the heartbeats
-   * @param address - the address where we want to send
-   * @param port - the port where we are sending
-   */
-  bool sendHeartBeat(const std::string &address, int32_t port, pdb::PDBConnectionManager *mgr);
+  // This will be sending the heartbeats
+  bool sendHeartBeat(int32_t nodeID, pdb::PDBConnectionManager *mgr);
 };
 
 #endif //PDB_PDBHEARTBEATWORK_H

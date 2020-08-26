@@ -32,7 +32,7 @@ void PDBHeartBeatWork::execute(PDBBuzzerPtr callerBuzzer) {
 
             // send heartbeat
             std::cout << "Sending heart beat to node " << node->nodeID << std::endl;
-            bool nodeStatus = sendHeartBeat(node->address, node->port, client->getConMgr());
+            bool nodeStatus = sendHeartBeat(node->nodeID, client->getConMgr());
 
             // update the status of the node
             std::string error;
@@ -58,10 +58,10 @@ void PDBHeartBeatWork::stop() {
     isStopped = true;
 }
 
-bool PDBHeartBeatWork::sendHeartBeat(const std::string &address, int32_t port, pdb::PDBConnectionManager *mgr) {
+bool PDBHeartBeatWork::sendHeartBeat(int32_t nodeID, pdb::PDBConnectionManager *mgr) {
 
     return pdb::RequestFactory::heapRequest<pdb::CatSetObjectTypeRequest, pdb::SimpleRequestResult, bool>(
-        *mgr, port, address, false, 1024,
+        *mgr, nodeID, false, 1024,
         [&](const pdb::Handle<pdb::SimpleRequestResult>& result) {
 
           // did we get something back or not

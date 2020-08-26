@@ -195,7 +195,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
 
         // forward the request to the node
         if(getConfiguration()->address != (std::string) request->nodeIP || getConfiguration()->port != request->nodePort) {
-          res = forwardRequest(workerRequest, catalogDump.size() + 1024, request->nodeIP, request->nodePort, errMsg);
+          res = forwardRequest(workerRequest, catalogDump.size() + 1024, node->nodeID, errMsg);
         }
 
         // create an allocation block to hold the response

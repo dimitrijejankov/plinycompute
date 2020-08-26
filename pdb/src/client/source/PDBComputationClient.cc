@@ -27,7 +27,7 @@ bool pdb::PDBComputationClient::executeComputations(Handle<Vector<Handle<Computa
     try {
 
         // send the request
-        return RequestFactory::heapRequest<CSExecuteComputation, SimpleRequestResult, bool>(*conMgr, port, address, false, bufferSize,
+        return RequestFactory::heapRequest<CSExecuteComputation, SimpleRequestResult, bool>(*conMgr, conMgr->getManagerID(), false, bufferSize,
         [&](const Handle<SimpleRequestResult>& result) {
 
         // check the response

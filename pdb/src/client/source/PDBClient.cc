@@ -74,39 +74,9 @@ bool PDBClient::createDatabase(const std::string &databaseName) {
 // makes a request to shut down a PDB server /// TODO this should be moved
 bool PDBClient::shutDownServer() {
 
-  // get the workers
-  auto workers = catalogClient->getActiveWorkerNodes();
-
-  // shutdown the workers
-  bool success = true;
-  for(const auto &w : workers) {
-    success = success && RequestFactory::heapRequest<ShutDown, SimpleRequestResult, bool>(*conMgr, w->port, w->address, false, 1024,
-     [&](Handle<SimpleRequestResult> result) {
-
-       // do we have a result
-       if(result == nullptr) {
-
-         errorMsg = "Error getting type name: got nothing back from catalog";
-         return false;
-       }
-
-       // did we succeed
-       if (!result->getRes().first) {
-
-         errorMsg = "Error shutting down server: " + result->getRes().second;
-         logger->error("Error shutting down server: " + result->getRes().second);
-
-         return false;
-       }
-
-       // we succeeded
-       return true;
-     });
-  }
-
   // shutdown
-  return success && RequestFactory::heapRequest<ShutDown, SimpleRequestResult, bool>(*conMgr, port, address, false, 1024,
-      [&](Handle<SimpleRequestResult> result) {
+  return RequestFactory::heapRequest<ShutDown, SimpleRequestResult, bool>(*conMgr, conMgr->getManagerID(), false, 1024,
+      [&](const Handle<SimpleRequestResult>& result) {
 
         // do we have a result
         if(result == nullptr) {

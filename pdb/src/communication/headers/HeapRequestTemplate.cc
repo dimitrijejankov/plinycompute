@@ -37,7 +37,7 @@ using std::string;
 namespace pdb {
 
 template<class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
-ReturnType RequestFactory::heapRequest(pdb::PDBConnectionManager &conMgr, int port, const std::string& address,
+ReturnType RequestFactory::heapRequest(pdb::PDBConnectionManager &conMgr, int nodeID,
                                        ReturnType onErr, size_t bytesForRequest,
                                        std::function<ReturnType(pdb::Handle<ResponseType>)> processResponse,
                                        RequestTypeParams&&... args) {
@@ -54,12 +54,12 @@ ReturnType RequestFactory::heapRequest(pdb::PDBConnectionManager &conMgr, int po
       bool success;
 
       // connect to the server
-      auto temp = conMgr.connectTo(myLogger, port, address, errMsg);
+      auto temp = conMgr.connectTo(myLogger, nodeID, errMsg);
       if (temp == nullptr) {
 
           // log the error
           myLogger->error(errMsg);
-          myLogger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
+          myLogger->error("Can not connect to remote server with port=" + std::to_string(nodeID) + ");");
 
           // retry
           numRetries++;
@@ -67,7 +67,7 @@ ReturnType RequestFactory::heapRequest(pdb::PDBConnectionManager &conMgr, int po
       }
 
       // log that we are connected
-      myLogger->info(std::string("Successfully connected to remote server with port=") + std::to_string(port) + std::string(" and address=") + address);
+      myLogger->info(std::string("Successfully connected to remote server with port=") + std::to_string(nodeID));
 
       // check if it is invalid
       if (bytesForRequest <= BLOCK_HEADER_SIZE) {
@@ -145,7 +145,7 @@ ReturnType RequestFactory::heapRequest(pdb::PDBConnectionManager &conMgr, int po
 }
 
 template<class RequestType, class DataType, class ResponseType, class ReturnType, class... RequestTypeParams>
-ReturnType RequestFactory::dataHeapRequest(pdb::PDBConnectionManager &conMgr, int port, const std::string &address,
+ReturnType RequestFactory::dataHeapRequest(pdb::PDBConnectionManager &conMgr, int nodeID,
                                            ReturnType onErr, size_t bytesForRequest, std::function<ReturnType(pdb::Handle<ResponseType>)> processResponse,
                                            pdb::Handle<Vector<pdb::Handle<DataType>>> dataToSend, RequestTypeParams&&... args) {
 
@@ -175,12 +175,12 @@ ReturnType RequestFactory::dataHeapRequest(pdb::PDBConnectionManager &conMgr, in
       bool success;
 
       // connect to the server
-      auto temp = conMgr.connectTo(logger, port, address, errMsg);
+      auto temp = conMgr.connectTo(logger, nodeID, errMsg);
       if (temp == nullptr) {
 
           // log the error
           logger->error(errMsg);
-          logger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
+          logger->error("Can not connect to remote server with port=" + std::to_string(nodeID) + ");");
 
           // retry
           retries++;
@@ -264,7 +264,7 @@ ReturnType RequestFactory::dataHeapRequest(pdb::PDBConnectionManager &conMgr, in
 }
 
 template<class RequestType, class DataType, class ResponseType, class ReturnType, class... RequestTypeParams>
-ReturnType RequestFactory::dataKeyHeapRequest(pdb::PDBConnectionManager &conMgr, int port, const std::string &address,
+ReturnType RequestFactory::dataKeyHeapRequest(pdb::PDBConnectionManager &conMgr, int nodeID,
                                               ReturnType onErr, size_t bytesForRequest, function<ReturnType(Handle<ResponseType>)> processResponse,
                                               Handle<Vector<Handle<DataType>>> dataToSend, RequestTypeParams&&... args) {
 
@@ -294,12 +294,12 @@ ReturnType RequestFactory::dataKeyHeapRequest(pdb::PDBConnectionManager &conMgr,
     bool success;
 
     // connect to the server
-    auto temp = conMgr.connectTo(logger, port, address, errMsg);
+    auto temp = conMgr.connectTo(logger, nodeID, errMsg);
     if (temp == nullptr) {
 
       // log the error
       logger->error(errMsg);
-      logger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
+      logger->error("Can not connect to remote server with port=" + std::to_string(nodeID) + ");");
 
       // retry
       retries++;
@@ -418,7 +418,7 @@ ReturnType RequestFactory::dataKeyHeapRequest(pdb::PDBConnectionManager &conMgr,
 
 
 template <class RequestType, class ResponseType, class ReturnType, class... RequestTypeParams>
-ReturnType RequestFactory::bytesHeapRequest(pdb::PDBConnectionManager &conMgr, int port, const std::string& address, ReturnType onErr,
+ReturnType RequestFactory::bytesHeapRequest(pdb::PDBConnectionManager &conMgr, int nodeID, ReturnType onErr,
                                             size_t bytesForRequest, function<ReturnType(Handle<ResponseType>)> processResponse,
                                             char* bytes, size_t numBytes, RequestTypeParams&&... args) {
 
@@ -435,12 +435,12 @@ ReturnType RequestFactory::bytesHeapRequest(pdb::PDBConnectionManager &conMgr, i
       bool success;
 
       // connect to the server
-      auto temp = conMgr.connectTo(logger, port, address, errMsg);
+      auto temp = conMgr.connectTo(logger, nodeID, errMsg);
       if (temp == nullptr) {
 
           // log the error
           logger->error(errMsg);
-          logger->error("Can not connect to remote server with port=" + std::to_string(port) + " and address=" + address + ");");
+          logger->error("Can not connect to remote server with port=" + std::to_string(nodeID) + ");");
 
           // retry
           retries++;

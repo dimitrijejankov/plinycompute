@@ -22,10 +22,6 @@ public:
   PDBCommunicatorPtr listen(std::string &errMsg);
 
   // this connects to a server
-  PDBCommunicatorPtr connectTo(const PDBLoggerPtr &logToMe, int portNumber,
-                               const std::string &serverAddress, std::string &errMsg);
-
-  // this connects to a server
   PDBCommunicatorPtr connectTo(const PDBLoggerPtr &logToMe, int nodeID, std::string &errMsg);
 
   // registers manager address

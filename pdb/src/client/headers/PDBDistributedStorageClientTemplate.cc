@@ -36,7 +36,7 @@ bool PDBDistributedStorageClient::sendData(const std::string &db,
 
 
   return RequestFactory::dataHeapRequest<DisAddData, DataType, SimpleRequestResult, bool>(
-      *conMgr, port, address, false, 1024, [&](const Handle<SimpleRequestResult>& result) {
+      *conMgr, conMgr->getManagerID(), false, 1024, [&](const Handle<SimpleRequestResult>& result) {
 
         // check the response
         if (result != nullptr && !result->getRes().first) {
@@ -57,7 +57,7 @@ bool PDBDistributedStorageClient::sendDataWithKey(const std::string &db,
                                                   std::string &errMsg) {
 
   return RequestFactory::dataKeyHeapRequest<DisAddData, DataType, SimpleRequestResult, bool>(
-      *conMgr, port, address, false, 1024, [&](const Handle<SimpleRequestResult>& result) {
+      *conMgr, conMgr->getManagerID(), false, 1024, [&](const Handle<SimpleRequestResult>& result) {
 
         // check the response
         if (result != nullptr && !result->getRes().first) {
