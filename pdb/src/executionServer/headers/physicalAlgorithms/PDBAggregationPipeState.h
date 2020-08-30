@@ -35,6 +35,10 @@ struct PDBAggregationPipeState : public PDBPhysicalAlgorithmState {
    */
   std::shared_ptr<std::vector<PDBPageQueuePtr>> pageQueues = nullptr;
 
+  /**
+   * The key extractor
+   */
+  PDBKeyExtractorPtr keyExtractor;
 };
 
 }

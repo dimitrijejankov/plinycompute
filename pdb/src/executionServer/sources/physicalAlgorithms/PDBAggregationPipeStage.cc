@@ -199,6 +199,9 @@ bool pdb::PDBAggregationPipeStage::setup(const pdb::Handle<pdb::ExJob> &job,
     s->aggregationPipelines->push_back(aggPipeline);
   }
 
+  // get the key extractor
+  s->keyExtractor = getKeyExtractor(finalTupleSet, plan);
+
   return true;
 }
 
@@ -414,20 +417,30 @@ bool pdb::PDBAggregationPipeStage::run(const pdb::Handle<pdb::ExJob> &job,
   /// 6. Should we materialize
 
   // should we materialize this to a set?
-  for(int j = 0; j < setsToMaterialize.size(); ++j) {
+  for (int j = 0; j < setsToMaterialize.size(); ++j) {
 
     // get the page set
     auto sinkPageSet = storage->getPageSet(std::make_pair(sink.pageSetIdentifier.first, sink.pageSetIdentifier.second));
 
     // if the thing does not exist finish!
-    if(sinkPageSet == nullptr) {
+    if (sinkPageSet == nullptr) {
       success = false;
       break;
     }
 
     // materialize the page set
     sinkPageSet->resetPageSet();
-    success = storage->materializePageSet(sinkPageSet, std::make_pair<std::string, std::string>(setsToMaterialize[j].database, setsToMaterialize[j].set)) && success;
+    success = storage->materializePageSet(sinkPageSet,
+                                          std::make_pair<std::string, std::string>(setsToMaterialize[j].database,
+                                                                                   setsToMaterialize[j].set)) && success;
+
+    // do we need to extract the keys too
+    if(s->keyExtractor != nullptr) {
+      // materialize the keys
+      sinkPageSet->resetPageSet();
+      success = storage->materializeKeys(sinkPageSet,
+                                         std::make_pair<std::string, std::string>(setsToMaterialize[j].database, setsToMaterialize[j].set), s->keyExtractor) && success;
+    }
   }
 
   return true;
