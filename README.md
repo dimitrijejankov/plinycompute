@@ -46,7 +46,6 @@ In addition to Python (version 2.7.12 or greater), the table below lists the lib
 | ------------- | ---------------------------:|
 | [Cmake](https://cmake.org/download/)        | cmake 3.5.1 |
 | [Clang](https://clang.llvm.org/)        | clang version 3.8.0-2ubuntu4 |
-| [Snappy](https://github.com/google/snappy)        | libsnappy1v5, libsnappy-dev |
 | [GSL ](https://www.gnu.org/software/gsl/)         | libgsl-dev                  |
 | [Boost](http://www.boost.org/)                    | libboost-dev, libboost-program-options-dev, libboost-filesystem-dev, libboost-system-dev |
 | [Bison](https://www.gnu.org/software/bison/)      | bison                   |

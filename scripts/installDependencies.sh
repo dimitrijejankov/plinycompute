@@ -17,7 +17,6 @@
 # script that installs dependencies required by PlinyCompute
 #
 #Name	Homepage	Ubutnu Packages
-#Snappy	https://github.com/google/snappy	libsnappy1v5, libsnappy-dev
 #GSL	https://www.gnu.org/software/gsl/	libgsl-dev
 #Eigen                                          libeigen3-dev
 #Boost	http://www.boost.org/	libboost-dev, libboost-program-options-dev, libboost-filesystem-dev, libboost-system-dev
@@ -29,7 +28,6 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 
     brew install ossp-uuid
     brew install gsl
-    brew install snappy
     brew install bison
     brew install flex
     brew install eigen
@@ -39,7 +37,6 @@ elif [[ "$OSTYPE" == "linux-gnu" ]]; then
     sudo apt-get -y install uuid-dev
     sudo apt-get -y install libeigen3-dev
     sudo apt-get -y install libgsl-dev
-    sudo apt-get -y install libsnappy1v5 libsnappy-dev
     sudo apt-get -y install libboost-dev libboost-program-options-dev libboost-filesystem-dev libboost-system-dev
     sudo apt-get -y install bison flex
     sudo apt-get -y install clang

@@ -37,6 +37,7 @@
 #include <signal.h>
 #include "PDBCommunicator.h"
 #include "CloseConnection.h"
+#include "PDBCatalogClient.h"
 #include "ShutDown.h"
 #include "ServerFunctionality.h"
 #include "UseTemporaryAllocationBlock.h"
@@ -263,6 +264,41 @@ bool PDBServer::handleOneRequest(const PDBBuzzerPtr& callerBuzzer, const PDBComm
       logger->trace("PDBServer: close connection request");
     }
 
+    // if this is the manager
+    if(getConfiguration()->isManager) {
+
+      // go through all the nodes we got
+      auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
+      std::string errMsg;
+      for(const auto& node : nodes) {
+
+        // send the request for shutdown, we don't really care if it succeeds or not, if it does not we will log it
+        // would make sense to make this more robust
+        RequestFactory::heapRequest<ShutDown, SimpleRequestResult, bool>(*connectionManager, node->nodeID, false, 1024,
+          [&](const Handle<SimpleRequestResult>& result) {
+
+            // do we have a result
+            if(result == nullptr) {
+
+              errMsg = "Error getting type name: got nothing back from catalog";
+              return false;
+            }
+
+            // did we succeed
+            if (!result->getRes().first) {
+
+              errMsg = "Error shutting down worker " + std::to_string(node->nodeID) +  " with "  + result->getRes().second;
+              logger->error(errMsg);
+
+              return false;
+            }
+
+            // we succeeded
+            return true;
+          });
+      }
+    }
+
     // ack the result
     std::string errMsg;
     Handle<SimpleRequestResult> result = makeObject<SimpleRequestResult>(true, "successful shutdown of server");
@@ -272,6 +308,9 @@ bool PDBServer::handleOneRequest(const PDBBuzzerPtr& callerBuzzer, const PDBComm
 
     // let everyone know we are done
     allDone = true;
+
+    // stop listening
+    connectionManager->stopListening();
 
     // mark that we have handled the request
     return true;
@@ -330,9 +369,6 @@ void PDBServer::startServer(const PDBWorkPtr& runMeAtStart) {
   }
   std::cout << "\n";
 
-  // just to keep it safe
-  usleep(300);
-
   // if there was some work to execute to start things up, then do it
   if (runMeAtStart != nullptr) {
     PDBBuzzerPtr buzzMeWhenDone = runMeAtStart->getLinkedBuzzer();
@@ -341,10 +377,8 @@ void PDBServer::startServer(const PDBWorkPtr& runMeAtStart) {
     buzzMeWhenDone->wait();
   }
 
-  // and now just sleep
-  while (!allDone) {
-    sleep(1);
-  }
+  // wait for the thread to finish
+  pthread_join(externalListenerThread, nullptr);
 
   // for each functionality, invoke its clean() method
   for (auto &functionality : functionalities) {

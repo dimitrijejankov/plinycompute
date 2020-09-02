@@ -5,7 +5,6 @@
 #include <HeapRequest.h>
 #include <StoGetNextPageRequest.h>
 #include <StoGetNextPageResult.h>
-#include <snappy.h>
 
 namespace pdb {
 

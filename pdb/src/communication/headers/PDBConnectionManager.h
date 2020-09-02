@@ -21,6 +21,9 @@ public:
   // listens to the external socket, if it succeeds returns the communicator otherwise returns null
   PDBCommunicatorPtr listen(std::string &errMsg);
 
+  // stop listening
+  void stopListening();
+
   // this connects to a server
   PDBCommunicatorPtr connectTo(const PDBLoggerPtr &logToMe, int nodeID, std::string &errMsg);
 

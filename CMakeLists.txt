@@ -38,7 +38,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
 elseif(CMAKE_BUILD_TYPE MATCHES Release)
 
     # do -O3 and set the instruction set to the native one for this machine
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -g3")
     set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -rdynamic -ldl" )
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -rdynamic -ldl")
     set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -rdynamic -ldl")
@@ -210,9 +210,6 @@ set(MKL_ROOT /opt/intel/mkl)
 find_package(MKL)
 INCLUDE_DIRECTORIES(${MKL_INCLUDE_PATH})
 
-#find snappy
-FIND_PACKAGE(Snappy REQUIRED)
-
 # the files generated from the type codes
 set(BUILT_IN_OBJECT_TYPE_ID        ${CMAKE_SOURCE_DIR}/pdb/src/objectModel/headers/BuiltInObjectTypeIDs.h)
 set(BUILT_IN_PDB_OBJECTS           ${CMAKE_SOURCE_DIR}/pdb/src/objectModel/headers/BuiltinPDBObjects.h)
@@ -323,12 +320,10 @@ add_library(pdb-tests-common $<TARGET_OBJECTS:catalog>
         $<TARGET_OBJECTS:work>)
 
 # link the dependent libraries so that they are made of the public interface
-target_link_libraries(pdb-server-common PRIVATE ${SNAPPY_LIBRARY})
 target_link_libraries(pdb-server-common PRIVATE ${CMAKE_DL_LIBS})
 target_link_libraries(pdb-server-common PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(pdb-server-common PRIVATE ${Boost_LIBRARIES})
 
-target_link_libraries(pdb-tests-common PRIVATE ${SNAPPY_LIBRARY})
 target_link_libraries(pdb-tests-common PRIVATE ${CMAKE_DL_LIBS})
 target_link_libraries(pdb-tests-common PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(pdb-tests-common PRIVATE ${Boost_LIBRARIES})

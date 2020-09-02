@@ -215,6 +215,12 @@ pdb::PDBCommunicatorPtr pdb::PDBConnectionManager::listen(std::string &errMsg) {
   return std::move(comm);
 }
 
+void pdb::PDBConnectionManager::stopListening() {
+
+  // close the socket
+  ::shutdown(externalSocket, SHUT_RD);
+}
+
 const pdb::PDBLoggerPtr &pdb::PDBConnectionManager::getLogger() const {
   return logger;
 }
@@ -224,4 +230,5 @@ int32_t pdb::PDBConnectionManager::getManagerID() {
   // return the manager id
   return MANAGER_ID;
 }
+
 

@@ -87,7 +87,7 @@ PDBCommunicator::~PDBCommunicator() {
 
 
     if (needToSendDisconnectMsg && socketFD >= 0) {
-        close(socketFD);
+        ::close(socketFD);
         socketFD = -1;
     } else if (!needToSendDisconnectMsg && socketFD >= 0) {
         shutdown(socketFD, SHUT_WR);
@@ -101,7 +101,7 @@ PDBCommunicator::~PDBCommunicator() {
             std :: cout << "there is some error in the socket" << std :: endl;
         }
         */
-        close(socketFD);
+        ::close(socketFD);
         socketFD = -1;
     }
     socketClosed = true;
@@ -144,7 +144,7 @@ size_t PDBCommunicator::getSizeOfNextObject() {
             PDB_COUT << errMsg << std::endl;
             nextTypeID = NoMsg_TYPEID;
             msgSize = 0;
-            close(socketFD);
+            ::close(socketFD);
             socketFD = -1;
             socketClosed = true;
             return 0;
@@ -164,7 +164,7 @@ size_t PDBCommunicator::getSizeOfNextObject() {
                          << std::endl;
                 continue;
             } else {
-                close(socketFD);
+                ::close(socketFD);
                 socketFD = -1;
                 socketClosed = true;
                 msgSize = 0;
@@ -195,7 +195,7 @@ size_t PDBCommunicator::getSizeOfNextObject() {
                 std::to_string(receivedTotal) + strerror(errno);
             logToMe->error(errMsg);
             PDB_COUT << errMsg << std::endl;
-            close(socketFD);
+            ::close(socketFD);
             socketFD = -1;
 
             socketClosed = true;
@@ -216,7 +216,7 @@ size_t PDBCommunicator::getSizeOfNextObject() {
                 logToMe->info("PDBCommunicator: Retry to see whether network can recover");
                 continue;
             } else {
-                close(socketFD);
+                ::close(socketFD);
                 socketFD = -1;
                 socketClosed = true;
                 msgSize = 0;
@@ -263,7 +263,7 @@ bool PDBCommunicator::doTheWrite(char* start, char* end) {
                 // std :: cout << "WARNING: CONNECTION CLOSED DUE TO WRITE ERROR AFTER RETRY" << std
                 // :: endl;
                 // std :: cout << "############################################" << std :: endl;
-                close(socketFD);
+                ::close(socketFD);
                 socketFD = -1;
                 socketClosed = true;
                 return false;
@@ -298,7 +298,7 @@ bool PDBCommunicator::doTheRead(char* dataIn) {
             logToMe->error(
                 "PDBCommunicator: error reading socket when trying to accept text message");
             logToMe->error(strerror(errno));
-            close(socketFD);
+            ::close(socketFD);
             socketFD = -1;
             socketClosed = true;
             return false;
@@ -314,7 +314,7 @@ bool PDBCommunicator::doTheRead(char* dataIn) {
                          << std::endl;
                 continue;
             } else {
-                close(socketFD);
+                ::close(socketFD);
                 socketFD = -1;
                 socketClosed = true;
                 return false;
@@ -370,7 +370,7 @@ bool PDBCommunicator::skipTheRead() {
             logToMe->error(strerror(errno));
 
             // close the connection
-            close(socketFD);
+            ::close(socketFD);
             socketFD = -1;
             socketClosed = true;
 
@@ -393,7 +393,7 @@ bool PDBCommunicator::skipTheRead() {
             } else {
 
                 // close connection
-                close(socketFD);
+                ::close(socketFD);
                 socketFD = -1;
                 socketClosed = true;
 

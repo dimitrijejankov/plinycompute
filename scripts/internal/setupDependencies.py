@@ -23,7 +23,6 @@ from os import path
 
 #
 # Name	Homepage	Ubutnu Packages
-# Snappy	https://github.com/google/snappy	libsnappy1v5, libsnappy-dev
 # GSL	https://www.gnu.org/software/gsl/	libgsl-dev
 # Eigen                                          libeigen3-dev
 # Boost	http://www.boost.org/	libboost-dev, libboost-program-options-dev, libboost-filesystem-dev, libboost-system-dev
@@ -35,7 +34,6 @@ if _platform == 'darwin':
     print ("It is MacOS")
     os.system("brew install ossp-uuid")
     os.system("brew install gsl")
-    os.system("brew install snappy")
     os.system("brew install bison")
     os.system("brew install flex")
     os.system("brew install eigen")
@@ -44,7 +42,6 @@ elif _platform == 'linux' or _platform == "linux2":
     os.system("sudo apt-get -y install uuid-dev")
     os.system("sudo apt-get -y install libeigen3-dev")
     os.system("sudo apt-get -y install libgsl-dev")
-    os.system("sudo apt-get -y install libsnappy1v5 libsnappy-dev")
     os.system("sudo apt-get -y install clang")
     os.system("sudo apt-get -y install google-mock")
     os.system(
