@@ -132,10 +132,6 @@ class PDBStorageMapIterator<T, typename std::enable_if<hasGetKey<T>::value and h
    */
   bool getNextPage(bool isFirst) {
 
-    // the buffer for the compressed data
-    std::unique_ptr<char[]> compressedBuffer;
-    size_t compressedBufferSize;
-
     // the communicator
     string errMsg;
     PDBCommunicatorPtr comm;
@@ -198,33 +194,15 @@ class PDBStorageMapIterator<T, typename std::enable_if<hasGetKey<T>::value and h
     // set the node and the page
     currNode = result->nodeID;
     currPage = result->page + 1;
-    compressedBufferSize = result->pageSize;
-
-    // init the compressed buffer
-    compressedBuffer = std::unique_ptr<char[]>(new char[result->pageSize]);
-
-    // check if we failed to allocate
-    if (compressedBuffer == nullptr) {
-      throw std::bad_alloc();
-    }
-
-    // read the size
-    auto readSize = RequestFactory::waitForBytes(logger, comm, compressedBuffer.get(), compressedBufferSize, errMsg);
-
-    // did we read anything
-    if (readSize == -1) {
-      throw std::runtime_error(errMsg);
-    }
-
-    // get the uncompressed size
-    size_t uncompressedSize = 0;
-    snappy::GetUncompressedLength(compressedBuffer.get(), compressedBufferSize, &uncompressedSize);
 
     // allocate some memory if we need it
-    if (bufferSize < uncompressedSize) {
+    if (bufferSize < result->pageSize) {
 
       // allocate the memory
-      buffer = std::unique_ptr<char[]>(new char[uncompressedSize]);
+      buffer = std::unique_ptr<char[]>(new char[result->pageSize]);
+
+      // set the right buffer size
+      bufferSize = result->pageSize;
 
       // check if we failed to allocate
       if (buffer == nullptr) {
@@ -232,8 +210,13 @@ class PDBStorageMapIterator<T, typename std::enable_if<hasGetKey<T>::value and h
       }
     }
 
-    // uncompress and copy to buffer
-    snappy::RawUncompress((char *) compressedBuffer.get(), compressedBufferSize, (char *) buffer.get());
+    // read the size
+    auto readSize = RequestFactory::waitForBytes(logger, comm, buffer.get(), result->pageSize, errMsg);
+
+    // did we read anything
+    if (readSize == -1) {
+      throw std::runtime_error(errMsg);
+    }
 
     // grab the current map
     currMap = ((Record<Map<Key, Value>> *) (buffer.get()))->getRootObject();

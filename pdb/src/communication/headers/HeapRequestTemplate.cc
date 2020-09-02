@@ -155,18 +155,6 @@ ReturnType RequestFactory::dataHeapRequest(pdb::PDBConnectionManager &conMgr, in
   // get the record
   auto* myRecord = (Record<Vector<Handle<Object>>>*) getRecord(dataToSend);
 
-  auto maxCompressedSize = snappy::MaxCompressedLength(myRecord->numBytes());
-
-  // allocate the bytes for the compressed record
-  std::unique_ptr<char[]> compressedBytes(new char[maxCompressedSize]);
-
-  // compress the record
-  size_t compressedSize;
-  snappy::RawCompress((char*) myRecord, myRecord->numBytes(), compressedBytes.get(), &compressedSize);
-
-  // log what we are doing
-  logger->info("size before compression is "  + std::to_string(myRecord->numBytes()) + " and size after compression is " + std::to_string(compressedSize));
-
   int retries = 0;
   while (retries <= MAX_RETRIES) {
 
@@ -210,7 +198,7 @@ ReturnType RequestFactory::dataHeapRequest(pdb::PDBConnectionManager &conMgr, in
       }
 
       // now, send the bytes
-      if (!temp->sendBytes(compressedBytes.get(), compressedSize, errMsg)) {
+      if (!temp->sendBytes((char*) myRecord, myRecord->numBytes(), errMsg)) {
 
           logger->error(errMsg);
           logger->error("simpleSendDataRequest: not able to send data to server.\n");
@@ -274,18 +262,6 @@ ReturnType RequestFactory::dataKeyHeapRequest(pdb::PDBConnectionManager &conMgr,
   // get the record
   auto* myRecord = (Record<Vector<Handle<DataType>>>*) getRecord(dataToSend);
 
-  auto maxCompressedSize = snappy::MaxCompressedLength(myRecord->numBytes());
-
-  // allocate the bytes for the compressed record
-  std::unique_ptr<char[]> compressedBytes(new char[maxCompressedSize]);
-
-  // compress the record
-  size_t compressedSize;
-  snappy::RawCompress((char*) myRecord, myRecord->numBytes(), compressedBytes.get(), &compressedSize);
-
-  // log what we are doing
-  logger->info("size before compression is "  + std::to_string(myRecord->numBytes()) + " and size after compression is " + std::to_string(compressedSize));
-
   int retries = 0;
   while (retries <= MAX_RETRIES) {
 
@@ -329,7 +305,7 @@ ReturnType RequestFactory::dataKeyHeapRequest(pdb::PDBConnectionManager &conMgr,
     }
 
     // now, send the bytes
-    if (!temp->sendBytes(compressedBytes.get(), compressedSize, errMsg)) {
+    if (!temp->sendBytes((char*) myRecord, myRecord->numBytes(), errMsg)) {
 
       logger->error(errMsg);
       logger->error("simpleSendDataRequest: not able to send data to server.\n");
@@ -358,11 +334,8 @@ ReturnType RequestFactory::dataKeyHeapRequest(pdb::PDBConnectionManager &conMgr,
       // store the records
       auto keyRecord = getRecord(tmp);
 
-      // compress the record
-      snappy::RawCompress((char*) keyRecord, keyRecord->numBytes(), compressedBytes.get(), &compressedSize);
-
       // now, send the bytes
-      if (!temp->sendBytes(compressedBytes.get(), compressedSize, errMsg)) {
+      if (!temp->sendBytes((char*) keyRecord, keyRecord->numBytes(), errMsg)) {
 
         logger->error(errMsg);
         logger->error("simpleSendDataRequest: not able to send key data to server.\n");

@@ -20,7 +20,6 @@
 #define SIMPLE_REQUEST_H
 
 #include "PDBLogger.h"
-#include <snappy.h>
 #include <PDBCommunicator.h>
 #include <PDBConnectionManager.h>
 #include <functional>

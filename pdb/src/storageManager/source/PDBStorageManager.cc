@@ -165,42 +165,7 @@ void pdb::PDBStorageManager::registerHandlers(PDBServer &forMe) {
 std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedData(const pdb::Handle<pdb::StoDispatchData>& request,
                                                                                   const pdb::PDBCommunicatorPtr& sendUsingMe) {
 
-  /// 1. Get the page from the distributed storage
-
-  // the error
-  std::string error;
-
-  // grab the buffer manager
-  auto bufferManager = getFunctionalityPtr<pdb::PDBBufferManagerInterface>();
-
-  // figure out how large the compressed payload is
-  size_t numBytes = sendUsingMe->getSizeOfNextObject();
-
-  // grab a page to write this
-  auto inputPage = bufferManager->getPage(numBytes);
-
-  // grab the bytes
-  auto success = sendUsingMe->receiveBytes(inputPage->getBytes(), error);
-
-  // did we fail
-  if(!success) {
-
-    // create an allocation block to hold the response
-    const UseTemporaryAllocationBlock tempBlock{1024};
-    Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, error);
-
-    // sends result to requester
-    sendUsingMe->sendObject(response, error);
-
-    return std::make_pair(false, error);
-  }
-
-  // figure out the size so we can increment it
-  // check the uncompressed size
-  size_t uncompressedSize = 0;
-  snappy::GetUncompressedLength((char*) inputPage->getBytes(), numBytes, &uncompressedSize);
-
-  /// 2. Figure out the page we want to put this thing onto
+  /// 0. Figure out the page we want to put this thing onto
 
   // make the set
   auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
@@ -215,66 +180,6 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedData(const 
     newPageNumber = stats.numberOfPages++;
   }
 
-  // get the new page
-  auto newPage = bufferManager->getPage(set, newPageNumber);
-
-  // uncompress and copy to page
-  snappy::RawUncompress((char*) inputPage->getBytes(), request->compressedSize, (char*) newPage->getBytes());
-
-  // freeze the page
-  newPage->freezeSize(uncompressedSize);
-
-  /// 3. Update the set size
-  {
-    // figure out the number of records
-    Handle<Vector<Handle<Object>>> data = ((Record<Vector<Handle<Object>>> *) newPage->getBytes())->getRootObject();
-    uint64_t numRecords = data->size();
-
-    // increment the number of records
-    {
-      unique_lock<std::mutex> lck(this->pageStatsMutex);
-
-      // get the stats for this set and update them
-      auto &stats = pageStats[set];
-      stats.size += ((Record<Vector<Handle<Object>>> *) newPage->getBytes())->numBytes();
-      stats.numberOfRecords += numRecords;
-    }
-
-    // send the catalog that data has been added
-    std::string errMsg;
-    PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
-    pdbClient.recordComMgr(*conMgr);
-    if (!pdbClient.incrementSetRecordInfo(getConfiguration()->nodeID,
-                                          request->databaseName,
-                                          request->setName,
-                                          uncompressedSize,
-                                          numRecords,
-                                          errMsg)) {
-
-      // create an allocation block to hold the response
-      const UseTemporaryAllocationBlock tempBlock{1024};
-      Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
-
-      // sends result to requester
-      sendUsingMe->sendObject(response, errMsg);
-      return make_pair(false, errMsg);
-    }
-  }
-
-  /// 4. Send the response that we are done
-
-  // create an allocation block to hold the response
-  Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(success, error);
-
-  // sends result to requester
-  success = sendUsingMe->sendObject(simpleResponse, error) && success;
-
-  // finish
-  return std::make_pair(success, error);
-}
-
-std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedKeys(const pdb::Handle<pdb::StoDispatchKeys>& request,
-                                                                                  const pdb::PDBCommunicatorPtr& sendUsingMe) {
   /// 1. Get the page from the distributed storage
 
   // the error
@@ -283,14 +188,14 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedKeys(const 
   // grab the buffer manager
   auto bufferManager = getFunctionalityPtr<pdb::PDBBufferManagerInterface>();
 
-  // figure out how large the compressed payload is
+  // figure out how large payload is
   size_t numBytes = sendUsingMe->getSizeOfNextObject();
 
   // grab a page to write this
-  auto inputPage = bufferManager->getPage(numBytes);
+  auto setPage = bufferManager->getPage(set, newPageNumber);
 
   // grab the bytes
-  auto success = sendUsingMe->receiveBytes(inputPage->getBytes(), error);
+  auto success = sendUsingMe->receiveBytes(setPage->getBytes(), error);
 
   // did we fail
   if(!success) {
@@ -305,12 +210,63 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedKeys(const 
     return std::make_pair(false, error);
   }
 
-  // figure out the size so we can increment it
-  // check the uncompressed size
-  size_t uncompressedSize = 0;
-  snappy::GetUncompressedLength((char*) inputPage->getBytes(), numBytes, &uncompressedSize);
+  // freeze the size
+  setPage->freezeSize(numBytes);
 
-  /// 2. Figure out the page we want to put this thing onto
+  /// 2. Update the set size
+  {
+    // figure out the number of records
+    Handle<Vector<Handle<Object>>> data = ((Record<Vector<Handle<Object>>> *) setPage->getBytes())->getRootObject();
+    uint64_t numRecords = data->size();
+
+    // increment the number of records
+    {
+      unique_lock<std::mutex> lck(this->pageStatsMutex);
+
+      // get the stats for this set and update them
+      auto &stats = pageStats[set];
+      stats.size += ((Record<Vector<Handle<Object>>> *) setPage->getBytes())->numBytes();
+      stats.numberOfRecords += numRecords;
+    }
+
+    // send the catalog that data has been added
+    std::string errMsg;
+    PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
+    pdbClient.recordComMgr(*conMgr);
+    if (!pdbClient.incrementSetRecordInfo(getConfiguration()->nodeID,
+                                          request->databaseName,
+                                          request->setName,
+                                          numBytes,
+                                          numRecords,
+                                          errMsg)) {
+
+      // create an allocation block to hold the response
+      const UseTemporaryAllocationBlock tempBlock{1024};
+      Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
+
+      // sends result to requester
+      sendUsingMe->sendObject(response, errMsg);
+      return make_pair(false, errMsg);
+    }
+  }
+
+  /// 3. Send the response that we are done
+
+  // create an allocation block to hold the response
+  Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(success, error);
+
+  // sends result to requester
+  success = sendUsingMe->sendObject(simpleResponse, error) && success;
+
+  // finish
+  return std::make_pair(success, error);
+}
+
+std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedKeys(const pdb::Handle<pdb::StoDispatchKeys>& request,
+                                                                          const pdb::PDBCommunicatorPtr& sendUsingMe) {
+
+
+  /// 0. Figure out the page we want to put this thing onto
 
   // make the set
   auto set = std::make_shared<PDBSet>(request->databaseName, request->setName);
@@ -326,19 +282,43 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedKeys(const 
     newPageNumber = stats.numberOfKeyPages++;
   }
 
-  // get the new page
-  auto newPage = bufferManager->getPage(keySet, newPageNumber);
+  /// 1. Get the page from the distributed storage
 
-  // uncompress and copy to page
-  snappy::RawUncompress((char*) inputPage->getBytes(), request->compressedSize, (char*) newPage->getBytes());
+  // the error
+  std::string error;
+
+  // grab the buffer manager
+  auto bufferManager = getFunctionalityPtr<pdb::PDBBufferManagerInterface>();
+
+  // figure out how large the payload is
+  size_t numBytes = sendUsingMe->getSizeOfNextObject();
+
+  // grab a page to write this
+  auto setPage = bufferManager->getPage(keySet, newPageNumber);
 
   // freeze the page
-  newPage->freezeSize(uncompressedSize);
+  setPage->freezeSize(numBytes);
 
-  /// 3. Update the set info about the keys
+  // grab the bytes
+  auto success = sendUsingMe->receiveBytes(setPage->getBytes(), error);
+
+  // did we fail
+  if(!success) {
+
+    // create an allocation block to hold the response
+    const UseTemporaryAllocationBlock tempBlock{1024};
+    Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, error);
+
+    // sends result to requester
+    sendUsingMe->sendObject(response, error);
+
+    return std::make_pair(false, error);
+  }
+
+  /// 2. Update the set info about the keys
   {
     // figure out the number of records
-    Handle<Vector<Handle<Object>>> data = ((Record<Vector<Handle<Object>>> *) newPage->getBytes())->getRootObject();
+    Handle<Vector<Handle<Object>>> data = ((Record<Vector<Handle<Object>>> *) setPage->getBytes())->getRootObject();
     uint64_t numRecords = data->size();
 
     // increment the number of records
@@ -347,7 +327,7 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedKeys(const 
 
       // get the stats for this set and update them
       auto &stats = pageStats[set];
-      stats.keysSize += ((Record<Vector<Handle<Object>>> *) newPage->getBytes())->numBytes();
+      stats.keysSize += ((Record<Vector<Handle<Object>>> *) setPage->getBytes())->numBytes();
       stats.numberOfKeys += numRecords;
     }
 
@@ -358,7 +338,7 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedKeys(const 
     if (!pdbClient.incrementKeyRecordInfo(getConfiguration()->nodeID,
                                           request->databaseName,
                                           request->setName,
-                                          ((Record<Vector<Handle<Object>>> *) newPage->getBytes())->numBytes(),
+                                          ((Record<Vector<Handle<Object>>> *) setPage->getBytes())->numBytes(),
                                           numRecords,
                                           errMsg)) {
 
@@ -372,7 +352,7 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleDispatchedKeys(const 
     }
   }
 
-  /// 4. Send the response that we are done
+  /// 3. Send the response that we are done
 
   // create an allocation block to hold the response
   Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(success, error);
@@ -419,7 +399,7 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleGetPageRequest(const 
     return make_pair(false, error);
   }
 
-  /// 3. Ok we have it, grab the page and compress it.
+  /// 3. Ok we have it, grab the page
 
   // grab the page
   auto page = this->getFunctionalityPtr<PDBBufferManagerInterface>()->getPage(set, request->page);
@@ -427,28 +407,20 @@ std::pair<bool, std::string> pdb::PDBStorageManager::handleGetPageRequest(const 
   // grab the vector
   auto* pageRecord = (pdb::Record<pdb::Vector<pdb::Handle<pdb::Object>>> *) (page->getBytes());
 
-  // grab an anonymous page to store the compressed stuff //TODO this kind of sucks since the max compressed size can be larger than the actual size
-  auto maxCompressedSize = std::min<size_t>(snappy::MaxCompressedLength(pageRecord->numBytes()), getFunctionalityPtr<PDBBufferManagerInterface>()->getMaxPageSize());
-  auto compressedPage = getFunctionalityPtr<PDBBufferManagerInterface>()->getPage(maxCompressedSize);
-
-  // compress the record
-  size_t compressedSize;
-  snappy::RawCompress((char*) pageRecord, pageRecord->numBytes(), (char*) compressedPage->getBytes(), &compressedSize);
-
-  /// 4. Send the compressed page
+  /// 4. Send the page
 
   // make an allocation block
   const pdb::UseTemporaryAllocationBlock tempBlock{1024};
 
   // create an allocation block to hold the response
-  pdb::Handle<pdb::StoGetPageResult> response = pdb::makeObject<pdb::StoGetPageResult>(compressedSize, request->page, true);
+  pdb::Handle<pdb::StoGetPageResult> response = pdb::makeObject<pdb::StoGetPageResult>(pageRecord->numBytes(), request->page, true);
 
   // sends result to requester
   string error;
   sendUsingMe->sendObject(response, error);
 
   // now, send the bytes
-  if (!sendUsingMe->sendBytes(compressedPage->getBytes(), compressedSize, error)) {
+  if (!sendUsingMe->sendBytes(page->getBytes(), pageRecord->numBytes(), error)) {
 
     this->logger->error(error);
     this->logger->error("sending page bytes: not able to send data to client.\n");

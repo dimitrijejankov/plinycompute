@@ -378,35 +378,6 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
   // receive bytes
   sendUsingMe->receiveBytes(page->getBytes(), error);
 
-  // check the uncompressed size
-  size_t uncompressedSize = 0;
-  snappy::GetUncompressedLength((char *) page->getBytes(), numBytes, &uncompressedSize);
-
-  // check the uncompressed size
-  if (bufferManager->getMaxPageSize() < uncompressedSize) {
-
-    // make the error string
-    std::string errMsg = "The uncompressed size is larger than the maximum page size";
-
-    // log the error
-    logger->error(errMsg);
-
-    // skip the key part if needed
-    if(request->shouldStoreKey) {
-
-      // skip the key part
-      sendUsingMe->skipBytes(errMsg);
-    }
-
-    // create an allocation block to hold the response
-    const UseTemporaryAllocationBlock tempBlock{1024};
-    Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
-
-    // sends result to requester
-    sendUsingMe->sendObject(response, errMsg);
-    return make_pair(false, errMsg);
-  }
-
   /// 2. Figure out on what node to forward the thing
 
   // grab all active nodes
@@ -461,35 +432,6 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
 
     // receive bytes
     sendUsingMe->receiveBytes(page->getBytes(), error);
-
-    // check the uncompressed size
-    uncompressedSize = 0;
-    snappy::GetUncompressedLength((char *) page->getBytes(), numBytes, &uncompressedSize);
-
-    // check the uncompressed size
-    if (bufferManager->getMaxPageSize() < uncompressedSize) {
-
-      // make the error string
-      std::string errMsg = "The uncompressed size is larger than the maximum page size";
-
-      // log the error
-      logger->error(errMsg);
-
-      // skip the key part if needed
-      if(request->shouldStoreKey) {
-
-        // skip the key part
-        sendUsingMe->skipBytes(errMsg);
-      }
-
-      // create an allocation block to hold the response
-      const UseTemporaryAllocationBlock tempBlock{1024};
-      Handle<SimpleRequestResult> response = makeObject<SimpleRequestResult>(false, errMsg);
-
-      // sends result to requester
-      sendUsingMe->sendObject(response, errMsg);
-      return make_pair(false, errMsg);
-    }
 
     /// 3.2 Send to the same node
 
