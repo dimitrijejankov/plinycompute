@@ -428,7 +428,14 @@ std::pair<bool, std::string> pdb::PDBDistributedStorage::handleAddData(const pdb
   }
 
   // get the next node
-  auto node = policy->getNextNode(request->databaseName, request->setName, nodes);
+  PDBCatalogNodePtr node;
+  if(request->nodeID == -1) {
+    node = policy->getNextNode(request->databaseName, request->setName, nodes);
+  }
+  else {
+    // just grab a node
+    node = nodes[request->nodeID];
+  }
 
   // time to send the stuff
   auto ret = RequestFactory::bytesHeapRequest<StoDispatchData, SimpleRequestResult, bool>(

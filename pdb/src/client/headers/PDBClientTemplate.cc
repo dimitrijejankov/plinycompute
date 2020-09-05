@@ -57,7 +57,51 @@ namespace pdb {
       if constexpr (std::is_base_of<HandleBase, keyType>::value) {
 
         // send the data with key
-        result = distributedStorage->sendDataWithKey<DataType>(database, set, dataToSend, returnedMsg);
+        result = distributedStorage->sendDataWithKey<DataType>(database, set, dataToSend, returnedMsg, -1);
+
+        // if we failed
+        if(!result) {
+          errorMsg = "Not able to send data: " + returnedMsg;
+        }
+
+        // finish here
+        return result;
+      }
+    }
+
+    result = distributedStorage->sendData<DataType>(database, set, dataToSend, returnedMsg);
+
+    // if we failed
+    if(!result) {
+      errorMsg = "Not able to send data: " + returnedMsg;
+    }
+
+    return result;
+  }
+
+  template<class DataType>
+  bool PDBClient::sendData(const std::string &database,
+                           const std::string &set,
+                           Handle<Vector<Handle<DataType>>> dataToSend,
+                           int32_t node) {
+    // check if that data we are sending is capable of
+    bool result;
+
+    // figure out whether we can extract the key
+    bool isExtractingKey = false;
+
+    // fist check if it has get key
+    constexpr bool hasGetKey = pdb::tupleTests::has_get_key<DataType>::value;
+
+    // if it has get key
+    if constexpr (hasGetKey) {
+
+      // figure out if the key is a handle
+      using keyType = typename std::remove_reference<decltype(((DataType*) nullptr)->getKey())>::type;
+      if constexpr (std::is_base_of<HandleBase, keyType>::value) {
+
+        // send the data with key
+        result = distributedStorage->sendDataWithKey<DataType>(database, set, dataToSend, returnedMsg, node);
 
         // if we failed
         if(!result) {

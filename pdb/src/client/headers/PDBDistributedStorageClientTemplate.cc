@@ -56,7 +56,7 @@ template<class DataType>
 bool PDBDistributedStorageClient::sendDataWithKey(const std::string &db,
                                                   const std::string &set,
                                                   Handle<Vector<Handle<DataType>>> dataToSend,
-                                                  std::string &errMsg) {
+                                                  std::string &errMsg, int32_t nodeID) {
 
   return RequestFactory::dataKeyHeapRequest<DisAddData, DataType, SimpleRequestResult, bool>(
       logger, port, address, false, 1024, [&](const Handle<SimpleRequestResult>& result) {
@@ -70,7 +70,7 @@ bool PDBDistributedStorageClient::sendDataWithKey(const std::string &db,
 
         return true;
       },
-      dataToSend, db, set, getTypeName<DataType>(), true);
+      dataToSend, db, set, getTypeName<DataType>(), true, nodeID);
 }
 
 template<class DataType>

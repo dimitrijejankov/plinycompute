@@ -155,6 +155,9 @@ class PDBClient : public ServerFunctionality {
   template<class DataType>
   bool sendData(const std::string &database, const std::string &set, Handle<Vector<Handle<DataType>>> dataToSend);
 
+  template<class DataType>
+  bool sendData(const std::string &database, const std::string &set, Handle<Vector<Handle<DataType>>> dataToSend, int32_t node);
+
   bool clearSet(const std::string &dbName, const std::string &setName);
 
   bool removeSet(const std::string &dbName, const std::string &setName);

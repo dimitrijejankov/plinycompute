@@ -72,7 +72,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
     getRecord(data);
 
     // send the data a bunch of times
-    pdbClient.sendData<MatrixBlock>("myData", set, data);
+    pdbClient.sendData<MatrixBlock>("myData", set, data, 0);
 
     // log that we stored stuff
     std::cout << "Stored " << data->size() << " !\n";

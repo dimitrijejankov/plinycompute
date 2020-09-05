@@ -64,7 +64,8 @@ public:
   bool sendData(const std::string &db, const std::string &set, Handle<Vector<Handle<DataType>>> dataToSend, std::string &errMsg);
 
   template<class DataType>
-  bool sendDataWithKey(const std::string &db, const std::string &set, Handle<Vector<Handle<DataType>>> dataToSend, std::string &errMsg);
+  bool sendDataWithKey(const std::string &db, const std::string &set,
+                       Handle<Vector<Handle<DataType>>> dataToSend, std::string &errMsg, int32_t nodeID);
 
   /**
    * Removes all the data from a set

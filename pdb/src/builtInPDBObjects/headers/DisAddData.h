@@ -39,8 +39,16 @@ public:
   DisAddData(const std::string &databaseName,
              const std::string &setName,
              const std::string &typeName,
+             bool shouldStoreKey,
+             int32_t nodeID)
+      : databaseName(databaseName), setName(setName), typeName(typeName), shouldStoreKey(shouldStoreKey), nodeID(nodeID) {
+  }
+
+  DisAddData(const std::string &databaseName,
+             const std::string &setName,
+             const std::string &typeName,
              bool shouldStoreKey)
-      : databaseName(databaseName), setName(setName), typeName(typeName), shouldStoreKey(shouldStoreKey) {
+      : databaseName(databaseName), setName(setName), typeName(typeName), shouldStoreKey(shouldStoreKey), nodeID(-1) {
   }
 
   ENABLE_DEEP_COPY
@@ -64,6 +72,8 @@ public:
    * This tells the dispatcher if it should expect a page full of keys
    */
   bool shouldStoreKey = false;
+
+  int32_t nodeID;
 };
 
 }
