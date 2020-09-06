@@ -927,7 +927,7 @@ int main(int argc, char *argv[]) {
     auto r = it->getNextRecord();
     count++;
 /*
-    std::cout << "(" << r->getRowID() << ", " << r->getColID() << ")\n";
+    std::cout << "(" << r->getkey0() << ", " << r->getkey1() << ")\n";
     // write out the values
     float *values = r->data->data->c_ptr();
     for (int i = 0; i < r->data->numRows; ++i) {

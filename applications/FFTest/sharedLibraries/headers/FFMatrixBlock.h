@@ -15,7 +15,7 @@ namespace ff {
  * For example if the large matrix has the size of 10000x10000 and is split into 4 blocks of size 2500x2500
  * Then we would have the following blocks in the system
  *
- * |metaData.colID|metaData.rowID|data.numRows|data.numCols| data.block |
+ * |metaData.key1|metaData.key0|data.numRows|data.numCols| data.block |
  * |       0      |       1      |    25k     |    25k     | 25k * 25k  |
  * |       1      |       1      |    25k     |    25k     | 25k * 25k  |
  * |       0      |       0      |    25k     |    25k     | 25k * 25k  |

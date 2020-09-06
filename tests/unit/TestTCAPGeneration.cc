@@ -28,11 +28,11 @@
 
 
 
-#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlock.h"
-#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixScanner.h"
-#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixMultiplyJoin.h"
-#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixMultiplyAggregation.h"
-#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixWriter.h"
+#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/TensorBlock.h"
+#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/TensorScanner.h"
+#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/BCMMJoin.h"
+#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/BCMMAggregation.h"
+#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/TensorWriter.h"
 
 using namespace pdb;
 using namespace pdb::matrix;

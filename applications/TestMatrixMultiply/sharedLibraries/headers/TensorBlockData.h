@@ -8,31 +8,29 @@ namespace pdb {
 // the sub namespace
 namespace matrix {
 
-class MatrixBlockData : public pdb::Object {
+class TensorBlockData : public pdb::Object {
  public:
 
   /**
    * The default constructor
    */
-  MatrixBlockData() = default;
+  TensorBlockData() = default;
 
-  MatrixBlockData(uint32_t numRows, uint32_t numCols) : numRows(numRows), numCols(numCols) {
+  TensorBlockData(uint32_t dim0, uint32_t dim1, uint32_t dim2) : dim0(dim0), dim1(dim1), dim2(dim2) {
 
     // allocate the data
-    data = makeObject<Vector<float>>(numRows * numCols, numRows * numCols);
+    data = makeObject<Vector<float>>(dim0 * dim1 * dim2, dim0 * dim1 * dim2);
   }
 
   ENABLE_DEEP_COPY
 
-  /**
-   * The number of rows in the block
-   */
-  uint32_t numRows = 0;
+  // The number of rows in the block if interpreted as matrix
+  uint32_t dim0 = 1;
 
-  /**
-   * The number of columns in the block
-   */
-  uint32_t numCols = 0;
+  // The number of columns in the block if interpreted as matrix
+  uint32_t dim1 = 1;
+
+  uint32_t dim2 = 1;
 
   /**
    * The values of the block
@@ -44,14 +42,14 @@ class MatrixBlockData : public pdb::Object {
    * @param other - the other
    * @return
    */
-  MatrixBlockData& operator+(MatrixBlockData& other) {
+  TensorBlockData& operator+(TensorBlockData& other) {
 
     // get the data
     float *myData = data->c_ptr();
     float *otherData = other.data->c_ptr();
 
     // sum up the data
-    for (int i = 0; i < numRows * numCols; i++) {
+    for (int i = 0; i < dim0 * dim1; i++) {
       (myData)[i] += (otherData)[i];
     }
 

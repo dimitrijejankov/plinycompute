@@ -1,11 +1,11 @@
 #include <PDBClient.h>
 #include <GenericWork.h>
 #include <random>
-#include "sharedLibraries/headers/MatrixBlock.h"
-#include "sharedLibraries/headers/MatrixScanner.h"
-#include "sharedLibraries/headers/MatrixMultiplyJoin.h"
-#include "sharedLibraries/headers/MatrixMultiplyAggregation.h"
-#include "sharedLibraries/headers/MatrixWriter.h"
+#include "sharedLibraries/headers/TensorBlock.h"
+#include "sharedLibraries/headers/TensorScanner.h"
+#include "sharedLibraries/headers/BCMMJoin.h"
+#include "sharedLibraries/headers/BCMMAggregation.h"
+#include "sharedLibraries/headers/TensorWriter.h"
 
 using namespace pdb;
 using namespace pdb::matrix;
@@ -36,7 +36,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
     const pdb::UseTemporaryAllocationBlock tempBlock{blockSize * 1024 * 1024};
 
     // put the chunks here
-    Handle<Vector<Handle<MatrixBlock>>> data = pdb::makeObject<Vector<Handle<MatrixBlock>>>();
+    Handle<Vector<Handle<TensorBlock>>> data = pdb::makeObject<Vector<Handle<TensorBlock>>>();
 
     try {
 
@@ -44,10 +44,8 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
       for(; i < tuplesToSend.size();) {
 
         // allocate a matrix
-        Handle<MatrixBlock> myInt = makeObject<MatrixBlock>(tuplesToSend[i].first,
-                                                            tuplesToSend[i].second,
-                                                            matrixRows / numRows,
-                                                            matrixColumns / numCols);
+        Handle<TensorBlock> myInt = makeObject<TensorBlock>(tuplesToSend[i].first, tuplesToSend[i].second, 0,
+                                                            matrixRows / numRows,matrixColumns / numCols, 1);
 
         // init the values
         float *vals = myInt->data->data->c_ptr();
@@ -72,7 +70,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
     getRecord(data);
 
     // send the data a bunch of times
-    pdbClient.sendData<MatrixBlock>("myData", set, data, 0);
+    pdbClient.sendData<TensorBlock>("myData", set, data, 0);
 
     // log that we stored stuff
     std::cout << "Stored " << data->size() << " !\n";
@@ -88,13 +86,13 @@ int main(int argc, char* argv[]) {
   /// 1. Register the classes
 
   // now, register a type for user data
-  pdbClient.registerType("libraries/libMatrixBlock.so");
-  pdbClient.registerType("libraries/libMatrixBlockData.so");
-  pdbClient.registerType("libraries/libMatrixBlockMeta.so");
-  pdbClient.registerType("libraries/libMatrixMultiplyAggregation.so");
-  pdbClient.registerType("libraries/libMatrixMultiplyJoin.so");
-  pdbClient.registerType("libraries/libMatrixScanner.so");
-  pdbClient.registerType("libraries/libMatrixWriter.so");
+  pdbClient.registerType("libraries/libTensorBlock.so");
+  pdbClient.registerType("libraries/libTensorBlockData.so");
+  pdbClient.registerType("libraries/libTensorBlockMeta.so");
+  pdbClient.registerType("libraries/libBCMMAggregation.so");
+  pdbClient.registerType("libraries/libBCMMJoin.so");
+  pdbClient.registerType("libraries/libTensorScanner.so");
+  pdbClient.registerType("libraries/libTensorWriter.so");
 
   /// 2. Create the set
 
@@ -102,9 +100,9 @@ int main(int argc, char* argv[]) {
   pdbClient.createDatabase("myData");
 
   // now, create the input and output sets
-  pdbClient.createSet<MatrixBlock>("myData", "A");
-  pdbClient.createSet<MatrixBlock>("myData", "B");
-  pdbClient.createSet<MatrixBlock>("myData", "C");
+  pdbClient.createSet<TensorBlock>("myData", "A");
+  pdbClient.createSet<TensorBlock>("myData", "B");
+  pdbClient.createSet<TensorBlock>("myData", "C");
 
   /// 3. Fill in the data (single threaded)
 
@@ -116,17 +114,20 @@ int main(int argc, char* argv[]) {
   // for allocations
   const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
-  Handle <Computation> readA = makeObject <MatrixScanner>("myData", "A");
-  Handle <Computation> readB = makeObject <MatrixScanner>("myData", "B");
-  Handle <Computation> join = makeObject <MatrixMultiplyJoin>();
+  Handle <Computation> readA = makeObject <TensorScanner>("myData", "A");
+  Handle <Computation> readB = makeObject <TensorScanner>("myData", "B");
+  Handle <Computation> join = makeObject <BCMMJoin>();
   join->setInput(0, readA);
   join->setInput(1, readB);
-  Handle<Computation> myAggregation = makeObject<MatrixMultiplyAggregation>();
+  Handle<Computation> myAggregation = makeObject<BCMMAggregation>();
   myAggregation->setInput(join);
-  Handle<Computation> myWriter = makeObject<MatrixWriter>("myData", "C");
+  Handle<Computation> myWriter = makeObject<TensorWriter>("myData", "C");
   myWriter->setInput(myAggregation);
 
-  bool success = pdbClient.broadcast("myData", "A", "ABroadcasted");
+    /*
+     * Todo:: Here we first broadcast A (or B);
+     * Then call BCMMJoin and BCMMAggregation
+     */
 
 
   // shutdown the server

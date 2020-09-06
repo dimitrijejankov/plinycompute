@@ -1,7 +1,7 @@
 #pragma once
 
 #include "LambdaCreationFunctions.h"
-#include "MatrixBlock.h"
+#include "TensorBlock.h"
 #include "AggregateComp.h"
 #include <DeepCopy.h>
 
@@ -9,18 +9,18 @@ namespace pdb {
 
 namespace matrix {
 
-class MatrixMultiplyAggregation : public AggregateComp<MatrixMultiplyAggregation, MatrixBlock, MatrixBlock, MatrixBlockMeta, MatrixBlockData> {
+class BCMMAggregation : public AggregateComp<BCMMAggregation, TensorBlock, TensorBlock, TensorBlockMeta, TensorBlockData> {
  public:
 
   ENABLE_DEEP_COPY
 
   // the key type must have == and size_t hash () defined
-  static Lambda<MatrixBlockMeta> getKeyProjectionWithInputKey(Handle<MatrixBlockMeta> aggMe) {
+  static Lambda<TensorBlockMeta> getKeyProjectionWithInputKey(Handle<TensorBlockMeta> aggMe) {
     return makeLambdaFromSelf(aggMe);
   }
 
   // the value type must have + defined
-  static Lambda<MatrixBlockData> getValueProjection(Handle<MatrixBlock> aggMe) {
+  static Lambda<TensorBlockData> getValueProjection(Handle<TensorBlock> aggMe) {
     return makeLambdaFromMethod(aggMe, getValueRef);
   }
 

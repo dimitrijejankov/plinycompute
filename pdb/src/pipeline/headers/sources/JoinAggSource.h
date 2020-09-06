@@ -107,8 +107,8 @@ class JoinAggSource : public ComputeSource {
       (*lhsColumn)[i - currentRecord] = (*leftTuples[records[i].lhs_page])[records[i].lhs_record].second;
       (*rhsColumn)[i - currentRecord] = (*rightTuples[records[i].rhs_page])[records[i].rhs_record].second;
 
-      //std::cout << (*lhsColumn)[i - currentRecord]->getKeyRef().rowID << ", " << (*lhsColumn)[i - currentRecord]->getKeyRef().colID << '\n';
-      //std::cout << (*rhsColumn)[i - currentRecord]->getKeyRef().rowID << ", " << (*rhsColumn)[i - currentRecord]->getKeyRef().colID << '\n';
+      //std::cout << (*lhsColumn)[i - currentRecord]->getKeyRef().key0 << ", " << (*lhsColumn)[i - currentRecord]->getKeyRef().key1 << '\n';
+      //std::cout << (*rhsColumn)[i - currentRecord]->getKeyRef().key0 << ", " << (*rhsColumn)[i - currentRecord]->getKeyRef().key1 << '\n';
     }
 
     // move the current record

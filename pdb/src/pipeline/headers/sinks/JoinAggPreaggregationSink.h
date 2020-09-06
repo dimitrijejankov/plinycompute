@@ -4,7 +4,7 @@
 #include "ComputeSink.h"
 #include "TupleSetMachine.h"
 #include "TupleSet.h"
-#include "../../../../../applications/TestMatrixMultiply/sharedLibraries/headers/MatrixBlockMeta.h"
+#include "../../../../../applications/TestMatrixMultiply/sharedLibraries/headers/TensorBlockMeta.h"
 #include <vector>
 #include <PipJoinAggPlanResult.h>
 
@@ -110,8 +110,8 @@ class JoinAggPreaggregationSink : public ComputeSink {
 
       // hash the key
       auto hash = hashHim(keyColumn[i]);
-      auto s = (pdb::matrix::MatrixBlockMeta *)&keyColumn[i];
-      //std::cout << "aggregated " << s->rowID << ", " << s->colID << '\n';
+      auto s = (pdb::matrix::TensorBlockMeta *)&keyColumn[i];
+      //std::cout << "aggregated " << s->key0 << ", " << s->key1 << '\n';
 
       // figure out the tid of the key and where it is supposed to go
       int32_t tid = (*keyToTID)[keyColumn[i]];
