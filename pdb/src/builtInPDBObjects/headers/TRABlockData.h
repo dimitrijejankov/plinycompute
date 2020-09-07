@@ -1,22 +1,21 @@
 #pragma once
 
+//  PRELOAD %TRABlockData%
+
 #include <Object.h>
 #include <PDBVector.h>
 
 namespace pdb {
 
-// the sub namespace
-namespace matrix {
-
-class TensorBlockData : public pdb::Object {
+class TRABlockData : public pdb::Object {
  public:
 
   /**
    * The default constructor
    */
-  TensorBlockData() = default;
+  TRABlockData() = default;
 
-  TensorBlockData(uint32_t dim0, uint32_t dim1, uint32_t dim2) : dim0(dim0), dim1(dim1), dim2(dim2) {
+  TRABlockData(uint32_t dim0, uint32_t dim1, uint32_t dim2) : dim0(dim0), dim1(dim1), dim2(dim2) {
 
     // allocate the data
     data = makeObject<Vector<float>>(dim0 * dim1 * dim2, dim0 * dim1 * dim2);
@@ -42,7 +41,7 @@ class TensorBlockData : public pdb::Object {
    * @param other - the other
    * @return
    */
-  TensorBlockData& operator+(TensorBlockData& other) {
+  TRABlockData& operator+(TRABlockData& other) {
 
     // get the data
     float *myData = data->c_ptr();
@@ -57,7 +56,5 @@ class TensorBlockData : public pdb::Object {
     return *this;
   }
 };
-
-}
 
 }

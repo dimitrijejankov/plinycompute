@@ -1,7 +1,7 @@
 #include <PDBClient.h>
 #include <GenericWork.h>
 #include <random>
-#include "sharedLibraries/headers/TensorBlock.h"
+#include "TRABlock.h"
 #include "sharedLibraries/headers/TensorScanner.h"
 #include "sharedLibraries/headers/BCMMJoin.h"
 #include "sharedLibraries/headers/BCMMAggregation.h"
@@ -36,7 +36,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
         const pdb::UseTemporaryAllocationBlock tempBlock{blockSize * 1024 * 1024};
 
         // put the chunks here
-        Handle<Vector<Handle<TensorBlock>>> data = pdb::makeObject<Vector<Handle<TensorBlock>>>();
+        Handle<Vector<Handle<TRABlock>>> data = pdb::makeObject<Vector<Handle<TRABlock>>>();
 
         try {
 
@@ -44,8 +44,8 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
             for(; i < tuplesToSend.size();) {
 
                 // allocate a matrix
-                Handle<TensorBlock> myInt = makeObject<TensorBlock>(tuplesToSend[i].first, tuplesToSend[i].second, 0,
-                                                                    matrixRows / numRows,matrixColumns / numCols, 1);
+                Handle<TRABlock> myInt = makeObject<TRABlock>(tuplesToSend[i].first, tuplesToSend[i].second, 0,
+                                                              matrixRows / numRows, matrixColumns / numCols, 1);
 
                 // init the values
                 float *vals = myInt->data->data->c_ptr();
@@ -70,7 +70,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
         getRecord(data);
 
         // send the data a bunch of times
-        pdbClient.sendData<TensorBlock>("myData", set, data, 0);
+        pdbClient.sendData<TRABlock>("myData", set, data, 0);
 
         // log that we stored stuff
         std::cout << "Stored " << data->size() << " !\n";
@@ -86,9 +86,6 @@ int main(int argc, char* argv[]) {
     /// 1. Register the classes
 
     // now, register a type for user data
-    pdbClient.registerType("libraries/libTensorBlock.so");
-    pdbClient.registerType("libraries/libTensorBlockData.so");
-    pdbClient.registerType("libraries/libTensorBlockMeta.so");
     pdbClient.registerType("libraries/libBCMMAggregation.so");
     pdbClient.registerType("libraries/libBCMMJoin.so");
     pdbClient.registerType("libraries/libTensorScanner.so");
@@ -100,9 +97,9 @@ int main(int argc, char* argv[]) {
     pdbClient.createDatabase("myData");
 
     // now, create the input and output sets
-    pdbClient.createSet<TensorBlock>("myData", "A");
-    pdbClient.createSet<TensorBlock>("myData", "B");
-    pdbClient.createSet<TensorBlock>("myData", "C");
+    pdbClient.createSet<TRABlock>("myData", "A");
+    pdbClient.createSet<TRABlock>("myData", "B");
+    pdbClient.createSet<TRABlock>("myData", "C");
 
     /// 3. Fill in the data (single threaded)
 

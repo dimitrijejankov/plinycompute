@@ -28,7 +28,7 @@
 
 
 
-#include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/TensorBlock.h"
+#include "TRABlock.h"
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/TensorScanner.h"
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/BCMMJoin.h"
 #include "../../../applications/TestMatrixMultiply/sharedLibraries/headers/BCMMAggregation.h"

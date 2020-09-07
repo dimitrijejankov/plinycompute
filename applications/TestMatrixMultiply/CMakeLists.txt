@@ -26,9 +26,6 @@ endforeach()
 
 # add build dependencies to shared libraries it uses
 add_custom_target(TensorBasic)
-add_dependencies(TensorBasic TensorBlock)
-add_dependencies(TensorBasic TensorBlockData)
-add_dependencies(TensorBasic TensorBlockMeta)
 add_dependencies(TensorBasic TensorScanner)
 add_dependencies(TensorBasic TensorWriter)
 

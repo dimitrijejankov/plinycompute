@@ -1,13 +1,13 @@
 #pragma once
 #include "Lambda.h"
 #include "LambdaCreationFunctions.h"
-#include "TensorBlock.h"
+#include "TRABlock.h"
 #include "MultiSelectionComp.h"
 #include <DeepCopy.h>
 
 namespace pdb {
 namespace matrix {
-class RMMDuplicateMultiSelection : public MultiSelectionComp<TensorBlock, TensorBlock> {
+class RMMDuplicateMultiSelection : public MultiSelectionComp<TRABlock, TRABlock> {
 public:
     ENABLE_DEEP_COPY
 
@@ -16,12 +16,12 @@ public:
     RMMDuplicateMultiSelection(uint32_t newKeyDim, uint32_t duplicateCount):
     newKeyDim_(newKeyDim), duplicateCount_(duplicateCount) {}
 
-    Lambda<bool> getSelection(Handle<TensorBlock> checkMe) override {
-        return makeLambda(checkMe, [](Handle<TensorBlock>& checkMe) { return true; });
+    Lambda<bool> getSelection(Handle<TRABlock> checkMe) override {
+        return makeLambda(checkMe, [](Handle<TRABlock>& checkMe) { return true; });
     }
 
-    Lambda<Vector<Handle<TensorBlock>>> getProjection(Handle<TensorBlock> checkMe) override {
-        return makeLambda(checkMe, [&](Handle<TensorBlock>& checkMe) { return this->insertDim(checkMe); });
+    Lambda<Vector<Handle<TRABlock>>> getProjection(Handle<TRABlock> checkMe) override {
+        return makeLambda(checkMe, [&](Handle<TRABlock>& checkMe) { return this->insertDim(checkMe); });
     }
 
 private:
@@ -29,15 +29,15 @@ private:
     uint32_t duplicateCount_;
 
     //Todo Binhang: the construction function see the comment there.
-    Vector<Handle<TensorBlock>> insertDim(Handle<TensorBlock> checkme){
-        Vector<Handle<TensorBlock>> result;
+    Vector<Handle<TRABlock>> insertDim(Handle<TRABlock> checkme){
+        Vector<Handle<TRABlock>> result;
         for(uint32_t i =0; i<duplicateCount_; i++){
             if (newKeyDim_ == 0){
-                Handle<TensorBlock> current_block = makeObject<TensorBlock>(i, checkme->getkey0(),checkme->getDim1(), checkme->getValue());
+                Handle<TRABlock> current_block = makeObject<TRABlock>(i, checkme->getkey0(), checkme->getDim1(), checkme->getValue());
                 result.push_back(current_block);
             }
             else if (newKeyDim_ == 2){
-                Handle<TensorBlock> current_block = makeObject<TensorBlock>(checkme->getkey0(),checkme->getDim1(), i, checkme->getValue());
+                Handle<TRABlock> current_block = makeObject<TRABlock>(checkme->getkey0(), checkme->getDim1(), i, checkme->getValue());
                 result.push_back(current_block);
             }
         }

@@ -3,33 +3,33 @@
 #include <LambdaCreationFunctions.h>
 #include <mkl_cblas.h>
 #include "JoinComp.h"
-#include "TensorBlock.h"
+#include "TRABlock.h"
 
 namespace pdb::matrix {
 
     //Todo:: Change this to local join
-    class RMMJoin : public JoinComp <RMMJoin, TensorBlock, TensorBlock, TensorBlock> {
+    class RMMJoin : public JoinComp <RMMJoin, TRABlock, TRABlock, TRABlock> {
     public:
 
         ENABLE_DEEP_COPY
 
         RMMJoin() = default;
 
-        static Lambda <bool> getKeySelection (Handle <TensorBlockMeta> in1, Handle <TensorBlockMeta> in2) {
+        static Lambda <bool> getKeySelection (Handle <TRABlockMeta> in1, Handle <TRABlockMeta> in2) {
             return (makeLambdaFromMethod (in1, getIdx0) == makeLambdaFromMethod (in2, getIdx0))
             and (makeLambdaFromMethod (in1, getIdx1) == makeLambdaFromMethod (in2, getIdx1))
             and (makeLambdaFromMethod (in1, getIdx2) == makeLambdaFromMethod (in2, getIdx2));
         }
 
-        static Lambda <Handle<TensorBlockMeta>> getKeyProjection(Handle <TensorBlockMeta> in1, Handle <TensorBlockMeta> in2) {
-            return makeLambda (in1, in2, [] (Handle <TensorBlockMeta> &in1, Handle <TensorBlockMeta> &in2) {
-                Handle<TensorBlockMeta> out = makeObject<TensorBlockMeta>(in1->getIdx0(), in1->getIdx1(), in1->getIdx2());
+        static Lambda <Handle<TRABlockMeta>> getKeyProjection(Handle <TRABlockMeta> in1, Handle <TRABlockMeta> in2) {
+            return makeLambda (in1, in2, [] (Handle <TRABlockMeta> &in1, Handle <TRABlockMeta> &in2) {
+                Handle<TRABlockMeta> out = makeObject<TRABlockMeta>(in1->getIdx0(), in1->getIdx1(), in1->getIdx2());
                 return out;
             });
         }
 
-        static Lambda <Handle<TensorBlockData>> getValueProjection(Handle <TensorBlockData> in1, Handle <TensorBlockData> in2) {
-            return makeLambda (in1, in2, [] (Handle <TensorBlockData> &in1, Handle <TensorBlockData> &in2) {
+        static Lambda <Handle<TRABlockData>> getValueProjection(Handle <TRABlockData> in1, Handle <TRABlockData> in2) {
+            return makeLambda (in1, in2, [] (Handle <TRABlockData> &in1, Handle <TRABlockData> &in2) {
 
                 // get the sizes
                 uint32_t I = in1->dim0;
@@ -37,7 +37,7 @@ namespace pdb::matrix {
                 uint32_t K = in1->dim1;
 
                 // make an output
-                Handle<TensorBlockData> out = makeObject<TensorBlockData>(I, J, 1);
+                Handle<TRABlockData> out = makeObject<TRABlockData>(I, J, 1);
 
                 // get the ptrs
                 float *outData = out->data->c_ptr();

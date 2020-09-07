@@ -1,5 +1,5 @@
 #include <UseTemporaryAllocationBlock.h>
-#include "sharedLibraries/headers/TensorBlock.h"
+#include "TRABlock.h"
 #include <unordered_map>
 
 struct IndexNode {
@@ -35,7 +35,7 @@ struct IndexNode {
   }
 
 
-  void insert(pdb::matrix::TensorBlockMeta &block, const std::pair<int32_t, int32_t> &location) {
+  void insert(pdb::TRABlockMeta &block, const std::pair<int32_t, int32_t> &location) {
 
     _insert(block, 0, location);
   }
@@ -77,7 +77,7 @@ private:
     }
   }
 
-  void _insert(pdb::matrix::TensorBlockMeta &block, int depth, const std::pair<int32_t, int32_t> &location) {
+  void _insert(pdb::TRABlockMeta &block, int depth, const std::pair<int32_t, int32_t> &location) {
 
     if(isLeaf) {
 
@@ -113,11 +113,11 @@ int main() {
   // use temporary allocation block
   const pdb::UseTemporaryAllocationBlock tempBlock{128 * 1024 * 1024};
 
-  std::vector<pdb::Handle<pdb::matrix::TensorBlock>> blocks;
+  std::vector<pdb::Handle<pdb::TRABlock>> blocks;
   for(int i = 0; i < 10; i++) {
     for(int j = 0; j < 10; j++) {
       for(int k = 0; k < 10; k++) {
-        blocks.emplace_back(pdb::makeObject<pdb::matrix::TensorBlock>(i, j, k, 10, 10, 10));
+        blocks.emplace_back(pdb::makeObject<pdb::TRABlock>(i, j, k, 10, 10, 10));
       }
     }
   }

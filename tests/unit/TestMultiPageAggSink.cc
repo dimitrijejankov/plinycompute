@@ -8,7 +8,7 @@
 #include <gmock/gmock.h>
 #include <SingleNodePlanner.h>
 #include <PDBBufferManagerFrontEnd.h>
-#include "../../applications/TestMatrixMultiply/sharedLibraries/headers/TensorBlock.h"
+#include "TRABlock.h"
 #include "PDBMap.h"
 
 #include <condition_variable>

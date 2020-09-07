@@ -1,14 +1,13 @@
 #pragma once
 
+//  PRELOAD %TRABlock%
+
 #include <Object.h>
 #include <Handle.h>
-#include "TensorBlockMeta.h"
-#include "TensorBlockData.h"
+#include "TRABlockMeta.h"
+#include "TRABlockData.h"
 
 namespace pdb {
-
-// the sub namespace
-namespace matrix {
 
 /**
 * This represents a block in a large matrix distributed matrix.
@@ -21,13 +20,13 @@ namespace matrix {
 * |       0      |       0      |    25k     |    25k     | 25k * 25k  |
 * |       1      |       0      |    25k     |    25k     | 25k * 25k  |
 */
-class TensorBlock : public pdb::Object {
+class TRABlock : public pdb::Object {
 public:
 
     /**
     * The default constructor
     */
-    TensorBlock() = default;
+    TRABlock() = default;
 
     /**
     * The constructor for a block size
@@ -36,14 +35,14 @@ public:
     * @param numRows - the number of rows the block has
     * @param numCols - the number of columns the block has
     */
-    TensorBlock(uint32_t key0, uint32_t key1, uint32_t key2, uint32_t dim0, uint32_t dim1, uint32_t dim2) {
-    metaData = makeObject<TensorBlockMeta>(key0, key1, key2);
-    data = makeObject<TensorBlockData>(dim0, dim1, dim2);
+    TRABlock(uint32_t key0, uint32_t key1, uint32_t key2, uint32_t dim0, uint32_t dim1, uint32_t dim2) {
+    metaData = makeObject<TRABlockMeta>(key0, key1, key2);
+    data = makeObject<TRABlockData>(dim0, dim1, dim2);
     }
 
     //Todo Binhang: we should check wil this work? Here I guess it will shuffle less amount of data by copy handle(pointer)
-    TensorBlock(uint32_t key0, uint32_t key1, uint32_t key2, Handle<TensorBlockData>& existData) {
-        metaData = makeObject<TensorBlockMeta>(key0, key1, key2);
+    TRABlock(uint32_t key0, uint32_t key1, uint32_t key2, Handle<TRABlockData>& existData) {
+        metaData = makeObject<TRABlockMeta>(key0, key1, key2);
         data = existData;
     }
 
@@ -52,18 +51,18 @@ public:
     /**
     * The metadata of the matrix
     */
-    Handle<TensorBlockMeta> metaData;
+    Handle<TRABlockMeta> metaData;
 
     /**
     * The data of the matrix
     */
-    Handle<TensorBlockData> data;
+    Handle<TRABlockData> data;
 
     /**
     *
     * @return
     */
-    Handle<TensorBlockMeta>& getKey() {
+    Handle<TRABlockMeta>& getKey() {
         return metaData;
     }
 
@@ -71,7 +70,7 @@ public:
     *
     * @return
     */
-    TensorBlockMeta& getKeyRef(){
+    TRABlockMeta& getKeyRef(){
         return *metaData;
     }
 
@@ -79,11 +78,11 @@ public:
     *
     * @return
     */
-    Handle<TensorBlockData>& getValue() {
+    Handle<TRABlockData>& getValue() {
         return data;
     }
 
-    TensorBlockData& getValueRef() {
+    TRABlockData& getValueRef() {
         return *data;
     }
 
@@ -111,8 +110,5 @@ public:
         return data->dim2;
     }
 };
-
-
-}
 
 }
