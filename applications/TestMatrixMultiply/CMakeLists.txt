@@ -2,14 +2,17 @@
 add_pdb_integration_test(TestBMM)
 add_pdb_integration_test(TestCMM)
 add_pdb_integration_test(TestRMM)
+add_pdb_integration_test(TestIndexStructure)
 target_link_libraries(TestBMM ${MKL_LIBRARIES})
 target_link_libraries(TestCMM ${MKL_LIBRARIES})
 target_link_libraries(TestRMM ${MKL_LIBRARIES})
+target_link_libraries(TestIndexStructure ${MKL_LIBRARIES})
 
 # add a build dependency to build-tests target
 add_dependencies(build-integration-tests TestBMM)
 add_dependencies(build-integration-tests TestCMM)
 add_dependencies(build-integration-tests TestRMM)
+add_dependencies(build-integration-tests TestIndexStructure)
 
 # compile all the objects
 file(GLOB files "${PROJECT_SOURCE_DIR}/applications/TestMatrixMultiply/sharedLibraries/source/*.cc")
