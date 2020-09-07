@@ -7,7 +7,7 @@
 
 namespace pdb {
 
-struct BHShuffleState : public PDBPhysicalAlgorithmState {
+struct TRAShuffleState : public PDBPhysicalAlgorithmState {
 
 };
 

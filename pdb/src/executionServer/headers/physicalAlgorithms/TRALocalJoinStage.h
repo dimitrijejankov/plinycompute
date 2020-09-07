@@ -5,10 +5,11 @@
 namespace pdb {
 
 
-class LocalAggregationStage : public PDBPhysicalAlgorithmStage {
+class TRALocalJoinStage : public PDBPhysicalAlgorithmStage {
  public:
 
-  LocalAggregationStage(const std::string &db, const std::string &set, const std::string &sink, const pdb::Vector<int32_t> &indices);
+  TRALocalJoinStage(const std::string &db, const std::string &set,
+                    const std::string &sink, const pdb::Vector<int32_t> &indices);
 
   bool setup(const Handle<pdb::ExJob> &job,
              const PDBPhysicalAlgorithmStatePtr &state,
@@ -33,6 +34,10 @@ class LocalAggregationStage : public PDBPhysicalAlgorithmStage {
 
   // sink
   pdb::String sink;
+
+  Handle<Vector<Handle<Computation>>> computations;
+
+  pdb::String TCAPString;
 
   const static PDBSinkPageSetSpec *_sink;
   const static Vector<PDBSourceSpec> *_sources;

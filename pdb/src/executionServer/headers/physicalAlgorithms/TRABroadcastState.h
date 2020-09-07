@@ -7,7 +7,7 @@
 
 namespace pdb {
 
-struct BHBroadcastState : public PDBPhysicalAlgorithmState {
+struct TRABroadcastState : public PDBPhysicalAlgorithmState {
 
   /**
    * This forwards the preaggregated pages to this node

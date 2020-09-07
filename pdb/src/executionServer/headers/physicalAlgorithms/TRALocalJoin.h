@@ -1,6 +1,6 @@
 #pragma once
 
-// PRELOAD %LocalJoin%
+// PRELOAD %TRALocalJoin%
 
 #include <gtest/gtest_prod.h>
 #include <PipelineInterface.h>
@@ -12,21 +12,21 @@
 
 namespace pdb {
 
-class LocalJoin : public PDBPhysicalAlgorithm {
+class TRALocalJoin : public PDBPhysicalAlgorithm {
  public:
 
   ENABLE_DEEP_COPY
 
-  LocalJoin() = default;
+  TRALocalJoin() = default;
 
-  ~LocalJoin() override = default;
+  ~TRALocalJoin() override = default;
 
-  LocalJoin(const std::string &lhsPageSet,
-            const std::vector<int32_t>& lhs_indices,
-            const std::string &rhsDb,
-            const std::string &rhsSet,
-            const std::vector<int32_t>& rhs_indices,
-            const std::string &pageSet);
+  TRALocalJoin(const std::string &lhsPageSet,
+               const std::vector<int32_t>& lhs_indices,
+               const std::string &rhsDb,
+               const std::string &rhsSet,
+               const std::vector<int32_t>& rhs_indices,
+               const std::string &pageSet);
 
   /**
    *

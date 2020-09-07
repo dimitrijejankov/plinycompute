@@ -1,6 +1,6 @@
 #pragma once
 
-// PRELOAD %BHShuffle%
+// PRELOAD %TRABroadcast%
 
 #include <gtest/gtest_prod.h>
 #include <PipelineInterface.h>
@@ -12,16 +12,16 @@
 
 namespace pdb {
 
-class BHShuffle : public PDBPhysicalAlgorithm {
+class TRABroadcast : public PDBPhysicalAlgorithm {
  public:
 
   ENABLE_DEEP_COPY
 
-  BHShuffle() = default;
+  TRABroadcast() = default;
 
-  ~BHShuffle() override = default;
+  ~TRABroadcast() override = default;
 
-  BHShuffle(const std::string &db, const std::string &set, const std::vector<int32_t> &indices, const std::string &sink);
+  TRABroadcast(const std::string &db, const std::string &set, const std::string &sink);
 
   /**
    *
@@ -67,9 +67,6 @@ class BHShuffle : public PDBPhysicalAlgorithm {
 
   // sink
   pdb::String sink;
-
-  // indices
-  pdb::Vector<int32_t> indices;
 
   int32_t currentStage = 0;
 };

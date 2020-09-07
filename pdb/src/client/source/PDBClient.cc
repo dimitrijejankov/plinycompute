@@ -22,9 +22,9 @@
 #include <ShutDown.h>
 #include <PDBClient.h>
 #include <QueryGraphAnalyzer.h>
-#include <physicalAlgorithms/BHBroadcast.h>
+#include <physicalAlgorithms/TRABroadcast.h>
 #include <CSExecuteComputation.h>
-#include <physicalAlgorithms/LocalJoin.h>
+#include <physicalAlgorithms/TRALocalJoin.h>
 
 #include "PDBClient.h"
 
@@ -187,7 +187,7 @@ void PDBClient::listUserDefinedTypes() {
 
 bool PDBClient::broadcast(const std::string &db, const std::string &set, const std::string& pageSet) {
 
-  pdb::Handle<BHBroadcast> alg = pdb::makeObject<BHBroadcast>(db, set, pageSet);
+  pdb::Handle<TRABroadcast> alg = pdb::makeObject<TRABroadcast>(db, set, pageSet);
 
   // essentially the buffer should be of this size
   auto bufferSize = 1024u * 1024u;
@@ -244,8 +244,8 @@ bool PDBClient::localJoin(const std::string &lhsPageSet,
 
   // parse the TCAP string
   std::string TCAPString = queryAnalyzer.parseTCAPString(*myComputations);
-  pdb::Handle<LocalJoin> alg = pdb::makeObject<LocalJoin>(lhsPageSet, lhs_indices,
-                                                          rhsDb, rhsSet, rhs_indices, pageSet);
+  pdb::Handle<TRALocalJoin> alg = pdb::makeObject<TRALocalJoin>(lhsPageSet, lhs_indices,
+                                                                rhsDb, rhsSet, rhs_indices, pageSet);
 
   // essentially the buffer should be of this size
   auto bufferSize = 1024u * 1024u;

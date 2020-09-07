@@ -1,6 +1,6 @@
 #pragma once
 
-// PRELOAD %BHBroadcast%
+// PRELOAD %TRALocalAggregation%
 
 #include <gtest/gtest_prod.h>
 #include <PipelineInterface.h>
@@ -12,16 +12,16 @@
 
 namespace pdb {
 
-class BHBroadcast : public PDBPhysicalAlgorithm {
+class TRALocalAggregation : public PDBPhysicalAlgorithm {
  public:
 
   ENABLE_DEEP_COPY
 
-  BHBroadcast() = default;
+  TRALocalAggregation() = default;
 
-  ~BHBroadcast() override = default;
+  ~TRALocalAggregation() override = default;
 
-  BHBroadcast(const std::string &db, const std::string &set, const std::string &sink);
+  TRALocalAggregation(const std::string &db, const std::string &set, const std::vector<int32_t> &indices, const std::string &sink);
 
   /**
    *
@@ -67,6 +67,9 @@ class BHBroadcast : public PDBPhysicalAlgorithm {
 
   // sink
   pdb::String sink;
+
+  // indices
+  pdb::Vector<int32_t> indices;
 
   int32_t currentStage = 0;
 };

@@ -7,7 +7,7 @@
 
 namespace pdb {
 
-struct LocalJoinState : public PDBPhysicalAlgorithmState {
+struct TRALocalJoinState : public PDBPhysicalAlgorithmState {
 
 };
 

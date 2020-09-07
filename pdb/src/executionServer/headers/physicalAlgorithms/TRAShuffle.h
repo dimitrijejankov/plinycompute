@@ -1,6 +1,6 @@
 #pragma once
 
-// PRELOAD %LocalAggregation%
+// PRELOAD %TRAShuffle%
 
 #include <gtest/gtest_prod.h>
 #include <PipelineInterface.h>
@@ -12,16 +12,16 @@
 
 namespace pdb {
 
-class LocalAggregation : public PDBPhysicalAlgorithm {
+class TRAShuffle : public PDBPhysicalAlgorithm {
  public:
 
   ENABLE_DEEP_COPY
 
-  LocalAggregation() = default;
+  TRAShuffle() = default;
 
-  ~LocalAggregation() override = default;
+  ~TRAShuffle() override = default;
 
-  LocalAggregation(const std::string &db, const std::string &set, const std::vector<int32_t> &indices, const std::string &sink);
+  TRAShuffle(const std::string &db, const std::string &set, const std::vector<int32_t> &indices, const std::string &sink);
 
   /**
    *

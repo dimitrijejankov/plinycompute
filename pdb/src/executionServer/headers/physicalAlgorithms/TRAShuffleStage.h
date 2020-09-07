@@ -5,10 +5,10 @@
 namespace pdb {
 
 
-class BHBroadcastStage : public PDBPhysicalAlgorithmStage {
+class TRAShuffleStage : public PDBPhysicalAlgorithmStage {
  public:
 
-  BHBroadcastStage(const std::string &db, const std::string &set, const std::string &sink);
+  TRAShuffleStage(const std::string &db, const std::string &set, const std::string &sink, const pdb::Vector<int32_t> &indices);
 
   bool setup(const Handle<pdb::ExJob> &job,
              const PDBPhysicalAlgorithmStatePtr &state,
@@ -40,6 +40,5 @@ class BHBroadcastStage : public PDBPhysicalAlgorithmStage {
   const static Vector<pdb::Handle<PDBSourcePageSetSpec>> *_secondarySources;
   const static Vector<PDBSetObject> *_setsToMaterialize;
 };
-
 
 }
