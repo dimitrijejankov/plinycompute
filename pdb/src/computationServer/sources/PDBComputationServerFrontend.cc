@@ -45,7 +45,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
   auto containerType = job->getOutputSetContainer();
 
   // update the meta data for each set
-  for(const auto &set : setsToMaterialize) {
+  for (const auto &set : setsToMaterialize) {
 
     // update the container type
     std::string error;
@@ -56,12 +56,14 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
   }
 
   // are we scanning the set, if so update the metadata in the distributed storage that we are doing that
-  if(job->isScanningSet()) {
+  if (job->isScanningSet()) {
 
     // get source sets loop through and lock them
-    for(auto &sourceSet : job->getScanningSets()) {
+    for (auto &sourceSet : job->getScanningSets()) {
       // add the lock
-      locks.emplace_back(distStorage->useSet(sourceSet.first, sourceSet.second, PDBDistributedStorageSetState::READING_DATA));
+      locks.emplace_back(distStorage->useSet(sourceSet.first,
+                                             sourceSet.second,
+                                             PDBDistributedStorageSetState::READING_DATA));
     }
   }
 
@@ -71,7 +73,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
   PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
 
     // did we fail?
-    if(myAlarm == PDBAlarm::GenericError) {
+    if (myAlarm == PDBAlarm::GenericError) {
       success = false;
     }
 
@@ -80,7 +82,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
   });
 
   // for each node start a worker
-  for(int i = 0; i < job->nodes.size(); ++i) {
+  for (int i = 0; i < job->nodes.size(); ++i) {
 
     /// 1. Start a worker for each node
 
@@ -89,7 +91,8 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
 
     // make the work
     auto numStages = job->physicalAlgorithm->numStages();
-    PDBWorkPtr myWork = make_shared<pdb::GenericWork>([=, &counter, &job, &numStages](const PDBBuzzerPtr& callerBuzzer) {
+    PDBWorkPtr
+        myWork = make_shared<pdb::GenericWork>([=, &counter, &job, &numStages](const PDBBuzzerPtr &callerBuzzer) {
 
       std::string errMsg;
 
@@ -102,11 +105,13 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
 
         // log the error
         logger->error(errMsg);
-        logger->error("Can not connect to remote server with port=" + std::to_string(job->nodes[i]->port) + " and address=" + (std::string) job->nodes[i]->address + ");");
+        logger->error(
+            "Can not connect to remote server with port=" + std::to_string(job->nodes[i]->port) + " and address="
+                + (std::string) job->nodes[i]->address + ");");
 
         // retry
         numRetries++;
-        if(numRetries < getConfiguration()->maxRetries) {
+        if (numRetries < getConfiguration()->maxRetries) {
           continue;
         }
 
@@ -127,7 +132,7 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
       jobForMe->thisNode = i;
       jobForMe->isLeadNode = i == 0;
 
-      if(!scheduleJob(comm, jobForMe, errMsg)) {
+      if (!scheduleJob(comm, jobForMe, errMsg)) {
 
         // we failed to schedule the job
         callerBuzzer->buzz(PDBAlarm::GenericError, counter);
@@ -135,10 +140,10 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
       }
 
       /// 3.1 Run all the stages
-      for(int s = 0; s < numStages; ++s) {
+      for (int s = 0; s < numStages; ++s) {
 
         // run an individual stage
-        if(!runStage(comm, errMsg)) {
+        if (!runStage(comm, errMsg)) {
 
           // we failed to run the job
           callerBuzzer->buzz(PDBAlarm::GenericError, counter);
@@ -162,7 +167,9 @@ bool pdb::PDBComputationServerFrontend::executeJob(pdb::Handle<pdb::ExJob> &job)
   return success;
 }
 
-bool pdb::PDBComputationServerFrontend::scheduleJob(pdb::PDBCommunicator &temp, pdb::Handle<pdb::ExJob> &job, std::string &errMsg) {
+bool pdb::PDBComputationServerFrontend::scheduleJob(pdb::PDBCommunicator &temp,
+                                                    pdb::Handle<pdb::ExJob> &job,
+                                                    std::string &errMsg) {
 
   /// 1. Send the computation
 
@@ -215,7 +222,7 @@ bool pdb::PDBComputationServerFrontend::runStage(pdb::PDBCommunicator &communica
     bool success;
 
     // want this to be destroyed
-    Handle<SimpleRequestResult> result = communicator.getNextObject<SimpleRequestResult> (memory.get(), success, errMsg);
+    Handle<SimpleRequestResult> result = communicator.getNextObject<SimpleRequestResult>(memory.get(), success, errMsg);
     if (!success) {
 
       // log the error
@@ -266,7 +273,7 @@ bool pdb::PDBComputationServerFrontend::runStage(pdb::PDBCommunicator &communica
     bool success;
 
     // want this to be destroyed
-    Handle<SimpleRequestResult> result = communicator.getNextObject<SimpleRequestResult> (success, errMsg);
+    Handle<SimpleRequestResult> result = communicator.getNextObject<SimpleRequestResult>(success, errMsg);
     if (!success) {
 
       // log the error
@@ -287,7 +294,7 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
   forMe.registerHandler(
       CSExecuteComputation_TYPEID,
       make_shared<pdb::HeapRequestHandler<pdb::CSExecuteComputation>>(
-          [&](Handle<pdb::CSExecuteComputation> request, PDBCommunicatorPtr sendUsingMe) {
+          [&](const Handle<pdb::CSExecuteComputation> &request, const PDBCommunicatorPtr &sendUsingMe) {
 
             /// 1. Init the optimizer
 
@@ -304,33 +311,78 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
             // figure out what computations are keyed
             // TODO this has to be moved somewhere after I finish everything it is just ugly
             std::unordered_map<uint64_t, bool> keyedComputations;
-            for(uint64_t i = 0; i < request->computations->size(); ++i) {
-              keyedComputations[i] = (*request->computations)[i]->isKeyed();
+            if(request->computations != nullptr) {
+              for (uint64_t i = 0; i < request->computations->size(); ++i) {
+                keyedComputations[i] = (*request->computations)[i]->isKeyed();
+              }
             }
 
-            // init the optimizer
-            pdb::PDBPhysicalOptimizer optimizer(compID,
-                                                request->tcapString,
-                                                keyedComputations,
-                                                catalogClient,
-                                                logger);
+            if (request->physicalAlgorithm == nullptr) {
 
-            // we start from job 0
-            uint64_t jobID = 0;
+              // init the optimizer
+              pdb::PDBPhysicalOptimizer optimizer(compID,
+                                                  request->tcapString,
+                                                  keyedComputations,
+                                                  catalogClient,
+                                                  logger);
 
-            std::cout << "Got TCAP : \n";
-            std::cout << request->tcapString << "\n\n";
+              // we start from job 0
+              uint64_t jobID = 0;
 
-            /// 2. Run job while the optimizer can spit out an algorithm
+              std::cout << "Got TCAP : \n";
+              std::cout << request->tcapString << "\n\n";
 
-            // make an allocation block the computation size + 1MB for algorithm and stuff
-            const pdb::UseTemporaryAllocationBlock tempBlock{request->numBytes + 1024 * 1024};
+              /// 2. Run job while the optimizer can spit out an algorithm
 
-            // while we still have jobs to execute
-            while(optimizer.hasAlgorithmToRun()) {
+              // make an allocation block the computation size + 1MB for algorithm and stuff
+              const pdb::UseTemporaryAllocationBlock tempBlock{request->numBytes + 1024 * 1024};
 
-              // grab a algorithm
-              auto algorithm = optimizer.getNextAlgorithm();
+              // while we still have jobs to execute
+              while (optimizer.hasAlgorithmToRun()) {
+
+                // grab a algorithm
+                auto algorithm = optimizer.getNextAlgorithm();
+
+                // make the job
+                Handle<ExJob> job = pdb::makeObject<ExJob>();
+
+                // set the job stuff
+                job->computationID = compID;
+                job->computations = request->computations;
+                job->tcap = request->tcapString;
+                job->jobID = jobID++;
+                job->physicalAlgorithm = algorithm;
+                job->numberOfProcessingThreads = (uint64_t) getConfiguration()->numThreads;
+                job->numberOfNodes = catalogClient->getActiveWorkerNodes().size();
+
+                // just set how much we need for the computation object in case somebody embed some data in it
+                job->computationSize = request->numBytes;
+
+                // grab the nodes we want to forward the request to
+                auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
+
+                // copy the nodes
+                for (const auto &node : nodes) {
+                  job->nodes.push_back(pdb::makeObject<ExJobNode>(node->port, node->backendPort, node->address));
+                }
+
+                // broadcast the job to each node and run it...
+                if (!executeJob(job)) {
+
+                  // we failed therefore we are done here
+                  success = false;
+                  error = "We failed to execute the job with the ID (" + std::to_string(job->jobID) + +")";
+
+                  break;
+                }
+
+                // remove the page sets
+                if (!removeUnusedPageSets(optimizer.getPageSetsToRemove())) {
+                  logger->error("Failed to remove some page sets.");
+                }
+              }
+            }
+            else {
 
               // make the job
               Handle<ExJob> job = pdb::makeObject<ExJob>();
@@ -339,35 +391,25 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
               job->computationID = compID;
               job->computations = request->computations;
               job->tcap = request->tcapString;
-              job->jobID = jobID++;
-              job->physicalAlgorithm = algorithm;
+              job->jobID = 0;
+              job->physicalAlgorithm = request->physicalAlgorithm;
               job->numberOfProcessingThreads = (uint64_t) getConfiguration()->numThreads;
               job->numberOfNodes = catalogClient->getActiveWorkerNodes().size();
-
-              // just set how much we need for the computation object in case somebody embed some data in it
-              job->computationSize = request->numBytes;
 
               // grab the nodes we want to forward the request to
               auto nodes = getFunctionality<PDBCatalogClient>().getActiveWorkerNodes();
 
               // copy the nodes
-              for(const auto &node : nodes) {
+              for (const auto &node : nodes) {
                 job->nodes.push_back(pdb::makeObject<ExJobNode>(node->port, node->backendPort, node->address));
               }
 
               // broadcast the job to each node and run it...
-              if(!executeJob(job)) {
+              if (!executeJob(job)) {
 
                 // we failed therefore we are done here
                 success = false;
-                error = "We failed to execute the job with the ID (" + std::to_string(job->jobID) + + ")";
-
-                break;
-              }
-
-              // remove the page sets
-              if(!removeUnusedPageSets(optimizer.getPageSetsToRemove())) {
-                logger->error("Failed to remove some page sets.");
+                error = "We failed to execute the job with the ID (" + std::to_string(job->jobID) + +")";
               }
             }
 
@@ -404,7 +446,7 @@ bool pdb::PDBComputationServerFrontend::removeUnusedPageSets(const std::vector<p
   PDBBuzzerPtr tempBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
 
     // did we fail?
-    if(myAlarm == PDBAlarm::GenericError) {
+    if (myAlarm == PDBAlarm::GenericError) {
       success = false;
     }
 
@@ -413,7 +455,7 @@ bool pdb::PDBComputationServerFrontend::removeUnusedPageSets(const std::vector<p
   });
 
   // for each node start a worker
-  for(const auto &node : nodes) {
+  for (const auto &node : nodes) {
 
     /// 0. Start a worker for each node
 
@@ -424,11 +466,11 @@ bool pdb::PDBComputationServerFrontend::removeUnusedPageSets(const std::vector<p
     PDBWorkPtr myWork = make_shared<pdb::GenericWork>([=, &counter, &pageSets](PDBBuzzerPtr callerBuzzer) {
 
       std::string errMsg;
-      pdb::Handle<pdb::StoRemovePageSetRequest> request = makeObject<pdb::StoRemovePageSetRequest> ();
+      pdb::Handle<pdb::StoRemovePageSetRequest> request = makeObject<pdb::StoRemovePageSetRequest>();
 
       // go through each page set and try to remove it..
       bool removalSuccess = true;
-      for(const auto &pageSet : pageSets) {
+      for (const auto &pageSet : pageSets) {
 
         // make a request and return the value
         removalSuccess = RequestFactory::heapRequest<pdb::StoRemovePageSetRequest, SimpleRequestResult, bool>(
@@ -440,7 +482,7 @@ bool pdb::PDBComputationServerFrontend::removeUnusedPageSets(const std::vector<p
       }
 
       // did we fail?
-      if(!removalSuccess) {
+      if (!removalSuccess) {
 
         // we failed to run the job
         callerBuzzer->buzz(PDBAlarm::GenericError, counter);

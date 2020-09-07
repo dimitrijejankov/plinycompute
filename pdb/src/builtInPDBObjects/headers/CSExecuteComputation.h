@@ -22,6 +22,7 @@
 #include "Object.h"
 #include "PDBString.h"
 #include <Computation.h>
+#include <physicalAlgorithms/PDBPhysicalAlgorithm.h>
 
 // PRELOAD %CSExecuteComputation%
 
@@ -32,42 +33,84 @@ class CSExecuteComputation : public Object {
 
 public:
 
-    CSExecuteComputation() = default;
-    ~CSExecuteComputation() = default;
+  CSExecuteComputation() = default;
+  ~CSExecuteComputation() = default;
 
-    CSExecuteComputation(Handle<Vector<Handle<Computation>>> &computations, const String &tcapString, size_t numBytes) {
+  CSExecuteComputation(Handle<Vector<Handle<Computation>>> &computations, const String &tcapString, size_t numBytes) {
 
-      // set the num bytes
-      this->numBytes = numBytes;
+    // set the num bytes
+    this->numBytes = numBytes;
 
-      // store the string
-      this->tcapString = tcapString;
+    // store the string
+    this->tcapString = tcapString;
 
-      // init the computations vector
-      this->computations = makeObject<Vector<Handle<Computation>>>(computations->size(), 0);
+    // init the computations vector
+    this->computations = makeObject<Vector<Handle<Computation>>>(computations->size(), 0);
 
-      // copy the computations
-      for(int i = 0; i < computations->size(); ++i) {
-        this->computations->push_back((*computations)[i]);
-      }
+    // copy the computations
+    for(int i = 0; i < computations->size(); ++i) {
+      this->computations->push_back((*computations)[i]);
     }
+  }
 
-    ENABLE_DEEP_COPY
+  CSExecuteComputation(size_t numBytes, const Handle<pdb::PDBPhysicalAlgorithm> &physicalAlgorithm) {
 
-    /**
-     * The tcap string associated with the computations
-     */
-    String tcapString;
+    // set the num bytes
+    this->numBytes = numBytes;
 
-    /**
-     * The computations
-     */
-    Handle<Vector<Handle<Computation>>> computations;
+    // store the string
+    this->tcapString = "";
 
-    /**
-     * How large should the allocation block be to store the computations
-     */
-    size_t numBytes;
+    // init the computations vector
+    this->computations = nullptr;
+
+    // the physical algorithm
+    this->physicalAlgorithm = physicalAlgorithm;
+  }
+
+  CSExecuteComputation(Handle<Vector<Handle < Computation>>> &computations,
+                       const String &tcapString, size_t numBytes,
+                       const Handle<pdb::PDBPhysicalAlgorithm> &physicalAlgorithm) {
+
+    // set the num bytes
+    this->numBytes = numBytes;
+
+    // store the string
+    this->tcapString = tcapString;
+
+    // init the computations vector
+    this->computations = makeObject < Vector < Handle < Computation >> > (computations->size(), 0);
+
+    // the physical algorithm
+    this->physicalAlgorithm = physicalAlgorithm;
+
+    // copy the computations
+    for (int i = 0; i < computations->size(); ++i) {
+      this->computations->push_back((*computations)[i]);
+    }
+  }
+
+  ENABLE_DEEP_COPY
+
+  /**
+   * The tcap string associated with the computations
+   */
+  String tcapString;
+
+  /**
+   * The computations
+   */
+  Handle<Vector<Handle<Computation>>> computations;
+
+  /**
+   * How large should the allocation block be to store the computations
+   */
+  size_t numBytes;
+
+  /**
+   * The physical algorithm we want to run.
+   */
+  Handle<pdb::PDBPhysicalAlgorithm> physicalAlgorithm;
 };
 }
 

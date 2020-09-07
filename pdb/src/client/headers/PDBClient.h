@@ -114,6 +114,17 @@ class PDBClient : public ServerFunctionality {
    */
   bool executeComputations(Handle<Vector<Handle<Computation>>> &computations, const pdb::String &tcap);
 
+  bool broadcast(const std::string &db, const std::string &set, const std::string& pageSet);
+
+  bool localJoin(const std::string& lhsPageSet, const std::vector<int32_t>& lhs_indices,
+                 const std::string& rhsDb, const std::string& rhsSet, const std::vector<int32_t>& rhs_indices,
+                 const std::vector<Handle<Computation>> &sinks, const std::string& pageSet);
+
+  bool shuffle(const std::string &inputPageSet, const std::vector<int32_t> indices, const std::string& pageSet);
+
+  bool localAggregation(const std::string &inputPageSet, const std::vector<int32_t> indices,
+                        const std::vector<Handle<Computation>> &sinks, const std::string& pageSet);
+
   /**
    * Runs the query by specifying just the sinks, the tcap will be automatically generated
    * @param computations - the computations

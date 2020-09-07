@@ -22,6 +22,9 @@
 #include <ShutDown.h>
 #include <PDBClient.h>
 #include <QueryGraphAnalyzer.h>
+#include <physicalAlgorithms/BHBroadcast.h>
+#include <CSExecuteComputation.h>
+#include <physicalAlgorithms/LocalJoin.h>
 
 #include "PDBClient.h"
 
@@ -182,7 +185,117 @@ void PDBClient::listUserDefinedTypes() {
   cout << catalogClient->listUserDefinedTypes(returnedMsg);
 }
 
+bool PDBClient::broadcast(const std::string &db, const std::string &set, const std::string& pageSet) {
 
+  pdb::Handle<BHBroadcast> alg = pdb::makeObject<BHBroadcast>(db, set, pageSet);
+
+  // essentially the buffer should be of this size
+  auto bufferSize = 1024u * 1024u;
+
+  // increment the buffer in increments of
+  while(bufferSize < 100 * 1024u * 1024u) {
+
+    try {
+
+      // send the request
+      std::string error;
+      return RequestFactory::heapRequest<CSExecuteComputation, SimpleRequestResult, bool>(logger, port, address, false, bufferSize,
+        [&](const Handle<SimpleRequestResult>& result) {
+
+          // check the response
+          if ((result != nullptr && !result->getRes().first) || result == nullptr) {
+
+            // log the error
+            logger->error("Error executing computations: " + result->getRes().second);
+            error = "Error executing computations: " + result->getRes().second;
+
+            // we are done here
+            return false;
+          }
+
+          // awesome we finished
+          return true;
+        }, bufferSize, alg);
+    }
+    catch(pdb::NotEnoughSpace &n) {
+
+      // increment the buffer
+      bufferSize += 1024 * 1024;
+    }
+  }
+
+  // finish since the computation was just too large
+  return false;
+}
+
+bool PDBClient::localJoin(const std::string &lhsPageSet,
+                          const std::vector<int32_t>& lhs_indices,
+                          const std::string &rhsDb,
+                          const std::string &rhsSet,
+                          const std::vector<int32_t>& rhs_indices,
+                          const vector<Handle<Computation>> &sinks,
+                          const std::string &pageSet) {
+
+  // create the graph analyzer
+  pdb::QueryGraphAnalyzer queryAnalyzer(sinks);
+
+  // here is the list of computations
+  Handle<Vector<Handle<Computation>>> myComputations = makeObject<Vector<Handle<Computation>>>();
+
+  // parse the TCAP string
+  std::string TCAPString = queryAnalyzer.parseTCAPString(*myComputations);
+  pdb::Handle<LocalJoin> alg = pdb::makeObject<LocalJoin>(lhsPageSet, lhs_indices,
+                                                          rhsDb, rhsSet, rhs_indices, pageSet);
+
+  // essentially the buffer should be of this size
+  auto bufferSize = 1024u * 1024u;
+
+  // increment the buffer in increments of
+  while(bufferSize < 100 * 1024u * 1024u) {
+
+    try {
+
+      // send the request
+      std::string error;
+      return RequestFactory::heapRequest<CSExecuteComputation, SimpleRequestResult, bool>(logger, port, address, false, bufferSize,
+        [&](const Handle<SimpleRequestResult>& result) {
+
+          // check the response
+          if ((result != nullptr && !result->getRes().first) || result == nullptr) {
+
+            // log the error
+            logger->error("Error executing computations: " + result->getRes().second);
+            error = "Error executing computations: " + result->getRes().second;
+
+            // we are done here
+            return false;
+          }
+
+          // awesome we finished
+          return true;
+        }, myComputations, TCAPString, bufferSize, alg);
+    }
+    catch(pdb::NotEnoughSpace &n) {
+
+      // increment the buffer
+      bufferSize += 1024 * 1024;
+    }
+  }
+
+  // finish since the computation was just too large
+  return false;
+}
+
+bool PDBClient::shuffle(const std::string &inputPageSet, const std::vector<int32_t> indices, const std::string &pageSet) {
+  return false;
+}
+
+bool PDBClient::localAggregation(const std::string &inputPageSet,
+                                 const std::vector<int32_t> indices,
+                                 const vector<Handle<Computation>> &sinks,
+                                 const std::string &pageSet) {
+  return false;
+}
 
 }
 
