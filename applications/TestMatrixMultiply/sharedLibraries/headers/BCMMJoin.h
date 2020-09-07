@@ -16,12 +16,12 @@ class BCMMJoin : public JoinComp <BCMMJoin, TensorBlock, TensorBlock, TensorBloc
   BCMMJoin() = default;
 
   static Lambda <bool> getKeySelection (Handle <TensorBlockMeta> in1, Handle <TensorBlockMeta> in2) {
-    return (makeLambdaFromMember (in1, key1) == makeLambdaFromMember (in2, key0));
+    return (makeLambdaFromMethod (in1, getIdx1) == makeLambdaFromMethod (in2, getIdx0));
   }
 
   static Lambda <Handle<TensorBlockMeta>> getKeyProjection(Handle <TensorBlockMeta> in1, Handle <TensorBlockMeta> in2) {
     return makeLambda (in1, in2, [] (Handle <TensorBlockMeta> &in1, Handle <TensorBlockMeta> &in2) {
-      Handle<TensorBlockMeta> out = makeObject<TensorBlockMeta>(in1->key0, in2->key1, -1);
+      Handle<TensorBlockMeta> out = makeObject<TensorBlockMeta>(in1->getIdx0(), in2->getIdx2(), -1);
       return out;
     });
   }

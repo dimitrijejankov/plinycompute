@@ -88,15 +88,15 @@ public:
     }
 
     uint32_t getkey0() {
-        return metaData->key0;
+        return metaData->getIdx0();
     }
 
     uint32_t getkey1() {
-        return metaData->key1;
+        return metaData->getIdx1();
     }
 
     uint32_t getkey2() {
-        return metaData->key2;
+        return metaData->getIdx2();
     }
 
     uint32_t getDim0() {

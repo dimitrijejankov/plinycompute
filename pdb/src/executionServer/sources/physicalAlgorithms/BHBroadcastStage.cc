@@ -168,7 +168,7 @@ bool pdb::BHBroadcastStage::run(const pdb::Handle<pdb::ExJob> &job,
     storage->getWorker()->execute(myWork, sendersBuzzer);
   }
 
-  /// 1. Run the self receiver,
+  /// 3. Run the self receiver,
 
   // create the buzzer
   atomic_int queueFeederDone;
@@ -193,14 +193,12 @@ bool pdb::BHBroadcastStage::run(const pdb::Handle<pdb::ExJob> &job,
       PDBPageHandle page;
       while((page = s->inputSet->getNextPage(0)) != nullptr) {
         for(auto &q : *s->pageQueues) {
-          std::cout << "Feed\n";
           q->enqueue(page);
         }
       }
       for(auto &q : *s->pageQueues) {
         q->enqueue(nullptr);
       }
-      std::cout << "Done\n";
 
       // signal that the run was successful
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, queueFeederDone);

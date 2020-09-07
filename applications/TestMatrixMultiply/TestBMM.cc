@@ -14,8 +14,8 @@ using namespace pdb::matrix;
 const size_t blockSize = 64;
 const uint32_t matrixRows = 400;
 const uint32_t matrixColumns = 400;
-const uint32_t numRows = 40;
-const uint32_t numCols = 40;
+const uint32_t numRows = 4;
+const uint32_t numCols = 4;
 const bool doNotPrint = true;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
@@ -124,10 +124,16 @@ int main(int argc, char* argv[]) {
   Handle<Computation> myWriter = makeObject<TensorWriter>("myData", "C");
   myWriter->setInput(myAggregation);
 
-    /*
-     * Todo:: Here we first broadcast A (or B);
-     * Then call BCMMJoin and BCMMAggregation
-     */
+  /// TODO this is just random to test the interface
+  pdbClient.broadcast("myData", "A", "ABroadcasted");
+  //pdbClient.localJoin("ABroadcasted", {0}, "myData", "B", {1}, { myWriter }, "ABJoined");
+  //pdbClient.shuffle("ABJoined", {0, 2}, "ABJoinedShuffled");
+  //pdbClient.localAggregation("ABJoinedShuffled", {0, 2}, { myWriter }, "Final");
+
+  /*
+   * Todo:: Here we first broadcast A (or B);
+   * Then call BCMMJoin and BCMMAggregation
+   */
 
 
   // shutdown the server

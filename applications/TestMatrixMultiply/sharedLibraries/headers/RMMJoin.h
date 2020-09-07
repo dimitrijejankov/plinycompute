@@ -16,14 +16,14 @@ namespace pdb::matrix {
         RMMJoin() = default;
 
         static Lambda <bool> getKeySelection (Handle <TensorBlockMeta> in1, Handle <TensorBlockMeta> in2) {
-            return (makeLambdaFromMember (in1, key0) == makeLambdaFromMember (in2, key0))
-            and (makeLambdaFromMember (in1, key1) == makeLambdaFromMember (in2, key1))
-            and (makeLambdaFromMember (in1, key2) == makeLambdaFromMember (in2, key2));
+            return (makeLambdaFromMethod (in1, getIdx0) == makeLambdaFromMethod (in2, getIdx0))
+            and (makeLambdaFromMethod (in1, getIdx1) == makeLambdaFromMethod (in2, getIdx1))
+            and (makeLambdaFromMethod (in1, getIdx2) == makeLambdaFromMethod (in2, getIdx2));
         }
 
         static Lambda <Handle<TensorBlockMeta>> getKeyProjection(Handle <TensorBlockMeta> in1, Handle <TensorBlockMeta> in2) {
             return makeLambda (in1, in2, [] (Handle <TensorBlockMeta> &in1, Handle <TensorBlockMeta> &in2) {
-                Handle<TensorBlockMeta> out = makeObject<TensorBlockMeta>(in1->key0, in1->key1, in1->key2);
+                Handle<TensorBlockMeta> out = makeObject<TensorBlockMeta>(in1->getIdx0(), in1->getIdx1(), in1->getIdx2());
                 return out;
             });
         }
