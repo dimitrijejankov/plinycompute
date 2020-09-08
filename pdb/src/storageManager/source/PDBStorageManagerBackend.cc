@@ -735,3 +735,13 @@ bool pdb::PDBStorageManagerBackend::materializeKeys(const pdb::PDBAbstractPageSe
   // we succeeded
   return true;
 }
+
+pdb::TRAIndexNodePtr pdb::PDBStorageManagerBackend::createIndex(const std::pair<uint64_t, std::string> &pageSetID) {
+  auto tmp = std::make_shared<TRAIndexNode>(false);
+  pageSetsIndex[pageSetID] = tmp;
+  return tmp;
+}
+
+pdb::TRAIndexNodePtr pdb::PDBStorageManagerBackend::getIndex(const std::pair<uint64_t, std::string> &pageSetID) {
+  return pageSetsIndex[pageSetID];
+}

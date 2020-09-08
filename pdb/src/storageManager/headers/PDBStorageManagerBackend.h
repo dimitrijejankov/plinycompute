@@ -1,6 +1,6 @@
-#ifndef PDB_PDBStorageManagerBackend_H
-#define PDB_PDBStorageManagerBackend_H
+#pragma once
 
+#include "TRAIndex.h"
 #include <ServerFunctionality.h>
 #include <StoStoreDataRequest.h>
 #include <PDBKeyExtractor.h>
@@ -14,6 +14,7 @@
 #include "PDBFeedingPageSet.h"
 #include "PDBRandomAccessPageSet.h"
 
+
 namespace pdb {
 
 class PDBStorageManagerBackend : public ServerFunctionality {
@@ -23,6 +24,12 @@ public:
   void registerHandlers(PDBServer &forMe) override;
 
   void init() override;
+
+  // creates an index for a page set
+  TRAIndexNodePtr createIndex(const std::pair<uint64_t, std::string> &pageSetID);
+
+  // returns the index
+  TRAIndexNodePtr getIndex(const std::pair<uint64_t, std::string> &pageSetID);
 
   /**
    * This method contacts the frontend to get a PageSet for a particular PDB set
@@ -46,7 +53,6 @@ public:
    * @return return the random access page set
    */
   PDBRandomAccessPageSetPtr createRandomAccessPageSet(const std::pair<uint64_t, std::string> &pageSetID);
-
 
   /**
    *
@@ -176,6 +182,11 @@ public:
   map<std::pair<uint64_t, std::string>, PDBAbstractPageSetPtr> pageSets;
 
   /**
+   * The index for a page set
+   */
+  map<std::pair<uint64_t, std::string>, TRAIndexNodePtr> pageSetsIndex;
+
+  /**
    * the mutex to lock the page sets
    */
   std::mutex pageSetMutex;
@@ -184,7 +195,5 @@ public:
 using PDBStorageManagerBackendPtr = std::shared_ptr<PDBStorageManagerBackend>;
 
 }
-
-#endif
 
 #include <PDBStorageManagerBackendTemplate.cc>

@@ -65,6 +65,19 @@ public:
     throw runtime_error("You can not remove a page from a random access page set!");
   }
 
+  // inserts a page and returns the index where it was inserted
+  size_t pushPage(const PDBPageHandle& pageHandle) {
+
+    // lock stuff
+    unique_lock lck(m);
+
+    // push the page
+    pages.emplace_back(pageHandle);
+
+    // get the last index
+    return pages.size() - 1;
+  }
+
   size_t getNumPages() override {
 
     // lock stuff
