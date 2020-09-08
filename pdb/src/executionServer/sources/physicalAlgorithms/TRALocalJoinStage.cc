@@ -6,19 +6,21 @@ bool TRALocalJoinStage::setup(const Handle<pdb::ExJob> &job,
                               const PDBPhysicalAlgorithmStatePtr &state,
                               const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                               const std::string &error) {
-  return PDBPhysicalAlgorithmStage::setup(job, state, storage, error);
+  std::cout << "setup\n";
+  return true;
 }
 
 bool TRALocalJoinStage::run(const Handle<pdb::ExJob> &job,
                             const PDBPhysicalAlgorithmStatePtr &state,
                             const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                             const std::string &error) {
-  return PDBPhysicalAlgorithmStage::run(job, state, storage, error);
+  std::cout << "run\n";
+  return true;
 }
 
 void TRALocalJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state,
                                 const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
-  PDBPhysicalAlgorithmStage::cleanup(state, storage);
+  std::cout << "Cleanup\n";
 }
 
 TRALocalJoinStage::TRALocalJoinStage(const std::string &db, const std::string &set,

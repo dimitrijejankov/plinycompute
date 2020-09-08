@@ -26,7 +26,9 @@ class TRALocalJoin : public PDBPhysicalAlgorithm {
                const std::string &rhsDb,
                const std::string &rhsSet,
                const std::vector<int32_t>& rhs_indices,
-               const std::string &pageSet);
+               const std::string &pageSet,
+               const std::string& startPageSet,
+               const std::string& endPageSet);
 
   /**
    *
@@ -77,6 +79,10 @@ class TRALocalJoin : public PDBPhysicalAlgorithm {
   pdb::Vector<int32_t> lhs_indices;
 
   int32_t currentStage = 0;
+
+  pdb::String startPageSet;
+
+  pdb::String endPageSet;
 };
 
 }

@@ -228,13 +228,10 @@ bool PDBClient::broadcast(const std::string &db, const std::string &set, const s
   return false;
 }
 
-bool PDBClient::localJoin(const std::string &lhsPageSet,
-                          const std::vector<int32_t>& lhs_indices,
-                          const std::string &rhsDb,
-                          const std::string &rhsSet,
-                          const std::vector<int32_t>& rhs_indices,
-                          const vector<Handle<Computation>> &sinks,
-                          const std::string &pageSet) {
+bool PDBClient::localJoin(const std::string& lhsPageSet, const std::vector<int32_t>& lhs_indices,
+                          const std::string& rhsDb, const std::string& rhsSet, const std::vector<int32_t>& rhs_indices,
+                          const std::vector<Handle<Computation>> &sinks, const std::string& pageSet,
+                          const std::string& startPageSet, const std::string& endPageSet) {
 
   // create the graph analyzer
   pdb::QueryGraphAnalyzer queryAnalyzer(sinks);
@@ -244,8 +241,9 @@ bool PDBClient::localJoin(const std::string &lhsPageSet,
 
   // parse the TCAP string
   std::string TCAPString = queryAnalyzer.parseTCAPString(*myComputations);
+  std::cout << TCAPString << '\n';
   pdb::Handle<TRALocalJoin> alg = pdb::makeObject<TRALocalJoin>(lhsPageSet, lhs_indices,
-                                                                rhsDb, rhsSet, rhs_indices, pageSet);
+                                                                rhsDb, rhsSet, rhs_indices, pageSet, startPageSet, endPageSet);
 
   // essentially the buffer should be of this size
   auto bufferSize = 1024u * 1024u;
