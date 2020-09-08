@@ -73,7 +73,8 @@ ComputeSourcePtr ComputePlan::getComputeSource(int32_t nodeID,
   }
 
   // is this a join aggregation algorithm we are running
-  if(joinArgs->isJoinAggAggregation) {
+  // we also use this source for the TRALocalJoin
+  if(joinArgs->isJoinAggAggregation || joinArgs->isTRALocalJoin) {
 
     // get the right atomic computation
     AtomicComputationPtr rightAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getRightInput().getSetName());

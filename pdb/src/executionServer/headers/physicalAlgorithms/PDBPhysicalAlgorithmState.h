@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <LogicalPlan.h>
+#include <PipelineInterface.h>
 
 namespace pdb {
 
@@ -14,6 +15,8 @@ struct PDBPhysicalAlgorithmState {
    * The logical plan
    */
   pdb::LogicalPlanPtr logicalPlan;
+
+  std::shared_ptr<std::vector<PipelinePtr>> joinPipelines;
 
   /**
    * The logger of the algorithm

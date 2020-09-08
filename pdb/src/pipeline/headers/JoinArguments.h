@@ -80,6 +80,9 @@ public:
   // is this an only local aggregation
   bool isLocalJoinAggAggregation = false;
 
+  // is local join
+  bool isTRALocalJoin = false;
+
   // contains the mapping from aggregation key to the tid
   PDBPageHandle aggKeyPage;
 

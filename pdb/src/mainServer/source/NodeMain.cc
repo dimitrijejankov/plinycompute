@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
     backEnd.addFunctionality(std::make_shared<pdb::ExecutionServerBackend>());
 
     // start the backend
-    backEnd.startServer(make_shared<pdb::GenericWork>([&](PDBBuzzerPtr callerBuzzer) {
+    backEnd.startServer(make_shared<pdb::GenericWork>([&](const PDBBuzzerPtr& callerBuzzer) {
 
       // sync me with the cluster
       sleep(5);

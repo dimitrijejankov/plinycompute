@@ -29,7 +29,7 @@ pdb::PDBPhysicalAlgorithmStatePtr pdb::TRALocalJoin::getInitialState(const pdb::
 pdb::PDBPhysicalAlgorithmStagePtr pdb::TRALocalJoin::getNextStage(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
   if(currentStage == 0) {
     currentStage++;
-    return std::make_shared<TRALocalJoinStage>(db, set, inputPageSet, lhs_indices);
+    return std::make_shared<TRALocalJoinStage>(db, set, inputPageSet, lhs_indices, startPageSet, endPageSet);
   }
   return nullptr;
 }

@@ -38,12 +38,12 @@ public:
 
   JoinMapCreator(PDBRandomAccessPageSetPtr pageSet,
                  PDBCommunicatorPtr communicator,
-                 JoinAggTupleEmitterPtr emitter,
+                 const JoinAggTupleEmitterPtr& emitter,
                  bool isLHS,
                  PDBLoggerPtr logger) : pageSet(std::move(pageSet)),
                                         communicator(std::move(communicator)),
                                         logger(std::move(logger)),
-                                        emitter(std::move(emitter)),
+                                        emitter(std::dynamic_pointer_cast<JoinAggTupleEmitter>(emitter)),
                                         joinSide(isLHS ? LHS : RHS) {}
 
 
@@ -99,7 +99,7 @@ private:
   enum {LHS, RHS} joinSide;
 
   // the emitter
-  JoinAggTupleEmitterPtr emitter;
+  std::shared_ptr<JoinAggTupleEmitter> emitter;
 
   // we are mapping the tid to the
   std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>> tidToRecordMapping;

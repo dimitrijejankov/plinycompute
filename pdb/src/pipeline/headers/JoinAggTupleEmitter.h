@@ -9,10 +9,8 @@
 
 namespace pdb {
 
-class JoinAggTupleEmitter {
+class JoinAggTupleEmitterInterface {
 public:
-
-  explicit JoinAggTupleEmitter(PDBPageHandle planPage, int numThreads, int32_t nodeID);
 
   struct JoinedRecord {
 
@@ -30,6 +28,16 @@ public:
     int32_t agg_group = -1;
     int32_t group_id = -1;
   };
+
+  // get records to send through the pipeline, blocks if there are none
+  virtual void getRecords(std::vector<JoinedRecord> &putHere, int32_t &lastLHSPage, int32_t &lastRHSPage, int32_t threadID) = 0;
+
+};
+
+class JoinAggTupleEmitter : public JoinAggTupleEmitterInterface {
+public:
+
+  explicit JoinAggTupleEmitter(PDBPageHandle planPage, int numThreads, int32_t nodeID);
 
   struct ThreadInfo {
     std::mutex m;
@@ -50,7 +58,7 @@ public:
   uint8_t getAssignedThread(int32_t agg_group);
 
   // get records to send through the pipeline, blocks if there are none
-  void getRecords(std::vector<JoinedRecord> &putHere, int32_t &lastLHSPage, int32_t &lastRHSPage, int32_t threadID);
+  void getRecords(std::vector<JoinedRecord> &putHere, int32_t &lastLHSPage, int32_t &lastRHSPage, int32_t threadID) override;
 
   // print emit stats
   void printEms();
@@ -96,6 +104,6 @@ public:
   std::vector<int8_t> threadAssigned;
 };
 
-using JoinAggTupleEmitterPtr = std::shared_ptr<JoinAggTupleEmitter>;
+using JoinAggTupleEmitterPtr = std::shared_ptr<JoinAggTupleEmitterInterface>;
 
 }

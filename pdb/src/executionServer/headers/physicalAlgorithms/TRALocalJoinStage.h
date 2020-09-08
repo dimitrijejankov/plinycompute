@@ -9,7 +9,8 @@ class TRALocalJoinStage : public PDBPhysicalAlgorithmStage {
  public:
 
   TRALocalJoinStage(const std::string &db, const std::string &set,
-                    const std::string &sink, const pdb::Vector<int32_t> &indices);
+                    const std::string &sink, const pdb::Vector<int32_t> &indices,
+                    const std::string &firstTupleSet, const std::string &finalPageSet);
 
   bool setup(const Handle<pdb::ExJob> &job,
              const PDBPhysicalAlgorithmStatePtr &state,
@@ -34,6 +35,12 @@ class TRALocalJoinStage : public PDBPhysicalAlgorithmStage {
 
   // sink
   pdb::String sink;
+
+  // the first page set of the join pipeline
+  pdb::String firstTupleSet;
+
+  // the last page set of the join pipeline
+  pdb::String finalTupleSet;
 
   Handle<Vector<Handle<Computation>>> computations;
 

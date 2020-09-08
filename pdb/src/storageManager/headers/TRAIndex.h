@@ -1,6 +1,7 @@
 #pragma once
 
 #include <TRABlockMeta.h>
+#include <cassert>
 namespace pdb {
 
 struct TRAIndexNode {
@@ -39,6 +40,19 @@ struct TRAIndexNode {
   void insert(pdb::TRABlockMeta &block, const std::pair<int32_t, int32_t> &location) {
 
     _insert(block, 0, location);
+  }
+
+  // needs to accept a vector with -1 at least on the first usage...
+  // will move this
+  static void getRHSMatcher(const pdb::Vector<uint32_t> &lhs_index,
+                                            const std::vector<int32_t>& lhs_indices,
+                                            const std::vector<int32_t>& rhs_indices,
+                                            std::vector<int32_t> &rhsMatch) {
+    assert(lhs_indices.size() == rhs_indices.size());
+
+    for(int i = 0; i < lhs_indices.size(); ++i) {
+      rhsMatch[rhs_indices[i]] = lhs_index[lhs_indices[i]];
+    }
   }
 
  private:
