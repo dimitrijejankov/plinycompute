@@ -231,7 +231,6 @@ bool pdb::TRABroadcastStage::run(const pdb::Handle<pdb::ExJob> &job,
   });
 
 
-  // creating a page set outside the storage manager, don't do this at home kids...
   {
 
     // make the work

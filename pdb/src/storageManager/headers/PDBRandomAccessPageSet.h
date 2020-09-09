@@ -120,6 +120,17 @@ public:
     }
   }
 
+  void unpinAll() {
+
+    // lock stuff
+    unique_lock lck(m);
+
+    // repin all the pages
+    for(const auto &page : pages){
+      page->unpin();
+    }
+  }
+
 private:
 
   /**

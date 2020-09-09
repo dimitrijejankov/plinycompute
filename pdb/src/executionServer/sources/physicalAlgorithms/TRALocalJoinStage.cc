@@ -30,7 +30,7 @@ bool TRALocalJoinStage::setup(const Handle<pdb::ExJob> &job,
   s->inputPageSet = storage->createPageSetFromPDBSet(rhsDB, rhsSet, false);
 
   // the emmitter will put set pageser here
-  s->rightPageSet = storage->createRandomAccessPageSet({0, "intermediate"});
+  s->rightPageSet = storage->createRandomAccessPageSet({0, "right_intermediate"});
 
   // get index of the left page set
   s->index = storage->getIndex({0, lhsPageSet});
@@ -38,21 +38,14 @@ bool TRALocalJoinStage::setup(const Handle<pdb::ExJob> &job,
   // get the lhs page set
   s->leftPageSet = std::dynamic_pointer_cast<pdb::PDBRandomAccessPageSet>(storage->getPageSet({0, lhsPageSet}));
 
-  // go through all the pages
-  s->leftPageSet->repinAll();
-  for(int i = 0; i < s->leftPageSet->getNumPages(); ++i) {
+  // make the output intermediate set
+  s->outputIntermediate = storage->createAnonymousPageSet({0, "intermediate"});
 
-    auto page = (*s->leftPageSet)[i];
+  // make the output sink
+  s->output = storage->createRandomAccessPageSet({0, sink});
 
-    // get the vector from the page
-    auto &vec = *(((Record<Vector<Handle<TRABlock>>> *) page->getBytes())->getRootObject());
-    for(int j = 0; j < vec.size(); ++j) {
-      vec[j]->print();
-    }
-  }
-
-  // get the in
-  s->output = storage->createAnonymousPageSet({0, sink});
+  // create a new index for the output set
+  s->outputIndex = storage->createIndex({0, sink});
 
   std::map<ComputeInfoType, ComputeInfoPtr> params;
 
@@ -92,7 +85,7 @@ bool TRALocalJoinStage::setup(const Handle<pdb::ExJob> &job,
     auto pipeline = plan.buildPipeline(firstTupleSet, /* this is the TupleSet the pipeline starts with */
                                        finalTupleSet,     /* this is the TupleSet the pipeline ends with */
                                        s->leftPageSet,
-                                       s->output,
+                                       s->outputIntermediate,
                                        params,
                                        job->thisNode,
                                        job->numberOfNodes, // we use one since this pipeline is completely local.
@@ -203,11 +196,88 @@ bool TRALocalJoinStage::run(const Handle<pdb::ExJob> &job,
     joinBuzzer->wait();
   }
 
+  // I will kick off only one thread to make the index, if this happens to be an overhead we need to make it parallel.
+  // create the buzzer
+  atomic_int indexerDone;
+  indexerDone = 0;
+  PDBBuzzerPtr indexerBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
+
+    // did we fail?
+    if (myAlarm == PDBAlarm::GenericError) {
+      success = false;
+    }
+
+    // we are done here
+    cnt = 1;
+  });
+
+
+  auto indexer_start = std::chrono::steady_clock::now();
+  {
+
+    // reset the output page set
+    s->outputIntermediate->resetPageSet();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&indexerDone, s](const PDBBuzzerPtr& callerBuzzer) {
+
+      PDBPageHandle page;
+      while((page = s->outputIntermediate->getNextPage(0)) != nullptr) {
+
+        // repin the page
+        page->repin();
+
+        // store the page in the indexed page set
+        auto loc = s->output->pushPage(page);
+
+        // get the vector from the page
+        auto &vec = *(((Record<Vector<Handle<TRABlock>>> *) page->getBytes())->getRootObject());
+
+        // generate the index
+        for(int i = 0; i < vec.size(); ++i) {
+          s->outputIndex->insert(*vec[i]->metaData, { loc,  i});
+        }
+
+        // unpin the page
+        page->unpin();
+      }
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, indexerDone);
+    });
+
+    // run the work
+    storage->getWorker()->execute(myWork, indexerBuzzer);
+  }
+
+  while (indexerDone != 1) {
+    indexerBuzzer->wait();
+  }
+  auto indexer_end = std::chrono::steady_clock::now();
+
+  // if this is too large we need to make indexing parallel
+  std::cout << "Indexing overhead was " << std::chrono::duration_cast<std::chrono::nanoseconds>(indexer_end - indexer_start).count() << "[ns]" << '\n';
+
   return true;
 }
 
 void TRALocalJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state,
                                 const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
+
+  // cast the state
+  auto s = dynamic_pointer_cast<TRALocalJoinState>(state);
+
+  // unpin them all just in case
+  s->leftPageSet->unpinAll();
+  s->rightPageSet->unpinAll();
+  s->output->unpinAll();
+
+  // remove the left page set as we are not using this
+  // TODO this should check what is where leaving it like this for now
+  storage->removePageSet({0, lhsPageSet});
+  storage->removePageSet({0, "right_intermediate"});
+  storage->removePageSet({0, "intermediate"});
+
   std::cout << "Cleanup\n";
 }
 

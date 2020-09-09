@@ -109,8 +109,11 @@ class TRAJoinSource : public ComputeSource {
       (*rhsColumn)[i - currentRecord] = (*rightTuples[records[i].rhs_page])[records[i].rhs_record];
 
       if constexpr (std::is_same<IN1, pdb::TRABlock>::value) {
+        std::cout << "LHS : ";
         (*leftTuples[records[i].lhs_page])[records[i].lhs_record]->print();
+        std::cout << "RHS : ";
         (*rightTuples[records[i].rhs_page])[records[i].rhs_record]->print();
+        std::cout << "-------------------------------\n";
       }
 
       //std::cout << (*lhsColumn)[i - currentRecord]->getKeyRef().key0 << ", " << (*lhsColumn)[i - currentRecord]->getKeyRef().key1 << '\n';

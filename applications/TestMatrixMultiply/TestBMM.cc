@@ -59,7 +59,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
         // go to the next one
         ++i;
 
-        if(data->size() == 50) {
+        if(data->size() == 8) {
           break;
         }
       }
@@ -70,7 +70,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
     getRecord(data);
 
     // send the data a bunch of times
-    pdbClient.sendData<TRABlock>("myData", set, data, 0);
+    pdbClient.sendData<TRABlock>("myData", set, data);
 
     // log that we stored stuff
     std::cout << "Stored " << data->size() << " !\n";

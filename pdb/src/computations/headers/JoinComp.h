@@ -22,6 +22,7 @@
 #include <JoinTupleSingleton.h>
 #include <lambdas/KeyExtractionLambda.h>
 #include <JoinMapCreator.h>
+#include <sinks/VectorSink.h>
 #include "Computation.h"
 #include "JoinTests.h"
 #include "ComputePlan.h"
@@ -156,10 +157,6 @@ class JoinComp : public JoinCompBase {
                                 std::map<ComputeInfoType, ComputeInfoPtr> &params,
                                 pdb::LogicalPlanPtr &plan) override {
 
-    // figure out the right join tuple
-    std::vector<int> whereEveryoneGoes;
-    JoinTuplePtr correctJoinTuple = findJoinTuple(projection, plan, whereEveryoneGoes);
-
     // try to find the join agg arguments
     auto it = params.find(ComputeInfoType::JOIN_ARGS);
     if (it == params.end()) {
@@ -168,6 +165,14 @@ class JoinComp : public JoinCompBase {
 
     // the join arguments
     JoinArgumentsPtr joinArgs = dynamic_pointer_cast<JoinArguments>(it->second);
+
+    if(joinArgs->isTRALocalJoin) {
+      return std::make_shared<pdb::VectorSink<Out>>(consumeMe, projection);
+    }
+
+    // figure out the right join tuple
+    std::vector<int> whereEveryoneGoes;
+    JoinTuplePtr correctJoinTuple = findJoinTuple(projection, plan, whereEveryoneGoes);
 
     // check what kind of sink we need
     if (!joinArgs->isJoinAggSide) {

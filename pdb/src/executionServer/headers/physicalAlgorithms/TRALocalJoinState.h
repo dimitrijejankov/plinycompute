@@ -24,10 +24,15 @@ struct TRALocalJoinState : public PDBPhysicalAlgorithmState {
   pdb::PDBRandomAccessPageSetPtr rightPageSet;
 
   // get the in
-  pdb::PDBAnonymousPageSetPtr output;
+  pdb::PDBAnonymousPageSetPtr outputIntermediate;
+
+  // the output set
+  pdb::PDBRandomAccessPageSetPtr output;
 
   // the index
   TRAIndexNodePtr index = nullptr;
+
+  TRAIndexNodePtr outputIndex = nullptr;
 
   // the join record emitter
   std::shared_ptr<TRALocalJoinEmitter> emitter;
