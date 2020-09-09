@@ -77,12 +77,13 @@ class TRALocalJoin : public PDBPhysicalAlgorithm {
 
   // indices
   pdb::Vector<int32_t> lhs_indices;
+  pdb::Vector<int32_t> rhs_indices;
 
   int32_t currentStage = 0;
 
-  pdb::String startPageSet;
+  pdb::String startTupleSet;
 
-  pdb::String endPageSet;
+  pdb::String endTupleSet;
 };
 
 }

@@ -14,9 +14,13 @@ pdb::TRALocalJoin::TRALocalJoin(const std::string &lhsPageSet,
     this->lhs_indices[i] = lhs_indices[i];
   }
 
+  for(int i = 0; i < rhs_indices.size(); ++i) {
+    this->rhs_indices[i] = rhs_indices[i];
+  }
+
   // the start and end page set
-  this->startPageSet = startPageSet;
-  this->endPageSet = endPageSet;
+  this->startTupleSet = startPageSet;
+  this->endTupleSet = endPageSet;
 
   // init the sets to materialize
   setsToMaterialize = pdb::makeObject<pdb::Vector<PDBSetObject>>();
@@ -29,7 +33,7 @@ pdb::PDBPhysicalAlgorithmStatePtr pdb::TRALocalJoin::getInitialState(const pdb::
 pdb::PDBPhysicalAlgorithmStagePtr pdb::TRALocalJoin::getNextStage(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
   if(currentStage == 0) {
     currentStage++;
-    return std::make_shared<TRALocalJoinStage>(db, set, inputPageSet, lhs_indices, startPageSet, endPageSet);
+    return std::make_shared<TRALocalJoinStage>(db, set, sink, lhs_indices, rhs_indices, startTupleSet, endTupleSet);
   }
   return nullptr;
 }

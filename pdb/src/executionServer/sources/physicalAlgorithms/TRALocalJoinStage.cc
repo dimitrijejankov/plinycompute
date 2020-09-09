@@ -4,7 +4,7 @@
 #include <processors/NullProcessor.h>
 #include <AtomicComputationClasses.h>
 #include "TRALocalJoinStage.h"
-#include "TRALocalJoinEmmiter.h"
+#include "TRALocalJoinEmitter.h"
 #include "ExJob.h"
 
 namespace pdb {
@@ -21,15 +21,17 @@ bool TRALocalJoinStage::setup(const Handle<pdb::ExJob> &job,
   auto joinAtomicComp =
       dynamic_pointer_cast<ApplyJoin>(s->logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet));
 
-
   // the the input page set
   s->inputPageSet = storage->createPageSetFromPDBSet(db, set, false);
 
   // the emmitter will put set pageser here
   s->leftPageSet = storage->createRandomAccessPageSet({0, "intermediate"});
 
+  // get index of the right page set
+  s->index = storage->getIndex({0, ((std::string) sink) });
+
   // get the rhs page set
-  s->rightPageSet = storage->getPageSet({0, inputPageSet});
+  s->rightPageSet = std::dynamic_pointer_cast<pdb::PDBRandomAccessPageSet>(storage->getPageSet({0, rhsPageSet}));
 
   // get the in
   s->output = storage->createAnonymousPageSet({0, sink});
@@ -46,15 +48,21 @@ bool TRALocalJoinStage::setup(const Handle<pdb::ExJob> &job,
 
   // mark that this is the join aggregation algorithm
   joinArguments->isTRALocalJoin = true;
-  joinArguments->emitter = std::make_shared<TRALocalJoinEmmiter>();
+  joinArguments->emitter = std::make_shared<TRALocalJoinEmitter>(job->numberOfProcessingThreads,
+                                                                 s->inputPageSet,
+                                                                 s->leftPageSet,
+                                                                 s->rightPageSet,
+                                                                 lhsIndices,
+                                                                 rhsIndices,
+                                                                 s->index);
 
-  /// 15.1 Init the preaggregation queues
+  /// 1.1 init the join pipelines
 
   // fill uo the vector for each thread
   s->joinPipelines = std::make_shared<std::vector<PipelinePtr>>();
   for (uint64_t pipelineIndex = 0; pipelineIndex < job->numberOfProcessingThreads; ++pipelineIndex) {
 
-    /// 15.2. Figure out the parameters of the pipeline
+    /// 1.2. Figure out the parameters of the pipeline
 
     // initialize the parameters
     params = {{ComputeInfoType::PAGE_PROCESSOR, std::make_shared<NullProcessor>()},
@@ -62,7 +70,7 @@ bool TRALocalJoinStage::setup(const Handle<pdb::ExJob> &job,
               {ComputeInfoType::SHUFFLE_JOIN_ARG, std::make_shared<ShuffleJoinArg>(false)},
               {ComputeInfoType::SOURCE_SET_INFO, nullptr}};
 
-    /// 15.3. Build the pipeline
+    /// 1.3. Build the pipeline
 
     auto pipeline = plan.buildPipeline(firstTupleSet, /* this is the TupleSet the pipeline starts with */
                                        finalTupleSet,     /* this is the TupleSet the pipeline ends with */
@@ -95,15 +103,15 @@ void TRALocalJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state,
   std::cout << "Cleanup\n";
 }
 
-TRALocalJoinStage::TRALocalJoinStage(const std::string &db, const std::string &set,
-                                     const std::string &sink, const pdb::Vector<int32_t> &indices,
+TRALocalJoinStage::TRALocalJoinStage(const std::string &db, const std::string &set, const std::string &sink,
+                                     const pdb::Vector<int32_t> &lhsIndices, const pdb::Vector<int32_t> &rhsIndices,
                                      const std::string &firstTupleSet, const std::string &finalTupleSet) :
     PDBPhysicalAlgorithmStage(*(_sink),
                               *(_sources),
                               *(_finalTupleSet),
                               *(_secondarySources),
                               *(_setsToMaterialize)), db(db), set(set), sink(sink),
-    firstTupleSet(firstTupleSet), finalTupleSet(finalTupleSet) {}
+    firstTupleSet(firstTupleSet), finalTupleSet(finalTupleSet), lhsIndices(lhsIndices), rhsIndices(rhsIndices) {}
 
 }
 

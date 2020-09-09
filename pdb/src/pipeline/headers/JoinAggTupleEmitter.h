@@ -14,6 +14,9 @@ public:
 
   struct JoinedRecord {
 
+    JoinedRecord(int32_t lhs_page, int32_t lhs_record, int32_t rhs_page, int32_t rhs_record)
+        : lhs_page(lhs_page), lhs_record(lhs_record), rhs_page(rhs_page), rhs_record(rhs_record) {}
+
     explicit JoinedRecord(int32_t agg_group, int32_t group_id) : agg_group(agg_group), group_id(group_id) {}
 
     // tells us where the lhs record is located
