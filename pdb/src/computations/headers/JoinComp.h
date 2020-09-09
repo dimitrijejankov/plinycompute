@@ -30,6 +30,7 @@
 #include "JoinCompBase.h"
 #include "LogicalPlan.h"
 #include "MultiInputsBase.h"
+#include "TRAJoinSource.h"
 #include "JoinAggSource.h"
 #include "Lambda.h"
 
@@ -287,6 +288,28 @@ class JoinComp : public JoinCompBase {
 
     if (sizeof...(Rest) == 0) {
       return std::make_shared<JoinAggSource<In1, In2>>(nodeID,
+                                                       workerID,
+                                                       numWorkers,
+                                                       emitter,
+                                                       leftInputPageSet,
+                                                       rightInputPageSet);
+    } else {
+      throw runtime_error("");
+    }
+  }
+
+  ComputeSourcePtr getTRAJoinSource(int32_t nodeID,
+                                    int32_t workerID,
+                                    int32_t numWorkers,
+                                    std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &leftTIDToRecordMapping,
+                                    std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &rightTIDToRecordMapping,
+                                    const PDBPageHandle &page,
+                                    const JoinAggTupleEmitterPtr &emitter,
+                                    PDBRandomAccessPageSetPtr leftInputPageSet,
+                                    PDBRandomAccessPageSetPtr rightInputPageSet) override {
+
+    if (sizeof...(Rest) == 0) {
+      return std::make_shared<TRAJoinSource<In1, In2>>(nodeID,
                                                        workerID,
                                                        numWorkers,
                                                        emitter,

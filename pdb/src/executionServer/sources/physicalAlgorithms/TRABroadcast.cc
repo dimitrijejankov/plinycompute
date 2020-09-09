@@ -15,7 +15,7 @@ pdb::PDBPhysicalAlgorithmStatePtr pdb::TRABroadcast::getInitialState(const pdb::
 pdb::PDBPhysicalAlgorithmStagePtr pdb::TRABroadcast::getNextStage(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
   if(currentStage == 0) {
     currentStage++;
-    return std::make_shared<TRABroadcastStage>(db, set, inputPageSet);
+    return std::make_shared<TRABroadcastStage>(db, set, sink);
   }
   return nullptr;
 }

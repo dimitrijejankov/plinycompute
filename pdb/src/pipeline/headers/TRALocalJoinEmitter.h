@@ -68,7 +68,7 @@ public:
 
   void run() {
 
-    std::vector<std::pair<int32_t, int32_t>> rhsMatch;
+    std::vector<std::pair<int32_t, int32_t>> lhsMatch;
     std::vector<bool> shouldNotify(numThreads, false);
 
     PDBPageHandle page;
@@ -78,7 +78,7 @@ public:
       page->repin();
 
       // store the page in the indexed page set
-      auto loc = leftPageSet->pushPage(page);
+      auto loc = rightPageSet->pushPage(page);
 
       // get the vector from the page
       auto &vec = *(((Record<Vector<Handle<TRABlock>>> *) page->getBytes())->getRootObject());
@@ -87,17 +87,17 @@ public:
       for(int i = 0; i < vec.size(); ++i) {
 
         // if this is too slow, we can optimize it
-        std::vector<int32_t> rhsMatcher(vec[i]->metaData->indices.size(), -1);
+        std::vector<int32_t> lhsMatcher(vec[i]->metaData->indices.size(), -1);
 
         // figure out the matching pattern
-        getRHSMatcher(vec[i]->metaData->indices, rhsMatcher);
+        getRHSMatcher(vec[i]->metaData->indices, lhsMatcher);
 
         // query the index
-        rhsMatch.clear();
-        index->get(rhsMatch, rhsMatcher);
+        lhsMatch.clear();
+        index->get(lhsMatch, lhsMatcher);
 
-        for(auto &rm : rhsMatch) {
-          threadsWaiting[currentThread].buffer.emplace_back(loc, i, rm.first, rm.second);
+        for(auto &lm : lhsMatch) {
+          threadsWaiting[currentThread].buffer.emplace_back(lm.first, lm.second, loc, i);
           shouldNotify[currentThread] = true;
           currentThread = (currentThread + 1) % numThreads;
         }
@@ -120,10 +120,10 @@ public:
 
   // needs to accept a vector with -1 at least on the first usage...
   // will move this
-  void getRHSMatcher(const pdb::Vector<uint32_t> &lhs_index, std::vector<int32_t> &rhsMatch) {
+  void getRHSMatcher(const pdb::Vector<uint32_t> &rhs_index, std::vector<int32_t> &lhsMatch) {
 
     for(int i = 0; i < lhsIndices.size(); ++i) {
-      rhsMatch[rhsIndices[i]] = lhs_index[lhsIndices[i]];
+      lhsMatch[lhsIndices[i]] = rhs_index[rhsIndices[i]];
     }
   }
 

@@ -74,7 +74,7 @@ ComputeSourcePtr ComputePlan::getComputeSource(int32_t nodeID,
 
   // is this a join aggregation algorithm we are running
   // we also use this source for the TRALocalJoin
-  if(joinArgs->isJoinAggAggregation || joinArgs->isTRALocalJoin) {
+  if(joinArgs->isJoinAggAggregation) {
 
     // get the right atomic computation
     AtomicComputationPtr rightAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getRightInput().getSetName());
@@ -91,6 +91,31 @@ ComputeSourcePtr ComputePlan::getComputeSource(int32_t nodeID,
 
     // our source is a normal source and not a join source, so we just grab it from the computation
     return ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getJoinAggSource(nodeID,
+                                                                                                                         workerID,
+                                                                                                                         numWorkers,
+                                                                                                                         *joinArgs->leftTIDToRecordMapping,
+                                                                                                                         *joinArgs->rightTIDToRecordMapping,
+                                                                                                                         joinArgs->planPage,
+                                                                                                                         joinArgs->emitter,
+                                                                                                                         leftInputPageSet,
+                                                                                                                         rightInputPageSet);
+  }
+  else if(joinArgs->isTRALocalJoin) {
+    // get the right atomic computation
+    AtomicComputationPtr rightAtomicComp = allComps.getProducingAtomicComputation(joinComputation->getRightInput().getSetName());
+
+    // do we have the appropriate join arguments? if not throw an exception
+    auto it = joinArgs->hashTables.find(rightAtomicComp->getOutput().getSetName());
+    if(it == joinArgs->hashTables.end()) {
+      throw runtime_error("Hash table for the output set," + rightAtomicComp->getOutput().getSetName() +  "not found!");
+    }
+
+    // get the left and right input page set
+    auto leftInputPageSet = std::dynamic_pointer_cast<PDBRandomAccessPageSet>(inputPageSet);
+    auto rightInputPageSet = std::dynamic_pointer_cast<PDBRandomAccessPageSet>(it->second->hashTablePageSet);
+
+    // our source is a normal source and not a join source, so we just grab it from the computation
+    return ((JoinCompBase *) &myPlan->getNode(joinComputation->getComputationName()).getComputation())->getTRAJoinSource(nodeID,
                                                                                                                          workerID,
                                                                                                                          numWorkers,
                                                                                                                          *joinArgs->leftTIDToRecordMapping,

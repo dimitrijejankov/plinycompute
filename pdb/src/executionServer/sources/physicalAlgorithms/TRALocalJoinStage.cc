@@ -18,28 +18,41 @@ bool TRALocalJoinStage::setup(const Handle<pdb::ExJob> &job,
   // cast the state
   auto s = dynamic_pointer_cast<TRALocalJoinState>(state);
 
+  // init the plan
+  ComputePlan plan(std::make_shared<LogicalPlan>(job->tcap, *job->computations));
+  s->logicalPlan = plan.getPlan();
+
   // get the join comp
   auto joinAtomicComp =
       dynamic_pointer_cast<ApplyJoin>(s->logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet));
 
   // the the input page set
-  s->inputPageSet = storage->createPageSetFromPDBSet(db, set, false);
+  s->inputPageSet = storage->createPageSetFromPDBSet(rhsDB, rhsSet, false);
 
   // the emmitter will put set pageser here
-  s->leftPageSet = storage->createRandomAccessPageSet({0, "intermediate"});
+  s->rightPageSet = storage->createRandomAccessPageSet({0, "intermediate"});
 
-  // get index of the right page set
-  s->index = storage->getIndex({0, ((std::string) sink) });
+  // get index of the left page set
+  s->index = storage->getIndex({0, lhsPageSet});
 
-  // get the rhs page set
-  s->rightPageSet = std::dynamic_pointer_cast<pdb::PDBRandomAccessPageSet>(storage->getPageSet({0, rhsPageSet}));
+  // get the lhs page set
+  s->leftPageSet = std::dynamic_pointer_cast<pdb::PDBRandomAccessPageSet>(storage->getPageSet({0, lhsPageSet}));
+
+  // go through all the pages
+  s->leftPageSet->repinAll();
+  for(int i = 0; i < s->leftPageSet->getNumPages(); ++i) {
+
+    auto page = (*s->leftPageSet)[i];
+
+    // get the vector from the page
+    auto &vec = *(((Record<Vector<Handle<TRABlock>>> *) page->getBytes())->getRootObject());
+    for(int j = 0; j < vec.size(); ++j) {
+      vec[j]->print();
+    }
+  }
 
   // get the in
   s->output = storage->createAnonymousPageSet({0, sink});
-
-  // init the plan
-  ComputePlan plan(std::make_shared<LogicalPlan>(job->tcap, *job->computations));
-  s->logicalPlan = plan.getPlan();
 
   std::map<ComputeInfoType, ComputeInfoPtr> params;
 
@@ -198,14 +211,15 @@ void TRALocalJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state,
   std::cout << "Cleanup\n";
 }
 
-TRALocalJoinStage::TRALocalJoinStage(const std::string &db, const std::string &set, const std::string &sink,
+TRALocalJoinStage::TRALocalJoinStage(const std::string &lhsPageSet, const std::string &rhsDB, const std::string &rhsSet,
+                                     const std::string &sink,
                                      const pdb::Vector<int32_t> &lhsIndices, const pdb::Vector<int32_t> &rhsIndices,
                                      const std::string &firstTupleSet, const std::string &finalTupleSet) :
     PDBPhysicalAlgorithmStage(*(_sink),
                               *(_sources),
                               *(_finalTupleSet),
                               *(_secondarySources),
-                              *(_setsToMaterialize)), db(db), set(set), sink(sink),
+                              *(_setsToMaterialize)), rhsDB(rhsDB), rhsSet(rhsSet), sink(sink), lhsPageSet(lhsPageSet),
     firstTupleSet(firstTupleSet), finalTupleSet(finalTupleSet), lhsIndices(lhsIndices), rhsIndices(rhsIndices) {}
 
 }

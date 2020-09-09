@@ -109,6 +109,12 @@ public:
     uint32_t getDim2() {
         return data->dim2;
     }
+
+    void print() {
+      if(metaData->indices.size() == 3) {
+        std::cout << "Meta : " << metaData->indices[0] << " " << metaData->indices[1] << " " << metaData->indices[2] << '\n' << std::flush ;
+      }
+    }
 };
 
 }

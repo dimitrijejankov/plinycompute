@@ -78,6 +78,16 @@ class JoinCompBase : public Computation {
                                             PDBRandomAccessPageSetPtr leftInputPageSet,
                                             PDBRandomAccessPageSetPtr rightInputPageSet) = 0;
 
+  virtual ComputeSourcePtr getTRAJoinSource(int32_t nodeID,
+                                            int32_t workerID,
+                                            int32_t numWorkers,
+                                            std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &leftTIDToRecordMapping,
+                                            std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &rightTIDToRecordMapping,
+                                            const PDBPageHandle &page,
+                                            const JoinAggTupleEmitterPtr &emitter,
+                                            PDBRandomAccessPageSetPtr leftInputPageSet,
+                                            PDBRandomAccessPageSetPtr rightInputPageSet) = 0;
+
   virtual ComputeSourcePtr getJoinedSource(TupleSpec &recordSchemaLHS,
                                            TupleSpec &inputSchemaRHS,
                                            TupleSpec &hashSchemaRHS,

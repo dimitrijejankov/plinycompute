@@ -26,7 +26,7 @@ class TRALocalJoin : public PDBPhysicalAlgorithm {
                const std::string &rhsDb,
                const std::string &rhsSet,
                const std::vector<int32_t>& rhs_indices,
-               const std::string &pageSet,
+               const std::string &sinkPageSet,
                const std::string& startPageSet,
                const std::string& endPageSet);
 
@@ -64,13 +64,13 @@ class TRALocalJoin : public PDBPhysicalAlgorithm {
  private:
 
   // source db
-  pdb::String db;
+  pdb::String rhsDB;
 
   // source set
-  pdb::String set;
+  pdb::String rhsSet;
 
   // the page
-  pdb::String inputPageSet;
+  pdb::String lhsPageSet;
 
   // sink
   pdb::String sink;
