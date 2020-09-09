@@ -3,6 +3,7 @@
 #include <physicalAlgorithms/TRALocalJoinState.h>
 #include <processors/NullProcessor.h>
 #include <AtomicComputationClasses.h>
+#include <GenericWork.h>
 #include "TRALocalJoinStage.h"
 #include "TRALocalJoinEmitter.h"
 #include "ExJob.h"
@@ -46,15 +47,18 @@ bool TRALocalJoinStage::setup(const Handle<pdb::ExJob> &job,
   auto joinArguments = std::make_shared<JoinArguments>(JoinArgumentsInit{{joinAtomicComp->getRightInput().getSetName(),
                                                                           std::make_shared<JoinArg>(s->rightPageSet)}});
 
+  // make the emitter
+  s->emitter = std::make_shared<TRALocalJoinEmitter>(job->numberOfProcessingThreads,
+                                                     s->inputPageSet,
+                                                     s->leftPageSet,
+                                                     s->rightPageSet,
+                                                     lhsIndices,
+                                                     rhsIndices,
+                                                     s->index);
+
   // mark that this is the join aggregation algorithm
   joinArguments->isTRALocalJoin = true;
-  joinArguments->emitter = std::make_shared<TRALocalJoinEmitter>(job->numberOfProcessingThreads,
-                                                                 s->inputPageSet,
-                                                                 s->leftPageSet,
-                                                                 s->rightPageSet,
-                                                                 lhsIndices,
-                                                                 rhsIndices,
-                                                                 s->index);
+  joinArguments->emitter = s->emitter;
 
   /// 1.1 init the join pipelines
 
@@ -94,7 +98,98 @@ bool TRALocalJoinStage::run(const Handle<pdb::ExJob> &job,
                             const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                             const std::string &error) {
 
-  std::cout << "run\n";
+  // cast the state
+  auto s = dynamic_pointer_cast<TRALocalJoinState>(state);
+
+  // success indicator
+  atomic_bool success;
+  success = true;
+
+  // create the buzzer
+  atomic_int emitterDone;
+  emitterDone = 0;
+  PDBBuzzerPtr emitterBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
+
+    // did we fail?
+    if (myAlarm == PDBAlarm::GenericError) {
+      success = false;
+    }
+
+    // we are done here
+    cnt = 1;
+  });
+
+  // run the work
+  {
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&emitterDone, s](const PDBBuzzerPtr& callerBuzzer) {
+
+      // run the receiver
+      s->emitter->run();
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, emitterDone);
+    });
+
+    // run the work
+    storage->getWorker()->execute(myWork, emitterBuzzer);
+  }
+
+  ///
+
+  // create the buzzer
+  atomic_int joinCounter;
+  joinCounter = 0;
+  PDBBuzzerPtr joinBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
+
+    // did we fail?
+    if (myAlarm == PDBAlarm::GenericError) {
+      success = false;
+    }
+
+    // increment the count
+    cnt++;
+  });
+
+  // here we get a worker per pipeline and run all the preaggregationPipelines.
+  for (int workerID = 0; workerID < s->joinPipelines->size(); ++workerID) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&joinCounter, &success, workerID, &s](const PDBBuzzerPtr& callerBuzzer) {
+
+      try {
+
+        // run the pipeline
+        (*s->joinPipelines)[workerID]->run();
+      }
+      catch (std::exception &e) {
+
+        // log the error
+        s->logger->error(e.what());
+
+        // we failed mark that we have
+        success = false;
+      }
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, joinCounter);
+    });
+
+    // run the work
+    worker->execute(myWork, joinBuzzer);
+  }
+
+  while (emitterDone != 1) {
+    emitterBuzzer->wait();
+  }
+
+  while (joinCounter != s->joinPipelines->size()) {
+    joinBuzzer->wait();
+  }
+
   return true;
 }
 

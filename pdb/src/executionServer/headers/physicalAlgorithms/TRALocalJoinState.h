@@ -7,6 +7,7 @@
 #include "PDBSetPageSet.h"
 #include "TRAIndex.h"
 #include "PDBRandomAccessPageSet.h"
+#include "TRALocalJoinEmitter.h"
 
 namespace pdb {
 
@@ -16,7 +17,7 @@ struct TRALocalJoinState : public PDBPhysicalAlgorithmState {
   // the the input page set
   pdb::PDBSetPageSetPtr inputPageSet;
 
-  // the emmitter will put set pageser here
+  // the emmitter will put set pageset here
   pdb::PDBRandomAccessPageSetPtr leftPageSet;
 
   // get the rhs page set
@@ -27,6 +28,9 @@ struct TRALocalJoinState : public PDBPhysicalAlgorithmState {
 
   // the index
   TRAIndexNodePtr index = nullptr;
+
+  // the join record emitter
+  std::shared_ptr<TRALocalJoinEmitter> emitter;
 };
 
 }

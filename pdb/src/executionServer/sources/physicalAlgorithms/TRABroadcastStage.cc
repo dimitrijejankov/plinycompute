@@ -248,7 +248,7 @@ bool pdb::TRABroadcastStage::run(const pdb::Handle<pdb::ExJob> &job,
 
         // generate the index
         for(int i = 0; i < vec.size(); ++i) {
-          s->index->insert(*vec[i]->metaData, { i, loc });
+          s->index->insert(*vec[i]->metaData, { loc,  i});
         }
 
         // unpin the page
