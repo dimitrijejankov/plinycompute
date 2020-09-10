@@ -21,7 +21,7 @@ class TRAShuffle : public PDBPhysicalAlgorithm {
 
   ~TRAShuffle() override = default;
 
-  TRAShuffle(const std::string &db, const std::string &set, const std::vector<int32_t> &indices, const std::string &sink);
+  TRAShuffle(const std::string &inputPageSet, const std::vector<int32_t> &indices, const std::string &sink);
 
   /**
    *
@@ -56,13 +56,13 @@ class TRAShuffle : public PDBPhysicalAlgorithm {
 
  private:
 
-  // source db
+  // source db TODO currently not used
   pdb::String db;
 
-  // source set
+  // source set TODO currently not used
   pdb::String set;
 
-  // the page
+  // the source page set...
   pdb::String inputPageSet;
 
   // sink

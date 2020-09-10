@@ -8,7 +8,7 @@ namespace pdb {
 class TRAShuffleStage : public PDBPhysicalAlgorithmStage {
  public:
 
-  TRAShuffleStage(const std::string &db, const std::string &set, const std::string &sink, const pdb::Vector<int32_t> &indices);
+  TRAShuffleStage(const std::string &inputPageSet, const std::string &sink, const pdb::Vector<int32_t> &indices);
 
   bool setup(const Handle<pdb::ExJob> &job,
              const PDBPhysicalAlgorithmStatePtr &state,
@@ -33,6 +33,9 @@ class TRAShuffleStage : public PDBPhysicalAlgorithmStage {
 
   // sink
   pdb::String sink;
+
+  //
+  const pdb::Vector<int32_t> &indices;
 
   const static PDBSinkPageSetSpec *_sink;
   const static Vector<PDBSourceSpec> *_sources;

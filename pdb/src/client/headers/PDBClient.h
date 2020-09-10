@@ -121,7 +121,7 @@ class PDBClient : public ServerFunctionality {
                  const std::vector<Handle<Computation>> &sinks, const std::string& pageSet,
                  const std::string& startPageSet, const std::string& endPageSet);
 
-  bool shuffle(const std::string &inputPageSet, const std::vector<int32_t> indices, const std::string& pageSet);
+  bool shuffle(const std::string &inputPageSet, const std::vector<int32_t>& indices, const std::string& soml);
 
   bool localAggregation(const std::string &inputPageSet, const std::vector<int32_t> indices,
                         const std::vector<Handle<Computation>> &sinks, const std::string& pageSet);
