@@ -21,7 +21,7 @@ class BCMMJoin : public JoinComp <BCMMJoin, TRABlock, TRABlock, TRABlock> {
 
   static Lambda <Handle<TRABlockMeta>> getKeyProjection(Handle <TRABlockMeta> in1, Handle <TRABlockMeta> in2) {
     return makeLambda (in1, in2, [] (Handle <TRABlockMeta> &in1, Handle <TRABlockMeta> &in2) {
-      Handle<TRABlockMeta> out = makeObject<TRABlockMeta>(in1->getIdx0(), in2->getIdx2(), -1);
+      Handle<TRABlockMeta> out = makeObject<TRABlockMeta>(in1->getIdx0(), in2->getIdx1(), 0);
       return out;
     });
   }
@@ -35,7 +35,7 @@ class BCMMJoin : public JoinComp <BCMMJoin, TRABlock, TRABlock, TRABlock> {
       uint32_t K = in1->dim1;
 
       // make an output
-      Handle<TRABlockData> out = makeObject<TRABlockData>(I, J, 1);
+      Handle<TRABlockData> out = makeObject<TRABlockData>(I, J, 0);
       
       // get the ptrs
       float *outData = out->data->c_ptr();

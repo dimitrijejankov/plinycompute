@@ -19,7 +19,7 @@ bool pdb::TRABroadcastStage::setup(const pdb::Handle<pdb::ExJob> &job,
   // cast the state
   auto s = dynamic_pointer_cast<TRABroadcastState>(state);
 
-  s->logger = make_shared<PDBLogger>("BHBroadcastStage_" + std::to_string(job->computationID));
+  s->logger = make_shared<PDBLogger>("TRABroadcastStage_" + std::to_string(job->computationID));
 
   /// 0. Init the shuffle queues
 

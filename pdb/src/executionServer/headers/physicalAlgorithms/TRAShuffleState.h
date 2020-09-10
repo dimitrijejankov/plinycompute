@@ -3,6 +3,8 @@
 #include "PDBPhysicalAlgorithmState.h"
 #include "PDBPageSelfReceiver.h"
 #include "PDBPageNetworkSender.h"
+#include "PDBRandomAccessPageSet.h"
+#include "TRAIndex.h"
 #include "Pipeline.h"
 
 namespace pdb {

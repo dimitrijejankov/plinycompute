@@ -25,7 +25,12 @@ int main() {
 
   std::vector<std::pair<int32_t, int32_t>> out;
   root->get(out, {6, -1, 6});
-
   std::cout << out.size() << '\n';
+
+  int32_t node = 2;
+  int32_t numNodes = 5;
+  out.clear();
+  root->getWithHash(out, {1, -1, 1}, node, numNodes);
+
   return 0;
 }

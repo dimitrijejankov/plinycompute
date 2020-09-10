@@ -2,6 +2,7 @@
 
 #include <TRABlockMeta.h>
 #include <cassert>
+#include <cmath>
 namespace pdb {
 
 struct TRAIndexNode {
@@ -36,6 +37,10 @@ struct TRAIndexNode {
     _get(out, index, 0);
   }
 
+  void getWithHash(std::vector<std::pair<int32_t, int32_t>> &out, const pdb::Vector<int32_t> &indexPattern,
+                   int32_t node, int32_t numNodes ) {
+    _getWithHash(out, indexPattern, node, numNodes, 0, 0, 0);
+  }
 
   void insert(pdb::TRABlockMeta &block, const std::pair<int32_t, int32_t> &location) {
 
@@ -74,6 +79,45 @@ struct TRAIndexNode {
         // go one level deeper for ech of them
         for(auto &it : d) {
           it.second->_get(out, index, depth + 1);
+        }
+      }
+    }
+  }
+
+  void _getWithHash(std::vector<std::pair<int32_t, int32_t>> &out, const pdb::Vector<int32_t> &indexPattern,
+                    int32_t node, int32_t numNodes, uint64_t hash, int depth, int p) {
+
+    // if this is a leaf store them
+    if(isLeaf) {
+
+      if(hash % numNodes == node) {
+
+        // insert all the indices
+        auto &d = *((std::vector<std::pair<int32_t, int32_t>>*) data);
+        out.insert(out.end(), d.begin(), d.end());
+      }
+    }
+    else {
+
+      // get the index
+      auto idx = indexPattern[depth];
+
+      // get the map
+      auto &d = *((std::map<int32_t, std::shared_ptr<TRAIndexNode>>*) data);
+
+      if(idx == -1) {
+
+        // go one level deeper and
+        for(auto &it : d) {
+          it.second->_getWithHash(out, indexPattern, node, numNodes, hash, depth + 1, p);
+        }
+      }
+      else {
+
+        // go one level deeper for ech of them
+        for(auto &it : d) {
+          it.second->_getWithHash(out, indexPattern, node, numNodes,
+                                  hash + std::pow(1000, p) * it.first, depth + 1, p + 1);
         }
       }
     }
