@@ -115,16 +115,23 @@ bool TRAShuffleStage::run(const Handle<pdb::ExJob> &job,
     inputVectors.push_back(vec);
   }
 
+
+  // we use this as the hash pattern
+  unordered_set<int32_t> pattern;
+  for(int32_t i = 0; i < indices.size(); ++i) {
+    pattern.insert(indices[i]);
+  }
+
   // for each node we scan a part
   for(int32_t node = 0; node < job->nodes.size(); node++) {
 
     // make the work
     PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&inputScanDone, s, node, this, &inputVectors,
-                                                                       job, bufferManager](const PDBBuzzerPtr& callerBuzzer) {
+                                                                       job, bufferManager, &pattern](const PDBBuzzerPtr& callerBuzzer) {
 
       // find all the record from the index for this node
       std::vector<std::pair<int32_t, int32_t>> out;
-      s->index->getWithHash(out, indices, node, job->numberOfNodes);
+      s->index->getWithHash(out, pattern, node, job->numberOfNodes);
 
       // get a new page
       auto currentPage = bufferManager->getPage();

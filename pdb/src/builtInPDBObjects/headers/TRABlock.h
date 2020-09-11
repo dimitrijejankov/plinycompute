@@ -111,9 +111,11 @@ public:
     }
 
     void print() {
-      if(metaData->indices.size() == 3) {
-        std::cout << "Meta : " << metaData->indices[0] << " " << metaData->indices[1] << " " << metaData->indices[2] << '\n' << std::flush ;
+      std::cout << "Meta : ";
+      for(int i = 0; i < metaData->indices.size(); ++i) {
+        std::cout << metaData->indices[i] << " ";
       }
+      std::cout << '\n' << std::flush ;
     }
 };
 

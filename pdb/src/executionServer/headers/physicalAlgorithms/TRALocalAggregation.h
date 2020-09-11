@@ -21,7 +21,9 @@ class TRALocalAggregation : public PDBPhysicalAlgorithm {
 
   ~TRALocalAggregation() override = default;
 
-  TRALocalAggregation(const std::string &db, const std::string &set, const std::vector<int32_t> &indices, const std::string &sink);
+  TRALocalAggregation(const std::string &inputPageSet,
+                      const std::vector<int32_t>& indices,
+                      const std::string &sink);
 
   /**
    *

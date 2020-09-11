@@ -123,8 +123,7 @@ class PDBClient : public ServerFunctionality {
 
   bool shuffle(const std::string &inputPageSet, const std::vector<int32_t>& indices, const std::string& soml);
 
-  bool localAggregation(const std::string &inputPageSet, const std::vector<int32_t> indices,
-                        const std::vector<Handle<Computation>> &sinks, const std::string& pageSet);
+  bool localAggregation(const std::string &inputPageSet, const std::vector<int32_t>& indices, const std::string& pageSet);
 
   /**
    * Runs the query by specifying just the sinks, the tcap will be automatically generated

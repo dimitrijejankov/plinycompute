@@ -8,7 +8,9 @@ namespace pdb {
 class TRALocalAggregationStage : public PDBPhysicalAlgorithmStage {
  public:
 
-  TRALocalAggregationStage(const std::string &db, const std::string &set, const std::string &sink, const pdb::Vector<int32_t> &indices);
+  TRALocalAggregationStage(const pdb::String &inputPageSet,
+                           const pdb::Vector<int32_t>& indices,
+                           const pdb::String &sink);
 
   bool setup(const Handle<pdb::ExJob> &job,
              const PDBPhysicalAlgorithmStatePtr &state,
@@ -29,10 +31,12 @@ class TRALocalAggregationStage : public PDBPhysicalAlgorithmStage {
   pdb::String set;
 
   // the page
-  pdb::String inputPageSet;
+  const pdb::String &inputPageSet;
 
   // sink
-  pdb::String sink;
+  const pdb::String &sink;
+
+  const pdb::Vector<int32_t>& indices;
 
   const static PDBSinkPageSetSpec *_sink;
   const static Vector<PDBSourceSpec> *_sources;

@@ -126,7 +126,7 @@ int main(int argc, char* argv[]) {
   pdbClient.localJoin("ABroadcasted", {1}, "myData", "B", {0}, { myWriter }, "ABJoined",
                       "OutForJoinedFor_equals_0JoinComp2", "OutFor_joinRec_5JoinComp2");
   pdbClient.shuffle("ABJoined", {0, 2}, "ABJoinedShuffled");
-  //pdbClient.localAggregation("ABJoinedShuffled", {0, 2}, { myWriter }, "Final");
+  //pdbClient.localAggregation("ABJoinedShuffled", {0, 2},  "Final");
 
   /*
    * Todo:: Here we first broadcast A (or B);

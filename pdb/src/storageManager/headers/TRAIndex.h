@@ -3,6 +3,7 @@
 #include <TRABlockMeta.h>
 #include <cassert>
 #include <cmath>
+#include <bits/unordered_set.h>
 namespace pdb {
 
 struct TRAIndexNode {
@@ -37,9 +38,9 @@ struct TRAIndexNode {
     _get(out, index, 0);
   }
 
-  void getWithHash(std::vector<std::pair<int32_t, int32_t>> &out, const pdb::Vector<int32_t> &indexPattern,
-                   int32_t node, int32_t numNodes ) {
-    _getWithHash(out, indexPattern, node, numNodes, 0, 0, 0);
+  void getWithHash(std::vector<std::pair<int32_t, int32_t>> &out, const std::unordered_set<int32_t> &indexPattern,
+                   int32_t site, int32_t numSites ) {
+    _getWithHash(out, indexPattern, site, numSites, 0, 0, 0);
   }
 
   void insert(pdb::TRABlockMeta &block, const std::pair<int32_t, int32_t> &location) {
@@ -84,13 +85,13 @@ struct TRAIndexNode {
     }
   }
 
-  void _getWithHash(std::vector<std::pair<int32_t, int32_t>> &out, const pdb::Vector<int32_t> &indexPattern,
-                    int32_t node, int32_t numNodes, uint64_t hash, int depth, int p) {
+  void _getWithHash(std::vector<std::pair<int32_t, int32_t>> &out, const std::unordered_set<int32_t> &indexPattern,
+                    int32_t site, int32_t numSites, uint64_t hash, int depth, int p) {
 
     // if this is a leaf store them
     if(isLeaf) {
 
-      if(hash % numNodes == node) {
+      if(hash % numSites == site) {
 
         // insert all the indices
         auto &d = *((std::vector<std::pair<int32_t, int32_t>>*) data);
@@ -99,24 +100,21 @@ struct TRAIndexNode {
     }
     else {
 
-      // get the index
-      auto idx = indexPattern[depth];
-
       // get the map
       auto &d = *((std::map<int32_t, std::shared_ptr<TRAIndexNode>>*) data);
 
-      if(idx == -1) {
+      if(indexPattern.find(depth) == indexPattern.end()) {
 
         // go one level deeper and
         for(auto &it : d) {
-          it.second->_getWithHash(out, indexPattern, node, numNodes, hash, depth + 1, p);
+          it.second->_getWithHash(out, indexPattern, site, numSites, hash, depth + 1, p);
         }
       }
       else {
 
         // go one level deeper for ech of them
         for(auto &it : d) {
-          it.second->_getWithHash(out, indexPattern, node, numNodes,
+          it.second->_getWithHash(out, indexPattern, site, numSites,
                                   hash + std::pow(1000, p) * it.first, depth + 1, p + 1);
         }
       }

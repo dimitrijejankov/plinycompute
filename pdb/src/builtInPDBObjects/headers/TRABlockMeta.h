@@ -22,6 +22,13 @@ public:
     indices[2] = key2;
   }
 
+  TRABlockMeta(uint32_t key0, uint32_t key1, uint32_t key2, uint32_t key3) : indices(4, 4) {
+    indices[0] = key0;
+    indices[1] = key1;
+    indices[2] = key2;
+    indices[3] = key3;
+  }
+
   ENABLE_DEEP_COPY
 
   pdb::Vector<uint32_t> indices;

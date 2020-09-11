@@ -26,6 +26,7 @@
 #include <CSExecuteComputation.h>
 #include <physicalAlgorithms/TRALocalJoin.h>
 #include <physicalAlgorithms/TRAShuffle.h>
+#include <physicalAlgorithms/TRALocalAggregation.h>
 
 #include "PDBClient.h"
 
@@ -329,9 +330,47 @@ bool PDBClient::shuffle(const std::string &inputPageSet, const std::vector<int32
 }
 
 bool PDBClient::localAggregation(const std::string &inputPageSet,
-                                 const std::vector<int32_t> indices,
-                                 const vector<Handle<Computation>> &sinks,
+                                 const std::vector<int32_t>& indices,
                                  const std::string &pageSet) {
+
+  pdb::Handle<TRALocalAggregation> alg = pdb::makeObject<TRALocalAggregation>(inputPageSet, indices, pageSet);
+
+  // essentially the buffer should be of this size
+  auto bufferSize = 1024u * 1024u;
+
+  // increment the buffer in increments of
+  while(bufferSize < 100 * 1024u * 1024u) {
+
+    try {
+
+      // send the request
+      std::string error;
+      return RequestFactory::heapRequest<CSExecuteComputation, SimpleRequestResult, bool>(logger, port, address, false, bufferSize,
+                                                                                          [&](const Handle<SimpleRequestResult>& result) {
+
+                                                                                            // check the response
+                                                                                            if ((result != nullptr && !result->getRes().first) || result == nullptr) {
+
+                                                                                              // log the error
+                                                                                              logger->error("Error executing computations: " + result->getRes().second);
+                                                                                              error = "Error executing computations: " + result->getRes().second;
+
+                                                                                              // we are done here
+                                                                                              return false;
+                                                                                            }
+
+                                                                                            // awesome we finished
+                                                                                            return true;
+                                                                                          }, bufferSize, alg);
+    }
+    catch(pdb::NotEnoughSpace &n) {
+
+      // increment the buffer
+      bufferSize += 1024 * 1024;
+    }
+  }
+
+  // finish since the computation was just too large
   return false;
 }
 
