@@ -52,3 +52,14 @@ void pdb::PDBSetPageSet::removePage(pdb::PDBPageHandle pageHandle) {
 size_t pdb::PDBSetPageSet::getMaxPageSize() {
   throw runtime_error("Getting the max page size of a set page set is not supported.");
 }
+
+pdb::PDBRandomAccessPageSetPtr pdb::PDBSetPageSet::asRandomAccessPageSet() {
+
+  // create the random access page set
+  auto pageSet = std::make_shared<pdb::PDBRandomAccessPageSet>(bufferManager);
+  for(auto &page : pages) {
+    pageSet->pushPage(bufferManager->getPage(set, pages[page]));
+  }
+
+  return pageSet;
+}

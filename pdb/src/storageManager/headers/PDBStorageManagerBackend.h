@@ -112,6 +112,8 @@ public:
    */
   bool materializePageSet(const PDBAbstractPageSetPtr& pageSet, const std::pair<std::string, std::string> &set);
 
+  bool materializePageSet(const PDBRandomAccessPageSetPtr& pageSet, const std::pair<std::string, std::string> &set);
+
   /**
    * This materializes the keys of a particular page set
    * @param pageSet - the page set we want to materialize

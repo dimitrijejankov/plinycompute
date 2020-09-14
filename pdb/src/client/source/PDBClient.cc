@@ -27,6 +27,8 @@
 #include <physicalAlgorithms/TRALocalJoin.h>
 #include <physicalAlgorithms/TRAShuffle.h>
 #include <physicalAlgorithms/TRALocalAggregation.h>
+#include <physicalAlgorithms/TRAIndexOperation.h>
+#include <physicalAlgorithms/TRAMaterializeOperation.h>
 
 #include "PDBClient.h"
 
@@ -185,6 +187,92 @@ void PDBClient::listNodesInCluster() {
 
 void PDBClient::listUserDefinedTypes() {
   cout << catalogClient->listUserDefinedTypes(returnedMsg);
+}
+
+bool PDBClient::createIndex(const std::string &db, const std::string &set) {
+
+  pdb::Handle<TRAIndexOperation> alg = pdb::makeObject<TRAIndexOperation>(db, set);
+
+  // essentially the buffer should be of this size
+  auto bufferSize = 1024u * 1024u;
+
+  // increment the buffer in increments of
+  while(bufferSize < 100 * 1024u * 1024u) {
+
+    try {
+
+      // send the request
+      std::string error;
+      return RequestFactory::heapRequest<CSExecuteComputation, SimpleRequestResult, bool>(logger, port, address, false, bufferSize,
+        [&](const Handle<SimpleRequestResult>& result) {
+
+          // check the response
+          if ((result != nullptr && !result->getRes().first) || result == nullptr) {
+
+            // log the error
+            logger->error("Error executing computations: " + result->getRes().second);
+            error = "Error executing computations: " + result->getRes().second;
+
+            // we are done here
+            return false;
+          }
+
+          // awesome we finished
+          return true;
+        }, bufferSize, alg);
+    }
+    catch(pdb::NotEnoughSpace &n) {
+
+      // increment the buffer
+      bufferSize += 1024 * 1024;
+    }
+  }
+
+  // finish since the computation was just too large
+  return false;
+}
+
+bool PDBClient::materialize(const std::string &db, const std::string &set, const std::string &pageSet) {
+
+  pdb::Handle<TRAMaterializeOperation> alg = pdb::makeObject<TRAMaterializeOperation>(db, set, pageSet);
+
+  // essentially the buffer should be of this size
+  auto bufferSize = 1024u * 1024u;
+
+  // increment the buffer in increments of
+  while(bufferSize < 100 * 1024u * 1024u) {
+
+    try {
+
+      // send the request
+      std::string error;
+      return RequestFactory::heapRequest<CSExecuteComputation, SimpleRequestResult, bool>(logger, port, address, false, bufferSize,
+          [&](const Handle<SimpleRequestResult>& result) {
+
+            // check the response
+            if ((result != nullptr && !result->getRes().first) || result == nullptr) {
+
+              // log the error
+              logger->error("Error executing computations: " + result->getRes().second);
+              error = "Error executing computations: " + result->getRes().second;
+
+              // we are done here
+              return false;
+            }
+
+            // awesome we finished
+            return true;
+          }, bufferSize, alg);
+    }
+    catch(pdb::NotEnoughSpace &n) {
+
+      // increment the buffer
+      bufferSize += 1024 * 1024;
+    }
+  }
+
+  // finish since the computation was just too large
+  return false;
 }
 
 bool PDBClient::broadcast(const std::string &db, const std::string &set, const std::string& pageSet) {

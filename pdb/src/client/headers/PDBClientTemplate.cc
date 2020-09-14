@@ -149,7 +149,7 @@ namespace pdb {
     else {
 
       // ok we can only handle vector and map sets this is a problem
-      throw runtime_error("The iterator can only be obtained for vector sets or map sets.");
+      return distributedStorage->getVectorIterator<DataType>(dbName, setName);
     }
   }
 

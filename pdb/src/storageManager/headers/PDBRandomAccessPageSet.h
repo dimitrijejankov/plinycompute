@@ -1,6 +1,7 @@
 #pragma once
 
 #include <PDBAbstractPageSet.h>
+#include <PDBBufferManagerInterface.h>
 
 #include <utility>
 
@@ -10,7 +11,7 @@ class PDBRandomAccessPageSet : public PDBAbstractPageSet {
 
 public:
 
-  PDBRandomAccessPageSet(PDBBufferManagerInterfacePtr bufferManager) : bufferManager(std::move(bufferManager)) {}
+  explicit PDBRandomAccessPageSet(PDBBufferManagerInterfacePtr bufferManager) : bufferManager(std::move(bufferManager)) {}
 
   PDBPageHandle getNextPage(size_t label) override {
 

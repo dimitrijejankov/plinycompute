@@ -127,12 +127,19 @@ int main(int argc, char* argv[]) {
                       "OutForJoinedFor_equals_0JoinComp2", "OutFor_joinRec_5JoinComp2");
   pdbClient.shuffle("ABJoined", {0, 2}, "ABJoinedShuffled");
   pdbClient.localAggregation("ABJoinedShuffled", {0, 3},  "Final");
+  pdbClient.materialize("myData", "C", "Final");
 
-  /*
-   * Todo:: Here we first broadcast A (or B);
-   * Then call BCMMJoin and BCMMAggregation
-   */
+  // grab the iterator
+  auto it = pdbClient.getSetIterator<TRABlock>("myData", "C");
+  int32_t count = 0;
+  while (it->hasNextRecord()) {
 
+    // grab the record
+    auto r = it->getNextRecord();
+    count++;
+  }
+
+  std::cout << "Count " << count << '\n';
 
   // shutdown the server
   pdbClient.shutDownServer();

@@ -517,6 +517,160 @@ bool pdb::PDBStorageManagerBackend::materializePageSet(const pdb::PDBAbstractPag
   return success;
 }
 
+bool pdb::PDBStorageManagerBackend::materializePageSet(const pdb::PDBRandomAccessPageSetPtr &pageSet,
+                                                       const std::pair<std::string, std::string> &set) {
+
+  // if the page set is empty no need materialize stuff
+  if(pageSet->getNumPages() == 0) {
+    return true;
+  }
+
+  // result indicators
+  std::string error;
+  bool success = true;
+
+  /// 1. Connect to the frontend
+
+  // the communicator
+  std::shared_ptr<PDBCommunicator> comm = std::make_shared<PDBCommunicator>();
+
+  // try to connect
+  int numRetries = 0;
+  while (!comm->connectToInternetServer(logger, getConfiguration()->port, getConfiguration()->address, error)) {
+
+    // are we out of retires
+    if(numRetries > getConfiguration()->maxRetries) {
+
+      // log the error
+      logger->error(error);
+      logger->error("Can not connect to remote server with port=" + std::to_string(getConfiguration()->port) + " and address="+ getConfiguration()->address + ");");
+
+      // set the success
+      success = false;
+      break;
+    }
+
+    // increment the number of retries
+    numRetries++;
+  }
+
+  // if we failed
+  if(!success) {
+
+    // log the error
+    logger->error("We failed to to connect to the frontend in order to materialize the page set.");
+
+    // ok this sucks return false
+    return false;
+  }
+
+  /// 2. Make a request to materialize page set
+
+  // make an allocation block
+  const pdb::UseTemporaryAllocationBlock tempBlock{1024};
+
+  // set the stat results
+  pdb::Handle<StoMaterializePageSetRequest> materializeRequest = pdb::makeObject<StoMaterializePageSetRequest>(set.first,
+                                                                                                               set.second,
+                                                                                                               1,
+                                                                                                               pageSet->getNumPages());
+
+  // sends result to requester
+  success = comm->sendObject(materializeRequest, error);
+
+  // check if we failed
+  if(!success) {
+
+    // log the error
+    logger->error(error);
+
+    // ok this sucks we are out of here
+    return false;
+  }
+
+  /// 3. Wait for an ACK
+
+  // wait for the storage finish result
+  std::vector<int64_t> pages;
+  success = RequestFactory::waitHeapRequest<StoMaterializePageSetResult, bool>(logger, comm, false,
+                                                                               [&](const Handle<StoMaterializePageSetResult>& result) {
+
+                                                                                 // check the result
+                                                                                 if (result != nullptr) {
+
+                                                                                   // move the pages
+                                                                                   pages.resize(result->pageNumbers.size());
+                                                                                   for(int32_t i = 0; i < result->pageNumbers.size(); ++i) {
+                                                                                     pages[i] = result->pageNumbers[i];
+                                                                                   }
+
+                                                                                   // finish
+                                                                                   return true;
+                                                                                 }
+
+                                                                                 // set the error
+                                                                                 error = "Failed to get the free pages\n";
+
+                                                                                 // we failed return so
+                                                                                 return false;
+                                                                               });
+
+  // check if we failed
+  if(!success) {
+
+    // log the error
+    logger->error(error);
+
+    // ok this sucks we are out of here
+    return false;
+  }
+
+  /// 4. Grab the pages from the frontend
+
+  // buffer manager
+  pdb::PDBBufferManagerBackEndPtr bufferManager = std::dynamic_pointer_cast<PDBBufferManagerBackEndImpl>(getFunctionalityPtr<pdb::PDBBufferManagerInterface>());
+  auto setIdentifier = std::make_shared<PDBSet>(set.first, set.second);
+
+  // go through each page and materialize
+  PDBPageHandle page;
+  auto numPages = pageSet->getNumPages();
+  uint64_t size = 0;
+  for (int i = 0; i < numPages; ++i) {
+
+    /// 4.1 Grab a page from the page set
+
+    // grab the next page
+    page = (*pageSet)[i];
+
+    // increment the size
+    size += page->getSize();
+
+    /// 4.2 Move the page to set
+    bufferManager->moveAnonymousPagesToSet(setIdentifier, pages[i], page);
+  }
+
+  /// 5. Now update the set statistics
+
+  // broadcast the set size change so far
+  PDBCatalogClient pdbClient(getConfiguration()->managerPort, getConfiguration()->managerAddress, logger);
+  success = pdbClient.incrementSetRecordInfo(getConfiguration()->getNodeIdentifier(), set.first, set.second, size, 1, error);
+
+  /// 6. Finish this, by sending an ack
+
+  // create an allocation block to hold the response
+  Handle<SimpleRequestResult> simpleResponse = makeObject<SimpleRequestResult>(success, error);
+
+  // set the response
+  simpleResponse->res = success;
+  simpleResponse->errMsg = error;
+
+  // sends result to requester
+  comm->sendObject(simpleResponse, error);
+
+  // we succeeded
+  return success;
+}
+
 bool pdb::PDBStorageManagerBackend::materializeKeys(const pdb::PDBAbstractPageSetPtr &pageSet,
                                                     const std::pair<std::string, std::string> &mainSet,
                                                     const pdb::PDBKeyExtractorPtr &keyExtractor) {

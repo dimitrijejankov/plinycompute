@@ -6,6 +6,7 @@
 #define PDB_PDBSETPAGESET_H
 
 #include "PDBAbstractPageSet.h"
+#include "PDBRandomAccessPageSet.h"
 #include <PDBBufferManagerInterface.h>
 #include <vector>
 
@@ -67,6 +68,8 @@ public:
    * @return - the page size
    */
   size_t getMaxPageSize() override;
+
+  PDBRandomAccessPageSetPtr asRandomAccessPageSet();
 
  private:
 

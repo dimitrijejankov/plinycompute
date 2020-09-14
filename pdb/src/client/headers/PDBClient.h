@@ -114,6 +114,10 @@ class PDBClient : public ServerFunctionality {
    */
   bool executeComputations(Handle<Vector<Handle<Computation>>> &computations, const pdb::String &tcap);
 
+  bool createIndex(const std::string &db, const std::string &set);
+
+  bool materialize(const std::string &db, const std::string &set, const std::string &pageSet);
+
   bool broadcast(const std::string &db, const std::string &set, const std::string& pageSet);
 
   bool localJoin(const std::string& lhsPageSet, const std::vector<int32_t>& lhs_indices,
