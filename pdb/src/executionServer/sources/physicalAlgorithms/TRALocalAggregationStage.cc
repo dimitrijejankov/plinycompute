@@ -69,11 +69,8 @@ bool TRALocalAggregationStage::run(const Handle<pdb::ExJob> &job,
     inputVectors.push_back(vec);
   }
 
-  std::vector<TRAIndexNodePtr> tempIdx(job->numberOfProcessingThreads);
+  std::vector<AggregationIndex> tempIdx(job->numberOfProcessingThreads);
   for (int workerID = 0; workerID < job->numberOfProcessingThreads; ++workerID) {
-
-    // make a temporary index we will use this for the aggregation
-    tempIdx[workerID] = std::make_shared<TRAIndexNode>(false);
 
     // get a worker from the server
     PDBWorkerPtr worker = storage->getWorker();
@@ -82,16 +79,31 @@ bool TRALocalAggregationStage::run(const Handle<pdb::ExJob> &job,
     PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&aggCounter, &success, &job, &inputVectors,
                                                                         workerID, &s, this, &pattern, &tempIdx ](const PDBBuzzerPtr &callerBuzzer) {
 
+      // the aggregation index
+      auto &aggIdx = tempIdx[workerID];
+
+      // we put the key here
+      std::vector<int32_t> key;
+
       // get all the record that belong to this node
       std::vector<std::pair<int32_t, int32_t>> out;
       s->index->getWithHash(out, pattern, workerID, job->numberOfProcessingThreads);
+
+      // do we have something to process...
+      if(out.empty()){
+
+        // signal that the run was successful
+        callerBuzzer->buzz(PDBAlarm::WorkAllDone, aggCounter);
+        return;
+      }
 
       // get a new page
       auto currentPage = s->outputSet->getNewPage();
       makeObjectAllocatorBlock(currentPage->getBytes(), currentPage->getSize(), true);
 
       // make the vector we write to
-      Handle<Vector<Handle<pdb::TRABlock>>> writeMe = makeObject<Vector<Handle<pdb::TRABlock>>>();
+      std::vector<Handle<Vector<Handle<pdb::TRABlock>>>> vectors;
+      vectors.emplace_back(makeObject<Vector<Handle<pdb::TRABlock>>>());
 
       // is there stuff on the page
       bool stuffOnPage = false;
@@ -105,27 +117,55 @@ bool TRALocalAggregationStage::run(const Handle<pdb::ExJob> &job,
         // get the record
         auto record = (*inputVectors[recordIndex.first])[recordIndex.second];
 
-        try {
+        // form the key
+        key.clear();
+        for (int32_t k = 0; k < indices.size(); ++k) {
+          key.emplace_back(record->metaData->indices[indices[k]]);
+        }
 
-          // store it
-          writeMe->push_back(record);
-          stuffOnPage = true;
+        // get the location
+        auto &loc = aggIdx.get(key);
+
+        // if we did not find it insert it
+        if(loc.first == -1) {
+
+          try {
+
+            // store it
+            vectors.back()->push_back(record);
+            aggIdx.insert(key, { vectors.size() - 1, vectors.back()->size() - 1 });
+            stuffOnPage = true;
+
+            // go to the next record
+            i++;
+
+          } catch (pdb::NotEnoughSpace &n) {
+
+            // make this the root object
+            getRecord(vectors.back());
+
+            // grab a new page
+            stuffOnPage = false;
+            currentPage = s->outputSet->getNewPage();
+            makeObjectAllocatorBlock(currentPage->getBytes(), currentPage->getSize(), true);
+
+            // make a new vector!
+            vectors.emplace_back(makeObject<Vector<Handle<pdb::TRABlock>>>());
+          }
+        }
+        else {
+
+          // get the object
+          TRABlockData &lhs = (*(*vectors[loc.first])[loc.second]->data);
+          TRABlockData &rhs = *record->data;
+
+          // aggregate it
+          for(int32_t g = 0; lhs.data->size(); ++g) {
+            (*lhs.data)[g] += (*rhs.data)[g];
+          }
 
           // go to the next record
           i++;
-
-        } catch (pdb::NotEnoughSpace &n) {
-
-          // make this the root object
-          getRecord(writeMe);
-
-          // grab a new page
-          stuffOnPage = false;
-          currentPage = s->outputSet->getNewPage();
-          makeObjectAllocatorBlock(currentPage->getBytes(), currentPage->getSize(), true);
-
-          // make a new vector!
-          writeMe = makeObject<Vector<Handle<pdb::TRABlock>>>();
         }
       }
 
@@ -133,7 +173,7 @@ bool TRALocalAggregationStage::run(const Handle<pdb::ExJob> &job,
       if(stuffOnPage) {
 
         // make this the root object
-        getRecord(writeMe);
+        getRecord(vectors.back());
       }
 
       // signal that the run was successful
@@ -211,6 +251,12 @@ bool TRALocalAggregationStage::run(const Handle<pdb::ExJob> &job,
 void TRALocalAggregationStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state,
                                        const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
 
+  // cast the state
+  auto s = dynamic_pointer_cast<TRALocalAggregationState>(state);
+
+  // unpin all
+  s->outputSet->unpinAll();
+  s->inputSet->unpinAll();
 }
 
 TRALocalAggregationStage::TRALocalAggregationStage(const pdb::String &inputPageSet,
