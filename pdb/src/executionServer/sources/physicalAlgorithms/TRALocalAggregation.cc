@@ -10,6 +10,8 @@ pdb::TRALocalAggregation::TRALocalAggregation(const std::string &inputPageSet,
   for(int i = 0; i < indices.size(); ++i) {
     this->indices[i] = indices[i];
   }
+
+  setsToMaterialize = pdb::makeObject<pdb::Vector<PDBSetObject>>();
 }
 
 pdb::PDBPhysicalAlgorithmStatePtr pdb::TRALocalAggregation::getInitialState(const pdb::Handle<pdb::ExJob> &job) const {

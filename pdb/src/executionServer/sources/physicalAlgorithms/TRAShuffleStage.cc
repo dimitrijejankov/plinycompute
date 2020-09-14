@@ -29,6 +29,9 @@ bool TRAShuffleStage::setup(const Handle<pdb::ExJob> &job,
   // create a random access page set
   s->outputPageSet = storage->createRandomAccessPageSet({0, sink});
 
+  // the output index
+  s->outputIndex = storage->createIndex({0, sink});
+
   /// 1. Create the self receiver to forward pages that are created on this node and the network senders to forward pages for the other nodes
 
   s->pageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
@@ -307,7 +310,7 @@ bool TRAShuffleStage::run(const Handle<pdb::ExJob> &job,
         // generate the index
         for(int i = 0; i < vec.size(); ++i) {
           vec[i]->print();
-          s->index->insert(*vec[i]->metaData, { loc,  i});
+          s->outputIndex->insert(*vec[i]->metaData, { loc,  i});
         }
 
         // unpin the page

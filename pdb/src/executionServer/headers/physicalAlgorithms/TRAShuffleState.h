@@ -15,6 +15,8 @@ struct TRAShuffleState : public PDBPhysicalAlgorithmState {
 
   TRAIndexNodePtr index = nullptr;
 
+  TRAIndexNodePtr outputIndex = nullptr;
+
   pdb::PDBFeedingPageSetPtr feedingPageSet = nullptr;
 
   std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> senders = nullptr;

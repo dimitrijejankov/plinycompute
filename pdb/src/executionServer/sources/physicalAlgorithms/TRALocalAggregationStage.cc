@@ -80,11 +80,21 @@ bool TRALocalAggregationStage::run(const Handle<pdb::ExJob> &job,
 
     // make the work
     PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&aggCounter, &success, &job, &inputVectors,
-                                                               workerID, &s, this, &pattern](const PDBBuzzerPtr &callerBuzzer) {
+                                                                        workerID, &s, this, &pattern, &tempIdx ](const PDBBuzzerPtr &callerBuzzer) {
 
       // get all the record that belong to this node
       std::vector<std::pair<int32_t, int32_t>> out;
       s->index->getWithHash(out, pattern, workerID, job->numberOfProcessingThreads);
+
+      // get a new page
+      auto currentPage = s->outputSet->getNewPage();
+      makeObjectAllocatorBlock(currentPage->getBytes(), currentPage->getSize(), true);
+
+      // make the vector we write to
+      Handle<Vector<Handle<pdb::TRABlock>>> writeMe = makeObject<Vector<Handle<pdb::TRABlock>>>();
+
+      // is there stuff on the page
+      bool stuffOnPage = false;
 
       // on now we need to aggregate them
       for(int i = 0; i < out.size();) {
@@ -92,8 +102,40 @@ bool TRALocalAggregationStage::run(const Handle<pdb::ExJob> &job,
         // grab the record index
         auto &recordIndex = out[i];
 
+        // get the record
         auto record = (*inputVectors[recordIndex.first])[recordIndex.second];
+
+        try {
+
+          // store it
+          writeMe->push_back(record);
+          stuffOnPage = true;
+
+          // go to the next record
+          i++;
+
+        } catch (pdb::NotEnoughSpace &n) {
+
+          // make this the root object
+          getRecord(writeMe);
+
+          // grab a new page
+          stuffOnPage = false;
+          currentPage = s->outputSet->getNewPage();
+          makeObjectAllocatorBlock(currentPage->getBytes(), currentPage->getSize(), true);
+
+          // make a new vector!
+          writeMe = makeObject<Vector<Handle<pdb::TRABlock>>>();
+        }
       }
+
+      // is there some stuff on the page
+      if(stuffOnPage) {
+
+        // make this the root object
+        getRecord(writeMe);
+      }
+
       // signal that the run was successful
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, aggCounter);
     });
@@ -101,6 +143,67 @@ bool TRALocalAggregationStage::run(const Handle<pdb::ExJob> &job,
     // run the work
     worker->execute(myWork, aggBuzzer);
   }
+
+  // wait for the aggregation to finish
+  while (aggCounter != job->numberOfProcessingThreads) {
+    aggBuzzer->wait();
+  }
+
+  // I will kick off only one thread to make the index, if this happens to be an overhead we need to make it parallel.
+  // create the buzzer
+  atomic_int indexerDone;
+  indexerDone = 0;
+  PDBBuzzerPtr indexerBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
+
+    // did we fail?
+    if (myAlarm == PDBAlarm::GenericError) {
+      success = false;
+    }
+
+    // we are done here
+    cnt = 1;
+  });
+
+  auto indexer_start = std::chrono::steady_clock::now();
+  {
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&indexerDone, s](const PDBBuzzerPtr& callerBuzzer) {
+
+      PDBPageHandle page;
+      for(int loc = 0; loc < s->outputSet->getNumPages(); ++loc) {
+
+        // grab a page
+        page = (*s->outputSet)[loc];
+        page->repin();
+
+        // get the vector from the page
+        auto &vec = *(((Record<Vector<Handle<TRABlock>>> *) page->getBytes())->getRootObject());
+
+        // generate the index
+        for(int i = 0; i < vec.size(); ++i) {
+          vec[i]->print();
+          s->index->insert(*vec[i]->metaData, { loc,  i});
+        }
+
+        // unpin the page
+        page->unpin();
+      }
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, indexerDone);
+    });
+
+    // run the work
+    storage->getWorker()->execute(myWork, indexerBuzzer);
+  }
+
+  while (indexerDone != 1) {
+    indexerBuzzer->wait();
+  }
+  auto indexer_end = std::chrono::steady_clock::now();
+
+  // if this is too large we need to make indexing parallel
+  std::cout << "Indexing overhead was " << std::chrono::duration_cast<std::chrono::nanoseconds>(indexer_end - indexer_start).count() << "[ns]" << '\n';
 
   return true;
 }
