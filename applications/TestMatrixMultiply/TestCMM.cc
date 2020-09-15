@@ -131,7 +131,6 @@ int main(int argc, char *argv[]) {
    * Then call BCMMJoin and BCMMAggregation
    */
 
-  /// TODO this is just random to test the interface
   pdbClient.shuffle("myData:A", {1}, "AShuffled");
   pdbClient.shuffle("myData:B", {0}, "BShuffled");
   pdbClient.localJoin("AShuffled", {1}, "BShuffled", {0}, { myWriter }, "ABJoined",

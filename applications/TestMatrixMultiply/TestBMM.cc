@@ -125,7 +125,6 @@ int main(int argc, char* argv[]) {
   Handle<Computation> myWriter = makeObject<TensorWriter>("myData", "C");
   myWriter->setInput(myAggregation);
 
-  /// TODO this is just random to test the interface
   pdbClient.broadcast("myData:A", "ABroadcasted");
   pdbClient.localJoin("ABroadcasted", {1}, "myData:B", {0}, { myWriter }, "ABJoined",
                       "OutForJoinedFor_equals_0JoinComp2", "OutFor_joinRec_5JoinComp2");
