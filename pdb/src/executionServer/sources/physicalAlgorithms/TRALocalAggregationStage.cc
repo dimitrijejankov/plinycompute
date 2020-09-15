@@ -83,7 +83,7 @@ bool TRALocalAggregationStage::run(const Handle<pdb::ExJob> &job,
       auto &aggIdx = tempIdx[workerID];
 
       // we put the key here
-      std::vector<int32_t> key;
+      std::vector<uint32_t> key;
 
       // get all the record that belong to this node
       std::vector<std::pair<int32_t, int32_t>> out;

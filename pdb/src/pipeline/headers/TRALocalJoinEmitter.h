@@ -99,10 +99,16 @@ public:
         lhsMatch.clear();
         index->get(lhsMatch, lhsMatcher);
 
-        for(auto &lm : lhsMatch) {
-          threadsWaiting[currentThread].buffer.emplace_back(lm.first, lm.second, loc, i);
-          shouldNotify[currentThread] = true;
-          currentThread = (currentThread + 1) % numThreads;
+        // lock to add the records
+        {
+          // lock this and add records
+          std::unique_lock<std::mutex> lck(m);
+
+          for (auto &lm : lhsMatch) {
+            threadsWaiting[currentThread].buffer.emplace_back(lm.first, lm.second, loc, i);
+            shouldNotify[currentThread] = true;
+            currentThread = (currentThread + 1) % numThreads;
+          }
         }
       }
 
@@ -114,8 +120,14 @@ public:
       }
     }
 
-    // end
-    hasEnded = true;
+    {
+      // lock to set the has ended
+      std::unique_lock<std::mutex> lck(m);
+
+      // end
+      hasEnded = true;
+    }
+
     for(int i = 0; i < numThreads; ++i) {
       threadsWaiting[i].cv.notify_all();
     }

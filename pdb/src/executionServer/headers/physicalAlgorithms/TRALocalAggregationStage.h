@@ -18,11 +18,11 @@ class TRALocalAggregationStage : public PDBPhysicalAlgorithmStage {
 
     std::pair<int32_t, int32_t> loc = {-1, -1};
 
-    void insert(const std::vector<int32_t> &key, const std::pair<int32_t, int32_t> &location) {
+    void insert(const std::vector<uint32_t> &key, const std::pair<int32_t, int32_t> &location) {
       _insert(key, location, 0);
     }
 
-    void _insert(const std::vector<int32_t> &key, const std::pair<int32_t, int32_t> &location, int32_t depth) {
+    void _insert(const std::vector<uint32_t> &key, const std::pair<int32_t, int32_t> &location, int32_t depth) {
 
       if (key.size() == depth) {
 
@@ -37,11 +37,11 @@ class TRALocalAggregationStage : public PDBPhysicalAlgorithmStage {
       }
     }
 
-    const std::pair<int32_t, int32_t> & get(const std::vector<int32_t> &key) {
+    const std::pair<int32_t, int32_t> & get(const std::vector<uint32_t> &key) {
       return _get(key, 0);
     }
 
-    const std::pair<int32_t, int32_t> & _get(const std::vector<int32_t> &key, int32_t depth) {
+    const std::pair<int32_t, int32_t> & _get(const std::vector<uint32_t> &key, int32_t depth) {
 
       if(isLeaf) {
         return loc;
