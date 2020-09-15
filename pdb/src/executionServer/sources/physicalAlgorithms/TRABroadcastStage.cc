@@ -4,12 +4,12 @@
 #include "TRABroadcastStage.h"
 #include "ExJob.h"
 
-pdb::TRABroadcastStage::TRABroadcastStage(const std::string &db, const std::string &set, const std::string &sink) :
+pdb::TRABroadcastStage::TRABroadcastStage(const std::string &inputPageSet, const std::string &sink) :
   PDBPhysicalAlgorithmStage(*(_sink),
                             *(_sources),
                             *(_finalTupleSet),
                             *(_secondarySources),
-                            *(_setsToMaterialize)), db(db), set(set), sink(sink) {}
+                            *(_setsToMaterialize)), inputPageSet(inputPageSet), sink(sink) {}
 
 bool pdb::TRABroadcastStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                    const pdb::PDBPhysicalAlgorithmStatePtr &state,
@@ -27,9 +27,8 @@ bool pdb::TRABroadcastStage::setup(const pdb::Handle<pdb::ExJob> &job,
   for(int i = 0; i < job->numberOfNodes; ++i) { s->pageQueues->emplace_back(std::make_shared<PDBPageQueue>()); }
 
   // input page set
-  auto tmp = storage->createPageSetFromPDBSet((std::string) db, (std::string) set, false);
-  tmp->resetPageSet();
-  s->inputSet = tmp;
+  s->inputSet = dynamic_pointer_cast<PDBRandomAccessPageSet>(storage->getPageSet({0, inputPageSet}));
+  s->inputSet->resetPageSet();
 
   // get the receive page set
   s->feedingPageSet = storage->createFeedingAnonymousPageSet({0, "intermediate" },
@@ -198,7 +197,9 @@ bool pdb::TRABroadcastStage::run(const pdb::Handle<pdb::ExJob> &job,
     PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&queueFeederDone, s](const PDBBuzzerPtr& callerBuzzer) {
 
       PDBPageHandle page;
-      while((page = s->inputSet->getNextPage(0)) != nullptr) {
+      while (s->inputSet->getNumPages() != 0) {
+        page  = s->inputSet->popLast();
+        page->repin();
         for(auto &q : *s->pageQueues) {
           q->enqueue(page);
         }
@@ -248,6 +249,7 @@ bool pdb::TRABroadcastStage::run(const pdb::Handle<pdb::ExJob> &job,
         // generate the index
         for(int i = 0; i < vec.size(); ++i) {
           s->index->insert(*vec[i]->metaData, { loc,  i});
+          vec[i]->print();
         }
 
         // unpin the page
@@ -291,6 +293,7 @@ void pdb::TRABroadcastStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &st
 
   // remove the intermediate page set
   storage->removePageSet({0, "intermediate" });
+  storage->removePageSet({0, inputPageSet});
   std::cout << "cleanup\n";
 }
 

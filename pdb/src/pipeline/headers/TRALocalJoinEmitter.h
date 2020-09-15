@@ -18,7 +18,7 @@ public:
 
 
   TRALocalJoinEmitter(std::size_t numThreads,
-                      PDBSetPageSetPtr input_page_set,
+                      PDBRandomAccessPageSetPtr input_page_set,
                       PDBRandomAccessPageSetPtr left_page_set,
                       PDBRandomAccessPageSetPtr right_page_set,
                       const pdb::Vector<int32_t> &lhsIndices,
@@ -72,7 +72,10 @@ public:
     std::vector<bool> shouldNotify(numThreads, false);
 
     PDBPageHandle page;
-    while((page = inputPageSet->getNextPage(0))) {
+    while (inputPageSet->getNumPages() != 0) {
+
+      // get the page
+      page = inputPageSet->popLast();
 
       // repin the page
       page->repin();
@@ -148,7 +151,7 @@ public:
   std::vector<ThreadInfo> threadsWaiting;
 
   // the the input page set
-  pdb::PDBSetPageSetPtr inputPageSet;
+  pdb::PDBRandomAccessPageSetPtr inputPageSet;
 
   // the emmitter will put set pageser here
   pdb::PDBRandomAccessPageSetPtr leftPageSet;

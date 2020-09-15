@@ -18,7 +18,7 @@ struct TRABroadcastState : public PDBPhysicalAlgorithmState {
 
   std::shared_ptr<std::vector<PDBPageQueuePtr>> pageQueues = nullptr;
 
-  PDBAbstractPageSetPtr inputSet = nullptr;
+  PDBRandomAccessPageSetPtr inputSet = nullptr;
 
   pdb::PDBFeedingPageSetPtr feedingPageSet = nullptr;
 

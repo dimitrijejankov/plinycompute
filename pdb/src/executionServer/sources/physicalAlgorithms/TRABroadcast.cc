@@ -2,8 +2,8 @@
 #include <physicalAlgorithms/TRABroadcastState.h>
 #include "TRABroadcast.h"
 
-pdb::TRABroadcast::TRABroadcast(const std::string &db, const std::string &set, const std::string &sink) :
-    db(db), set(set), sink(sink), inputPageSet("") {
+pdb::TRABroadcast::TRABroadcast(const std::string &inputPageSet, const std::string &sink) :
+    inputPageSet(inputPageSet), sink(sink) {
 
   setsToMaterialize = pdb::makeObject<pdb::Vector<PDBSetObject>>();
 }
@@ -15,7 +15,7 @@ pdb::PDBPhysicalAlgorithmStatePtr pdb::TRABroadcast::getInitialState(const pdb::
 pdb::PDBPhysicalAlgorithmStagePtr pdb::TRABroadcast::getNextStage(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
   if(currentStage == 0) {
     currentStage++;
-    return std::make_shared<TRABroadcastStage>(db, set, sink);
+    return std::make_shared<TRABroadcastStage>(inputPageSet, sink);
   }
   return nullptr;
 }

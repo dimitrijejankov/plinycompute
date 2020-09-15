@@ -4,15 +4,14 @@
 
 pdb::TRALocalJoin::TRALocalJoin(const std::string &lhsPageSet,
                                 const std::vector<int32_t>& lhs_indices,
-                                const std::string &rhsDB,
-                                const std::string &rhsSet,
+                                const std::string &rhsPageSet,
                                 const std::vector<int32_t>& rhs_indices,
                                 const std::string &sinkPageSet,
                                 const std::string& startPageSet,
                                 const std::string& endPageSet) : lhs_indices(lhs_indices.size(), lhs_indices.size()),
                                                                  rhs_indices(rhs_indices.size(), rhs_indices.size()),
                                                                  sink(sinkPageSet), lhsPageSet(lhsPageSet),
-                                                                 rhsDB(rhsDB), rhsSet(rhsSet){
+                                                                 rhsPageSet(rhsPageSet) {
   for(int i = 0; i < lhs_indices.size(); ++i) {
     this->lhs_indices[i] = lhs_indices[i];
   }
@@ -36,7 +35,7 @@ pdb::PDBPhysicalAlgorithmStatePtr pdb::TRALocalJoin::getInitialState(const pdb::
 pdb::PDBPhysicalAlgorithmStagePtr pdb::TRALocalJoin::getNextStage(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
   if(currentStage == 0) {
     currentStage++;
-    return std::make_shared<TRALocalJoinStage>(lhsPageSet, rhsDB, rhsSet, sink, lhs_indices,
+    return std::make_shared<TRALocalJoinStage>(lhsPageSet, rhsPageSet, sink, lhs_indices,
                                                rhs_indices, startTupleSet, endTupleSet);
   }
   return nullptr;

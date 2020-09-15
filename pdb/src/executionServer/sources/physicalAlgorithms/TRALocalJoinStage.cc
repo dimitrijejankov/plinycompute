@@ -27,7 +27,7 @@ bool TRALocalJoinStage::setup(const Handle<pdb::ExJob> &job,
       dynamic_pointer_cast<ApplyJoin>(s->logicalPlan->getComputations().getProducingAtomicComputation(firstTupleSet));
 
   // the the input page set
-  s->inputPageSet = storage->createPageSetFromPDBSet(rhsDB, rhsSet, false);
+  s->inputPageSet = std::dynamic_pointer_cast<pdb::PDBRandomAccessPageSet>(storage->getPageSet({0, rhsPageSet}));
 
   // the emmitter will put set pageser here
   s->rightPageSet = storage->createRandomAccessPageSet({0, "right_intermediate"});
@@ -275,13 +275,14 @@ void TRALocalJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state,
   // remove the left page set as we are not using this
   // TODO this should check what is where leaving it like this for now
   storage->removePageSet({0, lhsPageSet});
+  storage->removePageSet({0, rhsPageSet});
   storage->removePageSet({0, "right_intermediate"});
   storage->removePageSet({0, "intermediate"});
 
   std::cout << "Cleanup\n";
 }
 
-TRALocalJoinStage::TRALocalJoinStage(const std::string &lhsPageSet, const std::string &rhsDB, const std::string &rhsSet,
+TRALocalJoinStage::TRALocalJoinStage(const std::string &lhsPageSet, const std::string &rhsPageSet,
                                      const std::string &sink,
                                      const pdb::Vector<int32_t> &lhsIndices, const pdb::Vector<int32_t> &rhsIndices,
                                      const std::string &firstTupleSet, const std::string &finalTupleSet) :
@@ -289,7 +290,7 @@ TRALocalJoinStage::TRALocalJoinStage(const std::string &lhsPageSet, const std::s
                               *(_sources),
                               *(_finalTupleSet),
                               *(_secondarySources),
-                              *(_setsToMaterialize)), rhsDB(rhsDB), rhsSet(rhsSet), sink(sink), lhsPageSet(lhsPageSet),
+                              *(_setsToMaterialize)), rhsPageSet(rhsPageSet), sink(sink), lhsPageSet(lhsPageSet),
     firstTupleSet(firstTupleSet), finalTupleSet(finalTupleSet), lhsIndices(lhsIndices), rhsIndices(rhsIndices) {}
 
 }

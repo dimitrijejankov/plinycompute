@@ -275,9 +275,9 @@ bool PDBClient::materialize(const std::string &db, const std::string &set, const
   return false;
 }
 
-bool PDBClient::broadcast(const std::string &db, const std::string &set, const std::string& pageSet) {
+bool PDBClient::broadcast(const std::string &inputPageSet, const std::string& pageSet) {
 
-  pdb::Handle<TRABroadcast> alg = pdb::makeObject<TRABroadcast>(db, set, pageSet);
+  pdb::Handle<TRABroadcast> alg = pdb::makeObject<TRABroadcast>(inputPageSet, pageSet);
 
   // essentially the buffer should be of this size
   auto bufferSize = 1024u * 1024u;
@@ -319,7 +319,7 @@ bool PDBClient::broadcast(const std::string &db, const std::string &set, const s
 }
 
 bool PDBClient::localJoin(const std::string& lhsPageSet, const std::vector<int32_t>& lhs_indices,
-                          const std::string& rhsDb, const std::string& rhsSet, const std::vector<int32_t>& rhs_indices,
+                          const std::string& rhsPageSet, const std::vector<int32_t>& rhs_indices,
                           const std::vector<Handle<Computation>> &sinks, const std::string& pageSet,
                           const std::string& startPageSet, const std::string& endPageSet) {
 
@@ -333,7 +333,7 @@ bool PDBClient::localJoin(const std::string& lhsPageSet, const std::vector<int32
   std::string TCAPString = queryAnalyzer.parseTCAPString(*myComputations);
   std::cout << TCAPString << '\n';
   pdb::Handle<TRALocalJoin> alg = pdb::makeObject<TRALocalJoin>(lhsPageSet, lhs_indices,
-                                                                rhsDb, rhsSet, rhs_indices, pageSet, startPageSet, endPageSet);
+                                                                rhsPageSet, rhs_indices, pageSet, startPageSet, endPageSet);
 
   // essentially the buffer should be of this size
   auto bufferSize = 1024u * 1024u;

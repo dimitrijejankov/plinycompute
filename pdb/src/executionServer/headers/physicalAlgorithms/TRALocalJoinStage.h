@@ -8,7 +8,7 @@ namespace pdb {
 class TRALocalJoinStage : public PDBPhysicalAlgorithmStage {
  public:
 
-  TRALocalJoinStage(const std::string &lhsPageSet, const std::string &rhsDB, const std::string &rhsSet, const std::string &sink,
+  TRALocalJoinStage(const std::string &lhsPageSet, const std::string &rhsPageSet, const std::string &sink,
                     const pdb::Vector<int32_t> &lhsIndices, const pdb::Vector<int32_t> &rhsIndices,
                     const std::string &firstTupleSet, const std::string &finalTupleSet);
 
@@ -24,14 +24,10 @@ class TRALocalJoinStage : public PDBPhysicalAlgorithmStage {
 
   void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) override;
 
-  // source db
-  pdb::String rhsDB;
-
-  // source set
-  pdb::String rhsSet;
-
   // the page
   pdb::String lhsPageSet;
+
+  pdb::String rhsPageSet;
 
   // sink
   pdb::String sink;

@@ -106,6 +106,10 @@ int main(int argc, char* argv[]) {
   initMatrix(pdbClient, "A");
   initMatrix(pdbClient, "B");
 
+  // you have to do this to reference a page set in the TRA interface
+  pdbClient.createIndex("myData", "A");
+  pdbClient.createIndex("myData", "B");
+
   /// 4. Make query graph an run query
 
   // for allocations
@@ -122,8 +126,8 @@ int main(int argc, char* argv[]) {
   myWriter->setInput(myAggregation);
 
   /// TODO this is just random to test the interface
-  pdbClient.broadcast("myData", "A", "ABroadcasted");
-  pdbClient.localJoin("ABroadcasted", {1}, "myData", "B", {0}, { myWriter }, "ABJoined",
+  pdbClient.broadcast("myData:A", "ABroadcasted");
+  pdbClient.localJoin("ABroadcasted", {1}, "myData:B", {0}, { myWriter }, "ABJoined",
                       "OutForJoinedFor_equals_0JoinComp2", "OutFor_joinRec_5JoinComp2");
   pdbClient.shuffle("ABJoined", {0, 2}, "ABJoinedShuffled");
   pdbClient.localAggregation("ABJoinedShuffled", {0, 3},  "Final");

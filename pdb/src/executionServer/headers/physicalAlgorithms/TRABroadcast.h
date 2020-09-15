@@ -21,7 +21,7 @@ class TRABroadcast : public PDBPhysicalAlgorithm {
 
   ~TRABroadcast() override = default;
 
-  TRABroadcast(const std::string &db, const std::string &set, const std::string &sink);
+  TRABroadcast(const std::string &inputPageSet, const std::string &sink);
 
   /**
    *
@@ -55,12 +55,6 @@ class TRABroadcast : public PDBPhysicalAlgorithm {
   PDBCatalogSetContainerType getOutputContainerType() override;
 
  private:
-
-  // source db
-  pdb::String db;
-
-  // source set
-  pdb::String set;
 
   // the page
   pdb::String inputPageSet;

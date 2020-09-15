@@ -132,6 +132,17 @@ public:
     }
   }
 
+  PDBPageHandle popLast() {
+
+    // lock stuff
+    unique_lock lck(m);
+
+    // pop the last and return
+    auto tmp = pages.back();
+    pages.pop_back();
+    return tmp;
+  }
+
 private:
 
   /**

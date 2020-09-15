@@ -118,10 +118,10 @@ class PDBClient : public ServerFunctionality {
 
   bool materialize(const std::string &db, const std::string &set, const std::string &pageSet);
 
-  bool broadcast(const std::string &db, const std::string &set, const std::string& pageSet);
+  bool broadcast(const std::string &inputPageSet, const std::string& pageSet);
 
   bool localJoin(const std::string& lhsPageSet, const std::vector<int32_t>& lhs_indices,
-                 const std::string& rhsDb, const std::string& rhsSet, const std::vector<int32_t>& rhs_indices,
+                 const std::string& rhsPageSet, const std::vector<int32_t>& rhs_indices,
                  const std::vector<Handle<Computation>> &sinks, const std::string& pageSet,
                  const std::string& startPageSet, const std::string& endPageSet);
 

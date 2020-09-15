@@ -348,6 +348,19 @@ pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerBackend::fetchPageSet(const PDB
 
 pdb::PDBAbstractPageSetPtr pdb::PDBStorageManagerBackend::getPageSet(const std::pair<uint64_t, std::string> &pageSetID) {
 
+  /// TODO this is a hack for TRA
+  auto isSet = pageSetID.second.find_first_of(':') != string::npos;
+  if(isSet) {
+
+    // split the string in two to get the database and set
+    string::size_type pos = pageSetID.second.find_first_of(':');
+    auto set = pageSetID.second.substr(pos + 1);
+    auto db = pageSetID.second.substr(0, pos);
+
+    // return the page set
+    return createPageSetFromPDBSet((std::string) db, (std::string) set, false)->asRandomAccessPageSet();
+  }
+
   // try to find the page if it exists return it
   auto it = pageSets.find(pageSetID);
   if(it != pageSets.end()) {

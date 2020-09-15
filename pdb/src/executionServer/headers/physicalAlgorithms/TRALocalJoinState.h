@@ -15,7 +15,7 @@ struct TRALocalJoinState : public PDBPhysicalAlgorithmState {
 
 
   // the the input page set
-  pdb::PDBSetPageSetPtr inputPageSet;
+  pdb::PDBRandomAccessPageSetPtr inputPageSet;
 
   // the emmitter will put set pageset here
   pdb::PDBRandomAccessPageSetPtr leftPageSet;
