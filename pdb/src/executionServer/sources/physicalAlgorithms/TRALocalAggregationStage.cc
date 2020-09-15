@@ -21,6 +21,7 @@ bool TRALocalAggregationStage::setup(const Handle<pdb::ExJob> &job,
 
   // make the output set
   s->outputSet = storage->createRandomAccessPageSet({0, sink});
+  s->outputIndex = storage->createIndex({0, sink});
 
   return true;
 }
@@ -133,6 +134,17 @@ bool TRALocalAggregationStage::run(const Handle<pdb::ExJob> &job,
 
             // store it
             vectors.back()->push_back(record);
+
+            // reduce the index size this will not reallocate
+            while((*vectors.back())[vectors.back()->size() - 1]->metaData->indices.size() != key.size()) {
+              (*vectors.back())[vectors.back()->size() - 1]->metaData->indices.pop_back();
+            }
+
+            // copy the key
+            for(int j = 0; j < key.size(); ++j) {
+              (*vectors.back())[vectors.back()->size() - 1]->metaData->indices[j] = key[j];
+            }
+
             aggIdx.insert(key, { vectors.size() - 1, vectors.back()->size() - 1 });
             stuffOnPage = true;
 
@@ -225,7 +237,7 @@ bool TRALocalAggregationStage::run(const Handle<pdb::ExJob> &job,
         // generate the index
         for(int i = 0; i < vec.size(); ++i) {
           vec[i]->print();
-          s->index->insert(*vec[i]->metaData, { loc,  i});
+          s->outputIndex->insert(*vec[i]->metaData, { loc,  i});
         }
 
         // unpin the page

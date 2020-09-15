@@ -18,6 +18,7 @@ struct TRALocalAggregationState : public PDBPhysicalAlgorithmState {
 
   // the index
   TRAIndexNodePtr index = nullptr;
+  TRAIndexNodePtr outputIndex = nullptr;
 };
 
 }
