@@ -190,12 +190,12 @@ bool TRAShuffleStage::run(const Handle<pdb::ExJob> &job,
       // add a null so we notify that we are done
       (*s->pageQueues)[node]->enqueue(nullptr);
 
+      // invalidate the block
+      makeObjectAllocatorBlock(1024, true);
+
       // signal that the run was successful
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, inputScanDone);
     });
-
-    // invalidate the block
-    makeObjectAllocatorBlock(1024, true);
 
     // run the work
     storage->getWorker()->execute(myWork, inputScanBuzzer);
@@ -354,6 +354,8 @@ void TRAShuffleStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state,
                               const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) {
   // cast the state
   auto s = dynamic_pointer_cast<TRAShuffleState>(state);
+
+  storage->removePageSet({0, "intermediate" });
 
   std::cout << "cleanup\n";
 }

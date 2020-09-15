@@ -176,6 +176,9 @@ bool TRALocalAggregationStage::run(const Handle<pdb::ExJob> &job,
         getRecord(vectors.back());
       }
 
+      // invalidate the block
+      makeObjectAllocatorBlock(1024, true);
+
       // signal that the run was successful
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, aggCounter);
     });
