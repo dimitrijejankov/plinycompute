@@ -14,9 +14,9 @@ using namespace pdb::matrix;
 const size_t blockSize = 64;
 const uint32_t matrixRows = 400;
 const uint32_t matrixColumns = 400;
-const uint32_t numRows = 40;
-const uint32_t numCols = 40;
-const bool doNotPrint = true;
+const uint32_t numRows = 4;
+const uint32_t numCols = 4;
+const bool doNotPrint = false;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
@@ -50,7 +50,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
         // init the values
         float *vals = myInt->data->data->c_ptr();
         for (int v = 0; v < (matrixRows / numRows) * (matrixColumns / numCols); ++v) {
-          vals[v] = 1.0f * v;
+          vals[v] = 1.0;
         }
 
         // we add the matrix to the block
@@ -126,17 +126,12 @@ int main(int argc, char *argv[]) {
   Handle<Computation> myWriter = makeObject<TensorWriter>("myData", "C");
   myWriter->setInput(myAggregation);
 
-  /*
-   * Todo:: Here we first shuffle A by key 1, and shuffle B by key 0;
-   * Then call BCMMJoin and BCMMAggregation
-   */
-
   pdbClient.shuffle("myData:A", {1}, "AShuffled");
   pdbClient.shuffle("myData:B", {0}, "BShuffled");
   pdbClient.localJoin("AShuffled", {1}, "BShuffled", {0}, { myWriter }, "ABJoined",
                       "OutForJoinedFor_equals_0JoinComp2", "OutFor_joinRec_5JoinComp2");
-  pdbClient.shuffle("ABJoined", {0, 3}, "ABJoinedShuffled");
-  pdbClient.localAggregation("ABJoinedShuffled", {0, 3},  "Final");
+  pdbClient.shuffle("ABJoined", {0, 1}, "ABJoinedShuffled");
+  pdbClient.localAggregation("ABJoinedShuffled", {0, 1},  "Final");
   pdbClient.materialize("myData", "C", "Final");
 
   // grab the iterator
@@ -146,6 +141,7 @@ int main(int argc, char *argv[]) {
 
     // grab the record
     auto r = it->getNextRecord();
+    r->print();
     count++;
   }
 

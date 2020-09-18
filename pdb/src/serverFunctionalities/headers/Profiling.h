@@ -39,7 +39,7 @@
  * This macro is used to end profiling the code and it is supposed to be used within the same block as the PROFILER_START macro
  * This macro also outputs an additional message
  * @param id - the id used to track the profiler
- * @param message - the message we want to print out
+ * @param message - the message we want to print_meta out
  */
 #define PROFILER_END_MESSAGE(id, message) std::cout << message << "\n"; PROFILER_END(id)
 

@@ -607,12 +607,12 @@ bool PDBCatalogClient::updateNodeStatus(const std::string &nodeID, bool nodeActi
       nodeID, nodeActive);
 }
 
-// sends a request to the Catalog Server to print all metadata newer than a
+// sends a request to the Catalog Server to print_meta all metadata newer than a
 // given timestamp
 string PDBCatalogClient::printCatalogMetadata(pdb::Handle<pdb::CatPrintCatalogRequest> itemToSearch,
                                            std::string &errMsg) {
 
-  PDB_COUT << "Category to print" << itemToSearch->category.c_str() << "\n";
+  PDB_COUT << "Category to print_meta" << itemToSearch->category.c_str() << "\n";
 
   return RequestFactory::heapRequest< pdb::CatPrintCatalogRequest, CatPrintCatalogResult, string>(
       myLogger, port, address, "", 1024,
@@ -627,7 +627,7 @@ string PDBCatalogClient::printCatalogMetadata(pdb::Handle<pdb::CatPrintCatalogRe
       itemToSearch);
 }
 
-// sends a request to the Catalog Server to print all metadata for a given category
+// sends a request to the Catalog Server to print_meta all metadata for a given category
 string PDBCatalogClient::printCatalogMetadata(std::string &categoryToPrint, std::string &errMsg) {
 
   pdb::Handle<pdb::CatPrintCatalogRequest> itemToPrint = pdb::makeObject<CatPrintCatalogRequest>("", categoryToPrint);

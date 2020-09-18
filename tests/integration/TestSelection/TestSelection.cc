@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
     // grab the record
     auto r = it->getNextRecord();
 
-    // print every 100th
+    // print_meta every 100th
     if(i % 100 == 0) {
       std::cout << *r->getName() << std::endl;
     }

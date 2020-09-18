@@ -55,6 +55,16 @@ class TRABlockData : public pdb::Object {
     // return me
     return *this;
   }
+
+  void print(){
+      float *myData = data->c_ptr();
+      std::cout<< "Data: <"<<dim0<<","<<dim1<<","<<dim2<<">:";
+      for(int i = 0; i < dim0 * dim1; i++){
+          std::cout<<(myData)[i] << " ";
+      }
+      std::cout << '\n' << std::flush ;
+  }
+
 };
 
 }

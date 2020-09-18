@@ -77,7 +77,7 @@ public:
     // look up the vtable using the given catalog
     static void* getVTablePtrUsingCatalog(int16_t objectTypeID);
 
-    // print out the contents of the vTableMap
+    // print_meta out the contents of the vTableMap
     static void listVtableEntries();
     static void listVtableLabels();
 

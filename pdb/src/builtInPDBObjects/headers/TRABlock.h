@@ -110,12 +110,21 @@ public:
         return data->dim2;
     }
 
-    void print() {
+    void print_meta() {
       std::cout << "Meta : ";
       for(int i = 0; i < metaData->indices.size(); ++i) {
         std::cout << metaData->indices[i] << " ";
       }
       std::cout << '\n' << std::flush ;
+    }
+
+    void print_block() {
+        data->print();
+    }
+
+    void print() {
+        print_meta();
+        print_block();
     }
 };
 

@@ -119,7 +119,7 @@ TypeContained* Vector<TypeContained>::c_ptr() const {
 }
 
 // Add by Shangyu;
-// Use std::cout to print out the elements in a Vector
+// Use std::cout to print_meta out the elements in a Vector
 template <class TypeContained>
 void Vector<TypeContained>::print() const {
     for (uint32_t i = 0; i < this->size() - 1; i++) {

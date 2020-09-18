@@ -188,13 +188,13 @@ public:
 
   pdb::PDBCatalogDatabasePtr getDatabase(const std::string &dbName, std::string &errMsg);
 
-  /* Sends a request to the Catalog Server to print the content of the metadata
+  /* Sends a request to the Catalog Server to print_meta the content of the metadata
    * stored in the
    * catalog */
   string printCatalogMetadata(pdb::Handle<pdb::CatPrintCatalogRequest> itemToSearch,
                               std::string &errMsg);
 
-  /* Sends a request to the Catalog Server to print a category of metadata
+  /* Sends a request to the Catalog Server to print_meta a category of metadata
    * stored in the
    * catalog */
   string printCatalogMetadata(std::string &categoryToPrint,

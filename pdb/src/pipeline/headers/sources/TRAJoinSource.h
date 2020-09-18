@@ -110,9 +110,9 @@ class TRAJoinSource : public ComputeSource {
 
       if constexpr (std::is_same<IN1, pdb::TRABlock>::value) {
         std::cout << "LHS : ";
-        (*leftTuples[records[i].lhs_page])[records[i].lhs_record]->print();
+          (*leftTuples[records[i].lhs_page])[records[i].lhs_record]->print_meta();
         std::cout << "RHS : ";
-        (*rightTuples[records[i].rhs_page])[records[i].rhs_record]->print();
+          (*rightTuples[records[i].rhs_page])[records[i].rhs_record]->print_meta();
         std::cout << "-------------------------------\n";
       }
 

@@ -85,7 +85,7 @@ public:
         std::cout << "\nPlus have " << myGuys.size() << " employees.\n";
         /*if (myGuys.size () > 0) {
             std :: cout << "\t (One is ";
-            myGuys[0]->print ();
+            myGuys[0]->print_meta ();
             std :: cout << ")\n";
         }*/
         for (int i = 0; i < myGuys.size(); i++) {

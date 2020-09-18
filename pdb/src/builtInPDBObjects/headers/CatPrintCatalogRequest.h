@@ -59,12 +59,12 @@ public:
     ENABLE_DEEP_COPY
 
     /**
-     * the category to print (databases, sets, nodes, udts) udts are user-defined types
+     * the category to print_meta (databases, sets, nodes, udts) udts are user-defined types
      */
     String category;
 
     /**
-     * the item Name to print at this point it just serves to print he catalog in a database
+     * the item Name to print at this point it just serves to print_meta he catalog in a database
      */
     String itemName;
 };

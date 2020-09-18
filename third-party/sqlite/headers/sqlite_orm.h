@@ -1223,7 +1223,7 @@ namespace sqlite_orm {
 namespace sqlite_orm {
     
     /**
-     *  Is used to print members mapped to objects in storage_t::dump member function.
+     *  Is used to print_meta members mapped to objects in storage_t::dump member function.
      *  Other developers can create own specialization to map custom types
      */
     template<class T>

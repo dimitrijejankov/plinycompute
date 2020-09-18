@@ -127,8 +127,28 @@ int main(int argc, char* argv[]) {
     Handle<Computation> myWriter = makeObject<TensorWriter>("myData", "C");
     myWriter->setInput(myAggregation);
 
+    //Todo: we should shuffle the output of multi-selection, how to do that?
+    pdbClient.shuffle("myData:A", {0,1,2}, "AShuffled");
+    pdbClient.shuffle("myData:A", {0,1,2}, "BShuffled");
+    pdbClient.localJoin("AShuffled", {0,1,2}, "BShuffled", {0,1,2}, { myWriter }, "ABJoined",
+                        "OutForJoinedFor_equals_0JoinComp2", "OutFor_joinRec_5JoinComp2");
+    pdbClient.localAggregation("ABJoined", {0, 2},  "ABLocalAggregated");
+    pdbClient.shuffle("ABShuffled", {0, 2}, "ABLocalAggregated");
+    pdbClient.localAggregation("ABLocalAggregated", {0, 2},  "Final");
+    pdbClient.materialize("myData", "C", "Final");
 
-    //Todo:: This requires to shuffle duplicateA and duplicateB both by dim:[0,2]
+    // grab the iterator
+    auto it = pdbClient.getSetIterator<TRABlock>("myData", "C");
+    int32_t count = 0;
+    while (it->hasNextRecord()) {
+
+        // grab the record
+        auto r = it->getNextRecord();
+        r->print();
+        count++;
+    }
+
+    std::cout << "Count " << count << '\n';
 
     // shutdown the server
     pdbClient.shutDownServer();

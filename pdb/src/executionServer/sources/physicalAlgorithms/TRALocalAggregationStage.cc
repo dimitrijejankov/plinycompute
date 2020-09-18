@@ -236,7 +236,7 @@ bool TRALocalAggregationStage::run(const Handle<pdb::ExJob> &job,
 
         // generate the index
         for(int i = 0; i < vec.size(); ++i) {
-          vec[i]->print();
+            vec[i]->print_meta();
           s->outputIndex->insert(*vec[i]->metaData, { loc,  i});
         }
 

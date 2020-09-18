@@ -181,9 +181,9 @@ public:
 
     inline DoubleVector& operator+(DoubleVector& other) {
         // std :: cout << "me:" << this->getSize() << std :: endl;
-        // this->print();
+        // this->print_meta();
         // std :: cout << "other:" << other.getSize() << std :: endl;
-        // other.print();
+        // other.print_meta();
         size_t mySize = this->getSize();
         /*size_t otherSize = other.getSize();
         if (mySize != otherSize) {

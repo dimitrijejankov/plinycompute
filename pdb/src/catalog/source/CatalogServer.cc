@@ -307,7 +307,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         // lock the catalog server
         std::lock_guard<std::mutex> guard(serverMutex);
 
-        // print the catalog
+        // print_meta the catalog
         string categoryToPrint = request->category.c_str();
         string resultToPrint;
 
@@ -340,7 +340,7 @@ void CatalogServer::registerHandlers(PDBServer &forMe) {
         // there is no error we just need this to send that back
         std::string errMsg;
 
-        // make an allocation block 1 MB + the result we want to print.
+        // make an allocation block 1 MB + the result we want to print_meta.
         const UseTemporaryAllocationBlock tempBlock{1024 * 1024 + resultToPrint.size()};
 
         // copy the request we want to forward and set the text

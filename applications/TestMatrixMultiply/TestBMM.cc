@@ -12,8 +12,8 @@ using namespace pdb::matrix;
 
 // some constants for the test
 const size_t blockSize = 64;
-const uint32_t matrixRows = 400;
-const uint32_t matrixColumns = 400;
+const uint32_t matrixRows = 40;
+const uint32_t matrixColumns = 40;
 const uint32_t numRows = 4;
 const uint32_t numCols = 4;
 const bool doNotPrint = true;
@@ -50,7 +50,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
         // init the values
         float *vals = myInt->data->data->c_ptr();
         for (int v = 0; v < (matrixRows / numRows) * (matrixColumns / numCols); ++v) {
-          vals[v] = 1.0f * v;
+          vals[v] = 1.0f;
         }
 
         // we add the matrix to the block
@@ -125,11 +125,12 @@ int main(int argc, char* argv[]) {
   Handle<Computation> myWriter = makeObject<TensorWriter>("myData", "C");
   myWriter->setInput(myAggregation);
 
-  pdbClient.broadcast("myData:A", "ABroadcasted");
-  pdbClient.localJoin("ABroadcasted", {1}, "myData:B", {0}, { myWriter }, "ABJoined",
+
+  pdbClient.shuffle("myData:A", {0}, "AShuffled");
+  pdbClient.broadcast("myData:B", "BBroadcasted");
+  pdbClient.localJoin("AShuffled", {1}, "BBroadcasted", {0}, { myWriter }, "ABJoined",
                       "OutForJoinedFor_equals_0JoinComp2", "OutFor_joinRec_5JoinComp2");
-  pdbClient.shuffle("ABJoined", {0, 3}, "ABJoinedShuffled");
-  pdbClient.localAggregation("ABJoinedShuffled", {0, 3},  "Final");
+  pdbClient.localAggregation("ABJoined", {0, 1},  "Final");
   pdbClient.materialize("myData", "C", "Final");
 
   // grab the iterator
@@ -139,6 +140,7 @@ int main(int argc, char* argv[]) {
 
     // grab the record
     auto r = it->getNextRecord();
+    r->print();
     count++;
   }
 
