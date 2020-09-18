@@ -198,6 +198,10 @@ bool pdb::PDBAggregationPipeStage::setup(const pdb::Handle<pdb::ExJob> &job,
     s->aggregationPipelines->push_back(aggPipeline);
   }
 
+  // get the key extractor
+  s->keyExtractor = getKeyExtractor(finalTupleSet, plan);
+
+
   return true;
 }
 
@@ -426,7 +430,17 @@ bool pdb::PDBAggregationPipeStage::run(const pdb::Handle<pdb::ExJob> &job,
 
     // materialize the page set
     sinkPageSet->resetPageSet();
-    success = storage->materializePageSet(sinkPageSet, std::make_pair<std::string, std::string>(setsToMaterialize[j].database, setsToMaterialize[j].set)) && success;
+    success = storage->materializePageSet(sinkPageSet,
+                                          std::make_pair<std::string, std::string>(setsToMaterialize[j].database,
+                                                                                   setsToMaterialize[j].set)) && success;
+
+    // do we need to extract the keys too
+    if(s->keyExtractor != nullptr) {
+      // materialize the keys
+      sinkPageSet->resetPageSet();
+      success = storage->materializeKeys(sinkPageSet,
+                                         std::make_pair<std::string, std::string>(setsToMaterialize[j].database, setsToMaterialize[j].set), s->keyExtractor) && success;
+    }
   }
 
   return true;
