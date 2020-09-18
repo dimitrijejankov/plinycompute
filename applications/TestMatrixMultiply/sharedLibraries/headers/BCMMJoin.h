@@ -35,7 +35,7 @@ class BCMMJoin : public JoinComp <BCMMJoin, TRABlock, TRABlock, TRABlock> {
       uint32_t K = in1->dim1;
 
       // make an output
-      Handle<TRABlockData> out = makeObject<TRABlockData>(I, J, 0);
+      Handle<TRABlockData> out = makeObject<TRABlockData>(I, J, 1);
       
       // get the ptrs
       float *outData = out->data->c_ptr();

@@ -172,7 +172,7 @@ bool TRALocalAggregationStage::run(const Handle<pdb::ExJob> &job,
           TRABlockData &rhs = *record->data;
 
           // aggregate it
-          for(int32_t g = 0; lhs.data->size(); ++g) {
+          for(int32_t g = 0; g < lhs.data->size(); ++g) {
             (*lhs.data)[g] += (*rhs.data)[g];
           }
 
