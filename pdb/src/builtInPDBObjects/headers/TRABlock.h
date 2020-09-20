@@ -36,9 +36,14 @@ public:
     * @param numCols - the number of columns the block has
     */
     TRABlock(uint32_t key0, uint32_t key1, uint32_t key2, uint32_t dim0, uint32_t dim1, uint32_t dim2) {
-    metaData = makeObject<TRABlockMeta>(key0, key1, key2);
-    data = makeObject<TRABlockData>(dim0, dim1, dim2);
+        metaData = makeObject<TRABlockMeta>(key0, key1, key2);
+        data = makeObject<TRABlockData>(dim0, dim1, dim2);
     }
+
+  TRABlock(uint32_t key0, uint32_t key1, uint32_t dim0, uint32_t dim1) {
+    metaData = makeObject<TRABlockMeta>(key0, key1);
+    data = makeObject<TRABlockData>(dim0, dim1, 1);
+  }
 
     //Todo Binhang: we should check wil this work? Here I guess it will shuffle less amount of data by copy handle(pointer)
     TRABlock(uint32_t key0, uint32_t key1, uint32_t key2, Handle<TRABlockData>& existData) {

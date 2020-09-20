@@ -16,6 +16,11 @@ public:
    */
   TRABlockMeta() = default;
 
+  TRABlockMeta(uint32_t key0, uint32_t key1) : indices(2, 2) {
+    indices[0] = key0;
+    indices[1] = key1;
+  }
+
   TRABlockMeta(uint32_t key0, uint32_t key1, uint32_t key2) : indices(3, 3) {
     indices[0] = key0;
     indices[1] = key1;

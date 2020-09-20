@@ -16,9 +16,7 @@ namespace pdb::matrix {
         RMMJoin() = default;
 
         static Lambda <bool> getKeySelection (Handle <TRABlockMeta> in1, Handle <TRABlockMeta> in2) {
-            return (makeLambdaFromMethod (in1, getIdx0) == makeLambdaFromMethod (in2, getIdx0))
-            and (makeLambdaFromMethod (in1, getIdx1) == makeLambdaFromMethod (in2, getIdx1))
-            and (makeLambdaFromMethod (in1, getIdx2) == makeLambdaFromMethod (in2, getIdx2));
+            return (makeLambdaFromSelf (in1) == makeLambdaFromSelf (in2));
         }
 
         static Lambda <Handle<TRABlockMeta>> getKeyProjection(Handle <TRABlockMeta> in1, Handle <TRABlockMeta> in2) {
