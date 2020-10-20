@@ -2,10 +2,12 @@
 add_pdb_integration_test(TestBMM)
 add_pdb_integration_test(TestCMM)
 add_pdb_integration_test(TestRMM)
+add_pdb_integration_test(Test3DMM)
 add_pdb_integration_test(TestIndexStructure)
 target_link_libraries(TestBMM ${MKL_LIBRARIES})
 target_link_libraries(TestCMM ${MKL_LIBRARIES})
 target_link_libraries(TestRMM ${MKL_LIBRARIES})
+target_link_libraries(Test3DMM ${MKL_LIBRARIES})
 target_link_libraries(TestIndexStructure ${MKL_LIBRARIES})
 
 # add a build dependency to build-tests target

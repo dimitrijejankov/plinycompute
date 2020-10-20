@@ -127,6 +127,8 @@ class PDBClient : public ServerFunctionality {
 
   bool shuffle(const std::string &inputPageSet, const std::vector<int32_t>& indices, const std::string& soml);
 
+  bool mm3D(int32_t n, int32_t num_threads, int32_t num_nodes);
+
   bool localAggregation(const std::string &inputPageSet, const std::vector<int32_t>& indices, const std::string& pageSet);
 
   /**

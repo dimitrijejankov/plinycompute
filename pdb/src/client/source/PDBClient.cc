@@ -21,6 +21,7 @@
 
 #include <ShutDown.h>
 #include <PDBClient.h>
+#include <MM3D.h>
 #include <QueryGraphAnalyzer.h>
 #include <physicalAlgorithms/TRABroadcast.h>
 #include <CSExecuteComputation.h>
@@ -415,6 +416,49 @@ bool PDBClient::shuffle(const std::string &inputPageSet, const std::vector<int32
 
   // finish since the computation was just too large
   return false;
+}
+
+bool PDBClient::mm3D(int32_t n, int32_t num_threads, int32_t num_nodes) {
+
+    pdb::Handle<MM3D> alg = pdb::makeObject<MM3D>(n, num_nodes, num_threads);
+
+    // essentially the buffer should be of this size
+    auto bufferSize = 1024u * 1024u;
+
+    // increment the buffer in increments of
+    while(bufferSize < 100 * 1024u * 1024u) {
+
+        try {
+
+            // send the request
+            std::string error;
+            return RequestFactory::heapRequest<CSExecuteComputation, SimpleRequestResult, bool>(logger, port, address, false, bufferSize,
+            [&](const Handle<SimpleRequestResult>& result) {
+
+                // check the response
+                if ((result != nullptr && !result->getRes().first) || result == nullptr) {
+
+                    // log the error
+                    logger->error("Error executing computations: " + result->getRes().second);
+                    error = "Error executing computations: " + result->getRes().second;
+
+                    // we are done here
+                    return false;
+                }
+
+                // awesome we finished
+                return true;
+            }, bufferSize, alg);
+        }
+        catch(pdb::NotEnoughSpace &n) {
+
+            // increment the buffer
+            bufferSize += 1024 * 1024;
+        }
+    }
+
+    // finish since the computation was just too large
+    return false;
 }
 
 bool PDBClient::localAggregation(const std::string &inputPageSet,
