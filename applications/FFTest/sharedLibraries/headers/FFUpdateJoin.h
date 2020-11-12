@@ -4,7 +4,7 @@
 #include <Handle.h>
 #include <LambdaCreationFunctions.h>
 #include <JoinComp.h>
-#include <mkl>
+#include <mkl.h>
 #include "FFMatrixMeta.h"
 #include "FFMatrixData.h"
 #include "FFMatrixBlock.h"

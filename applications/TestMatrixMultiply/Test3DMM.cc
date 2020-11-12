@@ -86,15 +86,7 @@ int main(int argc, char* argv[]) {
     // make a client
     pdb::PDBClient pdbClient(8108, "localhost");
 
-    /// 1. Register the classes
-
-    // now, register a type for user data
-    pdbClient.registerType("libraries/libBCMMAggregation.so");
-    pdbClient.registerType("libraries/libBCMMJoin.so");
-    pdbClient.registerType("libraries/libTensorScanner.so");
-    pdbClient.registerType("libraries/libTensorWriter.so");
-
-    /// 2. Create the set
+    /// 1. Create the set
 
     // now, create a new database
     pdbClient.createDatabase("myData");
@@ -104,7 +96,7 @@ int main(int argc, char* argv[]) {
     pdbClient.createSet<TRABlock>("myData", "B");
     pdbClient.createSet<TRABlock>("myData", "C");
 
-    /// 3. Fill in the data (single threaded)
+    /// 2. Fill in the data (single threaded)
 
     initMatrix(pdbClient, "A");
     initMatrix(pdbClient, "B");
@@ -113,36 +105,26 @@ int main(int argc, char* argv[]) {
     pdbClient.createIndex("myData", "A");
     pdbClient.createIndex("myData", "B");
 
-    /// 4. Make query graph an run query
+    /// 3. Make query graph an run query
 
     // for allocations
     const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
-    Handle <Computation> readA = makeObject <TensorScanner>("myData", "A");
-    Handle <Computation> readB = makeObject <TensorScanner>("myData", "B");
-    Handle <Computation> join = makeObject <BCMMJoin>();
-    join->setInput(0, readA);
-    join->setInput(1, readB);
-    Handle<Computation> myAggregation = makeObject<BCMMAggregation>();
-    myAggregation->setInput(join);
-    Handle<Computation> myWriter = makeObject<TensorWriter>("myData", "C");
-    myWriter->setInput(myAggregation);
-
-    pdbClient.mm3D(n);
+    pdbClient.mm3D(n, 4, 2);
     pdbClient.materialize("myData", "C", "Final");
 
     // grab the iterator
-    auto it = pdbClient.getSetIterator<TRABlock>("myData", "C");
-    int32_t count = 0;
-    while (it->hasNextRecord()) {
-
-        // grab the record
-        auto r = it->getNextRecord();
-        r->print();
-        count++;
-    }
-
-    std::cout << "Count " << count << '\n';
+//    auto it = pdbClient.getSetIterator<TRABlock>("myData", "C");
+//    int32_t count = 0;
+//    while (it->hasNextRecord()) {
+//
+//        // grab the record
+//        auto r = it->getNextRecord();
+//        r->print();
+//        count++;
+//    }
+//
+//    std::cout << "Count " << count << '\n';
 
     // shutdown the server
     pdbClient.shutDownServer();
