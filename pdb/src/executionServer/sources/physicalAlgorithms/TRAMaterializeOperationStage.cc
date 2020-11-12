@@ -30,9 +30,9 @@ bool pdb::TRAMaterializeOperationStage::setup(const pdb::Handle<pdb::ExJob> &job
 }
 
 bool pdb::TRAMaterializeOperationStage::run(const pdb::Handle<pdb::ExJob> &job,
-                                 const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                 const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
-                                 const std::string &error) {
+                                            const pdb::PDBPhysicalAlgorithmStatePtr &state,
+                                            const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                            const std::string &error) {
 
   // cast the state
   auto s = dynamic_pointer_cast<TRAMaterializeOperationState>(state);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <PDBPhysicalAlgorithm.h>
+#include "MM3DIdx.h"
 
 namespace pdb {
 
@@ -8,7 +9,7 @@ namespace pdb {
 class MM3DMultiplyStage : public PDBPhysicalAlgorithmStage {
  public:
 
-  MM3DMultiplyStage();
+  MM3DMultiplyStage(int32_t n, int32_t num_nodes, int32_t num_threads);
 
   bool setup(const Handle<pdb::ExJob> &job,
              const PDBPhysicalAlgorithmStatePtr &state,
@@ -21,6 +22,8 @@ class MM3DMultiplyStage : public PDBPhysicalAlgorithmStage {
            const std::string &error) override;
 
   void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage) override;
+
+  MM3DIdx idx;
 
   const static PDBSinkPageSetSpec *_sink;
   const static Vector<PDBSourceSpec> *_sources;

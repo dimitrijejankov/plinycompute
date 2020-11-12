@@ -2,6 +2,7 @@
 
 #include <PDBRandomAccessPageSet.h>
 #include <TRAIndex.h>
+#include <TRABlock.h>
 #include "PDBPhysicalAlgorithmState.h"
 #include "PDBPageSelfReceiver.h"
 #include "PDBPageNetworkSender.h"
@@ -15,12 +16,9 @@ struct MM3DState : public PDBPhysicalAlgorithmState {
 
   pdb::PDBRandomAccessPageSetPtr rhsSet = nullptr;
 
-  std::vector<void*> lhsReceived;
-
-  std::vector<void*> rhsReceived;
-
   std::shared_ptr<std::vector<PDBPageQueuePtr>> pageQueuesLHS = nullptr;
   std::shared_ptr<std::vector<PDBPageQueuePtr>> pageQueuesRHS = nullptr;
+  std::shared_ptr<std::vector<PDBPageQueuePtr>> outQueues = nullptr;
 
   pdb::PDBPageSelfReceiverPtr selfReceiverLHS = nullptr;
   std::shared_ptr<std::vector<PDBPageNetworkSenderPtr>> sendersLHS = nullptr;
@@ -30,6 +28,9 @@ struct MM3DState : public PDBPhysicalAlgorithmState {
 
   pdb::PDBFeedingPageSetPtr feedingPageSetLHS = nullptr;
   pdb::PDBFeedingPageSetPtr feedingPageSetRHS = nullptr;
+
+  map<tuple<int32_t, int32_t>, TRABlock*> indexLHS;
+  map<tuple<int32_t, int32_t>, TRABlock*> indexRHS;
 };
 
 }

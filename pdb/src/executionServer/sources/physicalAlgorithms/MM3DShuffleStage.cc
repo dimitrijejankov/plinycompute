@@ -246,6 +246,9 @@ bool pdb::MM3DShuffleStage::run(const pdb::Handle<pdb::ExJob> &job,
       auto currentPage = bufferManager->getPage();
       makeObjectAllocatorBlock(currentPage->getBytes(), currentPage->getSize(), true);
 
+      //
+      bool hasOnPage = false;
+
       // make the vector we write to
       Handle<Vector<Handle<pdb::TRABlock>>> writeMe = makeObject<Vector<Handle<pdb::TRABlock>>>();
       auto it = to_send_lhs[node].begin();
@@ -255,6 +258,7 @@ bool pdb::MM3DShuffleStage::run(const pdb::Handle<pdb::ExJob> &job,
 
           // store it
           writeMe->push_back(**it);
+          hasOnPage = true;
 
           // go to the next record
           it++;
@@ -265,16 +269,30 @@ bool pdb::MM3DShuffleStage::run(const pdb::Handle<pdb::ExJob> &job,
           getRecord(writeMe);
 
           // insert into the page queue
+          cout << "Queued LHS\n";
           (*s->pageQueuesLHS)[node]->enqueue(currentPage);
 
           // grab a new page
           currentPage = bufferManager->getPage();
           makeObjectAllocatorBlock(currentPage->getBytes(), currentPage->getSize(), true);
+          hasOnPage = false;
 
           // make a new vector!
           writeMe = makeObject<Vector<Handle<pdb::TRABlock>>>();
         }
       }
+
+      // if it has something on the page queue it
+      if(hasOnPage) {
+
+        // make this the root object
+        cout << "Queued LHS\n";
+        getRecord(writeMe);
+        (*s->pageQueuesLHS)[node]->enqueue(currentPage);
+      }
+
+      // invalid
+      makeObjectAllocatorBlock(1024, true);
 
       // signal that the run was successful
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, prepDone);
@@ -294,6 +312,9 @@ bool pdb::MM3DShuffleStage::run(const pdb::Handle<pdb::ExJob> &job,
       auto currentPage = bufferManager->getPage();
       makeObjectAllocatorBlock(currentPage->getBytes(), currentPage->getSize(), true);
 
+      // initially the page is empty
+      bool hasOnPage = false;
+
       // make the vector we write to
       Handle<Vector<Handle<pdb::TRABlock>>> writeMe = makeObject<Vector<Handle<pdb::TRABlock>>>();
       auto it = to_send_rhs[node].begin();
@@ -303,6 +324,7 @@ bool pdb::MM3DShuffleStage::run(const pdb::Handle<pdb::ExJob> &job,
 
           // store it
           writeMe->push_back(**it);
+          hasOnPage = true;
 
           // go to the next record
           it++;
@@ -313,6 +335,8 @@ bool pdb::MM3DShuffleStage::run(const pdb::Handle<pdb::ExJob> &job,
           getRecord(writeMe);
 
           // insert into the page queue
+          cout << "Queued RHS\n";
+          hasOnPage = false;
           (*s->pageQueuesRHS)[node]->enqueue(currentPage);
 
           // grab a new page
@@ -323,6 +347,18 @@ bool pdb::MM3DShuffleStage::run(const pdb::Handle<pdb::ExJob> &job,
           writeMe = makeObject<Vector<Handle<pdb::TRABlock>>>();
         }
       }
+
+      // if it has something on the page queue it
+      if(hasOnPage) {
+
+        // make this the root object
+        cout << "Queued RHS\n";
+        getRecord(writeMe);
+        (*s->pageQueuesRHS)[node]->enqueue(currentPage);
+      }
+
+      // invalid
+      makeObjectAllocatorBlock(1024, true);
 
       // signal that the run was successful
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, prepDone);
@@ -508,10 +544,10 @@ bool pdb::MM3DShuffleStage::run(const pdb::Handle<pdb::ExJob> &job,
   }
 
   // wait while we are running the receiver
-  while(selfRecDoneLHS == 1) {
+  while(selfRecDoneLHS != 1) {
     selfRefBuzzerLHS->wait();
   }
-  while(selfRecDoneRHS == 1) {
+  while(selfRecDoneRHS != 1) {
     selfRefBuzzerRHS->wait();
   }
 

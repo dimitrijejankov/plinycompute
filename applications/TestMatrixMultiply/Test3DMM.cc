@@ -110,7 +110,7 @@ int main(int argc, char* argv[]) {
     // for allocations
     const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
-    pdbClient.mm3D(n, 4, 2);
+    pdbClient.mm3D(n, 2, 4);
     pdbClient.materialize("myData", "C", "Final");
 
     // grab the iterator

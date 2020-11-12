@@ -43,7 +43,7 @@ pdb::PDBPhysicalAlgorithmStagePtr pdb::MM3D::getNextStage(const pdb::PDBPhysical
       currentStage++;
 
       // return the key stage
-      return std::make_shared<MM3DMultiplyStage>();
+      return std::make_shared<MM3DMultiplyStage>(n, num_nodes, num_threads);
     }
   }
 
