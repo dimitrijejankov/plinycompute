@@ -22,6 +22,18 @@ struct MM3DIdx {
     return cbrt(n);
   }
 
+  [[nodiscard]] bool isOnGrid(int node, int thread) const {
+
+    // get the side
+    int32_t side = cbrt(n);
+
+    // figure out the node and the thread
+    auto itd = node * num_threads + thread;
+
+    //
+    return itd < (side * side * side);
+  }
+
   [[nodiscard]] tuple<int32_t, int32_t, int32_t> get_coords(int node, int thread) const {
 
     // get the side

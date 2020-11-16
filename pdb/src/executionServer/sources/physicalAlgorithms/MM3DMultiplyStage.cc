@@ -38,6 +38,12 @@ bool pdb::MM3DMultiplyStage::setup(const pdb::Handle<pdb::ExJob> &job,
   s->aggOut = std::make_shared<std::vector<PDBCommunicatorPtr>>();
   for (int thread = 0; thread < job->numberOfProcessingThreads; thread++) {
 
+    // check if we use this thread
+    if(!idx.isOnGrid(job->thisNode, thread)) {
+      s->aggOut->push_back(nullptr);
+      continue;
+    }
+
     auto [x, y, z] = idx.get_coords(job->thisNode, thread);
     std::cout << "Outgoing x : " << x << " y : " << y << " z : " << z << '\n';
 
@@ -60,10 +66,16 @@ bool pdb::MM3DMultiplyStage::setup(const pdb::Handle<pdb::ExJob> &job,
     // set the task id
     connectionID->taskID = idx.getGlobal(x, y, z - 1);
 
+    // wait for a connection
+    auto conn = myMgr->waitForConnection(connectionID);
+    if(conn->isSocketClosed()) {
+      std::cout << "This is bad!\n";
+    }
+
+    conn->mark(connectionID->taskID);
+
     // connect to the node
-    s->aggOut->push_back(myMgr->connectTo(job->nodes[node]->address,
-                                          job->nodes[node]->backendPort,
-                                          connectionID));
+    s->aggOut->push_back(conn);
   }
 
   /// 2. Get the incoming connections to this node.
@@ -72,6 +84,12 @@ bool pdb::MM3DMultiplyStage::setup(const pdb::Handle<pdb::ExJob> &job,
   connectionID->taskID = AGG_TASK;
   s->aggIn = std::make_shared<std::vector<PDBCommunicatorPtr>>();
   for (int thread = 0; thread < job->numberOfProcessingThreads; thread++) {
+
+    // check if we use this thread
+    if(!idx.isOnGrid(job->thisNode, thread)) {
+      s->aggIn->push_back(nullptr);
+      continue;
+    }
 
     auto [x, y, z] = idx.get_coords(job->thisNode, thread);
     std::cout << "Incoming x : " << x << " y : " << y << " z : " << z << '\n';
@@ -98,8 +116,18 @@ bool pdb::MM3DMultiplyStage::setup(const pdb::Handle<pdb::ExJob> &job,
     // set the task id
     connectionID->taskID = idx.getGlobal(x, y, z);
 
+    auto conn = myMgr->connectTo(job->nodes[node]->address,
+                                 job->nodes[node]->backendPort,
+                                 connectionID);
+
+    conn->mark(connectionID->taskID);
+
+    if(conn->isSocketClosed()) {
+      std::cout << "This is bad!\n";
+    }
+
     // wait for the connection
-    s->aggIn->push_back(myMgr->waitForConnection(connectionID));
+    s->aggIn->push_back(conn);
 
     // check if the socket is open
     if (s->aggIn->back()->isSocketClosed()) {
@@ -191,6 +219,14 @@ bool pdb::MM3DMultiplyStage::run(const pdb::Handle<pdb::ExJob> &job,
     // make the work
     PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&, thread](const PDBBuzzerPtr& callerBuzzer) {
 
+      // check if we use this thread
+      if(!idx.isOnGrid(job->thisNode, thread)) {
+
+        // signal that the run was successful
+        callerBuzzer->buzz(PDBAlarm::WorkAllDone, multiplyDone);
+        return;
+      }
+
       auto [x, y, z] = idx.get_coords(nodeID, thread);
       cout << "X : " << x << " Y : " << y << " Z : " << z << "\n";
 
@@ -275,6 +311,14 @@ bool pdb::MM3DMultiplyStage::run(const pdb::Handle<pdb::ExJob> &job,
     // make the work
     PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&, thread](const PDBBuzzerPtr& callerBuzzer) {
 
+      // check if we use this thread
+      if(!idx.isOnGrid(job->thisNode, thread)) {
+
+        // signal that the run was successful
+        callerBuzzer->buzz(PDBAlarm::WorkAllDone, addDone);
+        return;
+      }
+
       // get my coordinates
       auto [x, y, z] = idx.get_coords(nodeID, thread);
 
@@ -324,7 +368,7 @@ bool pdb::MM3DMultiplyStage::run(const pdb::Handle<pdb::ExJob> &job,
         else {
 
           // get the right communicator
-          auto &comm = (*s->aggOut)[thread];
+          auto comm = (*s->aggOut)[thread];
 
           // set the record
           string error;
@@ -368,6 +412,14 @@ bool pdb::MM3DMultiplyStage::run(const pdb::Handle<pdb::ExJob> &job,
 
     // make the work
     PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&, thread](const PDBBuzzerPtr& callerBuzzer) {
+
+      // check if we use this thread
+      if(!idx.isOnGrid(job->thisNode, thread)) {
+
+        // signal that the run was successful
+        callerBuzzer->buzz(PDBAlarm::WorkAllDone, recvDone);
+        return;
+      }
 
       // get the communicator and check if need to recv something
       auto comm = (*s->aggIn)[thread];
