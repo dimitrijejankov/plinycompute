@@ -25,6 +25,8 @@ class MM3DMultiplyStage : public PDBPhysicalAlgorithmStage {
 
   MM3DIdx idx;
 
+  int AGG_TASK = 1;
+
   const static PDBSinkPageSetSpec *_sink;
   const static Vector<PDBSourceSpec> *_sources;
   const static String *_finalTupleSet;

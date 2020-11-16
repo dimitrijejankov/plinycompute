@@ -37,6 +37,17 @@ struct MM3DIdx {
     return {x, y, z};
   }
 
+  [[nodiscard]] int32_t getGlobal(int32_t x, int32_t y, int32_t z) const {
+
+    // get the side
+    int32_t side = cbrt(n);
+
+    // get the index
+    auto itd = x + side * (y + side * z);
+
+    return itd;
+  }
+
   [[nodiscard]] std::tuple<int32_t, int32_t> get(int32_t x, int32_t y, int32_t z) const {
 
     // get the side

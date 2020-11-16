@@ -31,6 +31,9 @@ struct MM3DState : public PDBPhysicalAlgorithmState {
 
   map<tuple<int32_t, int32_t>, TRABlock*> indexLHS;
   map<tuple<int32_t, int32_t>, TRABlock*> indexRHS;
+
+  shared_ptr<std::vector<PDBCommunicatorPtr>> aggOut;
+  shared_ptr<std::vector<PDBCommunicatorPtr>> aggIn;
 };
 
 }

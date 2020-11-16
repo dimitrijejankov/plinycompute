@@ -110,21 +110,20 @@ int main(int argc, char* argv[]) {
     // for allocations
     const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
-    pdbClient.mm3D(n, 2, 4);
-    pdbClient.materialize("myData", "C", "Final");
+    pdbClient.mm3D(n, 4, 2);
 
     // grab the iterator
-//    auto it = pdbClient.getSetIterator<TRABlock>("myData", "C");
-//    int32_t count = 0;
-//    while (it->hasNextRecord()) {
-//
-//        // grab the record
-//        auto r = it->getNextRecord();
-//        r->print();
-//        count++;
-//    }
-//
-//    std::cout << "Count " << count << '\n';
+    auto it = pdbClient.getSetIterator<TRABlock>("myData", "C");
+    int32_t count = 0;
+    while (it->hasNextRecord()) {
+
+        // grab the record
+        auto r = it->getNextRecord();
+        r->print();
+        count++;
+    }
+
+    std::cout << "Count " << count << '\n';
 
     // shutdown the server
     pdbClient.shutDownServer();
