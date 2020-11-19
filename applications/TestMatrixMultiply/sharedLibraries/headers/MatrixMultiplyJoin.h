@@ -1,7 +1,6 @@
 #pragma once
 
 #include <LambdaCreationFunctions.h>
-#include <mkl_cblas.h>
 #include "JoinComp.h"
 #include "MatrixBlock.h"
 
@@ -42,7 +41,14 @@ class MatrixMultiplyJoin : public JoinComp <MatrixMultiplyJoin, MatrixBlock, Mat
       float *in2Data = in2->data->c_ptr();
 
       // do the multiply
-      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, I, J, K, 1.0f, in1Data, K, in2Data, J, 0.0f, outData, J);
+        //TODO replace this with mkl
+        for (uint32_t i = 0; i < I; ++i) {
+            for (uint32_t j = 0; j < J; ++j) {
+                for (uint32_t k = 0; k < K; ++k) {
+                    outData[i * J + j] += in1Data[i * K + k] * in2Data[k * J + j];
+                }
+            }
+        }
 
       // return the output
       return out;

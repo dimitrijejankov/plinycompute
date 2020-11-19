@@ -13,6 +13,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/libraries")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/tools/cmake")
 set(CTEST_BINARY_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
+set (Boost_INCLUDE_DIR "/home/yuxin/Downloads/boost_1_66_0")
+set (Boost_LIBRARY_DIRS "/home/yuxin/Downloads/boost_1_66_0/stage/lib")
+
 # set the standard
 set(CMAKE_CXX_STANDARD 17)
 

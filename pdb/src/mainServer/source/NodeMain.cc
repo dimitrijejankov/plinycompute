@@ -63,13 +63,12 @@ int main(int argc, char *argv[]) {
   desc.add_options()("label,l", po::value<std::string>(&config->nodeLabel), "The label we assign to the node.");
   desc.add_options()("managerAddress,d", po::value<std::string>(&config->managerAddress)->default_value("localhost"), "IP of the manager");
   desc.add_options()("managerPort,o", po::value<int32_t>(&config->managerPort)->default_value(8108), "Port of the manager");
-  desc.add_options()("sharedMemSize,s", po::value<size_t>(&config->sharedMemSize)->default_value(2048), "The size of the shared memory (MB)");
+  desc.add_options()("sharedMemSize,s", po::value<size_t>(&config->sharedMemSize)->default_value(10240), "The size of the shared memory (MB)");
   desc.add_options()("pageSize,e", po::value<size_t>(&config->pageSize)->default_value(1024 * 1024 * 128), "The size of a page (bytes)");
   desc.add_options()("numThreads,t", po::value<int32_t>(&config->numThreads)->default_value(2), "The number of threads we want to use");
   desc.add_options()("rootDirectory,r", po::value<std::string>(&config->rootDirectory)->default_value("./pdbRoot"), "The root directory we want to use.");
   desc.add_options()("maxRetries", po::value<uint32_t>(&config->maxRetries)->default_value(5), "The maximum number of retries before we give up.");
   desc.add_options()("debugBufferManager", po::bool_switch(&config->debugBufferManager), "Whether we want to debug the buffer manager or not. (has to be compiled for that)");
-  desc.add_options()("removeConfig", po::bool_switch(&removeOld)->default_value(false), "Whether we want to remove the old configuration or not. Default is not, but the user will be prompted.");
 
   // grab the options
   po::variables_map vm;
@@ -84,52 +83,6 @@ int main(int argc, char *argv[]) {
 
   // create the root directory
   fs::path rootPath(config->rootDirectory);
-
-  // check if the root directory exists if it does then prompt the user if he wants to restore the old configuration
-  // or remove it if the used decides to do so
-  if(fs::exists(rootPath / "config.conf")) {
-
-    // should we remove the old configuration
-    if(removeOld) {
-
-      // remove the old config if so specified
-      fs::remove_all(rootPath);
-      std::cout << "Removed the old configuration\n";
-    }
-    else {
-
-      // prompt the user whether he wants to restore the old configuration
-      char answer = '\0';
-      while(answer != 'Y' && answer != 'N') {
-        std::cout << "Old configuration already found!\n"
-                     "You can remove it along with its storage or restore the old one.\n"
-                     "Do you want to discard the old configuration?: (Y/N) ";
-        std::cin >> answer;
-      }
-
-      // check our answer
-      if(answer == 'N') {
-
-        // open the config
-        std::filebuf fb;
-        fb.open (rootPath / "config.conf", std::ios::in);
-        std::istream is(&fb);
-
-        // read it and print it out so we know that we are doing
-        is >> *config;
-
-        // print the config we just loaded
-        std::cout << "Loaded the following configuration : ";
-        std::cout << *config << '\n';
-      }
-      else {
-
-        // remove the previous config
-        fs::remove_all(rootPath);
-        std::cout << "Removed the old configuration\n";
-      }
-    }
-  }
 
   // init other parameters
   config->catalogFile = fs::path(config->rootDirectory).append("/catalog").string();

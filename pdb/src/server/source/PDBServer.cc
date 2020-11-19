@@ -385,15 +385,6 @@ void PDBServer::startServer(const PDBWorkPtr& runMeAtStart) {
     functionality.second->cleanup();
   }
 
-  // write the configuration to disk
-  std::filebuf fb;
-  boost::filesystem::path rootPath(config->rootDirectory);
-  fb.open (rootPath / "config.conf", std::ios::out);
-  std::ostream os(&fb);
-
-  // write it out
-  os << *config;
-
   // the shutdown
   std::cout << "Shutdown Cleanly!\n";
 }

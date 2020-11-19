@@ -21,7 +21,7 @@
 #include "Object.h"
 #include "Handle.h"
 #include "PDBString.h"
-
+#include "PDBVector.h"
 // PRELOAD %StoMaterializePageSetResult%
 
 namespace pdb {
