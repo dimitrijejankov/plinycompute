@@ -1132,7 +1132,7 @@ bool CatalogServer::loadAndRegisterType(int16_t typeIDFromManagerCatalog, const 
     errMsg.append("\n");
 
     // log what happened
-    PDB_COUT << errMsg;
+    cout << errMsg;
 
     // close the damn thing
     dlclose(so_handle);

@@ -15,16 +15,15 @@ using namespace pdb::matrix;
 const size_t blockSize = 64;
 const uint32_t matrixRows = 16;
 const uint32_t matrixColumns = 16;
-const uint32_t numRows = 4;
-const uint32_t numCols = 4;
+const uint32_t split = 4;
 const bool doNotPrint = true;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
   // fill the vector up
   std::vector<std::pair<uint32_t, uint32_t>> tuplesToSend;
-  for (uint32_t r = 0; r < numRows; r++) {
-    for (uint32_t c = 0; c < numCols; c++) {
+  for (uint32_t r = 0; r < split; r++) {
+    for (uint32_t c = 0; c < split; c++) {
       tuplesToSend.emplace_back(std::make_pair(r, c));
     }
   }
@@ -46,12 +45,12 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
         // allocate a matrix
         Handle<TRABlock> myInt = makeObject<TRABlock>(tuplesToSend[i].first, tuplesToSend[i].second,
-                                                      matrixRows / numRows, matrixColumns / numCols);
+                                                      matrixRows / split, matrixColumns / split);
 
         // init the values
         float *vals = myInt->data->data->c_ptr();
-        for (int v = 0; v < (matrixRows / numRows) * (matrixColumns / numCols); ++v) {
-          vals[v] = 1.0f * v;
+        for (int v = 0; v < (matrixRows / split) * (matrixColumns / split); ++v) {
+          vals[v] = 1.0f;
         }
 
         // we add the matrix to the block
@@ -110,33 +109,9 @@ int main(int argc, char *argv[]) {
   initMatrix(pdbClient, "A");
   initMatrix(pdbClient, "B");
 
-  /// 4.1 Do the multiselection
-  {
-    const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
-
-    Handle<Computation> readA = makeObject<TensorScanner>("myData", "A");
-    Handle<Computation> duplicateA = makeObject<RMMDuplicateMultiSelection>(2,
-                                                                            numRows);
-    duplicateA->setInput(readA);
-    Handle<Computation> myWriter = makeObject<TensorWriter>("myData", "ARep");
-    myWriter->setInput(duplicateA);
-
-    pdbClient.executeComputations({myWriter});
-    pdbClient.createIndex("myData", "ARep");
-  }
-
-  {
-    const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
-
-    Handle<Computation> readA = makeObject<TensorScanner>("myData", "B");
-    Handle<Computation> duplicateB = makeObject<RMMDuplicateMultiSelection>(0, numRows);
-    duplicateB->setInput(readA);
-    Handle<Computation> myWriter = makeObject<TensorWriter>("myData", "BRep");
-    myWriter->setInput(duplicateB);
-
-    pdbClient.executeComputations({myWriter});
-    pdbClient.createIndex("myData", "BRep");
-  }
+  // you have to do this to reference a page set in the TRA interface
+  pdbClient.createIndex("myData", "A");
+  pdbClient.createIndex("myData", "B");
 
   /// 4. Make query graph an run query
 
@@ -153,14 +128,14 @@ int main(int argc, char *argv[]) {
   Handle<Computation> myWriter = makeObject<TensorWriter>("myData", "C");
   myWriter->setInput(myAggregation);
 
-  //Todo: we should shuffle the output of multi-selection, how to do that?
-  pdbClient.shuffle("myData:ARep", {0, 1, 2}, "AShuffled");
-  pdbClient.shuffle("myData:BRep", {0, 1, 2}, "BShuffled");
+  // Todo: we should shuffle the output of multi-selection, how to do that?
+  pdbClient.shuffleReplicate("myData:A", 2, split, {0, 1, 2}, "AShuffled");
+  pdbClient.shuffleReplicate("myData:B", 0, split, {0, 1, 2}, "BShuffled");
   pdbClient.localJoin("AShuffled", {0, 1, 2}, "BShuffled", {0, 1, 2}, {myWriter}, "ABJoined",
                       "OutForJoinedFor_equals_0JoinComp2", "OutFor_joinRec_5JoinComp2");
   pdbClient.localAggregation("ABJoined", {0, 2}, "ABLocalAggregated");
-  pdbClient.shuffle("ABLocalAggregated", {0, 2}, "ABLocalAggregatedShuffled");
-  pdbClient.localAggregation("ABLocalAggregatedShuffled", {0, 2}, "Final");
+  pdbClient.shuffle("ABLocalAggregated", {0, 1}, "ABLocalAggregatedShuffled");
+  pdbClient.localAggregation("ABLocalAggregatedShuffled", {0, 1}, "Final");
   pdbClient.materialize("myData", "C", "Final");
 
   // grab the iterator
