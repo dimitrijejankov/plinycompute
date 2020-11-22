@@ -12,18 +12,27 @@ using namespace pdb::matrix;
 
 // some constants for the test
 const size_t blockSize = 64;
-const uint32_t matrixRows = 40;
-const uint32_t matrixColumns = 40;
-const uint32_t numRows = 4;
-const uint32_t numCols = 4;
+const uint32_t n = 80;
+const uint32_t m = 80;
+const uint32_t k = 10;
+
+const uint32_t n_block = 10;
+const uint32_t m_block = 10;
+const uint32_t k_block = 10;
+
 const bool doNotPrint = true;
 
-void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
+void initMatrix(pdb::PDBClient &pdbClient, const std::string &set,
+                int rows, int cols, int row_block, int col_block) {
+
+  // figure out the number of blocks
+  int numRowsBlocks = rows / row_block;
+  int numColsBlocks = cols / col_block;
 
   // fill the vector up
   std::vector<std::pair<uint32_t, uint32_t>> tuplesToSend;
-  for (uint32_t r = 0; r < numRows; r++) {
-    for (uint32_t c = 0; c < numCols; c++) {
+  for (uint32_t r = 0; r < numRowsBlocks; r++) {
+    for (uint32_t c = 0; c < numColsBlocks; c++) {
       tuplesToSend.emplace_back(std::make_pair(r, c));
     }
   }
@@ -45,11 +54,11 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
         // allocate a matrix
         Handle<TRABlock> myInt = makeObject<TRABlock>(tuplesToSend[i].first, tuplesToSend[i].second, 0,
-                                                      matrixRows / numRows, matrixColumns / numCols, 1);
+                                                      row_block, col_block, 1);
 
         // init the values
         float *vals = myInt->data->data->c_ptr();
-        for (int v = 0; v < (matrixRows / numRows) * (matrixColumns / numCols); ++v) {
+        for (int v = 0; v < row_block * col_block; ++v) {
           vals[v] = 1.0f;
         }
 
@@ -103,8 +112,8 @@ int main(int argc, char* argv[]) {
 
   /// 3. Fill in the data (single threaded)
 
-  initMatrix(pdbClient, "A");
-  initMatrix(pdbClient, "B");
+  initMatrix(pdbClient, "A", n, k, n_block, k_block);
+  initMatrix(pdbClient, "B", k, m, k_block, m_block);
 
   // you have to do this to reference a page set in the TRA interface
   pdbClient.createIndex("myData", "A");
