@@ -7,6 +7,9 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
     set(CMAKE_CXX_FLAGS "-wd873,2196")
 endif()
 
+set(CMAKE_CUDA_COMPILER "/usr/local/cuda-10.2/bin/nvcc")
+set(CMAKE_CUDA_FLAGS "-arch=sm_75")
+
 # set the output directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  "${PROJECT_SOURCE_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/libraries")
@@ -15,6 +18,11 @@ set(CTEST_BINARY_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
 set (Boost_INCLUDE_DIR "/home/yuxin/Downloads/boost_1_66_0")
 set (Boost_LIBRARY_DIRS "/home/yuxin/Downloads/boost_1_66_0/stage/lib")
+
+set (CUDA_INCLUDE_DIR "/usr/local/cuda/include")
+set (CUDA_HELPER_INCLUDE_DIR "/usr/local/cuda/samples/common/inc")
+set (CUDA_BLAS_LIB "/usr/lib/x86_64-linux-gnu/libcublas.so")
+set (CUDA_DART_LIB "/usr/local/cuda-10.2/lib64/libcudart.so")
 
 # set the standard
 set(CMAKE_CXX_STANDARD 17)
@@ -113,6 +121,11 @@ include_directories("${PROJECT_SOURCE_DIR}/pdb/src/serverFunctionalities/headers
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/sharedLibraries/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/storageManager/headers")
 include_directories("${PROJECT_SOURCE_DIR}/pdb/src/work/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/cuda/headers")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/cuda/headers/operators")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/cuda/headers/storage")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/cuda/headers/stream")
+include_directories("${PROJECT_SOURCE_DIR}/pdb/src/cuda/headers/utility")
 
 # add the third party libraries as includes
 include_directories("${PROJECT_SOURCE_DIR}/third-party/mustache/headers")
@@ -142,6 +155,11 @@ file(GLOB COMPUTATION_SERVER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/computationSe
                                     "${PROJECT_SOURCE_DIR}/pdb/src/computationServer/sources/physicalOptimizer/*.cc")
 file(GLOB EXECUTION_SERVER_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/executionServer/sources/*.cc"
                                   "${PROJECT_SOURCE_DIR}/pdb/src/executionServer/sources/physicalAlgorithms/*.cc")
+
+file(GLOB CUDA_SOURCE "${PROJECT_SOURCE_DIR}/pdb/src/cuda/source/*/*.cu"
+        "${PROJECT_SOURCE_DIR}/pdb/src/cuda/source/*/*.cc"
+        "${PROJECT_SOURCE_DIR}/pdb/src/cuda/source/*.cu"
+        "${PROJECT_SOURCE_DIR}/pdb/src/cuda/source/*.cc")
 
 set(SOURCE_FILES_SQL_LITE ${PROJECT_SOURCE_DIR}/third-party/sqlite/source/sqlite3.c)
 
@@ -334,6 +352,13 @@ target_link_libraries(pdb-tests-common PRIVATE ${Boost_LIBRARIES})
 # form the parsers for the logical plan
 add_library(logical-plan-parser OBJECT ${LogicalPlanFlexOutput} ${LogicalPlanParserOutput})
 
+
+include_directories(${CUDA_INCLUDE_DIR})
+include_directories(${CUDA_HELPER_INCLUDE_DIR})
+enable_language("CUDA")
+add_library(pdb-gpu SHARED ${CUDA_SOURCE})
+
+
 # check if the target is unit tests
 if(CMAKE_BUILD_TYPE MATCHES UNIT_TESTS)
 
@@ -369,6 +394,11 @@ else()
 
     # include tests that are in applications directory
     include(applications/Applications.cmake)
+
+    add_dependencies(pdb-node pdb-gpu)
+    target_link_libraries(pdb-node pdb-gpu)
+    target_link_libraries(pdb-node ${CUDA_BLAS_LIB})
+    target_link_libraries(pdb-node ${CUDA_DART_LIB})
 
 endif()
 

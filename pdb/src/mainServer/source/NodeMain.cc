@@ -31,6 +31,10 @@
 #include <PDBStorageManager.h>
 #include <PDBComputationServer.h>
 #include <ExecutionServer.h>
+#include <storage/PDBCUDAMemoryManager.h>
+#include <storage/PDBCUDAStaticStorage.h>
+#include <storage/PDBCUDADynamicStorage.h>
+#include <stream/PDBCUDAStreamManager.h>
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
@@ -43,6 +47,36 @@ pdb::PDBServerPtr server = nullptr;
 static void sig_stop(int signum) {
   server->stop();
 }
+
+
+void setGPUMemoryManager(void ** gpuMgr, pdb::PDBBufferManagerInterfacePtr myMgr, bool isManager){
+    if (isManager) return;
+    PDBCUDAMemoryManager* tmp = new PDBCUDAMemoryManager(myMgr);
+    *gpuMgr = static_cast<void*>(tmp);
+}
+
+void setGPUStreamManager(void ** streamMgr, bool isManager){
+    if (isManager) return;
+    PDBCUDAStreamManager * tmp = new PDBCUDAStreamManager();
+    *streamMgr = static_cast<void*>(tmp);
+}
+
+void setGPUStaticStorage(void** staticStorage, bool isManager){
+    if (isManager) return;
+    PDBCUDAStaticStorage* tmp = new PDBCUDAStaticStorage();
+    *staticStorage = static_cast<void*>(tmp);
+}
+
+void setGPUDynamicStorage(void** dynamicStorage, bool isManager){
+    if (isManager) return;
+    PDBCUDADynamicStorage* tmp = new PDBCUDADynamicStorage();
+    *dynamicStorage = static_cast<void*>(tmp);
+}
+
+extern void* gpuMemoryManager;
+extern void* gpuStreamManager;
+extern void* gpuStaticStorage;
+extern void* gpuDynamicStorage;
 
 int main(int argc, char *argv[]) {
 
@@ -134,6 +168,11 @@ int main(int argc, char *argv[]) {
   memset(&action, 0, sizeof(action));
   action.sa_handler = sig_stop;
   sigaction(SIGTERM, &action, nullptr);
+
+  setGPUMemoryManager(&gpuMemoryManager, server->getFunctionalityPtr<PDBBufferManagerInterface>(),config->isManager);
+  setGPUStreamManager(&gpuStreamManager, config->isManager);
+  setGPUStaticStorage(&gpuStaticStorage, config->isManager);
+  setGPUDynamicStorage(&gpuDynamicStorage, config->isManager);
 
   // start the server
   server->startServer(make_shared<pdb::GenericWork>([&](const PDBBuzzerPtr& callerBuzzer) {

@@ -42,7 +42,6 @@ class JoinAggSource : public ComputeSource {
 
     // did we manage to process the input
     if (!policy.inputWasProcessed() && output != nullptr) {
-
         // rollback the records
         currentRecord -= lhsColumn->size();
     }

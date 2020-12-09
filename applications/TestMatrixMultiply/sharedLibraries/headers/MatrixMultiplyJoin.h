@@ -1,6 +1,8 @@
 #pragma once
 
 #include <LambdaCreationFunctions.h>
+#include <operators/PDBCUDAOpType.h>
+#include <PDBCUDAGPUInvoke.h>
 #include "JoinComp.h"
 #include "MatrixBlock.h"
 
@@ -34,27 +36,15 @@ class MatrixMultiplyJoin : public JoinComp <MatrixMultiplyJoin, MatrixBlock, Mat
 
       // make an output
       Handle<MatrixBlockData> out = makeObject<MatrixBlockData>(I, J);
-      
-      // get the ptrs
-      float *outData = out->data->c_ptr();
-      float *in1Data = in1->data->c_ptr();
-      float *in2Data = in2->data->c_ptr();
 
-      // do the multiply
-        //TODO replace this with mkl
-        for (uint32_t i = 0; i < I; ++i) {
-            for (uint32_t j = 0; j < J; ++j) {
-                for (uint32_t k = 0; k < K; ++k) {
-                    outData[i * J + j] += in1Data[i * K + k] * in2Data[k * J + j];
-                }
-            }
-        }
-
+      vector<size_t> outdim = {I,J};
+      vector<size_t> in1dim = {I,K};
+      vector<size_t> in2dim = {K,J};
+      pdb::PDBCUDAOpType op = pdb::PDBCUDAOpType::MatrixMultiple;
+      GPUInvoke(op, out->data, outdim, in1->data, in1dim, in2->data, in2dim);
       // return the output
       return out;
     });
   }
 };
-
-
 }

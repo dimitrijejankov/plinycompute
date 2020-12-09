@@ -17,9 +17,7 @@
 
 #include <fcntl.h>
 #include <iostream>
-#include <sstream>
 #include <sys/types.h>
-#include <sys/uio.h>
 #include <unistd.h>
 #include <utility>
 #include <stdio.h>
@@ -88,6 +86,28 @@ size_t PDBBufferManagerImpl::getMaxPageSize() {
   }
 
   return sharedMemory.pageSize;
+}
+
+PDBPagePtr PDBBufferManagerImpl::getPageForObject(void *objectAddress) {
+        void* startSharedMem = (void*)sharedMemory.memory;
+        void* endSharedMem = (void*)((char*)sharedMemory.memory + sharedMemory.numPages * sharedMemory.pageSize);
+        void *memLoc = (char *) sharedMemory.memory
+                   + ((((char *)objectAddress - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+
+        if (objectAddress < startSharedMem || objectAddress > endSharedMem){
+            std::cerr << objectAddress << " is not in the range of shared memory. range start: " << startSharedMem << " end: " << endSharedMem << "\n";
+            exit(-1);
+        }
+        for (const auto& miniPage: constituentPages[memLoc]){
+            char* start = (char*)miniPage->getBytes();
+            char* end = start + miniPage->getSize();
+            if (objectAddress >= start && objectAddress < end) {
+                return miniPage;
+            }
+        }
+        std::cerr << "GetPageForObject: cannot find page for this object \n";
+        std::cerr << "GetPageForObject: object address is: " << objectAddress << '\n';
+        exit(-1);
 }
 
 
@@ -196,6 +216,7 @@ void PDBBufferManagerImpl::initialize(const std::string& meta) {
   sharedMemory.numPages = utemp;
   myMetaFile.getString("tempFile", tempFile);
   myMetaFile.getString("storageLoc", storageLoc);
+
   initialize(tempFile, sharedMemory.pageSize, sharedMemory.numPages, meta, storageLoc);
 
   // now, get everything that we need for the end positions
@@ -257,11 +278,9 @@ void PDBBufferManagerImpl::initialize(const std::string& tempFileIn, size_t page
   for (curSize = MIN_PAGE_SIZE; curSize <= sharedMemory.pageSize; curSize *= 2) {
     vector<int64_t> temp;
     vector<void *> tempAgain;
-
     availablePositions.push_back(temp);
     emptyMiniPages.push_back(tempAgain);
     isCreatingSpace.push_back(false);
-
     logOfPageSize++;
   }
 

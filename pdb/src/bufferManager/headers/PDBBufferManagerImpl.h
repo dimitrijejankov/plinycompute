@@ -156,6 +156,15 @@ class PDBBufferManagerImpl : public PDBBufferManagerInterface {
   size_t getMaxPageSize() override;
 
   /**
+    * Get the right page info from BufferManager.
+    * This object is on the page ( start address < objectAddress < start address + numBytes ).
+    * @param objectAddress - the physical address of one object
+    * @return - a PagePtr to this page containing the object
+   */
+  PDBPagePtr getPageForObject(void* objectAddress) override;
+
+
+  /**
    * the storage manager does not have any handlers
    * @param forMe - this is a reference to the PDBServer for which we want to register the handles for
    */
@@ -371,8 +380,8 @@ protected:
   map<void *, vector<PDBPagePtr>> constituentPages;
 
   /**
-   * all of the locations from which we are currently allocating minipages.  The first
-   * entry in this vector is used to allocated minipages of size MIN_PAGE_SIZE, the
+   * All of the locations from which we are currently allocating mini-Pages.  The first
+   * entry in this vector is used to allocated miniPages of size MIN_PAGE_SIZE, the
    * second minipages of size MIN_PAGE_SIZE * 2, and so on.  Each entry in the vector
    * is a pair containing a pointer to the full page that is being used to allocate
    * minipages, and a pointer to the next slot that we'll allocate from on the minipage

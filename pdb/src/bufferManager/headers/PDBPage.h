@@ -29,7 +29,6 @@ struct PDBPageInfo {
 };
 
 enum PDBPageStatus {
-
   PDB_PAGE_LOADING,
   PDB_PAGE_LOADED,
   PDB_PAGE_UNLOADING,
