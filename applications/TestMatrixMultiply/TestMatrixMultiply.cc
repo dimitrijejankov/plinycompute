@@ -11,12 +11,12 @@ using namespace pdb;
 using namespace pdb::matrix;
 
 // some constants for the test
-const size_t blockSize = 64;
-const uint32_t matrixRows = 400;
-const uint32_t matrixColumns = 400;
-const uint32_t numRows = 40;
-const uint32_t numCols = 40;
-const bool doNotPrint = true;
+const size_t blockSize = 256;
+const uint32_t matrixRows = 10000;
+const uint32_t matrixColumns = 10000;
+const uint32_t numRows = 100;
+const uint32_t numCols = 100;
+const bool doNotPrint = false;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 

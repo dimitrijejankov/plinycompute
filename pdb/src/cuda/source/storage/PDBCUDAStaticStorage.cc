@@ -22,12 +22,13 @@ namespace pdb{
     pair<void*, size_t> PDBCUDAStaticStorage::getCPUPageFromObjectAddress(void* objectAddress) {
         // objectAddress must be a CPU RAM Pointer
         assert(isDevicePointer(objectAddress) == 0);
-        pdb::PDBPagePtr whichPage = static_cast<PDBCUDAMemoryManager*>(gpuMemoryManager)->getCPUBufferManagerInterface()->getPageForObject(objectAddress);
+        pdb::PDBPagePtr whichPage = static_cast<PDBCUDAMemoryManager *>(gpuMemoryManager)->getCPUBufferManagerInterface()->getPageForGPUObject(
+                objectAddress);
         if (whichPage == nullptr) {
             std::cout << "getObjectCPUPage: cannot get page for this object!\n";
             exit(-1);
         }
-        void *pageAddress = whichPage->getBytes();
+        void* pageAddress = whichPage->getBytes();
         size_t pageBytes = whichPage->getSize();
         auto pageInfo = std::make_pair(pageAddress, pageBytes);
         return pageInfo;
@@ -36,7 +37,6 @@ namespace pdb{
 
     PDBCUDAPage* PDBCUDAStaticStorage::getGPUPageFromCPUPage(const pair<void*, size_t>& pageInfo, page_id_t* gpuPageID){
         //TODO: We should change the mutex to a ReadWrite Lock
-
         std::lock_guard<std::mutex> guard(pageMapLatch);
         if (pageMap.find(pageInfo) != pageMap.end()){
             // return false means the GPU page is already created.

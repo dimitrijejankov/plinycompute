@@ -161,8 +161,12 @@ class PDBBufferManagerImpl : public PDBBufferManagerInterface {
     * @param objectAddress - the physical address of one object
     * @return - a PagePtr to this page containing the object
    */
-  PDBPagePtr getPageForObject(void* objectAddress) override;
+  PDBPagePtr getPageForGPUObject(void* objectAddress) override;
 
+  /**
+   * remove a page from GPU page table.
+   */
+  void removeGPUPage(PDBPagePtr whichPage) override;
 
   /**
    * the storage manager does not have any handlers

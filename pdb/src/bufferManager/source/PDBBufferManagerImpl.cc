@@ -26,7 +26,13 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <PDBBufferManagerImpl.h>
+#include <storage/PDBCUDAMemoryManager.h>
+#include <storage/PDBCUDAStaticStorage.h>
 
+extern void* gpuMemoryManager;
+extern void* gpuStreamManager;
+extern void* gpuStaticStorage;
+extern void* gpuDynamicStorage;
 namespace pdb {
 
 namespace fs = boost::filesystem;
@@ -88,7 +94,7 @@ size_t PDBBufferManagerImpl::getMaxPageSize() {
   return sharedMemory.pageSize;
 }
 
-PDBPagePtr PDBBufferManagerImpl::getPageForObject(void *objectAddress) {
+PDBPagePtr PDBBufferManagerImpl::getPageForGPUObject(void *objectAddress) {
         void* startSharedMem = (void*)sharedMemory.memory;
         void* endSharedMem = (void*)((char*)sharedMemory.memory + sharedMemory.numPages * sharedMemory.pageSize);
         void *memLoc = (char *) sharedMemory.memory
@@ -110,6 +116,15 @@ PDBPagePtr PDBBufferManagerImpl::getPageForObject(void *objectAddress) {
         exit(-1);
 }
 
+void PDBBufferManagerImpl::removeGPUPage(PDBPagePtr whichPage) {
+     void* pageBytes = whichPage->getBytes();
+     size_t pageSize = whichPage->getSize();
+     auto pageInfo = std::pair<void*, size_t>(pageBytes, pageSize);
+     auto& pageMap = ((PDBCUDAStaticStorage*)gpuStaticStorage)->pageMap;
+     if (pageMap.find(pageInfo) != pageMap.end()) {
+         pageMap.erase(pageInfo);
+     }
+}
 
 void PDBBufferManagerImpl::cleanup() {
 

@@ -98,7 +98,9 @@ public:
   // gets a temporary page that is at least minBytes in size
   virtual PDBPageHandle getPage (size_t minBytes) = 0;
 
-  virtual PDBPagePtr getPageForObject(void* objectAddress) = 0;
+  virtual PDBPagePtr getPageForGPUObject(void* objectAddress) = 0;
+
+  virtual void removeGPUPage(PDBPagePtr whichPage) = 0;
 
   // clears the set, removing all the pages
   virtual void clearSet(const PDBSetPtr &set) = 0;
