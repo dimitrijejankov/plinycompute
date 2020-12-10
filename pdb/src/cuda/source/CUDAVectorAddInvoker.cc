@@ -1,6 +1,6 @@
 #include <assert.h>
-#include "operators/PDBCUDAVectorAddInvoker.h"
-#include "stream/PDBCUDAStreamManager.h"
+#include "CUDAVectorAddInvoker.h"
+#include "CUDAStreamManager.h"
 
 extern void* gpuMemoryManager;
 extern void* gpuStreamManager;
@@ -9,11 +9,11 @@ extern void* gpuDynamicStorage;
 extern std::atomic<int> debugger;
 
 namespace pdb {
-    PDBCUDAVectorAddInvoker::PDBCUDAVectorAddInvoker() {
+    CUDAVectorAddInvoker::CUDAVectorAddInvoker() {
 
-        sstore_instance = static_cast<PDBCUDAStaticStorage*>(gpuStaticStorage);
-        memmgr_instance = static_cast<PDBCUDAMemoryManager*>(gpuMemoryManager);
-        stream_instance = static_cast<PDBCUDAStreamManager*>(gpuStreamManager);
+        sstore_instance = static_cast<CUDAStaticStorage*>(gpuStaticStorage);
+        memmgr_instance = static_cast<CUDAMemoryManager*>(gpuMemoryManager);
+        stream_instance = static_cast<CUDAStreamManager*>(gpuStreamManager);
 
         PDBCUDAStreamUtils util = stream_instance->bindCPUThreadToStream();
 
@@ -21,7 +21,7 @@ namespace pdb {
         cudaHandle = util.second;
     }
 
-    PDBCUDAVectorAddInvoker::~PDBCUDAVectorAddInvoker() {
+    CUDAVectorAddInvoker::~CUDAVectorAddInvoker() {
 
         for (auto pageID : inputPages){
             memmgr_instance->UnpinPageImpl(pageID.first,true);
@@ -31,7 +31,7 @@ namespace pdb {
         }
     }
 
-    bool PDBCUDAVectorAddInvoker::invoke() {
+    bool CUDAVectorAddInvoker::invoke() {
         kernel(outputArguments.first, inputArguments[0].first, inputArguments[0].second[0]);
         return true;
     }
@@ -43,7 +43,7 @@ namespace pdb {
      * @param in1data
      * @param N
      */
-    void PDBCUDAVectorAddInvoker::kernel(float *in1data, float *in2data, size_t N) {
+    void CUDAVectorAddInvoker::kernel(float *in1data, float *in2data, size_t N) {
         const float alpha = 1.0;
         cublasErrCheck(cublasSaxpy(cudaHandle, N, &alpha, in2data, 1, in1data, 1));
         //TODO:
@@ -54,7 +54,7 @@ namespace pdb {
         }
     }
 
-    void PDBCUDAVectorAddInvoker::setInput(float *input, const std::vector<size_t> &inputDim) {
+    void CUDAVectorAddInvoker::setInput(float *input, const std::vector<size_t> &inputDim) {
 
         int isDevice = isDevicePointer((void *) input);
         if (isDevice) {
@@ -67,7 +67,7 @@ namespace pdb {
 
         page_id_t  cudaPageID;
         // get GPU page based on CPU page information
-        PDBCUDAPage* cudaPage = sstore_instance->getGPUPageFromCPUPage(cpuPageInfo, &cudaPageID);
+        CUDAPage* cudaPage = sstore_instance->getGPUPageFromCPUPage(cpuPageInfo, &cudaPageID);
 
         // fetch GPU page
         // if page is never written, move the content from CPU page to GPU page.
@@ -85,13 +85,13 @@ namespace pdb {
         inputPages.push_back(std::make_pair(cudaPageID, cpuPageInfo.second));
     }
 
-    // std::shared_ptr<pdb::RamPointerBase> PDBCUDAVectorAddInvoker::LazyAllocationHandler(void* pointer, size_t size){
-    //    pair<void *, size_t> PageInfo = (static_cast<PDBCUDAMemoryManager *>(gpuMemoryManager))->getObjectCPUPage(
+    // std::shared_ptr<pdb::RamPointerBase> CUDAVectorAddInvoker::LazyAllocationHandler(void* pointer, size_t size){
+    //    pair<void *, size_t> PageInfo = (static_cast<CUDAMemoryManager *>(gpuMemoryManager))->getObjectCPUPage(
     //            (void *) pointer);
-    //    return (static_cast<PDBCUDAMemoryManager *>(gpuMemoryManager))->handleInputObjectWithRamPointer(PageInfo, (void*)pointer, size, cudaStream);
+    //    return (static_cast<CUDAMemoryManager *>(gpuMemoryManager))->handleInputObjectWithRamPointer(PageInfo, (void*)pointer, size, cudaStream);
     // }
 
-    void PDBCUDAVectorAddInvoker::setOutput(float *output, const std::vector<size_t> & outputDim) {
+    void CUDAVectorAddInvoker::setOutput(float *output, const std::vector<size_t> & outputDim) {
 
         debugger = debugger+1;
 
@@ -106,7 +106,7 @@ namespace pdb {
 
         page_id_t cudaPageID;
 
-        PDBCUDAPage* cudaPage = sstore_instance->getGPUPageFromCPUPage(cpuPageInfo, &cudaPageID);
+        CUDAPage* cudaPage = sstore_instance->getGPUPageFromCPUPage(cpuPageInfo, &cudaPageID);
 
         void* cudaObjectPointer = static_cast<char*>(cudaPage->getBytes()) + sstore_instance->getObjectOffsetWithCPUPage(cpuPageInfo.first, output);
 

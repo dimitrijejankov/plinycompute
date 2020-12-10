@@ -2,7 +2,7 @@
 #define PDB_CUDA_PAGE
 
 #include <cstdint>
-#include <PDBCUDAConfig.h>
+#include <CUDAConfig.h>
 #include <cuda_runtime.h>
 
 namespace pdb{
@@ -17,13 +17,13 @@ namespace pdb{
         DYNAMIC_PAGE
     };
 
-    class PDBCUDAPage{
+    class CUDAPage{
 
     public:
 
-        PDBCUDAPage() = default;
+        CUDAPage() = default;
 
-        ~PDBCUDAPage(){
+        ~CUDAPage(){
             cudaFree(data);
         }
 

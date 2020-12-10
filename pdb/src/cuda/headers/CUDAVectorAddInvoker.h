@@ -6,22 +6,22 @@
 #include "PDBVector.h"
 #include <functional>
 #include <numeric>
-#include "utility/PDBCUDAUtility.h"
-#include "PDBCUDAOpType.h"
-#include "PDBCUDAOpInvoker.h"
-#include "storage/PDBCUDAStaticStorage.h"
-#include "stream/PDBCUDAStreamManager.h"
+#include "CUDAUtility.h"
+#include "CUDAOpType.h"
+#include "CUDAOpInvoker.h"
+#include "CUDAStaticStorage.h"
+#include "CUDAStreamManager.h"
 
 namespace pdb {
 
     // simply support vector-add operation and vector-add kernel for GPU
-    class PDBCUDAVectorAddInvoker : public PDBCUDAInvoker {
+    class CUDAVectorAddInvoker : public PDBCUDAInvoker {
 
     public:
 
-        PDBCUDAVectorAddInvoker();
+        CUDAVectorAddInvoker();
 
-        ~PDBCUDAVectorAddInvoker();
+        ~CUDAVectorAddInvoker();
 
         bool invoke();
 
@@ -52,9 +52,9 @@ namespace pdb {
 
         PDBCUDAOpType op = PDBCUDAOpType::VectorAdd;
 
-        PDBCUDAStreamManager* stream_instance;
-        PDBCUDAStaticStorage* sstore_instance;
-        PDBCUDAMemoryManager* memmgr_instance;
+        CUDAStreamManager* stream_instance;
+        CUDAStaticStorage* sstore_instance;
+        CUDAMemoryManager* memmgr_instance;
     };
 
 }

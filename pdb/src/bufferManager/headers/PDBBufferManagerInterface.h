@@ -3,6 +3,7 @@
 #ifndef STORAGE_MGR_IFC_H
 #define STORAGE_MGR_IFC_H
 
+#include <CUDAConfig.h>
 #include "PDBPage.h"
 #include "PDBPageHandle.h"
 #include "PDBSet.h"
@@ -98,7 +99,7 @@ public:
   // gets a temporary page that is at least minBytes in size
   virtual PDBPageHandle getPage (size_t minBytes) = 0;
 
-  virtual PDBPagePtr getPageForGPUObject(void* objectAddress) = 0;
+  virtual void getPageForGPUObject(void *objectAddress, GPUID gpu_id) = 0;
 
   virtual void removeGPUPage(PDBPagePtr whichPage) = 0;
 

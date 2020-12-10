@@ -380,18 +380,18 @@ TEST(BufferManagerTest, Test7) {
   const int numPages = 20;
   const int numThreads = 4;
 
+  std::vector<std::thread> threads;
+  threads.reserve(numThreads);
+
   // generate the pages
   PDBSetPtr set = make_shared<PDBSet>("DB", "set1");
   for(uint64_t i = 0; i < numPages; ++i) {
-
     // grab the page
     auto page = myMgr.getPage(set, i);
-
     for(int t = 0; t < numThreads; ++t) {
       // set the first 4 bytes to 0
       ((int *) page->getBytes())[t] = 0;
     }
-
     // mark as dirty
     page->setDirty();
   }
@@ -399,10 +399,7 @@ TEST(BufferManagerTest, Test7) {
   std::atomic<std::int32_t> sync;
   sync = 0;
 
-  std::vector<std::thread> threads;
-  threads.reserve(numThreads);
   for(int t = 0; t < numThreads; ++t) {
-
     threads.emplace_back(std::thread([&](int tmp) {
 
       int myThraed = tmp;
@@ -440,12 +437,9 @@ TEST(BufferManagerTest, Test7) {
   }
 
   for(uint64_t i = 0; i < numPages; ++i) {
-
     // the page
     auto page = myMgr.getPage(set, i);
-
     for(int t = 0; t < numThreads; ++t) {
-
       // check them
       EXPECT_EQ (((int*) page->getBytes())[t], numRequestsPerPage);
     }
@@ -1318,11 +1312,9 @@ TEST(BufferManagerTest, Test16) {
 TEST(BufferManagerTest, Test17) {
 
   const int32_t numThreads = 10;
-
   // create the buffer manager
   PDBBufferManagerImpl myMgr;
   myMgr.initialize("tempDSFSD", 64, 16, "metadata", ".");
-
   std::vector<std::vector<PDBPageHandle>> pages;
   pages.resize(numThreads);
   std::vector<std::thread> threads;
@@ -1460,29 +1452,23 @@ TEST(BufferManagerTest, Test18) {
             page1->repin();
             memset(page1->getBytes(), 'a', 16);
             page1->unpin();
-
             PDBPageHandle page2 = myMgr.getPage(16);
             memset(page2->getBytes(), 'a', 16);
             page2->unpin();
-
             dump.emplace_back(page1);
             dump.emplace_back(page2);
           }
-
           for(const auto& page : dump) {
             page->repin();
             memset(page->getBytes(), 'a', page->getSize());
             page->unpin();
           }
-
         }
       }));
     }
-
     for(auto &t : threads) {
       t.join();
     }
-
     threads.clear();
   }
 

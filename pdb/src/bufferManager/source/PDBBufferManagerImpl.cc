@@ -26,8 +26,9 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <PDBBufferManagerImpl.h>
-#include <storage/PDBCUDAMemoryManager.h>
-#include <storage/PDBCUDAStaticStorage.h>
+#include <CUDAMemoryManager.h>
+#include <CUDAStaticStorage.h>
+
 
 extern void* gpuMemoryManager;
 extern void* gpuStreamManager;
@@ -94,36 +95,51 @@ size_t PDBBufferManagerImpl::getMaxPageSize() {
   return sharedMemory.pageSize;
 }
 
-PDBPagePtr PDBBufferManagerImpl::getPageForGPUObject(void *objectAddress) {
+void PDBBufferManagerImpl::getPageForGPUObject(void *objectAddress, GPUID gpu_id) {
         void* startSharedMem = (void*)sharedMemory.memory;
         void* endSharedMem = (void*)((char*)sharedMemory.memory + sharedMemory.numPages * sharedMemory.pageSize);
-        void *memLoc = (char *) sharedMemory.memory
-                   + ((((char *)objectAddress - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
-
         if (objectAddress < startSharedMem || objectAddress > endSharedMem){
             std::cerr << objectAddress << " is not in the range of shared memory. range start: " << startSharedMem << " end: " << endSharedMem << "\n";
             exit(-1);
         }
+
+        void *memLoc = (char *) sharedMemory.memory
+                   + ((((char *)objectAddress - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
+        size_t memSize = sharedMemory.pageSize;
+
+        auto identifier = std::make_pair(memLoc, gpu_id);
+        if (pageGPUIDMapping.find(identifier) != pageGPUIDMapping.end()){
+
+        } else {
+            GPUPageID newPageID;
+            CUDAPage* cudaPage = ((CUDAMemoryManager*)gpuMemoryManager)->NewPageImpl(&newPageID);
+
+        }
+
+
+        ((CUDAMemoryManager*)gpuMemoryManager)->NewPageImpl()
+        /* Temporarily disable the mini page optimization for page moving.
+        * Move a whole page.
         for (const auto& miniPage: constituentPages[memLoc]){
             char* start = (char*)miniPage->getBytes();
             char* end = start + miniPage->getSize();
-            if (objectAddress >= start && objectAddress < end) {
-                return miniPage;
-            }
+        if (objectAddress >= start && objectAddress < end) {
+            return miniPage;
         }
-        std::cerr << "GetPageForObject: cannot find page for this object \n";
-        std::cerr << "GetPageForObject: object address is: " << objectAddress << '\n';
-        exit(-1);
+        }
+        */
 }
 
 void PDBBufferManagerImpl::removeGPUPage(PDBPagePtr whichPage) {
+    /**
      void* pageBytes = whichPage->getBytes();
      size_t pageSize = whichPage->getSize();
      auto pageInfo = std::pair<void*, size_t>(pageBytes, pageSize);
-     auto& pageMap = ((PDBCUDAStaticStorage*)gpuStaticStorage)->pageMap;
+     auto& pageMap = ((CUDAStaticStorage*)gpuStaticStorage)->pageMap;
      if (pageMap.find(pageInfo) != pageMap.end()) {
          pageMap.erase(pageInfo);
      }
+     */
 }
 
 void PDBBufferManagerImpl::cleanup() {
@@ -804,35 +820,25 @@ void PDBBufferManagerImpl::createAdditionalMiniPages(int64_t whichSize, unique_l
     // now let all of the constituent pages know the RAM is no longer usable
     // this loop is safe since nobody can access it since we removed the page from lastUsed
     for (auto &a: constituentPages[page.first]) {
-
       if (a->isAnonymous() && a->isDirty()) {
-
         if (availablePositions[a->getLocation().numBytes].empty()) {
-
           a->getLocation().startPos = lastTempPos;
           lastTempPos += (MIN_PAGE_SIZE << a->getLocation().numBytes);
-
         } else {
-
           a->getLocation().startPos = availablePositions[a->getLocation().numBytes].back();
           availablePositions[a->getLocation().numBytes].pop_back();
         }
-
         // do we have some pages we can move this page to
         if(!emptyMiniPages[a->location.numBytes].empty()) {
-
           // move the page to a free location so that we can delay flushing it
           movePageFreeLocation(a);
-
           // we moved it go to the next page
           continue;
         }
         else {
-
           // flush the page
           flushPage(a, tempFileFD, lock);
         }
-
       } else {
 
         // check if the page is dirty if it is we either need to flush it or move it to a new location

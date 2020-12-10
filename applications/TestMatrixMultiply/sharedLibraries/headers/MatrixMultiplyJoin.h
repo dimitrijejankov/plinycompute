@@ -1,8 +1,8 @@
 #pragma once
 
 #include <LambdaCreationFunctions.h>
-#include <operators/PDBCUDAOpType.h>
-#include <PDBCUDAGPUInvoke.h>
+#include <CUDAOpType.h>
+#include <CUDAGPUInvoke.h>
 #include "JoinComp.h"
 #include "MatrixBlock.h"
 

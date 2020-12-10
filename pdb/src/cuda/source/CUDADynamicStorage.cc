@@ -1,45 +1,45 @@
 
-#include "storage/PDBCUDADynamicStorage.h"
-#include <storage/PDBCUDAMemoryManager.h>
+#include "CUDADynamicStorage.h"
+#include <CUDAMemoryManager.h>
 
 namespace pdb{
 
     /*
-    void* PDBCUDADynamicStorage::memMalloc(size_t size){
+    void* CUDADynamicStorage::memMalloc(size_t size){
         if (dynamicPages.size() == 0) {
             page_id_t newPageID;
-            PDBCUDAPage* newPage = PDBCUDAMemoryManager::get()->NewPageImpl(&newPageID);
+            CUDAPage* newPage = CUDAMemoryManager::get()->NewPageImpl(&newPageID);
             bytesUsed = 0;
             pageSize = newPage->getPageSize();
             dynamicPages.push_back(newPageID);
-            PDBCUDAMemoryManager::get()->UnpinPageImpl(newPageID, false);
+            CUDAMemoryManager::get()->UnpinPageImpl(newPageID, false);
         }
         if (size > (pageSize - bytesUsed)) {
             page_id_t newPageID;
-            PDBCUDAMemoryManager::get()->NewPageImpl(&newPageID);
+            CUDAMemoryManager::get()->NewPageImpl(&newPageID);
             bytesUsed = 0;
             dynamicPages.push_back(newPageID);
-            PDBCUDAMemoryManager::get()->UnpinPageImpl(newPageID, false);
+            CUDAMemoryManager::get()->UnpinPageImpl(newPageID, false);
         }
         size_t start = bytesUsed;
         bytesUsed += size;
-        PDBCUDAPage* currentPage = PDBCUDAMemoryManager::get()->FetchEmptPageImpl(dynamicPages.back());
+        CUDAPage* currentPage = CUDAMemoryManager::get()->FetchEmptPageImpl(dynamicPages.back());
         return static_cast<void *>(currentPage->getBytes() + start) ;
     }
 
-    void PDBCUDADynamicStorage::memFree(void *ptr){
+    void CUDADynamicStorage::memFree(void *ptr){
         //TODO: to be implemented
     }
     */
 
     /*
-    pdb::RamPointerReference PDBCUDADynamicStorage::keepMemAddress(void *gpuAddress, void *cpuAddress, size_t numBytes, size_t headerBytes){
+    pdb::RamPointerReference CUDADynamicStorage::keepMemAddress(void *gpuAddress, void *cpuAddress, size_t numBytes, size_t headerBytes){
         return addRamPointerCollection(gpuAddress, cpuAddress, numBytes,headerBytes);
     }
      */
 
     /*
-    RamPointerReference PDBCUDADynamicStorage::addRamPointerCollection(void *gpuAddress, void *cpuAddress, size_t numBytes = 0, size_t headerBytes = 0) {
+    RamPointerReference CUDADynamicStorage::addRamPointerCollection(void *gpuAddress, void *cpuAddress, size_t numBytes = 0, size_t headerBytes = 0) {
 
         if (ramPointerCollection.count(gpuAddress) != 0) {
             ramPointerCollection[gpuAddress]->push_back_cpu_pointer(cpuAddress);

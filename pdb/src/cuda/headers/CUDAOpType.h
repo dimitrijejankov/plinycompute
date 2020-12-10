@@ -4,7 +4,7 @@
 #include <iostream>
 #include <Handle.h>
 #include "PDBVector.h"
-#include "utility/PDBCUDAUtility.h"
+#include "CUDAUtility.h"
 namespace pdb {
     enum PDBCUDAOpType {
         SimpleAdd,

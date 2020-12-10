@@ -5,10 +5,10 @@
 #include <Handle.h>
 #include <vector>
 #include "PDBVector.h"
-#include "PDBCUDAOpType.h"
+#include "CUDAOpType.h"
 #include "PDBBufferManagerImpl.h"
-#include "utility/PDBCUDAUtility.h"
-#include "storage/PDBCUDAMemoryManager.h"
+#include "CUDAUtility.h"
+#include "CUDAMemoryManager.h"
 
 // simply support two kind of operations
 namespace pdb{

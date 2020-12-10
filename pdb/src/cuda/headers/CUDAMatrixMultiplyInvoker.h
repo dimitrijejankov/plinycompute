@@ -7,11 +7,11 @@
 #include <numeric>
 #include <utility>
 #include "PDBVector.h"
-#include "utility/PDBCUDAUtility.h"
-#include "PDBCUDAOpType.h"
-#include "PDBCUDAOpInvoker.h"
-#include "storage/PDBCUDAStaticStorage.h"
-#include "stream/PDBCUDAStreamManager.h"
+#include "CUDAUtility.h"
+#include "CUDAOpType.h"
+#include "CUDAOpInvoker.h"
+#include "CUDAStaticStorage.h"
+#include "CUDAStreamManager.h"
 
 // simply support two kind of operations
 namespace pdb {
@@ -51,9 +51,9 @@ namespace pdb {
         cudaStream_t cudaStream;
         cublasHandle_t cudaHandle;
 
-        PDBCUDAStreamManager* stream_instance;
-        PDBCUDAStaticStorage* sstore_instance;
-        PDBCUDAMemoryManager* memmgr_instance;
+        CUDAStreamManager* stream_instance;
+        CUDAStaticStorage* sstore_instance;
+        CUDAMemoryManager* memmgr_instance;
     };
 
 }

@@ -1,5 +1,5 @@
 #include <iostream>
-#include "operators/PDBCUDAOpInvoker.h"
+#include "CUDAOpInvoker.h"
 
 namespace pdb {
     void PDBCUDAInvoker::setInput(float *input, std::vector<size_t> &inputDim) {

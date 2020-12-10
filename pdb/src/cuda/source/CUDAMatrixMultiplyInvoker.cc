@@ -1,5 +1,5 @@
-#include "operators/PDBCUDAMatrixMultiplyInvoker.h"
-#include "stream/PDBCUDAStreamManager.h"
+#include "CUDAMatrixMultiplyInvoker.h"
+#include "CUDAStreamManager.h"
 
 extern void* gpuMemoryManager;
 extern void* gpuStreamManager;
@@ -9,9 +9,9 @@ extern void* gpuDynamicStorage;
 namespace pdb {
 
     PDBCUDAMatrixMultipleInvoker::PDBCUDAMatrixMultipleInvoker() {
-        sstore_instance = static_cast<PDBCUDAStaticStorage*>(gpuStaticStorage);
-        memmgr_instance = static_cast<PDBCUDAMemoryManager*>(gpuMemoryManager);
-        stream_instance = static_cast<PDBCUDAStreamManager*>(gpuStreamManager);
+        sstore_instance = static_cast<CUDAStaticStorage*>(gpuStaticStorage);
+        memmgr_instance = static_cast<CUDAMemoryManager*>(gpuMemoryManager);
+        stream_instance = static_cast<CUDAStreamManager*>(gpuStreamManager);
         PDBCUDAStreamUtils util = stream_instance->bindCPUThreadToStream();
         cudaStream = util.first;
         cudaHandle = util.second;
@@ -37,7 +37,7 @@ namespace pdb {
 
         page_id_t cudaPageID;
         // get GPU page based on CPU page information
-        PDBCUDAPage* cudaPage = sstore_instance->getGPUPageFromCPUPage(cpuPageInfo, &cudaPageID);
+        CUDAPage* cudaPage = sstore_instance->getGPUPageFromCPUPage(cpuPageInfo, &cudaPageID);
 
         // if page is never written, move the content from CPU page to GPU page.
         // Notice, here, the size of GPU page may be larger than CPU page. Some smart way for De-fragmentation is needed.
@@ -66,7 +66,7 @@ namespace pdb {
 
         page_id_t cudaPageID;
 
-        PDBCUDAPage* cudaPage = sstore_instance->getGPUPageFromCPUPage(cpuPageInfo, &cudaPageID);
+        CUDAPage* cudaPage = sstore_instance->getGPUPageFromCPUPage(cpuPageInfo, &cudaPageID);
 
         void* cudaObjectPointer = static_cast<char*>(cudaPage->getBytes()) + sstore_instance->getObjectOffsetWithCPUPage(cpuPageInfo.first, output);
 

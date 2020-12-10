@@ -1,4 +1,4 @@
-#include "storage/PDBCUDAStaticStorage.h"
+#include "CUDAStaticStorage.h"
 
 extern void* gpuMemoryManager;
 namespace pdb{
@@ -22,8 +22,8 @@ namespace pdb{
     pair<void*, size_t> PDBCUDAStaticStorage::getCPUPageFromObjectAddress(void* objectAddress) {
         // objectAddress must be a CPU RAM Pointer
         assert(isDevicePointer(objectAddress) == 0);
-        pdb::PDBPagePtr whichPage = static_cast<PDBCUDAMemoryManager *>(gpuMemoryManager)->getCPUBufferManagerInterface()->getPageForGPUObject(
-                objectAddress);
+        pdb::PDBPagePtr whichPage = static_cast<CUDAMemoryManager *>(gpuMemoryManager)->getCPUBufferManagerInterface()->getPageForGPUObject(
+                objectAddress, nullptr);
         if (whichPage == nullptr) {
             std::cout << "getObjectCPUPage: cannot get page for this object!\n";
             exit(-1);
@@ -35,18 +35,18 @@ namespace pdb{
     }
 
 
-    PDBCUDAPage* PDBCUDAStaticStorage::getGPUPageFromCPUPage(const pair<void*, size_t>& pageInfo, page_id_t* gpuPageID){
+    CUDAPage* PDBCUDAStaticStorage::getGPUPageFromCPUPage(const pair<void*, size_t>& pageInfo, page_id_t* gpuPageID){
         //TODO: We should change the mutex to a ReadWrite Lock
         std::lock_guard<std::mutex> guard(pageMapLatch);
         if (pageMap.find(pageInfo) != pageMap.end()){
             // return false means the GPU page is already created.
-            PDBCUDAPage* cudaPage = static_cast<PDBCUDAMemoryManager*>(gpuMemoryManager)->FetchPageImplFromCPU(pageMap[pageInfo]);
+            CUDAPage* cudaPage = static_cast<CUDAMemoryManager*>(gpuMemoryManager)->FetchPageImplFromCPU(pageMap[pageInfo]);
             *gpuPageID = pageMap[pageInfo];
             return cudaPage;
         } else {
             // otherwise, grab a new page, insert to map and return pageID.
             page_id_t newPageID;
-            PDBCUDAPage* cudaPage = static_cast<PDBCUDAMemoryManager*>(gpuMemoryManager)->NewPageImpl(&newPageID);
+            CUDAPage* cudaPage = static_cast<CUDAMemoryManager*>(gpuMemoryManager)->NewPageImpl(&newPageID);
             *gpuPageID = newPageID;
             pageMap.insert(std::make_pair(pageInfo, newPageID));
             // return true means the GPU page is newly created.

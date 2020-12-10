@@ -9,7 +9,7 @@
 #include "cuda_runtime.h"
 #include "helper_cuda.h"
 #include "cublas_v2.h"
-#include "PDBCUDAConfig.h"
+#include "CUDAConfig.h"
 
 namespace pdb {
 
@@ -24,13 +24,13 @@ namespace pdb {
 
     using PDBCUDAStreamUtils = std::pair<cudaStream_t, cublasHandle_t>;
 
-    class PDBCUDAStreamManager {
+    class CUDAStreamManager {
 
     public:
 
-        PDBCUDAStreamManager();
+        CUDAStreamManager();
 
-        ~PDBCUDAStreamManager();
+        ~CUDAStreamManager();
 
         PDBCUDAStreamUtils bindCPUThreadToStream();
 

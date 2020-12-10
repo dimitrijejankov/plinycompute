@@ -1,5 +1,5 @@
-#include "PDBCUDAGPUInvoke.h"
-#include "storage/PDBRamPointer.h"
+#include "CUDAGPUInvoke.h"
+#include "CUDARamPointer.h"
 
 /** SimpleTypeGPUInvoke deals with all the primitive types and invoke the gpu kernel for the input/output
  * `Out` vector should be reserved before passing as parameter
@@ -157,7 +157,7 @@ bool GPUInvoke(pdb::PDBCUDAMatrixMultipleInvoker &f, pdb::Handle<pdb::Vector<flo
     return SimpleTypeGPUInvoke(f, OutObject, OutDim, In1Object, In1Dim, In2Object, In2Dim);
 }
 
-bool GPUInvoke(pdb::PDBCUDAVectorAddInvoker &f, pdb::Handle<pdb::Vector<float>> Out, std::vector<size_t> &OutDim,
+bool GPUInvoke(pdb::CUDAVectorAddInvoker &f, pdb::Handle<pdb::Vector<float>> Out, std::vector<size_t> &OutDim,
                pdb::Handle<pdb::Vector<float>> In1, std::vector<size_t> &In1Dim) {
     auto In1Object = In1->c_ptr();
     auto OutObject = Out->c_ptr();
@@ -167,7 +167,7 @@ bool GPUInvoke(pdb::PDBCUDAVectorAddInvoker &f, pdb::Handle<pdb::Vector<float>> 
 //TODO: this should be added later
 /*
 std::shared_ptr<pdb::RamPointerBase>
-GPULazyAllocationHandler(pdb::PDBCUDAVectorAddInvoker &f, void* pointer, size_t size) {
+GPULazyAllocationHandler(pdb::CUDAVectorAddInvoker &f, void* pointer, size_t size) {
     return f.LazyAllocationHandler(pointer, size);
 }
  */
@@ -189,7 +189,7 @@ bool GPUInvoke(pdb::PDBCUDAOpType &op, pdb::Handle<pdb::Vector<float>> Out, std:
     if (op != pdb::PDBCUDAOpType::VectorAdd) {
         exit(-1);
     }
-    pdb::PDBCUDAVectorAddInvoker vectorAddInvoker;
+    pdb::CUDAVectorAddInvoker vectorAddInvoker;
 
     auto OutPtr = Out->c_ptr();
     auto OutCPUPtr = Out->cpu_ptr();
@@ -243,7 +243,7 @@ bool GPUInvoke(pdb::PDBCUDAOpType& op, pdb::Handle<pdb::Vector<float>> Out, std:
     if (op!=pdb::PDBCUDAOpType::VectorAdd){
         exit(-1);
     }
-    pdb::PDBCUDAVectorAddInvoker vectorAddInvoker;
+    pdb::CUDAVectorAddInvoker vectorAddInvoker;
     auto In1Object = In1->c_ptr();
     auto OutObject = Out->c_ptr();
     return SimpleTypeGPUInvoke(vectorAddInvoker, OutObject, OutDim, In1Object, In1Dim);

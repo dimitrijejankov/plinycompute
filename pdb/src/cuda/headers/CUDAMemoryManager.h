@@ -6,28 +6,28 @@
 #include <set>
 #include <assert.h>
 #include <PDBBufferManagerInterface.h>
-#include "utility/PDBCUDAUtility.h"
-#include "PDBRamPointer.h"
-#include "PDBCUDAPage.h"
-#include "PDBCUDAConfig.h"
-#include "PDBCUDAReplacer.h"
-#include "PDBCUDACPUStorageManager.h"
-#include "PDBCUDAConfig.h"
+#include "CUDAUtility.h"
+#include "CUDARamPointer.h"
+#include "CUDAPage.h"
+#include "CUDAConfig.h"
+#include "CUDAReplacer.h"
+#include "CUDAContext.h"
+#include "CUDAConfig.h"
 
 namespace pdb {
 
-    class PDBCUDAMemoryManager;
-    using PDBCUDAMemoryManagerPtr = std::shared_ptr<PDBCUDAMemoryManager>;
-    class PDBCUDAMemoryManager {
+    class CUDAMemoryManager;
+    using PDBCUDAMemoryManagerPtr = std::shared_ptr<CUDAMemoryManager>;
+    class CUDAMemoryManager {
     public:
         /**
          * @param buffer - CPU buffer
          */
-        PDBCUDAMemoryManager(pdb::PDBBufferManagerInterfacePtr buffer) {
+        CUDAMemoryManager(pdb::PDBBufferManagerInterfacePtr buffer) {
             bufferManager = buffer;
             poolSize = CUDA_MEM_MAMAGER_PAGE_NUM;
             pageSize = buffer->getMaxPageSize();
-            pages = new PDBCUDAPage[poolSize];
+            pages = new CUDAPage[poolSize];
             replacer = new ClockReplacer(poolSize);
             for (size_t i = 0; i < poolSize; i++) {
                 void *cudaPointer = nullptr;
@@ -36,10 +36,10 @@ namespace pdb {
                 pages[i].setPageSize(pageSize);
                 freeList.emplace_back(static_cast<int32_t>(i));
             }
-            cpu_storage_manager = new PDBCUDACPUStorageManager();
+            cpu_storage_manager = new CUDAContext();
         }
 
-        ~PDBCUDAMemoryManager() {
+        ~CUDAMemoryManager() {
             delete[] pages;
             delete replacer;
             delete cpu_storage_manager;
@@ -101,7 +101,7 @@ namespace pdb {
          * @param page_id
          * @return
          */
-        PDBCUDAPage* FetchPageImplFromCPU(page_id_t page_id){
+        CUDAPage* FetchPageImplFromCPU(page_id_t page_id){
             std::lock_guard<std::mutex> guard(latch);
 
             std::cout << "print Page Table\n";
@@ -116,7 +116,6 @@ namespace pdb {
             }
             if (IsAllPagesPinned()){
                 throw std::runtime_error("Not enough GPU Memory! All cuda pages have been pinned!\n");
-                exit(-1);
             }
             // if cannot find the page from page_table, then try to get the page from free_list or replacer.
             frame_id_t replacement;
@@ -133,7 +132,7 @@ namespace pdb {
         }
 
 
-        PDBCUDAPage* FetchEmptyPageImpl(page_id_t page_id){
+        CUDAPage* FetchEmptyPageImpl(page_id_t page_id){
             std::lock_guard<std::mutex> guard(latch);
 
             auto iter = pageTable.find(page_id);
@@ -162,7 +161,7 @@ namespace pdb {
             return &pages[replacement];
         }
 
-        PDBCUDAPage* NewPageImpl(page_id_t *page_id) {
+        CUDAPage* NewPageImpl(page_id_t *page_id) {
             std::lock_guard<std::mutex> guard(latch);
             // Note: new page should not read from CPU storage!
             *page_id = cpu_storage_manager->AllocatePage();
@@ -236,7 +235,7 @@ namespace pdb {
         std::unordered_map<page_id_t, frame_id_t> pageTable;
 
         /** array of all the pages */
-        PDBCUDAPage* pages;
+        CUDAPage* pages;
 
         /** the size of the pool  */
         size_t poolSize;
@@ -250,7 +249,7 @@ namespace pdb {
         /** Frames for holding the free memory */
         std::list<frame_id_t> freeList;
 
-        PDBCUDACPUStorageManager* cpu_storage_manager;
+        CUDAContext* cpu_storage_manager;
 
         std::mutex latch;
     };

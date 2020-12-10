@@ -2,12 +2,12 @@
 #define PDB_CUDA_GPU_INVOKE
 
 #include <iostream>
-#include "operators/PDBCUDAMatrixMultiplyInvoker.h"
-#include "operators/PDBCUDAVectorAddInvoker.h"
+#include "CUDAMatrixMultiplyInvoker.h"
+#include "CUDAVectorAddInvoker.h"
 #include <vector>
 
 std::shared_ptr<pdb::RamPointerBase>
-GPULazyAllocationHandler(pdb::PDBCUDAVectorAddInvoker &f, void* pointer, size_t size);
+GPULazyAllocationHandler(pdb::CUDAVectorAddInvoker &f, void* pointer, size_t size);
 
 /** SimpleTypeGPUInvoke deals with all the primitive types and invoke the gpu kernel for the input/output
  * `Out` vector should be reserved before passing as parameter
@@ -124,7 +124,7 @@ bool GPUInvoke(pdb::PDBCUDAMatrixMultipleInvoker &f, pdb::Handle<pdb::Vector<flo
                pdb::Handle<pdb::Vector<float>> In1, std::vector<size_t> &In1Dim, pdb::Handle<pdb::Vector<float> > In2,
                std::vector<size_t> &In2Dim);
 
-bool GPUInvoke(pdb::PDBCUDAVectorAddInvoker &f, pdb::Handle<pdb::Vector<float>> Out, std::vector<size_t> &OutDim,
+bool GPUInvoke(pdb::CUDAVectorAddInvoker &f, pdb::Handle<pdb::Vector<float>> Out, std::vector<size_t> &OutDim,
                pdb::Handle<pdb::Vector<float>> In1, std::vector<size_t> &In1Dim);
 
 /** By default, this GPUInvoke will handle the matrix multiple case for join.

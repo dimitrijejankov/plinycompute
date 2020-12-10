@@ -1,9 +1,9 @@
 #include <assert.h>
-#include "stream/PDBCUDAStreamManager.h"
+#include "CUDAStreamManager.h"
 
 namespace pdb {
 
-    PDBCUDAStreamManager::PDBCUDAStreamManager() {
+    CUDAStreamManager::CUDAStreamManager() {
         streamNum = CUDA_STREAM_NUM;
         streams = new cudaStream_t[streamNum];
         handles = new cublasHandle_t[streamNum];
@@ -14,14 +14,14 @@ namespace pdb {
         }
     }
 
-    PDBCUDAStreamManager::~PDBCUDAStreamManager() {
+    CUDAStreamManager::~CUDAStreamManager() {
         for (int i = 0; i < streamNum; i++) {
             cudaStreamDestroy(streams[i]);
             cublasDestroy(handles[i]);
         }
     }
 
-    PDBCUDAStreamUtils PDBCUDAStreamManager::bindCPUThreadToStream() {
+    PDBCUDAStreamUtils CUDAStreamManager::bindCPUThreadToStream() {
         long threadID = (long) pthread_self();
         if (bindMap.count(threadID) != 0) {
             //std::cout << "thread ID: " << threadID << " find in map! stream: " << streams[threadStreamMap[threadID]] << std::endl;

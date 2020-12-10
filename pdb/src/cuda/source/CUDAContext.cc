@@ -1,8 +1,8 @@
-#include <storage/PDBCUDACPUStorageManager.h>
+#include <CUDAContext.h>
 
 namespace pdb{
 
-    PDBCUDACPUStorageManager::PDBCUDACPUStorageManager(int32_t PageNum, size_t PageSize): pageNum(PageNum), pageSize(PageSize){
+    CUDAContext::CUDAContext(int32_t PageNum, size_t PageSize): pageNum(PageNum), pageSize(PageSize){
         for (size_t i = 0; i<PageNum;i++){
              void* page = malloc(PageSize);
              freeList.push_back(page);
@@ -10,7 +10,7 @@ namespace pdb{
         next_page_id_ = 0;
     }
 
-    PDBCUDACPUStorageManager::~PDBCUDACPUStorageManager() {
+    CUDAContext::~CUDAContext() {
         for (const auto& toDelete: storageMap){
             free(toDelete.second);
         }
@@ -19,7 +19,7 @@ namespace pdb{
         }
     }
 
-    void PDBCUDACPUStorageManager::ReadPage(page_id_t page_id, char* page_data){
+    void CUDAContext::ReadPage(page_id_t page_id, char* page_data){
         assert(isDevicePointer(page_data)==1);
         std::lock_guard<std::mutex> guard(latch);
         if (storageMap.find(page_id) == storageMap.end()){
@@ -31,7 +31,7 @@ namespace pdb{
         checkCudaErrors(cudaMemcpy(page_data, page, pageSize, cudaMemcpyHostToDevice));
     }
 
-    void PDBCUDACPUStorageManager::WritePage(page_id_t page_id, void *page_data){
+    void CUDAContext::WritePage(page_id_t page_id, void *page_data){
         assert(isDevicePointer(page_data)==1);
         std::lock_guard<std::mutex> guard(latch);
         if (storageMap.find(page_id) != storageMap.end()){
@@ -46,10 +46,10 @@ namespace pdb{
         checkCudaErrors(cudaMemcpy(page, page_data, pageSize, cudaMemcpyDeviceToHost));
     }
 
-    page_id_t PDBCUDACPUStorageManager::AllocatePage() {
+    page_id_t CUDAContext::AllocatePage() {
         return next_page_id_++;
     }
 
-    void PDBCUDACPUStorageManager::DeepCopyD2H(void *startLoc, size_t numBytes) {
+    void CUDAContext::DeepCopyD2H(void *startLoc, size_t numBytes) {
     }
 }

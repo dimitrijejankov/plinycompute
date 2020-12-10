@@ -2,7 +2,7 @@
 #define PDB_CUDA_REPLACER
 
 #include <iostream>
-#include <PDBCUDAConfig.h>
+#include <CUDAConfig.h>
 #include <vector>
 #include <set>
 

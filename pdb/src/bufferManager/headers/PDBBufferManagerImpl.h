@@ -72,7 +72,7 @@ namespace pdb {
 
 class PDBBufferManagerImpl : public PDBBufferManagerInterface {
 
- public:
+  public:
 
   /**
    * we need the default constructor for our tests
@@ -161,7 +161,7 @@ class PDBBufferManagerImpl : public PDBBufferManagerInterface {
     * @param objectAddress - the physical address of one object
     * @return - a PagePtr to this page containing the object
    */
-  PDBPagePtr getPageForGPUObject(void* objectAddress) override;
+  void getPageForGPUObject(void *objectAddress, GPUID gpu_id) override;
 
   /**
    * remove a page from GPU page table.
@@ -477,6 +477,11 @@ protected:
    * this vector holds all the free page numbers we can assign to an anonymous page.
    */
   std::vector<uint64_t> freeAnonPageNumbers;
+
+  /**
+   * this map keeps track of all the pages moved to different GPUs.
+   */
+  std::map<std::pair<void*, GPUID>, GPUPageID> pageGPUIDMapping;
 
   /**
    * so we assign a unique number to each anonymous page so we can identify them, if we already assigned

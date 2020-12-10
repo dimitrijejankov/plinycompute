@@ -1,8 +1,8 @@
 #ifndef PDB_CUDA_STATIC_STORAGE
 #define PDB_CUDA_STATIC_STORAGE
 
-#include <storage/PDBCUDAMemoryManager.h>
-#include <PDBCUDAConfig.h>
+#include <CUDAMemoryManager.h>
+#include <CUDAConfig.h>
 
 /**
  * StaticStorage is for handling all the static space allocation. (input parameters)
@@ -22,10 +22,10 @@ enum MemAllocatePolicy{
     STATIC
 };
 
-class PDBCUDAStaticStorage{
+class CUDAStaticStorage{
 
 public:
-    PDBCUDAStaticStorage() = default;
+    CUDAStaticStorage() = default;
 
     size_t getObjectOffsetWithCPUPage(void* pageAddress, void* objectAddress);
 
@@ -35,7 +35,7 @@ public:
     // If size == Mgr.PageSize, use STATIC
     // If size < Mgr.PageSize, use DYNAMIC
 
-    PDBCUDAPage* getGPUPageFromCPUPage(const pair<void*, size_t>& pageInfo, page_id_t* gpuPageID);
+    CUDAPage* getGPUPageFromCPUPage(const pair<void*, size_t>& pageInfo, page_id_t* gpuPageID);
 
     inline bool IsCPUPageMovedToGPU(pair<void*, size_t> pageInfo);
     bool IsObjectOnGPU(void* objectAddress);
@@ -49,7 +49,7 @@ public:
     /** one latch to protect the gpuPageTable access */
     std::mutex pageMapLatch;
 
-    friend class PDBCUDAMemoryManager;
+    friend class CUDAMemoryManager;
 };
 }
 

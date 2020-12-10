@@ -211,7 +211,7 @@ ENDIF ()
 FIND_PACKAGE(BISON REQUIRED)
 
 # set the output paths
-set(LogicalPlanParserOutput ${CMAKE_SOURCE_DIR}/pdb/src/logicalPlan/source/Parser.c)
+set(LogicalPlanParserOutput ${CMAKE_SOURCE_DIR}/pdb/src/logicalPlan/source/Parser.c pdb/src/cuda/headers/PDBCUDAResourceManager.h)
 
 # setup the commands
 IF (BISON_FOUND)

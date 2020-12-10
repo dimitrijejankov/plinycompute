@@ -2,7 +2,7 @@
 #define PDB_CUDA_RAM_POINTER_MANAGER
 
 #include <iostream>
-#include <PDBCUDAConfig.h>
+#include <CUDAConfig.h>
 #include <mutex>
 #include <vector>
 #include <map>
@@ -17,13 +17,13 @@ namespace pdb{
 
 //TODO: operations to memMalloc() should be implemented as thread safe.
 //TODO: operations should be called from single stream.
-class PDBCUDADynamicStorage{
+class CUDADynamicStorage{
 
 public:
 
-    PDBCUDADynamicStorage() = default;
+    CUDADynamicStorage() = default;
 
-    ~PDBCUDADynamicStorage() = default;
+    ~CUDADynamicStorage() = default;
 
     // void* memMalloc(size_t size);
 
@@ -46,7 +46,7 @@ public:
      */
     //std::map<page_id_t, pdb::RamPointerPtr> ramPointerCollection;
 
-    friend class PDBCUDAMemoryManager;
+    friend class CUDAMemoryManager;
 };
 
 }

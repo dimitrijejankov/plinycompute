@@ -31,10 +31,10 @@
 #include <PDBStorageManager.h>
 #include <PDBComputationServer.h>
 #include <ExecutionServer.h>
-#include <storage/PDBCUDAMemoryManager.h>
-#include <storage/PDBCUDAStaticStorage.h>
-#include <storage/PDBCUDADynamicStorage.h>
-#include <stream/PDBCUDAStreamManager.h>
+#include <CUDAMemoryManager.h>
+#include <CUDAStaticStorage.h>
+#include <CUDADynamicStorage.h>
+#include <CUDAStreamManager.h>
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
@@ -51,25 +51,25 @@ static void sig_stop(int signum) {
 
 void setGPUMemoryManager(void ** gpuMgr, pdb::PDBBufferManagerInterfacePtr myMgr, bool isManager){
     if (isManager) return;
-    PDBCUDAMemoryManager* tmp = new PDBCUDAMemoryManager(myMgr);
+    CUDAMemoryManager* tmp = new CUDAMemoryManager(myMgr);
     *gpuMgr = static_cast<void*>(tmp);
 }
 
 void setGPUStreamManager(void ** streamMgr, bool isManager){
     if (isManager) return;
-    PDBCUDAStreamManager * tmp = new PDBCUDAStreamManager();
+    CUDAStreamManager * tmp = new CUDAStreamManager();
     *streamMgr = static_cast<void*>(tmp);
 }
 
 void setGPUStaticStorage(void** staticStorage, bool isManager){
     if (isManager) return;
-    PDBCUDAStaticStorage* tmp = new PDBCUDAStaticStorage();
+    CUDAStaticStorage* tmp = new CUDAStaticStorage();
     *staticStorage = static_cast<void*>(tmp);
 }
 
 void setGPUDynamicStorage(void** dynamicStorage, bool isManager){
     if (isManager) return;
-    PDBCUDADynamicStorage* tmp = new PDBCUDADynamicStorage();
+    CUDADynamicStorage* tmp = new CUDADynamicStorage();
     *dynamicStorage = static_cast<void*>(tmp);
 }
 
