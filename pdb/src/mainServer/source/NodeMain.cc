@@ -31,7 +31,7 @@
 #include <PDBStorageManager.h>
 #include <PDBComputationServer.h>
 #include <ExecutionServer.h>
-#include <CUDAMemoryManager.h>
+#include <cudaMemMgr.h>
 #include <CUDAStaticStorage.h>
 #include <CUDADynamicStorage.h>
 #include <CUDAStreamManager.h>
@@ -51,7 +51,7 @@ static void sig_stop(int signum) {
 
 void setGPUMemoryManager(void ** gpuMgr, pdb::PDBBufferManagerInterfacePtr myMgr, bool isManager){
     if (isManager) return;
-    CUDAMemoryManager* tmp = new CUDAMemoryManager(myMgr);
+    cudaMemMgr* tmp = new cudaMemMgr(myMgr);
     *gpuMgr = static_cast<void*>(tmp);
 }
 

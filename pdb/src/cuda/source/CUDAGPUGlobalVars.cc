@@ -10,6 +10,7 @@ void* gpuMemoryManager = nullptr;
 void* gpuStreamManager = nullptr;
 void* gpuStaticStorage = nullptr;
 void* gpuDynamicStorage = nullptr;
+void* gpuContext = nullptr;
 
 std::atomic<int> debugger{0};
 

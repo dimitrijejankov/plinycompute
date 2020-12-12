@@ -26,14 +26,16 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <PDBBufferManagerImpl.h>
-#include <CUDAMemoryManager.h>
+#include <cudaMemMgr.h>
 #include <CUDAStaticStorage.h>
+#include <CUDAContext.h>
 
 
 extern void* gpuMemoryManager;
 extern void* gpuStreamManager;
 extern void* gpuStaticStorage;
 extern void* gpuDynamicStorage;
+extern void* gpuContext;
 namespace pdb {
 
 namespace fs = boost::filesystem;
@@ -112,12 +114,12 @@ void PDBBufferManagerImpl::getPageForGPUObject(void *objectAddress, GPUID gpu_id
 
         } else {
             GPUPageID newPageID;
-            CUDAPage* cudaPage = ((CUDAMemoryManager*)gpuMemoryManager)->NewPageImpl(&newPageID);
+            CUDAPage* cudaPage = ((cudaMemMgr*)gpuMemoryManager)->NewPageImpl(&newPageID);
 
         }
 
 
-        ((CUDAMemoryManager*)gpuMemoryManager)->NewPageImpl()
+        ((cudaMemMgr*)gpuMemoryManager)->NewPageImpl()
         /* Temporarily disable the mini page optimization for page moving.
         * Move a whole page.
         for (const auto& miniPage: constituentPages[memLoc]){

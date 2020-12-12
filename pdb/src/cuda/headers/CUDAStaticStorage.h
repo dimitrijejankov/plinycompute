@@ -1,7 +1,7 @@
 #ifndef PDB_CUDA_STATIC_STORAGE
 #define PDB_CUDA_STATIC_STORAGE
 
-#include <CUDAMemoryManager.h>
+#include <cudaMemMgr.h>
 #include <CUDAConfig.h>
 
 /**
@@ -49,7 +49,7 @@ public:
     /** one latch to protect the gpuPageTable access */
     std::mutex pageMapLatch;
 
-    friend class CUDAMemoryManager;
+    friend class cudaMemMgr;
 };
 }
 

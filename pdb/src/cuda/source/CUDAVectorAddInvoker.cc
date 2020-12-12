@@ -12,7 +12,7 @@ namespace pdb {
     CUDAVectorAddInvoker::CUDAVectorAddInvoker() {
 
         sstore_instance = static_cast<CUDAStaticStorage*>(gpuStaticStorage);
-        memmgr_instance = static_cast<CUDAMemoryManager*>(gpuMemoryManager);
+        memmgr_instance = static_cast<cudaMemMgr*>(gpuMemoryManager);
         stream_instance = static_cast<CUDAStreamManager*>(gpuStreamManager);
 
         PDBCUDAStreamUtils util = stream_instance->bindCPUThreadToStream();

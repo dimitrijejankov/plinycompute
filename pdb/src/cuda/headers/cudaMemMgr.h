@@ -16,14 +16,15 @@
 
 namespace pdb {
 
-    class CUDAMemoryManager;
-    using PDBCUDAMemoryManagerPtr = std::shared_ptr<CUDAMemoryManager>;
-    class CUDAMemoryManager {
+    class cudaMemMgr;
+    using PDBCUDAMemoryManagerPtr = std::shared_ptr<cudaMemMgr>;
+    class cudaMemMgr {
     public:
-        /**
+        cudaMemMgr()=default;
+/**
          * @param buffer - CPU buffer
          */
-        CUDAMemoryManager(pdb::PDBBufferManagerInterfacePtr buffer) {
+        cudaMemMgr(pdb::PDBBufferManagerInterfacePtr buffer) {
             bufferManager = buffer;
             poolSize = CUDA_MEM_MAMAGER_PAGE_NUM;
             pageSize = buffer->getMaxPageSize();
@@ -39,7 +40,7 @@ namespace pdb {
             cpu_storage_manager = new CUDAContext();
         }
 
-        ~CUDAMemoryManager() {
+        ~cudaMemMgr() {
             delete[] pages;
             delete replacer;
             delete cpu_storage_manager;

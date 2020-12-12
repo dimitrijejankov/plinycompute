@@ -2,54 +2,68 @@
 
 namespace pdb{
 
-    CUDAContext::CUDAContext(int32_t PageNum, size_t PageSize): pageNum(PageNum), pageSize(PageSize){
-        for (size_t i = 0; i<PageNum;i++){
-             void* page = malloc(PageSize);
-             freeList.push_back(page);
+
+    CUDADevice_t::CUDADevice_t(int device, size_t size) : device(device), size(size) {}
+
+    void CUDADevice_t::init() {
+
+    }
+
+    size_t CUDADevice_t::registerThread() {
+        auto tID = static_cast<ThreadID>(pthread_self());
+        if (idxs.count(tID) == 0){
+            return index++;
+        } else {
+            return idxs[tID];
         }
-        next_page_id_ = 0;
+    }
+
+    cublasHandle_t CUDADevice_t::getHandler() {
+        auto idx = registerThread();
+        if (idx >= 32){
+            std::cerr << "CUDA ERROR: Run out of Handlers!\n";
+            exit(-1);
+        }
+        return handles[idx];
+    }
+
+    cudaStream_t CUDADevice_t::getStream()  {
+        auto idx = registerThread();
+        if (idx >= 32){
+            std::cerr << "CUDA ERROR: Run out of Handlers!\n";
+            exit(-1);
+        }
+        return streams[idx];
+    }
+
+
+    CUDAContext::CUDAContext() {
+        checkCudaErrors(cudaGetDeviceCount(&numDevices));
+        devices.reserve(numDevices);
+        for (int i =0; i < numDevices;i++){
+            auto gpuDevice = std::make_unique<CUDADevice_t>(i, GPU_MEM_SIZE_RESERVERD);
+            gpuDevice->mgr = std::make_unique<cudaMemMgr>();
+            //TODO: choose which gpu to use
+            for (int j = 0; j < gpuDevice->numStreams; j++){
+                checkCudaErrors(cudaStreamCreate(&gpuDevice->streams[j]));
+            }
+            devices.push_back(std::move(gpuDevice));
+        }
     }
 
     CUDAContext::~CUDAContext() {
-        for (const auto& toDelete: storageMap){
-            free(toDelete.second);
-        }
-        for (const auto& toDelete: freeList){
-            free(toDelete);
-        }
+
     }
 
-    void CUDAContext::ReadPage(page_id_t page_id, char* page_data){
-        assert(isDevicePointer(page_data)==1);
-        std::lock_guard<std::mutex> guard(latch);
-        if (storageMap.find(page_id) == storageMap.end()){
-            throw std::runtime_error("Cannot find the require page in CPU storage manager during readPage!");
+    template<Strategy s>
+    GPUID CUDAContext::MapWorkerToGPU(){
+        auto tID = static_cast<ThreadID>(pthread_self());
+        if (tg.count(tID) != 0)
+            return tg[tID];
+        if (s == Strategy::NON_PREEMPTIVE){
+            GPUID gID= tID%numDevices;
+            tg.insert(std::make_pair(tID,gID));
+            return gID;
         }
-        void* page = storageMap[page_id];
-        storageMap.erase(page_id);
-        freeList.push_back(page);
-        checkCudaErrors(cudaMemcpy(page_data, page, pageSize, cudaMemcpyHostToDevice));
-    }
-
-    void CUDAContext::WritePage(page_id_t page_id, void *page_data){
-        assert(isDevicePointer(page_data)==1);
-        std::lock_guard<std::mutex> guard(latch);
-        if (storageMap.find(page_id) != storageMap.end()){
-            throw std::runtime_error("Duplicate page in CPU storage manager during writePage!");
-        }
-        if (freeList.empty()){
-            throw std::runtime_error("No available memory in CPU storage manager!");
-        }
-        void* page = freeList.front();
-        freeList.pop_front();
-        storageMap.insert(std::make_pair(page_id, page));
-        checkCudaErrors(cudaMemcpy(page, page_data, pageSize, cudaMemcpyDeviceToHost));
-    }
-
-    page_id_t CUDAContext::AllocatePage() {
-        return next_page_id_++;
-    }
-
-    void CUDAContext::DeepCopyD2H(void *startLoc, size_t numBytes) {
     }
 }

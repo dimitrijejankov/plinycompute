@@ -16,8 +16,11 @@ namespace pdb{
     static constexpr int32_t CUDA_MEM_MAMAGER_PAGE_NUM = 9;
     static constexpr int32_t CPU_STORAGE_MANAGER_PAGE_NUM = 7;
     static constexpr size_t  CPU_STORAGE_MANAGER_PAGE_SIZE = 1024*1024*1024;
-    using GPUID = std::size_t;
+    static constexpr size_t  GPU_MEM_SIZE_RESERVERD = 1024*1024*1024*9;
+    using GPUID = int;
+    using ThreadID = long;
     using GPUPageID = std::size_t;
     using page_id_t = GPUPageID;
+
 }
 #endif
