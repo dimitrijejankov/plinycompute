@@ -107,44 +107,11 @@ typename std::enable_if<!std::is_base_of<Nothing, ParamOne>::value &&
       func(CAST (ParamOne, 0), CAST (ParamTwo, 1), CAST (ParamThree, 2), CAST (ParamFour, 3), CAST (ParamFive, 4));
 }
 
-template<typename F, typename ReturnType, typename ParamOne,
-    typename ParamTwo,
-    typename ParamThree,
-    typename ParamFour,
-    typename ParamFive,
-    typename ParamSix,
-    typename ParamSeven,
-    typename ParamEight>
-typename std::enable_if<!std::is_base_of<Nothing, ParamOne>::value &&
-                        !std::is_base_of<Nothing, ParamTwo>::value &&
-                        !std::is_base_of<Nothing, ParamThree>::value &&
-                        !std::is_base_of<Nothing, ParamFour>::value &&
-                        !std::is_base_of<Nothing, ParamFive>::value &&
-                        !std::is_base_of<Nothing, ParamSix>::value &&
-                        !std::is_base_of<Nothing, ParamSeven>::value &&
-                        !std::is_base_of<Nothing, ParamEight>::value, void>::type callLambda(F &func,
-                                                                                            std::vector<ReturnType> &assignToMe,
-                                                                                            int which,
-                                                                                            void **args) {
-  assignToMe[which] =
-      func(CAST (ParamOne, 0),
-           CAST (ParamTwo, 1),
-           CAST (ParamThree, 2),
-           CAST (ParamFour, 3),
-           CAST (ParamFive, 4),
-           CAST (ParamSix, 5),
-           CAST (ParamSeven, 6),
-           CAST (ParamEight, 7));
-}
-
 template<typename F, typename ReturnType, typename ParamOne = Nothing,
     typename ParamTwo = Nothing,
     typename ParamThree = Nothing,
     typename ParamFour = Nothing,
-    typename ParamFive = Nothing,
-    typename ParamSix = Nothing,
-    typename ParamSeven = Nothing,
-    typename ParamEight = Nothing>
+    typename ParamFive = Nothing>
 class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
 
  private:
@@ -159,10 +126,8 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
                   Handle<ParamTwo>& input2,
                   Handle<ParamThree>& input3,
                   Handle<ParamFour>& input4,
-                  Handle<ParamFive>& input5,
-                  Handle<ParamSix>& input6,
-                  Handle<ParamSeven>& input7,
-                  Handle<ParamEight>& input8) : myFunc(arg) {
+                  Handle<ParamFive>& input5)
+      : myFunc(arg) {
 
     if (getTypeName<ParamOne>() != "pdb::Nothing") {
       this->numInputs++;
@@ -184,20 +149,7 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
       this->numInputs++;
       this->setInputIndex(4, -((input5.getExactTypeInfoValue() + 1)));
     }
-    if (getTypeName<ParamSix>() != "pdb::Nothing") {
-      this->numInputs++;
-      this->setInputIndex(5, -((input6.getExactTypeInfoValue() + 1)));
-    }
-    if (getTypeName<ParamSeven>() != "pdb::Nothing") {
-      this->numInputs++;
-      this->setInputIndex(6, -((input7.getExactTypeInfoValue() + 1)));
-    }
-    if (getTypeName<ParamEight>() != "pdb::Nothing") {
-      this->numInputs++;
-      this->setInputIndex(7, -((input8.getExactTypeInfoValue() + 1)));
-    }
   }
-
 
   ~CPlusPlusLambda() = default;
 
@@ -253,7 +205,7 @@ class CPlusPlusLambda : public TypedLambdaObject<ReturnType> {
           auto numTuples = ((std::vector<Handle<ParamOne>> *) inAtts[0])->size();
           outColumn.resize(numTuples);
           for (int i = 0; i < numTuples; i++) {
-            callLambda<F, ReturnType, ParamOne, ParamTwo, ParamThree, ParamFour, ParamFive, ParamSix, ParamSeven, ParamEight>(myFunc, outColumn, i, inAtts);
+            callLambda<F, ReturnType, ParamOne, ParamTwo, ParamThree, ParamFour, ParamFive>(myFunc, outColumn, i, inAtts);
           }
 
           return output;

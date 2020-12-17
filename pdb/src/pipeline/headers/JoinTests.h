@@ -430,7 +430,7 @@ auto callGetSelection(TypeToCallMethodOn &a, decltype(HasThreeArgs::testKeySelec
   GenericHandle third(3);
 
   // call the selection
-  auto predicate = a.getKeySelection(first, second);
+  auto predicate = a.getKeySelection(first, second, third);
 
   // inject the key extraction into the predicate
   injectKeyExtraction<decltype(predicate), In1, In2, Rest...>(predicate, 0);

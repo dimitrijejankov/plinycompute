@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.12)
 project(pdb)
 
 # for aten
-set(CMAKE_PREFIX_PATH /home/dimitrije/applications/libtorch)
+#set(CMAKE_PREFIX_PATH /home/dimitrije/applications/libtorch)
 
 # suppress some warning if intel
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
@@ -21,7 +21,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 # check the operating system and add the appropriate flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wno-deprecated-declarations -g3")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 # the default build type is debug
 if(CMAKE_BUILD_TYPE STREQUAL "")
@@ -206,6 +206,11 @@ IF (BISON_FOUND)
             BUILD_BYPRODUCTS ${LogicalPlanParserOutput}
     )
 ENDIF ()
+
+# find blas
+set(MKL_ROOT /opt/intel/mkl)
+find_package(MKL)
+INCLUDE_DIRECTORIES(${MKL_INCLUDE_PATH})
 
 # the files generated from the type codes
 set(BUILT_IN_OBJECT_TYPE_ID        ${CMAKE_SOURCE_DIR}/pdb/src/objectModel/headers/BuiltInObjectTypeIDs.h)
