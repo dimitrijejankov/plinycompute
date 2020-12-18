@@ -7,45 +7,46 @@
 
 namespace pdb::matrix {
 
-class MatrixMultiplyJoin : public JoinComp <MatrixMultiplyJoin, MatrixBlock, MatrixBlock, MatrixBlock> {
+class MatrixSumJoin : public JoinComp <MatrixSumJoin, MatrixBlock, MatrixBlock, MatrixBlock> {
  public:
 
   ENABLE_DEEP_COPY
 
-  MatrixMultiplyJoin() = default;
+  MatrixSumJoin() = default;
 
+  // (in1.rowID == in2.rowID) && (in1.colID == in2.colID)
   static Lambda <bool> getKeySelection (Handle <MatrixBlockMeta> in1, Handle <MatrixBlockMeta> in2) {
-    return (makeLambdaFromMember (in1, colID) == makeLambdaFromMember (in2, rowID));
+
+    return (makeLambdaFromSelf(in1) == makeLambdaFromSelf (in2));
   }
 
   static Lambda <Handle<MatrixBlockMeta>> getKeyProjection(Handle <MatrixBlockMeta> in1, Handle <MatrixBlockMeta> in2) {
     return makeLambda (in1, in2, [] (Handle <MatrixBlockMeta> &in1, Handle <MatrixBlockMeta> &in2) {
-      Handle<MatrixBlockMeta> out = makeObject<MatrixBlockMeta>(in1->rowID, in2->colID);
+      Handle<MatrixBlockMeta> out = makeObject<MatrixBlockMeta>(in1->rowID, in1->colID);
       return out;
     });
   }
 
   static Lambda <Handle<MatrixBlockData>> getValueProjection(Handle <MatrixBlockData> in1, Handle <MatrixBlockData> in2) {
+
     return makeLambda (in1, in2, [] (Handle <MatrixBlockData> &in1, Handle <MatrixBlockData> &in2) {
 
-      // get the sizes
-      uint32_t I = in1->numRows;
-      uint32_t J = in2->numCols;
-      uint32_t K = in1->numCols;
-
       // make an output
-      Handle<MatrixBlockData> out = makeObject<MatrixBlockData>(I, J);
+      Handle<MatrixBlockData> sum = makeObject<MatrixBlockData>(in1->numRows, in1->numCols);
 
       // get the ptrs
-      float *outData = out->data->c_ptr();
+      float *sumData = sum->data->c_ptr();
       float *in1Data = in1->data->c_ptr();
       float *in2Data = in2->data->c_ptr();
 
-      // do the multiply
-      //cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, I, J, K, 1.0f, in1Data, K, in2Data, J, 0.0f, outData, J);
+      // do the sum
+      int N = in1->numRows * in1->numCols;
+      for(int32_t i = 0; i < N; ++i) {
+        sumData[i] = in1Data[i] + in2Data[i];
+      }
 
       // return the output
-      return out;
+      return sum;
     });
   }
 };

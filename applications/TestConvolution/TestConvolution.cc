@@ -4,6 +4,7 @@
 #include "sharedLibraries/headers/MatrixBlock.h"
 #include "sharedLibraries/headers/MatrixScanner.h"
 #include "sharedLibraries/headers/MatrixMultiplyJoin.h"
+#include "sharedLibraries/headers/MatrixSumJoin.h"
 #include "sharedLibraries/headers/MatrixMultiplyAggregation.h"
 #include "sharedLibraries/headers/MatrixWriter.h"
 
@@ -84,6 +85,7 @@ int main(int argc, char *argv[]) {
   pdbClient.registerType("libraries/libMatrixBlockMeta.so");
   pdbClient.registerType("libraries/libMatrixMultiplyAggregation.so");
   pdbClient.registerType("libraries/libMatrixMultiplyJoin.so");
+  pdbClient.registerType("libraries/libMatrixSumJoin.so");
   pdbClient.registerType("libraries/libMatrixScanner.so");
   pdbClient.registerType("libraries/libMatrixWriter.so");
 
@@ -115,15 +117,19 @@ int main(int argc, char *argv[]) {
   Handle<Computation> a2 = pdb::makeObject<pdb::matrix::MatrixScanner>("myData", "B");
   Handle<Computation> a3 = pdb::makeObject<pdb::matrix::MatrixScanner>("myData", "C");
 
-  // make the join
-  Handle<Computation> join = pdb::makeObject<pdb::matrix::MatrixMultiplyJoin>();
-  join->setInput(0, a1);
-  join->setInput(1, a2);
-  join->setInput(2, a3);
+  // make the joinAdd
+  Handle<Computation> joinAdd = pdb::makeObject<pdb::matrix::MatrixSumJoin>();
+  joinAdd->setInput(0, a1);
+  joinAdd->setInput(1, a2);
+
+  // create the multiply
+  Handle<Computation> joinMul = pdb::makeObject<pdb::matrix::MatrixSumJoin>();
+  joinMul->setInput(0, joinAdd);
+  joinMul->setInput(1, a3);
 
   // make the aggregation
   Handle<Computation> myAggregation = makeObject<pdb::matrix::MatrixMultiplyAggregation>();
-  myAggregation->setInput(join);
+  myAggregation->setInput(joinMul);
 
   // make the writer
   Handle<Computation> writeStringIntPair = pdb::makeObject<pdb::matrix::MatrixWriter>("myData", "D");
