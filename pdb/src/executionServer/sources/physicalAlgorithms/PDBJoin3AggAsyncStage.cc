@@ -1,5 +1,5 @@
-#include <PDBJoin8AlgorithmShuffleStage.h>
-#include <PDBJoin8AlgorithmState.h>
+#include <PDBJoin3AggAsyncStage.h>
+#include <PDBJoin3AlgorithmState.h>
 #include <PDBJoinAggregationState.h>
 #include <ExJob.h>
 #include <ComputePlan.h>
@@ -7,14 +7,14 @@
 #include <Join8SideSender.h>
 #include <GenericWork.h>
 
-bool pdb::PDBJoin8AlgorithmShuffleStage::setup(const pdb::Handle<pdb::ExJob> &job,
-                                               const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                               const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
-                                               const std::string &error) {
+bool pdb::PDBJoin3AggAsyncStage::setup(const pdb::Handle<pdb::ExJob> &job,
+                                       const pdb::PDBPhysicalAlgorithmStatePtr &state,
+                                       const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                       const std::string &error) {
 
 
   // cast the state
-  auto s = dynamic_pointer_cast<PDBJoin8AlgorithmState>(state);
+  auto s = dynamic_pointer_cast<PDBJoin3AlgorithmState>(state);
 
   // get catalog client
   auto catalogClient = storage->getFunctionalityPtr<PDBCatalogClient>();
@@ -81,7 +81,7 @@ bool pdb::PDBJoin8AlgorithmShuffleStage::setup(const pdb::Handle<pdb::ExJob> &jo
   s->joinSideReader = std::make_shared<std::vector<Join8SideReaderPtr>>();
 
   // get the source page set
-  auto sourcePageSet = storage->createPageSetFromPDBSet(sourceSet.database, sourceSet.set, false);
+  auto sourcePageSet = storage->createPageSetFromPDBSet(sourceSet0.database, sourceSet0.set, false);
   sourcePageSet->resetPageSet();
 
   // setup the processing threads
@@ -103,13 +103,13 @@ bool pdb::PDBJoin8AlgorithmShuffleStage::setup(const pdb::Handle<pdb::ExJob> &jo
   return true;
 }
 
-bool pdb::PDBJoin8AlgorithmShuffleStage::run(const pdb::Handle<pdb::ExJob> &job,
-                                             const pdb::PDBPhysicalAlgorithmStatePtr &state,
-                                             const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
-                                             const std::string &error) {
+bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
+                                     const pdb::PDBPhysicalAlgorithmStatePtr &state,
+                                     const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                                     const std::string &error) {
 
   // cast the state
-  auto s = dynamic_pointer_cast<PDBJoin8AlgorithmState>(state);
+  auto s = dynamic_pointer_cast<PDBJoin3AlgorithmState>(state);
 
   // stats
   atomic_bool success;
@@ -276,10 +276,10 @@ bool pdb::PDBJoin8AlgorithmShuffleStage::run(const pdb::Handle<pdb::ExJob> &job,
   return true;
 }
 
-void pdb::PDBJoin8AlgorithmShuffleStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
+void pdb::PDBJoin3AggAsyncStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
 
   // cast the state
-  auto s = dynamic_pointer_cast<PDBJoin8AlgorithmState>(state);
+  auto s = dynamic_pointer_cast<PDBJoin3AlgorithmState>(state);
 
   s->joinMapCreators = nullptr;
   s->joinSideSenders = nullptr;

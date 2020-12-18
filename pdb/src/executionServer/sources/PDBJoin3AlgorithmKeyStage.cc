@@ -1,16 +1,16 @@
-#include <PDBJoin8AlgorithmKeyStage.h>
+#include <PDBJoin3AlgorithmKeyStage.h>
 #include <ExJob.h>
 #include <GenericWork.h>
 #include <JoinPlanner.h>
 #include <JoinPlannerResult.h>
 
-bool pdb::PDBJoin8AlgorithmKeyStage::setup(const pdb::Handle<pdb::ExJob> &job,
+bool pdb::PDBJoin3AlgorithmKeyStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                            const pdb::PDBPhysicalAlgorithmStatePtr &state,
                                            const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                            const std::string &error) {
 
   // cast the state
-  auto s = dynamic_pointer_cast<PDBJoin8AlgorithmState>(state);
+  auto s = dynamic_pointer_cast<PDBJoin3AlgorithmState>(state);
 
   // get a page to store the planning result onto
   auto bufferManager = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
@@ -77,8 +77,8 @@ bool pdb::PDBJoin8AlgorithmKeyStage::setup(const pdb::Handle<pdb::ExJob> &job,
   return true;
 }
 
-bool pdb::PDBJoin8AlgorithmKeyStage::setupSenders(const Handle<pdb::ExJob> &job,
-                                                  const std::shared_ptr<PDBJoin8AlgorithmState> &state,
+bool pdb::PDBJoin3AlgorithmKeyStage::setupSenders(const Handle<pdb::ExJob> &job,
+                                                  const std::shared_ptr<PDBJoin3AlgorithmState> &state,
                                                   const PDBSourcePageSetSpec &recvPageSet,
                                                   const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                                   std::shared_ptr<std::vector<PDBPageQueuePtr>> &pageQueues,
@@ -146,24 +146,24 @@ bool pdb::PDBJoin8AlgorithmKeyStage::setupSenders(const Handle<pdb::ExJob> &job,
   return true;
 }
 
-pdb::SourceSetArgPtr pdb::PDBJoin8AlgorithmKeyStage::getKeySourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient) {
+pdb::SourceSetArgPtr pdb::PDBJoin3AlgorithmKeyStage::getKeySourceSetArg(std::shared_ptr<pdb::PDBCatalogClient> &catalogClient) {
 
   // grab the set
   std::string error;
-  auto set = catalogClient->getSet(sourceSet.database, sourceSet.set, error);
+  auto set = catalogClient->getSet(sourceSet0.database, sourceSet0.set, error);
   if(set == nullptr || !set->isStoringKeys) {
     return nullptr;
   }
 
   // update the set so it is keyed
-  set->name = PDBCatalog::toKeySetName(sourceSet.set);
+  set->name = PDBCatalog::toKeySetName(sourceSet0.set);
   set->containerType = PDB_CATALOG_SET_VECTOR_CONTAINER;
 
   // return the argument
   return std::make_shared<pdb::SourceSetArg>(set);
 }
 
-bool pdb::PDBJoin8AlgorithmKeyStage::run(const pdb::Handle<pdb::ExJob> &job,
+bool pdb::PDBJoin3AlgorithmKeyStage::run(const pdb::Handle<pdb::ExJob> &job,
                                          const pdb::PDBPhysicalAlgorithmStatePtr &state,
                                          const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                          const std::string &error) {
@@ -177,21 +177,21 @@ bool pdb::PDBJoin8AlgorithmKeyStage::run(const pdb::Handle<pdb::ExJob> &job,
   return runFollower(job, state, storage, error);
 }
 
-void pdb::PDBJoin8AlgorithmKeyStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
+void pdb::PDBJoin3AlgorithmKeyStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
 
   // cast the state
-  auto s = dynamic_pointer_cast<PDBJoin8AlgorithmState>(state);
+  auto s = dynamic_pointer_cast<PDBJoin3AlgorithmState>(state);
 
   // remove the key pipelines
   s->keyPipeline = nullptr;
 }
 
-bool pdb::PDBJoin8AlgorithmKeyStage::runLead(const pdb::Handle<pdb::ExJob> &job,
+bool pdb::PDBJoin3AlgorithmKeyStage::runLead(const pdb::Handle<pdb::ExJob> &job,
                                              const pdb::PDBPhysicalAlgorithmStatePtr &state,
                                              const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                              const std::string &error) {
   // cast the state
-  auto s = dynamic_pointer_cast<PDBJoin8AlgorithmState>(state);
+  auto s = dynamic_pointer_cast<PDBJoin3AlgorithmState>(state);
 
   atomic_bool success;
   success = true;
@@ -316,12 +316,12 @@ bool pdb::PDBJoin8AlgorithmKeyStage::runLead(const pdb::Handle<pdb::ExJob> &job,
   return true;
 }
 
-bool pdb::PDBJoin8AlgorithmKeyStage::runFollower(const pdb::Handle<pdb::ExJob> &job,
+bool pdb::PDBJoin3AlgorithmKeyStage::runFollower(const pdb::Handle<pdb::ExJob> &job,
                                                  const pdb::PDBPhysicalAlgorithmStatePtr &state,
                                                  const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                                  const std::string &error) {
   // cast the state
-  auto s = dynamic_pointer_cast<PDBJoin8AlgorithmState>(state);
+  auto s = dynamic_pointer_cast<PDBJoin3AlgorithmState>(state);
 
   /**
    * 2. Wait to receive the plan
@@ -333,23 +333,23 @@ bool pdb::PDBJoin8AlgorithmKeyStage::runFollower(const pdb::Handle<pdb::ExJob> &
   return true;
 }
 
-pdb::PDBAbstractPageSetPtr pdb::PDBJoin8AlgorithmKeyStage::getKeySourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+pdb::PDBAbstractPageSetPtr pdb::PDBJoin3AlgorithmKeyStage::getKeySourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                                                                const pdb::Vector<PDBSourceSpec> &srcs) {
 
   // if this is a scan set get the page set from a real set
-  PDBAbstractPageSetPtr sourcePageSet = storage->createPageSetFromPDBSet(sourceSet.database, sourceSet.set, true);
+  PDBAbstractPageSetPtr sourcePageSet = storage->createPageSetFromPDBSet(sourceSet0.database, sourceSet0.set, true);
   sourcePageSet->resetPageSet();
 
   // return the page set
   return sourcePageSet;
 }
 
-pdb::PDBAbstractPageSetPtr pdb::PDBJoin8AlgorithmKeyStage::getFetchingPageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+pdb::PDBAbstractPageSetPtr pdb::PDBJoin3AlgorithmKeyStage::getFetchingPageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                                                               const pdb::Vector<PDBSourceSpec> &srcs,
                                                                               const std::string &ip,
                                                                               int32_t port) {
   // get the page set
-  PDBAbstractPageSetPtr sourcePageSet = storage->fetchPDBSet(sourceSet.database, sourceSet.set, true, ip, port);
+  PDBAbstractPageSetPtr sourcePageSet = storage->fetchPDBSet(sourceSet0.database, sourceSet0.set, true, ip, port);
   sourcePageSet->resetPageSet();
 
   // return the page set

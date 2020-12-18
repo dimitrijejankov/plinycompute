@@ -1,17 +1,17 @@
-#include <PDBJoin8AlgorithmJoinStage.h>
-#include <PDBJoin8AlgorithmState.h>
+#include <PDBJoin3AlgorithmJoinStage.h>
+#include <PDBJoin3AlgorithmState.h>
 #include <ExJob.h>
 #include <ComputePlan.h>
 #include <NullProcessor.h>
 #include <GenericWork.h>
 
-bool pdb::PDBJoin8AlgorithmJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
+bool pdb::PDBJoin3AlgorithmJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                             const pdb::PDBPhysicalAlgorithmStatePtr &state,
                                             const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                             const std::string &error) {
 
   // cast the state
-  auto s = dynamic_pointer_cast<PDBJoin8AlgorithmState>(state);
+  auto s = dynamic_pointer_cast<PDBJoin3AlgorithmState>(state);
 
   // get plan from the page
   auto* record = (Record<JoinPlannerResult>*) s->planPage->getBytes();
@@ -76,14 +76,14 @@ bool pdb::PDBJoin8AlgorithmJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
   return true;
 }
 
-bool pdb::PDBJoin8AlgorithmJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
+bool pdb::PDBJoin3AlgorithmJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
                                           const pdb::PDBPhysicalAlgorithmStatePtr &state,
                                           const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                           const std::string &error) {
 
 
   // cast the state
-  auto s = dynamic_pointer_cast<PDBJoin8AlgorithmState>(state);
+  auto s = dynamic_pointer_cast<PDBJoin3AlgorithmState>(state);
 
   atomic_bool success;
   success = true;
@@ -158,5 +158,5 @@ bool pdb::PDBJoin8AlgorithmJoinStage::run(const pdb::Handle<pdb::ExJob> &job,
   return success;
 }
 
-void pdb::PDBJoin8AlgorithmJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
+void pdb::PDBJoin3AlgorithmJoinStage::cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state) {
 }

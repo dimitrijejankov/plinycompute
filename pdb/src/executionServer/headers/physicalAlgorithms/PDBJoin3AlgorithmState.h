@@ -11,7 +11,7 @@
 
 namespace pdb {
 
-struct PDBJoin8AlgorithmState : public PDBPhysicalAlgorithmState {
+struct PDBJoin3AlgorithmState : public PDBPhysicalAlgorithmState {
 
   // the page sets we get the keys from
   std::unordered_map<int32_t , PDBAbstractPageSetPtr> keySourcePageSets;
