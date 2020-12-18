@@ -5,10 +5,6 @@ namespace pdb{
 
     CUDADevice_t::CUDADevice_t(int device, size_t size) : device(device), size(size) {}
 
-    void CUDADevice_t::init() {
-
-    }
-
     size_t CUDADevice_t::registerThread() {
         auto tID = static_cast<ThreadID>(pthread_self());
         if (idxs.count(tID) == 0){
@@ -45,7 +41,7 @@ namespace pdb{
             gpuDevice->mgr = std::make_unique<cudaMemMgr>();
             //TODO: choose which gpu to use
             for (int j = 0; j < gpuDevice->numStreams; j++){
-                checkCudaErrors(cudaStreamCreate(&gpuDevice->streams[j]));
+                checkCudaErrors(cudaStreamCreateWithFlags(&gpuDevice->streams[j],cudaStreamNonBlocking));
             }
             devices.push_back(std::move(gpuDevice));
         }

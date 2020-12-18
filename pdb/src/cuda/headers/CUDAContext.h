@@ -26,8 +26,6 @@ namespace pdb{
 
         CUDADevice_t(int device, size_t size);
 
-        void init();
-
         cublasHandle_t getHandler();
 
         cudaStream_t getStream();

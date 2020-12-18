@@ -22,7 +22,7 @@ namespace pdb{
     pair<void*, size_t> PDBCUDAStaticStorage::getCPUPageFromObjectAddress(void* objectAddress) {
         // objectAddress must be a CPU RAM Pointer
         assert(isDevicePointer(objectAddress) == 0);
-        pdb::PDBPagePtr whichPage = static_cast<CUDAMemoryManager *>(gpuMemoryManager)->getCPUBufferManagerInterface()->getPageForGPUObject(
+        pdb::PDBPagePtr whichPage = static_cast<CUDAMemoryManager *>(gpuMemoryManager)->getCPUBufferManagerInterface()->movePageToGPU(
                 objectAddress, nullptr);
         if (whichPage == nullptr) {
             std::cout << "getObjectCPUPage: cannot get page for this object!\n";

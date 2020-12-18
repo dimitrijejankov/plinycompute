@@ -162,7 +162,7 @@ class PDBBufferManagerImpl : public PDBBufferManagerInterface {
     * @param objectAddress - the physical address of one object
     * @return - a PagePtr to this page containing the object
    */
-  void getPageForGPUObject(void *objectAddress, GPUID gpu_id) override;
+  void movePageToGPU(void *objectAddress, GPUID gpu_id) override;
 
   /**
    * remove a page from GPU page table.
@@ -479,10 +479,18 @@ protected:
    */
   std::vector<uint64_t> freeAnonPageNumbers;
 
+
   /**
    * this map keeps track of all the pages moved to different GPUs.
    */
   std::map<std::pair<void*, GPUID>, GPUPageID> pageGPUIDMapping;
+
+
+  /**
+   * global gpu page id
+   */
+   GPUPageID globalPageID{0};
+
 
   /**
    * so we assign a unique number to each anonymous page so we can identify them, if we already assigned

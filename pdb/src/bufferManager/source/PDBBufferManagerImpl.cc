@@ -97,7 +97,7 @@ size_t PDBBufferManagerImpl::getMaxPageSize() {
   return sharedMemory.pageSize;
 }
 
-void PDBBufferManagerImpl::getPageForGPUObject(void *objectAddress, GPUID gpu_id) {
+void PDBBufferManagerImpl::movePageToGPU(void *objectAddress, GPUID gpu_id) {
         void* startSharedMem = (void*)sharedMemory.memory;
         void* endSharedMem = (void*)((char*)sharedMemory.memory + sharedMemory.numPages * sharedMemory.pageSize);
         if (objectAddress < startSharedMem || objectAddress > endSharedMem){
@@ -113,9 +113,8 @@ void PDBBufferManagerImpl::getPageForGPUObject(void *objectAddress, GPUID gpu_id
         if (pageGPUIDMapping.find(identifier) != pageGPUIDMapping.end()){
 
         } else {
-            GPUPageID newPageID;
-            CUDAPage* cudaPage = ((cudaMemMgr*)gpuMemoryManager)->NewPageImpl(&newPageID);
-
+            CUDAPage* cudaPage = ((cudaMemMgr*)gpuMemoryManager)->NewPageImpl(&globalPageID);
+            cudaMemcpy(cudaPage->getBytes(), memLoc,memSize, cudaMemcpyHostToDevice);
         }
 
 

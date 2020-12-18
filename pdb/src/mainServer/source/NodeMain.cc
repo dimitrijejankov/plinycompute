@@ -73,11 +73,17 @@ void setGPUDynamicStorage(void** dynamicStorage, bool isManager){
     *dynamicStorage = static_cast<void*>(tmp);
 }
 
+void setGPUContext(void** gpuContext, bool isManager){
+    if (isManager) return;
+    CUDAContext* tmp = new CUDAContext;
+    *gpuContext = static_cast<void*>(tmp);
+}
+
 extern void* gpuMemoryManager;
 extern void* gpuStreamManager;
 extern void* gpuStaticStorage;
 extern void* gpuDynamicStorage;
-
+extern void* gpuContext;
 int main(int argc, char *argv[]) {
 
   // create the program options
@@ -173,6 +179,7 @@ int main(int argc, char *argv[]) {
   setGPUStreamManager(&gpuStreamManager, config->isManager);
   setGPUStaticStorage(&gpuStaticStorage, config->isManager);
   setGPUDynamicStorage(&gpuDynamicStorage, config->isManager);
+  setGPUContext(&gpuContext, config->isManager);
 
   // start the server
   server->startServer(make_shared<pdb::GenericWork>([&](const PDBBuzzerPtr& callerBuzzer) {
