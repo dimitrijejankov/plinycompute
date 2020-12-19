@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 #include <vector>
-#include <EightWayJoinPipeline.h>
+#include <Join3KeyPipeline.h>
 
 namespace pdb {
 
@@ -11,16 +11,16 @@ public:
 
   JoinPlanner(uint32_t numNodes,
               uint32_t numThreads,
-              std::unordered_map<EightWayJoinPipeline::key, pair<int32_t, int32_t>, EightWayJoinPipeline::HashFunction> &nodeRecords,
-              std::vector<EightWayJoinPipeline::joined_record> &joined);
+              std::unordered_map<Join3KeyPipeline::key, pair<int32_t, int32_t>, Join3KeyPipeline::HashFunction> &nodeRecords,
+              std::vector<Join3KeyPipeline::joined_record> &joined);
 
   void doPlanning(const PDBPageHandle &page);
 
   // these are the node records
-  std::unordered_map<EightWayJoinPipeline::key, pair<int32_t, int32_t>, EightWayJoinPipeline::HashFunction> &nodeRecords;
+  std::unordered_map<Join3KeyPipeline::key, pair<int32_t, int32_t>, Join3KeyPipeline::HashFunction> &nodeRecords;
 
   // the joined records
-  std::vector<EightWayJoinPipeline::joined_record> &joined;
+  std::vector<Join3KeyPipeline::joined_record> &joined;
 
   // the number of nodes for planning
   uint32_t numNodes;

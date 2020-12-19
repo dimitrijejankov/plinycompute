@@ -4,7 +4,7 @@
 #include "PDBPhysicalAlgorithmState.h"
 #include "PDBPageSelfReceiver.h"
 #include "PDBPageNetworkSender.h"
-#include "EightWayJoinPipeline.h"
+#include "Join3KeyPipeline.h"
 #include "Join8SideSender.h"
 #include "Join8MapCreator.h"
 #include "Pipeline.h"
@@ -14,9 +14,11 @@ namespace pdb {
 struct PDBJoin3AlgorithmState : public PDBPhysicalAlgorithmState {
 
   // the page sets we get the keys from
-  std::unordered_map<int32_t , PDBAbstractPageSetPtr> keySourcePageSets;
+  std::unordered_map<int32_t , PDBAbstractPageSetPtr> keySourcePageSets0;
+  std::unordered_map<int32_t , PDBAbstractPageSetPtr> keySourcePageSets1;
+  std::unordered_map<int32_t , PDBAbstractPageSetPtr> keySourcePageSets2;
 
-  std::shared_ptr<EightWayJoinPipeline> keyPipeline;
+  std::shared_ptr<Join3KeyPipeline> keyPipeline;
 
   //
   std::shared_ptr<std::vector<PDBPageQueuePtr>> planPageQueues = nullptr;
@@ -43,7 +45,7 @@ struct PDBJoin3AlgorithmState : public PDBPhysicalAlgorithmState {
 
   std::shared_ptr<std::vector<PipelinePtr>> myPipelines = nullptr;
 
-  std::vector<EightWayJoinPipeline::joined_record> joinedRecords;
+  std::vector<Join3KeyPipeline::joined_record> joinedRecords;
 
 };
 

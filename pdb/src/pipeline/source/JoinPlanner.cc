@@ -10,11 +10,11 @@ using namespace pdb::matrix_3d;
 
 pdb::JoinPlanner::JoinPlanner(uint32_t numNodes,
                               uint32_t numThreads,
-                              std::unordered_map<EightWayJoinPipeline::key, pair<int32_t, int32_t>, EightWayJoinPipeline::HashFunction> &nodeRecords,
-                              std::vector<EightWayJoinPipeline::joined_record> &joined) : numNodes(numNodes),
-                                                                                          numThreads(numThreads),
-                                                                                          nodeRecords(nodeRecords),
-                                                                                          joined(joined) {
+                              std::unordered_map<Join3KeyPipeline::key, pair<int32_t, int32_t>, Join3KeyPipeline::HashFunction> &nodeRecords,
+                              std::vector<Join3KeyPipeline::joined_record> &joined) : numNodes(numNodes),
+                                                                                      numThreads(numThreads),
+                                                                                      nodeRecords(nodeRecords),
+                                                                                      joined(joined) {
 }
 
 void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
@@ -50,7 +50,7 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
   // this is the stuff we need to execute the query
   out->mapping = pdb::makeObject<pdb::Vector<int32_t>>(joined.size(), joined.size());
   out->recordToNode = pdb::makeObject<pdb::Vector<bool>>(nodeRecords.size() * numNodes, nodeRecords.size() * numNodes);
-  out->joinedRecords = pdb::makeObject<pdb::Vector<EightWayJoinPipeline::joined_record>>(joined.size(), joined.size());
+  out->joinedRecords = pdb::makeObject<pdb::Vector<Join3KeyPipeline::joined_record>>(joined.size(), joined.size());
   out->records = pdb::makeObject<pdb::Map<MatrixBlockMeta3D, int32_t>>();
 
   // zero out the record to node

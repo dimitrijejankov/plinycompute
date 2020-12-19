@@ -34,10 +34,7 @@ bool pdb::PDBJoin3AlgorithmKeyStage::setup(const pdb::Handle<pdb::ExJob> &job,
 
   if(job->isLeadNode) {
 
-    // this is to transfer the plan
-    s->planPageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
-
-    // go through each node
+    // go through each node for set A
     for(int n = 0; n < job->numberOfNodes; n++) {
 
         // make the parameters for the first set
@@ -46,15 +43,50 @@ bool pdb::PDBJoin3AlgorithmKeyStage::setup(const pdb::Handle<pdb::ExJob> &job,
 
         // go grab the source page set
         bool isThisNode = job->nodes[currNode]->address == job->nodes[n]->address && job->nodes[currNode]->port == job->nodes[n]->port;
-        PDBAbstractPageSetPtr sourcePageSet = isThisNode ? getKeySourcePageSet(storage, sources) :
-                                                           getFetchingPageSet(storage, sources, job->nodes[n]->address, job->nodes[n]->port);
+        PDBAbstractPageSetPtr sourcePageSet = isThisNode ? getKeySourcePageSet(storage, sources, 0) :
+                                                           getFetchingPageSet(storage, sources, job->nodes[n]->address, job->nodes[n]->port, 0);
 
         // store the pipeline
-        s->keySourcePageSets[n] = sourcePageSet;
+        s->keySourcePageSets0[n] = sourcePageSet;
+    }
+
+    // go through each node for set B
+    for(int n = 0; n < job->numberOfNodes; n++) {
+
+      // make the parameters for the first set
+      std::map<ComputeInfoType, ComputeInfoPtr> params = {{ ComputeInfoType::SOURCE_SET_INFO,
+                                                            getKeySourceSetArg(catalogClient)} };
+
+      // go grab the source page set C
+      bool isThisNode = job->nodes[currNode]->address == job->nodes[n]->address && job->nodes[currNode]->port == job->nodes[n]->port;
+      PDBAbstractPageSetPtr sourcePageSet = isThisNode ? getKeySourcePageSet(storage, sources, 0) :
+                                            getFetchingPageSet(storage, sources, job->nodes[n]->address, job->nodes[n]->port, 0);
+
+      // store the pipeline
+      s->keySourcePageSets1[n] = sourcePageSet;
+    }
+
+    // go through each node
+    for(int n = 0; n < job->numberOfNodes; n++) {
+
+      // make the parameters for the first set
+      std::map<ComputeInfoType, ComputeInfoPtr> params = {{ ComputeInfoType::SOURCE_SET_INFO,
+                                                            getKeySourceSetArg(catalogClient)} };
+
+      // go grab the source page set
+      bool isThisNode = job->nodes[currNode]->address == job->nodes[n]->address && job->nodes[currNode]->port == job->nodes[n]->port;
+      PDBAbstractPageSetPtr sourcePageSet = isThisNode ? getKeySourcePageSet(storage, sources, 0) :
+                                            getFetchingPageSet(storage, sources, job->nodes[n]->address, job->nodes[n]->port, 0);
+
+      // store the pipeline
+      s->keySourcePageSets2[n] = sourcePageSet;
     }
 
     // this is the pipeline that runs the key join
-    s->keyPipeline = std::make_shared<EightWayJoinPipeline>(s->keySourcePageSets);
+    s->keyPipeline = std::make_shared<Join3KeyPipeline>(s->keySourcePageSets0, s->keySourcePageSets1, s->keySourcePageSets2);
+
+    // this is to transfer the plan
+    s->planPageQueues = std::make_shared<std::vector<PDBPageQueuePtr>>();
 
     // setup the senders for the plan
     if(!setupSenders(job, s, planSource, storage, s->planPageQueues, s->planSenders, nullptr)) {
@@ -211,38 +243,41 @@ bool pdb::PDBJoin3AlgorithmKeyStage::runLead(const pdb::Handle<pdb::ExJob> &job,
   });
 
   // go through the nodes and execute the key pipelines
-  for(int n = 0; n < job->numberOfNodes; n++) {
+  for(int set = 0; set < 3; ++set) {
+    for(int n = 0; n < job->numberOfNodes; n++) {
 
-    // get a worker from the server
-    PDBWorkerPtr worker = storage->getWorker();
+      // get a worker from the server
+      PDBWorkerPtr worker = storage->getWorker();
 
-    // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&s, n, &success, &counter] (const PDBBuzzerPtr& callerBuzzer) {
+      // make the work
+      PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&s, n, set, &success, &counter] (const PDBBuzzerPtr& callerBuzzer) {
 
-      try {
+        try {
 
-        // run the pipeline
-        s->keyPipeline->runSide(n);
-      }
-      catch (std::exception &e) {
+          // run the pipeline
+          s->keyPipeline->runSide(n, set);
+        }
+        catch (std::exception &e) {
 
-        // log the error
-        s->logger->error(e.what());
+          // log the error
+          s->logger->error(e.what());
 
-        // we failed mark that we have
-        success = false;
-      }
+          // we failed mark that we have
+          success = false;
+        }
 
-      // signal that the run was successful
-      callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
-    });
+        // signal that the run was successful
+        callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
+      });
 
-    // run the work
-    worker->execute(myWork, tempBuzzer);
+      // run the work
+      worker->execute(myWork, tempBuzzer);
+    }
   }
 
+
   // wait for it to finish
-  while (counter < job->numberOfNodes) {
+  while (counter < job->numberOfNodes * 3) {
     tempBuzzer->wait();
   }
 
@@ -334,10 +369,21 @@ bool pdb::PDBJoin3AlgorithmKeyStage::runFollower(const pdb::Handle<pdb::ExJob> &
 }
 
 pdb::PDBAbstractPageSetPtr pdb::PDBJoin3AlgorithmKeyStage::getKeySourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
-                                                                               const pdb::Vector<PDBSourceSpec> &srcs) {
+                                                                               const pdb::Vector<PDBSourceSpec> &srcs, int32_t idx) {
+
+  const PDBSetObject *_set;
+  if(idx == 0) {
+    _set = &sourceSet0;
+  }
+  else if(idx == 1) {
+    _set = &sourceSet1;
+  }
+  else if(idx == 2) {
+    _set = &sourceSet2;
+  }
 
   // if this is a scan set get the page set from a real set
-  PDBAbstractPageSetPtr sourcePageSet = storage->createPageSetFromPDBSet(sourceSet0.database, sourceSet0.set, true);
+  PDBAbstractPageSetPtr sourcePageSet = storage->createPageSetFromPDBSet(_set->database, _set->set, true);
   sourcePageSet->resetPageSet();
 
   // return the page set
@@ -347,7 +393,8 @@ pdb::PDBAbstractPageSetPtr pdb::PDBJoin3AlgorithmKeyStage::getKeySourcePageSet(c
 pdb::PDBAbstractPageSetPtr pdb::PDBJoin3AlgorithmKeyStage::getFetchingPageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                                                               const pdb::Vector<PDBSourceSpec> &srcs,
                                                                               const std::string &ip,
-                                                                              int32_t port) {
+                                                                              int32_t port,
+                                                                              int32_t idx) {
   // get the page set
   PDBAbstractPageSetPtr sourcePageSet = storage->fetchPDBSet(sourceSet0.database, sourceSet0.set, true, ip, port);
   sourcePageSet->resetPageSet();

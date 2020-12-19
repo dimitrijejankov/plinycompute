@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <cstring>
 #include <random>
-#include <pipeline/EightWayJoinPipeline.h>
+#include <pipeline/Join3KeyPipeline.h>
 
 namespace pdb {
 
@@ -201,7 +201,7 @@ public:
                      int32_t numNodes,
                      int32_t sideRecordSize,
                      std::vector<std::vector<bool>> &side_tids,
-                     std::vector<EightWayJoinPipeline::joined_record> &joinedRecords,
+                     std::vector<Join3KeyPipeline::joined_record> &joinedRecords,
                      int32_t populationSize);
 
   void run(int numIter) {
@@ -245,7 +245,7 @@ public:
   int32_t sideRecordSize;
 
   const std::vector<std::vector<bool>> &side_tids;
-  const std::vector<EightWayJoinPipeline::joined_record> &joinedRecords;
+  const std::vector<Join3KeyPipeline::joined_record> &joinedRecords;
 
   int32_t populationSize;
   const float mutation_rate = 0.05;

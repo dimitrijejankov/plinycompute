@@ -9,7 +9,7 @@
 #include "StringIntPair.h"
 #include "JoinMap.h"
 #include "PDBRandomAccessPageSet.h"
-#include "EightWayJoinPipeline.h"
+#include "Join3KeyPipeline.h"
 #include "PDBAbstractPageSet.h"
 #include "../../../../../applications/TestConvolution/sharedLibraries/headers/MatrixBlock3D.h"
 
@@ -43,7 +43,7 @@ private:
   std::vector<PDBPageHandle> storedPage;
 
   // joined records
-  const std::vector<EightWayJoinPipeline::joined_record> &joinedRecords;
+  const std::vector<Join3KeyPipeline::joined_record> &joinedRecords;
 
   // the tid mapping to a page
   const std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &tidToRecordMapping;
@@ -72,11 +72,11 @@ private:
                       uint64_t workerID,
                       int numWorkers,
                       const std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &tidToRecordMapping,
-                      const std::vector<EightWayJoinPipeline::joined_record> &joinedRecords) : position(position),
-                                                                                               workerID(workerID),
-                                                                                               numWorkers(numWorkers),
-                                                                                               tidToRecordMapping(tidToRecordMapping),
-                                                                                               joinedRecords(joinedRecords) {
+                      const std::vector<Join3KeyPipeline::joined_record> &joinedRecords) : position(position),
+                                                                                           workerID(workerID),
+                                                                                           numWorkers(numWorkers),
+                                                                                           tidToRecordMapping(tidToRecordMapping),
+                                                                                           joinedRecords(joinedRecords) {
 
     // make the output
     output = std::make_shared<TupleSet>();

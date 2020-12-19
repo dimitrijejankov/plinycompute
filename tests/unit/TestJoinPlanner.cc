@@ -5,7 +5,7 @@
 #include <chrono>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include <EightWayJoinPipeline.h>
+#include <Join3KeyPipeline.h>
 #include <GeneticJoinPlanner.h>
 #include <JoinPlanner.h>
 

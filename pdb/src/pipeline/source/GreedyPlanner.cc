@@ -2,7 +2,7 @@
 
 pdb::GreedyPlanner::GreedyPlanner(int32_t numNodes, pdb::GreedyPlanner::costs_t costs,
                                   const std::vector<char> &side_record_positions,
-                                  const std::vector<EightWayJoinPipeline::joined_record> &joinedRecords)
+                                  const std::vector<Join3KeyPipeline::joined_record> &joinedRecords)
     : num_nodes(numNodes),
       num_join_records(side_record_positions.size() / num_nodes),
       c(costs),

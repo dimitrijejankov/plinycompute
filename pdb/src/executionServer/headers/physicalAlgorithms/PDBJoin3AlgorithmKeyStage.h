@@ -34,19 +34,21 @@ class PDBJoin3AlgorithmKeyStage : public PDBPhysicalAlgorithmStage {
                                                         final(final),
                                                         PDBPhysicalAlgorithmStage(PDBSinkPageSetSpec(),
                                                                                   Vector<PDBSourceSpec>(),
-                                                                                   out0,
+                                                                                  final,
                                                                                  Vector<pdb::Handle<PDBSourcePageSetSpec>>(),
                                                                                  Vector<PDBSetObject>()) {
 
   }
 
   PDBAbstractPageSetPtr getKeySourcePageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
-                                            const pdb::Vector<PDBSourceSpec> &srcs);
+                                            const pdb::Vector<PDBSourceSpec> &srcs,
+                                            int32_t idx);
 
   PDBAbstractPageSetPtr getFetchingPageSet(const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
                                            const pdb::Vector<PDBSourceSpec> &srcs,
                                            const std::string &ip,
-                                           int32_t port);
+                                           int32_t port,
+                                           int32_t idx);
 
   static bool setupSenders(const Handle<pdb::ExJob> &job,
                            const std::shared_ptr<PDBJoin3AlgorithmState> &state,

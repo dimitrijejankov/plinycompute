@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <iostream>
 #include <PipJoinAggPlanResult.h>
-#include <pipeline/EightWayJoinPipeline.h>
+#include <pipeline/Join3KeyPipeline.h>
 
 namespace pdb {
 
@@ -45,7 +45,7 @@ class GreedyPlanner {
   GreedyPlanner(int32_t numNodes,
                 pdb::GreedyPlanner::costs_t costs,
                 const std::vector<char> &side_record_positions,
-                const std::vector<EightWayJoinPipeline::joined_record> &joinedRecords);
+                const std::vector<Join3KeyPipeline::joined_record> &joinedRecords);
 
   void run_join_first_only();
 
@@ -76,7 +76,7 @@ class GreedyPlanner {
   std::vector<int32_t> join_group_positions;
 
   // tells us what lhs record each join group consists of
-  const std::vector<EightWayJoinPipeline::joined_record> &join_groups;
+  const std::vector<Join3KeyPipeline::joined_record> &join_groups;
 
   // the costs of performing each stuff
   costs_t c;

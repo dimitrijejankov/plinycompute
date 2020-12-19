@@ -5,7 +5,7 @@
 #include <ComputeInfo.h>
 #include <JoinAggSideSender.h>
 #include <cassert>
-#include <pipeline/EightWayJoinPipeline.h>
+#include <pipeline/Join3KeyPipeline.h>
 
 namespace pdb {
 
@@ -78,7 +78,7 @@ public:
 
   // used for
   const std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> *mappings;
-  const std::vector<EightWayJoinPipeline::joined_record> *joinedRecords;
+  const std::vector<Join3KeyPipeline::joined_record> *joinedRecords;
 
   // tells us if this is for the aggregation stage of the join agg algorithm (used for the join agg algorithm)
   bool isJoinAggAggregation = false;

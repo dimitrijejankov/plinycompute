@@ -54,7 +54,7 @@ class Join8MainSource : public ComputeSource {
   // the tid mapping to a page
   const std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &tidToRecordMapping;
 
-  const std::vector<EightWayJoinPipeline::joined_record> &joinedRecords;
+  const std::vector<Join3KeyPipeline::joined_record> &joinedRecords;
 
   // the start and the end join groups
   uint64_t joinGroupStart;
@@ -79,9 +79,9 @@ public:
                   uint64_t workerID,
                   uint64_t numWorkers,
                   const std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &mappings,
-                  const std::vector<EightWayJoinPipeline::joined_record> &joinedRecords) : joinedRecords(joinedRecords),
-                                                                                           workerID(workerID),
-                                                                                           tidToRecordMapping(mappings) {
+                  const std::vector<Join3KeyPipeline::joined_record> &joinedRecords) : joinedRecords(joinedRecords),
+                                                                                       workerID(workerID),
+                                                                                       tidToRecordMapping(mappings) {
   // create the tuple set that we'll return during iteration
   output = std::make_shared<TupleSet>();
 
