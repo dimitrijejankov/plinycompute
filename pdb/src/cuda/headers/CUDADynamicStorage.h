@@ -46,7 +46,7 @@ public:
      */
     //std::map<page_id_t, pdb::RamPointerPtr> ramPointerCollection;
 
-    friend class cudaMemMgr;
+    friend class CUDAMemMgr;
 };
 
 }

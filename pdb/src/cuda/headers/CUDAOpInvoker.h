@@ -8,7 +8,7 @@
 #include "CUDAOpType.h"
 #include "PDBBufferManagerImpl.h"
 #include "CUDAUtility.h"
-#include "cudaMemMgr.h"
+#include "CUDAMemMgr.h"
 
 // simply support two kind of operations
 namespace pdb{

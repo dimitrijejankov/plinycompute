@@ -10,7 +10,7 @@ namespace pdb {
 
     PDBCUDAMatrixMultipleInvoker::PDBCUDAMatrixMultipleInvoker() {
         sstore_instance = static_cast<CUDAStaticStorage*>(gpuStaticStorage);
-        memmgr_instance = static_cast<cudaMemMgr*>(gpuMemoryManager);
+        memmgr_instance = static_cast<CUDAMemMgr*>(gpuMemoryManager);
         stream_instance = static_cast<CUDAStreamManager*>(gpuStreamManager);
         PDBCUDAStreamUtils util = stream_instance->bindCPUThreadToStream();
         cudaStream = util.first;

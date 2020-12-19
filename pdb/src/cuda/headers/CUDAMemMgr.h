@@ -16,20 +16,24 @@
 
 namespace pdb {
 
-    class cudaMemMgr;
-    using PDBCUDAMemoryManagerPtr = std::shared_ptr<cudaMemMgr>;
-    class cudaMemMgr {
+    class CUDAMemMgr;
+    using PDBCUDAMemoryManagerPtr = std::shared_ptr<CUDAMemMgr>;
+    class CUDAMemMgr {
     public:
-        cudaMemMgr()=default;
-/**
+
+        CUDAMemMgr()=default;
+
+        /**
          * @param buffer - CPU buffer
          */
-        cudaMemMgr(pdb::PDBBufferManagerInterfacePtr buffer) {
+        CUDAMemMgr(pdb::PDBBufferManagerInterfacePtr buffer, GPUID deviceID) {
             bufferManager = buffer;
             poolSize = CUDA_MEM_MAMAGER_PAGE_NUM;
             pageSize = buffer->getMaxPageSize();
             pages = new CUDAPage[poolSize];
             replacer = new ClockReplacer(poolSize);
+
+            checkCudaErrors(cudaSetDevice(deviceID));
             for (size_t i = 0; i < poolSize; i++) {
                 void *cudaPointer = nullptr;
                 checkCudaErrors(cudaMalloc((void **) &cudaPointer, pageSize));
@@ -37,10 +41,10 @@ namespace pdb {
                 pages[i].setPageSize(pageSize);
                 freeList.emplace_back(static_cast<int32_t>(i));
             }
-            cpu_storage_manager = new CUDAContext();
+            //cpu_storage_manager = new CUDAContext();
         }
 
-        ~cudaMemMgr() {
+        ~CUDAMemMgr() {
             delete[] pages;
             delete replacer;
             delete cpu_storage_manager;
@@ -102,13 +106,14 @@ namespace pdb {
          * @param page_id
          * @return
          */
-        CUDAPage* FetchPageImplFromCPU(page_id_t page_id){
+        CUDAPage* FetchPageImpl(page_id_t page_id){
             std::lock_guard<std::mutex> guard(latch);
 
             std::cout << "print Page Table\n";
             for (const auto& p: pageTable){
                 std::cout << "page id: "<< p.first << "frame id: " << p.second << std::endl;
             }
+
             auto iter = pageTable.find(page_id);
             if (iter != pageTable.end()){
                 replacer->Pin(iter->second);

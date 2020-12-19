@@ -26,15 +26,10 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <PDBBufferManagerImpl.h>
-#include <cudaMemMgr.h>
+#include <CUDAMemMgr.h>
 #include <CUDAStaticStorage.h>
 #include <CUDAContext.h>
 
-
-extern void* gpuMemoryManager;
-extern void* gpuStreamManager;
-extern void* gpuStaticStorage;
-extern void* gpuDynamicStorage;
 extern void* gpuContext;
 namespace pdb {
 
@@ -97,38 +92,36 @@ size_t PDBBufferManagerImpl::getMaxPageSize() {
   return sharedMemory.pageSize;
 }
 
-void PDBBufferManagerImpl::movePageToGPU(void *objectAddress, GPUID gpu_id) {
+void* PDBBufferManagerImpl::movePageToGPU(void *objectAddress, GPUID gpu_id) {
+
+        CUDADevice_t* device = ((CUDAContext*)gpuContext)->devices[gpu_id].get();
+        CUDAMemMgr* mgr = (device->mgr).get();
+
         void* startSharedMem = (void*)sharedMemory.memory;
         void* endSharedMem = (void*)((char*)sharedMemory.memory + sharedMemory.numPages * sharedMemory.pageSize);
         if (objectAddress < startSharedMem || objectAddress > endSharedMem){
             std::cerr << objectAddress << " is not in the range of shared memory. range start: " << startSharedMem << " end: " << endSharedMem << "\n";
             exit(-1);
         }
-
         void *memLoc = (char *) sharedMemory.memory
                    + ((((char *)objectAddress - (char *) sharedMemory.memory) / sharedMemory.pageSize) * sharedMemory.pageSize);
         size_t memSize = sharedMemory.pageSize;
 
         auto identifier = std::make_pair(memLoc, gpu_id);
+
         if (pageGPUIDMapping.find(identifier) != pageGPUIDMapping.end()){
 
+            CUDAPage* cudaPage = mgr->FetchPageImpl(pageGPUIDMapping[identifier]);
+            return cudaPage->getBytes() + ((char*)objectAddress - (char*)memLoc);
+
         } else {
-            CUDAPage* cudaPage = ((cudaMemMgr*)gpuMemoryManager)->NewPageImpl(&globalPageID);
-            cudaMemcpy(cudaPage->getBytes(), memLoc,memSize, cudaMemcpyHostToDevice);
-        }
 
+            pageGPUIDMapping.insert(std::make_pair(identifier, globalPageID));
+            CUDAPage* cudaPage = mgr->NewPageImpl(&globalPageID);
+            cudaMemcpy(cudaPage->getBytes(), memLoc, memSize, cudaMemcpyHostToDevice);
 
-        ((cudaMemMgr*)gpuMemoryManager)->NewPageImpl()
-        /* Temporarily disable the mini page optimization for page moving.
-        * Move a whole page.
-        for (const auto& miniPage: constituentPages[memLoc]){
-            char* start = (char*)miniPage->getBytes();
-            char* end = start + miniPage->getSize();
-        if (objectAddress >= start && objectAddress < end) {
-            return miniPage;
+            return cudaPage->getBytes() + ((char*)objectAddress - (char*)memLoc);
         }
-        }
-        */
 }
 
 void PDBBufferManagerImpl::removeGPUPage(PDBPagePtr whichPage) {

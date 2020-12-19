@@ -162,7 +162,7 @@ class PDBBufferManagerImpl : public PDBBufferManagerInterface {
     * @param objectAddress - the physical address of one object
     * @return - a PagePtr to this page containing the object
    */
-  void movePageToGPU(void *objectAddress, GPUID gpu_id) override;
+  void * movePageToGPU(void *objectAddress, GPUID gpu_id) override;
 
   /**
    * remove a page from GPU page table.

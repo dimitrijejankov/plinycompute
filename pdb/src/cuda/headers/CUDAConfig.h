@@ -6,7 +6,6 @@
 #include <list>
 
 namespace pdb{
-
     using frame_id_t  = int32_t;
     using ref_bit = bool;
     using frame_ref_info = std::pair<frame_id_t, ref_bit>;
@@ -21,6 +20,5 @@ namespace pdb{
     using ThreadID = long;
     using GPUPageID = std::size_t;
     using page_id_t = GPUPageID;
-
 }
 #endif

@@ -1,6 +1,6 @@
 
 #include "CUDADynamicStorage.h"
-#include <cudaMemMgr.h>
+#include <CUDAMemMgr.h>
 
 namespace pdb{
 

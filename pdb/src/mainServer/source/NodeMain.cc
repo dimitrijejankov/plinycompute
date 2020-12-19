@@ -24,6 +24,7 @@
 #include <NodeConfig.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <utility>
 #include <ClusterManager.h>
 #include <PDBDistributedStorage.h>
 #include "CatalogServer.h"
@@ -31,7 +32,7 @@
 #include <PDBStorageManager.h>
 #include <PDBComputationServer.h>
 #include <ExecutionServer.h>
-#include <cudaMemMgr.h>
+#include <CUDAMemMgr.h>
 #include <CUDAStaticStorage.h>
 #include <CUDADynamicStorage.h>
 #include <CUDAStreamManager.h>
@@ -48,41 +49,12 @@ static void sig_stop(int signum) {
   server->stop();
 }
 
-
-void setGPUMemoryManager(void ** gpuMgr, pdb::PDBBufferManagerInterfacePtr myMgr, bool isManager){
+void setGPUContext(void** gpuContext, pdb::PDBBufferManagerInterfacePtr myMgr, bool isManager){
     if (isManager) return;
-    cudaMemMgr* tmp = new cudaMemMgr(myMgr);
-    *gpuMgr = static_cast<void*>(tmp);
-}
-
-void setGPUStreamManager(void ** streamMgr, bool isManager){
-    if (isManager) return;
-    CUDAStreamManager * tmp = new CUDAStreamManager();
-    *streamMgr = static_cast<void*>(tmp);
-}
-
-void setGPUStaticStorage(void** staticStorage, bool isManager){
-    if (isManager) return;
-    CUDAStaticStorage* tmp = new CUDAStaticStorage();
-    *staticStorage = static_cast<void*>(tmp);
-}
-
-void setGPUDynamicStorage(void** dynamicStorage, bool isManager){
-    if (isManager) return;
-    CUDADynamicStorage* tmp = new CUDADynamicStorage();
-    *dynamicStorage = static_cast<void*>(tmp);
-}
-
-void setGPUContext(void** gpuContext, bool isManager){
-    if (isManager) return;
-    CUDAContext* tmp = new CUDAContext;
+    auto* tmp = new CUDAContext(std::move(myMgr));
     *gpuContext = static_cast<void*>(tmp);
 }
 
-extern void* gpuMemoryManager;
-extern void* gpuStreamManager;
-extern void* gpuStaticStorage;
-extern void* gpuDynamicStorage;
 extern void* gpuContext;
 int main(int argc, char *argv[]) {
 
@@ -175,11 +147,7 @@ int main(int argc, char *argv[]) {
   action.sa_handler = sig_stop;
   sigaction(SIGTERM, &action, nullptr);
 
-  setGPUMemoryManager(&gpuMemoryManager, server->getFunctionalityPtr<PDBBufferManagerInterface>(),config->isManager);
-  setGPUStreamManager(&gpuStreamManager, config->isManager);
-  setGPUStaticStorage(&gpuStaticStorage, config->isManager);
-  setGPUDynamicStorage(&gpuDynamicStorage, config->isManager);
-  setGPUContext(&gpuContext, config->isManager);
+  setGPUContext(&gpuContext, server->getFunctionalityPtr<PDBBufferManagerInterface>(), config->isManager);
 
   // start the server
   server->startServer(make_shared<pdb::GenericWork>([&](const PDBBuzzerPtr& callerBuzzer) {

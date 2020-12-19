@@ -99,7 +99,7 @@ public:
   // gets a temporary page that is at least minBytes in size
   virtual PDBPageHandle getPage (size_t minBytes) = 0;
 
-  virtual void movePageToGPU(void *objectAddress, GPUID gpu_id) = 0;
+  virtual void * movePageToGPU(void *objectAddress, GPUID gpu_id) = 0;
 
   virtual void removeGPUPage(PDBPagePtr whichPage) = 0;
 

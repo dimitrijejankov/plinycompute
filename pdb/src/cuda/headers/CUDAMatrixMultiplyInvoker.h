@@ -53,7 +53,7 @@ namespace pdb {
 
         CUDAStreamManager* stream_instance;
         CUDAStaticStorage* sstore_instance;
-        cudaMemMgr* memmgr_instance;
+        CUDAMemMgr* memmgr_instance;
     };
 
 }

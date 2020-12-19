@@ -18,6 +18,8 @@
                         } \
             } while (0)
 
+void CUDAMemCopyToDevice()
+
 void copyFromHostToDevice(void **targetDevice, void *sourceHost, size_t bytesNum);
 
 void copyFromDeviceToHost(void *targetHost, void *sourceDevice, size_t bytesNum);

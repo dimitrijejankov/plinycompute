@@ -40,7 +40,7 @@ namespace pdb{
         std::lock_guard<std::mutex> guard(pageMapLatch);
         if (pageMap.find(pageInfo) != pageMap.end()){
             // return false means the GPU page is already created.
-            CUDAPage* cudaPage = static_cast<CUDAMemoryManager*>(gpuMemoryManager)->FetchPageImplFromCPU(pageMap[pageInfo]);
+            CUDAPage* cudaPage = static_cast<CUDAMemoryManager *>(gpuMemoryManager)->FetchPageImpl(pageMap[pageInfo]);
             *gpuPageID = pageMap[pageInfo];
             return cudaPage;
         } else {

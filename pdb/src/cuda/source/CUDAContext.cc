@@ -1,5 +1,7 @@
 #include <CUDAContext.h>
 
+#include <utility>
+
 namespace pdb{
 
 
@@ -33,12 +35,12 @@ namespace pdb{
     }
 
 
-    CUDAContext::CUDAContext() {
+    CUDAContext::CUDAContext(pdb::PDBBufferManagerInterfacePtr bufferManagerInterface): bufferManager(std::move(bufferManagerInterface)){
         checkCudaErrors(cudaGetDeviceCount(&numDevices));
         devices.reserve(numDevices);
         for (int i =0; i < numDevices;i++){
             auto gpuDevice = std::make_unique<CUDADevice_t>(i, GPU_MEM_SIZE_RESERVERD);
-            gpuDevice->mgr = std::make_unique<cudaMemMgr>();
+            gpuDevice->mgr = std::make_unique<CUDAMemMgr>(bufferManager, i);
             //TODO: choose which gpu to use
             for (int j = 0; j < gpuDevice->numStreams; j++){
                 checkCudaErrors(cudaStreamCreateWithFlags(&gpuDevice->streams[j],cudaStreamNonBlocking));

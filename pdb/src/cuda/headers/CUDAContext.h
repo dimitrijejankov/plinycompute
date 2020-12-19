@@ -12,7 +12,7 @@
 #include "helper_cuda.h"
 #include "CUDAUtility.h"
 #include "CUDARamPointer.h"
-#include "cudaMemMgr.h"
+#include "CUDAMemMgr.h"
 
 namespace pdb{
 
@@ -49,25 +49,31 @@ namespace pdb{
         cublasHandle_t handles[32];
 
         /** the memory manager on each devices */
-        std::unique_ptr<cudaMemMgr> mgr;
+        std::unique_ptr<CUDAMemMgr> mgr;
 
     private:
+        /** initial index for stream/handle */
         size_t index{0};
+
+        /** mapping from thread ID to the stream/handle index */
         std::map<ThreadID, size_t> idxs;
     };
 
     class CUDAContext{
     public:
-        CUDAContext();
+        // We need to have pdb::PDBBufferManagerInterfacePtr as parameter,
+        // The reason is that there is no other way we can pass the PDBBufferManagerInterfacePtr to CUDAContext
+        explicit CUDAContext(pdb::PDBBufferManagerInterfacePtr bufferManagerInterface);
         ~CUDAContext();
 
         template<Strategy t>
         GPUID MapWorkerToGPU();
 
-    private:
+    public:
         std::vector<std::unique_ptr<CUDADevice_t> > devices;
-        int numDevices;
+        int numDevices{};
         std::map<ThreadID, GPUID > tg;
+        PDBBufferManagerInterfacePtr bufferManager;
     };
 }
 #endif
