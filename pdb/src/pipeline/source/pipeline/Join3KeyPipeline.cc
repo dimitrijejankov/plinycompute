@@ -40,42 +40,38 @@ void pdb::Join3KeyPipeline::runSide(int32_t node, int32_t set) {
     }
   }
 
+  // lock
+  std::unique_lock<std::mutex> lck(m);
   if(set == 0) {
-
-    // lock
-    std::unique_lock<std::mutex> lck(m0);
 
     // insert the records
     for(auto &r : myRecords) {
-      nodeRecords0[r] = std::make_pair(tid0++, node);
+      nodeRecords0[r] = std::make_pair(tid++, node);
     }
   }
   else if (set == 1) {
 
-    // lock
-    std::unique_lock<std::mutex> lck(m1);
-
     // insert the records
     for(auto &r : myRecords) {
-      nodeRecords1[r] = std::make_pair(tid1++, node);
+      nodeRecords1[r] = std::make_pair(tid++, node);
     }
   }
   else if (set == 2) {
 
-    // lock
-    std::unique_lock<std::mutex> lck(m2);
-
     // insert the records
     for(auto &r : myRecords) {
-      nodeRecords2[r] = std::make_pair(tid2++, node);
+      nodeRecords2[r] = std::make_pair(tid++, node);
     }
   }
 }
 
 void pdb::Join3KeyPipeline::runJoin() {
 
+  // aggregated records
+  std::unordered_map<key, std::vector<int32_t>, HashFunction> aggregated;
+
   // the joined record
-  joined_record r;
+  joined_record r{};
   for(auto &a_rec : nodeRecords0) {
 
     // get the tid and nod for a
@@ -96,11 +92,22 @@ void pdb::Join3KeyPipeline::runJoin() {
       // get the tid and node
       auto [c_tid, c_node] = it->second;
 
+      // set the tids for the record
+      r.first = a_tid;
+      r.second = b_tid;
+      r.third = c_tid;
+
+      // store that the join group is aggregated into this aggregation group
+      aggregated[{a_rec.first.rowID, i}].push_back(joined.size());
+
+      // insert it
+      joined.emplace_back(r);
     }
 
-
-    //// 7. Insert it
-    joined.emplace_back(r);
+    // go through the aggregation groups
+    for(auto &agg : aggregated) {
+      aggGroups.emplace_back(std::move(agg.second));
+    }
   }
 }
 

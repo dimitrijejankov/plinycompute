@@ -71,20 +71,20 @@ public:
       auto j1 = jr.first;
       auto j2 = jr.second;
       auto j3 = jr.third;
-      auto j4 = jr.fourth;
-      auto j5 = jr.fifth;
-      auto j6 = jr.sixth;
-      auto j7 = jr.seventh;
-      auto j8 = jr.eigth;
+//      auto j4 = jr.fourth;
+//      auto j5 = jr.fifth;
+//      auto j6 = jr.sixth;
+//      auto j7 = jr.seventh;
+//      auto j8 = jr.eigth;
 
       tempRequirements[node][j1] = true;
       tempRequirements[node][j2] = true;
       tempRequirements[node][j3] = true;
-      tempRequirements[node][j4] = true;
-      tempRequirements[node][j5] = true;
-      tempRequirements[node][j6] = true;
-      tempRequirements[node][j7] = true;
-      tempRequirements[node][j8] = true;
+//      tempRequirements[node][j4] = true;
+//      tempRequirements[node][j5] = true;
+//      tempRequirements[node][j6] = true;
+//      tempRequirements[node][j7] = true;
+//      tempRequirements[node][j8] = true;
     }
 
     for(int record = 0; record < numRecords; ++record) {

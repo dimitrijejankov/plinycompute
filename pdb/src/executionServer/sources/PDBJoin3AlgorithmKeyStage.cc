@@ -287,8 +287,11 @@ bool pdb::PDBJoin3AlgorithmKeyStage::runLead(const pdb::Handle<pdb::ExJob> &job,
   // make the join planner
   JoinPlanner planner(job->numberOfNodes,
                       job->numberOfProcessingThreads,
-                      s->keyPipeline->nodeRecords,
-                      s->keyPipeline->joined);
+                      s->keyPipeline->nodeRecords0,
+                      s->keyPipeline->nodeRecords1,
+                      s->keyPipeline->nodeRecords2,
+                      s->keyPipeline->joined,
+                      s->keyPipeline->aggGroups);
 
   // do the planning
   planner.doPlanning(s->planPage);

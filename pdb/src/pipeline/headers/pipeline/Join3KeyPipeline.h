@@ -59,15 +59,14 @@ class Join3KeyPipeline {
   // the joined records
   std::vector<joined_record> joined;
 
+  // the aggregation groups
+  std::vector<std::vector<int32_t>> aggGroups;
+
   // we use this to sync
-  std::mutex m0;
-  std::mutex m1;
-  std::mutex m2;
+  std::mutex m;
 
   // assign a tid
-  int tid0 = 0;
-  int tid1 = 0;
-  int tid2 = 0;
+  int tid = 0;
 
 };
 
