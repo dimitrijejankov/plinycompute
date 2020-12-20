@@ -1,0 +1,64 @@
+inputDataForSetScanner_0(in0) <= SCAN ('myData', 'A', 'SetScanner_0')
+inputDataForSetScanner_1(in1) <= SCAN ('myData', 'B', 'SetScanner_1')
+
+/* Apply join selection */
+OutFor_0_key_2JoinComp2(in0,OutFor_key_2_2) <= APPLY (inputDataForSetScanner_0(in0), inputDataForSetScanner_0(in0), 'JoinComp_2', 'key_2', [('lambdaType', 'key')])
+OutFor_0_self_1JoinComp2(in0,OutFor_key_2_2,OutFor_self_1_2) <= APPLY (OutFor_0_key_2JoinComp2(OutFor_key_2_2), OutFor_0_key_2JoinComp2(in0,OutFor_key_2_2), 'JoinComp_2', 'self_1', [('lambdaType', 'self')])
+OutFor_0_key_4JoinComp2(in1,OutFor_key_4_2) <= APPLY (inputDataForSetScanner_1(in1), inputDataForSetScanner_1(in1), 'JoinComp_2', 'key_4', [('lambdaType', 'key')])
+OutFor_0_self_3JoinComp2(in1,OutFor_key_4_2,OutFor_self_3_2) <= APPLY (OutFor_0_key_4JoinComp2(OutFor_key_4_2), OutFor_0_key_4JoinComp2(in1,OutFor_key_4_2), 'JoinComp_2', 'self_3', [('lambdaType', 'self')])
+OutFor_0_self_1JoinComp2_hashed(in0,OutFor_self_1_2_hash) <= HASHLEFT (OutFor_0_self_1JoinComp2(OutFor_self_1_2), OutFor_0_self_1JoinComp2(in0), 'JoinComp_2', '==_0', [])
+OutFor_0_self_3JoinComp2_hashed(in1,OutFor_self_3_2_hash) <= HASHRIGHT (OutFor_0_self_3JoinComp2(OutFor_self_3_2), OutFor_0_self_3JoinComp2(in1), 'JoinComp_2', '==_0', [])
+OutForJoinedFor_equals_0JoinComp2(in0,in1) <= JOIN (OutFor_0_self_1JoinComp2_hashed(OutFor_self_1_2_hash), OutFor_0_self_1JoinComp2_hashed(in0), OutFor_0_self_3JoinComp2_hashed(OutFor_self_3_2_hash), OutFor_0_self_3JoinComp2_hashed(in1), 'JoinComp_2')
+LExtractedFor0_1_key_2JoinComp2(in0,in1,LExtractedFor0_key_2_2) <= APPLY (OutForJoinedFor_equals_0JoinComp2(in0), OutForJoinedFor_equals_0JoinComp2(in0,in1), 'JoinComp_2', 'key_2', [('lambdaType', 'key')])
+LExtractedFor0_1_self_1JoinComp2(in0,in1,LExtractedFor0_key_2_2,LExtractedFor0_self_1_2) <= APPLY (LExtractedFor0_1_key_2JoinComp2(LExtractedFor0_key_2_2), LExtractedFor0_1_key_2JoinComp2(in0,in1,LExtractedFor0_key_2_2), 'JoinComp_2', 'self_1', [('lambdaType', 'self')])
+RExtractedFor0_1_key_4JoinComp2(in0,in1,LExtractedFor0_key_2_2,LExtractedFor0_self_1_2,RExtractedFor0_key_4_2) <= APPLY (LExtractedFor0_1_self_1JoinComp2(in1), LExtractedFor0_1_self_1JoinComp2(in0,in1,LExtractedFor0_key_2_2,LExtractedFor0_self_1_2), 'JoinComp_2', 'key_4', [('lambdaType', 'key')])
+RExtractedFor0_1_self_3JoinComp2(in0,in1,LExtractedFor0_key_2_2,LExtractedFor0_self_1_2,RExtractedFor0_key_4_2,RExtractedFor0_self_3_2) <= APPLY (RExtractedFor0_1_key_4JoinComp2(RExtractedFor0_key_4_2), RExtractedFor0_1_key_4JoinComp2(in0,in1,LExtractedFor0_key_2_2,LExtractedFor0_self_1_2,RExtractedFor0_key_4_2), 'JoinComp_2', 'self_3', [('lambdaType', 'self')])
+OutFor_OutForJoinedFor_equals_0JoinComp2_BOOL(in0,in1,bool_0_2) <= APPLY (RExtractedFor0_1_self_3JoinComp2(LExtractedFor0_self_1_2,RExtractedFor0_self_3_2), RExtractedFor0_1_self_3JoinComp2(in0,in1), 'JoinComp_2', '==_0', [('lambdaType', '==')])
+OutFor_OutForJoinedFor_equals_0JoinComp2_FILTERED(in0,in1) <= FILTER (OutFor_OutForJoinedFor_equals_0JoinComp2_BOOL(bool_0_2), OutFor_OutForJoinedFor_equals_0JoinComp2_BOOL(in0,in1), 'JoinComp_2')
+
+/* Apply join projection*/
+OutFor_0_key_7JoinComp2(in0,in1,OutFor_key_7_2) <= APPLY (OutFor_OutForJoinedFor_equals_0JoinComp2_FILTERED(in0), OutFor_OutForJoinedFor_equals_0JoinComp2_FILTERED(in0,in1), 'JoinComp_2', 'key_7', [('lambdaType', 'key')])
+OutFor_0_key_8JoinComp2(in0,in1,OutFor_key_7_2,OutFor_key_8_2) <= APPLY (OutFor_0_key_7JoinComp2(in1), OutFor_0_key_7JoinComp2(in0,in1,OutFor_key_7_2), 'JoinComp_2', 'key_8', [('lambdaType', 'key')])
+OutFor_0_native_lambda_6JoinComp2(in0,in1,OutFor_key_7_2,OutFor_key_8_2,OutFor_native_lambda_6_2) <= APPLY (OutFor_0_key_8JoinComp2(OutFor_key_7_2,OutFor_key_8_2), OutFor_0_key_8JoinComp2(in0,in1,OutFor_key_7_2,OutFor_key_8_2), 'JoinComp_2', 'native_lambda_6', [('lambdaType', 'native_lambda')])
+OutFor_0_value_10JoinComp2(in0,in1,OutFor_key_7_2,OutFor_key_8_2,OutFor_native_lambda_6_2,OutFor_value_10_2) <= APPLY (OutFor_0_native_lambda_6JoinComp2(in0), OutFor_0_native_lambda_6JoinComp2(in0,in1,OutFor_key_7_2,OutFor_key_8_2,OutFor_native_lambda_6_2), 'JoinComp_2', 'value_10', [('lambdaType', 'value')])
+OutFor_0_value_11JoinComp2(in0,in1,OutFor_key_7_2,OutFor_key_8_2,OutFor_native_lambda_6_2,OutFor_value_10_2,OutFor_value_11_2) <= APPLY (OutFor_0_value_10JoinComp2(in1), OutFor_0_value_10JoinComp2(in0,in1,OutFor_key_7_2,OutFor_key_8_2,OutFor_native_lambda_6_2,OutFor_value_10_2), 'JoinComp_2', 'value_11', [('lambdaType', 'value')])
+OutFor_0_native_lambda_9JoinComp2(in0,in1,OutFor_key_7_2,OutFor_key_8_2,OutFor_native_lambda_6_2,OutFor_value_10_2,OutFor_value_11_2,OutFor_native_lambda_9_2) <= APPLY (OutFor_0_value_11JoinComp2(OutFor_value_10_2,OutFor_value_11_2), OutFor_0_value_11JoinComp2(in0,in1,OutFor_key_7_2,OutFor_key_8_2,OutFor_native_lambda_6_2,OutFor_value_10_2,OutFor_value_11_2), 'JoinComp_2', 'native_lambda_9', [('lambdaType', 'native_lambda')])
+OutFor_0_joinRec_5JoinComp2(OutFor_joinRec_5_2) <= APPLY (OutFor_0_native_lambda_9JoinComp2(OutFor_native_lambda_6_2,OutFor_native_lambda_9_2), OutFor_0_native_lambda_9JoinComp2(), 'JoinComp_2', 'joinRec_5', [('lambdaType', 'joinRec')])
+inputDataForSetScanner_3(in3) <= SCAN ('myData', 'C', 'SetScanner_3')
+
+/* Apply join selection */
+OutFor_0_key_2JoinComp4(OutFor_joinRec_5_2,OutFor_key_2_4) <= APPLY (OutFor_0_joinRec_5JoinComp2(OutFor_joinRec_5_2), OutFor_0_joinRec_5JoinComp2(OutFor_joinRec_5_2), 'JoinComp_4', 'key_2', [('lambdaType', 'key')])
+OutFor_0_self_1JoinComp4(OutFor_joinRec_5_2,OutFor_key_2_4,OutFor_self_1_4) <= APPLY (OutFor_0_key_2JoinComp4(OutFor_key_2_4), OutFor_0_key_2JoinComp4(OutFor_joinRec_5_2,OutFor_key_2_4), 'JoinComp_4', 'self_1', [('lambdaType', 'self')])
+OutFor_0_key_4JoinComp4(in3,OutFor_key_4_4) <= APPLY (inputDataForSetScanner_3(in3), inputDataForSetScanner_3(in3), 'JoinComp_4', 'key_4', [('lambdaType', 'key')])
+OutFor_0_self_3JoinComp4(in3,OutFor_key_4_4,OutFor_self_3_4) <= APPLY (OutFor_0_key_4JoinComp4(OutFor_key_4_4), OutFor_0_key_4JoinComp4(in3,OutFor_key_4_4), 'JoinComp_4', 'self_3', [('lambdaType', 'self')])
+OutFor_0_self_1JoinComp4_hashed(OutFor_joinRec_5_2,OutFor_self_1_4_hash) <= HASHLEFT (OutFor_0_self_1JoinComp4(OutFor_self_1_4), OutFor_0_self_1JoinComp4(OutFor_joinRec_5_2), 'JoinComp_4', '==_0', [])
+OutFor_0_self_3JoinComp4_hashed(in3,OutFor_self_3_4_hash) <= HASHRIGHT (OutFor_0_self_3JoinComp4(OutFor_self_3_4), OutFor_0_self_3JoinComp4(in3), 'JoinComp_4', '==_0', [])
+OutForJoinedFor_equals_0JoinComp4(OutFor_joinRec_5_2,in3) <= JOIN (OutFor_0_self_1JoinComp4_hashed(OutFor_self_1_4_hash), OutFor_0_self_1JoinComp4_hashed(OutFor_joinRec_5_2), OutFor_0_self_3JoinComp4_hashed(OutFor_self_3_4_hash), OutFor_0_self_3JoinComp4_hashed(in3), 'JoinComp_4')
+LExtractedFor0_1_key_2JoinComp4(OutFor_joinRec_5_2,in3,LExtractedFor0_key_2_4) <= APPLY (OutForJoinedFor_equals_0JoinComp4(OutFor_joinRec_5_2), OutForJoinedFor_equals_0JoinComp4(OutFor_joinRec_5_2,in3), 'JoinComp_4', 'key_2', [('lambdaType', 'key')])
+LExtractedFor0_1_self_1JoinComp4(OutFor_joinRec_5_2,in3,LExtractedFor0_key_2_4,LExtractedFor0_self_1_4) <= APPLY (LExtractedFor0_1_key_2JoinComp4(LExtractedFor0_key_2_4), LExtractedFor0_1_key_2JoinComp4(OutFor_joinRec_5_2,in3,LExtractedFor0_key_2_4), 'JoinComp_4', 'self_1', [('lambdaType', 'self')])
+RExtractedFor0_1_key_4JoinComp4(OutFor_joinRec_5_2,in3,LExtractedFor0_key_2_4,LExtractedFor0_self_1_4,RExtractedFor0_key_4_4) <= APPLY (LExtractedFor0_1_self_1JoinComp4(in3), LExtractedFor0_1_self_1JoinComp4(OutFor_joinRec_5_2,in3,LExtractedFor0_key_2_4,LExtractedFor0_self_1_4), 'JoinComp_4', 'key_4', [('lambdaType', 'key')])
+RExtractedFor0_1_self_3JoinComp4(OutFor_joinRec_5_2,in3,LExtractedFor0_key_2_4,LExtractedFor0_self_1_4,RExtractedFor0_key_4_4,RExtractedFor0_self_3_4) <= APPLY (RExtractedFor0_1_key_4JoinComp4(RExtractedFor0_key_4_4), RExtractedFor0_1_key_4JoinComp4(OutFor_joinRec_5_2,in3,LExtractedFor0_key_2_4,LExtractedFor0_self_1_4,RExtractedFor0_key_4_4), 'JoinComp_4', 'self_3', [('lambdaType', 'self')])
+OutFor_OutForJoinedFor_equals_0JoinComp4_BOOL(OutFor_joinRec_5_2,in3,bool_0_4) <= APPLY (RExtractedFor0_1_self_3JoinComp4(LExtractedFor0_self_1_4,RExtractedFor0_self_3_4), RExtractedFor0_1_self_3JoinComp4(OutFor_joinRec_5_2,in3), 'JoinComp_4', '==_0', [('lambdaType', '==')])
+OutFor_OutForJoinedFor_equals_0JoinComp4_FILTERED(OutFor_joinRec_5_2,in3) <= FILTER (OutFor_OutForJoinedFor_equals_0JoinComp4_BOOL(bool_0_4), OutFor_OutForJoinedFor_equals_0JoinComp4_BOOL(OutFor_joinRec_5_2,in3), 'JoinComp_4')
+
+/* Apply join projection*/
+OutFor_0_key_7JoinComp4(OutFor_joinRec_5_2,in3,OutFor_key_7_4) <= APPLY (OutFor_OutForJoinedFor_equals_0JoinComp4_FILTERED(OutFor_joinRec_5_2), OutFor_OutForJoinedFor_equals_0JoinComp4_FILTERED(OutFor_joinRec_5_2,in3), 'JoinComp_4', 'key_7', [('lambdaType', 'key')])
+OutFor_0_key_8JoinComp4(OutFor_joinRec_5_2,in3,OutFor_key_7_4,OutFor_key_8_4) <= APPLY (OutFor_0_key_7JoinComp4(in3), OutFor_0_key_7JoinComp4(OutFor_joinRec_5_2,in3,OutFor_key_7_4), 'JoinComp_4', 'key_8', [('lambdaType', 'key')])
+OutFor_0_native_lambda_6JoinComp4(OutFor_joinRec_5_2,in3,OutFor_key_7_4,OutFor_key_8_4,OutFor_native_lambda_6_4) <= APPLY (OutFor_0_key_8JoinComp4(OutFor_key_7_4,OutFor_key_8_4), OutFor_0_key_8JoinComp4(OutFor_joinRec_5_2,in3,OutFor_key_7_4,OutFor_key_8_4), 'JoinComp_4', 'native_lambda_6', [('lambdaType', 'native_lambda')])
+OutFor_0_value_10JoinComp4(OutFor_joinRec_5_2,in3,OutFor_key_7_4,OutFor_key_8_4,OutFor_native_lambda_6_4,OutFor_value_10_4) <= APPLY (OutFor_0_native_lambda_6JoinComp4(OutFor_joinRec_5_2), OutFor_0_native_lambda_6JoinComp4(OutFor_joinRec_5_2,in3,OutFor_key_7_4,OutFor_key_8_4,OutFor_native_lambda_6_4), 'JoinComp_4', 'value_10', [('lambdaType', 'value')])
+OutFor_0_value_11JoinComp4(OutFor_joinRec_5_2,in3,OutFor_key_7_4,OutFor_key_8_4,OutFor_native_lambda_6_4,OutFor_value_10_4,OutFor_value_11_4) <= APPLY (OutFor_0_value_10JoinComp4(in3), OutFor_0_value_10JoinComp4(OutFor_joinRec_5_2,in3,OutFor_key_7_4,OutFor_key_8_4,OutFor_native_lambda_6_4,OutFor_value_10_4), 'JoinComp_4', 'value_11', [('lambdaType', 'value')])
+OutFor_0_native_lambda_9JoinComp4(OutFor_joinRec_5_2,in3,OutFor_key_7_4,OutFor_key_8_4,OutFor_native_lambda_6_4,OutFor_value_10_4,OutFor_value_11_4,OutFor_native_lambda_9_4) <= APPLY (OutFor_0_value_11JoinComp4(OutFor_value_10_4,OutFor_value_11_4), OutFor_0_value_11JoinComp4(OutFor_joinRec_5_2,in3,OutFor_key_7_4,OutFor_key_8_4,OutFor_native_lambda_6_4,OutFor_value_10_4,OutFor_value_11_4), 'JoinComp_4', 'native_lambda_9', [('lambdaType', 'native_lambda')])
+OutFor_0_joinRec_5JoinComp4(OutFor_joinRec_5_4) <= APPLY (OutFor_0_native_lambda_9JoinComp4(OutFor_native_lambda_6_4,OutFor_native_lambda_9_4), OutFor_0_native_lambda_9JoinComp4(), 'JoinComp_4', 'joinRec_5', [('lambdaType', 'joinRec')])
+
+/* Extract key for aggregation */
+OutFor_0_key_2AggregationComp5(OutFor_joinRec_5_4,OutFor_key_2_5) <= APPLY (OutFor_0_joinRec_5JoinComp4(OutFor_joinRec_5_4), OutFor_0_joinRec_5JoinComp4(OutFor_joinRec_5_4), 'AggregationComp_5', 'key_2', [('lambdaType', 'key')])
+OutFor_0_self_1AggregationComp5(OutFor_joinRec_5_4,OutFor_key_2_5,OutFor_self_1_5) <= APPLY (OutFor_0_key_2AggregationComp5(OutFor_key_2_5), OutFor_0_key_2AggregationComp5(OutFor_joinRec_5_4,OutFor_key_2_5), 'AggregationComp_5', 'self_1', [('lambdaType', 'self')])
+OutFor_0_deref_0AggregationComp5(OutFor_joinRec_5_4,OutFor_deref_0_5) <= APPLY (OutFor_0_self_1AggregationComp5(OutFor_self_1_5), OutFor_0_self_1AggregationComp5(OutFor_joinRec_5_4), 'AggregationComp_5', 'deref_0', [('lambdaType', 'deref')])
+
+/* Extract value for aggregation */
+OutFor_0_methodCall_4AggregationComp5(OutFor_joinRec_5_4,OutFor_deref_0_5,OutFor_methodCall_4_5) <= APPLY (OutFor_0_deref_0AggregationComp5(OutFor_joinRec_5_4), OutFor_0_deref_0AggregationComp5(OutFor_joinRec_5_4,OutFor_deref_0_5), 'AggregationComp_5', 'methodCall_4', [('inputTypeName', 'pdb::matrix::MatrixBlock'), ('lambdaType', 'methodCall'), ('methodName', 'getValueRef'), ('returnTypeName', 'pdb::matrix::MatrixBlock')])
+OutFor_0_deref_3AggregationComp5(OutFor_deref_0_5,OutFor_deref_3_5) <= APPLY (OutFor_0_methodCall_4AggregationComp5(OutFor_methodCall_4_5), OutFor_0_methodCall_4AggregationComp5(OutFor_deref_0_5), 'AggregationComp_5', 'deref_3', [('lambdaType', 'deref')])
+
+/* Apply aggregation */
+aggOutForAggregationComp5 (aggOutFor5)<= AGGREGATE (OutFor_0_deref_3AggregationComp5(OutFor_deref_0_5,OutFor_deref_3_5),'AggregationComp_5')
+aggOutForAggregationComp5_out( ) <= OUTPUT ( aggOutForAggregationComp5 ( aggOutFor5 ), 'myData', 'D', 'SetWriter_6')

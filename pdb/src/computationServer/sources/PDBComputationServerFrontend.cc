@@ -8,6 +8,7 @@
 #include <GenericWork.h>
 #include <StoRemovePageSetRequest.h>
 #include <ExJobNode.h>
+#include <HardCodedOptimizer.h>
 
 #include "PDBComputationServerFrontend.h"
 #include "HeapRequestHandler.h"
@@ -320,11 +321,13 @@ void pdb::PDBComputationServerFrontend::registerHandlers(pdb::PDBServer &forMe) 
             if (request->physicalAlgorithm == nullptr) {
 
               // init the optimizer
-              pdb::PDBPhysicalOptimizer optimizer(compID,
-                                                  request->tcapString,
-                                                  keyedComputations,
-                                                  catalogClient,
-                                                  logger);
+//            pdb::PDBPhysicalOptimizer optimizer(compID,
+//                                                request->tcapString,
+//                                                keyedComputations,
+//                                                catalogClient,
+//                                                logger);
+
+              pdb::HardCodedOptimizer optimizer(compID);
 
               // we start from job 0
               uint64_t jobID = 0;

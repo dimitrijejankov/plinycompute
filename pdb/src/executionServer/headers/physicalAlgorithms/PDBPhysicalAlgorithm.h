@@ -35,7 +35,8 @@ enum PDBPhysicalAlgorithmType {
   IndexOperation,
   Shuffle,
   LocalAggregationType,
-  LocalJoinType
+  LocalJoinType,
+  EightWayJoin
 };
 
 // PRELOAD %PDBPhysicalAlgorithm%

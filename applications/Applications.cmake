@@ -15,8 +15,7 @@ function(add_pdb_application test-name)
 endfunction(add_pdb_application)
 
 
-include(${PROJECT_SOURCE_DIR}/applications/TestMatrixMultiply/CMakeLists.txt)
-include(${PROJECT_SOURCE_DIR}/applications/FFTest/CMakeLists.txt)
+include(${PROJECT_SOURCE_DIR}/applications/TestComputation/CMakeLists.txt)
 
 # TODO had to disable the linear algebra so it does not confilcit with my stuff
 #include(${PROJECT_SOURCE_DIR}/applications/TestLinearAlgebra/CMakeLists.txt)

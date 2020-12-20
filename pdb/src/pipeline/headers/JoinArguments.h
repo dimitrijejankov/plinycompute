@@ -5,6 +5,7 @@
 #include <ComputeInfo.h>
 #include <JoinAggSideSender.h>
 #include <cassert>
+#include <Join3KeyPipeline.h>
 #include "JoinAggTupleEmitter.h"
 
 namespace pdb {
@@ -82,6 +83,15 @@ public:
 
   // is local join
   bool isTRALocalJoin = false;
+
+
+  bool isJoin8 = false;
+
+  std::vector<std::string> inputs;
+
+  // used for
+  const std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> *mappings;
+  const std::vector<Join3KeyPipeline::joined_record> *joinedRecords;
 
   // contains the mapping from aggregation key to the tid
   PDBPageHandle aggKeyPage;
