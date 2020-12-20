@@ -93,7 +93,7 @@ class GreedyPlanner {
     std::vector<int32_t> agg_group_assignments;
 
     // tells us
-    std::vector<int32_t> join_groups_to_node;
+    std::vector<int32_t>  join_groups_to_node;
   };
 
   void run();

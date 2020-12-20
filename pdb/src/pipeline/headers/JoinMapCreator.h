@@ -70,7 +70,7 @@ public:
         // figure out the aggregation group
         auto tid = (*tuples)[currentTuple].first;
 
-        // insert into the mapping
+        // insert into the join_group_mapping
         tidToRecordMapping.insert(std::pair(tid, std::make_tuple(pageIndex, currentTuple)));
       }
 
@@ -93,7 +93,7 @@ public:
 
 private:
 
-  // we are mapping the tid to the
+  // we are join_group_mapping the tid to the
   std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>> tidToRecordMapping;
 
   // the page set we are writing to

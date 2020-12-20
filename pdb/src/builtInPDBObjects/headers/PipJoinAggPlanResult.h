@@ -34,7 +34,7 @@ public:
   // aggregation group to node map1
   using AggGroupToNode = Map<uint32_t, int32_t>;
 
-  // the mapping of the join tid to the agg tid, for each node
+  // the join_group_mapping of the join tid to the agg tid, for each node
   using JoinGroups = Vector<std::pair<uint32_t, uint32_t>>;
   using JoinGroupsPerNode = Vector<JoinGroups>;
 

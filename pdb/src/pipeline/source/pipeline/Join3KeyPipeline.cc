@@ -103,12 +103,18 @@ void pdb::Join3KeyPipeline::runJoin() {
       // insert it
       joined.emplace_back(r);
     }
-
-    // go through the aggregation groups
-    for(auto &agg : aggregated) {
-      aggGroups.emplace_back(std::move(agg.second));
-    }
   }
+
+  // go through the aggregation groups
+  for(auto &agg : aggregated) {
+    aggGroups.emplace_back(std::move(agg.second));
+  }
+
+  std::cout << "AggGroups : " << aggGroups.size() << '\n';
+  std::cout << "Joined : " << joined.size() << '\n';
+  std::cout << "nodeRecords0 : " << nodeRecords0.size() << '\n';
+  std::cout << "nodeRecords1 : " << nodeRecords1.size() << '\n';
+  std::cout << "nodeRecords2 : " << nodeRecords2.size() << '\n';
 }
 
 bool pdb::operator==(const Join3KeyPipeline::joined_record &lhs,

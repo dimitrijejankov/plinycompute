@@ -11400,7 +11400,7 @@ struct Fts5ExtensionApi {
 **
 **   There are several ways to approach this in FTS5:
 **
-**   <ol><li> By mapping all synonyms to a single token. In this case, the 
+**   <ol><li> By join_group_mapping all synonyms to a single token. In this case, the
 **            In the above example, this means that the tokenizer returns the
 **            same token for inputs "first" and "1st". Say that token is in
 **            fact "first", so that when the user inserts the document "I won

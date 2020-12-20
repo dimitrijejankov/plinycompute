@@ -5,8 +5,10 @@
 #include <JoinPlannerResult.h>
 #include <GreedyPlanner.h>
 #include "../../../../applications/TestConvolution/sharedLibraries/headers/MatrixBlockMeta3D.h"
+#include "../../../../applications/TestConvolution/sharedLibraries/headers/MatrixBlockMeta.h"
 
 using namespace pdb::matrix_3d;
+using namespace pdb::matrix;
 
 pdb::JoinPlanner::JoinPlanner(uint32_t numNodes,
                               uint32_t numThreads,
@@ -59,9 +61,6 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
   // run for a number of iterations
   planner.run_agg_first_only();
 
-  // print it
-  planner.print();
-
   // get the result of the planning
   auto result = planner.get_result();
 
@@ -70,51 +69,73 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
 
   pdb::Handle<JoinPlannerResult> out = pdb::makeObject<JoinPlannerResult>();
 
-//  // this is the stuff we need to execute the query
-//  out->mapping = pdb::makeObject<pdb::Vector<int32_t>>(joined.size(), joined.size());
-//  out->recordToNode = pdb::makeObject<pdb::Vector<bool>>(nodeRecords.size() * numNodes, nodeRecords.size() * numNodes);
-//  out->joinedRecords = pdb::makeObject<pdb::Vector<Join3KeyPipeline::joined_record>>(joined.size(), joined.size());
-//  out->records = pdb::makeObject<pdb::Map<MatrixBlockMeta3D, int32_t>>();
-//
-//  // zero out the record to node
-//  bzero(out->recordToNode->c_ptr(), sizeof(bool) * nodeRecords.size() * numNodes);
-//
-//  // go through the result
-//  for(int jg = 0; jg < result.size(); ++jg) {
-//
-//    auto node = result[jg];
-//
-//    // set the mapping
-//    (*out->mapping)[jg] = node;
-//
-//    // get the joined record
-//    auto &record = joined[jg];
-//
-//    // copy the stuff
-//    (*out->joinedRecords)[jg].first = record.first;
-//    (*out->joinedRecords)[jg].second = record.second;
-//    (*out->joinedRecords)[jg].third = record.third;
-//    (*out->joinedRecords)[jg].fourth = record.fourth;
-//    (*out->joinedRecords)[jg].fifth = record.fifth;
-//    (*out->joinedRecords)[jg].sixth = record.sixth;
-//    (*out->joinedRecords)[jg].seventh = record.seventh;
-//    (*out->joinedRecords)[jg].eigth = record.eigth;
-//
-//    // do the record to node mapping
-//    (*out->recordToNode)[record.first * numNodes + node] = true;
-//    (*out->recordToNode)[record.second * numNodes + node] = true;
-//    (*out->recordToNode)[record.third * numNodes + node] = true;
-//    (*out->recordToNode)[record.fourth * numNodes + node] = true;
-//    (*out->recordToNode)[record.fifth * numNodes + node] = true;
-//    (*out->recordToNode)[record.sixth * numNodes + node] = true;
-//    (*out->recordToNode)[record.seventh * numNodes + node] = true;
-//    (*out->recordToNode)[record.eigth * numNodes + node] = true;
-//  }
-//
-//  // copy the records with tid mappings
-//  for(auto &r : nodeRecords) {
-//    (*out->records)[MatrixBlockMeta3D(r.first.first, r.first.second, r.first.third)] = r.second.first;
-//  }
+  // this is the stuff we need to execute the query
+  out->records0 = pdb::makeObject<pdb::Map<MatrixBlockMeta, int32_t>>();
+  out->records1 = pdb::makeObject<pdb::Map<MatrixBlockMeta, int32_t>>();
+  out->records2 = pdb::makeObject<pdb::Map<MatrixBlockMeta, int32_t>>();
+  out->record_mapping = pdb::makeObject<pdb::Vector<bool>>(side_tids.size() * numNodes, side_tids.size() * numNodes);
+  out->join_group_mapping = pdb::makeObject<pdb::Vector<int32_t>>(joined.size(), joined.size());
+  out->joinedRecords = pdb::makeObject<pdb::Vector<Join3KeyPipeline::joined_record>>(joined.size(), joined.size());
+  out->aggMapping = pdb::makeObject<pdb::Vector<int32_t>>(aggGroups.size(), aggGroups.size());
+  out->aggRecords = pdb::makeObject<pdb::Vector<pdb::Vector<int32_t>>>(aggGroups.size(), aggGroups.size());
+
+  // zero out the record to node
+  bzero(out->record_mapping->c_ptr(), sizeof(bool) * side_tids.size() * numNodes);
+
+  // go through the result
+  for(int jg = 0; jg < joined.size(); ++jg) {
+
+    // get the node the join group is assigned to
+    int32_t node = 0;
+    while(!result.join_groups_to_node[jg * numNodes + node]) { node++; }
+
+    // set the join_group_mapping
+    (*out->join_group_mapping)[jg] = node;
+
+    // get the joined record
+    auto &record = joined[jg];
+
+    // copy the stuff
+    (*out->joinedRecords)[jg].first = record.first;
+    (*out->joinedRecords)[jg].second = record.second;
+    (*out->joinedRecords)[jg].third = record.third;
+
+    // do the record to node join_group_mapping
+    (*out->record_mapping)[record.first * numNodes + node] = true;
+    (*out->record_mapping)[record.second * numNodes + node] = true;
+    (*out->record_mapping)[record.third * numNodes + node] = true;
+  }
+
+  // copy the records for A with tid mappings
+  for(auto &r : nodeRecords0) {
+    (*out->records0)[MatrixBlockMeta(r.first.colID, r.first.rowID)] = r.second.first;
+  }
+
+  // copy the records for B with tid mappings
+  for(auto &r : nodeRecords1) {
+    (*out->records1)[MatrixBlockMeta(r.first.colID, r.first.rowID)] = r.second.first;
+  }
+
+  // copy the records for C with tid mappings
+  for(auto &r : nodeRecords2) {
+    (*out->records2)[MatrixBlockMeta(r.first.colID, r.first.rowID)] = r.second.first;
+  }
+
+  // store the aggregation groups
+  for(int32_t i = 0; i < aggGroups.size(); ++i) {
+
+    // find the assigment
+    int32_t node = 0;
+    while(!result.agg_group_assignments[i * numNodes + node]) { node++; }
+
+    // store it
+    (*out->aggMapping)[i] = node;
+
+    // store the aggregation groups
+    for(auto j : aggGroups[i]) {
+      (*out->aggRecords)[i].push_back(j);
+    }
+  }
 
   // set the root object
   getRecord(out);

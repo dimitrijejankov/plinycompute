@@ -21,7 +21,7 @@ bool pdb::PDBJoin3AlgorithmJoinStage::setup(const pdb::Handle<pdb::ExJob> &job,
   for(int i = 0; i < planResult->joinedRecords->size(); ++i) {
 
     // get the node
-    auto node = (*planResult->mapping)[i];
+    auto node = (*planResult->join_group_mapping)[i];
 
     // if this is our node
     if(node == job->thisNode) {

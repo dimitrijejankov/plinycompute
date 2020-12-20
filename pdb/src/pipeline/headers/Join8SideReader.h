@@ -4,7 +4,7 @@
 #include <PDBAbstractPageSet.h>
 #include <JoinPlannerResult.h>
 #include <Join8SideSender.h>
-#include "../../../../applications/TestConvolution/sharedLibraries/headers/MatrixBlock3D.h"
+#include "../../../../applications/TestConvolution/sharedLibraries/headers/MatrixBlock.h"
 
 namespace pdb {
 
@@ -25,7 +25,7 @@ public:
   PDBAbstractPageSetPtr pageSet;
   PDBPageHandle planPage;
   Handle<JoinPlannerResult> planResult;
-  std::vector<std::vector<pdb::Handle<MatrixBlock3D>>> toSend;
+  std::vector<std::vector<pdb::Handle<MatrixBlock>>> toSend;
   std::shared_ptr<std::vector<Join8SideSenderPtr>> joinSideSenders;
 };
 

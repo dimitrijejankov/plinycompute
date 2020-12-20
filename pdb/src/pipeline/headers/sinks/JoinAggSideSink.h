@@ -118,7 +118,7 @@ public:
       // get the
       auto* recordCopy = (Record<PipJoinAggPlanResult>*) this->planPage->getBytes();
 
-      // depending on the side select the right mapping
+      // depending on the side select the right join_group_mapping
       if(isLeft) {
         this->plan = recordCopy->getRootObject()->leftToNode;
       }

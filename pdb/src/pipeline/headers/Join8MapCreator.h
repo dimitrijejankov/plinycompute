@@ -44,7 +44,7 @@ class Join8MapCreator {
       communicator->receiveBytes(recordPage->getBytes(), error);
 
       // get the records from it
-      auto record = ((Record<Vector<Handle<MatrixBlock3D>>> *) recordPage->getBytes());
+      auto record = ((Record<Vector<Handle<MatrixBlock>>> *) recordPage->getBytes());
       auto tuples = record->getRootObject();
 
       // freeze it
@@ -57,9 +57,9 @@ class Join8MapCreator {
         auto r = (*tuples)[currentTuple];
 
         // get the tid
-        auto tid = (*planResult->records)[*r->getKey()];
+        auto tid = (*planResult->records0)[*r->getKey()];
 
-        // insert into the mapping
+        // insert into the join_group_mapping
         tidToRecordMapping.insert(std::pair(tid, std::make_tuple(pageIndex, currentTuple)));
       }
 
@@ -82,7 +82,7 @@ class Join8MapCreator {
 
  private:
 
-  // we are mapping the tid to the
+  // we are join_group_mapping the tid to the
   std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>> tidToRecordMapping;
 
   // the page set we are writing to

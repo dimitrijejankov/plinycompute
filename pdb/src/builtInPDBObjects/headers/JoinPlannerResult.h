@@ -4,9 +4,9 @@
 
 #include <Join3KeyPipeline.h>
 #include <PDBVector.h>
-#include "../../../applications/TestConvolution/sharedLibraries/headers/MatrixBlockMeta3D.h"
+#include "../../../../applications/TestConvolution/sharedLibraries/headers/MatrixBlockMeta.h"
 
-using namespace pdb::matrix_3d;
+using namespace pdb::matrix;
 
 namespace pdb {
 
@@ -20,10 +20,14 @@ namespace pdb {
     ENABLE_DEEP_COPY
 
     // this is the stuff we need to execute the query
-    Handle<pdb::Vector<int32_t>> mapping;
-    Handle<pdb::Vector<bool>> recordToNode;
+    Handle<pdb::Vector<int32_t>> join_group_mapping;
+    Handle<pdb::Vector<bool>> record_mapping;
     Handle<pdb::Vector<Join3KeyPipeline::joined_record>> joinedRecords;
-    Handle<pdb::Map<MatrixBlockMeta3D, int32_t>> records;
+    Handle<pdb::Vector<pdb::Vector<int32_t>>> aggRecords;
+    Handle<pdb::Vector<int32_t>> aggMapping;
+    Handle<pdb::Map<MatrixBlockMeta, int32_t>> records0;
+    Handle<pdb::Map<MatrixBlockMeta, int32_t>> records1;
+    Handle<pdb::Map<MatrixBlockMeta, int32_t>> records2;
   };
 
 }

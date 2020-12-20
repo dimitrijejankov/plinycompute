@@ -45,7 +45,7 @@ private:
   // joined records
   const std::vector<Join3KeyPipeline::joined_record> &joinedRecords;
 
-  // the tid mapping to a page
+  // the tid join_group_mapping to a page
   const std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &tidToRecordMapping;
 
   // the start and the end join groups

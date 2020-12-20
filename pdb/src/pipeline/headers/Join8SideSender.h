@@ -6,9 +6,9 @@
 #include <condition_variable>
 #include <unordered_set>
 #include <queue>
-#include "../../../../applications/TestConvolution/sharedLibraries/headers/MatrixBlock3D.h"
+#include "../../../../applications/TestConvolution/sharedLibraries/headers/MatrixBlock.h"
 
-using namespace pdb::matrix_3d;
+using namespace pdb::matrix;
 
 namespace pdb {
 
@@ -22,7 +22,7 @@ class Join8SideSender {
    * @param records - the records we want to send
    * @return the identifier which is passed to waitToFinish
    */
-  int32_t queueToSend(std::vector<Handle<MatrixBlock3D>> *records) {
+  int32_t queueToSend(std::vector<Handle<MatrixBlock>> *records) {
 
     // don't have anything to send
     if(records->empty()) {
@@ -89,7 +89,7 @@ class Join8SideSender {
     getAllocator().emptyOutBlock(page->getBytes());
 
     // create a vector to store stuff
-    Handle<Vector<Handle<MatrixBlock3D>>> vec = pdb::makeObject<Vector<Handle<MatrixBlock3D>>>();
+    Handle<Vector<Handle<MatrixBlock>>> vec = pdb::makeObject<Vector<Handle<MatrixBlock>>>();
 
     // do the sending
     while(true) {
@@ -244,7 +244,7 @@ class Join8SideSender {
   /**
    * the queue of record vectors with their identifiers
    */
-  std::deque<std::pair<int32_t, std::vector<Handle<MatrixBlock3D>>*>> toSend;
+  std::deque<std::pair<int32_t, std::vector<Handle<MatrixBlock>>*>> toSend;
 
   /**
    * the identifiers that are currently queued

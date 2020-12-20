@@ -51,7 +51,7 @@ class Join8MainSource : public ComputeSource {
   // and the tuple set we return
   TupleSetPtr output;
 
-  // the tid mapping to a page
+  // the tid join_group_mapping to a page
   const std::vector<std::multimap<uint32_t, std::tuple<uint32_t, uint32_t>>> &tidToRecordMapping;
 
   const std::vector<Join3KeyPipeline::joined_record> &joinedRecords;

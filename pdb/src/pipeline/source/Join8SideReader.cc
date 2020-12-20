@@ -2,7 +2,7 @@
 #include <Join8SideReader.h>
 #include <PDBVector.h>
 
-using namespace pdb::matrix_3d;
+using namespace pdb::matrix;
 
 pdb::Join8SideReader::Join8SideReader(pdb::PDBAbstractPageSetPtr pageSet,
                                       int32_t workerID,
@@ -39,7 +39,7 @@ void pdb::Join8SideReader::run() {
     page->repin();
 
     //
-    auto *recordCopy = (Record<Vector<Handle<MatrixBlock3D>>> *) page->getBytes();
+    auto *recordCopy = (Record<Vector<Handle<MatrixBlock>>> *) page->getBytes();
     auto records = recordCopy->getRootObject();
 
     for(int i = 0; i < records->size(); ++i) {
@@ -48,10 +48,10 @@ void pdb::Join8SideReader::run() {
       auto matrix = (*records)[i];
 
       // get the tid
-      auto tid = (*planResult->records)[*matrix->getKey()];
+      auto tid = (*planResult->records0)[*matrix->getKey()];
 
       // get the node based on the tid
-      auto node = &(*planResult->recordToNode)[tid * numNodes];
+      auto node = &(*planResult->record_mapping)[tid * numNodes];
 
       // go and figure out what nodes we need to put his on
       for(int n = 0; n < numNodes; ++n) {
