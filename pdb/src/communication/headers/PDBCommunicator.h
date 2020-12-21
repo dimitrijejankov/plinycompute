@@ -120,7 +120,10 @@ public:
 
     bool reconnect(std::string& errMsg);
 
+    void mark(int _id);
 private:
+
+    int id = -1;
     // write from start to end to the output socket
     bool doTheWrite(char* start, char* end);
 

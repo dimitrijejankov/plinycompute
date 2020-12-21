@@ -38,6 +38,11 @@ struct TRAIndexNode {
     _get(out, index, 0);
   }
 
+  void getWithHashReplicated(std::vector<std::tuple<int32_t, int32_t, int32_t>> &out, const std::unordered_set<int32_t> &indexPattern,
+                             int32_t newIdx, int32_t numRepl, int32_t site, int32_t numSites) {
+    _getWithHashReplicated(out, indexPattern, newIdx, numRepl, site, numSites, 0, 0, 0, -1);
+  }
+
   void getWithHash(std::vector<std::pair<int32_t, int32_t>> &out, const std::unordered_set<int32_t> &indexPattern,
                    int32_t site, int32_t numSites ) {
     _getWithHash(out, indexPattern, site, numSites, 0, 0, 0);
@@ -85,6 +90,59 @@ struct TRAIndexNode {
     }
   }
 
+  void _getWithHashReplicated(std::vector<std::tuple<int32_t, int32_t, int32_t>> &out, const std::unordered_set<int32_t> &indexPattern,
+                              int32_t newIdx, int32_t numRepl, int32_t site,
+                              int32_t numSites, uint64_t hash, int depth, int p, int added) {
+
+    // add the replicated index
+    if(depth == newIdx) {
+      for(int idx = 0; idx < numRepl; ++idx) {
+        _getWithHashReplicated(out, indexPattern, newIdx, numRepl, site, numSites,
+                               hash + std::pow(11, p) * idx, depth + 1, p + 1, idx);
+      }
+      return;
+    }
+
+    // if this is a leaf store them
+    if(isLeaf) {
+
+      if(added == -1) {
+        std::cout << "Shit" << '\n';
+      }
+
+      if(hash % numSites == site) {
+
+        // insert all the indices
+        auto &d = *((std::vector<std::pair<int32_t, int32_t>>*) data);
+        for(auto t : d) {
+          out.emplace_back(std::get<0>(t), std::get<1>(t), added);
+        }
+      }
+    }
+    else {
+
+      // get the map
+      auto &d = *((std::map<int32_t, std::shared_ptr<TRAIndexNode>>*) data);
+
+      if(indexPattern.find(depth) == indexPattern.end()) {
+
+        // go one level deeper and
+        for(auto &it : d) {
+          it.second->_getWithHashReplicated(out, indexPattern, newIdx, numRepl, site,
+                                            numSites, hash, depth + 1, p, added);
+        }
+      }
+      else {
+
+        // go one level deeper for ech of them
+        for(auto &it : d) {
+          it.second->_getWithHashReplicated(out, indexPattern, newIdx, numRepl, site, numSites,
+                                            hash + std::pow(11, p) * it.first, depth + 1, p + 1, added);
+        }
+      }
+    }
+  }
+
   void _getWithHash(std::vector<std::pair<int32_t, int32_t>> &out, const std::unordered_set<int32_t> &indexPattern,
                     int32_t site, int32_t numSites, uint64_t hash, int depth, int p) {
 
@@ -115,7 +173,7 @@ struct TRAIndexNode {
         // go one level deeper for ech of them
         for(auto &it : d) {
           it.second->_getWithHash(out, indexPattern, site, numSites,
-                                  hash + std::pow(1000, p) * it.first, depth + 1, p + 1);
+                                  hash + std::pow(11, p) * it.first, depth + 1, p + 1);
         }
       }
     }

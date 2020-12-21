@@ -275,6 +275,11 @@ PDBCommunicator::~PDBCommunicator() {
         close(socketFD);
         socketFD = -1;
     }
+
+    if(id != -1) {
+      std::cout << "bla \n";
+    }
+
     socketClosed = true;
 #endif
 }
@@ -613,7 +618,9 @@ bool PDBCommunicator::isSocketClosed() {
   // return the state of the socket
   return socketClosed;
 }
-
+void PDBCommunicator::mark(int _id) {
+  id = _id;
+}
 bool PDBCommunicator::reconnect(std::string& errMsg) {
 
     if (needToSendDisconnectMsg) {

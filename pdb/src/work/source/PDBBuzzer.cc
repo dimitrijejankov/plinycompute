@@ -81,7 +81,7 @@ void PDBBuzzer::wait() {
 
     // wait until there is a buzz
     pthread_mutex_lock(&waitingMutex);
-    if (signalSent == true) {
+    if (signalSent) {
         pthread_mutex_unlock(&waitingMutex);
         return;
     }

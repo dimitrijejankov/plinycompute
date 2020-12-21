@@ -206,7 +206,7 @@ IF (BISON_FOUND)
 ENDIF ()
 
 # find blas
-set(MKL_ROOT /opt/intel/mkl)
+set(MKL_ROOT /opt/intel/system_studio_2020/mkl)
 find_package(MKL)
 INCLUDE_DIRECTORIES(${MKL_INCLUDE_PATH})
 
@@ -327,6 +327,7 @@ target_link_libraries(pdb-server-common PRIVATE ${SNAPPY_LIBRARY})
 target_link_libraries(pdb-server-common PRIVATE ${CMAKE_DL_LIBS})
 target_link_libraries(pdb-server-common PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(pdb-server-common PRIVATE ${Boost_LIBRARIES})
+target_link_libraries(pdb-server-common PRIVATE ${MKL_LIBRARIES})
 
 target_link_libraries(pdb-tests-common PRIVATE ${SNAPPY_LIBRARY})
 target_link_libraries(pdb-tests-common PRIVATE ${CMAKE_DL_LIBS})
