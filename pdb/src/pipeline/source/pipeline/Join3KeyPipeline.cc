@@ -2,7 +2,7 @@
 #include <PDBPageHandle.h>
 #include <PDBAbstractPageSet.h>
 #include <PDBVector.h>
-#include "../../../../../applications/TestComputation/sharedLibraries/headers/MatrixBlockMeta.h"
+#include "TRABlockMeta.h"
 
 void pdb::Join3KeyPipeline::runSide(int32_t node, int32_t set) {
 
@@ -29,14 +29,14 @@ void pdb::Join3KeyPipeline::runSide(int32_t node, int32_t set) {
     page->repin();
 
     // get the record
-    auto curRec = (Record<Vector<Handle<matrix::MatrixBlockMeta>>> *) page->getBytes();
+    auto curRec = (Record<Vector<Handle<TRABlockMeta>>> *) page->getBytes();
 
     // get the root vector
     auto inVec = curRec->getRootObject();
 
     // go through the vector
     for(int i = 0; i < inVec->size(); ++i) {
-      myRecords.push_back({(int32_t)(*inVec)[i]->rowID, (int32_t)(*inVec)[i]->colID});
+      myRecords.push_back({(int32_t)(*inVec)[i]->getIdx0(), (int32_t)(*inVec)[i]->getIdx1()});
     }
   }
 

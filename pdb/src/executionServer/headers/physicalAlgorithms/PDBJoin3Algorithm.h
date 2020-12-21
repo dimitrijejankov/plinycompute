@@ -25,7 +25,10 @@ namespace pdb {
     PDBSetObject source2;
     PDBSetObject sink;
 
+    int32_t curStage = 0;
+
    public:
+
     PDBJoin3Algorithm();
 
     ENABLE_DEEP_COPY

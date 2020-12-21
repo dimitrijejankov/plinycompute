@@ -4,7 +4,7 @@
 #include <PDBAbstractPageSet.h>
 #include <JoinPlannerResult.h>
 #include <Join8SideSender.h>
-#include "../../../../applications/TestComputation/sharedLibraries/headers/MatrixBlock.h"
+#include "TRABlock.h"
 
 namespace pdb {
 
@@ -25,7 +25,7 @@ public:
   PDBAbstractPageSetPtr pageSet;
   PDBPageHandle planPage;
   Handle<JoinPlannerResult> planResult;
-  std::vector<std::vector<pdb::Handle<MatrixBlock>>> toSend;
+  std::vector<std::vector<pdb::Handle<TRABlock>>> toSend;
   std::shared_ptr<std::vector<Join8SideSenderPtr>> joinSideSenders;
 };
 

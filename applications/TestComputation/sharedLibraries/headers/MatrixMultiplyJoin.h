@@ -1,40 +1,40 @@
 #pragma once
 
 #include <LambdaCreationFunctions.h>
-#include <mkl_cblas.h>
+//#include <mkl_cblas.h>
 #include "JoinComp.h"
-#include "MatrixBlock.h"
+#include "TRABlock.h"
 
 namespace pdb::matrix {
 
-class MatrixMultiplyJoin : public JoinComp <MatrixMultiplyJoin, MatrixBlock, MatrixBlock, MatrixBlock> {
+class MatrixMultiplyJoin : public JoinComp <MatrixMultiplyJoin, TRABlock, TRABlock, TRABlock> {
  public:
 
   ENABLE_DEEP_COPY
 
   MatrixMultiplyJoin() = default;
 
-  static Lambda <bool> getKeySelection (Handle <MatrixBlockMeta> in1, Handle <MatrixBlockMeta> in2) {
-    return (makeLambdaFromMember (in1, colID) == makeLambdaFromMember (in2, rowID));
+  static Lambda <bool> getKeySelection (Handle <TRABlockMeta> in1, Handle <TRABlockMeta> in2) {
+    return (makeLambdaFromMethod(in1, getIdx1) == makeLambdaFromMethod (in2, getIdx0));
   }
 
-  static Lambda <Handle<MatrixBlockMeta>> getKeyProjection(Handle <MatrixBlockMeta> in1, Handle <MatrixBlockMeta> in2) {
-    return makeLambda (in1, in2, [] (Handle <MatrixBlockMeta> &in1, Handle <MatrixBlockMeta> &in2) {
-      Handle<MatrixBlockMeta> out = makeObject<MatrixBlockMeta>(in1->rowID, in2->colID);
+  static Lambda <Handle<TRABlockMeta>> getKeyProjection(Handle <TRABlockMeta> in1, Handle <TRABlockMeta> in2) {
+    return makeLambda (in1, in2, [] (Handle <TRABlockMeta> &in1, Handle <TRABlockMeta> &in2) {
+      Handle<TRABlockMeta> out = makeObject<TRABlockMeta>(in1->getIdx0(), in2->getIdx1());
       return out;
     });
   }
 
-  static Lambda <Handle<MatrixBlockData>> getValueProjection(Handle <MatrixBlockData> in1, Handle <MatrixBlockData> in2) {
-    return makeLambda (in1, in2, [] (Handle <MatrixBlockData> &in1, Handle <MatrixBlockData> &in2) {
+  static Lambda <Handle<TRABlockData>> getValueProjection(Handle <TRABlockData> in1, Handle <TRABlockData> in2) {
+    return makeLambda (in1, in2, [] (Handle <TRABlockData> &in1, Handle <TRABlockData> &in2) {
 
       // get the sizes
-      uint32_t I = in1->numRows;
-      uint32_t J = in2->numCols;
-      uint32_t K = in1->numCols;
+      uint32_t I = in1->dim0;
+      uint32_t J = in2->dim1;
+      uint32_t K = in1->dim1;
 
       // make an output
-      Handle<MatrixBlockData> out = makeObject<MatrixBlockData>(I, J);
+      Handle<TRABlockData> out = makeObject<TRABlockData>(I, J, 1);
 
       // get the ptrs
       float *outData = out->data->c_ptr();

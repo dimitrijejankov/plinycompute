@@ -58,17 +58,38 @@ pdb::PDBPhysicalAlgorithmStatePtr pdb::PDBJoin3Algorithm::getInitialState(const 
 
 pdb::PDBPhysicalAlgorithmStagePtr pdb::PDBJoin3Algorithm::getNextStage(const PDBPhysicalAlgorithmStatePtr &state) {
 
-  return std::make_shared<PDBJoin3AlgorithmKeyStage>(source0,
-                                                      source1,
-                                                      source2,
-                                                      in0,
-                                                      out0,
-                                                      in1,
-                                                      out1,
-                                                      in2,
-                                                      out2,
-                                                      out3,
-                                                      final);
+  if(curStage == 0) {
+
+    curStage++;
+    return std::make_shared<PDBJoin3AlgorithmKeyStage>(source0,
+                                                       source1,
+                                                       source2,
+                                                       in0,
+                                                       out0,
+                                                       in1,
+                                                       out1,
+                                                       in2,
+                                                       out2,
+                                                       out3,
+                                                       final);
+  }
+  else if(curStage == 1) {
+
+    curStage++;
+    return std::make_shared<PDBJoin3AggAsyncStage>(source0,
+                                                   source1,
+                                                   source2,
+                                                   in0,
+                                                   out0,
+                                                   in1,
+                                                   out1,
+                                                   in2,
+                                                   out2,
+                                                   out3,
+                                                   final);
+  }
+
+  return nullptr;
 }
 
 int32_t pdb::PDBJoin3Algorithm::numStages() const {

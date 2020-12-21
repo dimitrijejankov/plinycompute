@@ -2,8 +2,6 @@
 #include <Join8SideReader.h>
 #include <PDBVector.h>
 
-using namespace pdb::matrix;
-
 pdb::Join8SideReader::Join8SideReader(pdb::PDBAbstractPageSetPtr pageSet,
                                       int32_t workerID,
                                       int32_t numNodes,
@@ -39,7 +37,7 @@ void pdb::Join8SideReader::run() {
     page->repin();
 
     //
-    auto *recordCopy = (Record<Vector<Handle<MatrixBlock>>> *) page->getBytes();
+    auto *recordCopy = (Record<Vector<Handle<TRABlock>>> *) page->getBytes();
     auto records = recordCopy->getRootObject();
 
     for(int i = 0; i < records->size(); ++i) {

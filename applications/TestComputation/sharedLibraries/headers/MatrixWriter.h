@@ -1,7 +1,7 @@
 #pragma once
 
 #include "SetWriter.h"
-#include "MatrixBlock.h"
+#include "TRABlock.h"
 
 namespace pdb {
 
@@ -11,7 +11,7 @@ namespace matrix {
 /**
  * The matrix scanner
  */
-class MatrixWriter : public SetWriter<pdb::matrix::MatrixBlock> {
+class MatrixWriter : public SetWriter<TRABlock> {
 public:
 
   /**

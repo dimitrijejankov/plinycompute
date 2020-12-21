@@ -6,9 +6,7 @@
 #include <condition_variable>
 #include <unordered_set>
 #include <queue>
-#include "../../../../applications/TestComputation/sharedLibraries/headers/MatrixBlock.h"
-
-using namespace pdb::matrix;
+#include "TRABlock.h"
 
 namespace pdb {
 
@@ -22,7 +20,7 @@ class Join8SideSender {
    * @param records - the records we want to send
    * @return the identifier which is passed to waitToFinish
    */
-  int32_t queueToSend(std::vector<Handle<MatrixBlock>> *records) {
+  int32_t queueToSend(std::vector<Handle<TRABlock>> *records) {
 
     // don't have anything to send
     if(records->empty()) {
@@ -89,7 +87,7 @@ class Join8SideSender {
     getAllocator().emptyOutBlock(page->getBytes());
 
     // create a vector to store stuff
-    Handle<Vector<Handle<MatrixBlock>>> vec = pdb::makeObject<Vector<Handle<MatrixBlock>>>();
+    Handle<Vector<Handle<TRABlock>>> vec = pdb::makeObject<Vector<Handle<TRABlock>>>();
 
     // do the sending
     while(true) {
@@ -244,7 +242,7 @@ class Join8SideSender {
   /**
    * the queue of record vectors with their identifiers
    */
-  std::deque<std::pair<int32_t, std::vector<Handle<MatrixBlock>>*>> toSend;
+  std::deque<std::pair<int32_t, std::vector<Handle<TRABlock>>*>> toSend;
 
   /**
    * the identifiers that are currently queued

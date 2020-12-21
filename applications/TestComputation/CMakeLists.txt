@@ -16,9 +16,6 @@ foreach(file ${files})
 endforeach()
 
 # add build dependencies to shared libraries it uses
-add_dependencies(TestComputation MatrixBlock)
-add_dependencies(TestComputation MatrixBlockData)
-add_dependencies(TestComputation MatrixBlockMeta)
 add_dependencies(TestComputation MatrixMultiplyAggregation)
 add_dependencies(TestComputation MatrixMultiplyJoin)
 add_dependencies(TestComputation MatrixSumJoin)

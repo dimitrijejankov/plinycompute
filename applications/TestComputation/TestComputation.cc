@@ -1,7 +1,7 @@
 #include <PDBClient.h>
 #include <GenericWork.h>
 #include <fstream>
-#include "sharedLibraries/headers/MatrixBlock.h"
+#include "TRABlock.h"
 #include "sharedLibraries/headers/MatrixScanner.h"
 #include "sharedLibraries/headers/MatrixMultiplyJoin.h"
 #include "sharedLibraries/headers/MatrixSumJoin.h"
@@ -35,7 +35,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
     const pdb::UseTemporaryAllocationBlock tempBlock{blockSize * 1024 * 1024};
 
     // put the chunks here
-    Handle<Vector<Handle<pdb::matrix::MatrixBlock>>> data = pdb::makeObject<Vector<Handle<pdb::matrix::MatrixBlock>>>();
+    Handle<Vector<Handle<TRABlock>>> data = pdb::makeObject<Vector<Handle<TRABlock>>>();
 
     try {
 
@@ -43,7 +43,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
       for(; i < tuplesToSend.size(); ++i) {
 
         // allocate a matrix
-        Handle<pdb::matrix::MatrixBlock> myInt = makeObject<pdb::matrix::MatrixBlock>(tuplesToSend[i].first,
+        Handle<TRABlock> myInt = makeObject<TRABlock>(tuplesToSend[i].first,
                                                             tuplesToSend[i].second,
                                                             matrixRows / numRows,
                                                             matrixColumns / numCols);
@@ -64,7 +64,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
     getRecord(data);
 
     // send the data a bunch of times
-    pdbClient.sendData<pdb::matrix::MatrixBlock>("myData", set, data);
+    pdbClient.sendData<TRABlock>("myData", set, data);
 
     // log that we stored stuff
     std::cout << "Stored " << data->size() << " !\n";
@@ -96,10 +96,10 @@ int main(int argc, char *argv[]) {
   pdbClient.createDatabase("myData");
 
   // now, create the input and output sets
-  pdbClient.createSet<pdb::matrix::MatrixBlock>("myData", "A");
-  pdbClient.createSet<pdb::matrix::MatrixBlock>("myData", "B");
-  pdbClient.createSet<pdb::matrix::MatrixBlock>("myData", "C");
-  pdbClient.createSet<pdb::matrix::MatrixBlock>("myData", "D");
+  pdbClient.createSet<TRABlock>("myData", "A");
+  pdbClient.createSet<TRABlock>("myData", "B");
+  pdbClient.createSet<TRABlock>("myData", "C");
+  pdbClient.createSet<TRABlock>("myData", "D");
 
   /// 3. Fill in the data (single threaded)
 
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
 
   // grab the iterator
   int count = 0;
-  auto it = pdbClient.getSetIterator<pdb::matrix::MatrixBlock>("myData", "D");
+  auto it = pdbClient.getSetIterator<TRABlock>("myData", "D");
   while(it->hasNextRecord()) {
 
     // grab the record

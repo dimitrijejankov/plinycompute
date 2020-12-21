@@ -44,7 +44,7 @@ class Join8MapCreator {
       communicator->receiveBytes(recordPage->getBytes(), error);
 
       // get the records from it
-      auto record = ((Record<Vector<Handle<MatrixBlock>>> *) recordPage->getBytes());
+      auto record = ((Record<Vector<Handle<TRABlock>>> *) recordPage->getBytes());
       auto tuples = record->getRootObject();
 
       // freeze it

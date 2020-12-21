@@ -4,9 +4,8 @@
 
 #include <Join3KeyPipeline.h>
 #include <PDBVector.h>
-#include "../../../../applications/TestComputation/sharedLibraries/headers/MatrixBlockMeta.h"
+#include "TRABlockMeta.h"
 
-using namespace pdb::matrix;
 
 namespace pdb {
 
@@ -25,9 +24,9 @@ namespace pdb {
     Handle<pdb::Vector<Join3KeyPipeline::joined_record>> joinedRecords;
     Handle<pdb::Vector<pdb::Vector<int32_t>>> aggRecords;
     Handle<pdb::Vector<int32_t>> aggMapping;
-    Handle<pdb::Map<MatrixBlockMeta, int32_t>> records0;
-    Handle<pdb::Map<MatrixBlockMeta, int32_t>> records1;
-    Handle<pdb::Map<MatrixBlockMeta, int32_t>> records2;
+    Handle<pdb::Map<TRABlockMeta, int32_t>> records0;
+    Handle<pdb::Map<TRABlockMeta, int32_t>> records1;
+    Handle<pdb::Map<TRABlockMeta, int32_t>> records2;
   };
 
 }

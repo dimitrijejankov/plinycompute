@@ -3,11 +3,7 @@
 #include <PDBVector.h>
 #include <JoinPlannerResult.h>
 #include <GreedyPlanner3.h>
-#include "../../../../applications/TestComputation/sharedLibraries/headers/MatrixBlockMeta3D.h"
-#include "../../../../applications/TestComputation/sharedLibraries/headers/MatrixBlockMeta.h"
-
-using namespace pdb::matrix_3d;
-using namespace pdb::matrix;
+#include <TRABlockMeta.h>
 
 pdb::JoinPlanner::JoinPlanner(uint32_t numNodes,
                               uint32_t numThreads,
@@ -69,9 +65,9 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
   pdb::Handle<JoinPlannerResult> out = pdb::makeObject<JoinPlannerResult>();
 
   // this is the stuff we need to execute the query
-  out->records0 = pdb::makeObject<pdb::Map<MatrixBlockMeta, int32_t>>();
-  out->records1 = pdb::makeObject<pdb::Map<MatrixBlockMeta, int32_t>>();
-  out->records2 = pdb::makeObject<pdb::Map<MatrixBlockMeta, int32_t>>();
+  out->records0 = pdb::makeObject<pdb::Map<TRABlockMeta, int32_t>>();
+  out->records1 = pdb::makeObject<pdb::Map<TRABlockMeta, int32_t>>();
+  out->records2 = pdb::makeObject<pdb::Map<TRABlockMeta, int32_t>>();
   out->record_mapping = pdb::makeObject<pdb::Vector<bool>>(side_tids.size() * numNodes, side_tids.size() * numNodes);
   out->join_group_mapping = pdb::makeObject<pdb::Vector<int32_t>>(joined.size(), joined.size());
   out->joinedRecords = pdb::makeObject<pdb::Vector<Join3KeyPipeline::joined_record>>(joined.size(), joined.size());
@@ -107,17 +103,17 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
 
   // copy the records for A with tid mappings
   for(auto &r : nodeRecords0) {
-    (*out->records0)[MatrixBlockMeta(r.first.colID, r.first.rowID)] = r.second.first;
+    (*out->records0)[TRABlockMeta(r.first.colID, r.first.rowID)] = r.second.first;
   }
 
   // copy the records for B with tid mappings
   for(auto &r : nodeRecords1) {
-    (*out->records1)[MatrixBlockMeta(r.first.colID, r.first.rowID)] = r.second.first;
+    (*out->records1)[TRABlockMeta(r.first.colID, r.first.rowID)] = r.second.first;
   }
 
   // copy the records for C with tid mappings
   for(auto &r : nodeRecords2) {
-    (*out->records2)[MatrixBlockMeta(r.first.colID, r.first.rowID)] = r.second.first;
+    (*out->records2)[TRABlockMeta(r.first.colID, r.first.rowID)] = r.second.first;
   }
 
   // store the aggregation groups

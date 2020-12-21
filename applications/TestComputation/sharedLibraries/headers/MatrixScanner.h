@@ -1,6 +1,6 @@
 #pragma once
 
-#include "MatrixBlock.h"
+#include "TRABlock.h"
 #include "SetScanner.h"
 
 namespace pdb {
@@ -11,7 +11,7 @@ namespace matrix {
 /**
  * The matrix scanner
  */
-class MatrixScanner : public pdb::SetScanner<pdb::matrix::MatrixBlock> {
+class MatrixScanner : public pdb::SetScanner<TRABlock> {
 public:
 
   /**
