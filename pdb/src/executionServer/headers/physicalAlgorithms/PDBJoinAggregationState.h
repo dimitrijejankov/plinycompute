@@ -181,6 +181,12 @@ struct PDBJoinAggregationState : public PDBPhysicalAlgorithmState {
   static const int32_t LEFT_JOIN_SIDE_TASK;
   static const int32_t RIGHT_JOIN_SIDE_TASK;
   static const int32_t PLAN_TASK;
+
+  static const int32_t A_TASK;
+  static const int32_t B_TASK;
+  static const int32_t C_TASK;
+
+
 };
 
 }

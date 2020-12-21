@@ -47,6 +47,18 @@ struct PDBJoin3AlgorithmState : public PDBPhysicalAlgorithmState {
 
   std::vector<Join3KeyPipeline::joined_record> joinedRecords;
 
+  std::shared_ptr<std::vector<PDBCommunicatorPtr>> aJoinSideCommunicatorsOut = nullptr;
+
+  std::shared_ptr<std::vector<PDBCommunicatorPtr>> aJoinSideCommunicatorsIn = nullptr;
+
+  std::shared_ptr<std::vector<PDBCommunicatorPtr>> bJoinSideCommunicatorsOut = nullptr;
+
+  std::shared_ptr<std::vector<PDBCommunicatorPtr>> bJoinSideCommunicatorsIn = nullptr;
+
+  std::shared_ptr<std::vector<PDBCommunicatorPtr>> cJoinSideCommunicatorsOut = nullptr;
+
+  std::shared_ptr<std::vector<PDBCommunicatorPtr>> cJoinSideCommunicatorsIn = nullptr;
+
 };
 
 }

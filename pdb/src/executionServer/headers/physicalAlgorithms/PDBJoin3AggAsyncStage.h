@@ -5,6 +5,21 @@
 
 namespace pdb {
 
+struct meta_t {
+
+  int32_t rowID;
+  int32_t colID;
+  bool hasMore;
+};
+
+struct emitter_row_t {
+
+  bool a = false;
+  bool b = false;
+  bool c = false;
+};
+
+
 class PDBJoin3AggAsyncStage : public PDBPhysicalAlgorithmStage {
  public:
 
@@ -62,6 +77,7 @@ class PDBJoin3AggAsyncStage : public PDBPhysicalAlgorithmStage {
   const pdb::String &out3;
   const pdb::String &final;
 
+  std::vector<emitter_row_t> toEmmit;
 };
 
 }
