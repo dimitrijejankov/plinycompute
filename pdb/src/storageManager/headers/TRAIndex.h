@@ -15,6 +15,8 @@ struct TRAIndexNode {
   // points to the data of this node
   void *data;
 
+  std::vector<std::tuple<int32_t, int32_t, int32_t, int32_t>> sequential;
+
   explicit TRAIndexNode(bool isLeaf) : isLeaf(isLeaf) {
 
     if(isLeaf) {
@@ -49,6 +51,10 @@ struct TRAIndexNode {
   }
 
   void insert(pdb::TRABlockMeta &block, const std::pair<int32_t, int32_t> &location) {
+
+    if(block.indices.size() == 2) {
+        sequential.emplace_back( block.getIdx0(), block.getIdx1(), std::get<0>(location), std::get<1>(location));
+    }
 
     _insert(block, 0, location);
   }
