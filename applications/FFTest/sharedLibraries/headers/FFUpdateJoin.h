@@ -48,7 +48,7 @@ class FFUpdateJoin : public JoinComp <FFUpdateJoin, FFMatrixBlock, FFMatrixBlock
 
       // do the multiply
       for(int32_t i = 0; i < I * K; i++) {
-        data[i] = lhs[i] + rhs[i];
+        data[i] = lhs[i] - rhs[i];
       }
 
       if(in1->bias != nullptr && in2->bias != nullptr) {
@@ -59,7 +59,7 @@ class FFUpdateJoin : public JoinComp <FFUpdateJoin, FFMatrixBlock, FFMatrixBlock
 
         // sum update the bias
         for(int i = 0; i < in1->bias->size(); i++) {
-          o[i] = b1[i] + b2[i];
+          o[i] = b1[i] - b2[i];
         }
       }
 
