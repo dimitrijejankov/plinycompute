@@ -16,9 +16,14 @@ struct meta_t {
 
 struct emitter_row_t {
 
-  bool a = false;
-  bool b = false;
-  bool c = false;
+  // the row and col id of the projected join record
+  int32_t rowID = -1;
+  int32_t colID = -1;
+
+  // pointer to the data
+  void *a = nullptr;
+  void *b = nullptr;
+  void *c = nullptr;
 };
 
 

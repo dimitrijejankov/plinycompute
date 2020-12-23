@@ -206,7 +206,7 @@ IF (BISON_FOUND)
 ENDIF ()
 
 # find blas
-set(MKL_ROOT /opt/intel/system_studio_2020/mkl)
+set(MKL_ROOT /opt/intel/oneapi/mkl/latest)
 find_package(MKL)
 INCLUDE_DIRECTORIES(${MKL_INCLUDE_PATH})
 

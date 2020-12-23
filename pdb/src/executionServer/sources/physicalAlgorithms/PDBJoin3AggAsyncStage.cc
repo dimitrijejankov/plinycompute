@@ -3,6 +3,7 @@
 #include <PDBJoinAggregationState.h>
 #include <ExJob.h>
 #include <ComputePlan.h>
+#include <mkl.h>
 #include <AtomicComputationClasses.h>
 #include <Join8SideSender.h>
 #include <GenericWork.h>
@@ -89,6 +90,26 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
   // get the the plan
   pdb::Handle<JoinPlannerResult> plan = ((Record<JoinPlannerResult>*) s->planPage->getBytes())->getRootObject();
 
+  // the records we need to join
+  std::mutex m;
+  std::condition_variable cv;
+  std::vector<emitter_row_t> to_join(plan->joinedRecords->size());
+
+  // the records to join group
+  std::vector<std::vector<int32_t>> records_to_join(plan->records0->size() +
+                                                       plan->records1->size() +
+                                                       plan->records2->size());
+
+  // fill the records
+  auto &jr = *plan->joinedRecords;
+  for(int32_t i = 0; i < jr.size(); ++i) {
+
+      // store what we need to
+      records_to_join[jr[i].first].push_back(i);
+      records_to_join[jr[i].second].push_back(i);
+      records_to_join[jr[i].third].push_back(i);
+  }
+
   atomic_bool success;
   success = true;
 
@@ -128,7 +149,7 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&job, &counter, &s, &setAIdx, n, &plan, &aInputVectors](const PDBBuzzerPtr& callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&job, &counter, &s, &setAIdx, n, &plan, &aInputVectors, &m, &cv](const PDBBuzzerPtr& callerBuzzer) {
 
       auto num_nodes = job->numberOfNodes;
       auto _idx = TRABlockMeta(0, 0);
@@ -186,6 +207,11 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
 
         // send the meta
         (*s->aJoinSideCommunicatorsOut)[n]->sendBytes(&_meta, sizeof(_meta), error);
+
+        // get the tensor id
+        auto tid = (*plan->records0)[_idx];
+
+        
       }
       else {
 
@@ -208,8 +234,9 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&job, &counter, &s, n](const PDBBuzzerPtr& callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&job, &counter, &s, n, &plan, &m, &cv, &records_to_join, &to_join](const PDBBuzzerPtr& callerBuzzer) {
 
+      auto _idx = TRABlockMeta(0, 0);
       meta_t _meta{};
       std::string error;
 
@@ -228,8 +255,24 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
             break;
           }
 
-          // just skip for now
-          (*s->aJoinSideCommunicatorsIn)[n]->skipBytes(error);
+          // allocate the memory
+          auto data = (float*) mkl_malloc(_meta.numRows * _meta.numCols * sizeof(float), 32);
+
+          // get the data
+          (*s->aJoinSideCommunicatorsIn)[n]->receiveBytes(data, error);
+
+          // set the index
+          _idx.indices[0] = _meta.numRows;
+          _idx.indices[1] = _meta.numCols;
+
+          // get the tid
+          auto tid = (*plan->records0)[_idx];
+
+          std::unique_lock<std::mutex> lck(m);
+
+//          for(auto j : records_to_join[tid]) {
+//              to_join[j].a =
+//          }
         }
       }
       else {
