@@ -47,11 +47,20 @@ class FFJoinBackMultTranspose : public JoinComp <FFJoinBackMultTranspose, FFMatr
 
       // get the ptrs
       float *outData = out->data->c_ptr();
-      float *in1Data = in1->data->c_ptr();
+      float *in1Data_pre = in1->data->c_ptr();
+      float *in1Data = (float*) mkl_malloc(sizeof(float) * in1->rowID * in1->colID, 64);
       float *in2Data = in2->data->c_ptr();
+
+      // apply the relu
+      for(int32_t i = 0; i < in1->rowID * in1->colID; ++i) {
+        in1Data[i] = in1Data_pre[i] > 0 ? in1Data_pre[i] : 0;
+      }
 
       // do the multiply
       cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, I, J, K, 1.0f, in1Data, K, in2Data, L, 0.0f, outData, J);
+
+      // free the memory
+      mkl_free(in1Data);
 
       // return the output
       return out;
