@@ -14,8 +14,8 @@ using namespace pdb;
 const size_t blockSize = 64;
 const uint32_t matrixRows = 4000;
 const uint32_t matrixColumns = 4000;
-const uint32_t numRows = 40;
-const uint32_t numCols = 40;
+const uint32_t numRows = 5;
+const uint32_t numCols = 5;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
@@ -40,8 +40,13 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
     try {
 
       // put stuff into the vector
+      int n = 4;
       for(; i < tuplesToSend.size(); ++i) {
 
+        n--;
+        if(n == 0) {
+          break;
+        }
         // allocate a matrix
         Handle<TRABlock> myInt = makeObject<TRABlock>(tuplesToSend[i].first,
                                                             tuplesToSend[i].second,
@@ -56,6 +61,8 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
         // we add the matrix to the block
         data->push_back(myInt);
+
+
       }
     }
     catch (pdb::NotEnoughSpace &n) {}
@@ -106,6 +113,10 @@ int main(int argc, char *argv[]) {
   initMatrix(pdbClient, "A");
   initMatrix(pdbClient, "B");
   initMatrix(pdbClient, "C");
+
+  pdbClient.createIndex("myData", "A");
+  pdbClient.createIndex("myData", "B");
+  pdbClient.createIndex("myData", "C");
 
   /// 4. Make query graph an run query
 

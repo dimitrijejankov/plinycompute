@@ -103,17 +103,18 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
 
   // copy the records for A with tid mappings
   for(auto &r : nodeRecords0) {
-    (*out->records0)[TRABlockMeta(r.first.colID, r.first.rowID)] = r.second.first;
+    std::cout << "Adding - record 0 - " << r.first.rowID << " - " << r.first.colID << '\n';
+    (*out->records0)[TRABlockMeta(r.first.rowID, r.first.colID)] = r.second.first;
   }
 
   // copy the records for B with tid mappings
   for(auto &r : nodeRecords1) {
-    (*out->records1)[TRABlockMeta(r.first.colID, r.first.rowID)] = r.second.first;
+    (*out->records1)[TRABlockMeta(r.first.rowID, r.first.colID)] = r.second.first;
   }
 
   // copy the records for C with tid mappings
   for(auto &r : nodeRecords2) {
-    (*out->records2)[TRABlockMeta(r.first.colID, r.first.rowID)] = r.second.first;
+    (*out->records2)[TRABlockMeta(r.first.rowID, r.first.colID)] = r.second.first;
   }
 
   // store the aggregation groups

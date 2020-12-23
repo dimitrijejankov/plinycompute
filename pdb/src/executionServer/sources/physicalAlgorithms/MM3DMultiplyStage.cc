@@ -1,5 +1,5 @@
 #include <TRABlock.h>
-#include <mkl/mkl.h>
+#include <mkl.h>
 #include "MM3DMultiplyStage.h"
 #include "MM3DState.h"
 #include "ExJob.h"

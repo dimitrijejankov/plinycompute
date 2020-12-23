@@ -9,6 +9,8 @@ struct meta_t {
 
   int32_t rowID;
   int32_t colID;
+  int32_t numRows;
+  int32_t numCols;
   bool hasMore;
 };
 

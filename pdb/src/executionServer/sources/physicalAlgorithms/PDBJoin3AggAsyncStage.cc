@@ -29,7 +29,7 @@ bool pdb::PDBJoin3AggAsyncStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                                                                        PDBJoinAggregationState::A_TASK);
 
 
-  // init the vector for the left sides
+  // init the vector for connections for A
   s->aJoinSideCommunicatorsOut = std::make_shared<std::vector<PDBCommunicatorPtr>>();
   for (int n = 0; n < job->numberOfNodes; n++) {
 
@@ -45,10 +45,13 @@ bool pdb::PDBJoin3AggAsyncStage::setup(const pdb::Handle<pdb::ExJob> &job,
                                                              connectionID));
   }
 
-  // init the vector for the right sides
+  // init the vector connections for A
   connectionID->taskID = PDBJoinAggregationState::A_TASK;
   s->aJoinSideCommunicatorsIn = std::make_shared<std::vector<PDBCommunicatorPtr>>();
   for (int n = 0; n < job->numberOfNodes; n++) {
+
+    // set the node id
+    connectionID->nodeID = n;
 
     // skip com to itself
     if(job->thisNode == n) {
@@ -56,82 +59,17 @@ bool pdb::PDBJoin3AggAsyncStage::setup(const pdb::Handle<pdb::ExJob> &job,
       continue;
     }
 
-    // connect to the node
-    s->aJoinSideCommunicatorsIn->push_back(myMgr->connectTo(job->nodes[n]->address,
-                                                            job->nodes[n]->backendPort,
-                                                            connectionID));
-  }
+    // wait for the connection
+    s->aJoinSideCommunicatorsIn->push_back(myMgr->waitForConnection(connectionID));
 
-  /// 2. Communication for set B
+    // check if the socket is open
+    if (s->aJoinSideCommunicatorsIn->back()->isSocketClosed()) {
 
-  // init the vector for the left sides
-  connectionID->compID = PDBJoinAggregationState::B_TASK;
-  s->bJoinSideCommunicatorsOut = std::make_shared<std::vector<PDBCommunicatorPtr>>();
-  for (int n = 0; n < job->numberOfNodes; n++) {
+      // log the error
+      s->logger->error("Socket for the left side is closed");
 
-    // skip com to itself
-    if(job->thisNode == n) {
-      s->bJoinSideCommunicatorsOut->push_back(nullptr);
-      continue;
+      return false;
     }
-
-    // connect to the node
-    s->bJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->address,
-                                                             job->nodes[n]->backendPort,
-                                                             connectionID));
-  }
-
-  // init the vector for the right sides
-  connectionID->taskID = PDBJoinAggregationState::B_TASK;
-  s->bJoinSideCommunicatorsIn = std::make_shared<std::vector<PDBCommunicatorPtr>>();
-  for (int n = 0; n < job->numberOfNodes; n++) {
-
-    // skip com to itself
-    if(job->thisNode == n) {
-      s->bJoinSideCommunicatorsIn->push_back(nullptr);
-      continue;
-    }
-
-    // connect to the node
-    s->bJoinSideCommunicatorsIn->push_back(myMgr->connectTo(job->nodes[n]->address,
-                                                            job->nodes[n]->backendPort,
-                                                            connectionID));
-  }
-
-  /// 2. Communication for set C
-
-  // init the vector for the left sides
-  connectionID->compID = PDBJoinAggregationState::C_TASK;
-  s->cJoinSideCommunicatorsOut = std::make_shared<std::vector<PDBCommunicatorPtr>>();
-  for (int n = 0; n < job->numberOfNodes; n++) {
-
-    // skip com to itself
-    if(job->thisNode == n) {
-      s->cJoinSideCommunicatorsOut->push_back(nullptr);
-      continue;
-    }
-
-    // connect to the node
-    s->cJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->address,
-                                                             job->nodes[n]->backendPort,
-                                                             connectionID));
-  }
-
-  // init the vector for the right sides
-  connectionID->taskID = PDBJoinAggregationState::C_TASK;
-  s->cJoinSideCommunicatorsIn = std::make_shared<std::vector<PDBCommunicatorPtr>>();
-  for (int n = 0; n < job->numberOfNodes; n++) {
-
-    // skip com to itself
-    if(job->thisNode == n) {
-      s->cJoinSideCommunicatorsIn->push_back(nullptr);
-      continue;
-    }
-
-    // connect to the node
-    s->cJoinSideCommunicatorsIn->push_back(myMgr->connectTo(job->nodes[n]->address,
-                                                            job->nodes[n]->backendPort,
-                                                            connectionID));
   }
 
   return true;
@@ -171,6 +109,18 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
   // get index for set A
   auto setAIdx = storage->getIndex({0, "myData:A"});
 
+  // get the a page set
+  auto aPageSet = std::dynamic_pointer_cast<PDBRandomAccessPageSet>(storage->getPageSet({0, "myData:A"}));
+
+  // grab all the vectors
+  std::vector<Handle<Vector<Handle<TRABlock>>>> aInputVectors;
+  for(int i = 0; i < aPageSet->getNumPages(); ++i) {
+
+    // get the vector from the page
+    auto vec = ((Record<Vector<Handle<TRABlock>>> *) (*aPageSet)[i]->getBytes())->getRootObject();
+    aInputVectors.push_back(vec);
+  }
+
   // senders A
   for(int n = 0; n < job->numberOfNodes; ++n) {
 
@@ -178,29 +128,68 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&job, &counter, &s, &setAIdx, n, &plan](const PDBBuzzerPtr& callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&job, &counter, &s, &setAIdx, n, &plan, &aInputVectors](const PDBBuzzerPtr& callerBuzzer) {
 
       auto num_nodes = job->numberOfNodes;
+      auto _idx = TRABlockMeta(0, 0);
+
+      meta_t _meta{};
+      std::string error;
+
       if (job->thisNode != n) {
 
-          // go through all the records for set A we have on this node
-          auto &seq = setAIdx->sequential;
+        std::cout << "Records0 has : " << plan->records0->size() << '\n';
+        // go through all the records for set A we have on this node
+        auto &seq = setAIdx->sequential;
 
-          for(auto t : seq) {
+        for(auto t : seq) {
 
-              // unpack this
-              auto [rowID, colID, page, idx] = t;
+          // unpack this
+          auto [rowID, colID, page, idx] = t;
 
-              // get the tid for this record
-              auto tid = (*plan->records0)[TRABlockMeta(colID, rowID)];
+          // get the tid for this record
+          _idx.indices[0] = rowID;
+          _idx.indices[1] = colID;
+          std::cout << "Checking - record0 | " << rowID << " - " << colID << '\n';
+          if((*plan->records0).count(_idx)) {
 
-              // check if we need to send this
-              if((*(*plan).record_mapping)[tid * num_nodes + n]) {
-                  std::cout << "sending " << rowID << colID << '\n';
-              }
+            // get the tensor id
+            auto tid = (*plan->records0)[_idx];
+
+            // check if we need to send this
+            if((*(*plan).record_mapping)[tid * num_nodes + n]) {
+
+              // set the meta
+              _meta.rowID = rowID;
+              _meta.colID = colID;
+              _meta.numRows = colID;
+              _meta.numCols = colID;
+              _meta.hasMore = true;
+
+              // send the meta
+              auto com = (*s->aJoinSideCommunicatorsOut)[n];
+
+              std::cout << "Sending - records0 | " << rowID << " - " << colID << '\n';
+              com->sendBytes(&_meta, sizeof(_meta), error);
+
+              // get the block
+              auto data = (*aInputVectors[page])[idx]->data->data->c_ptr();
+
+              // send the data
+              com->sendBytes(data,sizeof(float) * _meta.numRows * _meta.numCols,error);
+            }
           }
+        }
+
+        // set the meta
+        _meta.hasMore = false;
+
+        // send the meta
+        (*s->aJoinSideCommunicatorsOut)[n]->sendBytes(&_meta, sizeof(_meta), error);
       }
       else {
+
+
 
       }
 
@@ -221,8 +210,27 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
     // make the work
     PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&job, &counter, &s, n](const PDBBuzzerPtr& callerBuzzer) {
 
-      if (job->thisNode == n) {
+      meta_t _meta{};
+      std::string error;
 
+      if (job->thisNode != n) {
+
+        while(true) {
+
+          // receive the meta
+          (*s->aJoinSideCommunicatorsIn)[n]->receiveBytes(&_meta, error);
+
+          //
+          std::cout << "received - records0 | " << _meta.rowID << " colID " << _meta.colID << '\n';
+
+          // check if we are done receiving
+          if(!_meta.hasMore){
+            break;
+          }
+
+          // just skip for now
+          (*s->aJoinSideCommunicatorsIn)[n]->skipBytes(error);
+        }
       }
       else {
 

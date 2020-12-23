@@ -56,11 +56,11 @@ public:
   }
 
   bool operator==(const TRABlockMeta &other) const {
-    return indices[0] == other.indices[0] && indices[1] == other.indices[1] && indices[2] == other.indices[2];
+    return indices[0] == other.indices[0] && indices[1] == other.indices[1];
   }
 
   size_t hash() const {
-    return 1000000 * indices[0] + 1000 * indices[1] + indices[2];
+    return 1000000 * indices[0] + 1000 * indices[1];
   }
 };
 
