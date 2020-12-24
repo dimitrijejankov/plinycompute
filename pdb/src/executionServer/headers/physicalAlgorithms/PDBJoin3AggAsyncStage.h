@@ -2,6 +2,7 @@
 
 #include <PDBSetObject.h>
 #include "PDBPhysicalAlgorithmStage.h"
+#include "JoinPlannerResult.h"
 
 namespace pdb {
 
@@ -70,6 +71,19 @@ class PDBJoin3AggAsyncStage : public PDBPhysicalAlgorithmStage {
            const std::string &error) override;
 
   void cleanup(const pdb::PDBPhysicalAlgorithmStatePtr &state, const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage);
+
+  void setup_set_comm(const std::string &set,
+                      std::mutex &m,
+                      std::condition_variable &cv,
+                      atomic_int &counter,
+                      std::vector<int32_t> &joined,
+                      std::vector<std::vector<int32_t>> &records_to_join,
+                      std::vector<emitter_row_t> &to_join,
+                      pdb::Handle<JoinPlannerResult> &plan,
+                      const pdb::Handle<pdb::ExJob> &job,
+                      const std::shared_ptr<pdb::PDBStorageManagerBackend> &storage,
+                      const pdb::PDBPhysicalAlgorithmStatePtr &state,
+                      PDBBuzzerPtr &tempBuzzer);
 
   const PDBSetObject &sourceSet0;
   const PDBSetObject &sourceSet1;
