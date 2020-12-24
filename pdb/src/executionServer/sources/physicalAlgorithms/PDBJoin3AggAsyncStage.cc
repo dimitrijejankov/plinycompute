@@ -31,28 +31,8 @@ bool pdb::PDBJoin3AggAsyncStage::setup(const pdb::Handle<pdb::ExJob> &job,
 
 
   // init the vector for connections for A
-  s->aJoinSideCommunicatorsOut = std::make_shared<std::vector<PDBCommunicatorPtr>>();
-  for (int n = 0; n < job->numberOfNodes; n++) {
-
-    // skip com to itself
-    if(job->thisNode == n) {
-      s->aJoinSideCommunicatorsOut->push_back(nullptr);
-      continue;
-    }
-
-    // connect to the node
-    s->aJoinSideCommunicatorsOut->push_back(myMgr->connectTo(job->nodes[n]->address,
-                                                             job->nodes[n]->backendPort,
-                                                             connectionID));
-  }
-
-  // init the vector connections for A
-  connectionID->taskID = PDBJoinAggregationState::A_TASK;
   s->aJoinSideCommunicatorsIn = std::make_shared<std::vector<PDBCommunicatorPtr>>();
   for (int n = 0; n < job->numberOfNodes; n++) {
-
-    // set the node id
-    connectionID->nodeID = n;
 
     // skip com to itself
     if(job->thisNode == n) {
@@ -60,11 +40,31 @@ bool pdb::PDBJoin3AggAsyncStage::setup(const pdb::Handle<pdb::ExJob> &job,
       continue;
     }
 
+    // connect to the node
+    s->aJoinSideCommunicatorsIn->push_back(myMgr->connectTo(job->nodes[n]->address,
+                                                             job->nodes[n]->backendPort,
+                                                             connectionID));
+  }
+
+  // init the vector connections for A
+  connectionID->taskID = PDBJoinAggregationState::A_TASK;
+  s->aJoinSideCommunicatorsOut = std::make_shared<std::vector<PDBCommunicatorPtr>>();
+  for (int n = 0; n < job->numberOfNodes; n++) {
+
+    // set the node id
+    connectionID->nodeID = n;
+
+    // skip com to itself
+    if(job->thisNode == n) {
+      s->aJoinSideCommunicatorsOut->push_back(nullptr);
+      continue;
+    }
+
     // wait for the connection
-    s->aJoinSideCommunicatorsIn->push_back(myMgr->waitForConnection(connectionID));
+    s->aJoinSideCommunicatorsOut->push_back(myMgr->waitForConnection(connectionID));
 
     // check if the socket is open
-    if (s->aJoinSideCommunicatorsIn->back()->isSocketClosed()) {
+    if (s->aJoinSideCommunicatorsOut->back()->isSocketClosed()) {
 
       // log the error
       s->logger->error("Socket for the left side is closed");
@@ -110,6 +110,9 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
       records_to_join[jr[i].third].push_back(i);
   }
 
+  // the joined records
+  std::vector<int32_t> joined;
+
   atomic_bool success;
   success = true;
 
@@ -143,13 +146,18 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
   }
 
   // senders A
-  for(int n = 0; n < job->numberOfNodes; ++n) {
+  for(int32_t n = 0; n < job->numberOfNodes; ++n) {
 
     // get a worker from the server
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&job, &counter, &s, &setAIdx, n, &plan, &aInputVectors, &m, &cv](const PDBBuzzerPtr& callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&job, &counter, &s,
+                                                                       &setAIdx, n, &plan,
+                                                                       &aInputVectors,
+                                                                       &records_to_join,
+                                                                       &to_join, &joined,
+                                                                       &m, &cv](const PDBBuzzerPtr& callerBuzzer) {
 
       auto num_nodes = job->numberOfNodes;
       auto _idx = TRABlockMeta(0, 0);
@@ -160,9 +168,9 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
       if (job->thisNode != n) {
 
         std::cout << "Records0 has : " << plan->records0->size() << '\n';
+
         // go through all the records for set A we have on this node
         auto &seq = setAIdx->sequential;
-
         for(auto t : seq) {
 
           // unpack this
@@ -171,7 +179,7 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
           // get the tid for this record
           _idx.indices[0] = rowID;
           _idx.indices[1] = colID;
-          std::cout << "Checking - record0 | " << rowID << " - " << colID << '\n';
+          //std::cout << "Checking - record0 | " << rowID << " - " << colID << '\n';
           if((*plan->records0).count(_idx)) {
 
             // get the tensor id
@@ -190,7 +198,7 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
               // send the meta
               auto com = (*s->aJoinSideCommunicatorsOut)[n];
 
-              std::cout << "Sending - records0 | " << rowID << " - " << colID << '\n';
+              //std::cout << "Sending - records0 | " << rowID << " - " << colID << '\n';
               com->sendBytes(&_meta, sizeof(_meta), error);
 
               // get the block
@@ -207,16 +215,46 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
 
         // send the meta
         (*s->aJoinSideCommunicatorsOut)[n]->sendBytes(&_meta, sizeof(_meta), error);
-
-        // get the tensor id
-        auto tid = (*plan->records0)[_idx];
-
-        
       }
       else {
 
 
+        // go through all the records for set A we have on this node
+        auto &seq = setAIdx->sequential;
+        for(auto t : seq) {
 
+          // unpack this
+          auto [rowID, colID, page, idx] = t;
+
+          // get the tid for this record
+          _idx.indices[0] = rowID;
+          _idx.indices[1] = colID;
+
+          //std::cout << "Checking - record0 | " << rowID << " - " << colID << '\n';
+          if ((*plan->records0).count(_idx)) {
+
+            // get the block
+            auto data = (*aInputVectors[page])[idx]->data->data->c_ptr();
+
+            // get the tensor id
+            auto tid = (*plan->records0)[_idx];
+
+            // lock to notify all the joins
+            std::unique_lock<std::mutex> lck(m);
+
+            // go through all join records with this tid
+            for(auto j : records_to_join[tid]) {
+
+              to_join[j].a = data;
+              if(to_join[j].b != nullptr && to_join[j].c != nullptr){
+                joined.push_back(j);
+              }
+            }
+
+            // notify that we have something
+            cv.notify_all();
+          }
+        }
       }
 
       // signal that the run was successful
@@ -234,7 +272,11 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&job, &counter, &s, n, &plan, &m, &cv, &records_to_join, &to_join](const PDBBuzzerPtr& callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&job, &counter, &s,
+                                                                       n, &plan, &m,
+                                                                       &cv, &records_to_join,
+                                                                       &to_join,
+                                                                       &joined](const PDBBuzzerPtr& callerBuzzer) {
 
       auto _idx = TRABlockMeta(0, 0);
       meta_t _meta{};
@@ -256,7 +298,7 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
           }
 
           // allocate the memory
-          auto data = (float*) mkl_malloc(_meta.numRows * _meta.numCols * sizeof(float), 32);
+          auto data = (float*) malloc(_meta.numRows * _meta.numCols * sizeof(float));
 
           // get the data
           (*s->aJoinSideCommunicatorsIn)[n]->receiveBytes(data, error);
@@ -268,15 +310,21 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
           // get the tid
           auto tid = (*plan->records0)[_idx];
 
+          // lock to notify all the joins
           std::unique_lock<std::mutex> lck(m);
 
-//          for(auto j : records_to_join[tid]) {
-//              to_join[j].a =
-//          }
-        }
-      }
-      else {
+          // go through all join records with this tid
+          for(auto j : records_to_join[tid]) {
 
+              to_join[j].a = data;
+              if(to_join[j].b != nullptr && to_join[j].c != nullptr){
+                joined.push_back(j);
+              }
+          }
+
+          // notify that we have something
+          cv.notify_all();
+        }
       }
 
       // signal that the run was successful
