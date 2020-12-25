@@ -77,20 +77,27 @@ void pdb::Join3KeyPipeline::runJoin() {
     // get the tid and nod for a
     auto [a_tid, a_node] = a_rec.second;
 
-    // find the matching record
-    auto [b_tid, b_node] = nodeRecords1.find({ a_rec.first.rowID, a_rec.first.colID })->second;
-
     // find all the matches with c
-    for(int32_t i = 0;; ++i) {
+    for(int32_t b_colID = 0;; ++b_colID) {
 
-      // a.colID = c.rowID
-      auto it = nodeRecords2.find({a_rec.first.colID, i});
-      if(it == nodeRecords2.end()) {
+      // a.colID = b.rowID
+      int32_t b_rowID = a_rec.first.colID;
+
+      // try to find it
+      auto it = nodeRecords1.find({b_rowID, b_colID});
+      if (it == nodeRecords1.end()) {
         break;
       }
 
       // get the tid and node
-      auto [c_tid, c_node] = it->second;
+      auto [b_tid, b_node] = it->second;
+
+      // find the matching c record
+      auto[c_tid, c_node] = nodeRecords2.find({ a_rec.first.rowID, b_colID })->second;
+
+      std::cout << "JOIN { (" << a_rec.first.rowID << ", " << a_rec.first.colID << "), " <<
+                          "(" << b_rowID << ", " << b_colID << "), " <<
+                          "(" << a_rec.first.rowID << ", " << b_colID << ") }\n";
 
       // set the tids for the record
       r.first = a_tid;
@@ -98,7 +105,7 @@ void pdb::Join3KeyPipeline::runJoin() {
       r.third = c_tid;
 
       // store that the join group is aggregated into this aggregation group
-      aggregated[{a_rec.first.rowID, i}].push_back(joined.size());
+      aggregated[ { a_rec.first.rowID, b_colID} ].push_back(joined.size());
 
       // insert it
       joined.emplace_back(r);

@@ -193,9 +193,7 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
   std::vector<emitter_row_t> to_join(plan->joinedRecords->size());
 
   // the records to join group
-  std::vector<std::vector<int32_t>> records_to_join(plan->records0->size() +
-      plan->records1->size() +
-      plan->records2->size());
+  std::vector<std::vector<int32_t>> records_to_join(plan->records0->size() + plan->records1->size() + plan->records2->size());
 
   // fill the records
   auto &jr = *plan->joinedRecords;
@@ -232,8 +230,37 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
   setup_set_comm("B", m, cv, counter, joined, records_to_join, to_join, plan, job, storage, state, tempBuzzer);
   setup_set_comm("C", m, cv, counter, joined, records_to_join, to_join, plan, job, storage, state, tempBuzzer);
 
+  //
+  for(int32_t n = 0; n < job->numberOfNodes; ++n) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&m, &cv, &joined](const PDBBuzzerPtr& callerBuzzer) {
+
+      while(true) {
+
+        // wait until we have something here
+        std::unique_lock<std::mutex> lk(m);
+
+        // wait to get some joined records
+        cv.wait(lk, [&]{ return !joined.empty(); });
+
+        std::cout << "Multiply\n";
+
+        // to multiply
+        auto to_mult = joined.back(); joined.pop_back();
+      }
+
+    });
+
+    // run the work
+    worker->execute(myWork, tempBuzzer);
+  }
+
   // wait until all the preaggregationPipelines have completed
-  while (counter < job->numberOfNodes * 6) {
+  while (counter < job->numberOfNodes * 100) {
     tempBuzzer->wait();
   }
 
@@ -283,6 +310,8 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
   std::shared_ptr<std::vector<PDBCommunicatorPtr>> comOUT;
 
   std::function<void(int32_t tid,
+                     int32_t node,
+                     pdb::Vector<int32_t> &join_group_mapping,
                      void *data,
                      std::vector<std::vector<int32_t>> &records_to_join,
                      std::vector<emitter_row_t> &to_join,
@@ -295,15 +324,40 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
     // set the record structure for this set
     records = &(*plan->records0);
 
+//    std::cout << "A : \n";
+//    auto _idx = TRABlockMeta(0, 0);
+//    std::cout << "(0, 0) " << (*records)[_idx] << '\n';
+//
+//    _idx = TRABlockMeta(1, 0);
+//    std::cout << "(1, 0) " << (*records)[_idx] << '\n';
+//
+//    _idx = TRABlockMeta(0, 1);
+//    std::cout << "(0, 1) " << (*records)[_idx] << '\n';
+//
+//    _idx = TRABlockMeta(1, 1);
+//    std::cout << "(1, 1) " << (*records)[_idx] << '\n';
+
     // set the update function for when the tid arrives
     update_to_join = [](int32_t tid,
+                        int32_t node,
+                        pdb::Vector<int32_t> &join_group_mapping,
                         void *data,
                         std::vector<std::vector<int32_t>> &records_to_join,
                         std::vector<emitter_row_t> &to_join,
                         std::vector<int32_t> &joined) {
+
       // go through all join records with this tid
       for(auto j : records_to_join[tid]) {
 
+        // is this join group on our node
+        if(join_group_mapping[j] != node) {
+          continue;
+        }
+
+        assert(data != nullptr);
+
+        std::cout << "Adding A : " << tid << " for " << j << '\n';
+        // ok this is on our node update
         to_join[j].a = data;
         if(to_join[j].b != nullptr && to_join[j].c != nullptr){
           joined.push_back(j);
@@ -319,16 +373,40 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
 
     // set the record structure for this set
     records = &(*plan->records1);
+//
+//    std::cout << "B : \n";
+//    auto _idx = TRABlockMeta(0, 0);
+//    std::cout << "(0, 0) " << (*records)[_idx] << '\n';
+//
+//    _idx = TRABlockMeta(1, 0);
+//    std::cout << "(1, 0) " << (*records)[_idx] << '\n';
+//
+//    _idx = TRABlockMeta(0, 1);
+//    std::cout << "(0, 1) " << (*records)[_idx] << '\n';
+//
+//    _idx = TRABlockMeta(1, 1);
+//    std::cout << "(1, 1) " << (*records)[_idx] << '\n';
+//
+
 
     // set the update function for when the tid arrives
     update_to_join = [](int32_t tid,
+                        int32_t node,
+                        pdb::Vector<int32_t> &join_group_mapping,
                         void *data,
                         std::vector<std::vector<int32_t>> &records_to_join,
                         std::vector<emitter_row_t> &to_join,
                         std::vector<int32_t> &joined) {
+
       // go through all join records with this tid
       for(auto j : records_to_join[tid]) {
 
+        // is this join group on our node
+        if(join_group_mapping[j] != node) {
+          continue;
+        }
+
+        std::cout << "Adding B : " << tid << " for " << j << '\n';
         to_join[j].b = data;
         if(to_join[j].a != nullptr && to_join[j].c != nullptr){
           joined.push_back(j);
@@ -345,8 +423,23 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
     // set the record structure for this set
     records = &(*plan->records2);
 
+//    std::cout << "C : \n";
+//    auto _idx = TRABlockMeta(0, 0);
+//    std::cout << "(0, 0) " << (*records)[_idx] << '\n';
+//
+//    _idx = TRABlockMeta(1, 0);
+//    std::cout << "(1, 0) " << (*records)[_idx] << '\n';
+//
+//    _idx = TRABlockMeta(0, 1);
+//    std::cout << "(0, 1) " << (*records)[_idx] << '\n';
+//
+//    _idx = TRABlockMeta(1, 1);
+//    std::cout << "(1, 1) " << (*records)[_idx] << '\n';
+
     // set the update function for when the tid arrives
     update_to_join = [](int32_t tid,
+                        int32_t node,
+                        pdb::Vector<int32_t> &join_group_mapping,
                         void *data,
                         std::vector<std::vector<int32_t>> &records_to_join,
                         std::vector<emitter_row_t> &to_join,
@@ -355,6 +448,12 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
       // go through all join records with this tid
       for(auto j : records_to_join[tid]) {
 
+        // is this join group on our node
+        if(join_group_mapping[j] != node) {
+          continue;
+        }
+
+        std::cout << "Adding C : " << tid << " for " << j << '\n';
         to_join[j].c = data;
         if(to_join[j].a != nullptr && to_join[j].b != nullptr){
           joined.push_back(j);
@@ -374,7 +473,7 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&job, &counter, &s,
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&job, &counter, &s, set,
                                                                        &setIdx, n, &plan,
                                                                        records,
                                                                        inputVectors,
@@ -391,8 +490,6 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
       std::string error;
 
       if (job->thisNode != n) {
-
-        std::cout << "Records has : " << records->size() << '\n';
 
         // go through all the records for set A we have on this node
         auto &seq = setIdx->sequential;
@@ -468,7 +565,8 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
             std::unique_lock<std::mutex> lck(m);
 
             // update the join
-            update_to_join(tid, data, records_to_join, to_join, joined);
+            //std::cout << "self for set " << set << " | rowID " << rowID << " colID " << colID << " tid : " << tid << '\n' << std::flush;
+            update_to_join(tid, job->thisNode, *plan->join_group_mapping, data, records_to_join, to_join, joined);
 
             // notify that we have something
             cv.notify_all();
@@ -491,7 +589,7 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&job, &counter, s, comIN,
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&job, &counter, s, comIN, set,
                                                                        n, &plan, &m, records,
                                                                        &cv, &records_to_join,
                                                                        &to_join, update_to_join,
@@ -508,9 +606,6 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
           // receive the meta
           (*comIN)[n]->receiveBytes(&_meta, error);
 
-          //
-          std::cout << "received - records | " << _meta.rowID << " colID " << _meta.colID << '\n';
-
           // check if we are done receiving
           if(!_meta.hasMore){
             break;
@@ -523,17 +618,18 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
           (*comIN)[n]->receiveBytes(data, error);
 
           // set the index
-          _idx.indices[0] = _meta.numRows;
-          _idx.indices[1] = _meta.numCols;
+          _idx.indices[0] = _meta.rowID;
+          _idx.indices[1] = _meta.colID;
 
           // get the tid
           auto tid = (*records)[_idx];
+          //std::cout << "received for set " << set << " | rowID : " << _meta.rowID << " colID : " << _meta.colID << " tid : " << tid << '\n' << std::flush;
 
           // lock to notify all the joins
           std::unique_lock<std::mutex> lck(m);
 
           // update the join
-          update_to_join(tid, data, records_to_join, to_join, joined);
+          update_to_join(tid, job->thisNode, *plan->join_group_mapping, data, records_to_join, to_join, joined);
 
           // notify that we have something
           cv.notify_all();

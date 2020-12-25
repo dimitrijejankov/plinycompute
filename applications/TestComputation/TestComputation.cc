@@ -14,8 +14,8 @@ using namespace pdb;
 const size_t blockSize = 64;
 const uint32_t matrixRows = 4000;
 const uint32_t matrixColumns = 4000;
-const uint32_t numRows = 5;
-const uint32_t numCols = 5;
+const uint32_t numRows = 2;
+const uint32_t numCols = 2;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
