@@ -21,6 +21,18 @@ struct emitter_row_t {
   int32_t rowID = -1;
   int32_t colID = -1;
 
+  // a num rows
+  int32_t a_numRows = -1;
+  int32_t a_numCols = -1;
+
+  // b num rows
+  int32_t b_numRows = -1;
+  int32_t b_numCols = -1;
+
+  // a num rows
+  int32_t c_numRows = -1;
+  int32_t c_numCols = -1;
+
   // pointer to the data
   void *a = nullptr;
   void *b = nullptr;

@@ -206,9 +206,10 @@ IF (BISON_FOUND)
 ENDIF ()
 
 # find blas
-set(MKL_ROOT /opt/intel/oneapi/mkl/latest)
+set(MKL_ROOT /opt/intel/system_studio_2020/mkl)
 find_package(MKL)
-INCLUDE_DIRECTORIES(${MKL_INCLUDE_PATH})
+INCLUDE_DIRECTORIES(${MKL_INCLUDE_DIR})
+
 
 #find snappy
 FIND_PACKAGE(Snappy REQUIRED)
@@ -327,7 +328,7 @@ target_link_libraries(pdb-server-common PRIVATE ${SNAPPY_LIBRARY})
 target_link_libraries(pdb-server-common PRIVATE ${CMAKE_DL_LIBS})
 target_link_libraries(pdb-server-common PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(pdb-server-common PRIVATE ${Boost_LIBRARIES})
-target_link_libraries(pdb-server-common PRIVATE ${MKL_LIBRARIES})
+target_link_libraries(pdb-server-common PRIVATE  ${MKL_LIBRARIES})
 
 target_link_libraries(pdb-tests-common PRIVATE ${SNAPPY_LIBRARY})
 target_link_libraries(pdb-tests-common PRIVATE ${CMAKE_DL_LIBS})
@@ -350,7 +351,7 @@ else()
 
     # set the pdb-worker build target
     set(SOURCE_FILES_PDB_CLUSTER ${PROJECT_SOURCE_DIR}/pdb/src/mainServer/source/NodeMain.cc $<TARGET_OBJECTS:logical-plan-parser>)
-    add_executable(pdb-node ${SOURCE_FILES_PDB_CLUSTER})
+    add_executable(pdb-node ${SOURCE_FILES_PDB_CLUSTER} ${MKL_LIBRARIES})
     target_link_libraries(pdb-node pdb-server-common)
 
     # set dependencies for pdb-main
