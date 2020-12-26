@@ -244,12 +244,15 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
     cnt++;
   });
 
-
+  // cache for the sums
   std::mutex cache_m;
   std::condition_variable cache_cv;
-
-  // cache for the sums
   std::map<tuple<uint64_t, uint64_t>, void*> sum_cache;
+
+  // the aggregation sync
+  std::mutex agg_m;
+  std::condition_variable agg_cv;
+  std::vector<tuple<float*, int32_t>> joinToAgg;
 
   for(int32_t n = 0; n < job->numberOfProcessingThreads; ++n) {
 
@@ -258,7 +261,8 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
 
     // make the work
     PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&m, &cv, &job, &joined, &joinCounter,
-                                                            &rippleCounter, &to_join, &sum_cache, &cache_m, &cache_cv](const PDBBuzzerPtr& callerBuzzer) {
+                                                                       &rippleCounter, &to_join, &sum_cache,
+                                                                       &cache_m, &cache_cv, &agg_m, &agg_cv, &joinToAgg](const PDBBuzzerPtr& callerBuzzer) {
 
       while(true) {
 
@@ -272,7 +276,7 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
           cv.wait(lk, [&]{ return !joined.empty() || rippleCounter == job->numberOfNodes * 2 * 3; });
 
           // check if the ripple is done
-          if(rippleCounter == job->numberOfNodes * 2 * 3) {
+          if(rippleCounter == job->numberOfNodes * 2 * 3 && joined.empty()) {
             break;
           }
 
@@ -302,7 +306,7 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
 
           // wait if it is currently being processed
           decltype(sum_cache.begin()) it;
-          cv.wait(lk, [&]{
+          cache_cv.wait(lk, [&]{
 
             // try to find it
             it = sum_cache.find(cache_key);
@@ -347,9 +351,20 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
         // did the multiply
         cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, I, J, K, 1.0f, sum, K, c, J, 0.0f, mult, J);
 
-        std::cout << "Multiply\n";
+        // store it for aggregation
+        {
+          // wait until we have something here
+          std::unique_lock<std::mutex> lk(agg_m);
+
+          // store these to aggregate
+          joinToAgg.emplace_back(mult, to_process);
+          agg_cv.notify_all();
+        }
+
+        //std::cout << "Multiply\n";
       }
 
+      //std::cout << "Mult done finished\n" << std::flush;
       // signal that the run was successful
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, joinCounter);
     });
@@ -358,16 +373,75 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
     worker->execute(myWork, joinBuzzer);
   }
 
+
+  // create the buzzer
+  atomic_int aggCounter;
+  aggCounter = 0;
+  PDBBuzzerPtr aggBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
+
+    // did we fail?
+    if(myAlarm == PDBAlarm::GenericError) {
+      success = false;
+    }
+
+    // increment the count
+    cnt++;
+  });
+
+  // we are aggregating here
+  std::map<tuple<uint64_t, uint64_t>, void*> aggregated;
+
+  // start the aggregation threads
+  for(int32_t n = 0; n < job->numberOfProcessingThreads; ++n) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&aggCounter, &agg_m, &agg_cv, &joinToAgg](const PDBBuzzerPtr& callerBuzzer) {
+
+      while(true) {
+
+        tuple<float*, int32_t> tuple;
+        {
+          // wait until we have something here
+          std::unique_lock<std::mutex> lk(agg_m);
+
+          // wait to get some joined records
+          agg_cv.wait(lk, [&]{ return !joinToAgg.empty(); });
+
+          // the get join tuple to aggregate
+          tuple = joinToAgg.back(); joinToAgg.pop_back();
+        }
+
+        std::cout << "Aggregating...\n";
+      }
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, aggCounter);
+    });
+
+    // run the work
+    worker->execute(myWork, aggBuzzer);
+  }
+
   // wait until all the preaggregationPipelines have completed
   while (rippleCounter < job->numberOfNodes * 2 * 3) {
     rippleBuzzer->wait();
   }
+  std::cout << "Ripple finished\n";
 
   // mark that the ripple is done
   cv.notify_all();
 
+  // wait for the join threads to finish
   while (joinCounter < job->numberOfProcessingThreads) {
     joinBuzzer->wait();
+  }
+
+  //
+  while (aggCounter < job->numberOfProcessingThreads) {
+    aggBuzzer->wait();
   }
 
   return true;
@@ -468,7 +542,7 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
         }
 
         assert(data != nullptr);
-        std::cout << "Adding A : " << tid << " for " << j << '\n';
+        //std::cout << "Adding A : " << tid << " for " << j << '\n';
 
         // ok this is on our node update
         to_join[j].a = data;
@@ -524,7 +598,7 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
           continue;
         }
 
-        std::cout << "Adding B : " << tid << " for " << j << '\n';
+        //std::cout << "Adding B : " << tid << " for " << j << '\n';
         to_join[j].b = data;
         to_join[j].b_numRows = num_rows;
         to_join[j].b_numCols = num_cols;
@@ -576,7 +650,7 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
           continue;
         }
 
-        std::cout << "Adding C : " << tid << " for " << j << '\n';
+        //std::cout << "Adding C : " << tid << " for " << j << '\n';
         to_join[j].c = data;
         to_join[j].c_numRows = num_rows;
         to_join[j].c_numCols = num_cols;
@@ -701,7 +775,7 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
             std::unique_lock<std::mutex> lck(m);
 
             // update the join
-            std::cout << "self for set " << set << " | rowID " << rowID << " colID " << colID << " tid : " << tid << '\n' << std::flush;
+            //std::cout << "self for set " << set << " | rowID " << rowID << " colID " << colID << " tid : " << tid << '\n' << std::flush;
             update_to_join(tid, job->thisNode, _meta.numRows, _meta.numCols, *plan->join_group_mapping, data, records_to_join, to_join, joined);
 
             // notify that we have something
@@ -711,6 +785,7 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
       }
 
       // signal that the run was successful
+      std::cout << "FINISHED S\n" << std::flush;
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
     });
 
@@ -759,7 +834,7 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
 
           // get the tid
           auto tid = (*records)[_idx];
-          std::cout << "received for set " << set << " | rowID : " << _meta.rowID << " colID : " << _meta.colID << " tid : " << tid << '\n' << std::flush;
+          //std::cout << "received for set " << set << " | rowID : " << _meta.rowID << " colID : " << _meta.colID << " tid : " << tid << '\n' << std::flush;
 
           // lock to notify all the joins
           std::unique_lock<std::mutex> lck(m);
@@ -773,6 +848,7 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
       }
 
       // signal that the run was successful
+      std::cout << "FINISHED R\n" << std::flush;
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
     });
 
