@@ -4,6 +4,7 @@
 #include <JoinPlannerResult.h>
 #include <GreedyPlanner3.h>
 #include <TRABlockMeta.h>
+#include <cassert>
 
 pdb::JoinPlanner::JoinPlanner(uint32_t numNodes,
                               uint32_t numThreads,
@@ -72,7 +73,7 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
   out->join_group_mapping = pdb::makeObject<pdb::Vector<int32_t>>(joined.size(), joined.size());
   out->joinedRecords = pdb::makeObject<pdb::Vector<Join3KeyPipeline::joined_record>>(joined.size(), joined.size());
   out->aggMapping = pdb::makeObject<pdb::Vector<int32_t>>(aggGroups.size(), aggGroups.size());
-  out->aggRecords = pdb::makeObject<pdb::Vector<pdb::Vector<int32_t>>>(aggGroups.size(), aggGroups.size());
+  out->aggRecords = pdb::makeObject<pdb::Vector< Handle< pdb::Vector<int32_t>> >>(aggGroups.size(), aggGroups.size());
 
   // zero out the record to node
   bzero(out->record_mapping->c_ptr(), sizeof(bool) * side_tids.size() * numNodes);
@@ -132,8 +133,10 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
     (*out->aggMapping)[i] = node;
 
     // store the aggregation groups
-    for(auto j : aggGroups[i]) {
-      (*out->aggRecords)[i].push_back(j);
+    (*out->aggRecords)[i] = pdb::makeObject< pdb::Vector<int32_t> >(aggGroups[i].size(), aggGroups[i].size());
+    auto &toFill = *(*out->aggRecords)[i];
+    for(auto j = 0; j < aggGroups[i].size(); ++j) {
+      toFill[j] = aggGroups[i][j];
     }
   }
 

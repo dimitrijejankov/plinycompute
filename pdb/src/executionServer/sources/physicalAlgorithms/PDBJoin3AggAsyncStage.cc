@@ -205,6 +205,15 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
     records_to_join[jr[i].third].push_back(i);
   }
 
+  // map each join group to an aggregation group
+  auto &agg = *plan->aggRecords;
+  std::vector<int32_t> aggInto(plan->joinedRecords->size());
+  for(auto a = 0; a < agg.size(); ++a) {
+    for(auto j = 0; j < (*agg[a]).size(); ++j) {
+      aggInto[j] = a;
+    }
+  }
+
   // the joined records
   std::vector<int32_t> joined;
 
@@ -252,7 +261,9 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
   // the aggregation sync
   std::mutex agg_m;
   std::condition_variable agg_cv;
-  std::vector<tuple<float*, int32_t>> joinToAgg;
+
+  //                blob,   join_tid, rowID,  colID
+  std::vector<tuple<float*, int32_t, int32_t, int32_t>> joinToAgg;
 
   for(int32_t n = 0; n < job->numberOfProcessingThreads; ++n) {
 
@@ -357,7 +368,7 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
           std::unique_lock<std::mutex> lk(agg_m);
 
           // store these to aggregate
-          joinToAgg.emplace_back(mult, to_process);
+          joinToAgg.emplace_back(mult, to_process, I, J);
           agg_cv.notify_all();
         }
 
@@ -389,7 +400,7 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
   });
 
   // we are aggregating here
-  std::map<tuple<uint64_t, uint64_t>, void*> aggregated;
+  std::vector<std::tuple<std::mutex, float*>> aggregated(plan->aggRecords->size());
 
   // start the aggregation threads
   for(int32_t n = 0; n < job->numberOfProcessingThreads; ++n) {
@@ -398,20 +409,48 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
     PDBWorkerPtr worker = storage->getWorker();
 
     // make the work
-    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&aggCounter, &agg_m, &agg_cv, &joinToAgg](const PDBBuzzerPtr& callerBuzzer) {
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&aggCounter, &agg_m, &agg_cv, &joinCounter, &job,
+                                                                       &joinToAgg, &aggregated, &aggInto](const PDBBuzzerPtr& callerBuzzer) {
+
 
       while(true) {
 
-        tuple<float*, int32_t> tuple;
+        tuple<float*, int32_t, int32_t, int32_t> tuple;
         {
           // wait until we have something here
           std::unique_lock<std::mutex> lk(agg_m);
 
           // wait to get some joined records
-          agg_cv.wait(lk, [&]{ return !joinToAgg.empty(); });
+          agg_cv.wait(lk, [&]{ return !joinToAgg.empty() || joinCounter == job->numberOfProcessingThreads; });
+
+          // see if we have finished
+          if(joinToAgg.empty() && joinCounter == job->numberOfProcessingThreads) {
+            break;
+          }
 
           // the get join tuple to aggregate
           tuple = joinToAgg.back(); joinToAgg.pop_back();
+        }
+
+        // get the input
+        auto [in, j, numRows, numCols] = tuple;
+        {
+          // lock the aggregated struct
+          auto a = aggInto[j];
+          std::unique_lock<std::mutex> lck(std::get<0>(aggregated[a]));
+
+          // if we don't have anything we cool
+          auto t = std::get<1>(aggregated[a]);
+          if(t == nullptr) {
+            std::get<1>(aggregated[a]) = in;
+          }
+          else {
+
+            // sum it all up
+            for(int32_t i = 0; i < numRows * numCols; ++i) {
+              t[i] += in[i];
+            }
+          }
         }
 
         std::cout << "Aggregating...\n";
@@ -439,10 +478,15 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
     joinBuzzer->wait();
   }
 
+  // mark that the join threads are done
+  agg_cv.notify_all();
+
   //
   while (aggCounter < job->numberOfProcessingThreads) {
     aggBuzzer->wait();
   }
+
+
 
   return true;
 }
