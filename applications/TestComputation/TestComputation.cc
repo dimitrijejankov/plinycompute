@@ -11,11 +11,11 @@
 using namespace pdb;
 
 
-const size_t blockSize = 64;
-const uint32_t matrixRows = 40;
-const uint32_t matrixColumns = 40;
-const uint32_t numRows = 10;
-const uint32_t numCols = 10;
+const size_t blockSize = 128;
+const uint32_t matrixRows = 40000;
+const uint32_t matrixColumns = 40000;
+const uint32_t numRows = 40;
+const uint32_t numCols = 40;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
@@ -153,8 +153,8 @@ int main(int argc, char *argv[]) {
 
   std::chrono::steady_clock::time_point planner_end = std::chrono::steady_clock::now();
   std::cout << "Computation run for "
-            << std::chrono::duration_cast<std::chrono::nanoseconds>(planner_end - planner_begin).count()
-            << "[ns]" << '\n';
+            << (double) std::chrono::duration_cast<std::chrono::nanoseconds>(planner_end - planner_begin).count() / (double) std::chrono::duration_cast<std::chrono::nanoseconds>(1s).count()
+            << "[s]" << '\n';
 
 
   /// 5. Get the set from the
@@ -167,7 +167,7 @@ int main(int argc, char *argv[]) {
     // grab the record
     auto r = it->getNextRecord();
 
-    r->print();
+    //r->print();
 
     count++;
   }
