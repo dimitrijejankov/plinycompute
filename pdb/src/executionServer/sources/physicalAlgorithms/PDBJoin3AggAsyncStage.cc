@@ -262,8 +262,8 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
   std::mutex agg_m;
   std::condition_variable agg_cv;
 
-  //                blob,   join_tid, rowID,  colID
-  std::vector<tuple<float*, int32_t, int32_t, int32_t>> joinToAgg;
+  //                blob,   join_tid,  rowID,   colID,   rowID,   colID
+  std::vector<tuple<float*, int32_t, int32_t, int32_t, int32_t, int32_t>> joinToAgg;
 
   for(int32_t n = 0; n < job->numberOfProcessingThreads; ++n) {
 
@@ -368,11 +368,11 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
           std::unique_lock<std::mutex> lk(agg_m);
 
           // store these to aggregate
-          joinToAgg.emplace_back(mult, to_process, I, J);
+          joinToAgg.emplace_back(mult, to_process, info.rowID, info.colID, I, J);
           agg_cv.notify_all();
-        }
 
-        //std::cout << "Multiply\n";
+          // std::cout << "Multiply rowID : " << info.rowID << ", " << info.colID << "\n" << std::flush;
+        }
       }
 
       //std::cout << "Mult done finished\n" << std::flush;
@@ -399,8 +399,8 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
     cnt++;
   });
 
-  // we are aggregating here
-  std::vector<std::tuple<std::mutex, float*>> aggregated(plan->aggRecords->size());
+  // we are aggregating here                      data,   rowID,   colID, numRows, numCols
+  std::vector<std::tuple<std::mutex, std::tuple<float*, int32_t, int32_t, int32_t, int32_t>  >> aggregated(plan->aggRecords->size());
 
   // start the aggregation threads
   for(int32_t n = 0; n < job->numberOfProcessingThreads; ++n) {
@@ -415,7 +415,7 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
 
       while(true) {
 
-        tuple<float*, int32_t, int32_t, int32_t> tuple;
+        tuple<float*, int32_t, int32_t, int32_t, int32_t, int32_t> tuple;
         {
           // wait until we have something here
           std::unique_lock<std::mutex> lk(agg_m);
@@ -433,7 +433,7 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
         }
 
         // get the input
-        auto [in, j, numRows, numCols] = tuple;
+        auto [in, j, rowID, colID, numRows, numCols] = tuple;
         {
           // lock the aggregated struct
           auto a = aggInto[j];
@@ -441,19 +441,19 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
 
           // if we don't have anything we cool
           auto t = std::get<1>(aggregated[a]);
-          if(t == nullptr) {
-            std::get<1>(aggregated[a]) = in;
+          if(std::get<0>(t) == nullptr) {
+            std::get<1>(aggregated[a]) = {in, rowID, colID, numRows, numCols};
           }
           else {
 
             // sum it all up
             for(int32_t i = 0; i < numRows * numCols; ++i) {
-              t[i] += in[i];
+              std::get<0>(t)[i] += in[i];
             }
           }
+          std::cout << "Aggregating " << a << "...\n";
         }
 
-        std::cout << "Aggregating...\n";
       }
 
       // signal that the run was successful
@@ -486,7 +486,131 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
     aggBuzzer->wait();
   }
 
+  // make a random access page set
+  auto outTmp = std::dynamic_pointer_cast<pdb::PDBRandomAccessPageSet>(storage->createRandomAccessPageSet({0, "outTmp"}));
 
+  // create the buzzer
+  atomic_int matCounter;
+  matCounter = 0;
+  PDBBuzzerPtr matBuzzer = make_shared<PDBBuzzer>([&](PDBAlarm myAlarm, atomic_int &cnt) {
+
+    // did we fail?
+    if(myAlarm == PDBAlarm::GenericError) {
+      success = false;
+    }
+
+    // increment the count
+    cnt++;
+  });
+
+
+  // start the aggregation threads
+  atomic_int32_t toProcessGroup = 0;
+  std::mutex sync;
+
+  auto myMgr = storage->getFunctionalityPtr<PDBBufferManagerInterface>();
+  for(int32_t n = 0; n < job->numberOfProcessingThreads; ++n) {
+
+    // get a worker from the server
+    PDBWorkerPtr worker = storage->getWorker();
+
+    // make the work
+    PDBWorkPtr myWork = std::make_shared<pdb::GenericWork>([&outTmp, &matCounter, &myMgr, &aggregated, &toProcessGroup, &sync](const PDBBuzzerPtr& callerBuzzer) {
+
+      // get a new page
+      auto currentPage = myMgr->getPage();
+      makeObjectAllocatorBlock(currentPage->getBytes(), currentPage->getSize(), true);
+
+      // is there stuff on the page
+      bool stuffOnPage = false;
+
+      // make the vector we write to
+      int32_t curGroup = -1;
+      Handle<Vector<Handle<pdb::TRABlock>>> writeMe = makeObject<Vector<Handle<pdb::TRABlock>>>();
+      while (true) {
+
+        // grab a new group to process if needed
+        if(curGroup == -1) {
+
+          // grab the group we want to process
+          curGroup = toProcessGroup++;
+        }
+
+        sync.lock();
+        std::cout << "Materializing " << curGroup << '\n';
+        sync.unlock();
+
+        // break if we are done
+        if(curGroup > aggregated.size()) {
+          break;
+        }
+
+        // get the info about the group
+        auto [data, rowID, colID, numRows, numCols] = std::get<1>(aggregated[curGroup]);
+
+        try {
+
+          // allocate a matrix
+          Handle<TRABlock> myInt = makeObject<TRABlock>(rowID, colID, numRows, numCols);
+
+          // store it
+          writeMe->push_back(myInt);
+
+          // copy the data
+          memccpy(myInt->data->data->c_ptr(), data, sizeof(float), numRows * numCols);
+
+          // mark that there is stuff on the page
+          stuffOnPage = true;
+
+          // set that we need to fetch a new aggregation group
+          curGroup = -1;
+
+        } catch (pdb::NotEnoughSpace &n) {
+
+          // make this the root object
+          getRecord(writeMe);
+
+          // store the page
+          outTmp->pushPage(currentPage);
+
+          // grab a new page
+          stuffOnPage = false;
+          currentPage = myMgr->getPage();
+          makeObjectAllocatorBlock(currentPage->getBytes(), currentPage->getSize(), true);
+
+          // make a new vector!
+          writeMe = makeObject<Vector<Handle<pdb::TRABlock>>>();
+        }
+      }
+
+      // is there some stuff on the page
+      if(stuffOnPage) {
+
+        // make this the root object
+        getRecord(writeMe);
+
+        // insert into page into the page set
+        outTmp->pushPage(currentPage);
+      }
+
+      // invalidate the block
+      makeObjectAllocatorBlock(1024, true);
+
+      // signal that the run was successful
+      callerBuzzer->buzz(PDBAlarm::WorkAllDone, matCounter);
+    });
+
+    // run the work
+    worker->execute(myWork, matBuzzer);
+  }
+
+  while (matCounter < job->numberOfProcessingThreads) {
+    matBuzzer->wait();
+  }
+
+  // materialize the page set
+  outTmp->resetPageSet();
+  storage->materializePageSet(outTmp, std::make_pair<std::string, std::string>("myData", "D"));
 
   return true;
 }
@@ -535,6 +659,8 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
 
   std::function<void(int32_t tid,
                      int32_t node,
+                     int32_t rowID,
+                     int32_t colID,
                      int32_t num_rows,
                      int32_t num_cols,
                      pdb::Vector<int32_t> &join_group_mapping,
@@ -566,6 +692,8 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
     // set the update function for when the tid arrives
     update_to_join = [](int32_t tid,
                         int32_t node,
+                        int32_t rowID,
+                        int32_t colID,
                         int32_t num_rows,
                         int32_t num_cols,
                         pdb::Vector<int32_t> &join_group_mapping,
@@ -592,6 +720,7 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
         to_join[j].a = data;
         to_join[j].a_numRows = num_rows;
         to_join[j].a_numCols = num_cols;
+        to_join[j].rowID = rowID;
 
         if(to_join[j].b != nullptr && to_join[j].c != nullptr){
           joined.push_back(j);
@@ -626,6 +755,8 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
     // set the update function for when the tid arrives
     update_to_join = [](int32_t tid,
                         int32_t node,
+                        int32_t rowID,
+                        int32_t colID,
                         int32_t num_rows,
                         int32_t num_cols,
                         pdb::Vector<int32_t> &join_group_mapping,
@@ -678,6 +809,8 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
     // set the update function for when the tid arrives
     update_to_join = [](int32_t tid,
                         int32_t node,
+                        int32_t rowID,
+                        int32_t colID,
                         int32_t num_rows,
                         int32_t num_cols,
                         pdb::Vector<int32_t> &join_group_mapping,
@@ -698,6 +831,7 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
         to_join[j].c = data;
         to_join[j].c_numRows = num_rows;
         to_join[j].c_numCols = num_cols;
+        to_join[j].colID = colID;
 
         if(to_join[j].a != nullptr && to_join[j].b != nullptr){
           joined.push_back(j);
@@ -820,7 +954,7 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
 
             // update the join
             //std::cout << "self for set " << set << " | rowID " << rowID << " colID " << colID << " tid : " << tid << '\n' << std::flush;
-            update_to_join(tid, job->thisNode, _meta.numRows, _meta.numCols, *plan->join_group_mapping, data, records_to_join, to_join, joined);
+            update_to_join(tid, job->thisNode, rowID, colID, _meta.numRows, _meta.numCols, *plan->join_group_mapping, data, records_to_join, to_join, joined);
 
             // notify that we have something
             cv.notify_all();
@@ -884,7 +1018,7 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
           std::unique_lock<std::mutex> lck(m);
 
           // update the join
-          update_to_join(tid, job->thisNode, _meta.numRows, _meta.numCols, *plan->join_group_mapping, data, records_to_join, to_join, joined);
+          update_to_join(tid, job->thisNode, _meta.rowID, _meta.colID, _meta.numRows, _meta.numCols, *plan->join_group_mapping, data, records_to_join, to_join, joined);
 
           // notify that we have something
           cv.notify_all();
