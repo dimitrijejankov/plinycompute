@@ -210,7 +210,8 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
   std::vector<int32_t> aggInto(plan->joinedRecords->size());
   for(auto a = 0; a < agg.size(); ++a) {
     for(auto j = 0; j < (*agg[a]).size(); ++j) {
-      aggInto[j] = a;
+      auto tj = (*agg[a])[j];
+      aggInto[tj] = a;
     }
   }
 
@@ -401,6 +402,9 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
 
   // we are aggregating here                      data,   rowID,   colID, numRows, numCols
   std::vector<std::tuple<std::mutex, std::tuple<float*, int32_t, int32_t, int32_t, int32_t>  >> aggregated(plan->aggRecords->size());
+  for(auto &t : aggregated) {
+    get<0>(get<1>(t)) = nullptr;
+  }
 
   // start the aggregation threads
   for(int32_t n = 0; n < job->numberOfProcessingThreads; ++n) {
@@ -451,7 +455,6 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
               std::get<0>(t)[i] += in[i];
             }
           }
-          std::cout << "Aggregating " << a << "...\n";
         }
 
       }
@@ -536,17 +539,22 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
           curGroup = toProcessGroup++;
         }
 
-        sync.lock();
-        std::cout << "Materializing " << curGroup << '\n';
-        sync.unlock();
-
         // break if we are done
-        if(curGroup > aggregated.size()) {
+        if(curGroup >= aggregated.size()) {
           break;
         }
 
         // get the info about the group
         auto [data, rowID, colID, numRows, numCols] = std::get<1>(aggregated[curGroup]);
+
+        if(data == nullptr) {
+          curGroup = -1;
+          continue;
+        }
+
+        sync.lock();
+        std::cout << "Materializing " << rowID << " " << colID << " " << numRows << " " << numCols << " " << curGroup << '\n';
+        sync.unlock();
 
         try {
 
@@ -557,7 +565,7 @@ bool pdb::PDBJoin3AggAsyncStage::run(const pdb::Handle<pdb::ExJob> &job,
           writeMe->push_back(myInt);
 
           // copy the data
-          memccpy(myInt->data->data->c_ptr(), data, sizeof(float), numRows * numCols);
+          memmove(myInt->data->data->c_ptr(), data, sizeof(float) * numRows * numCols);
 
           // mark that there is stuff on the page
           stuffOnPage = true;
@@ -963,7 +971,6 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
       }
 
       // signal that the run was successful
-      std::cout << "FINISHED S\n" << std::flush;
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
     });
 
@@ -1026,7 +1033,6 @@ void pdb::PDBJoin3AggAsyncStage::setup_set_comm(const std::string &set,
       }
 
       // signal that the run was successful
-      std::cout << "FINISHED R\n" << std::flush;
       callerBuzzer->buzz(PDBAlarm::WorkAllDone, counter);
     });
 

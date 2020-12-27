@@ -96,8 +96,6 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
     (*out->joinedRecords)[jg].second = record.second;
     (*out->joinedRecords)[jg].third = record.third;
 
-    std::cout << "Joining A : " << record.first << " B : " << record.second << " C : " << record.third << " TID : " << jg << " on "<< node <<'\n';
-
     // do the record to node join_group_mapping
     (*out->record_mapping)[record.first * numNodes + node] = true;
     (*out->record_mapping)[record.second * numNodes + node] = true;
@@ -106,19 +104,16 @@ void pdb::JoinPlanner::doPlanning(const PDBPageHandle &page) {
 
   // copy the records for A with tid mappings
   for(auto &r : nodeRecords0) {
-    std::cout << "For set A - rowID : " << r.first.rowID << " colID : " << r.first.colID << " tid : " << r.second.first << '\n';
     (*out->records0)[TRABlockMeta(r.first.rowID, r.first.colID)] = r.second.first;
   }
 
   // copy the records for B with tid mappings
   for(auto &r : nodeRecords1) {
-    std::cout << "For set B - rowID : " << r.first.rowID << " colID : " << r.first.colID << " tid : " << r.second.first << '\n';
     (*out->records1)[TRABlockMeta(r.first.rowID, r.first.colID)] = r.second.first;
   }
 
   // copy the records for C with tid mappings
   for(auto &r : nodeRecords2) {
-    std::cout << "For set C - rowID : " << r.first.rowID << " colID : " << r.first.colID << " tid : " << r.second.first << '\n';
     (*out->records2)[TRABlockMeta(r.first.rowID, r.first.colID)] = r.second.first;
   }
 

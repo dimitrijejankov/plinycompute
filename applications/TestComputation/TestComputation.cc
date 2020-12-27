@@ -12,10 +12,10 @@ using namespace pdb;
 
 
 const size_t blockSize = 64;
-const uint32_t matrixRows = 4000;
-const uint32_t matrixColumns = 4000;
-const uint32_t numRows = 4;
-const uint32_t numCols = 4;
+const uint32_t matrixRows = 40;
+const uint32_t matrixColumns = 40;
+const uint32_t numRows = 10;
+const uint32_t numCols = 10;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
@@ -56,7 +56,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
         // init the values
         float *vals = myInt->data->data->c_ptr();
         for (int v = 0; v < (matrixRows / numRows) * (matrixColumns / numCols); ++v) {
-          vals[v] = 1.0f * v;
+          vals[v] = 1.0f;
         }
 
         // we add the matrix to the block
@@ -166,6 +166,9 @@ int main(int argc, char *argv[]) {
 
     // grab the record
     auto r = it->getNextRecord();
+
+    r->print();
+
     count++;
   }
 

@@ -100,10 +100,6 @@ void pdb::Join3KeyPipeline::runJoin() {
       // find the matching c record
       auto[c_tid, c_node] = it->second;
 
-      std::cout << "JOIN { (" << a_rec.first.rowID << ", " << a_rec.first.colID << "), " <<
-                          "(" << b_rowID << ", " << b_colID << "), " <<
-                          "(" << c_rowID << ", " << c_colID << ") }\n";
-
       // set the tids for the record
       r.first = a_tid;
       r.second = b_tid;
