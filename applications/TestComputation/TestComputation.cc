@@ -11,7 +11,7 @@
 using namespace pdb;
 
 
-const size_t blockSize = 128;
+const size_t blockSize = 64;
 const uint32_t matrixRows = 40000;
 const uint32_t matrixColumns = 40000;
 const uint32_t numRows = 40;
@@ -40,7 +40,7 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
     try {
 
       // put stuff into the vector
-      int n = 4;
+      int n = 999;
       for(; i < tuplesToSend.size(); ++i) {
 
         n--;
@@ -87,9 +87,9 @@ int main(int argc, char *argv[]) {
   /// 1. Register the classes
 
   // now, register a type for user data
-  pdbClient.registerType("libraries/libMatrixBlock.so");
-  pdbClient.registerType("libraries/libMatrixBlockData.so");
-  pdbClient.registerType("libraries/libMatrixBlockMeta.so");
+  //pdbClient.registerType("libraries/libMatrixBlock.so");
+  //pdbClient.registerType("libraries/libMatrixBlockData.so");
+  //pdbClient.registerType("libraries/libMatrixBlockMeta.so");
   pdbClient.registerType("libraries/libMatrixMultiplyAggregation.so");
   pdbClient.registerType("libraries/libMatrixMultiplyJoin.so");
   pdbClient.registerType("libraries/libMatrixSumJoin.so");

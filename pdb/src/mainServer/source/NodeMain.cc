@@ -36,7 +36,7 @@
 #include <random>
 
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
+namespace fss = boost::filesystem;
 using namespace pdb;
 
 void writeBytes(int fileName, int pageNum, int pageSize, char *toMe) {
@@ -121,15 +121,15 @@ int main(int argc, char *argv[]) {
   }
 
   // create the root directory
-  fs::path rootPath(config->rootDirectory);
-  if(!fs::exists(rootPath) && !fs::create_directories(rootPath)) {
+  fss::path rootPath(config->rootDirectory);
+  if(!fss::exists(rootPath) && !fss::create_directories(rootPath)) {
     std::cout << "Failed to create the root directory!\n";
   }
 
   // init other parameters
-  config->ipcFile = fs::path(config->rootDirectory).append("/ipcFile").string();
-  config->backendIpcFile = fs::path(config->rootDirectory).append("/backendIpcFile").string();
-  config->catalogFile = fs::path(config->rootDirectory).append("/catalog").string();
+  config->ipcFile = fss::path(config->rootDirectory).append("/ipcFile").string();
+  config->backendIpcFile = fss::path(config->rootDirectory).append("/backendIpcFile").string();
+  config->catalogFile = fss::path(config->rootDirectory).append("/catalog").string();
   config->maxConnections = 200;
 
   // init the storage manager, this has to be done before the fork!
@@ -216,3 +216,4 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
+

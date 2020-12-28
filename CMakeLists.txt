@@ -351,7 +351,7 @@ else()
 
     # set the pdb-worker build target
     set(SOURCE_FILES_PDB_CLUSTER ${PROJECT_SOURCE_DIR}/pdb/src/mainServer/source/NodeMain.cc $<TARGET_OBJECTS:logical-plan-parser>)
-    add_executable(pdb-node ${SOURCE_FILES_PDB_CLUSTER} ${MKL_LIBRARIES})
+    add_executable(pdb-node ${SOURCE_FILES_PDB_CLUSTER})
     target_link_libraries(pdb-node pdb-server-common)
 
     # set dependencies for pdb-main

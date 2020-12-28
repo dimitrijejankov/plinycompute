@@ -42,9 +42,61 @@ inline String::String() {
     c_str()[0] = 0;
 }
 
+// does a bunch of bit twiddling to compute a hash of an int
+inline unsigned int newHash2(unsigned int x) {
+  x = ((x >> 16) ^ x) * 0x45d9f3b;
+  x = ((x >> 16) ^ x) * 0x45d9f3b;
+  x = (x >> 16) ^ x;
+  return x;
+}
+
+
+// computes a hash over an input character array
+inline size_t hashMe2(char* me, size_t len) {
+  size_t code = 0;
+#ifndef HASH_FOR_TPCH
+  for (int i = 0; i < len; i += 8) {
+
+    int low = 0;
+    int high = 0;
+
+    for (int j = 0; j < 4; j++) {
+      if (i + j < len) {
+        low += (me[i + j] & 0xFF) << (8 * j);
+      } else {
+        low += 123 << (8 * j);
+      }
+    }
+
+    if (len <= 4)
+      high = low;
+    else {
+      for (int j = 4; j < 8; j++) {
+        if (i + j < len) {
+          high += (me[i + j] & 0xFF) << (8 * (j - 3));
+        } else {
+          high += 97 << (8 * (j - 3));
+        }
+      }
+    }
+
+    size_t returnVal = ((size_t)newHash2(high)) << 32;
+    returnVal += newHash2(low) & 0xFFFFFFFF;
+    code = code ^ returnVal;
+  }
+#else
+  for (int i = 0; i < len; i++) {
+        code = 31 * code + me[i];
+    }
+
+#endif
+  return code;
+}
+
+
 inline size_t String::hash() const {
 
-    return hashMe(c_str(), size() - 1);
+    return hashMe2(c_str(), size() - 1);
 }
 
 inline String& String::operator=(const char* toMe) {
@@ -243,3 +295,4 @@ inline bool String::endsWith(const std::string& suffix) {
 }
 
 #endif
+
