@@ -11,12 +11,12 @@ using namespace pdb;
 using namespace pdb::matrix;
 
 // some constants for the test
-const size_t blockSize = 64;
-const uint32_t matrixRows = 400;
-const uint32_t matrixColumns = 400;
-const uint32_t numRows = 4;
-const uint32_t numCols = 4;
-const bool doNotPrint = false;
+size_t blockSize = 128;
+uint32_t matrixRows = 400;
+uint32_t matrixColumns = 400;
+uint32_t numRows = 4;
+uint32_t numCols = 4;
+const bool doNotPrint = true;
 
 void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
@@ -80,6 +80,17 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set) {
 
 int main(int argc, char *argv[]) {
 
+  std::cout << "block \n";
+  std::cin >> blockSize;
+  std::cout << "rows : \n";
+  std::cin >> matrixRows;
+  std::cout << "cols : \n";
+  std::cin >> matrixColumns;
+  std::cout << "r split : \n";
+  std::cin >> numRows;
+  std::cout << "c split : \n";
+  std::cin >> numCols;
+
   // make a client
   pdb::PDBClient pdbClient(8108, "localhost");
 
@@ -126,13 +137,42 @@ int main(int argc, char *argv[]) {
   Handle<Computation> myWriter = makeObject<TensorWriter>("myData", "C");
   myWriter->setInput(myAggregation);
 
-  pdbClient.shuffle("myData:A", {1}, "AShuffled");
-  pdbClient.shuffle("myData:B", {0}, "BShuffled");
-  pdbClient.localJoin("AShuffled", {1}, "BShuffled", {0}, { myWriter }, "ABJoined",
-                      "OutForJoinedFor_equals_0JoinComp2", "OutFor_joinRec_5JoinComp2");
-  pdbClient.shuffle("ABJoined", {0, 1}, "ABJoinedShuffled");
-  pdbClient.localAggregation("ABJoinedShuffled", {0, 1},  "Final");
-  pdbClient.materialize("myData", "C", "Final");
+  
+std::chrono::steady_clock::time_point shuffle1_begin = std::chrono::steady_clock::now();
+pdbClient.shuffle("myData:A", {1}, "AShuffled");
+std::chrono::steady_clock::time_point shuffle1_end = std::chrono::steady_clock::now();
+
+std::chrono::steady_clock::time_point shuffle2_begin = std::chrono::steady_clock::now();
+pdbClient.shuffle("myData:B", {0}, "BShuffled");
+std::chrono::steady_clock::time_point shuffle2_end = std::chrono::steady_clock::now();
+
+std::chrono::steady_clock::time_point join_begin = std::chrono::steady_clock::now();
+pdbClient.localJoin("AShuffled", {1}, "BShuffled", {0}, { myWriter }, "ABJoined",
+              "OutForJoinedFor_equals_0JoinComp2", "OutFor_joinRec_5JoinComp2");
+std::chrono::steady_clock::time_point join_end = std::chrono::steady_clock::now();
+
+
+std::chrono::steady_clock::time_point shuffle3_begin = std::chrono::steady_clock::now();
+pdbClient.shuffle("ABJoined", {0, 1}, "ABJoinedShuffled");
+std::chrono::steady_clock::time_point shuffle3_end = std::chrono::steady_clock::now();
+
+std::chrono::steady_clock::time_point agg_begin = std::chrono::steady_clock::now();
+pdbClient.localAggregation("ABJoinedShuffled", {0, 1},  "Final");
+std::chrono::steady_clock::time_point agg_end = std::chrono::steady_clock::now();
+
+std::chrono::steady_clock::time_point mat_begin = std::chrono::steady_clock::now();
+pdbClient.materialize("myData", "C", "Final");
+std::chrono::steady_clock::time_point mat_end = std::chrono::steady_clock::now();
+
+
+std::cout << "Computation run shuffle1 for " << (double) std::chrono::duration_cast<std::chrono::nanoseconds>(shuffle1_end - shuffle1_begin).count() / (double) std::chrono::duration_cast<std::chrono::nanoseconds>(1s).count() << "[s]" << '\n';
+std::cout << "Computation run shuffle2 for " << (double) std::chrono::duration_cast<std::chrono::nanoseconds>(shuffle2_end - shuffle2_begin).count() / (double) std::chrono::duration_cast<std::chrono::nanoseconds>(1s).count() << "[s]" << '\n';
+std::cout << "Computation run join for " << (double) std::chrono::duration_cast<std::chrono::nanoseconds>(join_end - join_begin).count() / (double) std::chrono::duration_cast<std::chrono::nanoseconds>(1s).count() << "[s]" << '\n';
+std::cout << "Computation run shuffle3 for " << (double) std::chrono::duration_cast<std::chrono::nanoseconds>(shuffle3_end - shuffle3_begin).count() / (double) std::chrono::duration_cast<std::chrono::nanoseconds>(1s).count() << "[s]" << '\n';
+std::cout << "Computation run agg for " << (double) std::chrono::duration_cast<std::chrono::nanoseconds>(agg_end - agg_begin).count() / (double) std::chrono::duration_cast<std::chrono::nanoseconds>(1s).count() << "[s]" << '\n';
+std::cout << "Computation run mat for " << (double) std::chrono::duration_cast<std::chrono::nanoseconds>(mat_end - mat_begin).count() / (double) std::chrono::duration_cast<std::chrono::nanoseconds>(1s).count() << "[s]" << '\n';
+std::cout << "Computation run total for " << (double) std::chrono::duration_cast<std::chrono::nanoseconds>(mat_end - shuffle1_begin).count() / (double) std::chrono::duration_cast<std::chrono::nanoseconds>(1s).count() << "[s]" << '\n';
+
 
   // grab the iterator
   auto it = pdbClient.getSetIterator<TRABlock>("myData", "C");
@@ -141,7 +181,7 @@ int main(int argc, char *argv[]) {
 
     // grab the record
     auto r = it->getNextRecord();
-    r->print();
+    //r->print();
     count++;
   }
 

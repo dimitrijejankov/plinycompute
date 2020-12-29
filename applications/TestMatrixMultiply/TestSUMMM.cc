@@ -14,8 +14,8 @@ using namespace pdb::matrix;
 // some constants for the test
 const size_t blockSize = 64;
 
-const uint32_t n = 5000;
-const uint32_t n_block = 1000;
+const uint32_t n = 40000;
+uint32_t n_block = 2000;
 
 const bool doNotPrint = true;
 
@@ -85,6 +85,8 @@ void initMatrix(pdb::PDBClient &pdbClient, const std::string &set,
 }
 
 int main(int argc, char* argv[]) {
+
+  std::cin >> n_block;
 
   // make a client
   pdb::PDBClient pdbClient(8108, "localhost");
