@@ -16,19 +16,20 @@ PDBPipelineType pdb::PDBJoinPhysicalNode::getType() {
 
 bool pdb::PDBJoinPhysicalNode::canMergeJoinToAggregation() {
 
-  // just grab the ptr for the other side
-  auto otherSidePtr = (PDBJoinPhysicalNode*) otherSide.lock().get();
-
-  // in order for a join to be mergeable into an aggregation the following has to hold.
-  // the next pipe has to be an aggregation.
-  // the next pipe has to support keying
-  // this pipe has to support keying
-  // the other side of the join has to support keying
-  // the left and right side of the join have to have few large records with small keys, compared to the records.
-  return consumers.front()->isKeyed() &&
-         isKeyed() &&
-         otherSidePtr->isKeyed() &&
-         consumers.front()->getType() == PDB_AGGREGATION_PIPELINE;
+  return false;
+//  // just grab the ptr for the other side
+//  auto otherSidePtr = (PDBJoinPhysicalNode*) otherSide.lock().get();
+//
+//  // in order for a join to be mergeable into an aggregation the following has to hold.
+//  // the next pipe has to be an aggregation.
+//  // the next pipe has to support keying
+//  // this pipe has to support keying
+//  // the other side of the join has to support keying
+//  // the left and right side of the join have to have few large records with small keys, compared to the records.
+//  return consumers.front()->isKeyed() &&
+//         isKeyed() &&
+//         otherSidePtr->isKeyed() &&
+//         consumers.front()->getType() == PDB_AGGREGATION_PIPELINE;
 }
 
 pdb::PDBPlanningResult pdb::PDBJoinPhysicalNode::generateAlgorithm(PDBAbstractPhysicalNodePtr &child,
