@@ -7,6 +7,7 @@
 #include "sharedLibraries/headers/BCMMAggregation.h"
 #include "sharedLibraries/headers/TensorWriter.h"
 #include "sharedLibraries/headers/MatrixSumJoin.h"
+#include "sharedLibraries/headers/IdentSelection.h"
 
 using namespace pdb;
 using namespace pdb::matrix;
@@ -97,6 +98,7 @@ int main(int argc, char* argv[]) {
   pdbClient.registerType("libraries/libMatrixSumJoin.so");
   pdbClient.registerType("libraries/libTensorScanner.so");
   pdbClient.registerType("libraries/libTensorWriter.so");
+  pdbClient.registerType("libraries/libIdentSelection.so");
 
   /// 2. Create the set
 
@@ -133,7 +135,7 @@ int main(int argc, char* argv[]) {
     Handle <Computation> join = makeObject <MatrixSumJoin>();
     join->setInput(0, readA);
     join->setInput(1, readB);
-    Handle<Computation> myAggregation = makeObject<BCMMAggregation>();
+    Handle<Computation> myAggregation = makeObject<IdentSelection>();
     myAggregation->setInput(join);
     Handle<Computation> myWriter = makeObject<TensorWriter>("myData", "TMP");
     myWriter->setInput(myAggregation);
