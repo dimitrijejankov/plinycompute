@@ -12,7 +12,12 @@
 #include "sharedLibraries/headers/FFSelectionGradient2.h"
 #include "sharedLibraries/headers/FFGradientJoin.h"
 #include "sharedLibraries/headers/FFUpdateJoin.h"
+#include "sharedLibraries/headers/FFInputLayerJoinSparse.h"
+#include "sharedLibraries/headers/FFSparseBlock.h"
+#include "sharedLibraries/headers/FFSparseMatrixScanner.h"
 #include "sharedLibraries/headers/FFJoinBackMultTranspose.h"
+#include "sharedLibraries/headers/FFSelectionSparsify.h"
+#include "sharedLibraries/headers/FFSparseMatrixWriter.h"
 
 using namespace pdb;
 
@@ -553,12 +558,21 @@ int main(int argc, char *argv[]) {
   pdbClient.registerType("libraries/libFFSelectionGradient2.so");
   pdbClient.registerType("libraries/libFFUpdateJoin.so");
 
+  // register the sparse stuff
+  pdbClient.registerType("libraries/libFFInputLayerJoinSparse.so");
+  pdbClient.registerType("libraries/libFFSelectionSparsify.so");
+  pdbClient.registerType("libraries/libFFSparseBlockData.so");
+  pdbClient.registerType("libraries/libMatrixSparseBlock.so");
+  pdbClient.registerType("libraries/libFFSparseMatrixWriter.so");
+  pdbClient.registerType("libraries/libFFSparseMatrixScanner.so");
+
 
   // now, create a new database
   pdbClient.createDatabase("ff");
 
   // now, create the input and output sets
   pdbClient.createSet<ff::FFMatrixBlock>("ff", "input_batch");
+  pdbClient.createSet<ff::FFSparseBlock>("ff", "input_batch_sparse");
   pdbClient.createSet<ff::FFMatrixBlock>("ff", "output_labels");
   pdbClient.createSet<ff::FFMatrixBlock>("ff", "w1");
   pdbClient.createSet<ff::FFMatrixBlock>("ff", "w2");
@@ -635,17 +649,39 @@ int main(int argc, char *argv[]) {
 
   std::chrono::steady_clock::time_point planner_begin = std::chrono::steady_clock::now();
 
+  // sparsify begin
+  std::chrono::steady_clock::time_point sparsify_begin = std::chrono::steady_clock::now();
+  {
+    const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
+
+    // make the computation
+    Handle<Computation> readA = makeObject<ff::FFMatrixScanner>("ff", "input_batch");
+
+    // do a sparse read of A
+    Handle<Computation> sparseSelect = makeObject<ff::FFSelectionSparsify>();
+    sparseSelect->setInput(readA);
+
+    // make the writer
+    Handle<Computation> myWriter = makeObject<ff::FFSparseMatrixWriter>("ff", "input_batch_sparse");
+    myWriter->setInput(sparseSelect);
+
+    // run the computation
+    bool success = pdbClient.executeComputations({ myWriter });
+  }
+  std::chrono::steady_clock::time_point sparsify_end = std::chrono::steady_clock::now();
+  std::cout << "Run sparsify for " << std::chrono::duration_cast<std::chrono::nanoseconds>(sparsify_end - sparsify_begin).count() << "[ns]" << '\n';
+
   // do the activation of the first layer
   std::chrono::steady_clock::time_point stage_begin = std::chrono::steady_clock::now();
   {
     const UseTemporaryAllocationBlock tempBlock{1024 * 1024 * 128};
 
     // make the computation
-    Handle<Computation> readA = makeObject<ff::FFMatrixScanner>("ff", "input_batch");
+    Handle<Computation> readA = makeObject<ff::FFSparseMatrixScanner>("ff", "input_batch_sparse");
     Handle<Computation> readB = makeObject<ff::FFMatrixScanner>("ff", "w1");
 
     // make the join
-    Handle<Computation> join = makeObject<ff::FFInputLayerJoin>();
+    Handle<Computation> join = makeObject<ff::FFInputLayerJoinSparse>();
     join->setInput(0, readA);
     join->setInput(1, readB);
 
