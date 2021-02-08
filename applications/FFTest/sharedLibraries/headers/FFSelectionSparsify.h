@@ -84,9 +84,16 @@ public:
         }
       }
 
+      if(nnz == 0) {
+        rows.emplace_back(0);
+        cols.emplace_back(0);
+        vals.emplace_back(0.0000000000000000000000001f);
+        nnz = 1;
+      }
+
       // create the coo version of the matrix
       sparse_matrix_t cooMatrix;
-      mkl_sparse_s_create_coo(&cooMatrix, SPARSE_INDEX_BASE_ZERO, numRows, numCols, nnz, rows.data(), cols.data(), vals.data());
+      auto ret = mkl_sparse_s_create_coo(&cooMatrix, SPARSE_INDEX_BASE_ZERO, numRows, numCols, nnz, rows.data(), cols.data(), vals.data());
 
       // convert the csr
       sparse_matrix_t csrMatrix;
